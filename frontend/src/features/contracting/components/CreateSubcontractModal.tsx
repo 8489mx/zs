@@ -10,7 +10,8 @@ interface CreateSubcontractModalProps {
   projectId: string;
   projectName?: string;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated?: () => void;
+  onSuccess?: () => void;
 }
 
 export function CreateSubcontractModal({
@@ -84,7 +85,7 @@ export function CreateSubcontractModal({
         endDate: formData.endDate || undefined,
         notes: formData.notes.trim() || undefined,
       });
-      onCreated();
+      onCreated?.();
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'حدث خطأ أثناء حفظ عقد مقاول الباطن');

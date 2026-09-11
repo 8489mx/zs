@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Put, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { MaritimeFreightService } from './maritime-freight.service';
+import { MaritimeMailService, MaritimeMailConfig } from './maritime-mail.service';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
+import { CreateMaritimeInquiryDto } from './dto/create-inquiry.dto';
 import { CreateMaritimeRfqDto } from './dto/create-rfq.dto';
 import { SubmitMaritimeBidDto } from './dto/submit-bid.dto';
 import { CreateMaritimeQuotationDto } from './dto/create-quotation.dto';
@@ -12,7 +14,10 @@ import { DcsaMilestoneKey } from './maritime-freight.types';
 @Controller(['maritime-freight', 'api/maritime-freight'])
 @UseGuards(SessionAuthGuard)
 export class MaritimeFreightController {
-  constructor(private readonly freightService: MaritimeFreightService) {}
+  constructor(
+    private readonly freightService: MaritimeFreightService,
+    private readonly mailService: MaritimeMailService,
+  ) {}
 
   // 1. Ports Master Data
   @Get('ports')
@@ -28,18 +33,41 @@ export class MaritimeFreightController {
     return this.freightService.createPort(req.authContext!, body);
   }
 
-  // 2. Shipping Lines Master Data
+  // 2. Shipping Lines & Freight Partners Master Data
   @Get('shipping-lines')
-  async getShippingLines(@Req() req: RequestWithAuth) {
-    return this.freightService.getShippingLines(req.authContext!);
+  async getShippingLines(
+    @Query('carrierType') carrierType: string,
+    @Query('tradeLane') tradeLane: string,
+    @Query('countryCode') countryCode: string,
+    @Query('search') search: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.getShippingLines(req.authContext!, { carrierType, tradeLane, countryCode, search });
   }
 
   @Post('shipping-lines')
   async createShippingLine(
-    @Body() body: { code: string; nameAr: string; nameEn: string; email?: string; rfqEmail?: string; phone?: string },
+    @Body() body: any,
     @Req() req: RequestWithAuth,
   ) {
     return this.freightService.createShippingLine(req.authContext!, body);
+  }
+
+  @Patch('shipping-lines/:id')
+  async updateShippingLine(
+    @Param('id') id: string,
+    @Body() body: any,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.updateShippingLine(req.authContext!, id, body);
+  }
+
+  @Delete('shipping-lines/:id')
+  async deleteShippingLine(
+    @Param('id') id: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.deleteShippingLine(req.authContext!, id);
   }
 
   // 3. Maritime RFQs
@@ -144,6 +172,15 @@ export class MaritimeFreightController {
     return this.freightService.releaseDeliveryOrder(req.authContext!, id);
   }
 
+  @Get('jobs/:id/whatsapp-alert')
+  async getJobMilestoneWhatsApp(
+    @Param('id') id: string,
+    @Query('milestone') milestoneKey: DcsaMilestoneKey,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.getMilestoneWhatsAppMessage(req.authContext!, id, milestoneKey);
+  }
+
   // 7. Containers & Demurrage Radar
   @Get('containers')
   async getContainers(
@@ -166,5 +203,67 @@ export class MaritimeFreightController {
     @Req() req: RequestWithAuth,
   ) {
     return this.freightService.updateContainer(req.authContext!, id, dto);
+  }
+
+  // 8. Client Freight Inquiries Engine
+  @Post('inquiries')
+  async createInquiry(@Body() dto: CreateMaritimeInquiryDto, @Req() req: RequestWithAuth) {
+    return this.freightService.createInquiry(req.authContext!, dto);
+  }
+
+  @Get('inquiries')
+  async getInquiries(
+    @Query('status') status: string,
+    @Query('search') search: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.getInquiries(req.authContext!, { status, search });
+  }
+
+  @Get('inquiries/:id')
+  async getInquiryById(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.freightService.getInquiryById(req.authContext!, id);
+  }
+
+  @Post('inquiries/:id/convert-to-rfq')
+  async convertInquiryToRfq(
+    @Param('id') id: string,
+    @Body('targetLineIds') targetLineIds: number[],
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.convertInquiryToRfq(req.authContext!, id, targetLineIds);
+  }
+
+  @Post('quotations/:id/convert-to-job')
+  async autoConvertQuotationToJob(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.freightService.autoConvertQuotationToJob(req.authContext!, id);
+  }
+
+  // 9. Tenant Mail & Automation Settings (Outlook / IMAP / SMTP)
+  @Get('mail-settings')
+  async getMailSettings(@Req() req: RequestWithAuth) {
+    return this.mailService.getMailSettings(req.authContext!);
+  }
+
+  @Post('mail-settings')
+  async saveMailSettings(@Body() dto: Partial<MaritimeMailConfig>, @Req() req: RequestWithAuth) {
+    return this.mailService.saveMailSettings(req.authContext!, dto);
+  }
+
+  @Post('mail-settings/test')
+  async testMailConnection(@Body() dto: Partial<MaritimeMailConfig>, @Req() req: RequestWithAuth) {
+    return this.mailService.testConnection(req.authContext!, dto);
+  }
+
+  @Post('mail-settings/send-test')
+  async sendTestEmail(@Body('email') email: string, @Req() req: RequestWithAuth) {
+    return this.mailService.sendTestEmail(req.authContext!, email);
+  }
+
+  @Post('mail-settings/sync-bids')
+  async syncInboundBids(@Req() req: RequestWithAuth) {
+    return this.mailService.syncInboundBids(req.authContext!, (text) =>
+      this.freightService.parseCarrierEmailText(text),
+    );
   }
 }

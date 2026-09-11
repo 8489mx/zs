@@ -1,4 +1,4 @@
-﻿export type MaritimeDirection = 'import' | 'export' | 'cross_trade';
+export type MaritimeDirection = 'import' | 'export' | 'cross_trade';
 export type MaritimePaymentTerm = 'prepaid' | 'collect';
 export type MaritimeIncoterm = 'FOB' | 'EXW' | 'CFR' | 'CIF' | 'DDP' | 'DAP' | 'FCA';
 export type MaritimeCargoMode = 'FCL' | 'LCL' | 'Breakbulk';
@@ -6,6 +6,7 @@ export type MaritimeContainerType = '20GP' | '40GP' | '40HC' | '20RF' | '40RF' |
 export type MaritimeCargoNature = 'general' | 'hazardous_dg' | 'temperature_controlled' | 'fragile';
 export type MaritimeBlType = 'original' | 'telex_release' | 'sea_waybill';
 
+export type MaritimeInquiryStatus = 'received' | 'rfq_created' | 'quoted' | 'converted_to_job' | 'cancelled';
 export type MaritimeRfqStatus = 'draft' | 'sent' | 'bids_received' | 'awarded' | 'cancelled';
 export type MaritimeQuotationStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'converted_to_job';
 export type MaritimeJobStatus = 'active' | 'completed' | 'cancelled';
@@ -19,7 +20,8 @@ export type DcsaMilestoneKey =
   | 'DISC'  // Container Discharged
   | 'CUST'  // Customs Cleared
   | 'GTO'   // Gate-out for Delivery / D/O Released
-  | 'RETN';  // Empty Container Returned
+  | 'DLVR'  // Cargo Delivered to Customer
+  | 'RETN'; // Empty Container Returned
 
 export interface DcsaMilestoneDefinition {
   key: DcsaMilestoneKey;
@@ -37,8 +39,64 @@ export const DCSA_STANDARD_MILESTONES: DcsaMilestoneDefinition[] = [
   { key: 'DISC', title_ar: 'تفريغ الحاوية على رصيف الميناء', title_en: 'Container Discharged', category: 'equipment' },
   { key: 'CUST', title_ar: 'إنهاء الإفراج الجمركي والمطابقة', title_en: 'Customs Cleared', category: 'shipment' },
   { key: 'GTO', title_ar: 'خروج الحاوية وتسليم إذن الإفراج (D/O)', title_en: 'Gated-out / Delivery Order Released', category: 'equipment' },
+  { key: 'DLVR', title_ar: 'وصول البضاعة وتسليمها للعميل', title_en: 'Cargo Delivered to Customer', category: 'shipment' },
   { key: 'RETN', title_ar: 'إعادة الحاوية فارغة لساحة الخط الملاحي', title_en: 'Empty Container Returned', category: 'equipment' },
 ];
+
+export interface MaritimeInquiry {
+  id: string;
+  inquiry_number: string;
+  customer_id: number | null;
+  customer_name: string;
+  customer_phone: string | null;
+  customer_email: string | null;
+  direction: MaritimeDirection;
+  pol_code: string;
+  pol_name: string;
+  pod_code: string;
+  pod_name: string;
+  incoterm: string;
+  cargo_mode: string;
+  container_type: string;
+  container_count: number;
+  commodity_description: string;
+  cargo_nature: string;
+  gross_weight_kg: number;
+  cbm: number;
+  cargo_ready_date: string | null;
+  target_delivery_date: string | null;
+  target_free_days: number;
+  payment_term: MaritimePaymentTerm;
+  status: MaritimeInquiryStatus;
+  rfq_id: string | null;
+  quotation_id: string | null;
+  job_id: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface MaritimeMailConfig {
+  outgoingProvider: 'outlook' | 'gmail' | 'custom';
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure: boolean;
+  smtpUser: string;
+  smtpPassword?: string;
+  fromName: string;
+  fromEmail: string;
+
+  incomingProvider: 'outlook' | 'gmail' | 'custom';
+  imapHost: string;
+  imapPort: number;
+  imapSecure: boolean;
+  imapUser: string;
+  imapPassword?: string;
+
+  autoReadInboundBids: boolean;
+  lastSyncAt?: string | null;
+  lastSyncStatus?: string | null;
+  lastSyncDetails?: string | null;
+}
 
 export interface RfqEmailDispatchPayload {
   rfqNumber: string;

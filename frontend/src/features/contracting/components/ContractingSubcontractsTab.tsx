@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { ContractingSubcontract } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { RetentionLedgerModal } from './RetentionLedgerModal';
+import { PaymentHoldsModal } from './PaymentHoldsModal';
 
 interface ContractingSubcontractsTabProps {
   subcontracts: ContractingSubcontract[];
   loading: boolean;
+  projectId?: string;
   projectName?: string;
   onNewSubcontract: () => void;
 }
@@ -11,9 +15,12 @@ interface ContractingSubcontractsTabProps {
 export function ContractingSubcontractsTab({
   subcontracts,
   loading,
+  projectId,
   projectName,
   onNewSubcontract,
 }: ContractingSubcontractsTabProps) {
+  const [isRetentionModalOpen, setIsRetentionModalOpen] = useState(false);
+  const [isPaymentHoldsOpen, setIsPaymentHoldsOpen] = useState(false);
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -41,27 +48,76 @@ export function ContractingSubcontractsTab({
             {projectName ? `المشروع: ${projectName}` : 'إدارة أوامر الإسناد، نسب الحجز، ونطاق الأعمال الموكولة للمقاولين'}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onNewSubcontract}
-          style={{
-            height: '36px',
-            padding: '0 16px',
-            borderRadius: '8px',
-            fontWeight: 700,
-            background: '#170e5e',
-            color: '#ffffff',
-            border: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            fontSize: 'var(--font-body)',
-          }}
-        >
-          <AppIcons.Plus size={15} />
-          <span>إسناد أعمال لمقاول باطن</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* سجل ضمان الأعمال */}
+          <button
+            type="button"
+            onClick={() => setIsRetentionModalOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#f8fafc',
+              color: '#170e5e',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.ShieldCheck size={15} />
+            <span>ضمان الأعمال المحتجز (Retentions)</span>
+          </button>
+
+          {/* حجز الدفعات للملاحظات الفنية */}
+          <button
+            type="button"
+            onClick={() => setIsPaymentHoldsOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#fff1f2',
+              color: '#991b1b',
+              border: '1px solid #fecdd3',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.AlertTriangle size={15} />
+            <span>حجز الدفعات والملاحظات الفنية</span>
+          </button>
+
+          {/* زر إضافة إسناد */}
+          <button
+            type="button"
+            onClick={onNewSubcontract}
+            style={{
+              height: '36px',
+              padding: '0 16px',
+              borderRadius: '8px',
+              fontWeight: 700,
+              background: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.Plus size={15} />
+            <span>إسناد أعمال لمقاول باطن</span>
+          </button>
+        </div>
       </div>
 
       {/* بطاقة إجمالي الالتزامات */}
@@ -81,13 +137,14 @@ export function ContractingSubcontractsTab({
       </div>
 
       {/* جدول العقود */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', minHeight: '280px', display: 'flex', flexDirection: 'column' }}>
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: 'var(--font-body)' }}>
-            جاري تحميل عقود مقاولي الباطن...
+          <div style={{ flex: 1, minHeight: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '32px' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', animation: 'spin 0.8s linear infinite' }} />
+            <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', fontWeight: 600 }}>جاري تحميل عقود مقاولي الباطن...</span>
           </div>
         ) : subcontracts.length === 0 ? (
-          <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <div style={{ flex: 1, minHeight: '280px', padding: '48px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ color: '#94a3b8', marginBottom: '12px' }}>
               <AppIcons.Users size={48} />
             </div>
@@ -161,6 +218,26 @@ export function ContractingSubcontractsTab({
           </div>
         )}
       </div>
+
+      {/* مودال سجل ضمان الأعمال المحتجز */}
+      {isRetentionModalOpen && (
+        <RetentionLedgerModal
+          isOpen={isRetentionModalOpen}
+          onClose={() => setIsRetentionModalOpen(false)}
+          projectId={projectId}
+          projectName={projectName}
+        />
+      )}
+
+      {/* مودال حجز الدفعات للملاحظات الفنية */}
+      {isPaymentHoldsOpen && (
+        <PaymentHoldsModal
+          isOpen={isPaymentHoldsOpen}
+          onClose={() => setIsPaymentHoldsOpen(false)}
+          projectId={projectId}
+          projectName={projectName}
+        />
+      )}
     </div>
   );
 }

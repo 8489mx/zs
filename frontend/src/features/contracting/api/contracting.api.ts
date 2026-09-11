@@ -191,5 +191,183 @@ export const contractingApi = {
     http<{ success: boolean; message: string }>(`/api/contracting/material-requisitions/${id}`, {
       method: 'DELETE',
     }),
+
+  // Master Price List
+  getMasterPriceList: (params?: { itemType?: string; category?: string; search?: string }) =>
+    http<any[]>(`/api/contracting/price-list${toQueryString(params)}`),
+
+  createMasterPriceItem: (data: any) =>
+    http<any>('/api/contracting/price-list', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateMasterPriceItem: (id: string, data: any) =>
+    http<any>(`/api/contracting/price-list/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteMasterPriceItem: (id: string) =>
+    http<{ success: boolean }>(`/api/contracting/price-list/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // Engineering Constants & Auto-Pricing
+  getEngineeringConstants: () =>
+    http<any[]>('/api/contracting/engineering-constants'),
+
+  createEngineeringConstant: (data: any) =>
+    http<any>('/api/contracting/engineering-constants', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  autoPriceBoqItem: (data: {
+    constantCode: string;
+    quantity: number;
+    customWastePercent?: number;
+    customOverheadPercent?: number;
+    customProfitMarkupPercent?: number;
+  }) =>
+    http<any>('/api/contracting/auto-price-boq', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Cost Snapshots
+  getCostSnapshots: (projectId: string) =>
+    http<any[]>(`/api/contracting/projects/${projectId}/snapshots`),
+
+  createCostSnapshot: (projectId: string, data: { snapshotName: string }) =>
+    http<any>(`/api/contracting/projects/${projectId}/snapshots`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Retention & Guarantees
+  getRetentionRecords: (params?: { projectId?: string; status?: string }) =>
+    http<any[]>(`/api/contracting/retentions${toQueryString(params)}`),
+
+  createRetentionRecord: (projectId: string, data: any) =>
+    http<any>(`/api/contracting/projects/${projectId}/retentions`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  releaseRetentionRecord: (id: string, data: { releaseAmount: number; notes?: string }) =>
+    http<any>(`/api/contracting/retentions/${id}/release`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Payment Holds
+  getPaymentHolds: (params?: { projectId?: string; isReleased?: boolean }) =>
+    http<any[]>(`/api/contracting/payment-holds${toQueryString(params)}`),
+
+  createPaymentHold: (projectId: string, data: any) =>
+    http<any>(`/api/contracting/projects/${projectId}/payment-holds`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  releasePaymentHold: (id: string, data?: { releaseNotes?: string }) =>
+    http<any>(`/api/contracting/payment-holds/${id}/release`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    }),
+
+  // Supplier Returns
+  getSupplierReturns: (projectId?: string) =>
+    http<any[]>(`/api/contracting/supplier-returns${toQueryString({ projectId })}`),
+
+  createSupplierReturn: (projectId: string, data: any) =>
+    http<any>(`/api/contracting/projects/${projectId}/supplier-returns`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Labor Attendance
+  getLaborAttendance: (params?: { projectId?: string; workDate?: string }) =>
+    http<any[]>(`/api/contracting/labor-attendance${toQueryString(params)}`),
+
+  createLaborAttendance: (projectId: string, data: any) =>
+    http<any>(`/api/contracting/projects/${projectId}/labor-attendance`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Petty Cash Custody
+  getPettyCashRecords: (params?: { projectId?: string; status?: string }) =>
+    http<any[]>(`/api/contracting/petty-cash${toQueryString(params)}`),
+
+  createPettyCash: (projectId: string, data: any) =>
+    http<any>(`/api/contracting/projects/${projectId}/petty-cash`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  settlePettyCash: (id: string, data: { receipts: any[]; closureNotes?: string }) =>
+    http<any>(`/api/contracting/petty-cash/${id}/settle`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Government Licenses
+  getGovernmentLicenses: (params?: { projectId?: string; status?: string }) =>
+    http<any[]>(`/api/contracting/government-licenses${toQueryString(params)}`),
+
+  createGovernmentLicense: (projectId: string, data: any) =>
+    http<any>(`/api/contracting/projects/${projectId}/government-licenses`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Executive Intelligence & Planning
+  getProjectHealthScore: (projectId: string) =>
+    http<any>(`/api/contracting/projects/${projectId}/health-score`),
+
+  getCashForecast: (projectId?: string) =>
+    http<any>(`/api/contracting/cash-forecast${toQueryString({ projectId })}`),
+
+  getProjectMaterialRequirements: (projectId: string) =>
+    http<any>(`/api/contracting/projects/${projectId}/material-requirements`),
+
+  getBoqProfitabilityAnalysis: (projectId: string) =>
+    http<any>(`/api/contracting/projects/${projectId}/profitability`),
+
+  // Multi-Trade Master BOQ Library & Project Import
+  getMasterBoqTrades: () =>
+    http<import('../contracting.types').MasterBoqTrade[]>('/api/contracting/master-boq/trades'),
+
+  getMasterBoqLibrary: (params?: { tradeCategory?: string; search?: string }) =>
+    http<import('../contracting.types').MasterBoqItem[]>(`/api/contracting/master-boq/items${toQueryString(params)}`),
+
+  createMasterBoqItem: (data: any) =>
+    http<import('../contracting.types').MasterBoqItem>('/api/contracting/master-boq/items', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateMasterBoqItem: (id: string, data: any) =>
+    http<import('../contracting.types').MasterBoqItem>(`/api/contracting/master-boq/items/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteMasterBoqItem: (id: string) =>
+    http<{ success: boolean; message: string }>(`/api/contracting/master-boq/items/${id}`, {
+      method: 'DELETE',
+    }),
+
+  importMasterBoqToProject: (projectId: string, itemIds: (string | number)[]) =>
+    http<{ success: boolean; importedCount: number; projectId: string; items: any[] }>(
+      `/api/contracting/projects/${projectId}/boq/import-master`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ itemIds }),
+      },
+    ),
 };
+
 

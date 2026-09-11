@@ -36,6 +36,10 @@ export class CreateTrialTenantDto {
   @IsString()
   activityType?: string;
 
+  @IsOptional()
+  @IsString()
+  businessIndustry?: string;
+
   @IsString()
   username!: string;
 

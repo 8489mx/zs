@@ -11,6 +11,7 @@ import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import { productsApi } from '@/features/products/api/products.api';
 import { salesApi } from '@/features/sales/api/sales.api';
 import { customersApi } from '@/features/customers/api/customers.api';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { Product, Sale, Customer } from '@/types/domain';
 
 export function GlobalSearchModal() {
@@ -18,6 +19,7 @@ export function GlobalSearchModal() {
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const [debouncedQuery, setDebouncedQuery] = useState(globalSearchQuery);
+  const { data: settings } = useSettingsQuery();
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(globalSearchQuery), 300);
@@ -53,31 +55,64 @@ export function GlobalSearchModal() {
   const user = useAuthStore((state) => state.user);
   const normalizedQuery = useMemo(() => normalizeArabicSearchKey(debouncedQuery), [debouncedQuery]);
 
+  const industry = String(settings?.businessIndustry || 'general').toLowerCase();
+  const isContractingVertical = industry === 'contracting';
+  const isMaritimeVertical = industry === 'maritime';
+  const isRetailOrMarketVertical = ['retail', 'supermarket', 'spices', 'perfumes', 'fashion'].includes(industry);
+
   const navMatches = useMemo(() => {
     if (!hasQuery || !user) return [];
     return navigationItems
       .filter((item) => canAccessNavigationItem(user, item))
+      .filter((item) => {
+        // POS & Sales gating
+        if ((item.key === 'pos' || item.key === 'cash-drawer' || item.key === 'sales' || item.key === 'returns') && settings?.posModuleEnabled === false) return false;
+        if (item.key === 'customers' && settings?.posModuleEnabled === false && settings?.enableEnterpriseFeatures !== true && settings?.installmentsModuleEnabled !== true) return false;
+
+        // Inventory gating
+        if ((item.key === 'products' || item.key === 'product-categories' || item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'reports-inventory') && settings?.inventoryModuleEnabled === false) return false;
+
+        // Purchases gating
+        if ((item.key?.startsWith('purchases-') || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'reports-purchases') && settings?.purchasesModuleEnabled === false) return false;
+
+        // Maritime Freight & Contracting gating
+        if (item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) return false;
+        if (item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) return false;
+
+        if (isContractingVertical) {
+          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'pricing-center', 'products', 'product-categories', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales', 'returns', 'sales-orders', 'price-lists', 'crm'].includes(item.key)) return false;
+          if ((item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
+        }
+        if (isMaritimeVertical) {
+          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'pricing-center', 'products', 'product-categories', 'inventory', 'inventory-warehouses', 'inventory-bins', 'inventory-tree', 'inventory-issue-orders', 'inventory-issue-order-new', 'reports-inventory', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales-orders', 'returns', 'price-lists'].includes(item.key)) return false;
+          if ((item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
+        }
+        if (isRetailOrMarketVertical) {
+          if ((item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) || (item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history' || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
+        }
+        return true;
+      })
       .filter((item) => normalizeArabicSearchKey(item.label).includes(normalizedQuery))
       .slice(0, 6);
-  }, [hasQuery, normalizedQuery, user]);
+  }, [hasQuery, isContractingVertical, isMaritimeVertical, isRetailOrMarketVertical, normalizedQuery, settings?.contractingModuleEnabled, settings?.enableEnterpriseFeatures, settings?.importModuleEnabled, settings?.installmentsModuleEnabled, settings?.inventoryModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, user]);
 
   // Real API queries
   const { data: productsData, isLoading: isLoadingProducts } = useQuery({
     queryKey: ['products-search', debouncedQuery],
     queryFn: () => productsApi.listPage({ q: debouncedQuery, page: 1, pageSize: 5 }),
-    enabled: hasQuery && isGlobalSearchOpen,
+    enabled: hasQuery && isGlobalSearchOpen && !isMaritimeVertical && !isContractingVertical && settings?.inventoryModuleEnabled !== false,
   });
 
   const { data: salesData, isLoading: isLoadingSales } = useQuery({
     queryKey: ['sales-search', debouncedQuery],
     queryFn: () => salesApi.listPage({ search: debouncedQuery, page: 1, pageSize: 5 }),
-    enabled: hasQuery && isGlobalSearchOpen,
+    enabled: hasQuery && isGlobalSearchOpen && !isMaritimeVertical && !isContractingVertical && settings?.posModuleEnabled !== false,
   });
 
   const { data: customersData, isLoading: isLoadingCustomers } = useQuery({
     queryKey: ['customers-search', debouncedQuery],
     queryFn: () => customersApi.listPage({ q: debouncedQuery, page: 1, pageSize: 5 }),
-    enabled: hasQuery && isGlobalSearchOpen,
+    enabled: hasQuery && isGlobalSearchOpen && (settings?.posModuleEnabled !== false || settings?.enableEnterpriseFeatures === true || settings?.installmentsModuleEnabled === true),
   });
 
   const isLoading = isLoadingProducts || isLoadingSales || isLoadingCustomers;

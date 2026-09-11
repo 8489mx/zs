@@ -1,20 +1,22 @@
 import { useRef } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
-import { ContractingInvoice } from '../contracting.types';
+import { ContractingInvoice, ContractingProject } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { getTextDirection } from '@/lib/arabic-normalization';
 
 interface PrintIpcCertificateModalProps {
   open: boolean;
   invoice: ContractingInvoice | null;
+  project?: ContractingProject | null;
   onClose: () => void;
 }
 
-export function PrintIpcCertificateModal({ open, invoice, onClose }: PrintIpcCertificateModalProps) {
+export function PrintIpcCertificateModal({ open, invoice, project: propProject, onClose }: PrintIpcCertificateModalProps) {
   const printRef = useRef<HTMLDivElement>(null);
 
   if (!invoice) return null;
 
-  const project = invoice.project;
+  const project = propProject || invoice.project;
   const originalContract = Number(project?.contractValue || 0);
   const revisedContract = Number(project?.revisedContractValue || originalContract);
   const netChangeOrders = revisedContract - originalContract;
@@ -209,7 +211,23 @@ export function PrintIpcCertificateModal({ open, invoice, onClose }: PrintIpcCer
                   {invoice.items.map((it, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '6px 8px' }}>{idx + 1}</td>
-                      <td style={{ padding: '6px 8px', fontWeight: 600 }}>{it.description}</td>
+                      {(() => {
+                        const dir = getTextDirection(it.description);
+                        const isRtl = dir === 'rtl';
+                        return (
+                          <td
+                            dir={dir}
+                            style={{
+                              padding: '6px 8px',
+                              fontWeight: 600,
+                              textAlign: isRtl ? 'right' : 'left',
+                              direction: dir,
+                            }}
+                          >
+                            {it.description}
+                          </td>
+                        );
+                      })()}
                       <td style={{ padding: '6px 8px' }}>{it.unit}</td>
                       <td style={{ padding: '6px 8px' }}>{Number(it.unitPrice).toLocaleString('ar-EG')}</td>
                       <td style={{ padding: '6px 8px' }}>{Number(it.previousQty).toLocaleString('ar-EG')}</td>

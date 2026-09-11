@@ -11,7 +11,8 @@ interface CreateScheduleTaskModalProps {
   boqItems?: ContractingBoqItem[];
   existingTasks?: ContractingScheduleTask[];
   onClose: () => void;
-  onCreated: () => void;
+  onCreated?: () => void;
+  onSuccess?: () => void;
 }
 
 export function CreateScheduleTaskModal({
@@ -91,7 +92,7 @@ export function CreateScheduleTaskModal({
         assignedTeam: formData.assignedTeam.trim() || undefined,
         notes: formData.notes.trim() || undefined,
       });
-      onCreated();
+      onCreated?.();
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'حدث خطأ أثناء حفظ المهمة الجدولية');

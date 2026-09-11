@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LightbulbIcon } from '@/shared/components/icons/AppIcons';
 import type { UseFormReturn } from 'react-hook-form';
@@ -219,6 +220,7 @@ export function SalesInventorySettingsTab({
   settings,
 }: SalesInventoryTabProps) {
   const isStoreFleet = form.watch('deliveryFeeMode') === 'store_fleet';
+  const [isChangingPin, setIsChangingPin] = useState(false);
 
   return (
     <div style={{ display: activeTab === 'sales_inventory' ? 'block' : 'none' }}>
@@ -412,18 +414,109 @@ export function SalesInventorySettingsTab({
                 <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
                   الرمز السري للمدير (PIN)
                 </label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  className="purchase-prototype-field-input"
-                  {...form.register('managerPin')}
-                  disabled={disabled}
-                  placeholder={settings?.hasManagerPin ? 'اتركه فارغًا للإبقاء على الرمز الحالي' : 'مثال: 1234'}
-                  style={fieldControlStyle}
-                />
-                <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  {settings?.hasManagerPin ? 'يوجد رمز مدير محفوظ. اكتب رمزًا جديدًا فقط عند الحاجة للتغيير.' : 'الرمز السري المطلوب لاعتماد العمليات الحساسة وتجاوز سقف الخصم بالكاشير.'}
-                </small>
+                {settings?.hasManagerPin && !isChangingPin ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', minHeight: '38px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534' }}>
+                        تم حفظ وتفعيل رمز سري للمدير
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsChangingPin(true);
+                        form.setValue('managerPin', '', { shouldDirty: true });
+                      }}
+                      disabled={disabled}
+                      style={{
+                        padding: '3px 10px',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        color: '#170c5c',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      تغيير الرمز
+                    </button>
+                  </div>
+                ) : !settings?.hasManagerPin && !isChangingPin ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', minHeight: '38px' }}>
+                    <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                      لم يتم تعيين رمز سري بعد (اختياري)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsChangingPin(true);
+                        form.setValue('managerPin', '', { shouldDirty: true });
+                      }}
+                      disabled={disabled}
+                      style={{
+                        padding: '3px 10px',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        color: '#170c5c',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      تعيين رمز PIN
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        autoComplete="new-password"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        maxLength={10}
+                        className="purchase-prototype-field-input"
+                        {...form.register('managerPin')}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          form.setValue('managerPin', digits, { shouldValidate: true, shouldDirty: true });
+                        }}
+                        disabled={disabled}
+                        placeholder="أدخل الرمز الجديد (4 - 10 أرقام)"
+                        style={fieldControlStyle}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsChangingPin(false);
+                          form.setValue('managerPin', '', { shouldDirty: false });
+                          form.clearErrors('managerPin');
+                        }}
+                        style={{
+                          padding: '7px 12px',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          color: '#64748b',
+                          background: '#f1f5f9',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                    <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                      الرمز السري المطلوب لاعتماد العمليات الحساسة وتجاوز سقف الخصم بالكاشير.
+                    </small>
+                  </div>
+                )}
               </div>
 
               {form.watch('posMaxDiscountThresholdEnabled') && (

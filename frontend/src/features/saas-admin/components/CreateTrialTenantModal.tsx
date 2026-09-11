@@ -14,6 +14,21 @@ export interface CreateTrialTenantModalProps {
   onSuccessFeedback?: (message: string) => void;
 }
 
+const INDUSTRY_MODE_OPTIONS = [
+  { value: 'contracting', label: 'المقاولات والمشاريع الإنشائية والهندسية (ERP)', badge: 'مود المقاولات' },
+  { value: 'maritime', label: 'الشحن البحري والتوكيلات اللوجستية والموانئ', badge: 'مود الشحن' },
+  { value: 'supermarket', label: 'السوبرماركت والبقالة والمواد الغذائية', badge: 'كاشير وميزان' },
+  { value: 'spices', label: 'العطارة والمحامص والمطاحن والبهارات', badge: 'خلطات وميزان' },
+  { value: 'retail', label: 'التجزئة والمحلات والمتاجر العامة', badge: 'تجزئة سريعة' },
+  { value: 'fashion', label: 'الملابس والأزياء والأحذية والشنط', badge: 'مقاسات وألوان' },
+  { value: 'pharmacy', label: 'الصيدليات والمستلزمات الطبية والعلاجية', badge: 'تشغيلات FEFO' },
+  { value: 'electronics', label: 'الموبايل والإلكترونيات ومراكز الصيانة', badge: 'صيانة وسيريال' },
+  { value: 'restaurant', label: 'المطاعم والكافيهات والأغذية المجهزة', badge: 'طاولات ومطبخ KDS' },
+  { value: 'services', label: 'الشركات والمكاتب الخدمية والاستشارية', badge: 'خدمات بلا مخزون' },
+  { value: 'wholesale', label: 'تجارة الجملة والوكلاء والتوزيع المؤسسي', badge: 'موزعون وآجل' },
+  { value: 'manufacturing', label: 'التصنيع الخفيف والمعامل والورش', badge: 'تكاليف و BOM' },
+];
+
 const initialForm = {
   slug: '',
   businessName: '',
@@ -21,7 +36,8 @@ const initialForm = {
   ownerName: '',
   ownerPhone: '',
   ownerEmail: '',
-  activityType: '',
+  activityType: 'التجزئة والمحلات والمتاجر العامة',
+  businessIndustry: 'retail',
   username: '',
   password: '',
   days: '14',
@@ -65,6 +81,7 @@ export function CreateTrialTenantModal({
       ownerPhone: createForm.ownerPhone.trim(),
       ownerEmail: createForm.ownerEmail?.trim() || undefined,
       activityType: createForm.activityType?.trim() || undefined,
+      businessIndustry: createForm.businessIndustry,
       username: createForm.username.trim() || 'admin',
       password: createForm.password || undefined,
       days: Number(createForm.days || 14),
@@ -286,12 +303,42 @@ export function CreateTrialTenantModal({
                     dir="ltr"
                   />
                 </Field>
-                <Field label="نوع النشاط / المجال">
+                <Field label="نمط المنشأة والمود القطاعي (Vertical Mode) *">
+                  <select
+                    value={createForm.businessIndustry}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const found = INDUSTRY_MODE_OPTIONS.find((opt) => opt.value === val);
+                      setCreateForm((s) => ({
+                        ...s,
+                        businessIndustry: val,
+                        activityType: found ? found.label : s.activityType,
+                      }));
+                    }}
+                    style={{
+                      fontWeight: 700,
+                      color: '#170e5e',
+                      backgroundColor: '#f8fafc',
+                      border: '1.5px solid #cbd5e1',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      fontSize: '13px',
+                      width: '100%',
+                    }}
+                  >
+                    {INDUSTRY_MODE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label} — [{opt.badge}]
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="الوصف التجاري للنشاط">
                   <input
                     type="text"
                     value={createForm.activityType}
                     onChange={(e) => setCreateForm((s) => ({ ...s, activityType: e.target.value }))}
-                    placeholder="مثال: سوبر ماركت، صيدلية، مطعم..."
+                    placeholder="مثال: مقاولات عامة وتطوير عقاري، سوبرماركت..."
                   />
                 </Field>
                 <Field label="اسم الفرع الأولي (اختياري)">

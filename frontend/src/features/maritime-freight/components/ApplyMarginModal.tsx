@@ -12,9 +12,9 @@ interface ApplyMarginModalProps {
 }
 
 export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMarginModalProps) {
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerName, setCustomerName] = useState(rfq?.customer_name || '');
+  const [customerPhone, setCustomerPhone] = useState(rfq?.customer_phone || '');
+  const [customerEmail, setCustomerEmail] = useState(rfq?.customer_email || '');
   const [marginType, setMarginType] = useState<'fixed' | 'percentage'>('fixed');
   const [marginValue, setMarginValue] = useState<number>(250);
   const [exchangeRate, setExchangeRate] = useState<number>(48.5);
@@ -70,12 +70,12 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
       if (autoSendWhatsApp && customerPhone) {
         const cleanPhone = customerPhone.replace(/[^0-9]/g, '');
         const message = `مرحباً ${customerName}، يسعدنا تقديم عرض سعر الشحن البحري:\n` +
-          `🚢 مسار الشحنة: من ${rfq.pol_name} إلى ${rfq.pod_name}\n` +
-          `📦 البضاعة: ${rfq.container_count}x ${rfq.container_type} (${rfq.commodity_description})\n` +
-          `⚓ الخط الملاحي: ${bid.shipping_line_name}\n` +
-          `⏳ أيام السماح: ${bid.free_days} يوم بميناء الوصول\n` +
-          `💰 السعر الإجمالي: ${finalTotal.toLocaleString()} ${bid.currency} (ما يعادل تقريباً ${finalTotalLocal.toLocaleString()} ج.م)\n` +
-          `كود العرض: ${quote.quotation_number}\nشكراً لاختياركم خدماتنا اللوجستية!`;
+          `• مسار الشحنة: من ${rfq.pol_name} إلى ${rfq.pod_name}\n` +
+          `• الحاويات والبضاعة: ${rfq.container_count}x ${rfq.container_type} (${rfq.commodity_description})\n` +
+          `• الخط الملاحي: ${bid.shipping_line_name}\n` +
+          `• فترة السماح بالميناء: ${bid.free_days} يوم بميناء الوصول\n` +
+          `• السعر الإجمالي: ${finalTotal.toLocaleString()} ${bid.currency} (ما يعادل تقريباً ${finalTotalLocal.toLocaleString()} ج.م)\n` +
+          `• رقم العرض المرجعي: ${quote.quotation_number}\n\nشكراً لاختياركم خدماتنا اللوجستية!`;
 
         const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
         window.open(waUrl, '_blank');

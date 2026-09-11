@@ -3,12 +3,14 @@ import { StandardDialog, StandardDialogFooter } from '@/shared/components/Standa
 import { Field } from '@/shared/ui/field';
 import { contractingApi } from '../api/contracting.api';
 import { ContractingBoqItem, ContractingProject } from '../contracting.types';
+import { getTextDirection } from '@/lib/arabic-normalization';
 
 interface CreateIpcInvoiceModalProps {
   open: boolean;
   project: ContractingProject;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated?: () => void;
+  onSuccess?: () => void;
 }
 
 interface WorkingItem {
@@ -111,7 +113,7 @@ export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: Cre
             storedMaterialsQty: it.storedMaterialsQty,
           })),
       });
-      onCreated();
+      onCreated?.();
       onClose();
     } catch (err: any) {
       setErrorMsg(err?.message || 'حدث خطأ أثناء إنشاء المستخلص');
@@ -196,7 +198,22 @@ export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: Cre
                 return (
                   <tr key={it.boqItemId || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '8px 12px', fontWeight: 600 }}>{it.itemCode}</td>
-                    <td style={{ padding: '8px 12px' }}>{it.description}</td>
+                    {(() => {
+                      const dir = getTextDirection(it.description);
+                      const isRtl = dir === 'rtl';
+                      return (
+                        <td
+                          dir={dir}
+                          style={{
+                            padding: '8px 12px',
+                            textAlign: isRtl ? 'right' : 'left',
+                            direction: dir,
+                          }}
+                        >
+                          {it.description}
+                        </td>
+                      );
+                    })()}
                     <td style={{ padding: '8px 8px', color: '#64748b' }}>{it.unit}</td>
                     <td style={{ padding: '8px 8px' }}>{it.unitPrice.toLocaleString('ar-EG')}</td>
                     <td style={{ padding: '8px 8px', color: '#64748b' }}>{it.contractQty}</td>

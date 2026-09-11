@@ -8,7 +8,8 @@ interface CreateDailyLogModalProps {
   projectId: string;
   projectName?: string;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated?: () => void;
+  onSuccess?: () => void;
 }
 
 export function CreateDailyLogModal({
@@ -60,7 +61,7 @@ export function CreateDailyLogModal({
         materialsReceived: formData.materialsReceived.trim() || undefined,
         loggedBy: formData.loggedBy.trim() || undefined,
       });
-      onCreated();
+      onCreated?.();
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'حدث خطأ أثناء حفظ التقرير اليومي للموقع');

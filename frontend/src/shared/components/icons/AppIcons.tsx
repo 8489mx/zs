@@ -534,7 +534,9 @@ export function Trash2Icon({ size = 18, color = 'currentColor', strokeWidth = 2,
   );
 }
 
-export const TrashIcon = Trash2Icon;
+export function TrashIcon(props: IconProps) {
+  return <Trash2Icon {...props} />;
+}
 
 export function EditIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
   return (
@@ -849,12 +851,47 @@ export function ContainerIcon({ size = 18, color = 'currentColor', strokeWidth =
   );
 }
 
+export function CalculatorIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <line x1="8" y1="6" x2="16" y2="6" />
+      <line x1="16" y1="14" x2="16" y2="14.01" />
+      <line x1="12" y1="14" x2="12" y2="14.01" />
+      <line x1="8" y1="14" x2="8" y2="14.01" />
+      <line x1="16" y1="18" x2="16" y2="18.01" />
+      <line x1="12" y1="18" x2="12" y2="18.01" />
+      <line x1="8" y1="18" x2="8" y2="18.01" />
+    </svg>
+  );
+}
+
+
+
 export function FileCheckIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
       <polyline points="14 2 14 8 20 8" />
       <path d="m9 15 2 2 4-4" />
+    </svg>
+  );
+}
+
+export function MailIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <rect width="20" height="16" x="2" y="4" rx="2" />
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+    </svg>
+  );
+}
+
+export function SendIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="m22 2-7 20-4-9-9-4Z" />
+      <path d="M22 2 11 13" />
     </svg>
   );
 }
@@ -897,6 +934,12 @@ export const AppIcons = {
   Container: ContainerIcon,
   Building: BuildingIcon,
   FileCheck: FileCheckIcon,
+  Calculator: CalculatorIcon,
+  TrendingUp: TrendingUpIcon,
+  Mail: MailIcon,
+  Send: SendIcon,
+  Globe: GlobeIcon,
+  Copy: CopyIcon,
 };
 
 export default AppIcons;

@@ -8,7 +8,8 @@ interface CreateChangeOrderModalProps {
   projectId: string;
   projectName?: string;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated?: () => void;
+  onSuccess?: () => void;
 }
 
 export function CreateChangeOrderModal({ open, projectId, projectName, onClose, onCreated }: CreateChangeOrderModalProps) {
@@ -41,7 +42,7 @@ export function CreateChangeOrderModal({ open, projectId, projectName, onClose, 
         timeImpactDays: Number(formData.timeImpactDays || 0),
         notes: formData.notes.trim() || undefined,
       });
-      onCreated();
+      onCreated?.();
       onClose();
     } catch (err: any) {
       setErrorMsg(err?.message || 'حدث خطأ أثناء حفظ أمر التغيير');

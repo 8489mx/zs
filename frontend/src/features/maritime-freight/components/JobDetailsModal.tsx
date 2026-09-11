@@ -342,17 +342,52 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             {/* السجل الزمني للمحطات */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
               {job.milestones?.map((m, idx) => (
-                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '10px 14px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#dbeafe', color: '#1e40af', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.78rem' }}>
-                    {idx + 1}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>{m.milestone_title}</div>
-                    {m.notes && <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '2px' }}>{m.notes}</div>}
-                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px' }}>
-                      {new Date(m.occurred_at).toLocaleString('ar-EG')}
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '10px 14px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1 }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#dbeafe', color: '#1e40af', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.78rem', flexShrink: 0 }}>
+                      {idx + 1}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>{m.milestone_title}</div>
+                      {m.notes && <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '2px' }}>{m.notes}</div>}
+                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px' }}>
+                        {new Date(m.occurred_at).toLocaleString('ar-EG')}
+                      </div>
                     </div>
                   </div>
+
+                  {job.customer_phone && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const alertData = await maritimeApi.getJobWhatsAppAlert(job.id, m.milestone_key);
+                          const cleanPhone = (alertData.customerPhone || job.customer_phone || '').replace(/[^0-9]/g, '');
+                          if (cleanPhone) {
+                            window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(alertData.message)}`, '_blank');
+                          } else {
+                            alert('لا يوجد رقم هاتف للعميل');
+                          }
+                        } catch (err: any) {
+                          alert(err?.message || 'فشل توليد رسالة واتساب');
+                        }
+                      }}
+                      title="إرسال إشعار بالواتساب للعميل"
+                      style={{
+                        padding: '4px 8px',
+                        background: '#f0fdf4',
+                        color: '#166534',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '6px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      إشعار واتساب
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -384,7 +419,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             </div>
 
             <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.82rem', color: '#475569' }}>
-              ℹ️ مركز التكلفة المرتبط في دليل الحسابات: <strong>{job.cost_center_id ? `ID #${job.cost_center_id} (${job.job_number})` : 'مفعل تلقائياً'}</strong>. يتم ترحيل كافة فواتير الخدمات ومصروفات الموانئ وسندات صرف التأمين مباشرة لهذا المركز.
+              مركز التكلفة المرتبط في دليل الحسابات: <strong>{job.cost_center_id ? `ID #${job.cost_center_id} (${job.job_number})` : 'مفعل تلقائياً'}</strong>. يتم ترحيل كافة فواتير الخدمات ومصروفات الموانئ وسندات صرف التأمين مباشرة لهذا المركز.
             </div>
           </div>
         )}

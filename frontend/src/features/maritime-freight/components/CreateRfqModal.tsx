@@ -49,11 +49,35 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
     }
   }, [open]);
 
+  const [carrierFilter, setCarrierFilter] = useState<'all' | 'far_east' | 'europe_med' | 'shipping_line' | 'overseas_agent'>('all');
+
+  const displayedCarriers = carriers.filter((c) => {
+    if (carrierFilter === 'shipping_line') return !c.carrier_type || c.carrier_type === 'shipping_line';
+    if (carrierFilter === 'overseas_agent') return c.carrier_type === 'overseas_agent';
+    if (carrierFilter === 'far_east') return c.trade_lanes?.includes('far_east') || c.country_code === 'CN';
+    if (carrierFilter === 'europe_med') return c.trade_lanes?.includes('europe_med') || ['TR', 'DE', 'IT', 'EG'].includes(c.country_code || '');
+    return true;
+  });
+
   const handleSelectAllCarriers = () => {
     if (formData.targetLineIds.length === carriers.length) {
       setFormData({ ...formData, targetLineIds: [] });
     } else {
       setFormData({ ...formData, targetLineIds: carriers.map((c) => Number(c.id)) });
+    }
+  };
+
+  const handleSelectFilteredCarriers = () => {
+    const ids = displayedCarriers.map((c) => Number(c.id));
+    const allSelected = ids.every((id) => formData.targetLineIds.includes(id));
+    if (allSelected) {
+      setFormData({
+        ...formData,
+        targetLineIds: formData.targetLineIds.filter((id) => !ids.includes(id)),
+      });
+    } else {
+      const merged = Array.from(new Set([...formData.targetLineIds, ...ids]));
+      setFormData({ ...formData, targetLineIds: merged });
     }
   };
 
@@ -289,51 +313,120 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
 
         {/* Section 3: اختيار الخطوط الملاحية والوكلاء */}
         <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
               <AppIcons.Users size={18} />
-              <span>3. الخطوط الملاحية والوكلاء المستهدفون ({formData.targetLineIds.length} محدد)</span>
+              <span>3. الخطوط الملاحية والوكلاء المستهدفون ({formData.targetLineIds.length} محدد للإرسال)</span>
             </div>
-            <button
-              type="button"
-              onClick={handleSelectAllCarriers}
-              style={{ background: 'none', border: 'none', color: '#170e5e', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, textDecoration: 'underline' }}
-            >
-              {formData.targetLineIds.length === carriers.length ? 'إلغاء تحديد الكل' : 'تحديد جميع الخطوط'}
-            </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={handleSelectFilteredCarriers}
+                style={{ background: 'none', border: 'none', color: '#1d4ed8', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'underline' }}
+              >
+                تحديد/إلغاء المفلترين ({displayedCarriers.length})
+              </button>
+              <span style={{ color: '#cbd5e1' }}>|</span>
+              <button
+                type="button"
+                onClick={handleSelectAllCarriers}
+                style={{ background: 'none', border: 'none', color: '#170e5e', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'underline' }}
+              >
+                {formData.targetLineIds.length === carriers.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
+              </button>
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', maxHeight: '160px', overflowY: 'auto', padding: '4px' }}>
-            {carriers.map((carrier) => {
-              const checked = formData.targetLineIds.includes(Number(carrier.id));
-              return (
-                <label
-                  key={carrier.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 12px',
-                    background: checked ? '#eff6ff' : '#ffffff',
-                    border: checked ? '1px solid #3b82f6' : '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '0.82rem',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => handleToggleCarrier(Number(carrier.id))}
-                    style={{ accentColor: '#170e5e' }}
-                  />
-                  <span style={{ fontWeight: checked ? 700 : 500, color: checked ? '#1e40af' : '#1e293b' }}>
-                    {carrier.name_ar}
-                  </span>
-                </label>
-              );
-            })}
+          {/* فلتر سريع للممرات والشركاء */}
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            {[
+              { id: 'all', label: 'الكل' },
+              { id: 'far_east', label: 'الصين والشرق الأقصى' },
+              { id: 'europe_med', label: 'أوروبا والمتوسط' },
+              { id: 'shipping_line', label: 'خطوط الملاحة فقط' },
+              { id: 'overseas_agent', label: 'وكلاء الشحن بالخارج' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setCarrierFilter(tab.id as any)}
+                style={{
+                  height: '26px',
+                  padding: '0 10px',
+                  borderRadius: '6px',
+                  border: carrierFilter === tab.id ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                  background: carrierFilter === tab.id ? '#170e5e' : '#ffffff',
+                  color: carrierFilter === tab.id ? '#ffffff' : '#475569',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px', maxHeight: '180px', overflowY: 'auto', padding: '4px' }}>
+            {displayedCarriers.length === 0 ? (
+              <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', gridColumn: '1 / -1' }}>
+                لا توجد خطوط أو وكلاء مسجلون في هذا الممر الملاحي
+              </div>
+            ) : (
+              displayedCarriers.map((carrier) => {
+                const checked = formData.targetLineIds.includes(Number(carrier.id));
+                const isAgent = carrier.carrier_type === 'overseas_agent';
+                return (
+                  <label
+                    key={carrier.id}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      padding: '8px 12px',
+                      background: checked ? '#eff6ff' : '#ffffff',
+                      border: checked ? '1px solid #3b82f6' : '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => handleToggleCarrier(Number(carrier.id))}
+                          style={{ accentColor: '#170e5e' }}
+                        />
+                        <span style={{ fontWeight: checked ? 700 : 600, color: checked ? '#1e40af' : '#1e293b' }}>
+                          {carrier.name_ar}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '0.66rem',
+                          fontWeight: 700,
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          background: isAgent ? '#f0fdf4' : '#eef2ff',
+                          color: isAgent ? '#15803d' : '#1e40af',
+                        }}
+                      >
+                        {isAgent ? `وكيل ${carrier.country_name || ''}` : 'خط ملاحي'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', paddingRight: '22px' }}>
+                      <span>{carrier.code}</span>
+                      <span style={{ color: carrier.rfq_email ? '#0284c7' : '#ef4444' }}>
+                        {carrier.rfq_email ? 'إيميل التسعير مفعّل' : 'لا يوجد إيميل'}
+                      </span>
+                    </div>
+                  </label>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

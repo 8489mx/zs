@@ -92,6 +92,7 @@ export type CreateTrialTenantPayload = {
   ownerPhone: string;
   ownerEmail?: string;
   activityType?: string;
+  businessIndustry?: string;
   username: string;
   password?: string;
   days?: number;

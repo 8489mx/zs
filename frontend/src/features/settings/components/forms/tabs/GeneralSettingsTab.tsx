@@ -7,6 +7,7 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { readFileAsDataUrl, RequiredField, comboListStyle, comboRowStyle, comboCreateStyle } from '@/features/settings/components/forms/settings-forms.shared';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { useAuthStore } from '@/stores/auth-store';
 import { applyAccentColorToDocument } from '@/lib/theme';
 
@@ -20,7 +21,9 @@ function LockIcon({ size = 12 }: { size?: number }) {
 }
 
 const INDUSTRY_OPTIONS = [
-  { value: 'general', label: 'تجارة عامة ومتنوعة (افتراضي)', icon: <ProductIcon name="box-package" size={16} /> },
+  { value: 'general', label: 'تجارة عامة ومؤسسات (افتراضي)', icon: <ProductIcon name="box-package" size={16} /> },
+  { value: 'contracting', label: 'شركات المقاولات والإنشاءات الهندسية', icon: <AppIcons.Building size={16} /> },
+  { value: 'maritime', label: 'شركات الشحن البحري واللوجستيات', icon: <AppIcons.Ship size={16} /> },
   { value: 'spices', label: 'عطارة وبقوليات ومحامص', icon: <ProductIcon name="herb-leaf" size={16} /> },
   { value: 'fashion', label: 'ملابس وأحذية وأزياء', icon: <ProductIcon name="tshirt" size={16} /> },
   { value: 'perfumes', label: 'عطور ومستحضرات تجميل ومنظفات', icon: <ProductIcon name="perfume-spray" size={16} /> },
@@ -37,6 +40,50 @@ function applyIndustryAutomation(
   setValue('businessIndustry', industry as any, { shouldDirty: true, shouldValidate: true });
 
   switch (industry) {
+    case 'contracting':
+      setValue('contractingModuleEnabled', true, { shouldDirty: true });
+      setValue('enableEnterpriseFeatures', true, { shouldDirty: true });
+      setValue('purchasesModuleEnabled', true, { shouldDirty: true });
+      setValue('inventoryModuleEnabled', true, { shouldDirty: true });
+      setValue('hrModuleEnabled', true, { shouldDirty: true });
+      setValue('fixedAssetsModuleEnabled', true, { shouldDirty: true });
+      setValue('taxDeclarationModuleEnabled', true, { shouldDirty: true });
+      setValue('posModuleEnabled', false, { shouldDirty: true });
+      setValue('requireCashierShiftForSales', false, { shouldDirty: true });
+      setValue('weightedBarcodeEnabled', false, { shouldDirty: true });
+      setValue('clothingModuleEnabled', false, { shouldDirty: true });
+      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
+      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
+      setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
+      setValue('storefrontModuleEnabled', false, { shouldDirty: true });
+      setValue('deliveryFleetModuleEnabled', false, { shouldDirty: true });
+      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
+      setValue('defaultProductKind', 'standard', { shouldDirty: true });
+      break;
+
+    case 'maritime':
+      setValue('maritimeFreightModuleEnabled', true, { shouldDirty: true });
+      setValue('enableEnterpriseFeatures', true, { shouldDirty: true });
+      setValue('purchasesModuleEnabled', true, { shouldDirty: true });
+      setValue('hrModuleEnabled', true, { shouldDirty: true });
+      setValue('taxDeclarationModuleEnabled', true, { shouldDirty: true });
+      setValue('posModuleEnabled', false, { shouldDirty: true });
+      setValue('requireCashierShiftForSales', false, { shouldDirty: true });
+      setValue('contractingModuleEnabled', false, { shouldDirty: true });
+      setValue('weightedBarcodeEnabled', false, { shouldDirty: true });
+      setValue('clothingModuleEnabled', false, { shouldDirty: true });
+      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
+      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
+      setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      setValue('storefrontModuleEnabled', false, { shouldDirty: true });
+      setValue('deliveryFleetModuleEnabled', false, { shouldDirty: true });
+      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
+      setValue('defaultProductKind', 'standard', { shouldDirty: true });
+      break;
+
     case 'spices':
       setValue('clothingModuleEnabled', true, { shouldDirty: true });
       setValue('manufacturingModuleEnabled', true, { shouldDirty: true });
@@ -47,6 +94,8 @@ function applyIndustryAutomation(
       setValue('enablePharmacyModule', false, { shouldDirty: true });
       setValue('servicesModuleEnabled', false, { shouldDirty: true });
       setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      setValue('contractingModuleEnabled', false, { shouldDirty: true });
+      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
       break;
 
     case 'supermarket':
@@ -59,6 +108,8 @@ function applyIndustryAutomation(
       setValue('enablePharmacyModule', false, { shouldDirty: true });
       setValue('servicesModuleEnabled', false, { shouldDirty: true });
       setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      setValue('contractingModuleEnabled', false, { shouldDirty: true });
+      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
       break;
 
     case 'fashion':
@@ -71,6 +122,8 @@ function applyIndustryAutomation(
       setValue('enablePharmacyModule', false, { shouldDirty: true });
       setValue('servicesModuleEnabled', false, { shouldDirty: true });
       setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      setValue('contractingModuleEnabled', false, { shouldDirty: true });
+      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
       break;
 
     case 'perfumes':
@@ -83,6 +136,8 @@ function applyIndustryAutomation(
       setValue('enablePharmacyModule', false, { shouldDirty: true });
       setValue('servicesModuleEnabled', false, { shouldDirty: true });
       setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      setValue('contractingModuleEnabled', false, { shouldDirty: true });
+      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
       break;
 
     case 'pharmacy':
@@ -94,6 +149,8 @@ function applyIndustryAutomation(
       setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
       setValue('servicesModuleEnabled', false, { shouldDirty: true });
       setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      setValue('contractingModuleEnabled', false, { shouldDirty: true });
+      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
       break;
 
     case 'electronics':
@@ -105,6 +162,8 @@ function applyIndustryAutomation(
       setValue('enablePharmacyModule', false, { shouldDirty: true });
       setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
       setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      setValue('contractingModuleEnabled', false, { shouldDirty: true });
+      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
       break;
 
     case 'cafe':
@@ -117,18 +176,26 @@ function applyIndustryAutomation(
       setValue('enablePharmacyModule', false, { shouldDirty: true });
       setValue('servicesModuleEnabled', false, { shouldDirty: true });
       setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
+      setValue('contractingModuleEnabled', false, { shouldDirty: true });
+      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
       break;
 
     case 'general':
     default:
       setValue('defaultPosMode', 'scanner', { shouldDirty: true });
       setValue('defaultProductKind', 'standard', { shouldDirty: true });
+      setValue('contractingModuleEnabled', false, { shouldDirty: true });
+      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
       break;
   }
 }
 
 function getIndustrySummary(industry: string): string {
   switch (industry) {
+    case 'contracting':
+      return 'تخصيص كامل لشركات المقاولات: إدارة المشاريع، جداول الكميات (BOQ)، مستخلصات المالك والاستشاري (IPC)، مقاولو الباطن مع إخفاء الكاشير والورديات.';
+    case 'maritime':
+      return 'تخصيص كامل للشحن واللوجستيات: أوامر التشغيل، الحاويات، غرامات التأخير (Demurrage)، ومصفوفة عروض الخطوط الملاحية مع إخفاء الكاشير والورديات.';
     case 'spices':
       return 'تم تفعيل خلطات وتصنيع التوابل + موديول المتغيرات والأوزان + باركود الميزان الإلكتروني.';
     case 'supermarket':

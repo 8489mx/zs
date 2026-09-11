@@ -563,3 +563,422 @@ export class CreateMaterialRequisitionDto {
   notes?: string;
 }
 
+// ============================================================================
+// Enterprise Contracting DTOs
+// ============================================================================
+
+export class CreateMasterPriceItemDto {
+  @IsString()
+  @IsIn(['material', 'labor', 'equipment', 'subcontract'])
+  itemType!: 'material' | 'labor' | 'equipment' | 'subcontract';
+
+  @IsString()
+  @IsNotEmpty()
+  code!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @IsString()
+  @IsOptional()
+  unit?: string;
+
+  @IsNumber()
+  @Min(0)
+  unitRate!: number;
+
+  @IsString()
+  @IsOptional()
+  category?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class UpdateMasterPriceItemDto {
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  unit?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  unitRate?: number;
+
+  @IsString()
+  @IsOptional()
+  category?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class CreateEngineeringConstantDto {
+  @IsString()
+  @IsNotEmpty()
+  itemCode!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  itemName!: string;
+
+  @IsString()
+  @IsOptional()
+  unit?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  wastePercent?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  overheadPercent?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  profitMarkupPercent?: number;
+
+  @IsArray()
+  @IsOptional()
+  components?: any[];
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class AutoPriceBoqItemDto {
+  @IsString()
+  @IsNotEmpty()
+  constantCode!: string;
+
+  @IsNumber()
+  @Min(0.001)
+  quantity!: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  customWastePercent?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  customOverheadPercent?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  customProfitMarkupPercent?: number;
+}
+
+export class CreateCostSnapshotDto {
+  @IsString()
+  @IsNotEmpty()
+  snapshotName!: string;
+}
+
+export class CreateRetentionRecordDto {
+  @IsString()
+  @IsOptional()
+  subcontractId?: string;
+
+  @IsString()
+  @IsIn(['client', 'subcontractor'])
+  partyType!: 'client' | 'subcontractor';
+
+  @IsNumber()
+  @IsOptional()
+  partyId?: number;
+
+  @IsString()
+  @IsNotEmpty()
+  partyName!: string;
+
+  @IsNumber()
+  @Min(0)
+  heldAmount!: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  retentionPercent?: number;
+
+  @IsString()
+  @IsOptional()
+  ipcInvoiceId?: string;
+
+  @IsString()
+  @IsOptional()
+  releaseDueDate?: string;
+
+  @IsString()
+  @IsOptional()
+  guaranteeCertificateRef?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class ReleaseRetentionDto {
+  @IsNumber()
+  @Min(0.001)
+  releaseAmount!: number;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class CreatePaymentHoldDto {
+  @IsString()
+  @IsOptional()
+  subcontractId?: string;
+
+  @IsString()
+  @IsIn(['subcontractor', 'supplier'])
+  partyType!: 'subcontractor' | 'supplier';
+
+  @IsString()
+  @IsNotEmpty()
+  partyName!: string;
+
+  @IsNumber()
+  @Min(0.001)
+  holdAmount!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
+
+  @IsString()
+  @IsOptional()
+  defectDescription?: string;
+}
+
+export class ReleasePaymentHoldDto {
+  @IsString()
+  @IsOptional()
+  releaseNotes?: string;
+}
+
+export class CreateSupplierReturnDto {
+  @IsString()
+  @IsOptional()
+  returnNumber?: string;
+
+  @IsNumber()
+  @IsOptional()
+  supplierId?: number;
+
+  @IsString()
+  @IsNotEmpty()
+  supplierName!: string;
+
+  @IsString()
+  @IsOptional()
+  returnDate?: string;
+
+  @IsArray()
+  items!: any[];
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class CreateLaborAttendanceDto {
+  @IsString()
+  @IsNotEmpty()
+  workerName!: string;
+
+  @IsString()
+  @IsIn(['carpenter', 'blacksmith', 'mason', 'helper', 'operator', 'surveyor', 'electrician', 'plumber'])
+  trade!: 'carpenter' | 'blacksmith' | 'mason' | 'helper' | 'operator' | 'surveyor' | 'electrician' | 'plumber';
+
+  @IsString()
+  @IsOptional()
+  workDate?: string;
+
+  @IsString()
+  @IsOptional()
+  shiftType?: string;
+
+  @IsNumber()
+  @Min(0.5)
+  hoursWorked!: number;
+
+  @IsString()
+  @IsOptional()
+  splitProjectId?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  splitHours?: number;
+
+  @IsNumber()
+  @Min(0)
+  dailyRate!: number;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class CreatePettyCashDto {
+  @IsString()
+  @IsNotEmpty()
+  custodianName!: string;
+
+  @IsString()
+  @IsOptional()
+  custodianRole?: string;
+
+  @IsString()
+  @IsOptional()
+  disbursementNumber?: string;
+
+  @IsNumber()
+  @Min(1)
+  amountGiven!: number;
+
+  @IsString()
+  @IsOptional()
+  issueDate?: string;
+
+  @IsString()
+  @IsOptional()
+  settlementDueDate?: string;
+}
+
+export class SettlePettyCashDto {
+  @IsArray()
+  receipts!: any[];
+
+  @IsString()
+  @IsOptional()
+  closureNotes?: string;
+}
+
+export class CreateGovernmentLicenseDto {
+  @IsString()
+  @IsIn(['excavation', 'building', 'civil_defense', 'road_occupancy', 'environmental', 'other'])
+  licenseType!: 'excavation' | 'building' | 'civil_defense' | 'road_occupancy' | 'environmental' | 'other';
+
+  @IsString()
+  @IsNotEmpty()
+  licenseNumber!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  issuingAuthority!: string;
+
+  @IsString()
+  @IsOptional()
+  issueDate?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  expiryDate!: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  feeAmount?: number;
+
+  @IsString()
+  @IsOptional()
+  documentUrl?: string;
+
+  @IsNumber()
+  @Min(1)
+  @IsOptional()
+  alertLeadDays?: number;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class CreateMasterBoqLibraryItemDto {
+  @IsString()
+  @IsNotEmpty()
+  tradeCategory!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  tradeNameAr!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  itemCode!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  unit!: string;
+
+  @IsNumber()
+  @Min(0)
+  standardCost!: number;
+
+  @IsNumber()
+  @Min(0)
+  standardPrice!: number;
+}
+
+export class UpdateMasterBoqLibraryItemDto {
+  @IsString()
+  @IsOptional()
+  tradeCategory?: string;
+
+  @IsString()
+  @IsOptional()
+  tradeNameAr?: string;
+
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsOptional()
+  unit?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  standardCost?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  standardPrice?: number;
+}
+
+export class ImportMasterBoqToProjectDto {
+  @IsArray()
+  itemIds!: (string | number)[];
+}

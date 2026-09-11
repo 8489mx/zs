@@ -192,16 +192,22 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   'product-categories': 'products',
   maritime: null,
   '/maritime': null,
+  'maritime-inquiries': null,
   'maritime-rfqs': null,
   'maritime-matrix': null,
   'maritime-quotations': null,
   'maritime-jobs': null,
   'maritime-containers': null,
   'maritime-lines': null,
+  'maritime-settings': null,
   contracting: null,
   '/contracting': null,
   'contracting-projects': null,
   'contracting-boq': null,
+  'contracting-financials': null,
+  'contracting-procurement': null,
+  'contracting-field': null,
+  'contracting-master-boq': null,
   'contracting-change-orders': null,
   'contracting-invoices': null,
   'contracting-subcontracts': null,
@@ -439,18 +445,24 @@ export const routeFeatureMap: Record<string, string | null> = {
   // Maritime Freight
   maritime: 'maritime_freight',
   '/maritime': 'maritime_freight',
+  'maritime-inquiries': 'maritime_freight',
   'maritime-rfqs': 'maritime_freight',
   'maritime-matrix': 'maritime_freight',
   'maritime-quotations': 'maritime_freight',
   'maritime-jobs': 'maritime_freight',
   'maritime-containers': 'maritime_freight',
   'maritime-lines': 'maritime_freight',
+  'maritime-settings': 'maritime_freight',
 
   // Contracting & Construction
   contracting: 'contracting',
   '/contracting': 'contracting',
   'contracting-projects': 'contracting',
   'contracting-boq': 'contracting',
+  'contracting-financials': 'contracting',
+  'contracting-procurement': 'contracting',
+  'contracting-field': 'contracting',
+  'contracting-master-boq': 'contracting',
   'contracting-change-orders': 'contracting',
   'contracting-invoices': 'contracting',
   'contracting-subcontracts': 'contracting',
@@ -547,6 +559,8 @@ export function getRouteFeatureRequirement(target: string) {
   if (rootSegment.startsWith('manufacturing')) return 'manufacturing';
   if (rootSegment.startsWith('pharmacy')) return 'pharmacy';
   if (rootSegment.startsWith('import')) return 'import';
+  if (rootSegment.startsWith('maritime')) return 'maritime_freight';
+  if (rootSegment.startsWith('contracting')) return 'contracting';
   if (rootSegment.startsWith('van-sales') || rootSegment.startsWith('driver-mobile')) return 'deliveryReps';
   return null;
 }

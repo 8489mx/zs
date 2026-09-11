@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { ContractingProject } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { GovernmentLicensesModal } from './GovernmentLicensesModal';
+import { ProjectHealthWidget } from './ProjectHealthWidget';
 
 interface ContractingProjectsTabProps {
   projects: ContractingProject[];
@@ -14,6 +17,10 @@ export function ContractingProjectsTab({
   onSelectProject,
   onNewProject,
 }: ContractingProjectsTabProps) {
+  const [licensesModal, setLicensesModal] = useState<{ open: boolean; projectId: string; projectName: string }>({
+    open: false, projectId: '', projectName: '',
+  });
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -132,6 +139,7 @@ export function ContractingProjectsTab({
                   <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>القيمة المعدلة (بالتغييرات)</th>
                   <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الدفعة المقدمة</th>
                   <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الحالة</th>
+                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>صحة المشروع</th>
                   <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الإجراءات</th>
                 </tr>
               </thead>
@@ -174,8 +182,13 @@ export function ContractingProjectsTab({
                       <td style={{ padding: '12px 16px' }}>
                         {getStatusBadge(prj.status)}
                       </td>
+                      {/* Health Score */}
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                        <ProjectHealthWidget projectId={prj.id} />
+                      </td>
+                      {/* Actions */}
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
                           <button
                             type="button"
                             onClick={() => onSelectProject(prj.id, 'boq')}
@@ -210,6 +223,23 @@ export function ContractingProjectsTab({
                           >
                             المستخلصات
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setLicensesModal({ open: true, projectId: prj.id, projectName: prj.name })}
+                            style={{
+                              height: '30px',
+                              padding: '0 10px',
+                              borderRadius: '6px',
+                              fontSize: 'var(--font-badge)',
+                              fontWeight: 600,
+                              background: '#fff7ed',
+                              color: '#c2410c',
+                              border: '1px solid #fed7aa',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            تراخيص
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -220,6 +250,14 @@ export function ContractingProjectsTab({
           </div>
         )}
       </div>
+
+      {/* Government Licenses Modal */}
+      <GovernmentLicensesModal
+        open={licensesModal.open}
+        onClose={() => setLicensesModal(p => ({ ...p, open: false }))}
+        projectId={licensesModal.projectId}
+        projectName={licensesModal.projectName}
+      />
     </div>
   );
 }

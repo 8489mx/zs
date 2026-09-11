@@ -113,9 +113,9 @@ export function MaritimeJobsTab({
                   </td>
                   <td style={{ padding: '12px 14px' }}>
                     {job.delivery_order_released ? (
-                      <span style={{ color: '#15803d', fontWeight: 700, fontSize: '0.75rem' }}>تم التسليم ✓</span>
+                      <span style={{ color: '#15803d', fontWeight: 700, fontSize: '0.75rem' }}>تم التسليم (D/O)</span>
                     ) : (
-                      <span style={{ color: '#d97706', fontWeight: 600, fontSize: '0.75rem' }}>محتجز 🔒</span>
+                      <span style={{ color: '#d97706', fontWeight: 600, fontSize: '0.75rem' }}>محتجز لحين السداد</span>
                     )}
                   </td>
                   <td style={{ padding: '12px 14px' }}>

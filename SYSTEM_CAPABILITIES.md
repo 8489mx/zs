@@ -327,6 +327,7 @@
 | **عزل صلاحيات السوبر أدمن ومنع تسريب إدارة المشتركين للمستأجرين (Multi-Layer Platform Admin Isolation)** | 🟢 | 100% | `access.ts`, `super-admin-role.guard.ts`, `session.service.ts`, `saas-admin.controller.ts`, `saas-admin.service.ts`, `trial-tenant-provisioning.service.ts`, `activation.service.ts`, `users.service.ts` | **منظومة دفاعية سباعية الطبقات (7-Layer Defense-in-Depth) تضمن استحالة تسريب صلاحيات السوبر أدمن للشركات المستضافة:** <br>1. **طبقة الجارد وحماية المسارات المركزية (`SuperAdminRoleGuard`):** تشترط فحصاً مزدوجاً غير قابل للتجاوز (`role === 'super_admin'` + مطابقة `tenantId` لمنصة الإدارة المركزية `default`/`dev-tenant`). تم قفل كامل كونترولر الساس المركزي `SaasAdminController` بهذا الجارد. <br>2. **طبقة جلسة المستخدم (`SessionService` Coercion):** عند تسجيل الدخول أو استرجاع الجلسة أو استعلام الملف الشخصي (`buildMePayload`)، إذا كان المستخدم مسجلاً كـ `super_admin` في قاعدة البيانات لكنه لا ينتمي للمنصة المركزية، يتم إجباره وتخفيضه فورياً في الذاكرة إلى `admin`. <br>3. **طبقة الإنشاء والتهيئة:** إنشاء الشركات التجريبية (`trial-tenant-provisioning`) وإسكربتات التفعيل والتهيئة الأولى (`activation.service.ts`) تمنح دور `admin` حصرياً لأصحاب المتاجر والمستأجرين. <br>4. **طبقة إدارة المستخدمين (`users.service.ts`):** منع إنشاء أو ترقية أي مستخدم لرتبة `super_admin` خارج منصة الإدارة مع تحويله تلقائياً لـ `admin`. <br>5. **طبقة فحص الخدمة الصارم (`assertPlatformAccess`):** حظر فوري في كود الخدمات لأي استدعاء برمجي لا يحمل معرف المنصة. <br>6. **طبقة الفرونت إند والتوجيه (`access.ts` & `app-shell.tsx`):** حجب مسارات الساس وعناصر القوائم بالكامل عن غير مسؤولي المنصة، وإخفاء رتبة السوبر أدمن من شاشات إدارة المستخدمين للمستأجرين. <br>7. **شبكة اختبارات الأمان الآلية الدائمة (`test:auth` & `test:critical`):** تم دمج اختبارات آلية صارمة (`super-admin-role.guard.spec.ts` 7/7 و `session-auth.spec.ts`) تضمن فشل أي بيلد أو سير عمل CI مستقبلاً إذا حدث أي مساس أو تراجع في عزل السوبر أدمن. |
 | **مايجريشن تطهير رتب السوبر أدمن القديمة للمستأجرين** | 🟢 | 100% | `2040000000047_sanitize_tenant_superadmin_roles.ts` | ترحيل بيانات آلي يفحص جدول `users` ويخفض تلقائياً أي حساب مستأجر تم إنشاؤه سابقاً بالخطأ برتبة `super_admin` إلى `admin` دون المساس بصلاحياته التشغيلية داخل منشأته لضمان الحماية الفورية. |
 | **حصر رصد ومراقبة السيرفر (APM) بالسوبر أدمن ومنع انهيار المتصفح** | 🟢 | 100% | `settings.page-config.ts`, `SettingsPage.tsx`, `SettingsSectionTabs.tsx`, `SettingsTelegramAlertsSection.tsx` | حصر تبويب "المراقبة ورصد السيرفر (APM)" وتنبيهات تيليجرام للأعطال بسوبر أدمن منصة الإدارة المركزية حصرياً (`superAdminOnly` مع فحص `isPlatformAdmin`)، مع إخفائه تماماً عن كافة مستأجري ومتاجر النظام وإعادة توجيه أي محاولة دخول مباشرة، وحذف كود `process.version` غير المتوافق مع المتصفح لمنع خطأ انهيار القسم نهائياً. |
+| **المزامنة الصارمة لحفظ موديولات النظام والعزل الديناميكي للسايدبار (Zero-Leak Modular Gating)** | 🟢 | 100% | `SettingsMainForm.tsx`, `ModulesSettingsTab.tsx`, `app-shell.tsx`, `GlobalSearchModal.tsx` | 1) حل جذري لعدم ثبات تفعيل الموديولات (`maritimeFreightModuleEnabled` و `contractingModuleEnabled`) داخل فورم الإعدادات وإضافتها لبيانات الحفظ والـ reset الافتراضية لمنع فقدان التحديد عند التحديث. <br>2) إزالة كافة القيود الشرطية التعسفية في تبويب الموديولات لتمكين المشرفين من تفعيل وإلغاء أي موديول بحرية كاملة دون إخفاء البطاقات. <br>3) عزل تام وفلترة صارمة لعناصر ومجموعات القائمة الجانبية ومودال البحث السريع: إخفاء مجموعات وبنود المبيعات والمخزون والمشتريات عند تعطيلها (مثل تفعيل المقاولات والشحن فقط وإلغاء الـ POS والمخزون) بحيث لا تتسرب فواتير أو أصناف التجزئة للقائمة إطلاقاً. |
 
 ---
 
@@ -2258,7 +2259,696 @@
 | **Feature Gating في السايدبار والإعدادات** | 🟢 | 100% | `app-shell.tsx`, `ModulesSettingsTab.tsx` |
 | **الامتثال لدستور النظام البصري (0 Emojis & Clean SaaS)** | 🟢 | 100% | خلو تام من الإيموجيز واستخدام `StandardDialog` و `AppIcons` |
 
+---
+
+## 78. محرك التخصيص والعزل الرأسي للأنشطة والقطاعات (Industry Vertical Isolation Engine)
+
+### نظرة عامة
+تطوير منظومة عزل وفصل ثنائية الاتجاه (Bidirectional Vertical Isolation Engine) تجعل النظام يتكيف بالكامل مع طبيعة نشاط العميل وتمنحه شعوراً مطلقاً بأن المنظومة صُممت له خصيصاً كمنظومة مؤسسية متخصصة (ERP SaaS)، مع إخفاء تام وشامل لكافة الشاشات والمفاهيم والمصطلحات الدخيلة:
+
+1. **قطاع المقاولات والهندسة (`contracting`):**
+   - بيئة عمل مخصصة بالكامل للمشاريع، المقايسات (BOQ)، المستخلصات (IPC)، عقود الباطن، والتقارير اليومية.
+   - إخفاء تام لنقاط البيع (POS)، درج الكاشير، الورديات، شاشات المطبخ (KDS)، المبيعات السريعة، وأنشطة الشحن والعيادات.
+   - ترتيب هرمي علوي لمجموعات السايدبار يبدأ بالمقاولات ثم المشتريات ومستودعات المواقع ومحاسبة المشاريع.
+   - تخصيص أزرار الوصول السريع في أعلى التطبيق: (لوحة التحكم، المشاريع، المستخلصات، جداول الكميات).
+
+2. **قطاع الشحن البحري واللوجستيات (`maritime`):**
+   - بيئة عمل مخصصة لأوامر التشغيل، الحاويات وفترات السماح (Demurrage)، ومصفوفة مقارنة الخطوط الملاحية.
+   - إخفاء تام للـ POS، الورديات، تجزئة المنتجات، المقاولات، الصيدليات، والمطاعم.
+   - أزرار وصول سريع مخصصة: (لوحة التحكم، أوامر التشغيل، تتبع الحاويات، عروض الأسعار).
+
+3. **قطاعات التجزئة والسوبرماركت والعطارة والمحامص (`retail`, `supermarket`, `spices`, `perfumes`, `fashion`):**
+   - حظر وعزل قاطع بنسبة 100% لموديولات المقاولات والشحن البحري والتصنيع الثقيل والعيادات.
+   - تركيز كامل على سرعة نقاط البيع، قراءة الباركود، ميزان الباركود، وإدارة المخزون والتوريد.
+
+4. **العزل الذكي للبحث الشامل (Global Search Isolation):**
+   - محرك البحث الفوري (`Ctrl + /`) يقوم بفلترة شاشات التنقل والبيانات بحيث لا تظهر نتائج مقاولات أو شحن لأصحاب أنشطة التجزئة والعطارة، ولا تظهر شاشات الكاشير لشركات المقاولات.
+
+### الملفات المعدلة
+| الملف | الدور |
+| :--- | :--- |
+| `backend/src/modules/saas-admin/dto/saas-admin.dto.ts` | إضافة خاصية نمط النشاط `businessIndustry` في DTO إنشاء المستأجرين الجدد |
+| `backend/src/modules/saas-admin/trial-tenant-provisioning.service.ts` | بذر إعدادات الموديولات القطاعية آلياً في جدول `settings` عند إنشاء المستأجر مباشرة عبر `getIndustrySettingsPatch` |
+| `frontend/src/features/saas-admin/api/saas-admin.api.ts` | تمرير `businessIndustry` إلى واجهة برمجة تطبيقات السوبر أدمن |
+| `frontend/src/features/saas-admin/components/CreateTrialTenantModal.tsx` | إضافة قائمة منسدلة مؤسسية لاختيار قطاع/نمط المنشأة (12 نمطاً تشغيلياً) عند إنشاء المستأجر الجديد من لوحة السوبر أدمن |
+| `frontend/src/shared/layout/app-shell.tsx` | محرك العزل في السايدبار والشريط العلوي والترتيب الهرمي `preferredOrder` |
+| `frontend/src/shared/components/GlobalSearchModal.tsx` | الفلترة الذكية لمحرك البحث حسب النشاط الفعلي لمنع تسريب الموديولات |
+| `frontend/src/features/settings/schemas/settings.schema.ts` | اعتماد `contracting` و `maritime` في الـ schema الرسمية للأنشطة |
+| `frontend/src/features/settings/components/modular-configurator/modular-presets.ts` | قوالب التكوين القطاعية الذكية وخوارزميات التعطيل المتبادل وحساب الباقة |
+| `frontend/src/features/settings/components/modular-configurator/SmartModularQuickBar.tsx` | إدراج قوالب المقاولات والشحن البحري في شريط التخصيص السريع |
+| `frontend/src/features/settings/components/forms/tabs/GeneralSettingsTab.tsx` | الأتمتة التلقائية ومحرك التهيئة `applyIndustryAutomation` عند تغيير النشاط |
+| `frontend/src/features/settings/components/forms/tabs/ModulesSettingsTab.tsx` | عزل وحجب بطاقات الموديولات غير الملائمة لكل قطاع (POS، مقاولات، شحن، تصنيع، مطاعم، صيدليات، موازين) مع الحفاظ على رؤية السوبر أدمن التامة |
+| `frontend/src/features/settings/components/modular-configurator/SmartModularConfiguratorModal.tsx` | أيقونات وعروض الموديولات في نافذة التكوين الذكي |
+| `frontend/src/features/activation/components/onboarding/PresetIcon.tsx` | أيقونات SVG مؤسسية معتمدة لكافة القطاعات |
+
+### جدول التحقق والجاهزية
+| المتطلب | الحالة | النسبة | التفاصيل |
+| :--- | :---: | :---: | :--- |
+| **اختيار النمط أثناء إنشاء حساب المستأجر (SaaS Admin)** | 🟢 | 100% | قائمة منسدلة لـ 12 نمطاً تجارياً وصناعياً وخدمياً في نافذة إنشاء المستأجر |
+| **البذر التلقائي لإعدادات الموديولات بالباك إند** | 🟢 | 100% | تفعيل وتعطيل الموديولات المناسبة فورياً في قاعدة البيانات بقيم صريحة |
+| **العزل التام في الإعدادات الداخلية (ModulesSettingsTab)** | 🟢 | 100% | منع ظهور أي موديول خارج تخصص العميل مع إتاحة التحكم الكامل للسوبر أدمن |
+| **العزل الهرمي في السايدبار والشريط العلوي** | 🟢 | 100% | تخصيص مسميات وأولويات التنقل وإخفاء المجموعات غير ذات الصلة نهائياً |
+| **عزل محرك البحث الشامل (Global Search)** | 🟢 | 100% | منع نتائج وروابط الموديولات غير المفعلة في شريط البحث السريع |
+| **الامتثال لمعايير التصميم وخلو تام من الإيموجيز** | 🟢 | 100% | التزام كامل بـ `AppIcons` و `StandardDialog` ودستور التيبوجرافي |
+
+---
+
+## 79. معمارية المسارات والصفحات المستقلة لموديولات المقاولات والشحن البحري (Modular Sub-Route Architecture)
+
+### نظرة عامة
+تمت إعادة هيكلة موديولي **المقاولات الإنشائية (`contracting`)** و **الشحن البحري واللوجستيات (`maritime-freight`)** معمارياً من أسلوب الصفحة الواحدة المتضخمة المحملة بالتابات (Monolithic Workspace Tabs) إلى **معمارية المسارات الفرعية المستقلة (Modular Sub-Routes with Layout & Context)**:
+
+1. **القضاء على عبء تحميل الـ Bundle والـ Monolithic State:**
+   - تم تحويل الصفحات الأحادية إلى Layout مركزي خفيف مع سياق مشترك (`ContractingContext` و `MaritimeContext`).
+   - تفعيل التحميل الكسول الحقيقي (True Code-Splitting & Lazy Loading) عبر `createLazyRoute` لكل شاشة فرعية مستقلة، بحيث لا يتم تنزيل كود شاشة المستخلصات أو الحاويات إلا عند زيارتها فعلياً.
+
+2. **هيكلة موديول المقاولات (`contracting`):**
+   - **الـ Layout الموحد:** `ContractingLayout.tsx` (يحتوي على الـ PageHeader، بطاقات KPIs المالية، شريط اختيار المشروع النشط المشترك، وشريط التبويبات).
+   - **الصفحات المستقلة:**
+     - `/contracting` & `/contracting/projects` -> `ContractingProjectsPage.tsx`
+     - `/contracting/boq` -> `ContractingBoqPage.tsx`
+     - `/contracting/gantt` -> `ContractingGanttPage.tsx`
+     - `/contracting/change-orders` -> `ContractingChangeOrdersPage.tsx`
+     - `/contracting/invoices` -> `ContractingInvoicesPage.tsx`
+     - `/contracting/subcontracts` -> `ContractingSubcontractsPage.tsx`
+     - `/contracting/materials` -> `ContractingMaterialsPage.tsx`
+     - `/contracting/daily-logs` -> `ContractingDailyLogsPage.tsx`
+     - `/contracting/rfis` -> `ContractingRfiPage.tsx`
+   - **التوافق العكسي:** تحويل تلقائي لأي زيارات قديمة تعتمد `?tab=...` إلى المسار النظيف الجديد.
+
+3. **هيكلة موديول الشحن البحري (`maritime-freight`):**
+   - **الـ Layout الموحد:** `MaritimeLayout.tsx` (يحتوي على الـ PageHeader، بطاقات KPIs التشغيلية، وشريط التبويبات مع العدادات الحية).
+   - **الصفحات المستقلة:**
+     - `/maritime` & `/maritime/rfqs` -> `MaritimeRfqsPage.tsx`
+     - `/maritime/matrix` -> `MaritimeMatrixPage.tsx`
+     - `/maritime/quotations` -> `MaritimeQuotationsPage.tsx`
+     - `/maritime/jobs` -> `MaritimeJobsPage.tsx`
+     - `/maritime/containers` -> `MaritimeContainersPage.tsx`
+     - `/maritime/lines` & `/maritime/master` -> `MaritimeLinesPage.tsx`
+   - **التوافق العكسي:** توجيه تلقائي من `/maritime?tab=xxx` إلى المسار النظيف.
+
+### جدول التحقق والجاهزية
+| المتطلب | الحالة | النسبة | التفاصيل |
+| :--- | :---: | :---: | :--- |
+| **تقسيم صفحات موديول المقاولات إلى Sub-Routes** | 🟢 | 100% | 9 صفحات فرعية مستقلة مع Lazy Loading وسياق مشروع مشترك |
+| **تقسيم صفحات موديول الشحن البحري إلى Sub-Routes** | 🟢 | 100% | 6 صفحات فرعية مستقلة مع عدادات وإدارة حالة مستقلة |
+| **تخفيف أحجام ملفات الصفحات الرئيسية** | 🟢 | 100% | تفتيت الملفات من 750 سطر إلى صفحات بمتوسط 60-120 سطر فقط |
+| **التوافق العكسي التام (Backward Compatibility)** | 🟢 | 100% | دعم الروابط القديمة `?tab=...` والتحويل التلقائي السلس |
+| **خلو تام من أخطاء TypeScript** | 🟢 | 100% | فحص مزدوج للباك إند والفرونت إند بـ 0 أخطاء |
 
 
 
+---
+
+## 80. وحدة المقاولات المتكاملة - النظام المؤسسي الكامل لمقاول البناء (Enterprise Contracting ERP - Full Contractor Workflow)
+
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  - Backend: `backend/src/modules/contracting/`
+  - Frontend: `frontend/src/features/contracting/`
+* **الجداول الجديدة في قاعدة البيانات (Migration: `2040000000082`):**
+  - `contracting_master_price_list` - قائمة الأسعار المرجعية للخامات والمصنعيات
+  - `contracting_engineering_constants` - معادلات الاستهلاك الهندسي المعيارية
+  - `contracting_cost_snapshots` - تجميد خطوط الأساس للميزانية (Cost Baseline Snapshots)
+  - `contracting_retention_records` - سجل استقطاعات ضمان حسن التنفيذ
+  - `contracting_payment_holds` - سجل حجز الدفعات للملاحظات الهندسية
+  - `contracting_supplier_returns` - أذون مرتجع المواد وإشعارات الدائن
+  - `contracting_labor_attendance` - يوميات العمالة الميدانية وتوزيع الساعات
+  - `contracting_petty_cash` - العهد النقدية مع منطق رقابي صارم (Anti-Leakage)
+  - `contracting_government_licenses` - تراخيص المشروع الحكومية وتنبيهات انتهاء الصلاحية
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح |
+| :--- | :---: | :---: | :--- | :--- |
+| **محرك التسعير الهندسي الآلي (Auto Pricing Engine)** | 🟢 | 100% | `AutoPricingModal.tsx`, `contracting.service.ts::autoPriceBoqItem` | حساب تكلفة وحدة البند بضغطة زر بناءً على معادلات الاستهلاك الهندسي (كميات الأسمنت/الحديد/الرمل/السن/العمالة لكل م³)، مع إضافة نسبة الهالك والأوفرهيد وهامش الربح وإظهار تفاصيل مكونات التكلفة. |
+| **عرض السعر الرسمي للعميل (Client Quotation - Printable)** | 🟢 | 100% | `ClientQuotationModal.tsx` | توليد وطباعة عرض سعر رسمي منسق من جدول الكميات كامل مع بنود الأعمال والأسعار وشروط العقد وبيانات الطرفين وإمضاءات الاعتماد. |
+| **حصر الاحتياجات الإجمالية للخامات (Material Requirements Planning - MRP)** | 🟢 | 100% | `ProjectMaterialsMrpModal.tsx`, `contracting.service.ts::getProjectMaterialRequirements` | حصر إجمالي طن الحديد وأكياس الأسمنت والرمل السن وساعات العمالة المطلوبة لكامل المشروع مقارنةً بالمنصرف والمتبقي مع أشرطة تقدم بصرية. |
+| **تحليل أرباح وخسائر البنود (Item-Level P&L Analysis)** | 🟢 | 100% | `BoqProfitabilityModal.tsx`, `contracting.service.ts::getBoqProfitabilityAnalysis` | مقارنة سعر البيع التعاقدي بالتكلفة التقديرية والتكلفة الفعلية المنصرفة بنداً بنداً، مع تصنيف رابح/تحت الخطر/خاسر وإجمالي هامش الربح الفعلي. |
+| **تجميد خط الأساس للميزانية (Cost Baseline Snapshots)** | 🟢 | 100% | `CostSnapshotModal.tsx`, `contracting.service.ts::createCostSnapshot` | حفظ وقفل صورة للميزانية عند اعتماد العقد، وعرض مقارنة تاريخية بين اللقطات المحفوظة لرصد الانحراف. |
+| **سجل ضمان الأعمال المحتجز والفك (Retention Ledger)** | 🟢 | 100% | `RetentionLedgerModal.tsx`, `contracting.service.ts::getRetentionRecords` | تسجيل نسب الاحتجاز (5%-10%) لمقاولي الباطن والعملاء مع جدولة مواعيد الفك وسجل إفراج مفصل مع بيانات توثيقية. |
+| **حجز الدفعات للملاحظات الهندسية (Payment Holds & Defect Clearance)** | 🟢 | 100% | `PaymentHoldsModal.tsx`, `contracting.service.ts::getPaymentHolds` | وقف صرف مستحقات أي مقاول أو مورد عند وجود ملاحظة هندسية أو عيب مصنعية، وتوثيق بيان الإفراج بعد التلافي. |
+| **أذون مرتجع المواد وإشعارات الدائن (Supplier Returns & Credit Notes)** | 🟢 | 100% | `SupplierReturnsModal.tsx`, `contracting.service.ts::getSupplierReturns` | توثيق المواد المرفوضة أو التالفة وإرجاعها للمورد مع إصدار إشعار خصم (Credit Note) مالي بأرقام مرجعية. |
+| **يوميات وتوزيع العمالة الميدانية (Labor Attendance & Split Allocation)** | 🟢 | 100% | `LaborAttendanceModal.tsx`, `contracting.service.ts::getLaborAttendance` | تسجيل حضور الصنائعية والعمال مع ساعات عادية وإضافية واليومية المستحقة، وإمكانية تقسيم نسبة التحميل بين مشروعات متعددة. |
+| **العهد النقدية مع الرقابة الصارمة (Petty Cash Anti-Leakage Audit)** | 🟢 | 100% | `PettyCashModal.tsx`, `contracting.service.ts::createPettyCash` | إصدار وتتبع العهد النقدية لمهندسي المواقع مع منع صارم من فتح عهدة جديدة لأي مهندس قبل تصفية وإغلاق عهدته السابقة مستندياً بالفواتير والإيصالات. |
+| **19 نقطة API للباك إند (Enterprise Contracting Endpoints)** | 🟢 | 100% | `contracting.controller.ts`, `contracting.service.ts` | تغطي: قائمة الأسعار، الثوابت الهندسية، التسعير الآلي، اللقطات، الضمانات، الحجوزات، المرتجعات، العمالة، العهد، التراخيص، مؤشر صحة المشروع، توقعات السيولة، MRP، P&L. |
+| **شريط الأدوات الهندسية في تبويب BOQ** | 🟢 | 100% | `ContractingBoqTab.tsx` | شريط مدمج بـ 5 أزرار: محرك التسعير، عرض السعر للعميل، حصر الخامات MRP، تحليل ربحية البنود، تجميد خط الأساس. |
+| **تراخيص المشروع الحكومية — واجهة كاملة (Government Licenses UI)** | 🟢 | 100% | `GovernmentLicensesModal.tsx` | واجهة كاملة لإضافة وعرض تراخيص الحفر والبناء والدفاع المدني مع بانر تحذير للتراخيص المنتهية أو القريبة من الانتهاء، وتفعيلها بزر "تراخيص" في صف كل مشروع بالجدول. |
+| **مؤشر صحة المشروع — بادج تفاعلي (Health Score Pill Widget)** | 🟢 | 100% | `ProjectHealthWidget.tsx` | بادج ملون (أخضر/أصفر/أحمر) يعرض نقاط صحة كل مشروع 0-100 في عمود مستقل بجدول المشاريع مع tooltip يعرض SPI وCPI. |
+| **بطاقة توقعات التدفق النقدي (Cash Flow Forecast Card - 30/60/90 Days)** | 🟢 | 100% | `CashForecastCard.tsx` | بطاقة ملخص في أعلى صفحة المشاريع تعرض المركز النقدي الحالي وشبكة الواردات/الصادرات/الصافي للـ 30/60/90 يوماً القادمة مع ملخص الالتزامات القادمة. |
+
+### الملفات المضافة والمعدلة في هذه الجلسة
+
+#### Backend
+- `backend/src/database/migrations/2040000000082_contracting_master_enterprise_enhancements.ts` **[NEW]**
+- `backend/src/modules/contracting/contracting.types.ts` **[MODIFIED]** - إضافة 15 interface جديدة
+- `backend/src/modules/contracting/dto/contracting.dto.ts` **[MODIFIED]** - إضافة جميع DTOs للميزات الجديدة
+- `backend/src/modules/contracting/contracting.service.ts` **[MODIFIED]** - إضافة 19 service method جديدة
+- `backend/src/modules/contracting/contracting.controller.ts` **[MODIFIED]** - إضافة 19 endpoint جديدة
+
+#### Frontend
+- `frontend/src/features/contracting/contracting.types.ts` **[MODIFIED]** - types للواجهات الجديدة
+- `frontend/src/features/contracting/api/contracting.api.ts` **[MODIFIED]** - 19 API client method جديدة
+- `frontend/src/shared/components/icons/AppIcons.tsx` **[MODIFIED]** - إضافة `CalculatorIcon` و `TrendingUpIcon`
+- `frontend/src/features/contracting/components/AutoPricingModal.tsx` **[NEW]**
+- `frontend/src/features/contracting/components/ClientQuotationModal.tsx` **[NEW]**
+- `frontend/src/features/contracting/components/ProjectMaterialsMrpModal.tsx` **[NEW]**
+- `frontend/src/features/contracting/components/BoqProfitabilityModal.tsx` **[NEW]**
+- `frontend/src/features/contracting/components/CostSnapshotModal.tsx` **[NEW]**
+- `frontend/src/features/contracting/components/RetentionLedgerModal.tsx` **[NEW]**
+- `frontend/src/features/contracting/components/PaymentHoldsModal.tsx` **[NEW]**
+- `frontend/src/features/contracting/components/SupplierReturnsModal.tsx` **[NEW]**
+- `frontend/src/features/contracting/components/LaborAttendanceModal.tsx` **[NEW]**
+- `frontend/src/features/contracting/components/PettyCashModal.tsx` **[NEW]**
+- `frontend/src/features/contracting/components/ContractingBoqTab.tsx` **[MODIFIED]** - شريط الأدوات الهندسية وربط الـ 5 مودالات
+- `frontend/src/features/contracting/components/ContractingSubcontractsTab.tsx` **[MODIFIED]** - ربط Retention + Payment Holds
+- `frontend/src/features/contracting/components/ContractingMaterialsTab.tsx` **[MODIFIED]** - ربط Supplier Returns
+- `frontend/src/features/contracting/components/ContractingDailyLogsTab.tsx` **[MODIFIED]** - ربط Labor Attendance + Petty Cash
+- `frontend/src/features/contracting/pages/ContractingBoqPage.tsx` **[MODIFIED]**
+- `frontend/src/features/contracting/pages/ContractingSubcontractsPage.tsx` **[MODIFIED]**
+- `frontend/src/features/contracting/pages/ContractingMaterialsPage.tsx` **[MODIFIED]**
+- `frontend/src/features/contracting/pages/ContractingDailyLogsPage.tsx` **[MODIFIED]**
+
+### التحقق النهائي
+- **Frontend TypeScript:** `npx tsc --noEmit` ← **0 أخطاء** ✓
+- **Backend TypeScript:** `npx tsc --noEmit` ← **0 أخطاء** ✓
+
+---
+
+## 80. بنك بنود المقاولات المرجعي الشامل ومحرك الاستيراد لكافة التخصصات (Multi-Trade Master BOQ Library & 1-Click Importer)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Procore Master Items Catalog / Trimble WinEst & HeavyBid Multi-Trade Cost Database.
+* **روابط وشاشات الوصول:**
+  1. شاشة بنك البنود المرجعي المستقلة: `/contracting/master-boq` (القائمة الجانبية وشريط التبويبات العلوي: المقاولات ➔ بنك البنود المرجعي).
+  2. زر الاستيراد السريع بجدول الكميات: `/contracting/boq` (زر "بنك البنود المرجعي" وزر "سحب تخصصات جاهزة" بالحالة الفارغة).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000083_contracting_master_boq_library.ts`, جدول `contracting_master_boq_library` مُحمّل مسبقاً بـ 62 بنداً معيارياً واقعياً عبر 10 تخصصات إنشائية وكهروميكانيكية كاملة.
+  * **الباك إند:** `backend/src/modules/contracting/contracting.service.ts` (`getMasterBoqTrades`, `getMasterBoqLibrary`, `createMasterBoqItem`, `updateMasterBoqItem`, `deleteMasterBoqItem`, `importMasterBoqItemsToProject`), `contracting.controller.ts`, `contracting.dto.ts`.
+  * **الفرونت إند:**
+    - `frontend/src/features/contracting/components/ImportMasterBoqModal.tsx` (نافذة الاستيراد المتعدد التفاعلية مع فلترة التخصصات والبحث والأسعار المرجعية).
+    - `frontend/src/features/contracting/components/CreateMasterBoqItemModal.tsx` (نافذة إضافة وتعديل بند مرجعي مخصص).
+    - `frontend/src/features/contracting/pages/ContractingMasterBoqPage.tsx` (شاشة العرض والإدارة الشاملة لبنك البنود مع بطاقات الـ KPIs والتصدير لإكسيل).
+    - `frontend/src/features/contracting/pages/ContractingLayout.tsx` (تنسيق الهيدر ووضع شريط التبويبات القياسي في الأعلى وبنر المشروع النشط أسفله مباشرة وفق طلب المستخدم).
+* **التخصصات الإنشائية والكهروميكانيكية المشمولة (10 تخصصات):**
+  1. أعمال الحفر والإحلال والخرسانات والخوازيق (`civil_concrete`)
+  2. أعمال المباني والعزل المائي والحراري والفوم (`masonry_insulation`)
+  3. أعمال التشطيبات الداخلية والمعمارية (`finishes`)
+  4. أعمال النجارة والألوميتال والواجهات والكلادينج (`doors_windows_facades`)
+  5. الإنشاءات والجمالونات المعدنية والساندوتش بانل (`steel_structures`)
+  6. أعمال التغذية والشبكات والكهرباء والإنارة (`electrical`)
+  7. أنظمة التيار الخفيف والمراقبة والسمارت هوم والإنذار (`smart_systems_elv`)
+  8. الأعمال الصحية والسباكة والصرف ومحطات الرفع (`plumbing`)
+  9. التكييف المركزي والمخفي ومكافحة الحريق (`hvac_firefighting`)
+  10. أعمال الموقع العام واللاندسكيب والإنترلوك وشبكات الري (`landscape_infrastructure`)
+* **القدرات التشغيلية:**
+  - سحب تخصص كامل أو بنود محددة بضغطة زر واحدة لمقايسة أي مشروع جديد لتعبئة الكميات فقط.
+  - إمكانية إضافة بنود مخصصة للشركة وتعديل تكلفة وأسعار السوق لأي بند مرجعي.
+  - تصدير كامل بنك البنود المرجعي إلى Excel بضغطة زر.
+
+---
+
+## 81. بيئة عمل المشروع الموحدة المدمجة (Unified Project Workspace & 5 Operational Hubs)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Procore Project Hub & Autodesk Construction Cloud (Unified Navigation Standard).
+* **القضاء التام على السكرول الأفقي:** استبدال الـ 10 تابات المفرقة بـ 5 محاور تشغيلية متوازنة تتسع بالكامل في أي شاشة بدون أي شريط تمرير أفقي نهائياً.
+* **المحاور التشغيلية الخمسة الموحدة:**
+  1. **سجل المشاريع الإنشائية (`/contracting/projects`):** محفظة المشاريع، مؤشرات الأداء الكلية، وتوقعات السيولة.
+  2. **المقايسة والبنود التعاقدية (`/contracting/boq`):** جدول كميات SOV، محرك التسعير الآلي، زر بنك البنود المرجعي، وتحليل ربحية البنود.
+  3. **المالية والمستخلصات (`/contracting/financials`):** يجمع بتبديل فرعي سريع بين مستخلصات المالك IPC وضمانات الأعمال المحتجزة، وبين الأوامر التغييرية والمطالبات.
+  4. **مقاولو الباطن والتوريدات (`/contracting/procurement`):** يجمع بتبديل فرعي بين عقود ومستخلصات مقاولي الباطن، وبين تشوينات وخامات الموقع ومرتجعات الموردين.
+  5. **الميدان والجدول الزمني (`/contracting/field`):** يجمع بتبديل فرعي بين مخطط جانت والمسار الحرج، ويوميات الموقع وحضور العمالة، والاستفسارات الفنية (RFIs) وتراخيص المشروع.
+  6. **السايد بار المركزي:** إضافة رابط مستقل لـ **"إعدادات وبنك بنود المقاولات"** (`/contracting/master-boq`) ككتالوج مركزي للشركة ككل.
+* **الملفات المحدثة:**
+  - `frontend/src/features/contracting/pages/ContractingFinancialsPage.tsx` **[NEW]**
+  - `frontend/src/features/contracting/pages/ContractingProcurementPage.tsx` **[NEW]**
+  - `frontend/src/features/contracting/pages/ContractingFieldPage.tsx` **[NEW]**
+  - `frontend/src/features/contracting/pages/ContractingLayout.tsx` **[MODIFIED]**
+  - `frontend/src/features/contracting/pages/ContractingMasterBoqPage.tsx` **[MODIFIED]** - شبكة تخصصات متناسقة هندسياً على سطرين بأبعاد موحدة (CSS Grid) بدون أي سكرول أفقي.
+  - `frontend/src/features/contracting/routes.tsx` **[MODIFIED]**
+  - `frontend/src/shared/layout/app-shell.tsx` **[MODIFIED]**
+
+---
+
+## 82. المولد التلقائي للأكواد التسلسلية لبنود المقاولات وترتيب واجهة بنك البنود (Auto-Sequential BOQ Code Generator & Master Library UI Polish)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Automatic Item Numbering & Trade-Prefixed Coding Standard (Procore / HeavyBid).
+* **القدرات التشغيلية:**
+  1. **التوليد التلقائي الفوري للأكواد التسلسلية (Auto-Sequential Code Generator):**
+     - عند فتح نافذة إضافة بند مرجعي مخصص، يقوم النظام تلقائياً بتحديد بادئة التخصص الهندسي (مثل `MAS` لأعمال المباني والعزل، `CIV` للأعمال المدنية، `ELE` لأعمال الكهرباء، إلخ).
+     - فحص كافة البنود الحالية في قاعدة البيانات واستخراج أعلى رقم تسلسلي مسجل في هذا التخصص وزيادته بمقدار `1` مع تنسيق ثلاثي الخانات (مثل `MAS-007` مباشرة إذا كان آخر بند مسجل هو `MAS-006`).
+     - عند تغيير التخصص من القائمة المنسدلة داخل النافذة، يعاد احتساب الكود التسلسلي التالي الخاص بالتخصص المختار فورياً.
+  2. **إعادة تموضع زر الإضافة المخصص (Action Bar Realignment):**
+     - نقل زر "+ إضافة بند مرجعي مخصص" من أعلى هيدر الصفحة ليتموضّع هندسياً مباشرة بين أزرار فلاتر التخصصات وجدول البنود القياسية لسهولة وسرعة الوصول.
+  3. **خانة هامش الربح التفاعلية والاحتساب التلقائي اللحظي (Interactive Profit Margin & Real-Time Pricing):**
+     - إضافة حقل "هامش الربح (%)" في منتصف بطاقة التسعير بين "سعر التكلفة المرجعية" و"سعر البيع المقترح".
+     - تعيين هوامش ربح استرشادية ذكية مقترحة لكل تخصص هندسي (`DEFAULT_TRADE_MARGINS`: 25% للخرسانات والهياكل المعدنية، 30% للمباني والتشطيبات والسباكة والتكييف، 33% للكهرباء، إلخ).
+     - احتساب فوري لسعر البيع المقترح بمجرد كتابة سعر التكلفة وفق معادلة الهامش القياسية `Cost / (1 - Margin/100)` المتطابقة 100% مع عمود الهامش في الجدول.
+     - إعادة احتساب لحظية ومباشرة لسعر البيع بمجرد تغيير نسبة الهامش يدوياً، مع إمكانية تعديل سعر البيع مباشرة ليقوم النظام بعكس وحساب نسبة الهامش تلقائياً، مع شريط مؤشر لصافي عائد الوحدة.
+  4. **استقرار وتثبيت نافذة استيراد المقايسة ومنع الرعشة (Import Master BOQ Modal Zero-Flicker):**
+     - تثبيت أبعاد الحاوية الرأسية للنافذة (`height: 580px`, `maxHeight: 72vh`) لتظل ثابتة بنسبة 100% ولا يتغير ارتفاعها نهائياً مهما اختلف عدد البنود المعروضة أو عند البحث.
+     - تحويل محرك البحث والفلترة ليعمل لحظياً في الذاكرة (Instant In-Memory Filter) بدلاً من إرسال طلبات شبكية متكررة مع كل حرف، مما قضى تماماً على إعادة تحميل الجدول أو رعشة الواجهة.
+     - تنسيق أزرار التخصصات في سطرين متناسقين مع إضافة أيقونة بحث رسمية وزر مسح سريع.
+  5. **التحقق وتوافق الكود البرمجي:**
+     - صفر أخطاء TypeScript على الواجهة والباك إند (`npx tsc --noEmit`).
+* **الملفات المحدثة:**
+  - `frontend/src/features/contracting/components/CreateMasterBoqItemModal.tsx` (`TRADE_PREFIXES`, `DEFAULT_TRADE_MARGINS`, `getNextItemCode`, interactive margin & price reactive handlers).
+  - `frontend/src/features/contracting/components/ImportMasterBoqModal.tsx` (Stable fixed height, instant in-memory search filter, zero-flicker UI).
+  - `frontend/src/features/contracting/pages/ContractingMasterBoqPage.tsx` (Action bar placement, dynamic existing items & trade pass-through).
+
+---
+
+## 83. تصحيح ربط بيانات المقايسة وإضافة إجراءات التعديل والحذف وتنسيق الجدول (Project BOQ Data Mapping & Actions Polish)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Schedule of Values (SOV) Management & Item Lifecycle.
+* **المشكلات التي تم حلها جذرياً:**
+  1. **القضاء التام على قيم `NaN` وتصحيح ربط الحقول (Zero NaN & CamelCase Mapping):**
+     - كان الباك إند في `getBoqItems` و `createBoqItem` و `updateBoqItem` يرجع أسماء أعمدة قاعدة البيانات بصيغة `snake_case` (`unit_price`, `contract_qty`, `revised_qty`, `item_code`) بينما الفرونت إند ينتظر صيغة `camelCase`، مما جعل الحقول غير معرفة وتسبب في ظهور أرقام `NaN` في البطاقات الإحصائية وأعمدة الأسعار والإجماليات.
+     - تم تحويل وإرجاع كافة الكائنات المحسوبة بدقة بصيغة `camelCase` من الباك إند، مع إضافة صمام أمان مزدوج ودالة فحص رقمي آمنة `getNum()` في الفرونت إند لمنع ظهور `NaN` نهائياً تحت أي ظرف.
+  2. **إضافة عمود الإجراءات وزر حذف وتعديل البند (Item Edit & Delete Actions):**
+     - تم إضافة عمود "الإجراءات" بجدول المقايسة يضم زري تعديل وحذف معتمدين بأيقونات النظام الرسمية (`AppIcons.Edit`, `AppIcons.Trash`).
+     - تفعيل نافذة تأكيد الحذف الرسمية واستدعاء `contractingApi.deleteBoqItem(id)` مع إشعار نجاح أو فشل وتحديث لحظي للقائمة والبطاقات الإحصائية.
+     - تفعيل نافذة تعديل البند وإعادة تحميل البيانات فور الحفظ.
+  3. **إعادة هيكلة وتنسيق الجدول وتعرّيب مسميات التخصصات:**
+     - تعريب كافة أكواد التخصصات البرمجية (`civil_concrete` ➔ الأعمال المدنية والخرسانات، `hvac_firefighting` ➔ التكييف ومكافحة الحريق، إلخ) مع شارات بصرية مؤسسية أنيقة.
+     - ضبط أبعاد وتوزيع أعمدة الجدول بدقة لمنع التداخل أو تآكل النصوص، وإضافة تأثير `hover` ناعم على الصفوف.
+* **الملفات المحدثة:**
+  - `backend/src/modules/contracting/contracting.service.ts` (`getBoqItems`, `createBoqItem`, `updateBoqItem` camelCase mapping).
+  - `frontend/src/features/contracting/components/ContractingBoqTab.tsx` (Actions column, edit & delete handlers, safe number parsing, Arabic trade badges, enterprise styling).
+
+---
+
+## 84. معمارية المصدر الموحد للنوافذ المنبثقة والقضاء على تكرار الأكواد (Single Source of Truth & Universal BOQ Modal Standard)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** DRY Architecture & Universal Domain Modal Pattern (Rule 11).
+* **القدرات التشغيلية:**
+  1. **تأسيس القاعدة الرسمية رقم 11 في `GEMINI.md`:**
+     - حظر تكرار أو إعادة كتابة نوافذ منبثقة متباينة لنفس الوظيفة، وإلزامية اعتماد المكون الموحد الشامل (`Universal Modal`).
+  2. **المكون الشامل الموحد لبنود المقايسة (`UniversalBoqItemModal.tsx`):**
+     - تم بناء مكون مركزي موحد يعالج إضافة وتعديل البنود في كل من بنك البنود المرجعي العام (`mode: 'master'`) ومقايسة المشروع الفعلية (`mode: 'project'`).
+     - يتضمن نفس بطاقة التسعير التفاعلية الموحدة (سعر التكلفة ⬅️ هامش الربح % المقترح ⬅️ سعر الفئة/البيع المقترح) مع الحساب اللحظي المتبادل.
+     - في وضع المشروع (`project`): يدعم حقل الكمية التعاقدية مع حساب فوري لإجمالي قيمة البند، وإجمالي التكلفة، وصافي الربح المتوقع.
+     - يتضمن التوليد التلقائي للكود التسلسلي (`MAS-007`, `CIV-009`, إلخ) والهوامش المقترحة للتخصصات.
+  3. **إعادة توجيه النوافذ القديمة (`CreateMasterBoqItemModal` & `CreateBoqItemModal`):**
+     - تم تحويل كلا المودالين إلى واجهات استدعاء رقيقة (Adapters) تستدعي `UniversalBoqItemModal` بنمطها المناسب، مما يضمن أن أي تعديل مستقبلي ينعكس تلقائياً وفورياً على كافة شاشات المنظومة.
+* **الملفات المحدثة:**
+  - `d:/zn/GEMINI.md` (إضافة القاعدة 11 الرسمية).
+  - `frontend/src/features/contracting/components/UniversalBoqItemModal.tsx` **[NEW]** (المكون الموحد الشامل).
+  - `frontend/src/features/contracting/components/CreateMasterBoqItemModal.tsx` **[REFACTORED]** (Adapter إلى المكون الموحد).
+  - `frontend/src/features/contracting/components/CreateBoqItemModal.tsx` **[REFACTORED]** (Adapter إلى المكون الموحد).
+
+---
+
+## 85. توحيد وضبط أبعاد جدول مقايسة المشروع وهندسة الحقول العددية (Contracting BOQ Table Fixed Layout & Numeric Column Balancing)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Institutional ERP Data Tables / Balanced Fixed Colgroup Standard.
+* **المشكلات المعالجة والتطويرات:**
+  1. **معالجة تمدد عمود المواصفات وقفل أبعاد الأعمدة (`tableLayout: 'fixed'`):**
+     - تم تفعيل التخطيط الثابت `tableLayout: 'fixed'` مع حد أدنى للعرض `minWidth: '1240px'` وتحديد أوزان دقيقة عبر `<colgroup>`، مما منع النصوص الطويلة لبيان الأعمال من التمدد العشوائي على سطر واحد أو التهام مساحات الأعمدة المجاورة.
+     - ضبط نص المواصفات ليلتف بنعومة وسلاسة على سطرين أو ثلاثة (`lineHeight: 1.5`, `wordBreak: 'break-word'`, `whiteSpace: 'normal'`).
+  2. **تناسق هيدر وأعمدة الجدول (Unified Column Alignment):**
+     - محاذاة كافة الأعمدة وهيدراتها بصرامة موحدة (`textAlign: 'center'` لكافة الأعمدة الرقمية، كود البند، الوحدة، الكميات، الأسعار، الإجماليات، نسب الإنجاز، وأزرار الإجراءات)، مما قضى تماماً على التنافر البصري وتداخل النصوص مع الحدود.
+  3. **معالجة البنود المستوردة بدون كميات (Zero-Quantity Interactive Helper):**
+     - عند استيراد بنود من بنك البنود المرجعي بكمية تعاقدية `0`، تم استبدال الرقم الصامت بزر تفاعلي إرشادي أنيق `0 (حدد الكمية)` مع أيقونة قلم التعديل، يفتح فوراً نافذة تعديل البند لإدخال الكمية المطلوبة للمشروع وحساب القيمة تلقائياً.
+     - إضافة بانر توجيهي أنيق أعلى الجدول يوضح للمستخدم كيفية تحديد كميات البنود المستوردة لتحديث إجمالي قيمة المقايسة في البطاقات الإحصائية.
+* **الملفات المحدثة:**
+  - `frontend/src/features/contracting/components/ContractingBoqTab.tsx` (ضبط التنسيق، colgroup، محاذاة الأعمدة، زر الكمية التفاعلي، بطاقات الـ KPI).
+
+---
+
+## 86. تحصين حقول الإدخال الرقمية والكميات ودعم الأرقام العربية (Numeric Input Hardening & Eastern Arabic Digit Support)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **المشكلات المعالجة:**
+  1. **معالجة إعادة التهيئة عند كل ضربة مفتاح (Zero Re-render Overwrites):**
+     - كان تمرير مصفوفة فارغة كقيمة افتراضية `existingItems = []` في بارامترات المكون يُنشئ مرجع مصفوفة جديد مع كل رندر، مما يدفع `useEffect` للعمل عند كل حرف يكتبه المستخدم وإعادة تعيين الحقل إلى القيمة الصفرية الأصلية وإلغاء ما كتبه.
+     - تم تحصين المكون بمؤشر `hasInitializedRef` مع مرجع ثابت `EMPTY_ITEMS` لضمان تشغيل التهيئة مرة واحدة فقط عند فتح النافذة ومنع أي إعادة تعيين أثناء الكتابة.
+  2. **دعم الأرقام العربية الشرقية (Eastern Arabic Numerals `٠-٩`):**
+     - استبدال `type="number"` الذي يرفضه المتصفح عند الكتابة بلوحة مفاتيح عربية بـ `type="text"` مع `inputMode="decimal"` ودالة تطهير وتحويل تلقائي `cleanNumberInput` تحول الأرقام الشرقية والفارسية إلى أرقام قياسية وتدعم الفواصل العشرية.
+  3. **تحسين تجربة إدخال الكميات الصفرية:**
+     - عند فتح نافذة تعديل بند مستورد بكمية صفرية، تُترك الخانة فارغة مع `placeholder="0.00"` وتركيز تلقائي `autoFocus` وتحديد كامل النص `onFocus.select` ليتمكن المستخدم من كتابة الكمية فوراً دون الحاجة لمسح الصفر يدوياً.
+* **الملفات المحدثة:**
+  - `frontend/src/features/contracting/components/UniversalBoqItemModal.tsx` (تحصين التهيئة، cleanNumberInput، ترقية حقول الكمية والتسعير والهامش).
+
+---
+
+## 87. القضاء التام على وميض ورعشة التبديل بين تابات المقاولات واستقرار الهيكل (Zero Tab Layout Flicker & Persistent Workspace Standard)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Persistent Layout Architecture & Instant In-Memory Route Transitions.
+* **المشكلات المعالجة والتطويرات:**
+  1. **القضاء على دورة الهدم وإعادة البناء (Eliminate Route Unmount & Shimmer Fallback):**
+     - كان كل تبويب من تابات المقاولات الخمسة مسجلاً كمسار كسول مستقل (`createLazyRoute`) يغلف داخله نسخة جديدة من `ContractingLayout`. عند النقر على أي تبويب، كان المتصفح يهدم الهيكل بالكامل ويطلق شاشة الانتظار اللحظية (`RouteLoadingFallback` بارتفاع 60vh مع وميض رمادي `routeShimmer`) ثم يعيد تركيب الهيدر وبطاقات المؤشرات وشريط التابات من الصفر، مما يسبب "رزعة أو ريفريش خفيف" مزعج للعين.
+     - تم توحيد بيئة المقاولات تحت مسار دائم ومستمر واحد `ContractingWorkspaceLazy` على مسارات `contracting` و `contracting/*`، بحيث يظل الهيكل العلوي (الهيدر، بطاقات الـ KPI الأربعة، شريط التابات، وشريط اختيار المشروع) ثابتاً في شجرة React بدون أي إلغاء تثبيت (Zero Unmount).
+  2. **التبديل اللحظي لمحتوى التابات بالذاكرة (Instant In-Place Tab Switching):**
+     - تم دمج الصفحات الفرعية الخمس للتابات (`ContractingProjectsPage`, `ContractingBoqPage`, `ContractingFinancialsPage`, `ContractingProcurementPage`, `ContractingFieldPage`) وتفعيل دالة التبديل الفوري `renderTabContent()` في جسم الصفحة اعتماداً على المسار الفرعي الفعلي للعنوان `currentSubPath`.
+     - النقر على أي تبويب يقوم بتحديث الرابط وبدء رندر التبويب في أجزاء من الملي ثانية (0ms delay) بدون أي حركة أو وميض أو ريفريش في النصف العلوي للشاشة نهائياً.
+  3. **فصل طلبات الشبكة الزائدة عن التنقل (Decouple Reload From Tab Navigation):**
+     - في `ContractingContext.tsx`، كانت دالة `reloadProjects` تعتمد على معاملات المشروع `[selectedProjectId, projectParam]`، مما كان يدفعها لجلب قائمة المشاريع والمؤشرات من الباك إند عبر الشبكة وتعيين `loading = true` مع كل تنقل بين التابات.
+     - تم فصل الدالة لتُحمّل المشاريع مرة واحدة فقط عند فتح الشاشة (`on mount`) أو عند طلب التحديث اليدوي الصريح، مما وفر استهلاك الشبكة ومنع أي اهتزاز في مؤشرات الأداء.
+* **الملفات المحدثة:**
+  - `frontend/src/features/contracting/routes.tsx` (توحيد المسارات تحت ContractingWorkspaceLazy الدائم).
+  - `frontend/src/features/contracting/pages/ContractingLayout.tsx` (استيراد التابات والتبديل الموضعي renderTabContent وتطبيع المسارات).
+  - `frontend/src/features/contracting/context/ContractingContext.tsx` (فصل reloadProjects ومنع إعادة الجلب الشبكي عند التبديل).
+
+---
+
+## 88. موديول الشحن البحري واللوجستيات ودورة الأتمتة الكاملة (End-to-End Maritime Freight & Mail Automation Engine)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** DCSA Standards & End-to-End Digital Freight Forwarding (Inquiry ➔ RFQ ➔ Quotation ➔ Job ➔ DCSA Journey ➔ DLVR ➔ Container Return).
+* **مسارات الكود الأساسية:**
+  - الباك إند: `backend/src/modules/maritime-freight` (`maritime-freight.service.ts`, `maritime-mail.service.ts`, `maritime-freight.controller.ts`, `maritime-freight.module.ts`, `maritime-freight.types.ts`).
+  - الهجرة وقاعدة البيانات: `backend/src/database/migrations/2040000000084_maritime_workflow_automation.ts`, `backend/src/database/database.types.ts`.
+  - الفرونت إند: `frontend/src/features/maritime-freight` (`MaritimeLayout.tsx`, `MaritimeWorkflowStepper.tsx`, `MaritimeInquiriesTab.tsx`, `MaritimeInquiriesPage.tsx`, `MaritimeSettingsTab.tsx`, `MaritimeSettingsPage.tsx`, `CreateInquiryModal.tsx`, `MaritimeRfqTab.tsx`, `MaritimeQuotationsTab.tsx`, `ApplyMarginModal.tsx`, `JobDetailsModal.tsx`, `MaritimeContainersTab.tsx`, `maritime-freight.api.ts`, `routes.tsx`).
+* **الجداول في قاعدة البيانات:**
+  - `maritime_inquiries` (استفسارات وطلبات شحن العملاء مع كافة التفاصيل والربط المتسلسل).
+  - `maritime_rfqs` (طلبات استقصاء أسعار الخطوط الملاحية والوكلاء).
+  - `maritime_rfq_bids` (عروض الأسعار الواردة من الخطوط الملاحية وتفاصيل النولون ومصاريف الموانئ THC وأيام السماح).
+  - `maritime_quotations` (عروض أسعار العملاء متضمنة هوامش الربح Markup وسعر الصرف).
+  - `maritime_jobs` (أوامر التشغيل، ملفات الشحنات، بوالص الشحن MBL/HBL، وربط مراكز التكلفة المحاسبية).
+  - `maritime_containers` (رادار الحاويات، أيام السماح Free Days، غرامات الأرضيات، وتأمينات التوكيلات).
+  - `maritime_job_milestones` (محطات التتبع القياسية وفق معيار DCSA العالمي).
+  - `settings` (تخزين وتشفير إعدادات خوادم البريد الصادر SMTP والوارد IMAP).
+
+* **المصفوفة التفصيلية لميزات الموديول المؤتمت:**
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **استفسارات وطلبات الشحن للعملاء (Client Freight Inquiries)** | 🟢 | 100% | `CreateInquiryModal.tsx`, `MaritimeInquiriesTab.tsx`, `maritime-freight.service.ts` | نقطة الانطلاق الأولى لتسجيل طلبات العملاء (اسم العميل، الهاتف، الإيميل، المسار، الحاويات، الوزن، CBM، الجاهزية CRD، الشروط التجارية Incoterms، وشروط الدفع Prepaid/Collect). |
+| **التكامل المباشر في القائمة الجانبية (Sidebar Direct Navigation)** | 🟢 | 100% | `app-shell.tsx`, `routes.tsx` | إدراج رابط "طلبات الشحن (Inquiries)" في صدارة قائمة الشحن البحري، ورابط "إعدادات البريد والأتمتة" في نهايتها للوصول بضغطة واحدة من أي مكان في النظام دون الحاجة لفتح تبويب آخر أولاً. |
+| **التحويل الفوري بضغطة زر لطلب تسعير خطوط (1-Click Convert to RFQ)** | 🟢 | 100% | `convertInquiryToRfq`, `MaritimeInquiriesPage.tsx` | تمرير بيانات طلب العميل آلياً وتوليد كود تسلسلي رسمي لطلب التسعير الملاحي (RFQ) وإتاحته للإرسال المباشر لشركات الملاحة. |
+| **دليل الشركاء والخطوط ووكلاء الشحن (Partners Directory & Trade Desks)** | 🟢 | 100% | `MaritimeMasterDataTab.tsx`, `PartnerFormModal.tsx`, `2040000000085_maritime_partners_directory.ts` | سجل مؤسسي متكامل لجهات الاتصال مقسم لـ 3 تبويبات: (1) الخطوط والتوكيلات الملاحية ومكاتب تسعير الممرات الملاحية (Trade Lanes: الصين، أوروبا، الخليج، أمريكا)، (2) وكلاء الشحن بالخارج مع فلتر الدولة (الصين، تركيا، ألمانيا، إيطاليا...)، (3) دليل الموانئ؛ مع زر نسخ الإيميلات وربط ذكي بنافذة الـ RFQ. |
+| **شريط مسار الشحن المؤتمت (Maritime Workflow Stepper)** | 🟢 | 100% | `MaritimeWorkflowStepper.tsx` | شريط مرئي تفاعلي يوضح للشركة مراحل دورة الشحن الست الكاملة وتسهيل التنقل اللحظي بينها. |
+| **إعدادات خوادم البريد وأتمتة Outlook و IMAP/SMTP** | 🟢 | 100% | `MaritimeSettingsTab.tsx`, `maritime-mail.service.ts` | ضبط حساب Outlook / Microsoft 365 أو Gmail أو الخوادم الخاصة للشركة؛ خادم الإرسال SMTP لإرسال طلبات التسعير، وخادم الاستقبال IMAP لقراءة الردود. |
+| **مركز الفحص اللحظي والمزامنة الذاتية لصندوق الوارد** | 🟢 | 100% | `testMailConnection`, `sendTestEmail`, `syncInboundBids` | فحص فوري ومصادقة كلا الخادمين وإظهار زمن الاستجابة، إرسال بريد تجريبي، ومزامنة صندوق الوارد بالذكاء الاصطناعي لاستخراج عروض الخطوط وإدراجها في مصفوفة المقارنة. |
+| **مصفوفة المفاضلة وتطبيق الهامش الربحي (Matrix & Pricing)** | 🟢 | 100% | `MaritimeMatrixTab.tsx`, `ApplyMarginModal.tsx` | مقارنة عروض الخطوط الملاحية جنباً إلى جنب، تطبيق الهامش الربحي (مبلغ ثابت أو نسبة مئوية)، احتساب سعر الصرف، وإرسال عرض السعر للعميل عبر واتساب. |
+| **التعميد الآلي وفتح ملف الشحنة ومركز التكلفة (Auto Convert to Job)** | 🟢 | 100% | `autoConvertQuotationToJob`, `MaritimeQuotationsPage.tsx` | بنقرة زر واحدة عند اعتماد العميل، يتم إنشاء أمر التشغيل وتوليد كود الشحنة الرسمي وتأسيس مركز التكلفة المحاسبي وربط الحاويات ومراحل DCSA. |
+| **محطات التتبع البحري DCSA ومحطة التسليم النهائي (DLVR Milestone)** | 🟢 | 100% | `JobDetailsModal.tsx`, `maritime-freight.types.ts` | تتبع حركة السفينة والحاويات (BOOK, GTI, LOAD, DEPT, ARRI, DISC, CUST, GTO, DLVR, RETN)، وتحديث حالة التسليم النهائي للعميل مع تنبيه مباشر للرادار. |
+| **إشعارات الواتساب اللحظية لمراحل الشحن (Milestone WhatsApp Alerts)** | 🟢 | 100% | `getJobWhatsAppAlert`, `JobDetailsModal.tsx` | إرسال إشعار فوري للعميل عبر واتساب عند وصول السفينة أو الإفراج الجمركي أو تسليم البضاعة مع رابط التتبع السحابي المباشر. |
+| **رادار الحاويات وإدارة تأمين الفارغ (Demurrage & Deposit Refund)** | 🟢 | 100% | `MaritimeContainersTab.tsx`, `ContainerReturnModal.tsx` | رادار احتساب فترات السماح المتبقية ومنع غرامات الأرضيات والتأخير، وإدارة استرداد مبالغ التأمين وإيداعها في الخزينة. |
+| **تطهير الواجهات الشامل من الإيموجيز (Zero-Emoji Compliance)** | 🟢 | 100% | كافة مكونات الشحن البحري | تطهير كافة الشاشات والنوافذ والرسائل الصادرة من أي رموز كرتونية أو إيموجيز، والاعتماد الحصري على أيقونات النظام الرسمية في `AppIcons`. |
+
+---
+
+## 89. دستور الضبط المتوازي للنصوص والمواصفات الهندسية الطويلة (Strict Multi-line Text Justification Standard)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Editorial Typography & Institutional Contract Formatting Standard (Rule 12).
+* **القدرات التشغيلية والمشكلات المعالجة:**
+  1. **تأسيس القاعدة رقم 12 في دستور المنظومة (`GEMINI.md`):**
+     - إلزامية تطبيق الضبط المتوازي الكامل للأسطر (`text-align: justify; text-justify: inter-word; text-align-last: start;`) على كافة النصوص والفقرات متعددة السطور، وبيانات الأعمال والمواصفات الهندسية، وبنود العقود، ويوميات الموقع.
+  2. **القضاء التام على التعرج والتفاوت في الحواف (Zero Ragged Edges):**
+     - في بيئة العرض العربية (RTL)، كانت نهايات الأسطر اليسرى تنتهي بأطوال وفراغات متفاوتة وعشوائية تسبب تشتتاً بصرياً.
+     - تم توحيد ضبط الأسطر لتملأ العرض المتاح بدقة متناهية وتشكل كتلة مستقيمة متوازية الحواف على الجانبين (Block Alignment) مع ارتفاع سطر مريح `line-height: 1.6` يمنح النصوص مظهراً وثائقياً مؤسسياً متزناً يشبه كراسات الشروط وعقود الفيديك (FIDIC).
+  3. **تأسيس كلاسات الـ CSS المركزية:**
+     - إضافة كلاسات قياسية موحدة في `frontend/src/styles/partials/base.css` (`.text-justify`, `.prose-justified`, `.spec-description`) قابلة لإعادة الاستخدام في سائر شاشات وموديلات المنظومة.
+  4. **التطبيق الشامل على شاشات المقاولات:**
+     - جدول المقايسة الفعلي لمشاريع المقاولات (`ContractingBoqTab.tsx`).
+     - بنك البنود المرجعي العام (`ContractingMasterBoqPage.tsx`).
+     - جدول بنود عروض أسعار العملاء (`ClientQuotationModal.tsx`).
+     - تحليل ربحية وتكاليف البنود (`BoqProfitabilityModal.tsx`).
+     - بيان الأعمال المنفذة وملاحظات الموقع في اليوميات الميدانية (`ContractingDailyLogsTab.tsx`).
+* **الملفات المحدثة:**
+  - `d:/zn/GEMINI.md` (إضافة القاعدة الرسمية رقم 12).
+  - `frontend/src/styles/partials/base.css` (تعريف الكلاسات القياسية `.text-justify`, `.spec-description`).
+  - `frontend/src/features/contracting/components/ContractingBoqTab.tsx` (تطبيق الضبط المتوازي على بيان الأعمال والمواصفات).
+  - `frontend/src/features/contracting/pages/ContractingMasterBoqPage.tsx` (تطبيق الضبط على مواصفات بنك البنود).
+  - `frontend/src/features/contracting/components/ClientQuotationModal.tsx` (تطبيق الضبط على جدول عروض الأسعار).
+  - `frontend/src/features/contracting/components/BoqProfitabilityModal.tsx` (تطبيق الضبط على بطاقة الربحية).
+  - `frontend/src/features/contracting/components/ContractingDailyLogsTab.tsx` (تطبيق الضبط على الأعمال المنفذة باليوميات).
+
+---
+
+## 90. محرك الاستيراد الذكي الشامل لجداول الكميات والمقايسات (Universal Smart BOQ Excel Import Engine)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Construction Ingestion & AI-Assisted BIM/BOQ Data Interchange Standards.
+* **مسارات الكود الأساسية:**
+  - الفرونت إند: `frontend/src/features/contracting/utils/boqExcelParser.ts`, `frontend/src/features/contracting/components/ImportBoqModal.tsx`.
+  - الاختبارات الآلية: `frontend/src/features/contracting/utils/boqExcelParser.spec.ts` (6 اختبارات مؤتمتة شاملة ناجحة بنسبة 100%).
+  - الباك إند: `backend/src/modules/contracting/contracting.service.ts` (`batchCreateBoqItems`), `contracting.controller.ts`.
+* **القدرات التشغيلية والمشكلات المعالجة:**
+  1. **المسح العميق واكتشاف صف الهيدر التلقائي (Deep Matrix Header Scanning):**
+     - تم القضاء نهائياً على الافتراض القديم بأن الهيدر دائماً في الصف الأول (Row 1).
+     - يقوم المحرك بقراءة الشيت كمصفوفة ثنائية الأبعاد (2D Matrix) وفحص أول 30 صفاً عبر خوارزمية نقاط دلالية (Semantic Scoring) للغتين العربية والإنجليزية، مما يسمح باستيراد ملفات الاستشاريين والمقاولين مهما احتوت من أسطر ديباجة علوية أو شعارات أو بيانات مشروع قبل جدول الكميات الفعلي.
+  2. **دعم التسميات ثنائية اللغة وتوليد الأكواد (Bilingual Semantic Column Mapping):**
+     - التعرف الذاتي الكامل على كافة المسميات والترجمات الشائعة لأعمدة الجداول:
+       - **البيان والمواصفات:** `Description`, `Item Description`, `Particulars`, `Scope of Work`, `Details`, `Specs`, `بيان الأعمال والمواصفات`, `الوصف`, `المواصفات`.
+       - **الكميات التعاقدية:** `Qty`, `Quantity`, `Quantities`, `Contract Qty`, `Est Qty`, `الكمية`, `الكميات`, `الكمية التعاقدية`, `العدد`.
+       - **أسعار الفئات:** `Rate`, `Unit Rate`, `Unit Price`, `Price`, `فئة`, `سعر الفئة`, `سعر الوحدة`, `فئة التعاقد`.
+       - **الوحدات:** `Unit`, `UOM`, `Measurement`, `وحدة`, `الوحدة`, `وحدة القياس`, `التمييز`.
+       - **أكواد البنود:** `Item No`, `Item #`, `Code`, `Ref`, `No`, `كود البند`, `رقم البند`, `مسلسل`.
+     - في حال عدم وجود عمود للأكواد، يقوم المحرك تلقائياً بتوليد تسلسلي مؤسسي نظيف (`BOQ-001`, `BOQ-002`...).
+  3. **تطبيع وترجمة الوحدات الهندسية التلقائي (Engineering Unit Normalization):**
+     - تحويل وترجمة وحدات القياس العربية والإنجليزية المتداولة إلى الوحدات المعيارية المعتمدة في قاعدة البيانات:
+       - `m3`, `cum`, `cu.m`, `متر مكعب` ➔ `m3` (متر مكعب)
+       - `sqm`, `m2`, `متر مربع`, `متر مسطح` ➔ `m2` (متر مسطح)
+       - `lm`, `m`, `linear meter`, `متر طولي`, `م.ط` ➔ `m` (متر طولي)
+       - `pcs`, `ea`, `each`, `nos`, `عدد`, `حبه`, `قطعة` ➔ `item` (عدد)
+       - `ls`, `lump sum`, `job`, `مقطوعية`, `جملة` ➔ `ls` (مقطوعية)
+       - `ton`, `طن` ➔ `ton`
+       - `kg`, `كجم` ➔ `kg`
+  4. **التصنيف الهندسي التلقائي للتخصصات (Trade / Discipline Auto-Classifier):**
+     - فحص الكلمات المفتاحية في بيان الأعمال وتصنيف البند آلياً إلى القسم الهندسي المناسب في حال عدم وجود عمود تصنيف:
+       - أعمال خرسانة وهيكل إنشائي وحفر (`civil_concrete`)
+       - تشطيبات وبياض ودهانات وبلاط وديكور (`architecture_finishes`)
+       - صحي وتغذية ومواسير وصرف (`plumbing_sanitary`)
+       - كهرباء وإنارة وكابلات وقواطع (`electrical_power`)
+       - تكييف ومكافحة حريق ودكتات (`hvac_firefighting`)
+---
+
+## 83. تصحيح ربط بيانات المقايسة وإضافة إجراءات التعديل والحذف وتنسيق الجدول (Project BOQ Data Mapping & Actions Polish)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Schedule of Values (SOV) Management & Item Lifecycle.
+* **المشكلات التي تم حلها جذرياً:**
+  1. **القضاء التام على قيم `NaN` وتصحيح ربط الحقول (Zero NaN & CamelCase Mapping):**
+     - كان الباك إند في `getBoqItems` و `createBoqItem` و `updateBoqItem` يرجع أسماء أعمدة قاعدة البيانات بصيغة `snake_case` (`unit_price`, `contract_qty`, `revised_qty`, `item_code`) بينما الفرونت إند ينتظر صيغة `camelCase`، مما جعل الحقول غير معرفة وتسبب في ظهور أرقام `NaN` في البطاقات الإحصائية وأعمدة الأسعار والإجماليات.
+     - تم تحويل وإرجاع كافة الكائنات المحسوبة بدقة بصيغة `camelCase` من الباك إند، مع إضافة صمام أمان مزدوج ودالة فحص رقمي آمنة `getNum()` في الفرونت إند لمنع ظهور `NaN` نهائياً تحت أي ظرف.
+  2. **إضافة عمود الإجراءات وزر حذف وتعديل البند (Item Edit & Delete Actions):**
+     - تم إضافة عمود "الإجراءات" بجدول المقايسة يضم زري تعديل وحذف معتمدين بأيقونات النظام الرسمية (`AppIcons.Edit`, `AppIcons.Trash`).
+     - تفعيل نافذة تأكيد الحذف الرسمية واستدعاء `contractingApi.deleteBoqItem(id)` مع إشعار نجاح أو فشل وتحديث لحظي للقائمة والبطاقات الإحصائية.
+     - تفعيل نافذة تعديل البند وإعادة تحميل البيانات فور الحفظ.
+  3. **إعادة هيكلة وتنسيق الجدول وتعرّيب مسميات التخصصات:**
+     - تعريب كافة أكواد التخصصات البرمجية (`civil_concrete` ➔ الأعمال المدنية والخرسانات، `hvac_firefighting` ➔ التكييف ومكافحة الحريق، إلخ) مع شارات بصرية مؤسسية أنيقة.
+     - ضبط أبعاد وتوزيع أعمدة الجدول بدقة لمنع التداخل أو تآكل النصوص، وإضافة تأثير `hover` ناعم على الصفوف.
+* **الملفات المحدثة:**
+  - `backend/src/modules/contracting/contracting.service.ts` (`getBoqItems`, `createBoqItem`, `updateBoqItem` camelCase mapping).
+  - `frontend/src/features/contracting/components/ContractingBoqTab.tsx` (Actions column, edit & delete handlers, safe number parsing, Arabic trade badges, enterprise styling).
+
+---
+
+## 84. معمارية المصدر الموحد للنوافذ المنبثقة والقضاء على تكرار الأكواد (Single Source of Truth & Universal BOQ Modal Standard)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** DRY Architecture & Universal Domain Modal Pattern (Rule 11).
+* **القدرات التشغيلية:**
+  1. **تأسيس القاعدة الرسمية رقم 11 في `GEMINI.md`:**
+     - حظر تكرار أو إعادة كتابة نوافذ منبثقة متباينة لنفس الوظيفة، وإلزامية اعتماد المكون الموحد الشامل (`Universal Modal`).
+  2. **المكون الشامل الموحد لبنود المقايسة (`UniversalBoqItemModal.tsx`):**
+     - تم بناء مكون مركزي موحد يعالج إضافة وتعديل البنود في كل من بنك البنود المرجعي العام (`mode: 'master'`) ومقايسة المشروع الفعلية (`mode: 'project'`).
+     - يتضمن نفس بطاقة التسعير التفاعلية الموحدة (سعر التكلفة ⬅️ هامش الربح % المقترح ⬅️ سعر الفئة/البيع المقترح) مع الحساب اللحظي المتبادل.
+     - في وضع المشروع (`project`): يدعم حقل الكمية التعاقدية مع حساب فوري لإجمالي قيمة البند، وإجمالي التكلفة، وصافي الربح المتوقع.
+     - يتضمن التوليد التلقائي للكود التسلسلي (`MAS-007`, `CIV-009`, إلخ) والهوامش المقترحة للتخصصات.
+  3. **إعادة توجيه النوافذ القديمة (`CreateMasterBoqItemModal` & `CreateBoqItemModal`):**
+     - تم تحويل كلا المودالين إلى واجهات استدعاء رقيقة (Adapters) تستدعي `UniversalBoqItemModal` بنمطها المناسب، مما يضمن أن أي تعديل مستقبلي ينعكس تلقائياً وفورياً على كافة شاشات المنظومة.
+* **الملفات المحدثة:**
+  - `d:/zn/GEMINI.md` (إضافة القاعدة 11 الرسمية).
+  - `frontend/src/features/contracting/components/UniversalBoqItemModal.tsx` **[NEW]** (المكون الموحد الشامل).
+  - `frontend/src/features/contracting/components/CreateMasterBoqItemModal.tsx` **[REFACTORED]** (Adapter إلى المكون الموحد).
+  - `frontend/src/features/contracting/components/CreateBoqItemModal.tsx` **[REFACTORED]** (Adapter إلى المكون الموحد).
+
+---
+
+## 85. توحيد وضبط أبعاد جدول مقايسة المشروع وهندسة الحقول العددية (Contracting BOQ Table Fixed Layout & Numeric Column Balancing)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Institutional ERP Data Tables / Balanced Fixed Colgroup Standard.
+* **المشكلات المعالجة والتطويرات:**
+  1. **معالجة تمدد عمود المواصفات وقفل أبعاد الأعمدة (`tableLayout: 'fixed'`):**
+     - تم تفعيل التخطيط الثابت `tableLayout: 'fixed'` مع حد أدنى للعرض `minWidth: '1240px'` وتحديد أوزان دقيقة عبر `<colgroup>`, مما منع النصوص الطويلة لبيان الأعمال من التمدد العشوائي على سطر واحد أو التهام مساحات الأعمدة المجاورة.
+     - ضبط نص المواصفات ليلتف بنعومة وسلاسة على سطرين أو ثلاثة (`lineHeight: 1.5`, `wordBreak: 'break-word'`, `whiteSpace: 'normal'`).
+  2. **تناسق هيدر وأعمدة الجدول (Unified Column Alignment):**
+     - محاذاة كافة الأعمدة وهيدراتها بصرامة موحدة (`textAlign: 'center'` لكافة الأعمدة الرقمية، كود البند، الوحدة، الكميات، الأسعار، الإجماليات، نسب الإنجاز، وأزرار الإجراءات)، مما قضى تماماً على التنافر البصري وتداخل النصوص مع الحدود.
+  3. **معالجة البنود المستوردة بدون كميات (Zero-Quantity Interactive Helper):**
+     - عند استيراد بنود من بنك البنود المرجعي بكمية تعاقدية `0`، تم استبدال الرقم الصامت بزر تفاعلي إرشادي أنيق `0 (حدد الكمية)` مع أيقونة قلم التعديل، يفتح فوراً نافذة تعديل البند لإدخال الكمية المطلوبة للمشروع وحساب القيمة تلقائياً.
+     - إضافة بانر توجيهي أنيق أعلى الجدول يوضح للمستخدم كيفية تحديد كميات البنود المستوردة لتحديث إجمالي قيمة المقايسة في البطاقات الإحصائية.
+* **الملفات المحدثة:**
+  - `frontend/src/features/contracting/components/ContractingBoqTab.tsx` (ضبط التنسيق، colgroup، محاذاة الأعمدة، زر الكمية التفاعلي، بطاقات الـ KPI).
+
+---
+
+## 86. تحصين حقول الإدخال الرقمية والكميات ودعم الأرقام العربية (Numeric Input Hardening & Eastern Arabic Digit Support)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **المشكلات المعالجة:**
+  1. **معالجة إعادة التهيئة عند كل ضربة مفتاح (Zero Re-render Overwrites):**
+     - كان تمرير مصفوفة فارغة كقيمة افتراضية `existingItems = []` في بارامترات المكون يُنشئ مرجع مصفوفة جديد مع كل رندر، مما يدفع `useEffect` للعمل عند كل حرف يكتبه المستخدم وإعادة تعيين الحقل إلى القيمة الصفرية الأصلية وإلغاء ما كتبه.
+     - تم تحصين المكون بمؤشر `hasInitializedRef` مع مرجع ثابت `EMPTY_ITEMS` لضمان تشغيل التهيئة مرة واحدة فقط عند فتح النافذة ومنع أي إعادة تعيين أثناء الكتابة.
+  2. **دعم الأرقام العربية الشرقية (Eastern Arabic Numerals `٠-٩`):**
+     - استبدال `type="number"` الذي يرفضه المتصفح عند الكتابة بلوحة مفاتيح عربية بـ `type="text"` مع `inputMode="decimal"` ودالة تطهير وتحويل تلقائي `cleanNumberInput` تحول الأرقام الشرقية والفارسية إلى أرقام قياسية وتدعم الفواصل العشرية.
+  3. **تحسين تجربة إدخال الكميات الصفرية:**
+     - عند فتح نافذة تعديل بند مستورد بكمية صفرية، تُترك الخانة فارغة مع `placeholder="0.00"` وتركيز تلقائي `autoFocus` وتحديد كامل النص `onFocus.select` ليتمكن المستخدم من كتابة الكمية فوراً دون الحاجة لمسح الصفر يدوياً.
+* **الملفات المحدثة:**
+  - `frontend/src/features/contracting/components/UniversalBoqItemModal.tsx` (تحصين التهيئة، cleanNumberInput، ترقية حقول الكمية والتسعير والهامش).
+
+---
+
+## 87. القضاء التام على وميض ورعشة التبديل بين تابات المقاولات واستقرار الهيكل (Zero Tab Layout Flicker & Persistent Workspace Standard)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Persistent Layout Architecture & Instant In-Memory Route Transitions.
+* **المشكلات المعالجة والتطويرات:**
+  1. **القضاء على دورة الهدم وإعادة البناء (Eliminate Route Unmount & Shimmer Fallback):**
+     - كان كل تبويب من تابات المقاولات الخمسة مسجلاً كمسار كسول مستقل (`createLazyRoute`) يغلف داخله نسخة جديدة من `ContractingLayout`. عند النقر على أي تبويب، كان المتصفح يهدم الهيكل بالكامل ويطلق شاشة الانتظار اللحظية (`RouteLoadingFallback` بارتفاع 60vh مع وميض رمادي `routeShimmer`) ثم يعيد تركيب الهيدر وبطاقات المؤشرات وشريط التابات من الصفر، مما يسبب "رزعة أو ريفريش خفيف" مزعج للعين.
+     - تم توحيد بيئة المقاولات تحت مسار دائم ومستمر واحد `ContractingWorkspaceLazy` على مسارات `contracting` و `contracting/*`، بحيث يظل الهيكل العلوي (الهيدر، بطاقات الـ KPI الأربعة، شريط التابات، وشريط اختيار المشروع) ثابتاً في شجرة React بدون أي إلغاء تثبيت (Zero Unmount).
+  2. **التبديل اللحظي لمحتوى التابات بالذاكرة (Instant In-Place Tab Switching):**
+     - تم دمج الصفحات الفرعية الخمس للتابات (`ContractingProjectsPage`, `ContractingBoqPage`, `ContractingFinancialsPage`, `ContractingProcurementPage`, `ContractingFieldPage`) وتفعيل دالة التبديل الفوري `renderTabContent()` في جسم الصفحة اعتماداً على المسار الفرعي الفعلي للعنوان `currentSubPath`.
+     - النقر على أي تبويب يقوم بتحديث الرابط وبدء رندر التبويب في أجزاء من الملي ثانية (0ms delay) بدون أي حركة أو وميض أو ريفريش في النصف العلوي للشاشة نهائياً.
+  3. **فصل طلبات الشبكة الزائدة عن التنقل (Decouple Reload From Tab Navigation):**
+     - في `ContractingContext.tsx`، كانت دالة `reloadProjects` تعتمد على معاملات المشروع `[selectedProjectId, projectParam]`، مما كان يدفعها لجلب قائمة المشاريع والمؤشرات من الباك إند عبر الشبكة وتعيين `loading = true` مع كل تنقل بين التابات.
+     - تم فصل الدالة لتُحمّل المشاريع مرة واحدة فقط عند فتح الشاشة (`on mount`) أو عند طلب التحديث اليدوي الصريح، مما وفر استهلاك الشبكة ومنع أي اهتزاز في مؤشرات الأداء.
+* **الملفات المحدثة:**
+  - `frontend/src/features/contracting/routes.tsx` (توحيد المسارات تحت ContractingWorkspaceLazy الدائم).
+  - `frontend/src/features/contracting/pages/ContractingLayout.tsx` (استيراد التابات والتبديل الموضعي renderTabContent وتطبيع المسارات).
+  - `frontend/src/features/contracting/context/ContractingContext.tsx` (فصل reloadProjects ومنع إعادة الجلب الشبكي عند التبديل).
+
+---
+
+## 88. موديول الشحن البحري واللوجستيات ودورة الأتمتة الكاملة (End-to-End Maritime Freight & Mail Automation Engine)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** DCSA Standards & End-to-End Digital Freight Forwarding (Inquiry ➔ RFQ ➔ Quotation ➔ Job ➔ DCSA Journey ➔ DLVR ➔ Container Return).
+* **مسارات الكود الأساسية:**
+  - الباك إند: `backend/src/modules/maritime-freight` (`maritime-freight.service.ts`, `maritime-mail.service.ts`, `maritime-freight.controller.ts`, `maritime-freight.module.ts`, `maritime-freight.types.ts`).
+  - الهجرة وقاعدة البيانات: `backend/src/database/migrations/2040000000084_maritime_workflow_automation.ts`, `backend/src/database/database.types.ts`.
+  - الفرونت إند: `frontend/src/features/maritime-freight` (`MaritimeLayout.tsx`, `MaritimeWorkflowStepper.tsx`, `MaritimeInquiriesTab.tsx`, `MaritimeInquiriesPage.tsx`, `MaritimeSettingsTab.tsx`, `MaritimeSettingsPage.tsx`, `CreateInquiryModal.tsx`, `MaritimeRfqTab.tsx`, `MaritimeQuotationsTab.tsx`, `ApplyMarginModal.tsx`, `JobDetailsModal.tsx`, `MaritimeContainersTab.tsx`, `maritime-freight.api.ts`, `routes.tsx`).
+* **الجداول في قاعدة البيانات:**
+  - `maritime_inquiries` (استفسارات وطلبات شحن العملاء مع كافة التفاصيل والربط المتسلسل).
+  - `maritime_rfqs` (طلبات استقصاء أسعار الخطوط الملاحية والوكلاء).
+  - `maritime_rfq_bids` (عروض الأسعار الواردة من الخطوط الملاحية وتفاصيل النولون ومصاريف الموانئ THC وأيام السماح).
+  - `maritime_quotations` (عروض أسعار العملاء متضمنة هوامش الربح Markup وسعر الصرف).
+  - `maritime_jobs` (أوامر التشغيل، ملفات الشحنات، بوالص الشحن MBL/HBL، وربط مراكز التكلفة المحاسبية).
+  - `maritime_containers` (رادار الحاويات، أيام السماح Free Days، غرامات الأرضيات، وتأمينات التوكيلات).
+  - `maritime_job_milestones` (محطات التتبع القياسية وفق معيار DCSA العالمي).
+  - `settings` (تخزين وتشفير إعدادات خوادم البريد الصادر SMTP والوارد IMAP).
+
+* **المصفوفة التفصيلية لميزات الموديول المؤتمت:**
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **استفسارات وطلبات الشحن للعملاء (Client Freight Inquiries)** | 🟢 | 100% | `CreateInquiryModal.tsx`, `MaritimeInquiriesTab.tsx`, `maritime-freight.service.ts` | نقطة الانطلاق الأولى لتسجيل طلبات العملاء (اسم العميل، الهاتف، الإيميل، المسار، الحاويات، الوزن، CBM، الجاهزية CRD، الشروط التجارية Incoterms، وشروط الدفع Prepaid/Collect). |
+| **التكامل المباشر في القائمة الجانبية (Sidebar Direct Navigation)** | 🟢 | 100% | `app-shell.tsx`, `routes.tsx` | إدراج رابط "طلبات الشحن (Inquiries)" في صدارة قائمة الشحن البحري، ورابط "إعدادات البريد والأتمتة" في نهايتها للوصول بضغطة واحدة من أي مكان في النظام دون الحاجة لفتح تبويب آخر أولاً. |
+| **التحويل الفوري بضغطة زر لطلب تسعير خطوط (1-Click Convert to RFQ)** | 🟢 | 100% | `convertInquiryToRfq`, `MaritimeInquiriesPage.tsx` | تمرير بيانات طلب العميل آلياً وتوليد كود تسلسلي رسمي لطلب التسعير الملاحي (RFQ) وإتاحته للإرسال المباشر لشركات الملاحة. |
+| **دليل الشركاء والخطوط ووكلاء الشحن (Partners Directory & Trade Desks)** | 🟢 | 100% | `MaritimeMasterDataTab.tsx`, `PartnerFormModal.tsx`, `2040000000085_maritime_partners_directory.ts` | سجل مؤسسي متكامل لجهات الاتصال مقسم لـ 3 تبويبات: (1) الخطوط والتوكيلات الملاحية ومكاتب تسعير الممرات الملاحية (Trade Lanes: الصين، أوروبا، الخليج، أمريكا)، (2) وكلاء الشحن بالخارج مع فلتر الدولة (الصين، تركيا، ألمانيا، إيطاليا...)، (3) دليل الموانئ؛ مع زر نسخ الإيميلات وربط ذكي بنافذة الـ RFQ. |
+| **شريط مسار الشحن المؤتمت (Maritime Workflow Stepper)** | 🟢 | 100% | `MaritimeWorkflowStepper.tsx` | شريط مرئي تفاعلي يوضح للشركة مراحل دورة الشحن الست الكاملة وتسهيل التنقل اللحظي بينها. |
+| **إعدادات خوادم البريد وأتمتة Outlook و IMAP/SMTP** | 🟢 | 100% | `MaritimeSettingsTab.tsx`, `maritime-mail.service.ts` | ضبط حساب Outlook / Microsoft 365 أو Gmail أو الخوادم الخاصة للشركة؛ خادم الإرسال SMTP لإرسال طلبات التسعير، وخادم الاستقبال IMAP لقراءة الردود. |
+| **مركز الفحص اللحظي والمزامنة الذاتية لصندوق الوارد** | 🟢 | 100% | `testMailConnection`, `sendTestEmail`, `syncInboundBids` | فحص فوري ومصادقة كلا الخادمين وإظهار زمن الاستجابة، إرسال بريد تجريبي، ومزامنة صندوق الوارد بالذكاء الاصطناعي لاستخراج عروض الخطوط وإدراجها في مصفوفة المقارنة. |
+| **مصفوفة المفاضلة وتطبيق الهامش الربحي (Matrix & Pricing)** | 🟢 | 100% | `MaritimeMatrixTab.tsx`, `ApplyMarginModal.tsx` | مقارنة عروض الخطوط الملاحية جنباً إلى جنب، تطبيق الهامش الربحي (مبلغ ثابت أو نسبة مئوية)، احتساب سعر الصرف، وإرسال عرض السعر للعميل عبر واتساب. |
+| **التعميد الآلي وفتح ملف الشحنة ومركز التكلفة (Auto Convert to Job)** | 🟢 | 100% | `autoConvertQuotationToJob`, `MaritimeQuotationsPage.tsx` | بنقرة زر واحدة عند اعتماد العميل، يتم إنشاء أمر التشغيل وتوليد كود الشحنة الرسمي وتأسيس مركز التكلفة المحاسبي وربط الحاويات ومراحل DCSA. |
+| **محطات التتبع البحري DCSA ومحطة التسليم النهائي (DLVR Milestone)** | 🟢 | 100% | `JobDetailsModal.tsx`, `maritime-freight.types.ts` | تتبع حركة السفينة والحاويات (BOOK, GTI, LOAD, DEPT, ARRI, DISC, CUST, GTO, DLVR, RETN)، وتحديث حالة التسليم النهائي للعميل مع تنبيه مباشر للرادار. |
+| **إشعارات الواتساب اللحظية لمراحل الشحن (Milestone WhatsApp Alerts)** | 🟢 | 100% | `getJobWhatsAppAlert`, `JobDetailsModal.tsx` | إرسال إشعار فوري للعميل عبر واتساب عند وصول السفينة أو الإفراج الجمركي أو تسليم البضاعة مع رابط التتبع السحابي المباشر. |
+| **رادار الحاويات وإدارة تأمين الفارغ (Demurrage & Deposit Refund)** | 🟢 | 100% | `MaritimeContainersTab.tsx`, `ContainerReturnModal.tsx` | رادار احتساب فترات السماح المتبقية ومنع غرامات الأرضيات والتأخير، وإدارة استرداد مبالغ التأمين وإيداعها في الخزينة. |
+| **تطهير الواجهات الشامل من الإيموجيز (Zero-Emoji Compliance)** | 🟢 | 100% | كافة مكونات الشحن البحري | تطهير كافة الشاشات والنوافذ والرسائل الصادرة من أي رموز كرتونية أو إيموجيز، والاعتماد الحصري على أيقونات النظام الرسمية في `AppIcons`. |
+
+---
+
+## 89. دستور الضبط المتوازي للنصوص والمواصفات الهندسية الطويلة (Strict Multi-line Text Justification Standard)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Editorial Typography & Institutional Contract Formatting Standard (Rule 12).
+* **القدرات التشغيلية والمشكلات المعالجة:**
+  1. **تأسيس القاعدة رقم 12 في دستور المنظومة (`GEMINI.md`):**
+     - إلزامية تطبيق الضبط المتوازي الكامل للأسطر (`text-align: justify; text-justify: inter-word; text-align-last: start;`) على كافة النصوص والفقرات متعددة السطور، وبيانات الأعمال والمواصفات الهندسية، وبنود العقود، ويوميات الموقع.
+  2. **القضاء التام على التعرج والتفاوت في الحواف (Zero Ragged Edges):**
+     - في بيئة العرض العربية (RTL)، كانت نهايات الأسطر اليسرى تنتهي بأطوال وفراغات متفاوتة وعشوائية تسبب تشتتاً بصرياً.
+     - تم توحيد ضبط الأسطر لتملأ العرض المتاح بدقة متناهية وتشكل كتلة مستقيمة متوازية الحواف على الجانبين (Block Alignment) مع ارتفاع سطر مريح `line-height: 1.6` يمنح النصوص مظهراً وثائقياً مؤسسياً متزناً يشبه كراسات الشروط وعقود الفيديك (FIDIC).
+  3. **تأسيس كلاسات الـ CSS المركزية:**
+     - إضافة كلاسات قياسية موحدة في `frontend/src/styles/partials/base.css` (`.text-justify`, `.prose-justified`, `.spec-description`) قابلة لإعادة الاستخدام في سائر شاشات وموديلات المنظومة.
+  4. **التطبيق الشامل على شاشات المقاولات:**
+     - جدول المقايسة الفعلي لمشاريع المقاولات (`ContractingBoqTab.tsx`).
+     - بنك البنود المرجعي العام (`ContractingMasterBoqPage.tsx`).
+     - جدول بنود عروض أسعار العملاء (`ClientQuotationModal.tsx`).
+     - تحليل ربحية وتكاليف البنود (`BoqProfitabilityModal.tsx`).
+     - بيان الأعمال المنفذة وملاحظات الموقع في اليوميات الميدانية (`ContractingDailyLogsTab.tsx`).
+* **الملفات المحدثة:**
+  - `d:/zn/GEMINI.md` (إضافة القاعدة الرسمية رقم 12).
+  - `frontend/src/styles/partials/base.css` (تعريف الكلاسات القياسية `.text-justify`, `.spec-description`).
+  - `frontend/src/features/contracting/components/ContractingBoqTab.tsx` (تطبيق الضبط المتوازي على بيان الأعمال والمواصفات).
+  - `frontend/src/features/contracting/pages/ContractingMasterBoqPage.tsx` (تطبيق الضبط على مواصفات بنك البنود).
+  - `frontend/src/features/contracting/components/ClientQuotationModal.tsx` (تطبيق الضبط على جدول عروض الأسعار).
+  - `frontend/src/features/contracting/components/BoqProfitabilityModal.tsx` (تطبيق الضبط على بطاقة الربحية).
+  - `frontend/src/features/contracting/components/ContractingDailyLogsTab.tsx` (تطبيق الضبط على الأعمال المنفذة باليوميات).
+
+---
+
+## 90. محرك الاستيراد الذكي الشامل لجداول الكميات والمقايسات (Universal Smart BOQ Excel Import Engine)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Construction Ingestion & AI-Assisted BIM/BOQ Data Interchange Standards.
+* **مسارات الكود الأساسية:**
+  - الفرونت إند: `frontend/src/features/contracting/utils/boqExcelParser.ts`, `frontend/src/features/contracting/components/ImportBoqModal.tsx`.
+  - الاختبارات الآلية: `frontend/src/features/contracting/utils/boqExcelParser.spec.ts` (6 اختبارات مؤتمتة شاملة ناجحة بنسبة 100%).
+  - الباك إند: `backend/src/modules/contracting/contracting.service.ts` (`batchCreateBoqItems`), `contracting.controller.ts`.
+* **القدرات التشغيلية والمشكلات المعالجة:**
+  1. **المسح العميق واكتشاف صف الهيدر التلقائي (Deep Matrix Header Scanning):**
+     - تم القضاء نهائياً على الافتراض القديم بأن الهيدر دائماً في الصف الأول (Row 1).
+     - يقوم المحرك بقراءة الشيت كمصفوفة ثنائية الأبعاد (2D Matrix) وفحص أول 30 صفاً عبر خوارزمية نقاط دلالية (Semantic Scoring) للغتين العربية والإنجليزية، مما يسمح باستيراد ملفات الاستشاريين والمقاولين مهما احتوت من أسطر ديباجة علوية أو شعارات أو بيانات مشروع قبل جدول الكميات الفعلي.
+  2. **دعم التسميات ثنائية اللغة وتوليد الأكواد (Bilingual Semantic Column Mapping):**
+     - التعرف الذاتي الكامل على كافة المسميات والترجمات الشائعة لأعمدة الجداول:
+       - **البيان والمواصفات:** `Description`, `Item Description`, `Particulars`, `Scope of Work`, `Details`, `Specs`, `بيان الأعمال والمواصفات`, `الوصف`, `المواصفات`.
+       - **الكميات التعاقدية:** `Qty`, `Quantity`, `Quantities`, `Contract Qty`, `Est Qty`, `الكمية`, `الكميات`, `الكمية التعاقدية`, `العدد`.
+       - **أسعار الفئات:** `Rate`, `Unit Rate`, `Unit Price`, `Price`, `فئة`, `سعر الفئة`, `سعر الوحدة`, `فئة التعاقد`.
+       - **الوحدات:** `Unit`, `UOM`, `Measurement`, `وحدة`, `الوحدة`, `وحدة القياس`, `التمييز`.
+       - **أكواد البنود:** `Item No`, `Item #`, `Code`, `Ref`, `No`, `كود البند`, `رقم البند`, `مسلسل`.
+     - في حال عدم وجود عمود للأكواد، يقوم المحرك تلقائياً بتوليد تسلسلي مؤسسي نظيف (`BOQ-001`, `BOQ-002`...).
+  3. **تطبيع وترجمة الوحدات الهندسية التلقائي (Engineering Unit Normalization):**
+     - تحويل وترجمة وحدات القياس العربية والإنجليزية المتداولة إلى الوحدات المعيارية المعتمدة في قاعدة البيانات:
+       - `m3`, `cum`, `cu.m`, `متر مكعب` ➔ `m3` (متر مكعب)
+       - `sqm`, `m2`, `متر مربع`, `متر مسطح` ➔ `m2` (متر مسطح)
+       - `lm`, `m`, `linear meter`, `متر طولي`, `م.ط` ➔ `m` (متر طولي)
+       - `pcs`, `ea`, `each`, `nos`, `عدد`, `حبه`, `قطعة` ➔ `item` (عدد)
+       - `ls`, `lump sum`, `job`, `مقطوعية`, `جملة` ➔ `ls` (مقطوعية)
+       - `ton`, `طن` ➔ `ton`
+       - `kg`, `كجم` ➔ `kg`
+  4. **التصنيف الهندسي التلقائي للتخصصات (Trade / Discipline Auto-Classifier):**
+     - فحص الكلمات المفتاحية في بيان الأعمال وتصنيف البند آلياً إلى القسم الهندسي المناسب في حال عدم وجود عمود تصنيف:
+       - أعمال خرسانة وهيكل إنشائي وحفر (`civil_concrete`)
+       - تشطيبات وبياض ودهانات وبلاط وديكور (`architecture_finishes`)
+       - صحي وتغذية ومواسير وصرف (`plumbing_sanitary`)
+       - كهرباء وإنارة وكابلات وقواطع (`electrical_power`)
+       - تكييف ومكافحة حريق ودكتات (`hvac_firefighting`)
+  5. **مرونة بنود المناقصات غير المسعرة (Zero-Blocker Tender Mode):**
+     - القضاء التام على مشكلة رفض الاستيراد للمقايسات التي ترد من المالك أو الاستشاري بدون أسعار (`unitPrice = 0` أو `contractQty = 0`).
+     - قبول البند واعتباره صالحاً بنسبة 100% وإظهار شارة تحذيرية صفراء أنيقة `غير مسعر (مناقصة)` لتمكين المقاول من استيراد كراسة الشروط وتسعيرها لاحقاً داخل النظام بحرية تامة.
+  6. **الفلترة الذكية لصفوف الإجماليات والمجاميع (Grand Total Row Filter):**
+     - استبعاد وفلترة صفوف المجاميع والخلاصات نهائياً (مثل "الإجمالي العام", "المجموع", "Total", "Grand Total") تلقائياً لضمان عدم استيرادها كبنود عمل زائفة.
+  7. **التعرف على صفحات العمل المتعددة وإمكانية التبديل (Multi-Sheet Inspector):**
+     - تقييم أوراق العمل داخل مصنف Excel واختيار الصفحة الأكثر كثافة ومطابقة للمقايسة تلقائياً مع توفير قائمة منسدلة للتبديل بين الصفحات بضغطة زر واحدة.
+  8. **تخصيص مطابقة الأعمدة يدوياً (Interactive Column Mapping):**
+     - توفير واجهة أكورديون مدمجة تتيح للمستخدم فحص أو تعديل مطابقة أي عمود يدوياً بشكل لحظي للملفات ذات التنسيقات الشاذة، مع إعادة الاستخراج والمعاينة الفورية.
+  9. **الفلترة الذكية لعناوين الفصول والأبواب الاستشارية (CSI Division & Section Filter):**
+     - الكشف التلقائي عن أسطر عناوين المواصفات (مثل `DIVISION 07...`, `Section 075213...`, `PART...`) التي تخلو من الكميات والأسعار.
+     - تزويد نافذة المعاينة بشريط تحكم فوري يتيح استبعاد عناوين الأبواب بضغطة زر (مفعل افتراضياً) لمنع تلويث بنود المقايسة، مع تمييزها بشارة رمادية واضحة `عنوان رئيسي (مستبعد)`.
+  10. **الجدولة المحكمة ومنع السكرول الأفقي والالتفاف التلقائي للبنود الطويلة (Zero-Scroll Fixed Layout & Auto Multiline Wrapping):**
+      - تطبيق التخطيط المحكم الثابت `tableLayout: 'fixed'` بنسبة 100% داخل نافذة الاستيراد مع إلغاء شريط التمرير الأفقي نهائياً (`overflowX: 'hidden'`).
+      - تخصيص أوزان وعروض هندسية دقيقة للأعمدة عبر `<colgroup>`, مع زيادة عرض عمود الحالة إلى `150px` لمنع اقتطاع شارات الحالة، وتوسيع خانة `بيان الأعمال والمواصفات` لتلتف السطور الطويلة تلقائياً على سطرين أو ثلاثة أو أربعة أسطر مع الحفاظ على الضبط المتوازي (`text-align: justify`).
+      - ظهور كافة الأعمدة الـ 9 كاملة (م، كود البند، بيان الأعمال والمواصفات، التخصص، الوحدة، الكمية، سعر الفئة، إجمالي القيمة، الحالة) في شاشة واحدة متناسقة بوضوح تام بنسبة 100% دون اقتطاع أو إزاحة خارج حدود النافذة.
+  11. **المحرك التلقائي لاتجاه النصوص والمواصفات ثنائية اللغة (Dynamic Bidirectional Text Flow - English LTR / Arabic RTL):**
+      - **التعرف الذاتي على لغة النص:** عبر دالة الفحص الدقيق `getTextDirection` و `hasArabicCharacters`, يتم الكشف الفوري عما إذا كان بيان العمل أو مواصفة البند مكتوبة باللغة العربية أو الإنجليزية (أو اللاتينية).
+      - **التدفق الطبيعي للنصوص الإنجليزية (Strict LTR for English):**
+        - عند كون النص باللغة الإنجليزية، يتم ضبط اتجاه الخلية والعنصر على `dir="ltr"` مع محاذاة السطر الأخير والمفردات لليسار (`textAlignLast: 'left'`) مع تطبيق الضبط المتوازي (`text-align: justify; text-justify: inter-word;`), وتم تصحيح أسبقية CSS في `base.css` لضمان عدم إجبار العناصر على اتجاه RTL بسبب الحاوية الأبوية.
+      - **التدفق الطبيعي للنصوص العربية (Strict RTL for Arabic):**
+        - عند كون النص باللغة العربية، يتم ضبط اتجاه الخلية على `dir="rtl"` مع محاذاة السطر الأخير لليمين (`textAlignLast: 'right'`).
+      - **الشمولية الكاملة لكافة شاشات المقاولات:** تم تعميم المحرك على جدول بنود المقايسة التعاقدية (`ContractingBoqTab.tsx`)، نافذة معاينة الاستيراد (`ImportBoqModal.tsx`)، بنك بنود المقاولات المرجعي (`ContractingMasterBoqPage.tsx`)، عروض أسعار الملاك والطباعة الرسمية (`ClientQuotationModal.tsx`)، نافذة تحليل ربحية البنود (`BoqProfitabilityModal.tsx`)، مستخلصات المقاولين وجداول بنود الدفع (`CreateIpcInvoiceModal.tsx`, `PrintIpcCertificateModal.tsx`)، مدخلات ومواصفات البند الموحد (`UniversalBoqItemModal.tsx`)، ونافذة استيراد البنود المرجعية للمشروع (`ImportMasterBoqModal.tsx`).
+  12. **كبسولات التصفية السريعة والفرز البصري للحالات (Interactive Status Filter Tabs):**
+      - تزويد نافذة المعاينة (`ImportBoqModal.tsx`) بشريط كبسولات تفاعلي سريع أعلى الجدول يتيح للمهندس فرز وعزل البنود بضغطة زر واحدة:
+        - `جميع البنود المدرجة`: عرض كافة البنود الصالحة للاستيراد مع عدادها الإجمالي.
+        - `المسعرة والجاهزة`: عزل البنود المكتملة ذات السعر والكمية (`ready`).
+        - `غير المسعرة (للتسعير الفوري)`: عزل البنود التي بلا سعر فئة لفحصها أو تسعيرها مباشرة (`unpriced`).
+        - `ديباجة وملاحظات عامة`: عرض أسطر الملاحظات والديباجة الاستشارية المستقلة (`preambles`).
+        - `عناوين الأبواب (DIVISION)`: عرض الأبواب الاستشارية المستبعدة (`section_headers`).
+  13. **استبعاد سطور الملاحظات والديباجة العامة الخالية من الكمية والسعر (Zero-Qty Preamble Filter):**
+      - الكشف التلقائي عن أسطر الملاحظات والمواصفات العامة التي لا تحتوي على كميات ولا أسعار ولا وحدات (`isPreamble`).
+      - إضافة خيار استبعاد تفاعلي بضغطة زر (`ignorePreambles`) يتيح للمقاول استبعاد نصوص الديباجة الاستشارية الزائدة لتركيز المقايسة حصرياً على بنود الأعمال الحقيقية ونماذج الحصر.
+  14. **التعديل والتسعير التفاعلي المباشر داخل جدول المعاينة (Inline Table Editing & Live Pricing):**
+      - تحويل جدول المعاينة من مجرد شاشة عرض جامدة إلى ورشة عمل وتجهيز تفاعلية كاملة للمقايسة قبل إدراجها في قاعدة البيانات:
+        - **تسعير البنود غير المسعرة لحظياً:** إمكانية كتابة سعر الفئة (`unitPrice`) مباشرة في خانة الإدخال بالخلية؛ وفور إدخال السعر يتحول البند فوراً من `غير مسعر` إلى `جاهز`، وتتحدث القيمة الإجمالية للمقايسة في شريط الـ KPIs فورياً.
+        - **تعديل الكميات التعاقدية:** إمكانية تعديل الكمية (`contractQty`) داخل الجدول مباشرة.
+        - **تعديل واختيار الوحدات الهندسية:** إتاحة قائمة منسدلة فورية لكل بند لاختيار وحدته وتفادي أي خطأ.
+        - **تعديل التخصص الهندسي:** قائمة منسدلة فورية لتعديل التصنيف التخصصي للبند مباشرة من الجدول.
+        - **تحديث إجمالي القيمة التلقائي:** يتم حساب `إجمالي القيمة` لكل بند لحظياً فور إدخال أي رقم، مع تحديث إجمالي القيمة التعاقدية الإجمالية في شريط المؤشرات أعلى النافذة.
+  15. **إعادة موازنة أوزان الأعمدة وفصل سهم القوائم المنسدلة (Column Rebalancing & Select Arrow Separation):**
+      - توسيع عمود `التخصص` من 115px إلى **140px** ليتسع لأطول المسميات الهندسية براحة كاملة (مثل: "تشطيبات ومعماري").
+      - إضافة هامش داخلي يساري أمان (`paddingLeft: 18px`) لقائمة التخصص و (`paddingLeft: 14px`) لقائمة الوحدة، لضمان ابتعاد سهم القائمة المنسدلة للمتصفح كلياً عن الحروف العربية ومنع أي تداخل بصري في بيئة الـ RTL.
+      - توسيع عمود `الكمية` من 80px إلى **90px**، وعمود `سعر الفئة` من 90px إلى **100px**.
+      - تقليص عمود `الحالة` من 145px إلى **105px** بشارات مصغرة متناسقة، مما أتاح استرجاع المساحة لصالح خانات الإدخال والتخصص مع بقاء الجدول ثابتاً بنسبة 100% وخالياً تماماً من شريط التمرير الأفقي.
+  16. **تنقية الأرقام من تشوهات الفاصلة العائمة والتعرف على وحدات الأسس العلوية (IEEE 754 Hardening & Superscript Units):**
+      - القضاء التام على الكسور العشوائية الممتدة الناتجة عن تمثيل الفاصلة العائمة في جافاسكريبت (مثل ظهور `...999996` أو `...00000003`) عبر تطبيق التقريب الدقيق:
+        `Math.round((num + Number.EPSILON) * 10000) / 10000`
+        في محرك الاستخراج (`boqExcelParser.ts`) وخانات العرض والإدخال في الواجهة (`ImportBoqModal.tsx`).
+      - تحديث دالة التطبيع القياسية للوحدات `normalizeUnit` لدعم الرموز العلوية للتربيع والتكعيب (`m²` و `m³`) كودياً (`\u00B2` و `\u00B3`)، مما جعل كافة بنود شيت المعماري تتعرف تلقائياً كوحدة مسطحة (`م2`) دون السقوط في القيمة الفارغة (`-`).
 

@@ -1,4 +1,5 @@
 import { http } from '@/lib/http';
+export type { MaritimeMailConfig } from '../maritime-freight.types';
 
 export interface ShippingPort {
   id: string;
@@ -15,12 +16,23 @@ export interface ShippingLine {
   code: string;
   name_ar: string;
   name_en: string;
+  carrier_type?: 'shipping_line' | 'overseas_agent';
+  trade_lanes?: string | null;
+  country_name?: string | null;
+  country_code?: string | null;
+  city_name?: string | null;
   contact_person: string | null;
   email: string | null;
   rfq_email: string | null;
+  booking_email?: string | null;
   phone: string | null;
+  whatsapp?: string | null;
+  wechat?: string | null;
+  services_offered?: string | null;
+  supported_ports?: string | null;
   tracking_url_template: string | null;
   is_active: boolean;
+  notes?: string | null;
 }
 
 export interface MaritimeRfqBid {
@@ -64,6 +76,11 @@ export interface MaritimeRfq {
   payment_term: 'prepaid' | 'collect';
   target_line_ids: number[];
   status: 'draft' | 'sent' | 'bids_received' | 'awarded' | 'cancelled';
+  customer_id?: number | null;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  customer_email?: string | null;
+  inquiry_id?: string | null;
   notes: string | null;
   created_at: string;
   bidsCount?: number;
@@ -146,6 +163,8 @@ export interface MaritimeJob {
   rfq_id: string | null;
   customer_id: number | null;
   customer_name: string;
+  customer_phone?: string | null;
+  customer_email?: string | null;
   direction: 'import' | 'export' | 'cross_trade';
   payment_term: 'prepaid' | 'collect';
   shipping_line_id: string | null;
@@ -205,12 +224,22 @@ export const maritimeApi = {
       body: JSON.stringify(data),
     }),
 
-  // Shipping Lines
-  getShippingLines: () => http<ShippingLine[]>('/api/maritime-freight/shipping-lines'),
-  createShippingLine: (data: { code: string; nameAr: string; nameEn: string; email?: string; rfqEmail?: string; phone?: string }) =>
+  // Shipping Lines & Overseas Partners
+  getShippingLines: (params?: { carrierType?: string; tradeLane?: string; countryCode?: string; search?: string }) =>
+    http<ShippingLine[]>(`/api/maritime-freight/shipping-lines${toQueryString(params)}`),
+  createShippingLine: (data: any) =>
     http<ShippingLine>('/api/maritime-freight/shipping-lines', {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+  updateShippingLine: (id: string, data: any) =>
+    http<ShippingLine>(`/api/maritime-freight/shipping-lines/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteShippingLine: (id: string) =>
+    http<{ success: boolean }>(`/api/maritime-freight/shipping-lines/${id}`, {
+      method: 'DELETE',
     }),
 
   // RFQs
@@ -275,6 +304,10 @@ export const maritimeApi = {
     http<MaritimeJob>(`/api/maritime-freight/jobs/${id}/release-do`, {
       method: 'POST',
     }),
+  getJobWhatsAppAlert: (id: string, milestone: string) =>
+    http<{ message: string; customerPhone?: string; customerName: string; jobNumber: string }>(
+      `/api/maritime-freight/jobs/${id}/whatsapp-alert?milestone=${milestone}`,
+    ),
 
   // Containers
   getContainers: (params?: { overdueOnly?: boolean; depositHeldOnly?: boolean; search?: string }) =>
@@ -283,6 +316,49 @@ export const maritimeApi = {
     http<MaritimeContainer>(`/api/maritime-freight/containers/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    }),
+
+  // Client Freight Inquiries Engine
+  getInquiries: (params?: { status?: string; search?: string }) =>
+    http<any[]>(`/api/maritime-freight/inquiries${toQueryString(params)}`),
+  getInquiryById: (id: string) =>
+    http<any>(`/api/maritime-freight/inquiries/${id}`),
+  createInquiry: (data: any) =>
+    http<any>('/api/maritime-freight/inquiries', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  convertInquiryToRfq: (id: string, targetLineIds?: number[]) =>
+    http<MaritimeRfq>(`/api/maritime-freight/inquiries/${id}/convert-to-rfq`, {
+      method: 'POST',
+      body: JSON.stringify({ targetLineIds }),
+    }),
+  autoConvertQuotationToJob: (quotationId: string) =>
+    http<MaritimeJob>(`/api/maritime-freight/quotations/${quotationId}/convert-to-job`, {
+      method: 'POST',
+    }),
+
+  // Mail & Outlook Automation Settings
+  getMailSettings: () =>
+    http<any>('/api/maritime-freight/mail-settings'),
+  saveMailSettings: (data: any) =>
+    http<any>('/api/maritime-freight/mail-settings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  testMailConnection: (data?: any) =>
+    http<{ smtpOk: boolean; smtpMessage: string; imapOk: boolean; imapMessage: string }>('/api/maritime-freight/mail-settings/test', {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    }),
+  sendTestEmail: (email: string) =>
+    http<{ success: boolean; messageId: string }>('/api/maritime-freight/mail-settings/send-test', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  syncInboundBids: () =>
+    http<{ scanned: number; imported: number; summary: string; error?: string }>('/api/maritime-freight/mail-settings/sync-bids', {
+      method: 'POST',
     }),
 
   // Public Tracking

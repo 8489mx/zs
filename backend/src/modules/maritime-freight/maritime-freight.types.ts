@@ -6,6 +6,7 @@ export type MaritimeContainerType = '20GP' | '40GP' | '40HC' | '20RF' | '40RF' |
 export type MaritimeCargoNature = 'general' | 'hazardous_dg' | 'temperature_controlled' | 'fragile';
 export type MaritimeBlType = 'original' | 'telex_release' | 'sea_waybill';
 
+export type MaritimeInquiryStatus = 'received' | 'rfq_created' | 'quoted' | 'converted_to_job' | 'cancelled';
 export type MaritimeRfqStatus = 'draft' | 'sent' | 'bids_received' | 'awarded' | 'cancelled';
 export type MaritimeQuotationStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'converted_to_job';
 export type MaritimeJobStatus = 'active' | 'completed' | 'cancelled';
@@ -19,7 +20,8 @@ export type DcsaMilestoneKey =
   | 'DISC'  // Container Discharged
   | 'CUST'  // Customs Cleared
   | 'GTO'   // Gate-out for Delivery / D/O Released
-  | 'RETN';  // Empty Container Returned
+  | 'DLVR'  // Cargo Delivered to Customer
+  | 'RETN'; // Empty Container Returned
 
 export interface DcsaMilestoneDefinition {
   key: DcsaMilestoneKey;
@@ -37,6 +39,7 @@ export const DCSA_STANDARD_MILESTONES: DcsaMilestoneDefinition[] = [
   { key: 'DISC', title_ar: 'تفريغ الحاوية على رصيف الميناء', title_en: 'Container Discharged', category: 'equipment' },
   { key: 'CUST', title_ar: 'إنهاء الإفراج الجمركي والمطابقة', title_en: 'Customs Cleared', category: 'shipment' },
   { key: 'GTO', title_ar: 'خروج الحاوية وتسليم إذن الإفراج (D/O)', title_en: 'Gated-out / Delivery Order Released', category: 'equipment' },
+  { key: 'DLVR', title_ar: 'وصول البضاعة وتسليمها للعميل', title_en: 'Cargo Delivered to Customer', category: 'shipment' },
   { key: 'RETN', title_ar: 'إعادة الحاوية فارغة لساحة الخط الملاحي', title_en: 'Empty Container Returned', category: 'equipment' },
 ];
 

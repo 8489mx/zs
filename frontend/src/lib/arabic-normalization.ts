@@ -48,3 +48,21 @@ export function matchesArabic(haystack: unknown, needle: unknown): boolean {
   const normHaystack = normalizeArabicSearchKey(haystack);
   return normHaystack.includes(normNeedle);
 }
+
+const ARABIC_LETTERS_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+
+/**
+ * Checks if a string contains any Arabic letters
+ */
+export function hasArabicCharacters(value: unknown): boolean {
+  if (!value) return false;
+  return ARABIC_LETTERS_REGEX.test(String(value));
+}
+
+/**
+ * Returns 'rtl' if text contains Arabic characters, otherwise 'ltr'
+ */
+export function getTextDirection(value: unknown): 'rtl' | 'ltr' {
+  return hasArabicCharacters(value) ? 'rtl' : 'ltr';
+}
+

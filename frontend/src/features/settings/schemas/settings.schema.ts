@@ -18,15 +18,19 @@ export const settingsFormSchema = z.object({
   taxRate: z.coerce.number().min(0),
   taxMode: z.enum(['exclusive', 'inclusive']),
   paperSize: z.enum(['a4', 'receipt']).default('receipt'),
-  managerPin: z.union([
-    z.literal(''),
-    z.string().regex(/^\d{4,10}$/, 'الرقم السري يجب أن يكون من 4 إلى 10 أرقام')
-  ]),
+  managerPin: z.string().optional().nullable().transform((val) => (val ? String(val).trim() : '')).refine((val) => {
+    if (!val) return true;
+    return /^\d{4,10}$/.test(val);
+  }, {
+    message: 'الرقم السري يجب أن يكون من 4 إلى 10 أرقام',
+  }).default(''),
   autoBackup: z.enum(['on', 'off']),
   accentColor: accentColorSchema,
   logoData: z.string().optional(),
   businessIndustry: z.enum([
     'general',
+    'contracting',
+    'maritime',
     'retail',
     'wholesale',
     'restaurant',

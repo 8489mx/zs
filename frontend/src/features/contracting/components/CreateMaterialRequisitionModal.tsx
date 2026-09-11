@@ -10,7 +10,8 @@ interface CreateMaterialRequisitionModalProps {
   projectName?: string;
   boqItems?: ContractingBoqItem[];
   onClose: () => void;
-  onCreated: () => void;
+  onCreated?: () => void;
+  onSuccess?: () => void;
 }
 
 export function CreateMaterialRequisitionModal({
@@ -65,7 +66,7 @@ export function CreateMaterialRequisitionModal({
         recipientName: formData.recipientName.trim() || undefined,
         notes: formData.notes.trim() || undefined,
       });
-      onCreated();
+      onCreated?.();
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'حدث خطأ أثناء تسجيل إذن صرف المواد');

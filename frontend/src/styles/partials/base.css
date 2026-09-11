@@ -141,6 +141,45 @@ p {
   line-height: 1.55;
 }
 
+/* ========================================================
+   Standard Multi-line Text Justification (دستور ضبط الفقرات والنصوص)
+   ======================================================== */
+.text-justify,
+.prose-justified,
+.spec-description {
+  text-align: justify;
+  text-justify: inter-word;
+  text-align-last: start;
+}
+
+/* RTL default or explicit */
+.text-justify[dir="rtl"],
+.spec-description[dir="rtl"],
+[dir="rtl"] .spec-description:not([dir="ltr"]):not([dir="ltr"] *),
+[dir="rtl"] .text-justify:not([dir="ltr"]):not([dir="ltr"] *) {
+  text-align: justify;
+  text-justify: inter-word;
+  text-align-last: right;
+  direction: rtl;
+}
+
+/* LTR override - HIGHEST SPECIFICITY so it NEVER gets overridden by parent [dir="rtl"] */
+.text-justify[dir="ltr"],
+.spec-description[dir="ltr"],
+[dir="ltr"] .spec-description,
+[dir="ltr"] .text-justify,
+[dir="rtl"] .spec-description[dir="ltr"],
+[dir="rtl"] .text-justify[dir="ltr"],
+[dir="rtl"] [dir="ltr"] .spec-description,
+[dir="rtl"] [dir="ltr"] .text-justify,
+[dir="rtl"] [dir="ltr"].spec-description,
+[dir="rtl"] [dir="ltr"].text-justify {
+  text-align: justify !important;
+  text-justify: inter-word !important;
+  text-align-last: left !important;
+  direction: ltr !important;
+}
+
 .page-header-description, .section-header-subtitle, .text-subtitle {
   font-size: var(--font-subtitle, 0.8125rem);
   color: #64748b;

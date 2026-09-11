@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { CreateMaritimeInquiryDto } from './dto/create-inquiry.dto';
 import { CreateMaritimeRfqDto } from './dto/create-rfq.dto';
 import { SubmitMaritimeBidDto } from './dto/submit-bid.dto';
 import { CreateMaritimeQuotationDto } from './dto/create-quotation.dto';
@@ -70,21 +71,65 @@ export class MaritimeFreightService {
   // --------------------------------------------------------------------------
   // 2. Shipping Lines Master Data
   // --------------------------------------------------------------------------
-  async getShippingLines(auth: AuthContext) {
+  async getShippingLines(auth: AuthContext, filters?: { carrierType?: string; tradeLane?: string; countryCode?: string; search?: string }) {
     const { tenantId } = requireTenantScope(auth);
-    return await this.db
+    let query = this.db
       .selectFrom('shipping_lines')
       .selectAll()
       .where((eb) => eb.or([
         eb('tenant_id', '=', tenantId),
         eb('tenant_id', '=', 'default')
       ]))
-      .where('is_active', '=', true)
-      .orderBy('name_ar', 'asc')
-      .execute();
+      .where('is_active', '=', true);
+
+    if (filters?.carrierType && filters.carrierType !== 'all') {
+      query = query.where('carrier_type', '=', filters.carrierType as any);
+    }
+
+    if (filters?.tradeLane && filters.tradeLane !== 'all') {
+      query = query.where('trade_lanes', 'like', `%${filters.tradeLane}%`);
+    }
+
+    if (filters?.countryCode && filters.countryCode !== 'all') {
+      query = query.where('country_code', '=', filters.countryCode.toUpperCase());
+    }
+
+    if (filters?.search) {
+      const term = `%${filters.search}%`;
+      query = query.where((eb) => eb.or([
+        eb('code', 'ilike', term),
+        eb('name_ar', 'ilike', term),
+        eb('name_en', 'ilike', term),
+        eb('contact_person', 'ilike', term),
+        eb('country_name', 'ilike', term),
+        eb('city_name', 'ilike', term),
+        eb('rfq_email', 'ilike', term)
+      ]));
+    }
+
+    return await query.orderBy('carrier_type', 'asc').orderBy('name_ar', 'asc').execute();
   }
 
-  async createShippingLine(auth: AuthContext, data: { code: string; nameAr: string; nameEn: string; email?: string; rfqEmail?: string; phone?: string }) {
+  async createShippingLine(auth: AuthContext, data: {
+    code: string;
+    nameAr: string;
+    nameEn?: string;
+    carrierType?: 'shipping_line' | 'overseas_agent';
+    tradeLanes?: string;
+    countryName?: string;
+    countryCode?: string;
+    cityName?: string;
+    contactPerson?: string;
+    email?: string;
+    rfqEmail?: string;
+    bookingEmail?: string;
+    phone?: string;
+    whatsapp?: string;
+    wechat?: string;
+    servicesOffered?: string;
+    supportedPorts?: string;
+    notes?: string;
+  }) {
     const { tenantId } = requireTenantScope(auth);
     const existing = await this.db
       .selectFrom('shipping_lines')
@@ -94,7 +139,7 @@ export class MaritimeFreightService {
       .executeTakeFirst();
 
     if (existing) {
-      throw new BadRequestException(`Shipping line with code ${data.code} already exists`);
+      throw new BadRequestException(`Carrier/Agent with code ${data.code} already exists`);
     }
 
     const [inserted] = await this.db
@@ -103,16 +148,216 @@ export class MaritimeFreightService {
         tenant_id: tenantId,
         code: data.code.toUpperCase(),
         name_ar: data.nameAr,
-        name_en: data.nameEn,
+        name_en: data.nameEn || data.nameAr,
+        carrier_type: data.carrierType || 'shipping_line',
+        trade_lanes: data.tradeLanes || null,
+        country_name: data.countryName || null,
+        country_code: data.countryCode ? data.countryCode.toUpperCase() : null,
+        city_name: data.cityName || null,
+        contact_person: data.contactPerson || null,
         email: data.email || null,
         rfq_email: data.rfqEmail || null,
+        booking_email: data.bookingEmail || null,
         phone: data.phone || null,
+        whatsapp: data.whatsapp || null,
+        wechat: data.wechat || null,
+        services_offered: data.servicesOffered || null,
+        supported_ports: data.supportedPorts || null,
+        notes: data.notes || null,
         is_active: true,
       })
       .returningAll()
       .execute();
 
     return inserted;
+  }
+
+  async updateShippingLine(auth: AuthContext, id: string, data: any) {
+    const { tenantId } = requireTenantScope(auth);
+    const [updated] = await this.db
+      .updateTable('shipping_lines')
+      .set({
+        name_ar: data.nameAr,
+        name_en: data.nameEn,
+        carrier_type: data.carrierType,
+        trade_lanes: data.tradeLanes,
+        country_name: data.countryName,
+        country_code: data.countryCode ? data.countryCode.toUpperCase() : undefined,
+        city_name: data.cityName,
+        contact_person: data.contactPerson,
+        email: data.email,
+        rfq_email: data.rfqEmail,
+        booking_email: data.bookingEmail,
+        phone: data.phone,
+        whatsapp: data.whatsapp,
+        wechat: data.wechat,
+        services_offered: data.servicesOffered,
+        supported_ports: data.supportedPorts,
+        notes: data.notes,
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    return updated;
+  }
+
+  async deleteShippingLine(auth: AuthContext, id: string) {
+    const { tenantId } = requireTenantScope(auth);
+    await this.db
+      .updateTable('shipping_lines')
+      .set({ is_active: false, updated_at: sql`NOW()` })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .execute();
+
+    return { success: true };
+  }
+
+  // --------------------------------------------------------------------------
+  // 2.5 Maritime Client Inquiries Engine (Customer Freight Requests)
+  // --------------------------------------------------------------------------
+  private async generateNextInquiryNumber(tenantId: string): Promise<string> {
+    const year = new Date().getFullYear();
+    const prefix = `INQ-${year}-`;
+    const countResult = await this.db
+      .selectFrom('maritime_inquiries')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('tenant_id', '=', tenantId)
+      .where('inquiry_number', 'like', `${prefix}%`)
+      .executeTakeFirst();
+
+    const nextSeq = Number(countResult?.count || 0) + 1;
+    return `${prefix}${String(nextSeq).padStart(4, '0')}`;
+  }
+
+  async createInquiry(auth: AuthContext, dto: CreateMaritimeInquiryDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const inquiryNumber = await this.generateNextInquiryNumber(tenantId);
+
+    const [inquiry] = await this.db
+      .insertInto('maritime_inquiries')
+      .values({
+        tenant_id: tenantId,
+        inquiry_number: inquiryNumber,
+        customer_id: dto.customerId ? Number(dto.customerId) : null,
+        customer_name: dto.customerName,
+        customer_phone: dto.customerPhone || null,
+        customer_email: dto.customerEmail || null,
+        direction: dto.direction || 'import',
+        pol_code: dto.polCode.toUpperCase(),
+        pol_name: dto.polName,
+        pod_code: dto.podCode.toUpperCase(),
+        pod_name: dto.podName,
+        incoterm: dto.incoterm || 'FOB',
+        cargo_mode: dto.cargoMode || 'FCL',
+        container_type: dto.containerType || '40HC',
+        container_count: dto.containerCount || 1,
+        commodity_description: dto.commodityDescription || '',
+        cargo_nature: dto.cargoNature || 'general',
+        gross_weight_kg: Number(dto.grossWeightKg || 0),
+        cbm: Number(dto.cbm || 0),
+        cargo_ready_date: dto.cargoReadyDate || null,
+        target_delivery_date: dto.targetDeliveryDate || null,
+        target_free_days: dto.targetFreeDays || 14,
+        payment_term: dto.paymentTerm || 'prepaid',
+        status: 'received',
+        notes: dto.notes || null,
+        created_by: auth.userId ? Number(auth.userId) : null,
+      })
+      .returningAll()
+      .execute();
+
+    return inquiry;
+  }
+
+  async getInquiries(auth: AuthContext, filters?: { status?: string; search?: string }) {
+    const { tenantId } = requireTenantScope(auth);
+    let query = this.db
+      .selectFrom('maritime_inquiries')
+      .selectAll()
+      .where('tenant_id', '=', tenantId);
+
+    if (filters?.status && filters.status !== 'all') {
+      query = query.where('status', '=', filters.status as any);
+    }
+
+    if (filters?.search) {
+      const term = `%${filters.search}%`;
+      query = query.where((eb) => eb.or([
+        eb('inquiry_number', 'ilike', term),
+        eb('customer_name', 'ilike', term),
+        eb('customer_phone', 'ilike', term),
+        eb('pol_name', 'ilike', term),
+        eb('pod_name', 'ilike', term),
+        eb('commodity_description', 'ilike', term)
+      ]));
+    }
+
+    return await query.orderBy('id', 'desc').execute();
+  }
+
+  async getInquiryById(auth: AuthContext, id: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const inquiry = await this.db
+      .selectFrom('maritime_inquiries')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .executeTakeFirst();
+
+    if (!inquiry) throw new NotFoundException('Inquiry not found');
+    return inquiry;
+  }
+
+  async convertInquiryToRfq(auth: AuthContext, inquiryId: string, targetLineIds?: number[]) {
+    const { tenantId } = requireTenantScope(auth);
+    const inquiry = await this.getInquiryById(auth, inquiryId);
+
+    let lineIds = targetLineIds;
+    if (!lineIds || lineIds.length === 0) {
+      const activeLines = await this.getShippingLines(auth);
+      lineIds = activeLines.map((l) => Number(l.id));
+    }
+
+    const rfq = await this.createRfq(auth, {
+      polCode: inquiry.pol_code,
+      polName: inquiry.pol_name,
+      podCode: inquiry.pod_code,
+      podName: inquiry.pod_name,
+      direction: inquiry.direction as any,
+      incoterm: inquiry.incoterm,
+      cargoMode: inquiry.cargo_mode,
+      containerType: inquiry.container_type,
+      containerCount: inquiry.container_count,
+      commodityDescription: inquiry.commodity_description,
+      cargoNature: inquiry.cargo_nature,
+      cargoReadyDate: inquiry.cargo_ready_date || undefined,
+      targetFreeDays: inquiry.target_free_days,
+      paymentTerm: inquiry.payment_term as any,
+      targetLineIds: lineIds,
+      inquiryId: String(inquiry.id),
+      customerId: inquiry.customer_id ? Number(inquiry.customer_id) : undefined,
+      customerName: inquiry.customer_name,
+      customerPhone: inquiry.customer_phone || undefined,
+      customerEmail: inquiry.customer_email || undefined,
+      notes: `طلب تسعير مولد آلياً من استفسار العميل ${inquiry.inquiry_number}: ${inquiry.customer_name}`,
+    });
+
+    await this.db
+      .updateTable('maritime_inquiries')
+      .set({
+        status: 'rfq_created',
+        rfq_id: String(rfq.id),
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', inquiryId as any)
+      .execute();
+
+    return rfq;
   }
 
   // --------------------------------------------------------------------------
@@ -141,6 +386,11 @@ export class MaritimeFreightService {
       .values({
         tenant_id: tenantId,
         rfq_number: rfqNumber,
+        inquiry_id: dto.inquiryId ? String(dto.inquiryId) : null,
+        customer_id: dto.customerId ? Number(dto.customerId) : null,
+        customer_name: dto.customerName || null,
+        customer_phone: dto.customerPhone || null,
+        customer_email: dto.customerEmail || null,
         direction: dto.direction || 'import',
         pol_code: dto.polCode.toUpperCase(),
         pol_name: dto.polName,
@@ -162,6 +412,19 @@ export class MaritimeFreightService {
       })
       .returningAll()
       .execute();
+
+    if (dto.inquiryId) {
+      await this.db
+        .updateTable('maritime_inquiries')
+        .set({
+          status: 'rfq_created',
+          rfq_id: String(rfq.id),
+          updated_at: sql`NOW()`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', dto.inquiryId as any)
+        .execute();
+    }
 
     // If target lines were selected, dispatch emails
     if (dto.targetLineIds && dto.targetLineIds.length > 0) {
@@ -289,11 +552,27 @@ export class MaritimeFreightService {
       .execute();
 
     let sentCount = 0;
-    const host = String(process.env.SMTP_HOST || '').trim();
-    const port = Number(process.env.SMTP_PORT || 587);
-    const user = String(process.env.SMTP_USER || '').trim();
-    const pass = String(process.env.SMTP_PASSWORD || '').trim();
-    const fromEmail = String(process.env.SMTP_FROM || 'rfq@z-systems.io').trim();
+    // Fetch custom mail configuration configured by user in maritime settings
+    const mailConfigRow = await this.db
+      .selectFrom('settings')
+      .select('value')
+      .where('tenant_id', '=', tenantId)
+      .where('key', '=', 'maritime_mail_config')
+      .executeTakeFirst();
+
+    let customMailConfig: any = null;
+    if (mailConfigRow?.value) {
+      try {
+        customMailConfig = typeof mailConfigRow.value === 'string' ? JSON.parse(mailConfigRow.value) : mailConfigRow.value;
+      } catch {}
+    }
+
+    const host = String(customMailConfig?.smtpHost || process.env.SMTP_HOST || '').trim();
+    const port = Number(customMailConfig?.smtpPort || process.env.SMTP_PORT || 587);
+    const user = String(customMailConfig?.smtpUser || process.env.SMTP_USER || '').trim();
+    const pass = String(customMailConfig?.smtpPassword || process.env.SMTP_PASSWORD || '').trim();
+    const fromEmail = String(customMailConfig?.fromEmail || process.env.SMTP_FROM || 'rfq@z-systems.io').trim();
+    const fromName = String(customMailConfig?.fromName || 'Z-Systems Global Logistics').trim();
 
     let transporter: any = null;
     if (host && user && pass) {
@@ -343,7 +622,7 @@ export class MaritimeFreightService {
       if (transporter) {
         try {
           await transporter.sendMail({
-            from: `"Z-Systems Global Logistics" <${fromEmail}>`,
+            from: `"${fromName}" <${fromEmail}>`,
             to: targetEmail,
             subject,
             html,
@@ -554,6 +833,7 @@ export class MaritimeFreightService {
       .values({
         tenant_id: tenantId,
         quotation_number: quotationNumber,
+        inquiry_id: dto.inquiryId ? String(dto.inquiryId) : null,
         rfq_id: dto.rfqId || null,
         bid_id: dto.bidId || null,
         customer_id: dto.customerId || null,
@@ -575,6 +855,19 @@ export class MaritimeFreightService {
       })
       .returningAll()
       .execute();
+
+    if (dto.inquiryId) {
+      await this.db
+        .updateTable('maritime_inquiries')
+        .set({
+          status: 'quoted',
+          quotation_id: String(quote.id),
+          updated_at: sql`NOW()`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', dto.inquiryId as any)
+        .execute();
+    }
 
     return quote;
   }
@@ -665,6 +958,7 @@ export class MaritimeFreightService {
       .values({
         tenant_id: tenantId,
         job_number: jobNumber,
+        inquiry_id: dto.inquiryId ? String(dto.inquiryId) : null,
         quotation_id: dto.quotationId ? String(dto.quotationId) : null,
         rfq_id: dto.rfqId ? String(dto.rfqId) : null,
         customer_id: dto.customerId ? Number(dto.customerId) : null,
@@ -692,6 +986,7 @@ export class MaritimeFreightService {
         milestone_status: 'BOOK',
         cost_center_id: costCenterId,
         tracking_token: trackingToken,
+        delivery_address: dto.deliveryAddress || null,
         status: 'active',
         notes: dto.notes || null,
         created_by: auth.userId ? Number(auth.userId) : null,
@@ -749,7 +1044,86 @@ export class MaritimeFreightService {
         .execute();
     }
 
+    // 6. If linked to inquiry, update inquiry
+    if (dto.inquiryId) {
+      await this.db
+        .updateTable('maritime_inquiries')
+        .set({
+          status: 'converted_to_job',
+          job_id: String(job.id),
+          updated_at: sql`NOW()`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', dto.inquiryId as any)
+        .execute();
+    }
+
     return job;
+  }
+
+  async autoConvertQuotationToJob(auth: AuthContext, quotationId: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const quote = await this.db
+      .selectFrom('maritime_quotations')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', quotationId as any)
+      .executeTakeFirst();
+
+    if (!quote) throw new NotFoundException('Quotation not found');
+
+    let rfq: any = null;
+    let bid: any = null;
+    if (quote.rfq_id) {
+      rfq = await this.db
+        .selectFrom('maritime_rfqs')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', quote.rfq_id as any)
+        .executeTakeFirst();
+    }
+    if (quote.bid_id) {
+      bid = await this.db
+        .selectFrom('maritime_rfq_bids')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', quote.bid_id as any)
+        .executeTakeFirst();
+    }
+
+    const containerCount = rfq?.container_count || 1;
+    const containerType = rfq?.container_type || '40HC';
+    const freeDays = bid?.free_days || rfq?.target_free_days || 14;
+
+    const containersPayload: any[] = [];
+    for (let i = 1; i <= containerCount; i++) {
+      containersPayload.push({
+        containerNumber: `MSKU${Math.floor(1000000 + Math.random() * 9000000)}`,
+        containerType,
+        freeDays,
+        depositAmount: 5000,
+        depositCurrency: 'EGP',
+      });
+    }
+
+    return await this.createJob(auth, {
+      quotationId: String(quote.id),
+      rfqId: quote.rfq_id ? String(quote.rfq_id) : undefined,
+      inquiryId: quote.inquiry_id ? String(quote.inquiry_id) : undefined,
+      customerId: quote.customer_id,
+      customerName: quote.customer_name,
+      direction: (rfq?.direction as any) || 'import',
+      paymentTerm: quote.payment_term,
+      shippingLineId: bid?.shipping_line_id || null,
+      shippingLineName: bid?.shipping_line_name || 'خط ملاحي معتمد',
+      polCode: rfq?.pol_code || 'CNSHA',
+      polName: rfq?.pol_name || 'ميناء الشحن',
+      podCode: rfq?.pod_code || 'EGALY',
+      podName: rfq?.pod_name || 'ميناء الوصول',
+      bookingNumber: `BKG-${Math.floor(100000 + Math.random() * 900000)}`,
+      containers: containersPayload,
+      notes: `أمر تشغيل تم تحويله وتفعيله آلياً من عرض السعر ${quote.quotation_number}`,
+    });
   }
 
   async getJobs(auth: AuthContext, filters?: { status?: string; search?: string; milestone?: string }) {
@@ -855,17 +1229,66 @@ export class MaritimeFreightService {
       })
       .execute();
 
-    // Update job milestone status
+    // Update job milestone status and automated triggers
     const updatePayload: any = {
       milestone_status: milestoneKey,
       updated_at: sql`NOW()`,
     };
 
-    if (milestoneKey === 'GTO') {
+    if (milestoneKey === 'DISC') {
+      // 1. Container Discharged at destination port: Start free days clock & calculate deadline
+      const containers = await this.db
+        .selectFrom('maritime_containers')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('job_id', '=', jobId as any)
+        .execute();
+
+      const now = new Date();
+      for (const c of containers) {
+        if (!c.discharged_at) {
+          const freeDays = Number(c.free_days) || 14;
+          const deadline = new Date(now);
+          deadline.setDate(deadline.getDate() + freeDays);
+          await this.db
+            .updateTable('maritime_containers')
+            .set({
+              discharged_at: now,
+              return_deadline: deadline.toISOString().split('T')[0],
+              updated_at: sql`NOW()`,
+            })
+            .where('id', '=', c.id as any)
+            .execute();
+        }
+      }
+    } else if (milestoneKey === 'GTO') {
+      // 2. Gate-out: Release D/O and record container gate-out
       updatePayload.delivery_order_released = true;
       updatePayload.delivery_order_released_at = sql`NOW()`;
+      await this.db
+        .updateTable('maritime_containers')
+        .set({ gated_out_at: sql`NOW()`, updated_at: sql`NOW()` })
+        .where('tenant_id', '=', tenantId)
+        .where('job_id', '=', jobId as any)
+        .where('gated_out_at', 'is', null)
+        .execute();
+    } else if (milestoneKey === 'DLVR') {
+      // 3. Delivered to client premises
+      updatePayload.delivered_to_client_at = sql`NOW()`;
     } else if (milestoneKey === 'RETN') {
+      // 4. Empty Container Returned: close container & job
       updatePayload.status = 'completed';
+      await this.db
+        .updateTable('maritime_containers')
+        .set({
+          empty_returned_at: sql`NOW()`,
+          deposit_status: 'pending_return_proof',
+          updated_at: sql`NOW()`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('job_id', '=', jobId as any)
+        .where('empty_returned_at', 'is', null)
+        .execute();
     }
 
     const [updatedJob] = await this.db
@@ -887,6 +1310,68 @@ export class MaritimeFreightService {
       'GTO',
       'تم اعتماد وإصدار إذن التسليم الملاحي الرسمي (Delivery Order D/O) للعميل'
     );
+  }
+
+  async getMilestoneWhatsAppMessage(auth: AuthContext, jobId: string, milestoneKey: DcsaMilestoneKey) {
+    const job = await this.getJobById(auth, jobId);
+    const trackingUrl = job.tracking_token
+      ? `${process.env.APP_PUBLIC_URL || 'https://app.z-systems.io'}/public/track/${job.tracking_token}`
+      : '';
+
+    const milestoneDef = DCSA_STANDARD_MILESTONES.find((m) => m.key === milestoneKey);
+    const title = milestoneDef ? milestoneDef.title_ar : milestoneKey;
+
+    let actionContext = '';
+    switch (milestoneKey) {
+      case 'BOOK':
+        actionContext = `تم تأكيد حجز الشحنة بنجاح برقم الحجز: ${job.booking_number || job.job_number}`;
+        break;
+      case 'GTI':
+        actionContext = `وصلت الحاوية ودخلت ساحة ميناء الشحن (${job.pol_name}) بانتظار التحميل على السفينة.`;
+        break;
+      case 'LOAD':
+        actionContext = `تم تحميل وشحن الحاوية على متن السفينة (${job.vessel_name || 'السفينة المحددة'}) وجاري التجهيز للإبحار.`;
+        break;
+      case 'DEPT':
+        actionContext = `أبحرت السفينة رسمياً من ${job.pol_name} متجهة إلى ${job.pod_name}. موعد الوصول المتوقع (ETA): ${job.eta || 'قيد المتابعة'}.`;
+        break;
+      case 'ARRI':
+        actionContext = `وصلت السفينة بحمد الله إلى ميناء المقصد (${job.pod_name}) وجاري ربط السفينة وبدء عمليات التفريغ.`;
+        break;
+      case 'DISC':
+        actionContext = `تم تفريغ الحاوية على رصيف ميناء ${job.pod_name} وبدأ سريان فترة السماح (Free Days). جاري بدء إجراءات التخليص الجمركي.`;
+        break;
+      case 'CUST':
+        actionContext = `تم إنهاء كافة إجراءات الإفراج والمطابقة الجمركية للشحنة بنجاح.`;
+        break;
+      case 'GTO':
+        actionContext = `تم إصدار إذن التسليم الملاحي (Delivery Order) وخروج الحاوية من بوابة الميناء في طريقها للعنوان المحدد.`;
+        break;
+      case 'DLVR':
+        actionContext = `تم تسليم البضاعة كاملة لمقر/مستودع العميل بنجاح. نشكركم على ثقتكم في خدماتنا اللوجستية!`;
+        break;
+      case 'RETN':
+        actionContext = `تم إرجاع الحاوية الفارغة لساحة التوكيل الملاحي بنجاح وجاري استرداد مبالغ التأمين للخزينة.`;
+        break;
+    }
+
+    const message = `عزيزنا العميل ${job.customer_name}،\n` +
+      `تحديث جديد بخصوص شحنتكم الملاحية [${job.job_number}]:\n` +
+      `المرحلة الحالية: ${title}\n` +
+      `${actionContext}\n\n` +
+      `يمكنكم متابعة خط سير الشحنة لحظة بلحظة عبر رابط التتبع المباشر:\n` +
+      `${trackingUrl}\n\n` +
+      `فريق العمليات واللوجستيات — Z-Systems`;
+
+    return {
+      jobId: job.id,
+      jobNumber: job.job_number,
+      customerName: job.customer_name,
+      customerPhone: (job as any).customer_phone || null,
+      milestoneKey,
+      milestoneTitle: title,
+      message,
+    };
   }
 
   // --------------------------------------------------------------------------

@@ -62,6 +62,24 @@ export class CreateMaritimeRfqDto {
   @IsOptional()
   targetLineIds?: number[];
 
+  @IsOptional()
+  inquiryId?: string;
+
+  @IsOptional()
+  customerId?: number;
+
+  @IsString()
+  @IsOptional()
+  customerName?: string;
+
+  @IsString()
+  @IsOptional()
+  customerPhone?: string;
+
+  @IsString()
+  @IsOptional()
+  customerEmail?: string;
+
   @IsString()
   @IsOptional()
   notes?: string;

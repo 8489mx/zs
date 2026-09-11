@@ -8,7 +8,8 @@ interface CreateRfiModalProps {
   projectId: string;
   projectName?: string;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated?: () => void;
+  onSuccess?: () => void;
 }
 
 export function CreateRfiModal({
@@ -58,7 +59,7 @@ export function CreateRfiModal({
         dateRequired: formData.dateRequired || undefined,
         notes: formData.notes.trim() || undefined,
       });
-      onCreated();
+      onCreated?.();
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'حدث خطأ أثناء حفظ طلب الاستفسار');

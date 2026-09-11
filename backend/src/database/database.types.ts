@@ -3083,13 +3083,60 @@ export interface ShippingLineTable {
   code: string;
   name_ar: string;
   name_en: string;
+  carrier_type: ColumnType<'shipping_line' | 'overseas_agent', string | undefined, string | undefined>;
+  trade_lanes: string | null;
+  country_name: string | null;
+  country_code: string | null;
+  city_name: string | null;
   contact_person: string | null;
   email: string | null;
   rfq_email: string | null;
+  booking_email: string | null;
   phone: string | null;
+  whatsapp: string | null;
+  wechat: string | null;
+  services_offered: string | null;
+  supported_ports: string | null;
   tracking_url_template: string | null;
   is_active: boolean;
   notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeInquiryTable {
+  id: Generated<string>;
+  tenant_id: string;
+  inquiry_number: string;
+  customer_id: number | null;
+  customer_name: string;
+  customer_phone: string | null;
+  customer_email: string | null;
+  direction: 'import' | 'export' | 'cross_trade';
+  pol_id: string | null;
+  pol_code: string;
+  pol_name: string;
+  pod_id: string | null;
+  pod_code: string;
+  pod_name: string;
+  incoterm: string;
+  cargo_mode: string;
+  container_type: string;
+  container_count: number;
+  commodity_description: string;
+  cargo_nature: string;
+  gross_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  cbm: ColumnType<number, number | string | undefined, number | string | undefined>;
+  cargo_ready_date: string | null;
+  target_delivery_date: string | null;
+  target_free_days: number;
+  payment_term: 'prepaid' | 'collect';
+  status: 'received' | 'rfq_created' | 'quoted' | 'converted_to_job' | 'cancelled';
+  rfq_id: string | null;
+  quotation_id: string | null;
+  job_id: string | null;
+  notes: string | null;
+  created_by: number | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -3098,6 +3145,11 @@ export interface MaritimeRfqTable {
   id: Generated<string>;
   tenant_id: string;
   rfq_number: string;
+  inquiry_id: string | null;
+  customer_id: number | null;
+  customer_name: string | null;
+  customer_phone: string | null;
+  customer_email: string | null;
   direction: 'import' | 'export' | 'cross_trade';
   pol_id: string | null;
   pol_code: string;
@@ -3151,6 +3203,7 @@ export interface MaritimeQuotationTable {
   id: Generated<string>;
   tenant_id: string;
   quotation_number: string;
+  inquiry_id: string | null;
   rfq_id: string | null;
   bid_id: string | null;
   customer_id: number | null;
@@ -3178,6 +3231,7 @@ export interface MaritimeJobTable {
   id: Generated<string>;
   tenant_id: string;
   job_number: string;
+  inquiry_id: string | null;
   quotation_id: string | null;
   rfq_id: string | null;
   customer_id: number | null;
@@ -3205,6 +3259,8 @@ export interface MaritimeJobTable {
   milestone_status: ColumnType<string, string | undefined, string | undefined>;
   delivery_order_released: ColumnType<boolean, boolean | undefined, boolean | undefined>;
   delivery_order_released_at: Date | null;
+  delivered_to_client_at: Date | null;
+  delivery_address: string | null;
   cost_center_id: string | null;
   client_invoiced_total: ColumnType<number, number | string | undefined, number | string | undefined>;
   carrier_cost_total: ColumnType<number, number | string | undefined, number | string | undefined>;
@@ -3478,6 +3534,7 @@ export interface Database {
   zatca_egs_units: ZatcaEgsUnitTable;
   shipping_ports: ShippingPortTable;
   shipping_lines: ShippingLineTable;
+  maritime_inquiries: MaritimeInquiryTable;
   maritime_rfqs: MaritimeRfqTable;
   maritime_rfq_bids: MaritimeRfqBidTable;
   maritime_quotations: MaritimeQuotationTable;

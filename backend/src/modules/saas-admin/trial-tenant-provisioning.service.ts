@@ -16,6 +16,7 @@ export type TrialTenantProvisioningInput = {
   ownerPhone: string;
   ownerEmail?: string | null;
   activityType?: string | null;
+  businessIndustry?: string | null;
   username?: string;
   password?: string | null;
   days?: number;
@@ -66,6 +67,111 @@ export class TrialTenantProvisioningService {
   private normalizeOptional(value: unknown): string | null {
     const normalized = String(value || '').trim();
     return normalized || null;
+  }
+
+  private getIndustrySettingsPatch(industry: string): Record<string, any> {
+    const base: Record<string, any> = {
+      businessIndustry: industry,
+      onboardingCompleted: true,
+      posModuleEnabled: true,
+      requireCashierShiftForSales: true,
+      defaultPosMode: 'scanner',
+      defaultProductKind: 'standard',
+      contractingModuleEnabled: false,
+      maritimeFreightModuleEnabled: false,
+      restaurantModuleEnabled: false,
+      enablePharmacyModule: false,
+      enableMobileStoreFeatures: false,
+      clothingModuleEnabled: false,
+      manufacturingModuleEnabled: false,
+      weightedBarcodeEnabled: false,
+      servicesModuleEnabled: false,
+      storefrontModuleEnabled: false,
+      deliveryFleetModuleEnabled: false,
+      purchasesModuleEnabled: true,
+      inventoryModuleEnabled: true,
+      enableEnterpriseFeatures: true,
+    };
+
+    switch (industry) {
+      case 'contracting':
+        base.contractingModuleEnabled = true;
+        base.posModuleEnabled = false;
+        base.requireCashierShiftForSales = false;
+        base.hrModuleEnabled = true;
+        base.fixedAssetsModuleEnabled = true;
+        base.taxDeclarationModuleEnabled = true;
+        base.installmentsModuleEnabled = true;
+        break;
+
+      case 'maritime':
+        base.maritimeFreightModuleEnabled = true;
+        base.posModuleEnabled = false;
+        base.requireCashierShiftForSales = false;
+        base.hrModuleEnabled = true;
+        base.taxDeclarationModuleEnabled = true;
+        break;
+
+      case 'spices':
+        base.weightedBarcodeEnabled = true;
+        base.clothingModuleEnabled = true;
+        base.manufacturingModuleEnabled = true;
+        break;
+
+      case 'supermarket':
+        base.weightedBarcodeEnabled = true;
+        base.defaultPosMode = 'scanner';
+        break;
+
+      case 'fashion':
+        base.clothingModuleEnabled = true;
+        base.defaultProductKind = 'fashion';
+        break;
+
+      case 'perfumes':
+        base.clothingModuleEnabled = true;
+        base.manufacturingModuleEnabled = true;
+        base.defaultProductKind = 'fashion';
+        break;
+
+      case 'pharmacy':
+        base.enablePharmacyModule = true;
+        break;
+
+      case 'electronics':
+        base.enableMobileStoreFeatures = true;
+        base.servicesModuleEnabled = true;
+        base.installmentsModuleEnabled = true;
+        break;
+
+      case 'restaurant':
+      case 'cafe':
+        base.restaurantModuleEnabled = true;
+        base.defaultPosMode = 'touch';
+        base.posKitchenPrinterEnabled = true;
+        break;
+
+      case 'services':
+        base.posModuleEnabled = false;
+        base.requireCashierShiftForSales = false;
+        base.servicesModuleEnabled = true;
+        base.inventoryModuleEnabled = false;
+        base.installmentsModuleEnabled = true;
+        break;
+
+      case 'wholesale':
+        base.enableEnterpriseFeatures = true;
+        base.installmentsModuleEnabled = true;
+        base.deliveryFleetModuleEnabled = true;
+        break;
+
+      case 'general':
+      default:
+        base.defaultPosMode = 'scanner';
+        break;
+    }
+
+    return base;
   }
 
   normalizePhoneDigits(value: unknown): string {
@@ -164,6 +270,7 @@ export class TrialTenantProvisioningService {
     const ownerPhone = this.normalizeRequired(this.normalizePhoneDigits(payload.ownerPhone), 'رقم الهاتف مطلوب.');
     const ownerEmail = this.normalizeOptional(payload.ownerEmail);
     const activityType = this.normalizeOptional(payload.activityType);
+    const businessIndustry = this.normalizeOptional(payload.businessIndustry) || 'general';
     const days = Number.isFinite(Number(payload.days)) ? Math.max(1, Math.min(365, Number(payload.days))) : DEFAULT_TRIAL_DAYS;
     const providedSlug = this.normalizeOptional(payload.slug);
     const providedUsername = this.normalizeOptional(payload.username);
@@ -351,7 +458,7 @@ export class TrialTenantProvisioningService {
         .execute();
 
       // 5. Seed Default Business and Store Settings
-      const defaultSettings = [
+      const defaultSettings: Array<{ key: string; value: any }> = [
         { key: 'storeName', value: businessName },
         { key: 'companyName', value: businessName },
         { key: 'business_name', value: businessName },
@@ -367,7 +474,6 @@ export class TrialTenantProvisioningService {
         { key: 'dateFormat', value: 'dd/MM/yyyy' },
         { key: 'timeFormat', value: '12h' },
         { key: 'paperSize', value: 'receipt' },
-        { key: 'defaultPosMode', value: 'touch' },
         { key: 'theme', value: 'light' },
         { key: 'primaryBranchId', value: String(branchId) },
         { key: 'primaryLocationId', value: String(locationId) },
@@ -377,6 +483,11 @@ export class TrialTenantProvisioningService {
         { key: 'taxMode', value: 'exclusive' },
         { key: 'taxNumber', value: '' },
       ];
+
+      const industryPatch = this.getIndustrySettingsPatch(businessIndustry);
+      for (const [k, v] of Object.entries(industryPatch)) {
+        defaultSettings.push({ key: k, value: v });
+      }
 
       for (const s of defaultSettings) {
         await sql`

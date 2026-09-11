@@ -3,6 +3,10 @@ import { IsString, IsNotEmpty, IsOptional, IsNumber, Min } from 'class-validator
 export class CreateMaritimeQuotationDto {
   @IsString()
   @IsOptional()
+  inquiryId?: string;
+
+  @IsString()
+  @IsOptional()
   rfqId?: string;
 
   @IsString()

@@ -3,11 +3,19 @@ import { IsString, IsNotEmpty, IsOptional, IsArray } from 'class-validator';
 export class CreateMaritimeJobDto {
   @IsString()
   @IsOptional()
+  inquiryId?: string;
+
+  @IsString()
+  @IsOptional()
   quotationId?: string;
 
   @IsString()
   @IsOptional()
   rfqId?: string;
+
+  @IsString()
+  @IsOptional()
+  deliveryAddress?: string;
 
   @IsOptional()
   customerId?: number | null;

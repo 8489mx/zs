@@ -131,7 +131,7 @@ export function MaritimeQuotationsTab({
                             cursor: 'pointer',
                           }}
                         >
-                          تحويل لأمر تشغيل 🚢
+                          تحويل لأمر تشغيل
                         </button>
                       )}
                       {q.customer_phone && (

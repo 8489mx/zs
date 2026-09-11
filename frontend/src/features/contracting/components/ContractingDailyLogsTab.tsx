@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import { ContractingSiteDailyLog } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { LaborAttendanceModal } from './LaborAttendanceModal';
+import { PettyCashModal } from './PettyCashModal';
+import { getTextDirection } from '@/lib/arabic-normalization';
 
 interface ContractingDailyLogsTabProps {
   dailyLogs: ContractingSiteDailyLog[];
   loading: boolean;
+  projectId?: string;
   projectName?: string;
   onNewLog: () => void;
 }
@@ -11,9 +16,12 @@ interface ContractingDailyLogsTabProps {
 export function ContractingDailyLogsTab({
   dailyLogs,
   loading,
+  projectId,
   projectName,
   onNewLog,
 }: ContractingDailyLogsTabProps) {
+  const [isLaborAttendanceOpen, setIsLaborAttendanceOpen] = useState(false);
+  const [isPettyCashOpen, setIsPettyCashOpen] = useState(false);
   const totalLaborToday = dailyLogs.length > 0
     ? Number(dailyLogs[0].laborCount || 0) + Number(dailyLogs[0].subcontractorLaborCount || 0)
     : 0;
@@ -30,27 +38,76 @@ export function ContractingDailyLogsTab({
             {projectName ? `المشروع: ${projectName}` : 'توثيق العمالة الميدانية، المعدات، التوريدات، والإنجاز اليومي للأعمال'}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onNewLog}
-          style={{
-            height: '36px',
-            padding: '0 16px',
-            borderRadius: '8px',
-            fontWeight: 700,
-            background: '#170e5e',
-            color: '#ffffff',
-            border: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            fontSize: 'var(--font-body)',
-          }}
-        >
-          <AppIcons.Plus size={15} />
-          <span>تسجيل يومية موقع جديدة</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* يوميات العمالة الميدانية */}
+          <button
+            type="button"
+            onClick={() => setIsLaborAttendanceOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#f8fafc',
+              color: '#170e5e',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.Users size={15} />
+            <span>يوميات وتوزيع العمالة (Labor Shifts)</span>
+          </button>
+
+          {/* العهد النقدية للموقع */}
+          <button
+            type="button"
+            onClick={() => setIsPettyCashOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#f0fdf4',
+              color: '#15803d',
+              border: '1px solid #bbf7d0',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.DollarSign size={15} />
+            <span>العهد النقدية للموقع (Petty Cash)</span>
+          </button>
+
+          {/* تسجيل يومية موقع */}
+          <button
+            type="button"
+            onClick={onNewLog}
+            style={{
+              height: '36px',
+              padding: '0 16px',
+              borderRadius: '8px',
+              fontWeight: 700,
+              background: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.Plus size={15} />
+            <span>تسجيل يومية موقع جديدة</span>
+          </button>
+        </div>
       </div>
 
       {/* بطاقات المؤشرات */}
@@ -147,9 +204,29 @@ export function ContractingDailyLogsTab({
                   </div>
 
                   {/* الأعمال المنفذة */}
-                  <div style={{ fontSize: 'var(--font-body)', color: '#0f172a', lineHeight: 1.5, marginBottom: '8px' }}>
-                    <strong>الأعمال المنفذة:</strong> {log.workPerformed}
-                  </div>
+                  {(() => {
+                    const dir = getTextDirection(log.workPerformed);
+                    const isRtl = dir === 'rtl';
+                    return (
+                      <div
+                        dir={dir}
+                        className="text-justify spec-description"
+                        style={{
+                          fontSize: 'var(--font-body)',
+                          color: '#0f172a',
+                          lineHeight: 1.55,
+                          marginBottom: '8px',
+                          textAlign: 'justify',
+                          textJustify: 'inter-word',
+                          textAlignLast: isRtl ? 'right' : 'left',
+                          wordBreak: 'break-word',
+                          direction: dir,
+                        }}
+                      >
+                        <strong>الأعمال المنفذة:</strong> {log.workPerformed}
+                      </div>
+                    );
+                  })()}
 
                   {/* تفاصيل إضافية: معدات، مواد، معوقات */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', fontSize: 'var(--font-micro)', color: '#475569', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px' }}>
@@ -169,6 +246,26 @@ export function ContractingDailyLogsTab({
           </div>
         )}
       </div>
+
+      {/* مودال يوميات وتوزيع العمالة */}
+      {isLaborAttendanceOpen && (
+        <LaborAttendanceModal
+          isOpen={isLaborAttendanceOpen}
+          onClose={() => setIsLaborAttendanceOpen(false)}
+          projectId={projectId}
+          projectName={projectName}
+        />
+      )}
+
+      {/* مودال العهد النقدية للموقع */}
+      {isPettyCashOpen && (
+        <PettyCashModal
+          isOpen={isPettyCashOpen}
+          onClose={() => setIsPettyCashOpen(false)}
+          projectId={projectId}
+          projectName={projectName}
+        />
+      )}
     </div>
   );
 }

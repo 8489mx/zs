@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { ContractingMaterialRequisition } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { contractingApi } from '../api/contracting.api';
+import { SupplierReturnsModal } from './SupplierReturnsModal';
 
 interface ContractingMaterialsTabProps {
   requisitions: ContractingMaterialRequisition[];
   loading: boolean;
+  projectId?: string;
   projectName?: string;
   onNewRequisition: () => void;
   onRequisitionDeleted: () => void;
@@ -13,10 +16,12 @@ interface ContractingMaterialsTabProps {
 export function ContractingMaterialsTab({
   requisitions,
   loading,
+  projectId,
   projectName,
   onNewRequisition,
   onRequisitionDeleted,
 }: ContractingMaterialsTabProps) {
+  const [isSupplierReturnsOpen, setIsSupplierReturnsOpen] = useState(false);
   const totalCost = requisitions.reduce((sum, r) => sum + Number(r.totalCost || 0), 0);
   const totalItemsCount = requisitions.length;
 
@@ -42,27 +47,51 @@ export function ContractingMaterialsTab({
             {projectName ? `المشروع: ${projectName}` : 'حصر الخامات والمواد المنصرفة من المخازن وتحميل تكلفتها على بنود المقايسة'}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onNewRequisition}
-          style={{
-            height: '36px',
-            padding: '0 16px',
-            borderRadius: '8px',
-            fontWeight: 600,
-            background: '#170e5e',
-            color: '#ffffff',
-            border: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-            fontSize: 'var(--font-body)',
-          }}
-        >
-          <AppIcons.Plus size={16} />
-          <span>إصدار إذن صرف خامات للموقع</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => setIsSupplierReturnsOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#fff7ed',
+              color: '#c2410c',
+              border: '1px solid #fed7aa',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.RefreshCw size={15} />
+            <span>مرتجع الخامات للموردين (Credit Notes)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onNewRequisition}
+            style={{
+              height: '36px',
+              padding: '0 16px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.Plus size={16} />
+            <span>إصدار إذن صرف خامات للموقع</span>
+          </button>
+        </div>
       </div>
 
       {/* مؤشرات التكلفة والخامات */}
@@ -198,6 +227,16 @@ export function ContractingMaterialsTab({
           </div>
         )}
       </div>
+
+      {/* مودال مرتجع المواد للموردين */}
+      {isSupplierReturnsOpen && (
+        <SupplierReturnsModal
+          isOpen={isSupplierReturnsOpen}
+          onClose={() => setIsSupplierReturnsOpen(false)}
+          projectId={projectId}
+          projectName={projectName}
+        />
+      )}
     </div>
   );
 }

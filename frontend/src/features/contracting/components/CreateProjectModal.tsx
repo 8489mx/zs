@@ -7,10 +7,11 @@ import { AppIcons } from '@/shared/components/icons/AppIcons';
 interface CreateProjectModalProps {
   open: boolean;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated?: () => void;
+  onSuccess?: () => void;
 }
 
-export function CreateProjectModal({ open, onClose, onCreated }: CreateProjectModalProps) {
+export function CreateProjectModal({ open, onClose, onCreated, onSuccess }: CreateProjectModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -56,7 +57,8 @@ export function CreateProjectModal({ open, onClose, onCreated }: CreateProjectMo
         locationAddress: formData.locationAddress.trim() || undefined,
         notes: formData.notes.trim() || undefined,
       });
-      onCreated();
+      onCreated?.();
+      onSuccess?.();
       onClose();
     } catch (err: any) {
       setErrorMsg(err?.message || 'حدث خطأ أثناء إنشاء المشروع');

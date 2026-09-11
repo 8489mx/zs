@@ -40,6 +40,13 @@ export interface ContractingProjectSummary {
   totalCostCommitted: number;     // Subcontracts + site purchase orders
   actualCostIncurred: number;     // Direct costs booked against project cost center
   grossMarginForecast: number;    // Revised Contract Value - (Committed + Incurred)
+
+  // Enterprise Intelligence & Health:
+  healthScore?: number;           // 0 - 100
+  healthStatus?: 'green' | 'yellow' | 'red';
+  activeLicensesCount?: number;
+  expiringLicensesCount?: number;
+  activeHoldsTotal?: number;
 }
 
 export type ScheduleTaskStatus = 'not_started' | 'in_progress' | 'completed' | 'delayed';
@@ -85,3 +92,229 @@ export interface ContractingMaterialRequisition {
   updatedAt: string;
 }
 
+// ============================================================================
+// Enterprise Contracting Enhancements Types
+// ============================================================================
+
+export type PriceItemType = 'material' | 'labor' | 'equipment' | 'subcontract';
+
+export interface ContractingMasterPriceItem {
+  id: string;
+  itemType: PriceItemType;
+  code: string;
+  name: string;
+  unit: string;
+  unitRate: number;
+  category: string;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EngineeringConstantComponent {
+  componentCode: string;
+  componentName: string;
+  componentType: PriceItemType;
+  qtyPerUnit: number;
+  unit: string;
+  unitRate?: number;
+  totalCost?: number;
+}
+
+export interface ContractingEngineeringConstant {
+  id: string;
+  itemCode: string;
+  itemName: string;
+  unit: string;
+  wastePercent: number;
+  overheadPercent: number;
+  profitMarkupPercent: number;
+  components: EngineeringConstantComponent[];
+  calculatedDirectCost?: number;
+  calculatedSellingPrice?: number;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContractingCostSnapshot {
+  id: string;
+  projectId: string;
+  snapshotName: string;
+  totalBudgetCost: number;
+  totalContractValue: number;
+  isLocked: boolean;
+  lockedAt: string;
+  lockedBy?: string | null;
+  boqSnapshot: any[];
+  createdAt: string;
+}
+
+export type RetentionStatus = 'held' | 'partially_released' | 'fully_released';
+
+export interface ContractingRetentionRecord {
+  id: string;
+  projectId: string;
+  subcontractId?: string | null;
+  partyType: 'client' | 'subcontractor';
+  partyId?: number | null;
+  partyName: string;
+  heldAmount: number;
+  releasedAmount: number;
+  retentionPercent: number;
+  ipcInvoiceId?: string | null;
+  releaseDueDate?: string | null;
+  status: RetentionStatus;
+  guaranteeCertificateRef?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContractingPaymentHold {
+  id: string;
+  projectId: string;
+  subcontractId?: string | null;
+  partyType: 'subcontractor' | 'supplier';
+  partyName: string;
+  holdAmount: number;
+  reason: string;
+  defectDescription?: string | null;
+  isReleased: boolean;
+  releasedAt?: string | null;
+  releasedBy?: string | null;
+  releaseNotes?: string | null;
+  createdAt: string;
+}
+
+export interface ContractingSupplierReturnItem {
+  productId?: number | null;
+  itemName: string;
+  unit: string;
+  quantity: number;
+  unitCost: number;
+  totalAmount: number;
+  reason: string;
+}
+
+export interface ContractingSupplierReturn {
+  id: string;
+  projectId: string;
+  returnNumber: string;
+  supplierId?: number | null;
+  supplierName: string;
+  returnDate: string;
+  totalAmount: number;
+  status: 'draft' | 'posted';
+  creditNoteNumber?: string | null;
+  items: ContractingSupplierReturnItem[];
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type LaborTrade = 'carpenter' | 'blacksmith' | 'mason' | 'helper' | 'operator' | 'surveyor' | 'electrician' | 'plumber';
+
+export interface ContractingLaborAttendance {
+  id: string;
+  projectId: string;
+  workerName: string;
+  trade: LaborTrade;
+  workDate: string;
+  shiftType: string;
+  hoursWorked: number;
+  splitProjectId?: string | null;
+  splitHours: number;
+  dailyRate: number;
+  totalWage: number;
+  status: 'recorded' | 'approved' | 'paid';
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PettyCashStatus = 'active' | 'settled' | 'overdue';
+
+export interface PettyCashReceipt {
+  receiptNumber: string;
+  expenseCategory: string;
+  amount: number;
+  description: string;
+  vendorName?: string;
+  receiptDate: string;
+}
+
+export interface ContractingPettyCash {
+  id: string;
+  projectId: string;
+  custodianName: string;
+  custodianRole: string;
+  disbursementNumber: string;
+  amountGiven: number;
+  amountSettled: number;
+  remainingBalance: number;
+  issueDate: string;
+  settlementDueDate?: string | null;
+  status: PettyCashStatus;
+  receipts: PettyCashReceipt[];
+  closureNotes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type LicenseType = 'excavation' | 'building' | 'civil_defense' | 'road_occupancy' | 'environmental' | 'other';
+export type LicenseStatus = 'active' | 'expiring_soon' | 'expired' | 'renewed';
+
+export interface ContractingGovernmentLicense {
+  id: string;
+  projectId: string;
+  licenseType: LicenseType;
+  licenseNumber: string;
+  issuingAuthority: string;
+  issueDate?: string | null;
+  expiryDate: string;
+  feeAmount: number;
+  status: LicenseStatus;
+  documentUrl?: string | null;
+  alertLeadDays: number;
+  daysUntilExpiry?: number;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectHealthScore {
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  score: number; // 0 - 100
+  status: 'green' | 'yellow' | 'red';
+  breakdown: {
+    schedulePerformanceIndex: number; // SPI
+    costPerformanceIndex: number;     // CPI
+    budgetVariancePercent: number;
+    licensesComplianceScore: number;
+    retentionRiskScore: number;
+  };
+  recommendations: string[];
+}
+
+export interface CashForecastBucket {
+  period: '30_days' | '60_days' | '90_days';
+  label: string;
+  expectedInflows: number;  // Expected client IPC collections
+  expectedOutflows: number; // Subcontractor payments, supplier cheques, payroll, licenses
+  netCashFlow: number;
+}
+
+export interface ContractingCashForecast {
+  projectId?: string;
+  totalCurrentCashPosition: number;
+  buckets: CashForecastBucket[];
+  upcomingCommitmentsSummary: {
+    pendingSubcontractorIpcs: number;
+    pendingSupplierInvoices: number;
+    upcomingWages: number;
+    upcomingLicenseRenewals: number;
+  };
+}
