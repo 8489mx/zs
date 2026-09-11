@@ -2173,5 +2173,90 @@
 | **بطاقة تفعيل/تعطيل في الإعدادات** | 🟢 | 100% | `ModulesSettingsTab.tsx` |
 | **دعم كامل في لوحة المطور** | 🟢 | 100% | `DeveloperActivationPanel.tsx` |
 
+---
+
+## 77. موديول المقاولات وإدارة المشاريع الإنشائية المتكامل (Contracting & Construction ERP Module)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Procore / Oracle Primavera (Unifier) / SAP S/4HANA EC&O / ERPNext BuildSuite & AIA G702/G703 Standards.
+* **روابط وشاشات الوصول:** `/contracting` (القائمة الجانبية: المقاولات والمشاريع ➔ المشاريع الإنشائية، المقايسات، الأوامر التغييرية، مستخلصات الدفع، عقود مقاولي الباطن، اليوميات الميدانية، الاستفسارات الهندسية).
+* **مفتاح الإعداد:** `contractingModuleEnabled`
+* **الباقات المدعومة:** `plan_ultimate`, `plan_omnichannel` (وكافة مصفوفات ومسميات الباقات)
+* **مسارات الكود — Backend:** `backend/src/modules/contracting/`
+* **مسارات الكود — Frontend:** `frontend/src/features/contracting/`
+* **الجداول في قاعدة البيانات (Migration 081):** `contracting_projects`, `contracting_boq_items`, `contracting_change_orders`, `contracting_invoices`, `contracting_invoice_items`, `contracting_subcontracts`, `contracting_site_daily_logs`, `contracting_rfis`, `contracting_schedule_tasks`, `contracting_material_requisitions`.
+
+### الملفات المنشأة والمطورة
+
+| النوع | الملف | الوصف |
+| :--- | :--- | :--- |
+| **Migration** | `2040000000081_contracting_and_construction_module.ts` | ترحيل قاعدة البيانات (10 جداول علائقية متكاملة + مفاتيح خارجية وفهارس) |
+| **Types** | `contracting.types.ts` | تعريفات TypeScript الكاملة للمشاريع والمقايسات والمستخلصات والأوامر والجدولة وصرف الخامات |
+| **DTOs** | `dto/contracting.dto.ts` | كائنات نقل البيانات الصارمة المدققة لجميع عمليات المقاولات |
+| **Service** | `contracting.service.ts` | محرك المقاولات: توليد مراكز التكلفة التحليلية، حسابات AIA G702/G703، اعتمادات التشوينات، الجدولة، وصرف الخامات |
+| **Controller** | `contracting.controller.ts` | نهايات الـ API المحمية بـ `SessionAuthGuard` وعزل الـ Multi-Tenant |
+| **Module** | `contracting.module.ts` | وحدة NestJS متصلة في `app.module.ts` |
+| **API** | `api/contracting.api.ts` | واجهة التواصل الأمامية المستندة إلى `@/lib/http` |
+| **Page** | `pages/ContractingWorkspacePage.tsx` | منصة العمل الرئيسية مع شريط مؤشرات مالية وتوجيه ديناميكي بالألسنة التسعة `?tab=` |
+| **Routes** | `routes.tsx` | تسجيل مسار المقاولات بنمط `FeatureRouteModule` و `FeatureGate` |
+| **Tab** | `ContractingProjectsTab.tsx` | تبويب استعراض وإدارة المشاريع وحالاتها ونسب إنجازها وموازناتها |
+| **Tab** | `ContractingBoqTab.tsx` | تبويب جدول الكميات والمقايسات التثمينية (SOV / BOQ) وهوامش الأرباح |
+| **Tab** | `ContractingGanttTab.tsx` | تبويب مخطط جانت وجدولة الأنشطة ومسار المسار الحرج (CPM WBS Gantt) |
+| **Tab** | `ContractingChangeOrdersTab.tsx` | تبويب الأوامر التغييرية وتعديل القيمة التعاقدية والتمديدات الزمنية |
+| **Tab** | `ContractingInvoicesTab.tsx` | تبويب مستخلصات الدفع التنفيذية ومتابعة المعتمد والمدفوع والختامي |
+| **Tab** | `ContractingSubcontractsTab.tsx` | تبويب عقود وأوامر تكليف مقاولي الباطن ومتابعة الالتزامات |
+| **Tab** | `ContractingMaterialsTab.tsx` | تبويب أذون صرف وتخصيص الخامات المباشرة من المخازن على بنود المقايسة |
+| **Tab** | `ContractingDailyLogsTab.tsx` | تبويب اليوميات الميدانية للعمالة والمعدات وتوثيق عوائق الموقع |
+| **Tab** | `ContractingRfiTab.tsx` | تبويب الاستفسارات الفنية (RFIs) واعتمادات المهندس الاستشاري |
+| **Modal** | `CreateProjectModal.tsx` | نافذة تأسيس مشروع وعقد وتوليد مركز التكلفة التحليلي |
+| **Modal** | `CreateBoqItemModal.tsx` | نافذة إضافة بند مقايسة وتقدير التكلفة والربحية |
+| **Modal** | `CreateChangeOrderModal.tsx` | نافذة إصدار أمر تغييري وتحديد الأثر المالي والزمني |
+| **Modal** | `CreateIpcInvoiceModal.tsx` | نافذة إعداد مستخلص جاري واحتساب التشوينات والاستقطاعات |
+| **Modal** | `PrintIpcCertificateModal.tsx` | نافذة طباعة شهادة المستخلص الرسمية المعتمدة (نموذج AIA G702/G703 القياسي A4) |
+| **Modal** | `CreateSubcontractModal.tsx` | نافذة إسناد وتوثيق عقد مقاولة باطن وربطه بدليل الموردين |
+| **Modal** | `CreateDailyLogModal.tsx` | نافذة توثيق اليومية الميدانية للعمالة والمعدات |
+| **Modal** | `CreateRfiModal.tsx` | نافذة إرسال طلب استفسار فني رسمي للاستشاري |
+| **Modal** | `AnswerRfiModal.tsx` | نافذة تسجيل رد واعتماد الاستشاري وإغلاق الاستفسار |
+| **Modal** | `CreateScheduleTaskModal.tsx` | نافذة جدولة مهمة جديدة في مخطط جانت وتحديد المسار الحرج وتاريخ البداية والنهاية |
+| **Modal** | `CreateMaterialRequisitionModal.tsx` | نافذة إصدار إذن صرف خامات مباشر وتخصيصها على بند مقايسة معتمد |
+| **Icons** | `AppIcons.tsx` | أيقونات مؤسسية معتمدة (`Building`, `FileCheck`) متوافقة مع Clean Enterprise |
+
+### التوصيل في النظام (System Wiring)
+
+| الملف | ما تم إنجازه |
+| :--- | :--- |
+| `registry.ts` | تسجيل `contractingRouteModule` في سجل التوجيه المركزي |
+| `access.ts` | إضافة أذونات `contracting` وتفرعاتها في `routePermissionMap` و `routeFeatureMap` |
+| `app-shell.tsx` | إضافة أيقونات السايدبار، مجموعة `contracting-group`، وبوابات الرؤية الشرطية |
+| `settings.schema.ts` | إضافة `contractingModuleEnabled: z.boolean().default(false)` |
+| `contracts.ts` | ربط إعداد المقاولات مع عقود النظام المحفوظة |
+| `modular-presets.ts` | تسجيل الموديول في مصفوفة الوحدات المؤسسية `SYSTEM_MODULES` |
+| `ModulesSettingsTab.tsx` | إضافة كارت التفعيل والمفاتيح في شاشة إعدادات الوحدات |
+| `session.service.ts` | تسجيل خاصية `contracting` في باقات `plan_ultimate` و `plan_omnichannel` |
+| `saas-admin.service.ts` | تسجيل الموديول في باقات المشتركين والساس |
+| `DeveloperActivationPanel.tsx` | دعم التفعيل والتعطيل في لوحة تحكم المطورين |
+
+### الميزات والقدرات المفعلة
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | الملفات الأساسية |
+| :--- | :---: | :---: | :--- |
+| **تأسيس المشاريع ومراكز التكلفة التحليلية التلقائية** | 🟢 | 100% | `CreateProjectModal.tsx`, `contracting.service.ts` — `dimension: 'project'` |
+| **جدول الكميات والمقايسة التثمينية (SOV / BOQ)** | 🟢 | 100% | `ContractingBoqTab.tsx`, `CreateBoqItemModal.tsx` |
+| **مخطط جانت وجدولة الأنشطة والمسار الحرج (Gantt CPM WBS)** | 🟢 | 100% | `ContractingGanttTab.tsx`, `CreateScheduleTaskModal.tsx` |
+| **إدارة الأوامر التغييرية والمطالبات (Change Orders)** | 🟢 | 100% | `ContractingChangeOrdersTab.tsx`, `CreateChangeOrderModal.tsx` |
+| **مستخلصات الدفع المعتمدة (AIA G702 / G703)** | 🟢 | 100% | `ContractingInvoicesTab.tsx`, `CreateIpcInvoiceModal.tsx` |
+| **احتساب تشوينات المواد بالموقع (Stored Materials)** | 🟢 | 100% | `CreateIpcInvoiceModal.tsx`, `contracting.service.ts` |
+| **الاستقطاع الآلي للدفعة المقدمة وحسن التنفيذ (Retentions)** | 🟢 | 100% | `contracting.service.ts`, `CreateIpcInvoiceModal.tsx` |
+| **أذون صرف وتخصيص الخامات المباشرة على بنود المقايسة** | 🟢 | 100% | `ContractingMaterialsTab.tsx`, `CreateMaterialRequisitionModal.tsx` |
+| **طباعة شهادة مستخلص رسمي (A4 AIA Sheet)** | 🟢 | 100% | `PrintIpcCertificateModal.tsx` |
+| **إسناد عقود مقاولي الباطن والالتزامات** | 🟢 | 100% | `ContractingSubcontractsTab.tsx`, `CreateSubcontractModal.tsx` |
+| **سجل اليوميات واليومية الميدانية (Site Logs)** | 🟢 | 100% | `ContractingDailyLogsTab.tsx`, `CreateDailyLogModal.tsx` |
+| **إدارة الاستفسارات والاعتمادات الفنية (RFI Engine)** | 🟢 | 100% | `ContractingRfiTab.tsx`, `CreateRfiModal.tsx`, `AnswerRfiModal.tsx` |
+| **الربط المحاسبي وقيود الاستحقاق التلقائية** | 🟢 | 100% | `contracting.service.ts` |
+| **عزل المستأجرين التام (Multi-Tenant Isolation)** | 🟢 | 100% | جميع الجداول والخدمات بـ `tenant_id` إلزامي |
+| **Feature Gating في السايدبار والإعدادات** | 🟢 | 100% | `app-shell.tsx`, `ModulesSettingsTab.tsx` |
+| **الامتثال لدستور النظام البصري (0 Emojis & Clean SaaS)** | 🟢 | 100% | خلو تام من الإيموجيز واستخدام `StandardDialog` و `AppIcons` |
+
+
+
 
 

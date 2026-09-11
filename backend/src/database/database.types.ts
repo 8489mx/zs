@@ -3261,6 +3261,211 @@ export interface MaritimeJobMilestoneTable {
   created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
+export interface ContractingProjectTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  name: string;
+  client_id: number | null;
+  client_name: string;
+  status: ColumnType<'planning' | 'active' | 'suspended' | 'completed' | 'handed_over', string | undefined, string | undefined>;
+  contract_value: ColumnType<number, number | string | undefined, number | string | undefined>;
+  revised_contract_value: ColumnType<number, number | string | undefined, number | string | undefined>;
+  down_payment_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  down_payment_recovered: ColumnType<number, number | string | undefined, number | string | undefined>;
+  retention_percent: ColumnType<number, number | string | undefined, number | string | undefined>;
+  retention_total_held: ColumnType<number, number | string | undefined, number | string | undefined>;
+  retention_released: ColumnType<number, number | string | undefined, number | string | undefined>;
+  start_date: string | null;
+  expected_end_date: string | null;
+  actual_end_date: string | null;
+  site_location_id: number | null;
+  cost_center_id: number | null;
+  project_manager: string | null;
+  location_address: string | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingBoqItemTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  item_code: string;
+  description: string;
+  category: string;
+  unit: string;
+  contract_qty: ColumnType<number, number | string | undefined, number | string | undefined>;
+  revised_qty: ColumnType<number, number | string | undefined, number | string | undefined>;
+  unit_price: ColumnType<number, number | string | undefined, number | string | undefined>;
+  total_price: ColumnType<number, number | string | undefined, number | string | undefined>;
+  estimated_unit_cost: ColumnType<number, number | string | undefined, number | string | undefined>;
+  executed_qty: ColumnType<number, number | string | undefined, number | string | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingChangeOrderTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  change_order_number: string;
+  title: string;
+  reason: string;
+  impact_type: 'cost_only' | 'time_only' | 'cost_and_time';
+  cost_impact: ColumnType<number, number | string | undefined, number | string | undefined>;
+  time_impact_days: number;
+  status: ColumnType<'draft' | 'pending_approval' | 'approved' | 'rejected', string | undefined, string | undefined>;
+  approved_by: string | null;
+  approved_at: Date | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingInvoiceTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  ipc_number: string;
+  ipc_type: ColumnType<'client' | 'subcontractor', string | undefined, string | undefined>;
+  subcontractor_id: number | null;
+  subcontractor_name: string;
+  sequence_order: number;
+  period_start: string | null;
+  period_end: string | null;
+  previous_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  current_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  stored_materials_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  cumulative_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  advance_recovery_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  retention_held_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  other_deductions: ColumnType<number, number | string | undefined, number | string | undefined>;
+  net_payable: ColumnType<number, number | string | undefined, number | string | undefined>;
+  status: ColumnType<'draft' | 'under_review' | 'approved' | 'paid', string | undefined, string | undefined>;
+  journal_entry_id: number | null;
+  approved_by: string | null;
+  approved_at: Date | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingInvoiceItemTable {
+  id: Generated<string>;
+  tenant_id: string;
+  invoice_id: string;
+  boq_item_id: string | null;
+  description: string;
+  unit: string;
+  unit_price: ColumnType<number, number | string | undefined, number | string | undefined>;
+  previous_qty: ColumnType<number, number | string | undefined, number | string | undefined>;
+  current_qty: ColumnType<number, number | string | undefined, number | string | undefined>;
+  stored_materials_qty: ColumnType<number, number | string | undefined, number | string | undefined>;
+  cumulative_qty: ColumnType<number, number | string | undefined, number | string | undefined>;
+  completion_percent: ColumnType<number, number | string | undefined, number | string | undefined>;
+  current_total: ColumnType<number, number | string | undefined, number | string | undefined>;
+  cumulative_total: ColumnType<number, number | string | undefined, number | string | undefined>;
+  notes: string | null;
+}
+
+export interface ContractingSubcontractTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  subcontractor_id: number;
+  contract_number: string;
+  scope_of_work: string;
+  total_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  retention_percent: ColumnType<number, number | string | undefined, number | string | undefined>;
+  start_date: string | null;
+  end_date: string | null;
+  status: ColumnType<'active' | 'completed' | 'terminated', string | undefined, string | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingSiteDailyLogTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  log_date: string;
+  weather_conditions: string | null;
+  labor_count: number;
+  subcontractor_labor_count: number;
+  equipment_on_site: string | null;
+  work_performed: string;
+  delays_or_obstacles: string | null;
+  materials_received: string | null;
+  logged_by: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingRfiTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  rfi_number: string;
+  subject: string;
+  question: string;
+  assigned_to: string | null;
+  status: ColumnType<'open' | 'pending_reply' | 'answered' | 'closed', string | undefined, string | undefined>;
+  answer: string | null;
+  answered_by: string | null;
+  answered_at: Date | null;
+  date_requested: string;
+  date_required: string | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingScheduleTaskTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  task_code: string;
+  task_name: string;
+  wbs_code: string;
+  start_date: string;
+  end_date: string;
+  duration_days: number;
+  progress_percent: ColumnType<number, number | string | undefined, number | string | undefined>;
+  predecessor_id: string | null;
+  is_critical_path: boolean;
+  status: ColumnType<'not_started' | 'in_progress' | 'completed' | 'delayed', string | undefined, string | undefined>;
+  boq_item_id: string | null;
+  assigned_team: string | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingMaterialRequisitionTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  requisition_number: string;
+  boq_item_id: string | null;
+  warehouse_id: number | null;
+  product_id: number | null;
+  item_name: string;
+  unit: string;
+  quantity: ColumnType<number, number | string | undefined, number | string | undefined>;
+  unit_cost: ColumnType<number, number | string | undefined, number | string | undefined>;
+  total_cost: ColumnType<number, number | string | undefined, number | string | undefined>;
+  issue_date: string;
+  recipient_name: string | null;
+  status: ColumnType<'issued' | 'draft' | 'approved', string | undefined, string | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface Database {
   tamper_audit_logs: TamperAuditLogTable;
   approval_rules: ApprovalRuleTable;
@@ -3279,7 +3484,18 @@ export interface Database {
   maritime_jobs: MaritimeJobTable;
   maritime_containers: MaritimeContainerTable;
   maritime_job_milestones: MaritimeJobMilestoneTable;
+  contracting_projects: ContractingProjectTable;
+  contracting_boq_items: ContractingBoqItemTable;
+  contracting_change_orders: ContractingChangeOrderTable;
+  contracting_invoices: ContractingInvoiceTable;
+  contracting_invoice_items: ContractingInvoiceItemTable;
+  contracting_subcontracts: ContractingSubcontractTable;
+  contracting_site_daily_logs: ContractingSiteDailyLogTable;
+  contracting_rfis: ContractingRfiTable;
+  contracting_schedule_tasks: ContractingScheduleTaskTable;
+  contracting_material_requisitions: ContractingMaterialRequisitionTable;
 }
+
 
 
 

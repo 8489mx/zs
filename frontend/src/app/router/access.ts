@@ -198,6 +198,15 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   'maritime-jobs': null,
   'maritime-containers': null,
   'maritime-lines': null,
+  contracting: null,
+  '/contracting': null,
+  'contracting-projects': null,
+  'contracting-boq': null,
+  'contracting-change-orders': null,
+  'contracting-invoices': null,
+  'contracting-subcontracts': null,
+  'contracting-daily-logs': null,
+  'contracting-rfis': null,
   qz: null,
   '/qz': null,
 };
@@ -436,6 +445,17 @@ export const routeFeatureMap: Record<string, string | null> = {
   'maritime-jobs': 'maritime_freight',
   'maritime-containers': 'maritime_freight',
   'maritime-lines': 'maritime_freight',
+
+  // Contracting & Construction
+  contracting: 'contracting',
+  '/contracting': 'contracting',
+  'contracting-projects': 'contracting',
+  'contracting-boq': 'contracting',
+  'contracting-change-orders': 'contracting',
+  'contracting-invoices': 'contracting',
+  'contracting-subcontracts': 'contracting',
+  'contracting-daily-logs': 'contracting',
+  'contracting-rfis': 'contracting',
 };
 
 function normalizeAccessKey(value: string) {

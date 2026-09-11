@@ -164,14 +164,14 @@ export class SessionService {
         'purchases', 'inventory', 'reports', 'services',
         'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
         'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-        'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+        'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
       ],
       plan_omnichannel: [
         'sales', 'catalog', 'sessions', 'cashDrawer',
         'purchases', 'inventory', 'reports', 'services',
         'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
         'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-        'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+        'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
         'storefront',
       ],
     };

@@ -156,6 +156,14 @@ const iconPathMap: Record<string, string> = {
   'maritime-jobs': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
   'maritime-containers': 'M2 5h20v14H2V5zM6 5v14M10 5v14M14 5v14M18 5v14M2 12h20',
   'maritime-lines': 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  contracting: 'M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h6M9 13h6M9 17h6',
+  'contracting-projects': 'M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h6M9 13h6M9 17h6',
+  'contracting-boq': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
+  'contracting-change-orders': 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
+  'contracting-invoices': 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
+  'contracting-subcontracts': 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+  'contracting-daily-logs': 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+  'contracting-rfis': 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
 };
 
 function AppNavIcon({ itemKey }: { itemKey: string }) {
@@ -555,6 +563,9 @@ export function AppShell({ children }: PropsWithChildren) {
         // Maritime Freight gating:
         if (item.key?.startsWith('maritime-') && (settings?.maritimeFreightModuleEnabled !== true || !hasFeature('maritime_freight'))) return false;
 
+        // Contracting & Construction gating:
+        if (item.key?.startsWith('contracting-') && (settings?.contractingModuleEnabled !== true || !hasFeature('contracting'))) return false;
+
         return true;
       })
       .map((item) => ({ ...item, label: labelOverrides[item.key] || item.label }))
@@ -563,7 +574,7 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, tenant?.features, t, isEtaActive, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.hrModuleEnabled, settings?.enableEnterpriseFeatures, settings?.restaurantModuleEnabled, settings?.maritimeFreightModuleEnabled]);
+  }, [user, tenant?.features, t, isEtaActive, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.hrModuleEnabled, settings?.enableEnterpriseFeatures, settings?.restaurantModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.contractingModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => {
@@ -584,6 +595,7 @@ export function AppShell({ children }: PropsWithChildren) {
     const hasAccounting = isPlatformAdminUser || Boolean(tenant?.features?.includes('accounting'));
     const hasRestaurant = isPlatformAdminUser || Boolean(tenant?.features?.includes('restaurant'));
     const hasMaritimeFreight = isPlatformAdminUser || Boolean(tenant?.features?.includes('maritime_freight'));
+    const hasContracting = isPlatformAdminUser || Boolean(tenant?.features?.includes('contracting'));
     return [
       { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['crm', 'sales-orders', 'price-lists', 'quotations', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher'], iconKey: 'sales' },
       { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-orders', 'purchases-rfqs', 'purchases-reorder', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
@@ -605,6 +617,12 @@ export function AppShell({ children }: PropsWithChildren) {
         itemKeys: ['maritime-rfqs', 'maritime-matrix', 'maritime-quotations', 'maritime-jobs', 'maritime-containers', 'maritime-lines'],
         iconKey: 'ship',
       }] : []),
+      ...(settings?.contractingModuleEnabled && hasContracting ? [{
+        key: 'contracting-group',
+        label: 'المقاولات والمشاريع الإنشائية',
+        itemKeys: ['contracting-projects', 'contracting-boq', 'contracting-change-orders', 'contracting-invoices', 'contracting-subcontracts', 'contracting-daily-logs', 'contracting-rfis'],
+        iconKey: 'contracting',
+      }] : []),
       { key: 'reports-group', label: t('sidebar.reports-group', 'التقارير والتحليلات'), itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'], iconKey: 'reports' },
       ...(isPlatformAdminUser ? [{
         key: 'saas-group',
@@ -614,7 +632,7 @@ export function AppShell({ children }: PropsWithChildren) {
       }] : []),
       { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'hr-settlements', 'audit', 'settings'], iconKey: 'admin' },
     ];
-  }, [t, settings?.maintenanceProfile, settings?.restaurantModuleEnabled, settings?.enableEnterpriseFeatures, settings?.maritimeFreightModuleEnabled, tenant?.features, user]);
+  }, [t, settings?.maintenanceProfile, settings?.restaurantModuleEnabled, settings?.enableEnterpriseFeatures, settings?.maritimeFreightModuleEnabled, settings?.contractingModuleEnabled, tenant?.features, user]);
 
   const visiblePrimaryNavigationItems = useMemo(() => primaryNavigationKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)), [navigationMap, primaryNavigationKeys]);
   const activeSidebarGroupKey = useMemo(() => sidebarGroups.find((group) => group.itemKeys.some((itemKey) => {

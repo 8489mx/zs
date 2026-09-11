@@ -28,6 +28,7 @@ import { tradeInRouteModule } from '@/features/tradein/routes';
 import { pharmacyRouteModule } from '@/features/pharmacy/routes';
 import { crmRouteModule } from '@/features/crm/routes';
 import { approvalsRouteModule } from '@/features/approvals/routes';
+import { contractingRouteModule } from '@/features/contracting/routes';
 
 export const featureRouteModules: FeatureRouteModule[] = [
   dashboardRouteModule,
@@ -59,6 +60,7 @@ export const featureRouteModules: FeatureRouteModule[] = [
   deliveryRepsRoutes,
   importSalesRouteModule,
   maritimeFreightRouteModule,
+  contractingRouteModule,
 ];
 
 export const appRoutes = featureRouteModules.flatMap((module) => module.routes);

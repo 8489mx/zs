@@ -190,6 +190,14 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     requiredPlan: 'plan_ultimate',
   },
   {
+    key: 'contractingModuleEnabled',
+    title: 'المقاولات وإدارة المشاريع الإنشائية',
+    category: 'specialized',
+    categoryLabel: 'الخدمات والتخصصات التشغيلية',
+    shortDesc: 'إدارة مشاريع المقاولات، جداول الكميات (BOQ/SOV)، الأوامر التغييرية، مستخلصات الدفع (AIA G702/G703)، ومقاولي الباطن واليوميات.',
+    requiredPlan: 'plan_ultimate',
+  },
+  {
     key: 'hrModuleEnabled',
     title: 'الموارد البشرية والرواتب (HR)',
     category: 'specialized',
@@ -480,6 +488,7 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
     badge: 'خدمات بلا مخزون',
     recommendedModules: [
       'servicesModuleEnabled',
+      'contractingModuleEnabled',
       'purchasesModuleEnabled',
       'enableEnterpriseFeatures',
       'taxDeclarationModuleEnabled',

@@ -1000,28 +1000,28 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
         ],
         ultimate: [
           'sales', 'catalog', 'sessions', 'cashDrawer',
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
         ],
         ULTIMATE: [
           'sales', 'catalog', 'sessions', 'cashDrawer',
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
         ],
         '3': [
           'sales', 'catalog', 'sessions', 'cashDrawer',
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
         ],
 
         plan_omnichannel: [
@@ -1029,7 +1029,7 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
           'storefront',
         ],
         omnichannel: [
@@ -1037,7 +1037,7 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
           'storefront',
         ],
         OMNICHANNEL: [
@@ -1045,7 +1045,7 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
           'storefront',
         ],
         '4': [
@@ -1053,7 +1053,7 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
           'storefront',
         ],
       };
@@ -1097,6 +1097,7 @@ export class SaasAdminService {
         manufacturing: ['manufacturingModuleEnabled'],
         import: ['importModuleEnabled'],
         maritime_freight: ['maritimeFreightModuleEnabled'],
+        contracting: ['contractingModuleEnabled'],
         pharmacy: ['enablePharmacyModule'],
         storefront: ['storefrontModuleEnabled'],
       };

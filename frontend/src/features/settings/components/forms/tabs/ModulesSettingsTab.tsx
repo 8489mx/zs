@@ -45,10 +45,18 @@ function ComboPackageIcon({ size = 20 }: { size?: number }) {
 function CargoShipIcon({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+      <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.5 0 2.5 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
       <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.26.94 4.3 2.45 5.82" />
       <path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" />
       <path d="M12 2v4" />
+    </svg>
+  );
+}
+
+function ContractingBuildingIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h6M9 13h6M9 17h6" />
     </svg>
   );
 }
@@ -326,6 +334,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const hasHrFeature = useHasFeature('hr') || isSuperAdmin;
   const hasClothingFeature = useHasFeature('clothing') || isSuperAdmin;
   const hasMaritimeFreightFeature = useHasFeature('maritime_freight') || isSuperAdmin;
+  const hasContractingFeature = useHasFeature('contracting') || isSuperAdmin;
   const hasServicesFeature = hasPurchasesFeature || hasInventoryFeature;
   const hasPosMetaFeature = hasRestaurantFeature;
 
@@ -353,6 +362,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const isTaxDeclarationActive = hasTaxDeclarationFeature && Boolean(form.watch('taxDeclarationModuleEnabled'));
   const isDeliveryFleetActive = hasDeliveryFleetFeature && Boolean(form.watch('deliveryFleetModuleEnabled'));
   const isMaritimeFreightActive = hasMaritimeFreightFeature && Boolean(form.watch('maritimeFreightModuleEnabled'));
+  const isContractingActive = hasContractingFeature && Boolean(form.watch('contractingModuleEnabled'));
 
   const currentProfileKey = form.watch('maintenanceProfile') || 'mobile';
   const currentProfile = getMaintenanceProfile(currentProfileKey);
@@ -395,6 +405,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
       taxDeclarationModuleEnabled: hasTaxDeclarationFeature,
       deliveryFleetModuleEnabled: hasDeliveryFleetFeature,
       maritimeFreightModuleEnabled: hasMaritimeFreightFeature,
+      contractingModuleEnabled: hasContractingFeature,
     };
 
     for (const [key, value] of Object.entries(config.selectedModules)) {
@@ -748,6 +759,39 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               </div>
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('maritimeFreightModuleEnabled')} checked={Boolean(isMaritimeFreightActive)} disabled={disabled || !hasMaritimeFreightFeature} />
+          </label>
+
+          {/* موديول المقاولات والمشاريع الإنشائية */}
+          <label 
+            style={getCardStyle(Boolean(isContractingActive), hasContractingFeature)}
+            onClick={(e) => {
+              if (!hasContractingFeature) {
+                e.preventDefault();
+                handleLockedCardClick(
+                  'موديول المقاولات والمشاريع الإنشائية',
+                  'الباقة المتكاملة (Ultimate ERP)',
+                  'يتيح لك هذا الموديول إدارة مشاريع المقاولات، جداول الكميات SOV/BOQ، الأوامر التغييرية، مستخلصات الدفع الدورية AIA G702/G703، ومقاولي الباطن واليوميات الميدانية.'
+                );
+              }
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isContractingActive))}>
+                <ContractingBuildingIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المقاولات والمشاريع الإنشائية</strong>
+                  {!hasContractingFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> الباقة المتكاملة
+                    </span>
+                  )}
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إدارة المشاريع، جداول الكميات، الأوامر التغييرية، المستخلصات الجارية، ومقاولو الباطن</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('contractingModuleEnabled')} checked={Boolean(isContractingActive)} disabled={disabled || !hasContractingFeature} />
           </label>
 
           {/* موديول المطاعم والكافيهات */}

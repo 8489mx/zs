@@ -58,6 +58,7 @@ export interface AppSettings {
   manufacturingModuleEnabled?: boolean;
   importModuleEnabled?: boolean;
   maritimeFreightModuleEnabled?: boolean;
+  contractingModuleEnabled?: boolean;
   comboModuleEnabled?: boolean;
   restaurantModuleEnabled?: boolean;
   posShowCartMeta?: boolean;
