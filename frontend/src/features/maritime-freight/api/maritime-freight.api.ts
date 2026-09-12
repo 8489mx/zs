@@ -130,10 +130,31 @@ export interface MaritimeRfq {
   customer_email?: string | null;
   inquiry_id?: string | null;
   notes: string | null;
+  urgency_level?: 'standard' | 'urgent';
+  cut_off_deadline?: string | null;
+  auto_awarded?: boolean;
+  target_rate_max?: number | null;
   created_at: string;
   bidsCount?: number;
   bestBid?: MaritimeRfqBid | null;
   bids?: MaritimeRfqBid[];
+}
+
+export interface MaritimePipelineConfig {
+  automationMode: 'manual' | 'hybrid' | 'full_autonomous';
+  defaultMarginType: 'fixed' | 'percentage';
+  defaultMarginValue: number;
+  marginFloor: number;
+  defaultExchangeRate: number;
+  rfqCutOffHoursStandard: number;
+  rfqCutOffHoursUrgent: number;
+  earlyAwardingEnabled: boolean;
+  earlyAwardingMinFreeDays: number;
+  requireManualRfqDispatch: boolean;
+  requireManualAwardAndMargin: boolean;
+  requireManualQuoteDispatch: boolean;
+  autoSendWhatsAppQuote: boolean;
+  autoSendEmailQuote: boolean;
 }
 
 export interface MaritimeQuotation {
@@ -430,6 +451,20 @@ export const maritimeApi = {
     http<{ scanned: number; imported: number; summary: string; error?: string }>('/api/maritime-freight/mail-settings/sync-bids', {
       method: 'POST',
     }),
+
+  // Automation Pipeline & Checkpoints Engine
+  getPipelineSettings: () =>
+    http<MaritimePipelineConfig>('/api/maritime-freight/pipeline-settings'),
+  savePipelineSettings: (data: Partial<MaritimePipelineConfig>) =>
+    http<MaritimePipelineConfig>('/api/maritime-freight/pipeline-settings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  triggerPipeline: () =>
+    http<{ processedRfqs: number; awardedCount: number; quotesGenerated: number; details: string[] }>(
+      '/api/maritime-freight/pipeline/trigger',
+      { method: 'POST' },
+    ),
 
   // Financial Ledger & Accounting Posting
   issueJobSalesInvoice: (id: string, payload?: { amount?: number; notes?: string }) =>

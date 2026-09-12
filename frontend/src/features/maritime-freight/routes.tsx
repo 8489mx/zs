@@ -25,7 +25,7 @@ export const maritimeFreightRouteModule: FeatureRouteModule = {
   ],
   navigation: [
     { key: 'maritime-inquiries', label: 'استفسارات شحن العملاء', to: '/maritime/inquiries' },
-    { key: 'maritime-rfqs', label: 'استقصاء أسعار الخطوط (RFQ)', to: '/maritime/rfqs' },
+    { key: 'maritime-rfqs', label: 'عروض تسعير الخطوط (RFQ)', to: '/maritime/rfqs' },
     { key: 'maritime-matrix', label: 'مقارنة عروض الخطوط', to: '/maritime/matrix' },
     { key: 'maritime-quotations', label: 'عروض أسعار العملاء', to: '/maritime/quotations' },
     { key: 'maritime-jobs', label: 'أوامر تشغيل الشحنات', to: '/maritime/jobs' },

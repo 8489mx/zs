@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { maritimeApi, ShippingLine } from '../api/maritime-freight.api';
 
 interface PartnerFormModalProps {
@@ -14,11 +15,11 @@ interface PartnerFormModalProps {
 
 const TRADE_LANE_OPTIONS = [
   { id: 'far_east', label: 'الصين والشرق الأقصى (Far East & China)' },
-  { id: 'europe_med', label: 'أوروبا والبحر المتوسط (Europe & Mediterranean)' },
-  { id: 'arabian_gulf', label: 'الخليج العربي والبحر الأحمر (Arabian Gulf & Red Sea)' },
-  { id: 'americas', label: 'الأمريكتين (North & South America)' },
-  { id: 'africa', label: 'أفريقيا (Sub-Saharan Africa)' },
-  { id: 'indian_sub', label: 'شبه القارة الهندية (Indian Subcontinent)' },
+  { id: 'europe_med', label: 'أوروبا والمتوسط (Europe & Med)' },
+  { id: 'arabian_gulf', label: 'الخليج والبحر الأحمر (Gulf & Red Sea)' },
+  { id: 'indian_sub', label: 'شبه القارة الهندية (Indian Sub)' },
+  { id: 'americas', label: 'الأمريكتين (Americas)' },
+  { id: 'africa', label: 'أفريقيا (Africa)' },
 ];
 
 const POPULAR_COUNTRIES = [
@@ -31,6 +32,15 @@ const POPULAR_COUNTRIES = [
   { code: 'IT', name: 'إيطاليا' },
   { code: 'IN', name: 'الهند' },
   { code: 'US', name: 'الولايات المتحدة الأمريكية' },
+  { code: 'ES', name: 'إسبانيا' },
+  { code: 'FR', name: 'فرنسا' },
+  { code: 'GB', name: 'المملكة المتحدة' },
+  { code: 'JP', name: 'اليابان' },
+  { code: 'KR', name: 'كوريا الجنوبية' },
+  { code: 'SG', name: 'سنغافورة' },
+  { code: 'MY', name: 'ماليزيا' },
+  { code: 'VN', name: 'فيتنام' },
+  { code: 'OTHER', name: 'دولة أخرى' },
 ];
 
 export function PartnerFormModal({
@@ -185,7 +195,8 @@ export function PartnerFormModal({
           : 'إضافة وكيل شحن خارجي شريك (New Overseas Partner Agent)'
       }
       subtitle="إدارة جهات الاتصال ومكاتب تسعير الشحنات لربطها بالإرسال الآلي لطلبات التسعير"
-      width="min(800px, 95vw)"
+      width="min(980px, 96vw)"
+      minHeight="auto"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
@@ -195,16 +206,53 @@ export function PartnerFormModal({
         />
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+      <style>{`
+        .partner-compact-modal .field {
+          margin-bottom: 0 !important;
+          gap: 2px !important;
+        }
+        .partner-compact-modal .field span {
+          font-size: 0.72rem !important;
+          font-weight: 600 !important;
+          color: #475569 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }
+        .partner-compact-modal input {
+          height: 29px !important;
+          font-size: 0.78rem !important;
+          border-radius: 6px !important;
+          padding: 0 8px !important;
+          border: 1px solid #cbd5e1 !important;
+          background: #ffffff !important;
+          box-sizing: border-box !important;
+          outline: none !important;
+        }
+        .partner-compact-modal input:focus {
+          border-color: #170e5e !important;
+          box-shadow: 0 0 0 1px #170e5e !important;
+        }
+        .partner-compact-modal .custom-combobox,
+        .partner-compact-modal .custom-select-trigger {
+          min-height: 29px !important;
+          height: 29px !important;
+          font-size: 0.78rem !important;
+          padding: 0 8px !important;
+          border-radius: 6px !important;
+        }
+      `}</style>
+
+      <div className="partner-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} dir="rtl">
         {errorMsg && (
           <div
             style={{
-              padding: '10px 14px',
-              borderRadius: '8px',
+              padding: '6px 12px',
+              borderRadius: '6px',
               background: '#fef2f2',
               color: '#b91c1c',
               border: '1px solid #fecaca',
-              fontSize: '0.82rem',
+              fontSize: '0.78rem',
               fontWeight: 600,
             }}
           >
@@ -212,9 +260,9 @@ export function PartnerFormModal({
           </div>
         )}
 
-        {/* نوع الشريك */}
+        {/* 1. نوع الشريك - تبديل مدمج ناعم */}
         {!isEditing && (
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '6px', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
             <button
               type="button"
               onClick={() => {
@@ -224,18 +272,23 @@ export function PartnerFormModal({
               }}
               style={{
                 flex: 1,
-                padding: '10px',
-                borderRadius: '8px',
-                border: carrierType === 'shipping_line' ? '2px solid #170e5e' : '1px solid #e2e8f0',
-                background: carrierType === 'shipping_line' ? '#eef2ff' : '#ffffff',
-                color: carrierType === 'shipping_line' ? '#170e5e' : '#475569',
+                height: '28px',
+                borderRadius: '6px',
+                border: 'none',
+                background: carrierType === 'shipping_line' ? '#170e5e' : 'transparent',
+                color: carrierType === 'shipping_line' ? '#ffffff' : '#475569',
                 fontWeight: 700,
-                fontSize: '0.84rem',
+                fontSize: '0.78rem',
                 cursor: 'pointer',
-                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease',
               }}
             >
-              خط ملاحي / توكيل خط (Shipping Line)
+              <AppIcons.Ship size={14} />
+              <span>خط ملاحي / توكيل معتمد (Shipping Line)</span>
             </button>
             <button
               type="button"
@@ -246,32 +299,36 @@ export function PartnerFormModal({
               }}
               style={{
                 flex: 1,
-                padding: '10px',
-                borderRadius: '8px',
-                border: carrierType === 'overseas_agent' ? '2px solid #170e5e' : '1px solid #e2e8f0',
-                background: carrierType === 'overseas_agent' ? '#eef2ff' : '#ffffff',
-                color: carrierType === 'overseas_agent' ? '#170e5e' : '#475569',
+                height: '28px',
+                borderRadius: '6px',
+                border: 'none',
+                background: carrierType === 'overseas_agent' ? '#170e5e' : 'transparent',
+                color: carrierType === 'overseas_agent' ? '#ffffff' : '#475569',
                 fontWeight: 700,
-                fontSize: '0.84rem',
+                fontSize: '0.78rem',
                 cursor: 'pointer',
-                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease',
               }}
             >
-              وكيل شحن خارجي بالخارج (Overseas Forwarding Agent)
+              <AppIcons.Users size={14} />
+              <span>وكيل شحن خارجي بالخارج (Overseas Forwarding Agent)</span>
             </button>
           </div>
         )}
 
-        {/* البيانات الأساسية */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-          <Field label={carrierType === 'shipping_line' ? 'كود الخط الملاحي (SCAC) *' : 'كود الوكيل الفريد *'}>
+        {/* 2. الصف الأول: الهوية الأساسية ومسؤول الاتصال */}
+        <div style={{ display: 'grid', gridTemplateColumns: '130px 1.4fr 1.4fr 1.2fr', gap: '8px' }}>
+          <Field label={carrierType === 'shipping_line' ? 'كود الخط (SCAC) *' : 'كود الوكيل *'}>
             <input
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               disabled={isEditing}
-              placeholder={carrierType === 'shipping_line' ? 'مثال: MAEU, MSKU, COSU' : 'مثال: AGT-SHA01'}
-              style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
+              placeholder={carrierType === 'shipping_line' ? 'مثال: MAEU' : 'مثال: AGT-SHA01'}
             />
           </Field>
 
@@ -281,7 +338,6 @@ export function PartnerFormModal({
               value={nameAr}
               onChange={(e) => setNameAr(e.target.value)}
               placeholder={carrierType === 'shipping_line' ? 'ميرسك لاين - توكيل مصر' : 'شنغهاي العالمية للوجستيات'}
-              style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
             />
           </Field>
 
@@ -291,13 +347,21 @@ export function PartnerFormModal({
               value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
               placeholder="Maersk Line Egypt / Shanghai Logistics"
-              style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
+            />
+          </Field>
+
+          <Field label="مسؤول الاتصال (Contact Person)">
+            <input
+              type="text"
+              value={contactPerson}
+              onChange={(e) => setContactPerson(e.target.value)}
+              placeholder="David Wang / م. أحمد سالم"
             />
           </Field>
         </div>
 
-        {/* الموقع الجغرافي والدولة */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+        {/* 3. الصف الثاني: الدولة والموقع والخدمات والموانئ */}
+        <div style={{ display: 'grid', gridTemplateColumns: '130px 120px 1.1fr 1.3fr 1.4fr', gap: '8px' }}>
           <Field label="الدولة (Country)">
             <CustomSelect
               value={countryCode}
@@ -314,8 +378,7 @@ export function PartnerFormModal({
               type="text"
               value={countryName}
               onChange={(e) => setCountryName(e.target.value)}
-              placeholder="الصين، تركيا، ألمانيا..."
-              style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
+              placeholder="الصين، مصر..."
             />
           </Field>
 
@@ -324,67 +387,72 @@ export function PartnerFormModal({
               type="text"
               value={cityName}
               onChange={(e) => setCityName(e.target.value)}
-              placeholder="شنغهاي، نينغبو، إسطنبول، هامبورغ، الإسكندرية..."
-              style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
+              placeholder="شنغهاي، إسطنبول، الإسكندرية..."
             />
           </Field>
 
-          <Field label="اسم مسؤول الاتصال (Contact Person)">
+          <Field label="الخدمات المتاحة (Services)">
             <input
               type="text"
-              value={contactPerson}
-              onChange={(e) => setContactPerson(e.target.value)}
-              placeholder="David Wang / م. أحمد سالم"
-              style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
+              value={servicesOffered}
+              onChange={(e) => setServicesOffered(e.target.value)}
+              placeholder="FCL, LCL, Door, Clearance, Inland"
+            />
+          </Field>
+
+          <Field label="الموانئ المدعومة (UN/LOCODEs)">
+            <input
+              type="text"
+              value={supportedPorts}
+              onChange={(e) => setSupportedPorts(e.target.value)}
+              placeholder="CNSHA, CNNGB, EGALY, EGPSD"
             />
           </Field>
         </div>
 
-        {/* بيانات البريد والتواصل */}
-        <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#170e5e', marginBottom: '10px' }}>
-            عناوين البريد الإلكتروني للربط مع الأتمتة (Email Desks)
+        {/* 4. بطاقة التواصل والبريد الإلكتروني للربط مع الأتمتة */}
+        <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.76rem', color: '#170e5e', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <AppIcons.Mail size={13} />
+            <span>عناوين البريد الإلكتروني للربط مع الأتمتة وأرقام التواصل (Email Desks & Communication)</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '8px' }}>
             <Field label="إيميل طلبات التسعير (RFQ Rates Email) *">
               <input
                 type="email"
                 value={rfqEmail}
                 onChange={(e) => setRfqEmail(e.target.value)}
                 placeholder="rates@carrier.com أو quotes@agent.cn"
-                style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
               />
             </Field>
 
-            <Field label="إيميل الحجوزات (Booking / Operations Email)">
+            <Field label="إيميل الحجوزات والعمليات (Booking / Operations Email)">
               <input
                 type="email"
                 value={bookingEmail}
                 onChange={(e) => setBookingEmail(e.target.value)}
                 placeholder="booking@carrier.com"
-                style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
               />
             </Field>
 
-            <Field label="البريد العام / الدعم الفني">
+            <Field label="البريد العام / الدعم الفني (General Support)">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="info@partner.com"
-                style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
               />
             </Field>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginTop: '10px' }}>
-            <Field label="رقم الهاتف المباشر">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '6px' }}>
+            <Field label="رقم الهاتف المباشر (Direct Phone)">
               <input
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+86 21 6888 1234"
-                style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
               />
             </Field>
 
@@ -394,7 +462,6 @@ export function PartnerFormModal({
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
                 placeholder="+86 138 0000 0000"
-                style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
               />
             </Field>
 
@@ -404,18 +471,17 @@ export function PartnerFormModal({
                 value={wechat}
                 onChange={(e) => setWechat(e.target.value)}
                 placeholder="wx_agent_china"
-                style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
               />
             </Field>
           </div>
         </div>
 
-        {/* الممرات الملاحية المدعومة (Trade Lanes) */}
+        {/* 5. الممرات الملاحية المغطاة (3 أعمدة × صفين) */}
         <div>
-          <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#170e5e', marginBottom: '8px' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.76rem', color: '#170e5e', marginBottom: '5px' }}>
             الممرات الملاحية وقطاعات التسعير المغطاة (Trade Lanes)
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
             {TRADE_LANE_OPTIONS.map((lane) => {
               const checked = selectedTradeLanes.includes(lane.id);
               return (
@@ -424,62 +490,44 @@ export function PartnerFormModal({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
+                    gap: '6px',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
                     border: checked ? '1px solid #170e5e' : '1px solid #e2e8f0',
                     background: checked ? '#eef2ff' : '#ffffff',
                     cursor: 'pointer',
-                    fontSize: '0.8rem',
+                    fontSize: '0.74rem',
                     fontWeight: checked ? 700 : 500,
                     color: checked ? '#170e5e' : '#334155',
+                    userSelect: 'none',
+                    boxSizing: 'border-box',
+                    height: '26px',
                   }}
                 >
                   <input
                     type="checkbox"
                     checked={checked}
                     onChange={() => handleToggleTradeLane(lane.id)}
-                    style={{ accentColor: '#170e5e' }}
+                    style={{ accentColor: '#170e5e', cursor: 'pointer', margin: 0 }}
                   />
-                  <span>{lane.label}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lane.label}</span>
                 </label>
               );
             })}
           </div>
         </div>
 
-        {/* الخدمات المدعومة والملاحظات */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-          <Field label="الخدمات اللوجستية المتاحة (Services)">
+        {/* 6. ملاحظات وشروط خاصة */}
+        <div>
+          <Field label="شروط واتفاقيات خاصة أو ملاحظات (Special Terms / Notes)">
             <input
               type="text"
-              value={servicesOffered}
-              onChange={(e) => setServicesOffered(e.target.value)}
-              placeholder="FCL, LCL, Door Delivery, Customs Clearance, Inland Trucking"
-              style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
-            />
-          </Field>
-
-          <Field label="الموانئ الرئيسية المدعومة (UN/LOCODEs)">
-            <input
-              type="text"
-              value={supportedPorts}
-              onChange={(e) => setSupportedPorts(e.target.value)}
-              placeholder="CNSHA, CNNGB, CNING, EGALY, EGPSD"
-              style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.84rem' }}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="مواعيد دوام مكتب الصين، شروط سداد النولون، اتفاقيات أسعار خاصة..."
             />
           </Field>
         </div>
-
-        <Field label="ملاحظات وشروط خاصة">
-          <textarea
-            rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="مواعيد دوام مكتب الصين، شروط سداد النولون، اتفاقيات أسعار خاصة..."
-            style={{ width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '8px 10px', fontSize: '0.84rem' }}
-          />
-        </Field>
       </div>
     </StandardDialog>
   );

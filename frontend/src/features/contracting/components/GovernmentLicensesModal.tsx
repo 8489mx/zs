@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { contractingApi } from '../api/contracting.api';
 import { ContractingGovernmentLicense, LicenseType } from '../contracting.types';
 
@@ -19,6 +20,11 @@ const LICENSE_TYPE_LABELS: Record<LicenseType, string> = {
   environmental: 'موافقة بيئية',
   other: 'أخرى',
 };
+
+const LICENSE_TYPE_OPTIONS = (Object.entries(LICENSE_TYPE_LABELS) as [LicenseType, string][]).map(([k, v]) => ({
+  value: k,
+  label: v,
+}));
 
 const STATUS_COLORS: Record<string, { bg: string; color: string; border: string; label: string }> = {
   active:        { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0', label: 'ساري' },
@@ -76,85 +82,127 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
   };
 
   const expiring = licenses.filter(l => l.status === 'expiring_soon' || l.status === 'expired');
-  const inp: React.CSSProperties = { width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: 'var(--font-body)', boxSizing: 'border-box' };
-  const lbl: React.CSSProperties = { fontSize: 'var(--font-subtitle)', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' };
+  const inp: React.CSSProperties = { width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', boxSizing: 'border-box' };
+  const lbl: React.CSSProperties = { fontSize: '0.74rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' };
 
   return (
     <DialogShell open={open} onClose={onClose} size="lg">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }} dir="rtl">
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '16px 20px 14px', borderBottom: '1px solid #e2e8f0' }}>
           <div>
-            <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#170c5c', margin: 0 }}>تراخيص المشروع الحكومية</h2>
-            <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', margin: '4px 0 0' }}>{projectName || projectId}</p>
+            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#170c5c', margin: 0 }}>تراخيص وموافقات المشروع الحكومية</h2>
+            <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '4px 0 0' }}>{projectName || projectId}</p>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px' }}>
             <AppIcons.X size={18} />
           </button>
         </div>
         {expiring.length > 0 && (
-          <div style={{ margin: '16px 24px 0', padding: '10px 14px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AppIcons.AlertTriangle size={16} style={{ color: '#ea580c', flexShrink: 0 }} />
-            <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#9a3412' }}>
-              تحذير: {expiring.length} ترخيص ينتهي قريباً
+          <div style={{ margin: '12px 20px 0', padding: '8px 12px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AppIcons.AlertTriangle size={15} style={{ color: '#ea580c', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#9a3412' }}>
+              تحذير رقابي: {expiring.length} ترخيص قارب على الانتهاء أو منتهي الصلاحية
             </span>
           </div>
         )}
-        <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '60vh', overflowY: 'auto' }}>
+        <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '60vh', overflowY: 'auto' }}>
           {!showForm ? (
             <div>
               <button
                 type="button"
                 onClick={() => setShowForm(true)}
-                style={{ height: '34px', padding: '0 14px', borderRadius: '8px', fontWeight: 700, background: '#170e5e', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 'var(--font-body)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                style={{ height: '33px', padding: '0 14px', borderRadius: '6px', fontWeight: 700, background: '#170e5e', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '0.8125rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <AppIcons.Plus size={14} />
                 <span>إضافة ترخيص جديد</span>
               </button>
             </div>
           ) : (
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b' }}>إضافة ترخيص جديد</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={lbl}>نوع الترخيص</label>
-                  <select value={form.licenseType} onChange={e => setForm(p => ({ ...p, licenseType: e.target.value as LicenseType }))} style={{ ...inp, background: '#fff' }}>
-                    {(Object.entries(LICENSE_TYPE_LABELS) as [LicenseType, string][]).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* بطاقة 1: بيانات ونوع الترخيص والجهة */}
+              <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                  <AppIcons.Shield size={15} />
+                  <span>1. بيانات ونوع الترخيص والجهة المصدِرة</span>
                 </div>
-                <div>
-                  <label style={lbl}>رقم الترخيص</label>
-                  <input value={form.licenseNumber} onChange={e => setForm(p => ({ ...p, licenseNumber: e.target.value }))} placeholder="BLD-2025-00123" style={inp} />
-                </div>
-                <div>
-                  <label style={lbl}>الجهة المصدِرة</label>
-                  <input value={form.issuingAuthority} onChange={e => setForm(p => ({ ...p, issuingAuthority: e.target.value }))} placeholder="حي غرب" style={inp} />
-                </div>
-                <div>
-                  <label style={lbl}>تاريخ الإصدار</label>
-                  <input type="date" value={form.issueDate} onChange={e => setForm(p => ({ ...p, issueDate: e.target.value }))} style={inp} />
-                </div>
-                <div>
-                  <label style={lbl}>تاريخ الانتهاء *</label>
-                  <input type="date" value={form.expiryDate} onChange={e => setForm(p => ({ ...p, expiryDate: e.target.value }))} style={inp} />
-                </div>
-                <div>
-                  <label style={lbl}>قيمة الرسوم</label>
-                  <input type="number" value={form.feeAmount} onChange={e => setForm(p => ({ ...p, feeAmount: e.target.value }))} placeholder="0.00" style={inp} />
-                </div>
-                <div>
-                  <label style={lbl}>تنبيه قبل (يوم)</label>
-                  <input type="number" value={form.alertLeadDays} onChange={e => setForm(p => ({ ...p, alertLeadDays: e.target.value }))} style={inp} />
-                </div>
-                <div>
-                  <label style={lbl}>ملاحظات</label>
-                  <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="ملاحظات إضافية" style={inp} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                  <div>
+                    <label style={lbl}>نوع الترخيص *</label>
+                    <CustomSelect
+                      value={form.licenseType}
+                      options={LICENSE_TYPE_OPTIONS}
+                      onChange={(val) => setForm(p => ({ ...p, licenseType: val as LicenseType }))}
+                    />
+                  </div>
+                  <div>
+                    <label style={lbl}>رقم الترخيص / الوثيقة *</label>
+                    <input
+                      value={form.licenseNumber}
+                      onChange={e => setForm(p => ({ ...p, licenseNumber: e.target.value }))}
+                      placeholder="BLD-2025-00123"
+                      style={inp}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={lbl}>الجهة الحكومية المصدِرة *</label>
+                    <input
+                      value={form.issuingAuthority}
+                      onChange={e => setForm(p => ({ ...p, issuingAuthority: e.target.value }))}
+                      placeholder="حي غرب / الدفاع المدني"
+                      style={inp}
+                      required
+                    />
+                  </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <button onClick={() => setShowForm(false)} style={{ height: '34px', padding: '0 14px', borderRadius: '8px', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: 'var(--font-body)' }}>إلغاء</button>
-                <button onClick={handleSubmit} disabled={submitting || !form.licenseNumber || !form.issuingAuthority || !form.expiryDate}
-                  style={{ height: '34px', padding: '0 18px', borderRadius: '8px', fontWeight: 700, background: '#170e5e', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 'var(--font-body)', opacity: submitting ? 0.7 : 1 }}>
-                  {submitting ? 'جاري الحفظ...' : 'حفظ الترخيص'}
+
+              {/* بطاقة 2: الصلاحية والرسوم وفترة التنبيه */}
+              <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                  <AppIcons.Calendar size={15} />
+                  <span>2. الصلاحية والتواريخ والرسوم والتنبيهات</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                  <div>
+                    <label style={lbl}>تاريخ الإصدار</label>
+                    <input type="date" value={form.issueDate} onChange={e => setForm(p => ({ ...p, issueDate: e.target.value }))} style={inp} />
+                  </div>
+                  <div>
+                    <label style={lbl}>تاريخ الانتهاء *</label>
+                    <input type="date" value={form.expiryDate} onChange={e => setForm(p => ({ ...p, expiryDate: e.target.value }))} style={inp} required />
+                  </div>
+                  <div>
+                    <label style={lbl}>قيمة الرسوم</label>
+                    <input type="number" value={form.feeAmount} onChange={e => setForm(p => ({ ...p, feeAmount: e.target.value }))} placeholder="0.00" style={inp} />
+                  </div>
+                  <div>
+                    <label style={lbl}>تنبيه قبل (يوم)</label>
+                    <input type="number" value={form.alertLeadDays} onChange={e => setForm(p => ({ ...p, alertLeadDays: e.target.value }))} style={inp} />
+                  </div>
+                </div>
+                <div style={{ marginTop: '8px' }}>
+                  <label style={lbl}>ملاحظات واشتراطات الترخيص</label>
+                  <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="اشتراطات فنية، بنود خاصة، أو رقم الإيصال" style={inp} />
+                </div>
+              </div>
+
+              {/* أزرار الإجراءات */}
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  style={{ height: '33px', padding: '0 14px', borderRadius: '6px', fontWeight: 600, background: '#ffffff', color: '#475569', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '0.8125rem' }}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={submitting || !form.licenseNumber || !form.issuingAuthority || !form.expiryDate}
+                  style={{ height: '33px', padding: '0 18px', borderRadius: '6px', fontWeight: 700, background: '#170e5e', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '0.8125rem', opacity: submitting ? 0.7 : 1 }}
+                >
+                  {submitting ? 'جارٍ الحفظ...' : 'حفظ الترخيص'}
                 </button>
               </div>
             </div>

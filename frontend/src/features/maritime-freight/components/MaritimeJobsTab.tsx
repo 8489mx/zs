@@ -138,7 +138,7 @@ export function MaritimeJobsTab({
                         cursor: 'pointer',
                       }}
                     >
-                      استعراض الملف ➔
+                      استعراض الملف ←
                     </button>
                   </td>
                 </tr>

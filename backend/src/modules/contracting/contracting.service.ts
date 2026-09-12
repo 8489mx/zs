@@ -114,13 +114,17 @@ export class ContractingService {
     let projectCode = dto.code ? dto.code.trim().toUpperCase() : '';
     if (!projectCode) {
       const year = new Date().getFullYear();
-      const countRes = await this.db
+      let count = ((await this.db
         .selectFrom('contracting_projects')
         .select(sql<number>`count(*)::int`.as('count'))
         .where('tenant_id', '=', tenantId)
-        .executeTakeFirst();
-      const count = (countRes?.count || 0) + 1;
-      projectCode = `PRJ-${year}-${String(count).padStart(3, '0')}`;
+        .executeTakeFirst())?.count || 0) + 1;
+      let candidate = `PRJ-${year}-${String(count).padStart(3, '0')}`;
+      while (await this.db.selectFrom('contracting_projects').select('id').where('tenant_id', '=', tenantId).where('code', '=', candidate).executeTakeFirst()) {
+        count++;
+        candidate = `PRJ-${year}-${String(count).padStart(3, '0')}`;
+      }
+      projectCode = candidate;
     }
 
     // 2. Resolve or create Cost Center automatically (dimension = 'project')
@@ -128,21 +132,32 @@ export class ContractingService {
     if (!costCenterId) {
       try {
         const ccCode = `CC-${projectCode}`;
-        const ccName = `مشروع: ${dto.name.trim()}`;
-        const [insertedCc] = await (this.db as any)
-          .insertInto('cost_centers')
-          .values({
-            tenant_id: tenantId,
-            code: ccCode,
-            name: ccName,
-            dimension: 'project',
-            budget_amount: Number(dto.contractValue || 0),
-            is_active: true,
-          })
-          .returning(['id'])
-          .execute();
-        if (insertedCc) {
-          costCenterId = Number(insertedCc.id);
+        const existingCc = await (this.db as any)
+          .selectFrom('cost_centers')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('code', '=', ccCode)
+          .executeTakeFirst();
+
+        if (existingCc) {
+          costCenterId = Number(existingCc.id);
+        } else {
+          const ccName = `مشروع: ${dto.name.trim()}`;
+          const [insertedCc] = await (this.db as any)
+            .insertInto('cost_centers')
+            .values({
+              tenant_id: tenantId,
+              code: ccCode,
+              name: ccName,
+              dimension: 'project',
+              budget_amount: Number(dto.contractValue || 0),
+              is_active: true,
+            })
+            .returning(['id'])
+            .execute();
+          if (insertedCc) {
+            costCenterId = Number(insertedCc.id);
+          }
         }
       } catch (err) {
         this.logger.warn(`Could not auto-create cost center for project ${projectCode}: ${err}`);

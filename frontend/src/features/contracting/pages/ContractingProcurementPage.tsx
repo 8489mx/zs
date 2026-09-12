@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useContracting } from '../context/ContractingContext';
 import { contractingApi } from '../api/contracting.api';
+import { toast } from '@/shared/components/system-alert';
 import type { ContractingSubcontract, ContractingMaterialRequisition, ContractingBoqItem } from '../contracting.types';
 import { ContractingSubcontractsTab } from '../components/ContractingSubcontractsTab';
 import { ContractingMaterialsTab } from '../components/ContractingMaterialsTab';
@@ -17,7 +18,7 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
   const subParam = (searchParams.get('sub') as 'subcontracts' | 'materials') || initialSubTab || 'subcontracts';
   const [activeSubTab, setActiveSubTab] = useState<'subcontracts' | 'materials'>(subParam);
 
-  const { selectedProjectId, activeProject } = useContracting();
+  const { projects, selectedProjectId, setSelectedProjectId, activeProject, setIsCreateProjectOpen } = useContracting();
 
   useEffect(() => {
     if (initialSubTab && initialSubTab !== activeSubTab) {
@@ -43,24 +44,27 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
     setSearchParams(newParams, { replace: true });
   };
 
+  const effectiveProjectId = selectedProjectId || (projects.length > 0 ? projects[0].id : '');
+  const effectiveProject = activeProject || (projects.length > 0 ? (projects.find((p) => p.id === effectiveProjectId) || projects[0]) : null);
+
   const loadSubcontracts = useCallback(async () => {
-    if (!selectedProjectId) {
+    if (!effectiveProjectId) {
       setSubcontracts([]);
       return;
     }
     try {
       setSubcontractsLoading(true);
-      const data = await contractingApi.getSubcontracts(selectedProjectId);
+      const data = await contractingApi.getSubcontracts(effectiveProjectId);
       setSubcontracts(data);
     } catch (err) {
       console.error('Failed to load subcontracts:', err);
     } finally {
       setSubcontractsLoading(false);
     }
-  }, [selectedProjectId]);
+  }, [effectiveProjectId]);
 
   const loadMaterials = useCallback(async () => {
-    if (!selectedProjectId) {
+    if (!effectiveProjectId) {
       setRequisitions([]);
       setBoqItems([]);
       return;
@@ -68,8 +72,8 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
     try {
       setMaterialsLoading(true);
       const [reqData, boqData] = await Promise.all([
-        contractingApi.getMaterialRequisitions(selectedProjectId),
-        contractingApi.getBoqItems(selectedProjectId),
+        contractingApi.getMaterialRequisitions(effectiveProjectId),
+        contractingApi.getBoqItems(effectiveProjectId),
       ]);
       setRequisitions(reqData);
       setBoqItems(boqData);
@@ -78,7 +82,7 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
     } finally {
       setMaterialsLoading(false);
     }
-  }, [selectedProjectId]);
+  }, [effectiveProjectId]);
 
   useEffect(() => {
     if (activeSubTab === 'subcontracts') {
@@ -88,8 +92,32 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
     }
   }, [activeSubTab, loadSubcontracts, loadMaterials]);
 
+  const handleOpenNewSubcontract = () => {
+    if (projects.length === 0) {
+      toast.warning('يرجى تأسيس مشروع إنشائي وعقد مقاولة أولاً لإسناد أعمال لمقاول باطن.');
+      setIsCreateProjectOpen(true);
+      return;
+    }
+    if (!selectedProjectId && projects.length > 0) {
+      setSelectedProjectId(projects[0].id);
+    }
+    setIsCreateSubcontractOpen(true);
+  };
+
+  const handleOpenNewRequisition = () => {
+    if (projects.length === 0) {
+      toast.warning('يرجى تأسيس مشروع إنشائي وعقد مقاولة أولاً لصرف وتخصيص خامات له.');
+      setIsCreateProjectOpen(true);
+      return;
+    }
+    if (!selectedProjectId && projects.length > 0) {
+      setSelectedProjectId(projects[0].id);
+    }
+    setIsCreateRequisitionOpen(true);
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} dir="rtl">
       {/* شريط التبديل الفرعي */}
       <div
         style={{
@@ -119,7 +147,7 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
             transition: 'all 0.15s ease',
           }}
         >
-          عقود والتزامات مقاولي الباطن
+          عقود وإسناد مقاولي الباطن
         </button>
 
         <button
@@ -148,16 +176,16 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
           <ContractingSubcontractsTab
             subcontracts={subcontracts}
             loading={subcontractsLoading}
-            projectId={selectedProjectId || undefined}
-            projectName={activeProject?.name}
-            onNewSubcontract={() => setIsCreateSubcontractOpen(true)}
+            projectId={effectiveProjectId || undefined}
+            projectName={effectiveProject?.name}
+            onNewSubcontract={handleOpenNewSubcontract}
           />
 
-          {selectedProjectId && (
+          {effectiveProjectId && (
             <CreateSubcontractModal
               open={isCreateSubcontractOpen}
-              projectId={selectedProjectId}
-              projectName={activeProject?.name}
+              projectId={effectiveProjectId}
+              projectName={effectiveProject?.name}
               onClose={() => setIsCreateSubcontractOpen(false)}
               onCreated={loadSubcontracts}
             />
@@ -168,17 +196,17 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
           <ContractingMaterialsTab
             requisitions={requisitions}
             loading={materialsLoading}
-            projectId={selectedProjectId || undefined}
-            projectName={activeProject?.name}
-            onNewRequisition={() => setIsCreateRequisitionOpen(true)}
+            projectId={effectiveProjectId || undefined}
+            projectName={effectiveProject?.name}
+            onNewRequisition={handleOpenNewRequisition}
             onRequisitionDeleted={loadMaterials}
           />
 
-          {selectedProjectId && (
+          {effectiveProjectId && (
             <CreateMaterialRequisitionModal
               open={isCreateRequisitionOpen}
-              projectId={selectedProjectId}
-              projectName={activeProject?.name}
+              projectId={effectiveProjectId}
+              projectName={effectiveProject?.name}
               boqItems={boqItems}
               onClose={() => setIsCreateRequisitionOpen(false)}
               onCreated={loadMaterials}

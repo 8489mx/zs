@@ -3169,6 +3169,10 @@ export interface MaritimeRfqTable {
   target_line_ids: any;
   status: 'draft' | 'sent' | 'bids_received' | 'awarded' | 'cancelled';
   notes: string | null;
+  urgency_level: 'standard' | 'urgent';
+  cut_off_deadline: string | null;
+  auto_awarded: boolean;
+  target_rate_max: number | null;
   created_by: number | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;

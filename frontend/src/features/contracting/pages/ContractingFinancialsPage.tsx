@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useContracting } from '../context/ContractingContext';
 import { contractingApi } from '../api/contracting.api';
+import { toast } from '@/shared/components/system-alert';
 import type { ContractingInvoice, ContractingChangeOrder } from '../contracting.types';
 import { ContractingInvoicesTab } from '../components/ContractingInvoicesTab';
 import { ContractingChangeOrdersTab } from '../components/ContractingChangeOrdersTab';
@@ -18,7 +19,7 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
   const subParam = (searchParams.get('sub') as 'invoices' | 'change-orders') || initialSubTab || 'invoices';
   const [activeSubTab, setActiveSubTab] = useState<'invoices' | 'change-orders'>(subParam);
 
-  const { selectedProjectId, activeProject, reloadProjects } = useContracting();
+  const { projects, selectedProjectId, setSelectedProjectId, activeProject, reloadProjects, setIsCreateProjectOpen } = useContracting();
 
   useEffect(() => {
     if (initialSubTab && initialSubTab !== activeSubTab) {
@@ -46,37 +47,40 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
     setSearchParams(newParams, { replace: true });
   };
 
+  const effectiveProjectId = selectedProjectId || (projects.length > 0 ? projects[0].id : '');
+  const effectiveProject = activeProject || (projects.length > 0 ? (projects.find((p) => p.id === effectiveProjectId) || projects[0]) : null);
+
   const loadInvoices = useCallback(async () => {
-    if (!selectedProjectId) {
+    if (!effectiveProjectId) {
       setInvoices([]);
       return;
     }
     try {
       setInvoicesLoading(true);
-      const data = await contractingApi.getInvoices(selectedProjectId, ipcFilter);
+      const data = await contractingApi.getInvoices(effectiveProjectId, ipcFilter);
       setInvoices(data);
     } catch (err) {
       console.error('Failed to load contracting invoices:', err);
     } finally {
       setInvoicesLoading(false);
     }
-  }, [selectedProjectId, ipcFilter]);
+  }, [effectiveProjectId, ipcFilter]);
 
   const loadChangeOrders = useCallback(async () => {
-    if (!selectedProjectId) {
+    if (!effectiveProjectId) {
       setChangeOrders([]);
       return;
     }
     try {
       setChangeOrdersLoading(true);
-      const data = await contractingApi.getChangeOrders(selectedProjectId);
+      const data = await contractingApi.getChangeOrders(effectiveProjectId);
       setChangeOrders(data);
     } catch (err) {
       console.error('Failed to load change orders:', err);
     } finally {
       setChangeOrdersLoading(false);
     }
-  }, [selectedProjectId]);
+  }, [effectiveProjectId]);
 
   useEffect(() => {
     if (activeSubTab === 'invoices') {
@@ -85,6 +89,30 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
       loadChangeOrders();
     }
   }, [activeSubTab, loadInvoices, loadChangeOrders]);
+
+  const handleOpenNewInvoice = () => {
+    if (projects.length === 0) {
+      toast.warning('يرجى تأسيس مشروع إنشائي وعقد مقاولة أولاً؛ المستخلصات تتطلب وجود مشروع نشط.');
+      setIsCreateProjectOpen(true);
+      return;
+    }
+    if (!selectedProjectId && projects.length > 0) {
+      setSelectedProjectId(projects[0].id);
+    }
+    setIsCreateIpcOpen(true);
+  };
+
+  const handleOpenNewChangeOrder = () => {
+    if (projects.length === 0) {
+      toast.warning('يرجى تأسيس مشروع إنشائي وعقد مقاولة أولاً؛ أوامر التغيير تتطلب وجود مشروع نشط.');
+      setIsCreateProjectOpen(true);
+      return;
+    }
+    if (!selectedProjectId && projects.length > 0) {
+      setSelectedProjectId(projects[0].id);
+    }
+    setIsCreateChangeOrderOpen(true);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} dir="rtl">
@@ -149,7 +177,7 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
             project={activeProject}
             ipcFilter={ipcFilter}
             onFilterChange={setIpcFilter}
-            onNewInvoice={() => setIsCreateIpcOpen(true)}
+            onNewInvoice={handleOpenNewInvoice}
             onPrintCertificate={(inv) => setSelectedIpcForPrint(inv)}
             onRefresh={() => {
               reloadProjects();
@@ -157,10 +185,10 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
             }}
           />
 
-          {activeProject && (
+          {effectiveProject && (
             <CreateIpcInvoiceModal
               open={isCreateIpcOpen}
-              project={activeProject}
+              project={effectiveProject}
               onClose={() => setIsCreateIpcOpen(false)}
               onCreated={() => {
                 reloadProjects();
@@ -169,11 +197,11 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
             />
           )}
 
-          {selectedIpcForPrint && activeProject && (
+          {selectedIpcForPrint && effectiveProject && (
             <PrintIpcCertificateModal
               open={Boolean(selectedIpcForPrint)}
               invoice={selectedIpcForPrint}
-              project={activeProject}
+              project={effectiveProject}
               onClose={() => setSelectedIpcForPrint(null)}
             />
           )}
@@ -183,19 +211,19 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
           <ContractingChangeOrdersTab
             changeOrders={changeOrders}
             loading={changeOrdersLoading}
-            projectName={activeProject?.name}
-            onNewChangeOrder={() => setIsCreateChangeOrderOpen(true)}
+            projectName={effectiveProject?.name}
+            onNewChangeOrder={handleOpenNewChangeOrder}
             onRefresh={() => {
               reloadProjects();
               loadChangeOrders();
             }}
           />
 
-          {selectedProjectId && (
+          {effectiveProjectId && (
             <CreateChangeOrderModal
               open={isCreateChangeOrderOpen}
-              projectId={selectedProjectId}
-              projectName={activeProject?.name}
+              projectId={effectiveProjectId}
+              projectName={effectiveProject?.name}
               onClose={() => setIsCreateChangeOrderOpen(false)}
               onCreated={() => {
                 reloadProjects();

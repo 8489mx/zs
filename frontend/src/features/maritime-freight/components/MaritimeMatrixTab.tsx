@@ -113,29 +113,88 @@ export function MaritimeMatrixTab({
       </div>
 
       {/* تفاصيل مسار الطلب النشط بتصميم مؤسسي ناصع */}
-      {currentRfq && (
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '16px 20px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>كود الاستفسار الملاحي</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>{currentRfq.rfq_number}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>المسار والحاويات</div>
-            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
-              {currentRfq.pol_name} ({currentRfq.pol_code}) ➔ {currentRfq.pod_name} ({currentRfq.pod_code})
+      {currentRfq && (() => {
+        const getCutOffInfo = () => {
+          if (!currentRfq.cut_off_deadline) return null;
+          const diffMs = new Date(currentRfq.cut_off_deadline).getTime() - Date.now();
+          if (diffMs <= 0) {
+            return {
+              expired: true,
+              text: 'انتهت مهلة المزايدة (جاهز للترسية)',
+              bg: '#fef3c7',
+              color: '#92400e',
+              border: '#fde68a',
+            };
+          }
+          const hours = Math.floor(diffMs / (1000 * 60 * 60));
+          const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          return {
+            expired: false,
+            text: `متبقي ${hours > 0 ? `${hours} س و ` : ''}${minutes} دقيقة على غلق المزايدة`,
+            bg: hours <= 2 ? '#fef2f2' : '#f0fdf4',
+            color: hours <= 2 ? '#991b1b' : '#166534',
+            border: hours <= 2 ? '#fecaca' : '#bbf7d0',
+          };
+        };
+
+        const cutOffInfo = getCutOffInfo();
+
+        return (
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '16px 20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>كود الاستفسار الملاحي</div>
+                  {currentRfq.urgency_level === 'urgent' && (
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
+                      عاجل (Spot 6h)
+                    </span>
+                  )}
+                  {currentRfq.auto_awarded && (
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                      تمت الترسية آلياً
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>{currentRfq.rfq_number}</div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>المسار والحاويات</div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
+                  {currentRfq.pol_name} ({currentRfq.pol_code}) ← {currentRfq.pod_name} ({currentRfq.pod_code})
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '1px' }}>
+                  {currentRfq.container_count}x {currentRfq.container_type} | {currentRfq.commodity_description || 'عام'} | شرط: {currentRfq.incoterm}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                {cutOffInfo && (
+                  <div style={{ textAlign: 'center', padding: '6px 14px', borderRadius: '8px', background: cutOffInfo.bg, border: `1px solid ${cutOffInfo.border}`, color: cutOffInfo.color }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 600 }}>مؤقت مهلة عروض الأسعار</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, marginTop: '2px' }}>{cutOffInfo.text}</div>
+                  </div>
+                )}
+
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>أيام السماح المستهدفة</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
+                    {currentRfq.target_free_days} يوم
+                  </div>
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '1px' }}>
-              {currentRfq.container_count}x {currentRfq.container_type} | {currentRfq.commodity_description || 'عام'} | شرط: {currentRfq.incoterm}
-            </div>
+
+            {currentRfq.target_rate_max && (
+              <div style={{ fontSize: '0.75rem', color: '#475569', background: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontWeight: 700, color: '#170e5e' }}>شرط الترسية المبكرة:</span>
+                <span>سقف السعر المستهدف ${Number(currentRfq.target_rate_max).toLocaleString()} مع ${currentRfq.target_free_days} يوم سماح (يتم اعتماد أي خط يحقق هذا الشرط فوراً).</span>
+              </div>
+            )}
           </div>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>أيام السماح المستهدفة</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
-              {currentRfq.target_free_days} يوم
-            </div>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* شبكة كروت مقارنة الأسعار */}
       {loading ? (
@@ -238,7 +297,7 @@ export function MaritimeMatrixTab({
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  {isAwarded ? 'تعديل عرض السعر' : 'اعتماد السعر وإصدار عرض للعميل ➔'}
+                  {isAwarded ? 'تعديل عرض السعر' : 'اعتماد السعر وإصدار عرض للعميل ←'}
                 </button>
               </div>
             );

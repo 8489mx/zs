@@ -25,13 +25,13 @@ import { MaritimeSettingsPage } from './MaritimeSettingsPage';
 
 const NAV_TABS = [
   { path: 'inquiries', label: 'استفسارات شحن العملاء', countKey: 'inquiries' as const },
-  { path: 'rfqs', label: 'استقصاء أسعار الخطوط (RFQ)', countKey: 'rfqs' as const },
+  { path: 'rfqs', label: 'عروض تسعير الخطوط (RFQ)', countKey: 'rfqs' as const },
   { path: 'matrix', label: 'مقارنة عروض الخطوط', countKey: 'matrixBids' as const },
   { path: 'quotations', label: 'عروض أسعار العملاء', countKey: 'quotations' as const },
   { path: 'jobs', label: 'أوامر تشغيل الشحنات', countKey: 'jobs' as const },
   { path: 'containers', label: 'تتبع الحاويات وفترات السماح', countKey: 'containers' as const },
   { path: 'lines', label: 'دليل الخطوط والموانئ', countKey: 'master' as const },
-  { path: 'settings', label: 'أتمتة المراسلات والبريد', countKey: 'settings' as const },
+  { path: 'settings', label: 'قواعد الأتمتة والمراسلات', countKey: 'settings' as const },
 ];
 
 function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
@@ -93,7 +93,7 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
         {/* هيدر الصفحة القياسي الموحد */}
         <PageHeader
           title="الشحن واللوجستيات"
-          description="منظومة إدارة الشحن واللوجستيات، دورة الشحن المؤتمتة من استفسار العميل، استقصاء الأسعار وحتى التسليم والتخليص."
+          description="منظومة إدارة الشحن واللوجستيات، دورة الشحن المؤتمتة من استفسار العميل، عروض تسعير الخطوط وحتى التسليم والتخليص."
           actions={
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button
@@ -116,7 +116,7 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
                 }}
               >
                 <PlusIcon size={16} />
-                <span>+ طلب شحن عميل</span>
+                <span>طلب شحن عميل</span>
               </button>
               <button
                 type="button"

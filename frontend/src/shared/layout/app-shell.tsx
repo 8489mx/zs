@@ -709,7 +709,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'manufacturing-boms': 'قوائم المكونات',
       'manufacturing-settings': 'إعدادات التصنيع',
       'maritime-inquiries': 'استفسارات شحن العملاء',
-      'maritime-rfqs': 'استقصاء أسعار الخطوط (RFQ)',
+      'maritime-rfqs': 'عروض تسعير الخطوط (RFQ)',
       'maritime-matrix': 'مقارنة عروض الخطوط',
       'maritime-quotations': 'عروض أسعار العملاء',
       'maritime-jobs': 'أوامر تشغيل الشحنات',

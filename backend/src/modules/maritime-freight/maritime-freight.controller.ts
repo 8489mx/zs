@@ -341,4 +341,20 @@ export class MaritimeFreightController {
       this.freightService.parseCarrierEmailText(text),
     );
   }
+
+  // 10. Automation Pipeline & Margin Rules Settings
+  @Get('pipeline-settings')
+  async getPipelineSettings(@Req() req: RequestWithAuth) {
+    return this.freightService.getPipelineSettings(req.authContext!);
+  }
+
+  @Post('pipeline-settings')
+  async savePipelineSettings(@Body() dto: any, @Req() req: RequestWithAuth) {
+    return this.freightService.savePipelineSettings(req.authContext!, dto);
+  }
+
+  @Post('pipeline/trigger')
+  async triggerPipeline(@Req() req: RequestWithAuth) {
+    return this.freightService.processAutomatedPipelineForTenant(req.authContext!);
+  }
 }

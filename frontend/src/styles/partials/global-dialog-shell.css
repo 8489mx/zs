@@ -183,6 +183,13 @@
   width: 100%;
 }
 
+.standard-dialog-footer .standard-dialog-footer {
+  border-top: none !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  width: 100% !important;
+}
+
 .dialog-description {
   line-height: 1.8;
 }

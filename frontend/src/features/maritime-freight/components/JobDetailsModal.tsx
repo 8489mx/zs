@@ -614,7 +614,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                   <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                     <div style={{ fontSize: '0.78rem', color: '#64748b' }}>مواعيد الإبحار والوصول (ETD / ETA)</div>
                     <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#170e5e', marginTop: '4px' }}>
-                      الإبحار: {job.etd || 'قيد الجدولة'} ➔ الوصول: {job.eta || 'قيد الجدولة'}
+                      الإبحار: {job.etd || 'قيد الجدولة'} ← الوصول: {job.eta || 'قيد الجدولة'}
                     </div>
                     {job.port_cut_off && (
                       <div style={{ fontSize: '0.75rem', color: '#b91c1c', marginTop: '2px' }}>
@@ -700,7 +700,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           {job.vessel_name || 'لم يتم تسجيل اسم السفينة بعد'}
                         </div>
                         <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
-                          المسار البحري: <strong>{job.pol_name}</strong> ➔ <strong>{job.pod_name}</strong> {job.voyage_number ? `| رحلة رقم: ${job.voyage_number}` : ''}
+                          المسار البحري: <strong>{job.pol_name}</strong> ← <strong>{job.pod_name}</strong> {job.voyage_number ? `| رحلة رقم: ${job.voyage_number}` : ''}
                         </div>
                       </div>
 
@@ -1411,7 +1411,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         </tr>
                         <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '8px 14px', fontWeight: 700, color: '#0f172a' }}>مصروفات الموانئ والمناولة (Port & THC Charges)</td>
-                          <td style={{ padding: '8px 14px', color: '#334155' }}>{job.pol_name} ➔ {job.pod_name}</td>
+                          <td style={{ padding: '8px 14px', color: '#334155' }}>{job.pol_name} ← {job.pod_name}</td>
                           <td style={{ padding: '8px 14px', color: '#64748b' }}>خدمات موانئ وتداول</td>
                           <td style={{ padding: '8px 14px', fontWeight: 800, color: otherCosts > 0 ? '#b91c1c' : '#64748b' }}>
                             {otherCosts > 0 ? `${currencySymbol} ${otherCosts.toLocaleString()}` : 'ضمن النولون'}
@@ -1472,7 +1472,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           {job.cost_center_id ? `مركز تكلفة #${job.cost_center_id} (${job.job_number})` : `مركز تكلفة ملاحي #${job.job_number}`}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '1px' }}>
-                          مربوط بدليل الحسابات العام (شجرة الحسابات ➔ مراكز تكلفة الشحن واللوجستيات)
+                          مربوط بدليل الحسابات العام (شجرة الحسابات ← مراكز تكلفة الشحن واللوجستيات)
                         </div>
                       </div>
                     </div>

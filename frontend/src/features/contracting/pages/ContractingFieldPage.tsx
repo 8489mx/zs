@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useContracting } from '../context/ContractingContext';
 import { contractingApi } from '../api/contracting.api';
+import { toast } from '@/shared/components/system-alert';
 import type {
   ContractingScheduleTask,
   ContractingBoqItem,
@@ -25,7 +26,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
   const subParam = (searchParams.get('sub') as 'gantt' | 'daily-logs' | 'rfis') || initialSubTab || 'gantt';
   const [activeSubTab, setActiveSubTab] = useState<'gantt' | 'daily-logs' | 'rfis'>(subParam);
 
-  const { selectedProjectId, activeProject } = useContracting();
+  const { projects, selectedProjectId, setSelectedProjectId, activeProject, setIsCreateProjectOpen } = useContracting();
 
   useEffect(() => {
     if (initialSubTab && initialSubTab !== activeSubTab) {
@@ -57,8 +58,11 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
     setSearchParams(newParams, { replace: true });
   };
 
+  const effectiveProjectId = selectedProjectId || (projects.length > 0 ? projects[0].id : '');
+  const effectiveProject = activeProject || (projects.length > 0 ? (projects.find((p) => p.id === effectiveProjectId) || projects[0]) : null);
+
   const loadGanttData = useCallback(async () => {
-    if (!selectedProjectId) {
+    if (!effectiveProjectId) {
       setTasks([]);
       setBoqItems([]);
       return;
@@ -66,8 +70,8 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
     try {
       setTasksLoading(true);
       const [tasksData, boqData] = await Promise.all([
-        contractingApi.getScheduleTasks(selectedProjectId),
-        contractingApi.getBoqItems(selectedProjectId),
+        contractingApi.getScheduleTasks(effectiveProjectId),
+        contractingApi.getBoqItems(effectiveProjectId),
       ]);
       setTasks(tasksData);
       setBoqItems(boqData);
@@ -76,39 +80,39 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
     } finally {
       setTasksLoading(false);
     }
-  }, [selectedProjectId]);
+  }, [effectiveProjectId]);
 
   const loadDailyLogs = useCallback(async () => {
-    if (!selectedProjectId) {
+    if (!effectiveProjectId) {
       setDailyLogs([]);
       return;
     }
     try {
       setDailyLogsLoading(true);
-      const data = await contractingApi.getDailyLogs(selectedProjectId);
+      const data = await contractingApi.getDailyLogs(effectiveProjectId);
       setDailyLogs(data);
     } catch (err) {
       console.error('Failed to load daily logs:', err);
     } finally {
       setDailyLogsLoading(false);
     }
-  }, [selectedProjectId]);
+  }, [effectiveProjectId]);
 
   const loadRfis = useCallback(async () => {
-    if (!selectedProjectId) {
+    if (!effectiveProjectId) {
       setRfis([]);
       return;
     }
     try {
       setRfisLoading(true);
-      const data = await contractingApi.getRfiList(selectedProjectId);
+      const data = await contractingApi.getRfiList(effectiveProjectId);
       setRfis(data);
     } catch (err) {
       console.error('Failed to load RFIs:', err);
     } finally {
       setRfisLoading(false);
     }
-  }, [selectedProjectId]);
+  }, [effectiveProjectId]);
 
   useEffect(() => {
     if (activeSubTab === 'gantt') {
@@ -120,8 +124,44 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
     }
   }, [activeSubTab, loadGanttData, loadDailyLogs, loadRfis]);
 
+  const handleOpenNewTask = () => {
+    if (projects.length === 0) {
+      toast.warning('يرجى تأسيس مشروع إنشائي وعقد مقاولة أولاً لإضافة مهام الجدول الزمني إليه.');
+      setIsCreateProjectOpen(true);
+      return;
+    }
+    if (!selectedProjectId && projects.length > 0) {
+      setSelectedProjectId(projects[0].id);
+    }
+    setIsCreateTaskOpen(true);
+  };
+
+  const handleOpenNewLog = () => {
+    if (projects.length === 0) {
+      toast.warning('يرجى تأسيس مشروع إنشائي وعقد مقاولة أولاً لتسجيل يومية موقع.');
+      setIsCreateProjectOpen(true);
+      return;
+    }
+    if (!selectedProjectId && projects.length > 0) {
+      setSelectedProjectId(projects[0].id);
+    }
+    setIsCreateDailyLogOpen(true);
+  };
+
+  const handleOpenNewRfi = () => {
+    if (projects.length === 0) {
+      toast.warning('يرجى تأسيس مشروع إنشائي وعقد مقاولة أولاً لإرسال استفسار فني.');
+      setIsCreateProjectOpen(true);
+      return;
+    }
+    if (!selectedProjectId && projects.length > 0) {
+      setSelectedProjectId(projects[0].id);
+    }
+    setIsCreateRfiOpen(true);
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} dir="rtl">
       {/* شريط التبديل الفرعي */}
       <div
         style={{
@@ -151,7 +191,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
             transition: 'all 0.15s ease',
           }}
         >
-          الجدول الزمني ومخطط جانت
+          الجدول الزمني ومخطط جانت (CPM)
         </button>
 
         <button
@@ -170,7 +210,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
             transition: 'all 0.15s ease',
           }}
         >
-          يوميات الموقع الميدانية والعمالة
+          يوميات الموقع وتقارير التنفيذ
         </button>
 
         <button
@@ -189,7 +229,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
             transition: 'all 0.15s ease',
           }}
         >
-          الاستفسارات الفنية (RFIs)
+          الاستفسارات الهندسية (RFI)
         </button>
       </div>
 
@@ -199,17 +239,17 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
           <ContractingGanttTab
             tasks={tasks}
             loading={tasksLoading}
-            projectId={selectedProjectId || undefined}
-            projectName={activeProject?.name}
-            onNewTask={() => setIsCreateTaskOpen(true)}
+            projectId={effectiveProjectId || undefined}
+            projectName={effectiveProject?.name}
+            onNewTask={handleOpenNewTask}
             onTaskUpdated={loadGanttData}
           />
 
-          {selectedProjectId && (
+          {effectiveProjectId && (
             <CreateScheduleTaskModal
               open={isCreateTaskOpen}
-              projectId={selectedProjectId}
-              projectName={activeProject?.name}
+              projectId={effectiveProjectId}
+              projectName={effectiveProject?.name}
               boqItems={boqItems}
               existingTasks={tasks}
               onClose={() => setIsCreateTaskOpen(false)}
@@ -224,16 +264,16 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
           <ContractingDailyLogsTab
             dailyLogs={dailyLogs}
             loading={dailyLogsLoading}
-            projectId={selectedProjectId || undefined}
-            projectName={activeProject?.name}
-            onNewLog={() => setIsCreateDailyLogOpen(true)}
+            projectId={effectiveProjectId || undefined}
+            projectName={effectiveProject?.name}
+            onNewLog={handleOpenNewLog}
           />
 
-          {selectedProjectId && (
+          {effectiveProjectId && (
             <CreateDailyLogModal
               open={isCreateDailyLogOpen}
-              projectId={selectedProjectId}
-              projectName={activeProject?.name}
+              projectId={effectiveProjectId}
+              projectName={effectiveProject?.name}
               onClose={() => setIsCreateDailyLogOpen(false)}
               onCreated={loadDailyLogs}
             />
@@ -246,16 +286,16 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
           <ContractingRfiTab
             rfis={rfis}
             loading={rfisLoading}
-            projectName={activeProject?.name}
-            onNewRfi={() => setIsCreateRfiOpen(true)}
+            projectName={effectiveProject?.name}
+            onNewRfi={handleOpenNewRfi}
             onAnswerRfi={(rfi) => setSelectedRfiForAnswer(rfi)}
           />
 
-          {selectedProjectId && (
+          {effectiveProjectId && (
             <CreateRfiModal
               open={isCreateRfiOpen}
-              projectId={selectedProjectId}
-              projectName={activeProject?.name}
+              projectId={effectiveProjectId}
+              projectName={effectiveProject?.name}
               onClose={() => setIsCreateRfiOpen(false)}
               onCreated={loadRfis}
             />

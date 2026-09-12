@@ -229,171 +229,186 @@ export function LaborAttendanceModal({
           <form
             onSubmit={handleCreateAttendance}
             style={{
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              borderRadius: '10px',
-              padding: '16px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px',
+              gap: '10px',
             }}
           >
-            <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e' }}>
-              تسجيل وردية عمل وساعات إضافية وربط بالبند
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1.5fr 1.5fr', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  اسم العامل / الصنايعي *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={workerName}
-                  onChange={(e) => setWorkerName(e.target.value)}
-                  placeholder="مثال: أحمد عبد الله"
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
+            {/* بطاقة 1: بيانات العامل والتخصص والربط بالبند */}
+            <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.User size={15} />
+                <span>1. بيانات العامل والتخصص والربط ببند المقايسة</span>
               </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1.3fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    اسم العامل / الصنايعي *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={workerName}
+                    onChange={(e) => setWorkerName(e.target.value)}
+                    placeholder="مثال: أحمد عبد الله"
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  المهنة / التخصص *
-                </label>
-                <CustomSelect
-                  value={trade}
-                  options={TRADE_OPTIONS}
-                  onChange={(val) => setTrade(val)}
-                  placeholder="اختر المهنة..."
-                />
-              </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    المهنة / التخصص *
+                  </label>
+                  <CustomSelect
+                    value={trade}
+                    options={TRADE_OPTIONS}
+                    onChange={(val) => setTrade(val)}
+                    placeholder="اختر المهنة..."
+                  />
+                </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  تاريخ العمل *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={workDate}
-                  onChange={(e) => setWorkDate(e.target.value)}
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
-              </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    تاريخ العمل *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={workDate}
+                    onChange={(e) => setWorkDate(e.target.value)}
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  بند المقايسة المستهدف
-                </label>
-                <CustomSelect
-                  value={selectedBoqId}
-                  options={boqSelectOptions}
-                  onChange={(val) => setSelectedBoqId(val)}
-                  placeholder="اختر بند المقايسة..."
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  اليومية الأساسية ({currencySymbol}) *
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  required
-                  value={dailyWage}
-                  onChange={(e) => setDailyWage(Number(e.target.value))}
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff', fontWeight: 700 }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  ساعات العمل الأساسية
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="24"
-                  required
-                  value={regularHours}
-                  onChange={(e) => setRegularHours(Number(e.target.value))}
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  ساعات إضافية (سهرة)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="24"
-                  value={overtimeHours}
-                  onChange={(e) => setOvertimeHours(Number(e.target.value))}
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  سعر الساعة الإضافية
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={overtimeRate}
-                  onChange={(e) => setOvertimeRate(Number(e.target.value))}
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  نسبة التحميل على المشروع %
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={allocatedProjectSharePercent}
-                  onChange={(e) => setAllocatedProjectSharePercent(Number(e.target.value))}
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    بند المقايسة المستهدف
+                  </label>
+                  <CustomSelect
+                    value={selectedBoqId}
+                    options={boqSelectOptions}
+                    onChange={(val) => setSelectedBoqId(val)}
+                    placeholder="اختر بند المقايسة..."
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                بيان الأعمال المنفذة في الوردية
-              </label>
-              <input
-                type="text"
-                value={taskDescription}
-                onChange={(e) => setTaskDescription(e.target.value)}
-                placeholder="مثال: تسليح سقف الدور الأول وعمل كوابيل البلكونات"
-                style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-              />
+            {/* بطاقة 2: اليومية الأساسية وساعات العمل والإضافي */}
+            <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.DollarSign size={15} />
+                <span>2. أجر اليومية وساعات العمل والإضافي</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    اليومية الأساسية ({currencySymbol}) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={dailyWage}
+                    onChange={(e) => setDailyWage(Number(e.target.value))}
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', fontWeight: 700, color: '#170e5e', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    ساعات العمل الأساسية *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="24"
+                    required
+                    value={regularHours}
+                    onChange={(e) => setRegularHours(Number(e.target.value))}
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    ساعات إضافية (سهرة)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="24"
+                    value={overtimeHours}
+                    onChange={(e) => setOvertimeHours(Number(e.target.value))}
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    سعر الساعة الإضافية ({currencySymbol})
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={overtimeRate}
+                    onChange={(e) => setOvertimeRate(Number(e.target.value))}
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            {/* بطاقة 3: بيان الأعمال المنفذة ونسبة التحميل */}
+            <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.FileText size={15} />
+                <span>3. طبيعة الأعمال المنفذة ونسبة التحميل على المشروع</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    بيان وتوصيف الأعمال المنفذة في الوردية
+                  </label>
+                  <input
+                    type="text"
+                    value={taskDescription}
+                    onChange={(e) => setTaskDescription(e.target.value)}
+                    placeholder="مثال: تسليح سقف الدور الأول وعمل كوابيل البلكونات..."
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    نسبة التحميل على المشروع %
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={allocatedProjectSharePercent}
+                    onChange={(e) => setAllocatedProjectSharePercent(Number(e.target.value))}
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '2px' }}>
               <button
                 type="button"
                 onClick={() => setIsAdding(false)}
-                style={{ height: '32px', padding: '0 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', fontSize: 'var(--font-body)' }}
+                style={{ height: '33px', padding: '0 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
               >
                 إلغاء
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                style={{ height: '32px', padding: '0 18px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 'var(--font-body)' }}
+                style={{ height: '33px', padding: '0 18px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.8125rem' }}
               >
-                {saving ? 'جاري الحفظ...' : 'تسجيل اليومية وترحيلها'}
+                {saving ? 'جارٍ الحفظ...' : 'تسجيل اليومية وترحيلها'}
               </button>
             </div>
           </form>

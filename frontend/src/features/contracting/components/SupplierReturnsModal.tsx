@@ -169,131 +169,137 @@ export function SupplierReturnsModal({
           <form
             onSubmit={handleCreateReturn}
             style={{
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '16px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px',
+              gap: '10px',
             }}
           >
-            <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e' }}>
-              إصدار إذن رد خامات للمورد (إشعار خصم دائن)
+            {/* بطاقة 1: بيانات المورد والمادة المرتجعة */}
+            <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.Truck size={15} />
+                <span>1. بيانات المورد والمادة المرتجعة</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    اسم المورد *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={supplierName}
+                    onChange={(e) => setSupplierName(e.target.value)}
+                    placeholder="مثال: شركة السويس للأسمنت"
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    المادة أو الخامة المرتجعة *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={materialName}
+                    onChange={(e) => setMaterialName(e.target.value)}
+                    placeholder="مثال: أسمنت بورتلاندي عادي"
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    الوحدة
+                  </label>
+                  <input
+                    type="text"
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    placeholder="طن / م3 / شيكارة"
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  اسم المورد
+
+            {/* بطاقة 2: الكمية والتسعير وإشعار الدائن والسبب */}
+            <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.DollarSign size={15} />
+                <span>2. الكمية والتسعير وإشعار الدائن وسبب الإرجاع</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    الكمية المرتجعة *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    required
+                    value={quantity || ''}
+                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    placeholder="0.00"
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', fontWeight: 700, color: '#170e5e', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    سعر الوحدة ({currencySymbol})
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={unitCost || ''}
+                    onChange={(e) => setUnitCost(Number(e.target.value))}
+                    placeholder="0.00"
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    رقم إشعار الدائن (Credit Note)
+                  </label>
+                  <input
+                    type="text"
+                    value={creditNoteNumber}
+                    onChange={(e) => setCreditNoteNumber(e.target.value)}
+                    placeholder="مثال: CRN-2026-08"
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+              <div style={{ marginTop: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                  سبب الإرجاع وملاحظات الفحص المخبري / الاستشاري *
                 </label>
                 <input
                   type="text"
                   required
-                  value={supplierName}
-                  onChange={(e) => setSupplierName(e.target.value)}
-                  placeholder="مثال: شركة السويس للأسمنت"
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  المادة أو الخامة المرتجعة
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={materialName}
-                  onChange={(e) => setMaterialName(e.target.value)}
-                  placeholder="مثال: أسمنت بورتلاندي عادي"
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  الوحدة
-                </label>
-                <input
-                  type="text"
-                  value={unit}
-                  onChange={(e) => setUnit(e.target.value)}
-                  placeholder="طن / م3 / شيكارة"
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="مثال: تلف وشك الأسمنت بسبب الرطوبة أو رسوب اختبار الشد للحديد..."
+                  style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  الكمية المرتجعة
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  required
-                  value={quantity || ''}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                  placeholder="0.00"
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  سعر الوحدة ({currencySymbol})
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={unitCost || ''}
-                  onChange={(e) => setUnitCost(Number(e.target.value))}
-                  placeholder="0.00"
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  رقم إشعار الدائن (Credit Note)
-                </label>
-                <input
-                  type="text"
-                  value={creditNoteNumber}
-                  onChange={(e) => setCreditNoteNumber(e.target.value)}
-                  placeholder="مثال: CRN-2026-08"
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                سبب الإرجاع وملاحظات الفحص المخبري
-              </label>
-              <input
-                type="text"
-                required
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="مثال: تلف وشك الأسمنت بسبب الرطوبة أو رسوب اختبار الشد للحديد"
-                style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '2px' }}>
               <button
                 type="button"
                 onClick={() => setIsAdding(false)}
-                style={{ height: '32px', padding: '0 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', fontSize: 'var(--font-body)' }}
+                style={{ height: '33px', padding: '0 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
               >
                 إلغاء
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                style={{ height: '32px', padding: '0 14px', borderRadius: '6px', border: 'none', background: '#ea580c', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 'var(--font-body)' }}
+                style={{ height: '33px', padding: '0 18px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.8125rem' }}
               >
-                {saving ? 'جاري الحفظ...' : 'حفظ إذن المرتجع'}
+                {saving ? 'جارٍ الحفظ...' : 'حفظ إذن المرتجع'}
               </button>
             </div>
           </form>

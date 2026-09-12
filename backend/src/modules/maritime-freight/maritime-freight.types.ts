@@ -59,3 +59,38 @@ export interface RfqEmailDispatchPayload {
   direction: string;
   magicLinkUrl: string;
 }
+
+export interface MaritimePipelineConfig {
+  automationMode: 'manual' | 'hybrid' | 'full_autonomous';
+  defaultMarginType: 'fixed' | 'percentage';
+  defaultMarginValue: number;
+  marginFloor: number;
+  defaultExchangeRate: number;
+  rfqCutOffHoursStandard: number;
+  rfqCutOffHoursUrgent: number;
+  earlyAwardingEnabled: boolean;
+  earlyAwardingMinFreeDays: number;
+  requireManualRfqDispatch: boolean;
+  requireManualAwardAndMargin: boolean;
+  requireManualQuoteDispatch: boolean;
+  autoSendWhatsAppQuote: boolean;
+  autoSendEmailQuote: boolean;
+}
+
+export const DEFAULT_PIPELINE_CONFIG: MaritimePipelineConfig = {
+  automationMode: 'hybrid',
+  defaultMarginType: 'fixed',
+  defaultMarginValue: 200,
+  marginFloor: 150,
+  defaultExchangeRate: 48.5,
+  rfqCutOffHoursStandard: 24,
+  rfqCutOffHoursUrgent: 6,
+  earlyAwardingEnabled: true,
+  earlyAwardingMinFreeDays: 14,
+  requireManualRfqDispatch: false,
+  requireManualAwardAndMargin: true,
+  requireManualQuoteDispatch: false,
+  autoSendWhatsAppQuote: true,
+  autoSendEmailQuote: true,
+};
+

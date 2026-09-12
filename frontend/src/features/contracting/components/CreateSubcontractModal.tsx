@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { contractingApi } from '../api/contracting.api';
 import { suppliersApi } from '@/shared/api/suppliers.api';
 import type { Supplier } from '@/types/domain';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface CreateSubcontractModalProps {
   open: boolean;
@@ -51,6 +53,14 @@ export function CreateSubcontractModal({
         setIsLoadingSuppliers(false);
       });
   }, [open]);
+
+  const subcontractorOptions = useMemo(() => {
+    return suppliers.map((s) => ({
+      value: String(s.id),
+      label: s.name + (s.phone ? ` (${s.phone})` : ''),
+      hint: (s as any).taxNumber ? `ضريبي: ${(s as any).taxNumber}` : undefined,
+    }));
+  }, [suppliers]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -100,143 +110,190 @@ export function CreateSubcontractModal({
       onClose={onClose}
       title="إسناد أعمال لمقاول باطن (Subcontract Commitment)"
       subtitle={projectName ? `المشروع: ${projectName}` : 'تسجيل أمر تكليف وعقد مقاولة باطن جديد'}
-      width="min(720px, 95vw)"
-    >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
-        {errorMsg && (
-          <div
-            style={{
-              padding: '10px 14px',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '8px',
-              color: '#991b1b',
-              fontSize: 'var(--font-body)',
-              fontWeight: 500,
-            }}
-          >
-            {errorMsg}
-          </div>
-        )}
-
-        {/* مقاول الباطن ورقم العقد */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <Field label="مقاول الباطن (جهة التنفيذ) *">
-            <select
-              value={formData.subcontractorId}
-              onChange={(e) => setFormData({ ...formData, subcontractorId: e.target.value })}
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-              disabled={isLoadingSuppliers}
-              required
-            >
-              <option value="">-- اختر مقاول الباطن من سجل الموردين --</option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} {s.phone ? `(${s.phone})` : ''}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label="رقم أمر التكليف / العقد *">
-            <input
-              type="text"
-              value={formData.contractNumber}
-              onChange={(e) => setFormData({ ...formData, contractNumber: e.target.value })}
-              placeholder="مثال: SUB-2026-001"
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-              required
-            />
-          </Field>
-        </div>
-
-        {/* نطاق الأعمال */}
-        <Field label="نطاق وتوصيف الأعمال المسندة (Scope of Work) *">
-          <textarea
-            value={formData.scopeOfWork}
-            onChange={(e) => setFormData({ ...formData, scopeOfWork: e.target.value })}
-            placeholder="مثال: توريد وتركيب مجاري الهواء والتكييف المركزي للدور الأرضي والأول شامل مخارج الهواء والاختبارات..."
-            className="form-input"
-            rows={2}
-            style={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 10px', resize: 'vertical' }}
-            required
-          />
-        </Field>
-
-        {/* القيمة التعاقدية ونسبة ضمان حسن التنفيذ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <Field label="إجمالي القيمة التعاقدية (شامل الضريبة) *">
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={formData.totalAmount}
-              onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
-              placeholder="0.00"
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-              required
-            />
-          </Field>
-
-          <Field label="نسبة استقطاع ضمان حسن التنفيذ (%)" hint="تُحجز تلقائياً من مستخلصات مقاول الباطن">
-            <input
-              type="number"
-              min="0"
-              max="100"
-              step="any"
-              value={formData.retentionPercent}
-              onChange={(e) => setFormData({ ...formData, retentionPercent: e.target.value })}
-              placeholder="5"
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-            />
-          </Field>
-        </div>
-
-        {/* التواريخ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <Field label="تاريخ البدء المخطط">
-            <input
-              type="date"
-              value={formData.startDate}
-              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-            />
-          </Field>
-
-          <Field label="تاريخ التسليم والنهو">
-            <input
-              type="date"
-              value={formData.endDate}
-              onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-            />
-          </Field>
-        </div>
-
-        {/* ملاحظات وشروط إضافية */}
-        <Field label="ملاحظات وشروط خاصة بالعقد">
-          <textarea
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            placeholder="شروط الدفعات، غرامات التأخير، متطلبات السلامة في الموقع..."
-            className="form-input"
-            rows={2}
-            style={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 10px', resize: 'vertical' }}
-          />
-        </Field>
-
+      width="min(920px, 95vw)"
+      minHeight="auto"
+      footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={() => handleSubmit()}
           submitText="إصدار وتوثيق عقد المقاولة"
           isSubmitting={isSubmitting}
         />
+      )}
+    >
+      <style>{`
+        .subcontract-compact-modal .field {
+          margin-bottom: 0 !important;
+          gap: 3px !important;
+        }
+        .subcontract-compact-modal .field span {
+          font-size: 0.74rem !important;
+          font-weight: 600 !important;
+          color: #334155 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }
+        .subcontract-compact-modal input,
+        .subcontract-compact-modal textarea {
+          height: 33px !important;
+          font-size: 0.8125rem !important;
+          border-radius: 6px !important;
+          padding: 0 10px !important;
+          border: 1px solid #cbd5e1 !important;
+          background: #ffffff !important;
+          box-sizing: border-box !important;
+          outline: none !important;
+          width: 100% !important;
+          transition: border-color 0.15s, box-shadow 0.15s !important;
+        }
+        .subcontract-compact-modal input:focus,
+        .subcontract-compact-modal textarea:focus {
+          border-color: #170e5e !important;
+          box-shadow: 0 0 0 2px rgba(23, 14, 94, 0.1) !important;
+        }
+        .subcontract-compact-modal .custom-select-trigger {
+          min-height: 33px !important;
+          height: 33px !important;
+          font-size: 0.8125rem !important;
+          padding: 0 10px !important;
+          border-radius: 6px !important;
+          border: 1px solid #cbd5e1 !important;
+        }
+      `}</style>
+
+      <form onSubmit={handleSubmit} className="subcontract-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '9px' }} dir="rtl">
+        {errorMsg && (
+          <div
+            style={{
+              padding: '8px 12px',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              color: '#991b1b',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+            }}
+          >
+            {errorMsg}
+          </div>
+        )}
+
+        {/* 1. بيانات مقاول الباطن والتعاقد */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Users size={15} />
+            <span>1. بيانات مقاول الباطن وأمر الإسناد (Subcontractor & Commitment)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px', alignItems: 'start' }}>
+            <Field label="مقاول الباطن (جهة التنفيذ) *">
+              <CustomSelect
+                value={formData.subcontractorId}
+                options={subcontractorOptions}
+                onChange={(val) => setFormData({ ...formData, subcontractorId: val })}
+                placeholder={isLoadingSuppliers ? 'جاري جلب سجل الموردين...' : '-- اختر مقاول الباطن --'}
+              />
+            </Field>
+
+            <Field label="رقم أمر التكليف / العقد *">
+              <input
+                type="text"
+                value={formData.contractNumber}
+                onChange={(e) => setFormData({ ...formData, contractNumber: e.target.value })}
+                placeholder="مثال: SUB-2026-001"
+                required
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* 2. القيمة المالية ونسب الاستقطاع والمدد */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Calculator size={15} />
+            <span>2. القيمة المالية والضمان والمواعيد (Financials & Schedule)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr', gap: '10px', alignItems: 'start' }}>
+            <Field label="إجمالي القيمة التعاقدية *">
+              <input
+                type="number"
+                min="0"
+                step="any"
+                dir="ltr"
+                value={formData.totalAmount}
+                onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
+                placeholder="0.00"
+                style={{
+                  fontWeight: 800,
+                  color: '#170e5e',
+                  border: '2px solid #170e5e',
+                }}
+                required
+              />
+            </Field>
+
+            <Field label="نسبة ضمان الأعمال %">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="any"
+                dir="ltr"
+                value={formData.retentionPercent}
+                onChange={(e) => setFormData({ ...formData, retentionPercent: e.target.value })}
+                placeholder="5"
+                style={{ fontWeight: 700 }}
+              />
+            </Field>
+
+            <Field label="تاريخ البدء المخطط">
+              <input
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              />
+            </Field>
+
+            <Field label="تاريخ التسليم والنهو">
+              <input
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* 3. نطاق وتوصيف الأعمال والشروط */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.FileText size={15} />
+            <span>3. نطاق الأعمال والاشتراطات التعاقدية (Scope of Work & Terms)</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <Field label="نطاق وتوصيف الأعمال المسندة (Scope of Work) *">
+              <input
+                type="text"
+                value={formData.scopeOfWork}
+                onChange={(e) => setFormData({ ...formData, scopeOfWork: e.target.value })}
+                placeholder="مثال: توريد وتركيب مجاري الهواء والتكييف المركزي للدور الأرضي والأول شامل مخارج الهواء والاختبارات..."
+                required
+              />
+            </Field>
+
+            <Field label="شروط الدفعات والملاحظات الخاصة (اختياري)">
+              <input
+                type="text"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="شروط الدفعات، غرامات التأخير، متطلبات الاعتماد..."
+              />
+            </Field>
+          </div>
+        </div>
       </form>
     </StandardDialog>
   );

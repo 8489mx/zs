@@ -94,9 +94,37 @@ export class MaritimeAutomationSchedulerService implements OnApplicationBootstra
             await this.mailService.syncInboundBids(syntheticAuth, (text) =>
               this.freightService.parseCarrierEmailText(text),
             );
+            await this.freightService.processAutomatedPipelineForTenant(syntheticAuth);
           }
         } catch (err: any) {
           this.logger.warn(`Failed automated IMAP sync for tenant [${row.tenant_id}]: ${err?.message}`);
+        }
+      }
+
+      // Also process open RFQs for any tenant that has active bidding sessions
+      const openRfqTenants = await this.db
+        .selectFrom('maritime_rfqs')
+        .select('tenant_id')
+        .distinct()
+        .where('status', 'in', ['sent', 'bids_received'])
+        .where('auto_awarded', '=', false)
+        .execute();
+
+      for (const t of openRfqTenants) {
+        if (!t.tenant_id) continue;
+        const syntheticAuth: AuthContext = {
+          userId: 0,
+          sessionId: 'scheduler-system',
+          username: 'system',
+          role: 'admin',
+          tenantId: t.tenant_id,
+          accountId: t.tenant_id,
+          permissions: ['maritime_freight', 'all'],
+        };
+        try {
+          await this.freightService.processAutomatedPipelineForTenant(syntheticAuth);
+        } catch (err: any) {
+          this.logger.warn(`Failed automated pipeline execution for tenant [${t.tenant_id}]: ${err?.message}`);
         }
       }
     } catch (err: any) {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
 import { contractingApi } from '../api/contracting.api';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface CreateDailyLogModalProps {
   open: boolean;
@@ -76,151 +77,210 @@ export function CreateDailyLogModal({
       onClose={onClose}
       title="تقرير الموقع اليومي (Site Daily Diary Log)"
       subtitle={projectName ? `المشروع: ${projectName}` : 'توثيق العمالة والمعدات والأعمال والمعوقات الميدانية'}
-      width="min(760px, 95vw)"
-    >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
-        {errorMsg && (
-          <div
-            style={{
-              padding: '10px 14px',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '8px',
-              color: '#991b1b',
-              fontSize: 'var(--font-body)',
-              fontWeight: 500,
-            }}
-          >
-            {errorMsg}
-          </div>
-        )}
-
-        {/* التاريخ وحالة الطقس ومهندس الموقع */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-          <Field label="تاريخ التقرير *">
-            <input
-              type="date"
-              value={formData.logDate}
-              onChange={(e) => setFormData({ ...formData, logDate: e.target.value })}
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-              required
-            />
-          </Field>
-
-          <Field label="حالة الطقس والأجواء">
-            <input
-              type="text"
-              value={formData.weatherConditions}
-              onChange={(e) => setFormData({ ...formData, weatherConditions: e.target.value })}
-              placeholder="مثال: مشمس 28°C / رياح خفيفة"
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-            />
-          </Field>
-
-          <Field label="مهندس الموقع / مُعد التقرير">
-            <input
-              type="text"
-              value={formData.loggedBy}
-              onChange={(e) => setFormData({ ...formData, loggedBy: e.target.value })}
-              placeholder="اسم المهندس المشرف"
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-            />
-          </Field>
-        </div>
-
-        {/* حصر العمالة */}
-        <div style={{ backgroundColor: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b' }}>
-              حصر القوى العاملة بالموقع (Headcount by Trade)
-            </span>
-            <span style={{ fontSize: 'var(--font-badge)', fontWeight: 600, color: '#170e5e', backgroundColor: '#e0e7ff', padding: '3px 10px', borderRadius: '12px' }}>
-              إجمالي العمالة: {totalLabor} عامل
-            </span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <Field label="عمالة الشركة (الذاتية)">
-              <input
-                type="number"
-                min="0"
-                value={formData.laborCount}
-                onChange={(e) => setFormData({ ...formData, laborCount: e.target.value })}
-                className="form-input"
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-              />
-            </Field>
-            <Field label="عمالة مقاولي الباطن">
-              <input
-                type="number"
-                min="0"
-                value={formData.subcontractorLaborCount}
-                onChange={(e) => setFormData({ ...formData, subcontractorLaborCount: e.target.value })}
-                className="form-input"
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-              />
-            </Field>
-          </div>
-        </div>
-
-        {/* الأعمال المنفذة */}
-        <Field label="الأعمال المنفذة والإنجاز اليومي (Work Performed) *">
-          <textarea
-            value={formData.workPerformed}
-            onChange={(e) => setFormData({ ...formData, workPerformed: e.target.value })}
-            placeholder="مثال: استكمال نجارة وحدادة سقف الدور الثاني - الانتهاء من تمديد مواسير التغذية بالبلوك B - أعمال العزل المائي للأرضيات..."
-            className="form-input"
-            rows={3}
-            style={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 10px', resize: 'vertical' }}
-            required
-          />
-        </Field>
-
-        {/* المعدات المشغلة والمواد المستلمة */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <Field label="المعدات والآليات بالموقع (Equipment on Site)">
-            <input
-              type="text"
-              value={formData.equipmentOnSite}
-              onChange={(e) => setFormData({ ...formData, equipmentOnSite: e.target.value })}
-              placeholder="مثال: ونش برجي عدد 1، لودر CAT عدد 2، مضخة خرسانة..."
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-            />
-          </Field>
-
-          <Field label="المواد والتوريدات المستلمة اليوم">
-            <input
-              type="text"
-              value={formData.materialsReceived}
-              onChange={(e) => setFormData({ ...formData, materialsReceived: e.target.value })}
-              placeholder="مثال: 50 طن حديد تسليح عز، 2000 بلك بركاني..."
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-            />
-          </Field>
-        </div>
-
-        {/* معوقات العمل أو توقفات */}
-        <Field label="معوقات أو ملاحظات طارئة (Site Obstacles / Safety)">
-          <textarea
-            value={formData.delaysOrObstacles}
-            onChange={(e) => setFormData({ ...formData, delaysOrObstacles: e.target.value })}
-            placeholder="مثال: تأخر اعتماد عينات الرخام من الاستشاري، توقف الرافعة لمدة ساعتين للصيانة..."
-            className="form-input"
-            rows={2}
-            style={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 10px', resize: 'vertical' }}
-          />
-        </Field>
-
+      width="min(920px, 95vw)"
+      minHeight="auto"
+      footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={() => handleSubmit()}
           submitText="حفظ وتوثيق التقرير اليومي"
           isSubmitting={isSubmitting}
         />
+      )}
+    >
+      <style>{`
+        .daily-log-compact-modal .field {
+          margin-bottom: 0 !important;
+          gap: 3px !important;
+        }
+        .daily-log-compact-modal .field span {
+          font-size: 0.74rem !important;
+          font-weight: 600 !important;
+          color: #334155 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }
+        .daily-log-compact-modal input,
+        .daily-log-compact-modal textarea {
+          height: 33px !important;
+          font-size: 0.8125rem !important;
+          border-radius: 6px !important;
+          padding: 0 10px !important;
+          border: 1px solid #cbd5e1 !important;
+          background: #ffffff !important;
+          box-sizing: border-box !important;
+          outline: none !important;
+          width: 100% !important;
+          transition: border-color 0.15s, box-shadow 0.15s !important;
+        }
+        .daily-log-compact-modal textarea {
+          height: auto !important;
+          min-height: 48px !important;
+          padding: 6px 10px !important;
+          resize: vertical !important;
+          line-height: 1.4 !important;
+          font-family: inherit !important;
+        }
+        .daily-log-compact-modal input:focus,
+        .daily-log-compact-modal textarea:focus {
+          border-color: #170e5e !important;
+          box-shadow: 0 0 0 2px rgba(23, 14, 94, 0.1) !important;
+        }
+      `}</style>
+
+      <form onSubmit={handleSubmit} className="daily-log-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '9px' }} dir="rtl">
+        {errorMsg && (
+          <div
+            style={{
+              padding: '8px 12px',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              color: '#991b1b',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+            }}
+          >
+            {errorMsg}
+          </div>
+        )}
+
+        {/* 1. بيانات اليومية والظروف الميدانية */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Calendar size={15} />
+            <span>1. بيانات اليومية والظروف الميدانية (Log Date & Site Conditions)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr 1.5fr', gap: '10px', alignItems: 'start' }}>
+            <Field label="تاريخ التقرير *">
+              <input
+                type="date"
+                value={formData.logDate}
+                onChange={(e) => setFormData({ ...formData, logDate: e.target.value })}
+                required
+              />
+            </Field>
+
+            <Field label="حالة الطقس والأجواء">
+              <input
+                type="text"
+                value={formData.weatherConditions}
+                onChange={(e) => setFormData({ ...formData, weatherConditions: e.target.value })}
+                placeholder="مثال: مشمس 28°C / معتدل"
+              />
+            </Field>
+
+            <Field label="مهندس الموقع / مُعد التقرير">
+              <input
+                type="text"
+                value={formData.loggedBy}
+                onChange={(e) => setFormData({ ...formData, loggedBy: e.target.value })}
+                placeholder="اسم المهندس المشرف..."
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* 2. القوى العاملة والمعدات والتوريدات */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Users size={15} />
+            <span>2. الموارد والمعدات بالموقع (Resources & Equipment on Site)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.5fr 1.5fr', gap: '10px', alignItems: 'start' }}>
+            <Field label="عمالة الشركة (الذاتية)">
+              <input
+                type="number"
+                min="0"
+                dir="ltr"
+                value={formData.laborCount}
+                onChange={(e) => setFormData({ ...formData, laborCount: e.target.value })}
+                placeholder="0"
+              />
+            </Field>
+
+            <Field label="عمالة مقاولي الباطن">
+              <input
+                type="number"
+                min="0"
+                dir="ltr"
+                value={formData.subcontractorLaborCount}
+                onChange={(e) => setFormData({ ...formData, subcontractorLaborCount: e.target.value })}
+                placeholder="0"
+              />
+            </Field>
+
+            <Field label="إجمالي القوى العاملة">
+              <div
+                style={{
+                  height: '33px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  fontWeight: 800,
+                  color: '#170e5e',
+                  fontSize: '0.84rem',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {totalLabor} عامل
+              </div>
+            </Field>
+
+            <Field label="المعدات والآليات بالموقع">
+              <input
+                type="text"
+                value={formData.equipmentOnSite}
+                onChange={(e) => setFormData({ ...formData, equipmentOnSite: e.target.value })}
+                placeholder="مثال: ونش برجي، لودر CAT..."
+              />
+            </Field>
+
+            <Field label="المواد والتوريدات المستلمة اليوم">
+              <input
+                type="text"
+                value={formData.materialsReceived}
+                onChange={(e) => setFormData({ ...formData, materialsReceived: e.target.value })}
+                placeholder="مثال: 50 طن حديد عز..."
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* 3. الأعمال المنفذة والمعوقات الميدانية */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.FileText size={15} />
+            <span>3. الأعمال المنفذة والمعوقات الميدانية (Executed Works & Obstacles)</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <Field label="الأعمال المنفذة والإنجاز اليومي *">
+              <textarea
+                rows={2}
+                value={formData.workPerformed}
+                onChange={(e) => setFormData({ ...formData, workPerformed: e.target.value })}
+                placeholder="مثال: استكمال حدادة ونجارة سقف الدور الثاني وتمديد شبكة الكهرباء وصب الأعمدة..."
+                required
+              />
+            </Field>
+
+            <Field label="معوقات أو ملاحظات طارئة (اختياري)">
+              <input
+                type="text"
+                value={formData.delaysOrObstacles}
+                onChange={(e) => setFormData({ ...formData, delaysOrObstacles: e.target.value })}
+                placeholder="مثال: تأخر اعتماد عينات الاستشاري أو أعمال صيانة طارئة..."
+              />
+            </Field>
+          </div>
+        </div>
       </form>
     </StandardDialog>
   );

@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { MaritimeContainer } from '../api/maritime-freight.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -20,9 +21,15 @@ export function MaritimeContainersTab({
   onOpenReturnModal,
   onRefresh,
 }: MaritimeContainersTabProps) {
+  const location = useLocation();
   const [filterType, setFilterType] = useState<ContainerFilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false);
+
+  // Reset search query on route or filter change
+  useEffect(() => {
+    setSearchQuery('');
+  }, [location.pathname, filterType]);
   const [selectedMilestoneContainer, setSelectedMilestoneContainer] = useState<MaritimeContainer | null>(null);
 
   // Compute KPIs & Counts
@@ -365,6 +372,14 @@ export function MaritimeContainersTab({
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <input
               type="text"
+              role="searchbox"
+              name="search_maritime_containers"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-form-type="other"
+              data-lpignore="true"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="بحث برقم الحاوية، الختم، العميل، الخط..."

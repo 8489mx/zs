@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { Field } from '@/shared/ui/field';
 import { contractingApi } from '../api/contracting.api';
 import type { ContractingRfi } from '../contracting.types';
@@ -54,64 +55,90 @@ export function AnswerRfiModal({
       title={`الرد على الاستفسار الفني: ${rfi.rfiNumber}`}
       subtitle={rfi.subject}
       width="min(680px, 95vw)"
+      footerActions={
+        <StandardDialogFooter
+          onCancel={onClose}
+          onSubmit={() => handleSubmit()}
+          submitText={isSubmitting ? 'جارٍ الاعتماد...' : 'اعتماد وإغلاق الاستفسار (Close RFI)'}
+          isSubmitting={isSubmitting}
+        />
+      }
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} dir="rtl">
         {errorMsg && (
           <div
             style={{
-              padding: '10px 14px',
+              padding: '8px 12px',
               backgroundColor: '#fef2f2',
               border: '1px solid #fecaca',
-              borderRadius: '8px',
+              borderRadius: '6px',
               color: '#991b1b',
-              fontSize: 'var(--font-body)',
-              fontWeight: 500,
+              fontSize: '0.8125rem',
+              fontWeight: 600,
             }}
           >
             {errorMsg}
           </div>
         )}
 
-        {/* نص السؤال الأصلي */}
-        <div style={{ backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: 'var(--font-caption)', color: '#64748b', marginBottom: '4px' }}>
-            نص الاستفسار المقدم:
+        {/* بطاقة 1: نص الاستفسار المقدم */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.HelpCircle size={15} />
+            <span>1. نص الاستفسار الفني الوارد من الموقع</span>
           </div>
-          <div style={{ fontSize: 'var(--font-body)', color: '#1e293b', whiteSpace: 'pre-wrap' }}>
+          <div style={{ fontSize: '0.8125rem', color: '#1e293b', lineHeight: 1.6, background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px', whiteSpace: 'pre-wrap' }}>
             {rfi.question}
           </div>
         </div>
 
-        {/* رد الاستشاري */}
-        <Field label="نص رد واعتماد الاستشاري المشرف (Consultant Response) *">
-          <textarea
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            placeholder="اكتب رد الاستشاري والحل المعتمد ومسار التنفيذ..."
-            className="form-input"
-            rows={5}
-            style={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 10px', resize: 'vertical' }}
-            required
-          />
-        </Field>
+        {/* بطاقة 2: رد واعتماد الاستشاري المشرف */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.FileCheck size={15} />
+            <span>2. رد واعتماد الاستشاري المشرف والحل الهندسي</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <Field label="نص رد واعتماد الاستشاري المشرف (Consultant Response) *">
+              <textarea
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                placeholder="اكتب رد الاستشاري والحل المعتمد ومسار التنفيذ الهندسي..."
+                className="form-input"
+                rows={4}
+                style={{
+                  width: '100%',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  padding: '8px 10px',
+                  fontSize: '0.8125rem',
+                  resize: 'vertical',
+                  boxSizing: 'border-box',
+                }}
+                required
+              />
+            </Field>
 
-        <Field label="ملاحظات توثيقية إضافية">
-          <input
-            type="text"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="مثال: تم إرفاق سكتش الحل الهندسي مع خطاب الاعتماد رقم C-89"
-            className="form-input"
-            style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-          />
-        </Field>
-
-        <StandardDialogFooter
-          onCancel={onClose}
-          onSubmit={() => handleSubmit()}
-          submitText="اعتماد وإغلاق الاستفسار (Close RFI)"
-          isSubmitting={isSubmitting}
-        />
+            <Field label="ملاحظات توثيقية إضافية / رقم خطاب الاعتماد">
+              <input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="مثال: تم إرفاق سكتش الحل الهندسي مع خطاب الاعتماد رقم C-89"
+                className="form-input"
+                style={{
+                  width: '100%',
+                  height: '33px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  padding: '0 10px',
+                  fontSize: '0.8125rem',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </Field>
+          </div>
+        </div>
       </form>
     </StandardDialog>
   );

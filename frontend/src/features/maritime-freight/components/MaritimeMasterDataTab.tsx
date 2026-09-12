@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   ShippingPort,
   ShippingLine,
@@ -6,7 +7,7 @@ import {
   maritimeApi,
 } from '../api/maritime-freight.api';
 import { Field } from '@/shared/ui/field';
-import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { AppIcons, XIcon } from '@/shared/components/icons/AppIcons';
 import { PartnerFormModal } from './PartnerFormModal';
 import { ImportCarriersModal } from './ImportCarriersModal';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
@@ -47,6 +48,7 @@ export function MaritimeMasterDataTab({
   lines,
   onRefresh,
 }: MaritimeMasterDataTabProps) {
+  const location = useLocation();
   const [subTab, setSubTab] = useState<'lines' | 'agents' | 'ports' | 'standards'>('agents');
   
   // Search and Filter States
@@ -65,6 +67,11 @@ export function MaritimeMasterDataTab({
   const [isLoadingRefData, setIsLoadingRefData] = useState(false);
   const [standardsSubCategory, setStandardsSubCategory] = useState<'containers' | 'incoterms' | 'terminals'>('containers');
   const [containerCategoryFilter, setContainerCategoryFilter] = useState<'all' | 'dry' | 'reefer' | 'special'>('all');
+
+  // Ensure search input never holds stale or autofilled values when switching tabs or categories
+  useEffect(() => {
+    setSearchQuery('');
+  }, [location.pathname, subTab, standardsSubCategory]);
 
   useEffect(() => {
     if (subTab === 'standards' && !referenceData && !isLoadingRefData) {
@@ -668,6 +675,14 @@ export function MaritimeMasterDataTab({
             <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
               <input
                 type="text"
+                role="searchbox"
+                name="search_maritime_lines"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-form-type="other"
+                data-lpignore="true"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="بحث في الخطوط الملاحية والتوكيلات..."
@@ -676,15 +691,39 @@ export function MaritimeMasterDataTab({
                   height: '34px',
                   borderRadius: '6px',
                   border: '1px solid #cbd5e1',
-                  padding: '0 32px 0 10px',
+                  padding: searchQuery ? '0 32px 0 28px' : '0 32px 0 10px',
                   fontSize: '0.8125rem',
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
               />
-              <div style={{ position: 'absolute', right: '10px', top: '8px', color: '#94a3b8' }}>
+              <div style={{ position: 'absolute', right: '10px', top: '9px', color: '#94a3b8', pointerEvents: 'none' }}>
                 <AppIcons.Search size={15} />
               </div>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  title="مسح البحث"
+                  style={{
+                    position: 'absolute',
+                    left: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#94a3b8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2px',
+                    borderRadius: '50%',
+                  }}
+                >
+                  <XIcon size={14} />
+                </button>
+              )}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
@@ -737,23 +776,55 @@ export function MaritimeMasterDataTab({
             <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
               <input
                 type="text"
+                role="searchbox"
+                name="search_maritime_agents"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-form-type="other"
+                data-lpignore="true"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث باسم الوكيل، الدولة، أو الإيميل..."
+                placeholder="بحث باسم الوكيل، الدولة، أو الكود..."
                 style={{
                   width: '100%',
                   height: '34px',
                   borderRadius: '6px',
                   border: '1px solid #cbd5e1',
-                  padding: '0 32px 0 10px',
+                  padding: searchQuery ? '0 32px 0 28px' : '0 32px 0 10px',
                   fontSize: '0.8125rem',
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
               />
-              <div style={{ position: 'absolute', right: '10px', top: '8px', color: '#94a3b8' }}>
+              <div style={{ position: 'absolute', right: '10px', top: '9px', color: '#94a3b8', pointerEvents: 'none' }}>
                 <AppIcons.Search size={15} />
               </div>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  title="مسح البحث"
+                  style={{
+                    position: 'absolute',
+                    left: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#94a3b8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2px',
+                    borderRadius: '50%',
+                  }}
+                >
+                  <XIcon size={14} />
+                </button>
+              )}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -846,6 +917,14 @@ export function MaritimeMasterDataTab({
               <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
                 <input
                   type="text"
+                  role="searchbox"
+                  name="search_maritime_ports"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-form-type="other"
+                  data-lpignore="true"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="بحث في الموانئ بالكود أو الاسم..."
@@ -854,15 +933,39 @@ export function MaritimeMasterDataTab({
                     height: '34px',
                     borderRadius: '6px',
                     border: '1px solid #cbd5e1',
-                    padding: '0 32px 0 10px',
+                    padding: searchQuery ? '0 32px 0 28px' : '0 32px 0 10px',
                     fontSize: '0.8125rem',
                     outline: 'none',
                     boxSizing: 'border-box',
                   }}
                 />
-                <div style={{ position: 'absolute', right: '10px', top: '8px', color: '#94a3b8' }}>
+                <div style={{ position: 'absolute', right: '10px', top: '9px', color: '#94a3b8', pointerEvents: 'none' }}>
                   <AppIcons.Search size={15} />
                 </div>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    title="مسح البحث"
+                    style={{
+                      position: 'absolute',
+                      left: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#94a3b8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '2px',
+                      borderRadius: '50%',
+                    }}
+                  >
+                    <XIcon size={14} />
+                  </button>
+                )}
               </div>
             </div>
           </>
@@ -997,6 +1100,14 @@ export function MaritimeMasterDataTab({
               <div style={{ position: 'relative', width: '240px', maxWidth: '100%' }}>
                 <input
                   type="text"
+                  role="searchbox"
+                  name="search_maritime_standards"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-form-type="other"
+                  data-lpignore="true"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={
@@ -1011,15 +1122,39 @@ export function MaritimeMasterDataTab({
                     height: '32px',
                     borderRadius: '6px',
                     border: '1px solid #cbd5e1',
-                    padding: '0 30px 0 8px',
+                    padding: searchQuery ? '0 30px 0 26px' : '0 30px 0 8px',
                     fontSize: '0.78rem',
                     outline: 'none',
                     boxSizing: 'border-box',
                   }}
                 />
-                <div style={{ position: 'absolute', right: '8px', top: '7px', color: '#94a3b8' }}>
+                <div style={{ position: 'absolute', right: '8px', top: '8px', color: '#94a3b8', pointerEvents: 'none' }}>
                   <AppIcons.Search size={14} />
                 </div>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    title="مسح البحث"
+                    style={{
+                      position: 'absolute',
+                      left: '6px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#94a3b8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '2px',
+                      borderRadius: '50%',
+                    }}
+                  >
+                    <XIcon size={13} />
+                  </button>
+                )}
               </div>
             </div>
           </div>

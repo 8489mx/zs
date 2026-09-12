@@ -1,9 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { contractingApi } from '../api/contracting.api';
 import { MasterBoqItem, MasterBoqTrade, ContractingBoqItem } from '../contracting.types';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
+
+export const UNIT_OPTIONS = [
+  { value: 'm2', label: 'متر مسطح (m²)' },
+  { value: 'm3', label: 'متر مكعب (m³)' },
+  { value: 'm', label: 'متر طولي (m)' },
+  { value: 'point', label: 'نقطة (point)' },
+  { value: 'set', label: 'طقم / لوحة (set)' },
+  { value: 'item', label: 'عدد (item)' },
+  { value: 'ton', label: 'طن (ton)' },
+  { value: 'kg', label: 'كيلوجرام (kg)' },
+  { value: 'ls', label: 'مقطوعية (ls)' },
+];
 
 const EMPTY_ITEMS: any[] = [];
 
@@ -401,14 +415,27 @@ export function UniversalBoqItemModal({
     ? (projectName ? `المشروع: ${projectName}` : 'تحديد مواصفات البند والكميات التعاقدية وسعر الفئة والتكلفة التقديرية')
     : 'حفظ البند في مكتبة البنود العامة لشركتك لاستيراده بضغطة زر في أي مشروع قادم';
 
+  const tradeOptions = useMemo(() => {
+    if (trades.length > 0) {
+      return trades.map((t) => ({
+        value: t.tradeCategory,
+        label: t.tradeNameAr,
+      }));
+    }
+    return Object.entries(TRADE_LABELS).map(([key, label]) => ({
+      value: key,
+      label,
+    }));
+  }, [trades]);
+
   return (
     <StandardDialog
       open={open}
       onClose={onClose}
       title={dialogTitle}
       subtitle={dialogSubtitle}
-      width="min(780px, 95vw)"
-      minHeight="min(560px, 85vh)"
+      width="min(940px, 96vw)"
+      minHeight="auto"
       footer={
         <StandardDialogFooter
           onCancel={onClose}
@@ -418,16 +445,64 @@ export function UniversalBoqItemModal({
         />
       }
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <style>{`
+        .boq-premium-modal .field {
+          margin-bottom: 0 !important;
+          gap: 3px !important;
+        }
+        .boq-premium-modal .field span {
+          font-size: 0.74rem !important;
+          font-weight: 600 !important;
+          color: #334155 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }
+        .boq-premium-modal input,
+        .boq-premium-modal textarea {
+          height: 33px !important;
+          font-size: 0.8125rem !important;
+          border-radius: 6px !important;
+          padding: 0 10px !important;
+          border: 1px solid #cbd5e1 !important;
+          background: #ffffff !important;
+          box-sizing: border-box !important;
+          outline: none !important;
+          width: 100% !important;
+          transition: border-color 0.15s, box-shadow 0.15s !important;
+        }
+        .boq-premium-modal textarea {
+          height: auto !important;
+          min-height: 48px !important;
+          padding: 6px 10px !important;
+          resize: vertical !important;
+          line-height: 1.4 !important;
+          font-family: inherit !important;
+        }
+        .boq-premium-modal input:focus,
+        .boq-premium-modal textarea:focus {
+          border-color: #170e5e !important;
+          box-shadow: 0 0 0 2px rgba(23, 14, 94, 0.1) !important;
+        }
+        .boq-premium-modal .custom-select-trigger {
+          min-height: 33px !important;
+          height: 33px !important;
+          font-size: 0.8125rem !important;
+          border-radius: 6px !important;
+          border: 1px solid #cbd5e1 !important;
+          padding: 0 10px !important;
+        }
+      `}</style>
+      <form onSubmit={handleSubmit} className="boq-premium-modal" style={{ display: 'flex', flexDirection: 'column', gap: '9px' }} dir="rtl">
         {errorMsg && (
           <div
             style={{
-              padding: '10px 14px',
+              padding: '8px 12px',
               borderRadius: '8px',
               background: '#fef2f2',
               color: '#b91c1c',
               border: '1px solid #fecaca',
-              fontSize: 'var(--font-body)',
+              fontSize: '0.8rem',
               fontWeight: 600,
             }}
           >
@@ -435,274 +510,170 @@ export function UniversalBoqItemModal({
           </div>
         )}
 
-        {/* سطر التصنيف والتكويد ووحدة القياس */}
-        <div style={{ display: 'grid', gridTemplateColumns: mode === 'project' ? '1.2fr 1fr 1fr 1fr' : '1.2fr 1fr 1fr', gap: '12px' }}>
-          <Field label="التخصص الإنشائي / التصنيف">
-            <select
-              value={formData.tradeCategory}
-              onChange={(e) => handleTradeCategoryChange(e.target.value)}
-              style={{
-                width: '100%',
-                height: '38px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                padding: '0 10px',
-                fontSize: 'var(--font-body)',
-                background: '#ffffff',
-                fontWeight: 600,
-                color: '#0f172a',
-              }}
-            >
-              {trades.length > 0 ? (
-                trades.map((t) => (
-                  <option key={t.tradeCategory} value={t.tradeCategory}>
-                    {t.tradeNameAr}
-                  </option>
-                ))
-              ) : (
-                Object.entries(TRADE_LABELS).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))
-              )}
-            </select>
-          </Field>
+        {/* 1. التخصص الإنشائي وكود البند */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Layers size={15} />
+            <span>1. التخصص الإنشائي وكود البند (Trade & Item Coding)</span>
+          </div>
 
-          <Field
-            label="كود البند"
-            hint={!initialItem ? 'توليد تلقائي متسلسل' : 'كود البند المسجل'}
-          >
-            <input
-              type="text"
-              value={formData.itemCode}
-              disabled={Boolean(initialItem)}
-              onChange={(e) => setFormData({ ...formData, itemCode: e.target.value.toUpperCase() })}
-              placeholder="مثال: MAS-007"
-              style={{
-                width: '100%',
-                height: '38px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                padding: '0 10px',
-                fontSize: 'var(--font-body)',
-                fontFamily: 'monospace',
-                fontWeight: 700,
-                color: '#170e5e',
-                background: initialItem ? '#f8fafc' : '#f0f9ff',
-              }}
-            />
-          </Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '10px', alignItems: 'start' }}>
+            <Field label="التخصص الإنشائي / التصنيف *">
+              <CustomSelect
+                value={formData.tradeCategory}
+                options={tradeOptions}
+                onChange={(val) => handleTradeCategoryChange(val)}
+              />
+            </Field>
 
-          <Field label="وحدة القياس">
-            <select
-              value={formData.unit}
-              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-              style={{
-                width: '100%',
-                height: '38px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                padding: '0 10px',
-                fontSize: 'var(--font-body)',
-                background: '#ffffff',
-                fontWeight: 600,
-              }}
-            >
-              <option value="m2">متر مسطح (m2)</option>
-              <option value="m3">متر مكعب (m3)</option>
-              <option value="m">متر طولي (m)</option>
-              <option value="point">نقطة (point)</option>
-              <option value="set">طقم / لوحة (set)</option>
-              <option value="item">عدد (item)</option>
-              <option value="ton">طن (ton)</option>
-              <option value="kg">كيلوجرام (kg)</option>
-              <option value="ls">مقطوعية (ls)</option>
-            </select>
-          </Field>
-
-          {mode === 'project' && (
-            <Field label="الكمية التعاقدية *" hint="المحصورة من اللوحات">
+            <Field label={!initialItem ? "كود البند (توليد تلقائي)" : "كود البند"}>
               <input
                 type="text"
-                inputMode="decimal"
-                required
-                autoFocus={Boolean(initialItem && (!initialItem.contractQty || Number(initialItem.contractQty) === 0))}
-                value={formData.contractQty}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => {
-                  const cleaned = cleanNumberInput(e.target.value);
-                  setFormData((prev) => ({ ...prev, contractQty: cleaned }));
-                }}
-                placeholder="0.00"
+                value={formData.itemCode}
+                disabled={Boolean(initialItem)}
+                onChange={(e) => setFormData({ ...formData, itemCode: e.target.value.toUpperCase() })}
+                placeholder="مثال: MAS-007"
+                dir="ltr"
                 style={{
-                  width: '100%',
-                  height: '38px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  padding: '0 10px',
-                  fontSize: 'var(--font-body)',
+                  fontFamily: 'monospace',
                   fontWeight: 700,
-                  color: '#0f172a',
-                  background: '#ffffff',
+                  color: '#170e5e',
+                  background: initialItem ? '#f8fafc' : '#f0f9ff',
                 }}
               />
             </Field>
-          )}
+          </div>
         </div>
 
-        {/* مسمى البند */}
-        <Field label="مسمى البند والمواصفة الفنية التعاقدية *">
-          <input
-            dir="auto"
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="مثال: مباني من الطوب الأسمنتي المصمت سمك 25 سم لقصية الردم"
-            style={{
-              width: '100%',
-              height: '38px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              padding: '0 10px',
-              fontSize: 'var(--font-body)',
-              fontWeight: 600,
-            }}
-          />
-        </Field>
+        {/* 2. توصيف ومواصفات البند والكمية */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.FileText size={15} />
+            <span>2. توصيف الأعمال والمواصفة التعاقدية (Scope & Technical Specs)</span>
+          </div>
 
-        {/* بيان الأعمال والمواصفات الفنية التفصيلية */}
-        <Field label="بيان الأعمال والشروط والمواصفات المعتمدة" hint="المواصفات القياسية للبند واشتراطات الكود">
-          <textarea
-            dir="auto"
-            rows={2}
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="بيان تفصيلي بالأعمال والاشتراطات والمواد المستعملة وطريقة التنفيذ والاختبار..."
-            style={{
-              width: '100%',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              padding: '8px 10px',
-              fontSize: 'var(--font-body)',
-              fontFamily: 'inherit',
-            }}
-          />
-        </Field>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mode === 'project' ? '2.2fr 1fr 1fr' : '2.5fr 1fr', gap: '10px', alignItems: 'start' }}>
+              <Field label="مسمى البند والمواصفة الفنية التعاقدية *">
+                <input
+                  dir="auto"
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="مثال: مباني من الطوب الأسمنتي المصمت سمك 25 سم لقصية الردم"
+                />
+              </Field>
 
-        {/* كارت التسعير التلقائي وهامش الربح الذكي (نفس الكارت الموحد) */}
-        <div
-          style={{
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '14px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b' }}>
-              التسعير وهامش الربح للوحدة (Pricing & Margin)
-            </span>
+              <Field label="وحدة القياس *">
+                <CustomSelect
+                  value={formData.unit}
+                  options={UNIT_OPTIONS}
+                  onChange={(val) => setFormData({ ...formData, unit: val })}
+                />
+              </Field>
+
+              {mode === 'project' && (
+                <Field label="الكمية التعاقدية *">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    required
+                    dir="ltr"
+                    autoFocus={Boolean(initialItem && (!initialItem.contractQty || Number(initialItem.contractQty) === 0))}
+                    value={formData.contractQty}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const cleaned = cleanNumberInput(e.target.value);
+                      setFormData((prev) => ({ ...prev, contractQty: cleaned }));
+                    }}
+                    placeholder="0.00"
+                    style={{
+                      fontWeight: 700,
+                      color: '#0f172a',
+                    }}
+                  />
+                </Field>
+              )}
+            </div>
+
+            <Field label="بيان الأعمال والشروط والمواصفات المعتمدة (اختياري)">
+              <textarea
+                dir="auto"
+                rows={2}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="بيان تفصيلي بالأعمال والاشتراطات والمواد المستعملة وطريقة التنفيذ والاختبار..."
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* 3. كارت التسعير وهامش الربح الذكي */}
+        <div style={{ background: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#15803d', fontWeight: 700, fontSize: '0.84rem' }}>
+              <AppIcons.Calculator size={15} />
+              <span>3. التسعير وهامش الربح للوحدة (Pricing & Margin Engine)</span>
+            </div>
             <span
               style={{
                 fontSize: '11px',
-                fontWeight: 600,
-                color: '#4338ca',
-                background: '#e0e7ff',
+                fontWeight: 700,
+                color: '#15803d',
+                background: '#dcfce7',
                 padding: '2px 8px',
                 borderRadius: '6px',
+                border: '1px solid #86efac',
               }}
             >
-              احتساب تلقائي فوري
+              احتساب فوري ديناميكي
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 1.1fr', gap: '12px' }}>
-            {/* 1. سعر التكلفة المرجعية */}
-            <Field label="التكلفة التقديرية للوحدة" hint="خامات + مصنعية ومعدات">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.15fr', gap: '10px', alignItems: 'start' }}>
+            <Field label={`التكلفة التقديرية للوحدة (${currencySymbol})`}>
               <input
                 type="text"
                 inputMode="decimal"
+                dir="ltr"
                 value={formData.standardCost}
                 onFocus={(e) => e.target.select()}
                 onChange={(e) => handleCostChange(e.target.value)}
                 placeholder="0.00"
+                style={{ fontWeight: 600 }}
+              />
+            </Field>
+
+            <Field label={`هامش الربح (%) [المقترح: ${currentSuggestedMargin}%]`}>
+              <input
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                value={marginPercent}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => handleMarginChange(e.target.value)}
+                placeholder={String(currentSuggestedMargin)}
                 style={{
-                  width: '100%',
-                  height: '38px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  padding: '0 10px',
-                  fontSize: 'var(--font-body)',
-                  fontWeight: 600,
-                  background: '#ffffff',
+                  fontWeight: 700,
+                  color: '#0f172a',
                 }}
               />
             </Field>
 
-            {/* 2. خانة هامش الربح (%) في المنتصف بين التكلفة والبيع */}
-            <Field
-              label="هامش الربح (%)"
-              hint={`المقترح: ${currentSuggestedMargin}%`}
-            >
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={marginPercent}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => handleMarginChange(e.target.value)}
-                  placeholder={String(currentSuggestedMargin)}
-                  style={{
-                    width: '100%',
-                    height: '38px',
-                    borderRadius: '8px',
-                    border: '1px solid #94a3b8',
-                    padding: '0 28px 0 10px',
-                    fontSize: 'var(--font-body)',
-                    fontWeight: 700,
-                    color: '#0f172a',
-                    background: '#ffffff',
-                  }}
-                />
-                <span
-                  style={{
-                    position: 'absolute',
-                    left: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: 'var(--font-body)',
-                    fontWeight: 700,
-                    color: '#64748b',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  %
-                </span>
-              </div>
-            </Field>
-
-            {/* 3. سعر الفئة للعميل / سعر البيع المقترح */}
-            <Field label={mode === 'project' ? `سعر الفئة للعميل (${currencySymbol}) *` : `سعر البيع المقترح (${currencySymbol}) *`} hint="يُحسب تلقائياً من الهامش">
+            <Field label={mode === 'project' ? `سعر الفئة للعميل (${currencySymbol}) *` : `سعر البيع المقترح (${currencySymbol}) *`}>
               <input
                 type="text"
                 inputMode="decimal"
+                dir="ltr"
                 value={formData.standardPrice}
                 onFocus={(e) => e.target.select()}
                 onChange={(e) => handlePriceChange(e.target.value)}
                 placeholder="0.00"
                 style={{
-                  width: '100%',
-                  height: '38px',
-                  borderRadius: '8px',
-                  border: '1px solid #170e5e',
-                  padding: '0 10px',
-                  fontSize: 'var(--font-body)',
                   fontWeight: 800,
                   color: '#170e5e',
+                  border: '2px solid #170e5e',
                   background: '#ffffff',
                 }}
               />
@@ -713,30 +684,32 @@ export function UniversalBoqItemModal({
           {price > 0 && cost > 0 && (
             <div
               style={{
-                padding: '10px 14px',
-                borderRadius: '8px',
+                marginTop: '8px',
+                padding: '7px 12px',
+                borderRadius: '6px',
                 background: '#ffffff',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #dcfce7',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '6px',
-                fontSize: 'var(--font-micro)',
+                gap: '4px',
+                fontSize: '0.74rem',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
                 <span style={{ color: '#475569' }}>
-                  صافي ربح الوحدة: <strong style={{ color: '#170e5e' }}>{(price - cost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> {currencySymbol} / {formData.unit}
+                  صافي ربح الوحدة: <strong style={{ color: '#170e5e', fontSize: '0.82rem' }}>{(price - cost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> {currencySymbol} / {formData.unit}
                 </span>
                 <span
                   style={{
                     fontWeight: 700,
                     color: effectiveMargin >= 25 ? '#15803d' : effectiveMargin > 0 ? '#b45309' : '#b91c1c',
                     background: effectiveMargin >= 25 ? '#dcfce7' : effectiveMargin > 0 ? '#fef3c7' : '#fee2e2',
-                    padding: '3px 8px',
+                    padding: '2px 8px',
                     borderRadius: '4px',
+                    fontSize: '0.72rem',
                   }}
                 >
-                  الهامش الإجمالي الفعلي: {effectiveMargin}%
+                  الهامش الفعلي: {effectiveMargin}%
                 </span>
               </div>
 
@@ -746,16 +719,18 @@ export function UniversalBoqItemModal({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    borderTop: '1px dashed #e2e8f0',
-                    paddingTop: '6px',
+                    borderTop: '1px dashed #dcfce7',
+                    paddingTop: '4px',
                     marginTop: '2px',
+                    flexWrap: 'wrap',
+                    gap: '6px',
                   }}
                 >
                   <span style={{ color: '#475569' }}>
-                    إجمالي قيمة البند للمشروع: <strong style={{ color: '#170e5e' }}>{totalContractVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong> {currencySymbol}
+                    إجمالي قيمة البند للمشروع: <strong style={{ color: '#170e5e', fontSize: '0.82rem' }}>{totalContractVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong> {currencySymbol}
                   </span>
-                  <span style={{ color: '#059669', fontWeight: 700 }}>
-                    إجمالي أرباح البند المتوقعة: +{totalProfitVal.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currencySymbol}
+                  <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.82rem' }}>
+                    إجمالي أرباح البند: +{totalProfitVal.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currencySymbol}
                   </span>
                 </div>
               )}
@@ -763,23 +738,22 @@ export function UniversalBoqItemModal({
           )}
         </div>
 
+        {/* 4. ملاحظات واشتراطات خاصة */}
         {mode === 'project' && (
-          <Field label="ملاحظات وشروط إضافية (اختياري)">
-            <input
-              type="text"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="أي اشتراطات خاصة بالاستلام أو الدفعات..."
-              style={{
-                width: '100%',
-                height: '36px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                padding: '0 10px',
-                fontSize: 'var(--font-body)',
-              }}
-            />
-          </Field>
+          <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+              <AppIcons.Tag size={14} />
+              <span>4. الملاحظات والاشتراطات الخاصة (Terms & Notes)</span>
+            </div>
+            <Field label="ملاحظات وشروط إضافية (اختياري)">
+              <input
+                type="text"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="أي اشتراطات خاصة بالاستلام أو الدفعات..."
+              />
+            </Field>
+          </div>
         )}
       </form>
     </StandardDialog>

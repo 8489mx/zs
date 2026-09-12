@@ -5,6 +5,7 @@ import { contractingApi } from '../api/contracting.api';
 import { ContractingBoqItem, ContractingProject } from '../contracting.types';
 import { getTextDirection } from '@/lib/arabic-normalization';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface CreateIpcInvoiceModalProps {
   open: boolean;
@@ -130,185 +131,259 @@ export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: Cre
       onClose={onClose}
       title={`إعداد مستخلص جاري للأعمال (AIA G702/G703) - ${project.name}`}
       subtitle="حصر الكميات الحالية، احتساب تشوينات المواد بالموقع، وخصم الدفعة المقدمة وضمان حسن التنفيذ"
-      width="min(950px, 95vw)"
-    >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {errorMsg && (
-          <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', borderRadius: '8px', color: '#dc2626', fontSize: 'var(--font-body)' }}>
-            {errorMsg}
-          </div>
-        )}
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
-          <Field label="عن الفترة من">
-            <input
-              type="date"
-              value={periodStart}
-              onChange={(e) => setPeriodStart(e.target.value)}
-              style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-            />
-          </Field>
-          <Field label="إلى تاريخ">
-            <input
-              type="date"
-              value={periodEnd}
-              onChange={(e) => setPeriodEnd(e.target.value)}
-              style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-            />
-          </Field>
-          <Field label="استقطاع الدفعة المقدمة %">
-            <input
-              type="number"
-              min="0"
-              max="50"
-              value={advRecoveryPercent}
-              onChange={(e) => setAdvRecoveryPercent(e.target.value)}
-              style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-            />
-          </Field>
-          <Field label="استقطاع ضمان أعمال %">
-            <input
-              type="number"
-              min="0"
-              max="20"
-              value={retentionPercent}
-              onChange={(e) => setRetentionPercent(e.target.value)}
-              style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-            />
-          </Field>
-        </div>
-
-        {/* Schedule of Values Table */}
-        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', maxHeight: '340px', overflowY: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-table-head)' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
-                <th style={{ padding: '10px 12px' }}>كود</th>
-                <th style={{ padding: '10px 12px', minWidth: '180px' }}>بند المقايسة</th>
-                <th style={{ padding: '10px 8px' }}>الوحدة</th>
-                <th style={{ padding: '10px 8px' }}>الفئة</th>
-                <th style={{ padding: '10px 8px' }}>التعاقدي</th>
-                <th style={{ padding: '10px 8px' }}>السابق</th>
-                <th style={{ padding: '10px 8px', minWidth: '90px' }}>الحالي *</th>
-                <th style={{ padding: '10px 8px', minWidth: '90px' }}>تشوينات بالموقع</th>
-                <th style={{ padding: '10px 12px' }}>إجمالي الفترة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((it, idx) => {
-                const itemPeriodSum = (it.currentQty + it.storedMaterialsQty) * it.unitPrice;
-                return (
-                  <tr key={it.boqItemId || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '8px 12px', fontWeight: 600 }}>{it.itemCode}</td>
-                    {(() => {
-                      const dir = getTextDirection(it.description);
-                      const isRtl = dir === 'rtl';
-                      return (
-                        <td
-                          dir={dir}
-                          style={{
-                            padding: '8px 12px',
-                            textAlign: isRtl ? 'right' : 'left',
-                            direction: dir,
-                          }}
-                        >
-                          {it.description}
-                        </td>
-                      );
-                    })()}
-                    <td style={{ padding: '8px 8px', color: '#64748b' }}>{it.unit}</td>
-                    <td style={{ padding: '8px 8px' }}>{it.unitPrice.toLocaleString('ar-EG')}</td>
-                    <td style={{ padding: '8px 8px', color: '#64748b' }}>{it.contractQty}</td>
-                    <td style={{ padding: '8px 8px', color: '#64748b' }}>{it.previousQty}</td>
-                    <td style={{ padding: '6px 8px' }}>
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        value={it.currentQty || ''}
-                        onChange={(e) => handleQtyChange(idx, 'currentQty', e.target.value)}
-                        placeholder="0"
-                        style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 600 }}
-                      />
-                    </td>
-                    <td style={{ padding: '6px 8px' }}>
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        value={it.storedMaterialsQty || ''}
-                        onChange={(e) => handleQtyChange(idx, 'storedMaterialsQty', e.target.value)}
-                        placeholder="0"
-                        style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'center' }}
-                      />
-                    </td>
-                    <td style={{ padding: '8px 12px', fontWeight: 600, color: itemPeriodSum > 0 ? '#170e5e' : '#94a3b8' }}>
-                      {itemPeriodSum.toLocaleString('ar-EG')} {currencySymbol}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Financial Summary Box */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(5, 1fr)',
-            gap: '12px',
-            backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '14px 16px',
-            textAlign: 'center',
-          }}
-        >
-          <div>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', display: 'block' }}>إجمالي أعمال الفترة:</span>
-            <strong style={{ fontSize: '1rem', color: '#1e293b' }}>{periodGrossTotal.toLocaleString('ar-EG')} {currencySymbol}</strong>
-          </div>
-          <div>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', display: 'block' }}>استقطاع دفعة مقدمة:</span>
-            <span style={{ fontSize: '0.95rem', color: '#dc2626', fontWeight: 600 }}>- {advDeduction.toLocaleString('ar-EG')} {currencySymbol}</span>
-          </div>
-          <div>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', display: 'block' }}>ضمان حسن تنفيذ:</span>
-            <span style={{ fontSize: '0.95rem', color: '#dc2626', fontWeight: 600 }}>- {retDeduction.toLocaleString('ar-EG')} {currencySymbol}</span>
-          </div>
-          <div>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', display: 'block' }}>استقطاعات أخرى:</span>
-            <input
-              type="number"
-              min="0"
-              value={otherDeductions}
-              onChange={(e) => setOtherDeductions(e.target.value)}
-              style={{ width: '80px', padding: '4px', textAlign: 'center', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-            />
-          </div>
-          <div style={{ backgroundColor: '#ffffff', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#170e5e', display: 'block', fontWeight: 700 }}>صافي المستحق للصرف:</span>
-            <strong style={{ fontSize: '1.1rem', color: '#170e5e' }}>{netPayable.toLocaleString('ar-EG')} {currencySymbol}</strong>
-          </div>
-        </div>
-
-        <Field label="ملاحظات واستدراكات المستخلص">
-          <input
-            type="text"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="ملاحظات مهندس الموقع أو الاستشاري على قياسات الأعمال..."
-            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-          />
-        </Field>
-
+      width="min(1020px, 96vw)"
+      minHeight="auto"
+      footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={() => handleSubmit()}
           submitText={isSubmitting ? 'جاري الحفظ...' : 'حفظ المستخلص ومراجعة البنود'}
           isSubmitting={isSubmitting}
         />
+      )}
+    >
+      <style>{`
+        .ipc-compact-modal .field {
+          margin-bottom: 0 !important;
+          gap: 3px !important;
+        }
+        .ipc-compact-modal .field span {
+          font-size: 0.74rem !important;
+          font-weight: 600 !important;
+          color: #334155 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }
+        .ipc-compact-modal input {
+          height: 33px !important;
+          font-size: 0.8125rem !important;
+          border-radius: 6px !important;
+          padding: 0 10px !important;
+          border: 1px solid #cbd5e1 !important;
+          background: #ffffff !important;
+          box-sizing: border-box !important;
+          outline: none !important;
+          width: 100% !important;
+          transition: border-color 0.15s, box-shadow 0.15s !important;
+        }
+        .ipc-compact-modal input:focus {
+          border-color: #170e5e !important;
+          box-shadow: 0 0 0 2px rgba(23, 14, 94, 0.1) !important;
+        }
+      `}</style>
+
+      <form onSubmit={handleSubmit} className="ipc-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '9px' }} dir="rtl">
+        {errorMsg && (
+          <div style={{ padding: '8px 12px', backgroundColor: '#fef2f2', borderRadius: '8px', color: '#dc2626', fontSize: '0.8rem', fontWeight: 600 }}>
+            {errorMsg}
+          </div>
+        )}
+
+        {/* 1. فترة المستخلص ونسب الاستقطاع */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Calendar size={15} />
+            <span>1. فترة المستخلص ونسب الاستقطاع التعاقدي (Billing Period & Retentions)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', alignItems: 'start' }}>
+            <Field label="عن الفترة من">
+              <input
+                type="date"
+                value={periodStart}
+                onChange={(e) => setPeriodStart(e.target.value)}
+              />
+            </Field>
+
+            <Field label="إلى تاريخ">
+              <input
+                type="date"
+                value={periodEnd}
+                onChange={(e) => setPeriodEnd(e.target.value)}
+              />
+            </Field>
+
+            <Field label="استقطاع الدفعة المقدمة %">
+              <input
+                type="number"
+                min="0"
+                max="50"
+                dir="ltr"
+                value={advRecoveryPercent}
+                onChange={(e) => setAdvRecoveryPercent(e.target.value)}
+                style={{ fontWeight: 600 }}
+              />
+            </Field>
+
+            <Field label="استقطاع ضمان أعمال %">
+              <input
+                type="number"
+                min="0"
+                max="20"
+                dir="ltr"
+                value={retentionPercent}
+                onChange={(e) => setRetentionPercent(e.target.value)}
+                style={{ fontWeight: 600 }}
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* 2. جدول حصر كميات الإنجاز والتشوينات */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.FileText size={15} />
+            <span>2. حصر كميات الإنجاز والتشوينات بالموقع (Schedule of Values - SOV)</span>
+          </div>
+
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', maxHeight: '300px', overflowY: 'auto', background: '#ffffff' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0', textAlign: 'right', color: '#334155' }}>
+                  <th style={{ padding: '8px 10px', width: '75px' }}>كود</th>
+                  <th style={{ padding: '8px 10px', minWidth: '170px' }}>بند المقايسة</th>
+                  <th style={{ padding: '8px 6px', width: '55px' }}>الوحدة</th>
+                  <th style={{ padding: '8px 6px', width: '70px' }}>الفئة</th>
+                  <th style={{ padding: '8px 6px', width: '65px' }}>التعاقدي</th>
+                  <th style={{ padding: '8px 6px', width: '65px' }}>السابق</th>
+                  <th style={{ padding: '8px 6px', width: '85px' }}>الحالي *</th>
+                  <th style={{ padding: '8px 6px', width: '85px' }}>تشوينات</th>
+                  <th style={{ padding: '8px 10px', width: '110px' }}>إجمالي الفترة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((it, idx) => {
+                  const itemPeriodSum = (it.currentQty + it.storedMaterialsQty) * it.unitPrice;
+                  return (
+                    <tr key={it.boqItemId || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '6px 10px', fontWeight: 700, fontFamily: 'monospace', color: '#170e5e' }}>{it.itemCode}</td>
+                      {(() => {
+                        const dir = getTextDirection(it.description);
+                        const isRtl = dir === 'rtl';
+                        return (
+                          <td
+                            dir={dir}
+                            style={{
+                              padding: '6px 10px',
+                              textAlign: isRtl ? 'right' : 'left',
+                              direction: dir,
+                              fontSize: '0.78rem',
+                            }}
+                          >
+                            {it.description}
+                          </td>
+                        );
+                      })()}
+                      <td style={{ padding: '6px 6px', color: '#64748b' }}>{it.unit}</td>
+                      <td style={{ padding: '6px 6px', fontFamily: 'monospace' }}>{it.unitPrice.toLocaleString('ar-EG')}</td>
+                      <td style={{ padding: '6px 6px', color: '#64748b' }}>{it.contractQty}</td>
+                      <td style={{ padding: '6px 6px', color: '#64748b' }}>{it.previousQty}</td>
+                      <td style={{ padding: '4px 6px' }}>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          dir="ltr"
+                          value={it.currentQty || ''}
+                          onChange={(e) => handleQtyChange(idx, 'currentQty', e.target.value)}
+                          placeholder="0"
+                          style={{ height: '28px !important', padding: '0 6px !important', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </td>
+                      <td style={{ padding: '4px 6px' }}>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          dir="ltr"
+                          value={it.storedMaterialsQty || ''}
+                          onChange={(e) => handleQtyChange(idx, 'storedMaterialsQty', e.target.value)}
+                          placeholder="0"
+                          style={{ height: '28px !important', padding: '0 6px !important', textAlign: 'center' }}
+                        />
+                      </td>
+                      <td style={{ padding: '6px 10px', fontWeight: 700, color: itemPeriodSum > 0 ? '#170e5e' : '#94a3b8' }}>
+                        {itemPeriodSum.toLocaleString('ar-EG')} {currencySymbol}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 3. التسوية المالية وصافي المستحق */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Calculator size={15} />
+            <span>3. التسوية المالية وصافي المستحق للصرف (Financial Settlement)</span>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(5, 1fr)',
+              gap: '8px',
+              backgroundColor: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              padding: '8px 12px',
+              textAlign: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <div>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>إجمالي أعمال الفترة:</span>
+              <strong style={{ fontSize: '0.88rem', color: '#1e293b' }}>{periodGrossTotal.toLocaleString('ar-EG')} {currencySymbol}</strong>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>استقطاع دفعة مقدمة:</span>
+              <span style={{ fontSize: '0.84rem', color: '#dc2626', fontWeight: 700 }}>- {advDeduction.toLocaleString('ar-EG')} {currencySymbol}</span>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>ضمان حسن تنفيذ:</span>
+              <span style={{ fontSize: '0.84rem', color: '#dc2626', fontWeight: 700 }}>- {retDeduction.toLocaleString('ar-EG')} {currencySymbol}</span>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>استقطاعات أخرى:</span>
+              <input
+                type="number"
+                min="0"
+                dir="ltr"
+                value={otherDeductions}
+                onChange={(e) => setOtherDeductions(e.target.value)}
+                style={{ height: '26px !important', width: '80px', padding: '0 4px !important', textAlign: 'center', margin: '0 auto', display: 'block' }}
+              />
+            </div>
+
+            <div style={{ backgroundColor: '#f8fafc', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+              <span style={{ fontSize: '0.72rem', color: '#170e5e', display: 'block', fontWeight: 700 }}>صافي المستحق للصرف:</span>
+              <strong style={{ fontSize: '1rem', color: '#170e5e', fontWeight: 800 }}>{netPayable.toLocaleString('ar-EG')} {currencySymbol}</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. الاعتمادات والملاحظات */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Tag size={14} />
+            <span>4. الاعتمادات والملاحظات الاستشارية (Consultant Notes & Approvals)</span>
+          </div>
+
+          <Field label="ملاحظات واستدراكات المستخلص (اختياري)">
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="ملاحظات مهندس الموقع أو الاستشاري على قياسات الأعمال المنجزة..."
+            />
+          </Field>
+        </div>
       </form>
     </StandardDialog>
   );

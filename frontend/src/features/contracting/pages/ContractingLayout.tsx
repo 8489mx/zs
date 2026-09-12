@@ -5,6 +5,7 @@ import { useAppToolbar } from '@/stores/toolbar-store';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { ContractingProvider, useContracting } from '../context/ContractingContext';
 import { toast } from '@/shared/components/system-alert';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { CreateProjectModal } from '../components/CreateProjectModal';
 import { ContractingProjectsPage } from './ContractingProjectsPage';
 import { ContractingBoqPage } from './ContractingBoqPage';
@@ -71,11 +72,6 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
     const pid = selectedProjectId;
     const query = pid ? `?projectId=${pid}` : '';
     navigate(`${targetUrl}${query}`);
-  };
-
-  const handleProjectDropdownChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const pid = e.target.value;
-    setSelectedProjectId(pid || null);
   };
 
 
@@ -261,31 +257,56 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
               gap: '12px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
-                المشروع النشط:
-              </span>
-              <select
-                value={selectedProjectId || ''}
-                onChange={handleProjectDropdownChange}
-                className="form-input"
-                style={{
-                  height: '36px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  padding: '0 12px',
-                  minWidth: '280px',
-                  fontWeight: 600,
-                  color: '#0f172a',
-                }}
-              >
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    [{p.code}] {p.name} - {p.clientName || 'العميل'}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {projects.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
+                  المشروع النشط:
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
+                    لا توجد مشاريع مسجلة بعد
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateProjectOpen(true)}
+                    style={{
+                      height: '30px',
+                      padding: '0 12px',
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                      background: '#170e5e',
+                      color: '#ffffff',
+                      border: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      cursor: 'pointer',
+                      fontSize: 'var(--font-badge)',
+                    }}
+                  >
+                    <AppIcons.Plus size={13} />
+                    <span>تأسيس أول مشروع الآن</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '320px' }}>
+                <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap' }}>
+                  المشروع النشط:
+                </span>
+                <div style={{ minWidth: '280px', flex: 1 }}>
+                  <CustomSelect
+                    value={selectedProjectId || ''}
+                    options={projects.map((p) => ({
+                      value: p.id,
+                      label: `[${p.code}] ${p.name}`,
+                      hint: p.clientName || 'العميل',
+                    }))}
+                    onChange={(val) => setSelectedProjectId(val || null)}
+                  />
+                </div>
+              </div>
+            )}
             {activeProject && (
               <div style={{ display: 'flex', gap: '16px', fontSize: 'var(--font-micro)', color: '#64748b', flexWrap: 'wrap' }}>
                 <span>

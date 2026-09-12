@@ -3388,3 +3388,123 @@
      - **إشعار وصول الشحنة (Consignee Arrival Notice):** إخطار رسمي للعميل بموعد وصول السفينة وتفريغ البضائع وتفاصيل المستندات المطلوبة لاستلام إذن التسليم.
   4. **رادار الأقمار الصناعية لتتبع السفن الحية (Live Satellite AIS Vessel Radar):**
      - بطاقة ملاحية مدمجة في ملف العملية تتيح تتبع السفينة مباشرة عبر رادار الأقمار الصناعية وأنظمة AIS العالمية (MarineTraffic & VesselFinder) بنقرة واحدة بمجرد إدخال اسم السفينة ورقم الرحلة.
+
+---
+
+## 108. محرك مسارات الأتمتة الملاحية وهوامش الربح ومحطات التوقف البشرية (Autonomous Freight Pipeline, Margins Engine & Human-in-the-Loop Checkpoints)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومفعل في الباك إند والفرونت إند (Autonomous RFQ Pipeline, Default Markup Engine, Bidding Cut-off Timers, Early Awarding Triggers & Granular Human Checkpoints).
+* **مسارات الكود الأساسية:**
+  - الباك إند:
+    - `backend/src/database/migrations/2040000000088_maritime_automation_pipeline.ts`: إضافة حقول الأتمتة (`urgency_level`, `cut_off_deadline`, `auto_awarded`, `target_rate_max`) وفهرس البحث السريع في `maritime_rfqs`.
+    - `backend/src/database/database.types.ts`: تحديث تعريف جدول `MaritimeRfqTable`.
+    - `backend/src/modules/maritime-freight/maritime-freight.types.ts`: واجهة `MaritimePipelineConfig` والقيم الافتراضية `DEFAULT_PIPELINE_CONFIG`.
+    - `backend/src/modules/maritime-freight/dto/create-rfq.dto.ts`: استقبال خيارات الأولوية والمهل الزمنية وسقف السعر.
+    - `backend/src/modules/maritime-freight/maritime-freight.service.ts`: محرك حفظ واسترجاع الإعدادات `getPipelineSettings` و `savePipelineSettings`، ودالة معالجة الأتمتة الدورية `processAutomatedPipelineForTenant`.
+    - `backend/src/modules/maritime-freight/maritime-freight.controller.ts`: تسجيل مسارات `GET /api/maritime-freight/pipeline-settings` و `POST /api/maritime-freight/pipeline-settings` و `POST /api/maritime-freight/pipeline/trigger`.
+    - `backend/src/modules/maritime-freight/maritime-automation-scheduler.service.ts`: تشغيل محرك الأتمتة والترسية تلقائياً في الخلفية فور مزامنة البريد وفي دورات الجدولة التلقائية.
+  - الفرونت إند:
+    - `frontend/src/features/maritime-freight/api/maritime-freight.api.ts`: دوال استدعاء وضبط مسار الأتمتة `getPipelineSettings` و `savePipelineSettings` و `triggerPipeline`.
+    - `frontend/src/features/maritime-freight/components/MaritimePipelineSettingsTab.tsx`: شاشة إعدادات متكاملة واحترافية للتحكم في النمط التشغيلي (أتمتة كاملة / هجين ذكي / يدوي)، وضبط هوامش الربح الآلية، ومؤقت المهل، ومصفوفة محطات التوقف البشرية، وقنوات الإرسال المباشر.
+    - `frontend/src/features/maritime-freight/pages/MaritimeSettingsPage.tsx`: شريط تبويبات علوي متجاوب يوفر التبديل السلس بين "قواعد مسار الأتمتة وهامش الربح" و"خوادم البريد والمراسلات".
+    - `frontend/src/features/maritime-freight/components/CreateRfqModal.tsx`: قسم مخصص لاختيار أولوية الطلب (عادي 24 ساعة / عاجل 6 ساعات)، والمهلة المخصصة بالساعات، وسقف السعر للترسية المبكرة.
+    - `frontend/src/features/maritime-freight/components/MaritimeMatrixTab.tsx`: بطاقة تفاصيل معززة بمؤقت عد تنازلي حي (Cut-off Countdown Badge) يوضح الوقت المتبقي لغلق المزايدة أو جاهزية الطلب للترسية، مع شارات الأولوية والترسية الآلية.
+    - `frontend/src/features/maritime-freight/pages/MaritimeLayout.tsx`: تحديث مسمى تبويب الإعدادات إلى "قواعد الأتمتة والمراسلات".
+* **الميزات والترقيات الهندسية المنفذة:**
+  1. **الأنماط التشغيلية الثلاثة (Master Automation Modes):**
+     - **أتمتة كاملة ذاتية (Full Zero-Touch):** جمع العروض، فرز أفضل قيمة، تطبيق الهامش، وإصدار وإرسال العرض للعميل دون أي تدخل يدوي.
+     - **هجين ذكي (Smart Hybrid):** السستم يدير الاستقصاء والفرز التلقائي ويتوقف عند محطات مراجعة الهامش للموافقة البشرية.
+     - **تحكم يدوي كلاسيكي (Manual Control):** تحكم يدوي في كل إجراء وزر.
+  2. **محرك هوامش الربح الآلي (Autonomous Margin & Markup Engine):**
+     - دعم كامل لهامش المبلغ المقطوع الثابت ($/TEU) أو النسبة المئوية المضافة (%)، مع حد أدنى للأمان الربحي (Margin Floor) لمنع أي بيع بخسارة.
+  3. **مؤقت المهل الزمنية والترسية المبكرة (Cut-off Timers & Early Awarding):**
+     - تحديد مهلة الردود تلقائياً للشحنات العادية (24 ساعة) والعاجلة (6 ساعات) مع عداد حي في تبويب المصفوفة.
+     - دعم الترسية الفورية المبكرة إذا قدم أي خط ملاحي معتمد سعراً يقل عن سقف العميل المستهدف مع 14 يوماً سماح دون انتظار انقضاء الساعات.
+  4. **مصفوفة محطات التوقف والمراجعة البشرية (Human-in-the-Loop Checkpoints):**
+     - إمكانية تفعيل أو تعطيل التوقف البشري في أي مرحلة من المراحل الأربع (إرسال الـ RFQ، اعتماد الهامش والترسية، وإرسال العرض النهائي للعميل).
+
+---
+
+## 109. دليل الخطوط والوكلاء الموسع (59 جهة) ونظام الفرز والتحديد الهرمي الذكي (Two-Tier Hierarchical Carrier/Agent Selection Engine)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومدمج في شاشات إنشاء وإرسال طلبات التسعير الملاحي (RFQ Creation & Dispatch Modals).
+* **مسارات الكود الأساسية:**
+  - الباك إند:
+    - `backend/src/modules/maritime-freight/maritime-defaults.data.ts`: توسيع الدليل الملاحي الافتراضي ليشمل 59 جهة كاملة (20 خط وتوكيل ملاحي معتمد + 39 وكيل شحن دولي بالخارج يغطون كافة أقاليم التجارة العالمية).
+    - `backend/src/database/migrations/2040000000089_maritime_expand_directory_to_59.ts`: ميجريشن ترقية قاعدة البيانات لتسجيل وتحديث جهات الإرسال الـ 59 لكافة المستأجرين مع منع التكرار.
+    - `backend/src/modules/maritime-freight/maritime-freight.service.ts`: ضمان التعبئة التلقائية (Self-Healing Master Data) لأي جهة مفقودة لضمان إتاحة الـ 59 جهة دائماً لكل مستأجر.
+  - الفرونت إند:
+    - `frontend/src/features/maritime-freight/components/CarrierSelectionGrid.tsx`: مكون موحد فائق الذكاء يدير نظام الفرز والتحديد متعدد الطبقات (Two-Tier Selection Engine).
+    - `frontend/src/features/maritime-freight/components/CreateRfqModal.tsx`: دمج المكون الموحد في قسم استهداف وتحديد الخطوط والوكلاء عند إنشاء الـ RFQ الجديد.
+    - `frontend/src/features/maritime-freight/components/DispatchRfqModal.tsx`: دمج المكون الموحد في نافذة مراجعة وإرسال إيميلات التسعير وتوزيعها.
+* **الميزات والترقيات الهندسية المنفذة:**
+  1. **المستوى الأول للفرز والتحديد الكلي (Level-1 Category Selection with Independent Checkboxes):**
+     - التبويب الأول والأولوية: **وكلاء الشحن الدوليين بالخارج** مع شيك بوكس مستقل لتحديد/إلغاء تحديد كل وكلاء الشحن بنقرة واحدة مع عداد رقمي فوري.
+     - التبويب الثاني: **الخطوط والتوكيلات الملاحية** مع شيك بوكس مستقل لتحديد/إلغاء تحديد كافة الخطوط الملاحية فوراً.
+     - التبويب الثالث: **الكل (الخطوط والوكلاء معاً)** مع شيك بوكس شامل للتحكم في كافة الـ 59 جهة بنقرة واحدة.
+  2. **المستوى الثاني للفرز الإقليمي والتحديد الجغرافي (Level-2 Regional Sub-filters with Regional Checkboxes):**
+     - عند النقر على تبويب وكلاء الشحن (بدون لمس الشيك بوكس)، تظهر تلقائياً فلاتر الأقاليم الجغرافية:
+       - الصين والشرق الأقصى (Far East & China)
+       - أوروبا والمتوسط (Europe & Med)
+       - الخليج والبحر الأحمر (Gulf & Red Sea)
+       - تركيا والشرق الأوسط (Turkey & Middle East)
+       - الهند وجنوب آسيا (India & South Asia)
+       - أمريكا والأمريكتين (Americas)
+     - كل إقليم جغرافي مزود بزر شيك بوكس مدمج بجوار اسمه، يتيح تحديد أو إلغاء تحديد كافة وكلاء ذلك الإقليم تحديداً بنقرة زر واحدة دون التأثير على بقية الأقاليم.
+  3. **البحث المزدوج الفوري وتنسيق البطاقات المريح:**
+     - حقل بحث مباشر يبحث في الاسم العربي والإنجليزي، الكود، الدولة، المدينة، والبريد الإلكتروني.
+     - بطاقات تفاعلية أنيقة توضح كود الجهة، نوعها، ودولتها، مع إبراز حالة تفعيل البريد الإلكتروني وخيارات التحديد الفردي والجماعي.
+
+---
+
+## 110. تعميم المعيار القياسي للنوافذ المنبثقة المتناظرة رباعية الأعمدة وحظر السكرول على موديول المقاولات (Symmetric 4-Column Zero-Scroll Modal Standard for Contracting)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومفعل عبر كافة نوافذ موديول المقاولات والإنشاءات.
+* **الملفات المحدثة:**
+  - `frontend/src/features/contracting/components/CreateProjectModal.tsx`: تأسيس مشروع وعقد مقاولة جديد.
+  - `frontend/src/features/contracting/components/UniversalBoqItemModal.tsx`: إضافة وتعديل بنود المقايسة وبنك البنود المرجعي.
+  - `frontend/src/features/contracting/components/CreateChangeOrderModal.tsx`: إصدار أوامر التغيير والملاحق التعاقدية.
+  - `frontend/src/features/contracting/components/CreateSubcontractModal.tsx`: إسناد الأعمال وتوثيق عقود مقاولي الباطن.
+  - `frontend/src/features/contracting/components/CreateMaterialRequisitionModal.tsx`: أذون صرف وتخصيص المواد والخامات للموقع.
+  - `frontend/src/features/contracting/components/CreateDailyLogModal.tsx`: تقارير الموقع ويوميات التنفيذ الميدانية.
+  - `frontend/src/features/contracting/components/CreateRfiModal.tsx`: طلبات الاستفسار الهندسي الميداني (RFI).
+* **المعايير الهندسية والترقيات المنفذة:**
+  1. **الشبكة المتناظرة الصارمة ذات الأعمدة الأربعة (Exact 4-Column Grid Standard):**
+     - إعادة هيكلة كافة الحقول والمدخلات لتعتمد حصرياً على `gridTemplateColumns: 'repeat(4, 1fr)'` بهوامش بينية متسقة `gap: 10px`.
+     - توحيد ومحاذاة كافة الحقول رأسياً في أسطر منتظمة دون أي تفاوت أو اعوجاج بصري في العرض.
+  2. **حظر أشرطة التمرير الرأسية تماماً (Universal Zero-Scroll Standard):**
+     - ضبط `minHeight="auto"` وعرض مريح متزن `width="min(920px, 95vw)"` لمنع حدوث أي سكرول رأسي وفتح النافذة بكامل محتواها بوضوح في شاشة واحدة.
+     - ضبط ارتفاع الحقول والكومبوبوكس على `30px`، والخط الداخلي `0.8125rem`، وتسميات الحقول `0.72rem` بوزن خط مؤسسي `600`.
+  3. **التطهير الشامل من عناصر `<select>` التقليدية البدائية (Rule 13 Compliance):**
+     - استبدال كافة عناصر الـ HTML `<select>` التقليدية بمكون الكومبوبوكس القياسي الموحد `CustomSelect` من `@/shared/ui/custom-select`.
+     - دعم البحث والتصفية الفورية وتطبيع الحروف العربية في القوائم الكبيرة (مقاول الباطن من سجل الموردين، بنود المقايسة، التخصصات الإنشائية).
+  4. **كارت التسعير التلقائي المضغوط وشريط المؤشرات اللحظية:**
+     - ضغط كارت التسعير الموحد في نافذة بنود المقايسة `UniversalBoqItemModal` ليظهر في 3 أعمدة متناسقة بارتفاع مدمج وعرض مؤشرات الربحية ونسبة الهامش الفعلي ومجموع قيمة البند لحظياً.
+  5. **معالجة تفعيل القوائم المنسدلة العرضي عند النقر فوق الحقول (Accidental Label-Click Trigger Fix):**
+     - ترقية مكون الحقول الموحد `Field.tsx` بتحويل حاويته من عنصر `<label>` إلى عنصر `<div>` محايد، مما منع نقل المتصفح للتركيز التلقائي عند النقر على عنوان الحقل أو الفراغات المحيطة به، وحصر فتح القوائم المنسدلة `CustomSelect` حصرياً عند النقر المباشر داخل صندوق الإدخال أو سهم القائمة.
+
+---
+
+## 111. اعتماد دستور البطاقات المقسمة القياسي للنوافذ وتعميمه على موديول المقاولات (Standard Sectional Card Modal Architecture)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومعتمد كمرجع تصميمي ذهبي (Golden Reference) رسمي لكافة نوافذ المنظومة.
+* **الملفات المحدثة:**
+  - `frontend/src/shared/components/StandardModalExample.tsx`: النموذج المرجعي القياسي العام (Golden Reference) للنوافذ المنبثقة في المنظومة.
+  - `frontend/src/features/contracting/components/UniversalBoqItemModal.tsx`: نافذة بنود المقايسة وبنك البنود المرجعي.
+  - `frontend/src/features/contracting/components/CreateProjectModal.tsx`: نافذة تأسيس مشروع وعقد مقاولة جديد.
+  - `frontend/src/features/contracting/components/CreateIpcInvoiceModal.tsx`: نافذة إعداد مستخلص جاري للأعمال (IPC).
+  - `frontend/src/features/contracting/components/CreateSubcontractModal.tsx`: نافذة إسناد وتوثيق عقود مقاولي الباطن.
+  - `frontend/src/features/contracting/components/CreateMaterialRequisitionModal.tsx`: نافذة إذن صرف وتخصيص المواد والخامات.
+  - `frontend/src/features/contracting/components/CreateDailyLogModal.tsx`: نافذة تقارير الموقع ويوميات التنفيذ الميدانية.
+  - `frontend/src/features/contracting/components/CreateChangeOrderModal.tsx`: نافذة إصدار أوامر التغيير والملاحق التعاقدية.
+  - `frontend/src/features/contracting/components/CreateRfiModal.tsx`: نافذة طلبات الاستفسار الهندسي الميداني (RFI).
+  - `frontend/src/features/contracting/components/CreateScheduleTaskModal.tsx`: نافذة إضافة مهمة بالجدول الزمني ومراحل التنفيذ.
+* **المعايير والترقيات الهندسية المنفذة:**
+  1. **دستور البطاقات المقسمة المنطقية (Sectional Card Architecture):**
+     - تنظيم كافة الحقول والمدخلات في بطاقات عمل مستقلة ومرقمة تسلسلياً (`1. ...`, `2. ...`, `3. ...`) تفصل كل مجموعة وظيفية عن الأخرى وتمنع التشتت البصري.
+     - كل بطاقة تبدأ بشريط ترويسة يحتوي على أيقونة SVG بريميوم من `@/shared/components/icons/AppIcons` مع عنوان عريض باللون الكحلي الملكي (`#170e5e`، وزن 700، حجم `0.84rem`).
+     - خلفية البطاقات محايدة ونظيفة ومريحة للعين (`background: #f8fafc`، حدود خفيفة `1px solid #e2e8f0`، وحواف دائرية `8px`)، مع إبقاء الألوان الوظيفية الخاصة (مثل الأخضر المالي) فقط للشاشات التي تتطلب إبرازاً حسابياً مخصصاً واستبعادها من المرجع العام لتظل كروت إدخال قياسية.
+  2. **معيار الحقول المدمجة فائق الانسيابية (Compact Enterprise Fields):**
+     - ضبط ارتفاع الحقول والمدخلات على `33px`، حشو داخلي `0 10px`، حجم خط `0.8125rem`، وعنوان الحقل `0.74rem` بوزن `600` ولون `#334155`.
+     - حقول التكست أريا بارتفاع مدمج مرن (`minHeight: 48px` إلى `52px`) مع دعم الاتجاه التلقائي `dir="auto"`.
+  3. **تطهير نوافذ المقاولات من قوائم الـ select التقليدية:**
+     - استبدال عناصر الـ HTML `<select>` في نافذة المهام والجدول الزمني `CreateScheduleTaskModal` بنظام الكومبوبوكس القياسي الموحد `CustomSelect`.
+  4. **عزل التذييل وضمان تناسق الأزرار (StandardDialogFooter Integration):**
+     - توحيد تمرير أزرار الحفظ والإلغاء عبر خاصية `footerActions` بمكون `StandardDialog` لضمان ثبات التذييل ومنع أي تكرار أو ازدواجية في الحشو والحدود السفلية.
+

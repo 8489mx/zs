@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { contractingApi } from '../api/contracting.api';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import type { ContractingBoqItem } from '../contracting.types';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface CreateMaterialRequisitionModalProps {
   open: boolean;
@@ -14,6 +16,16 @@ interface CreateMaterialRequisitionModalProps {
   onCreated?: () => void;
   onSuccess?: () => void;
 }
+
+const MATERIAL_UNIT_OPTIONS = [
+  { value: 'طن', label: 'طن (Ton)' },
+  { value: 'م3', label: 'متر مكعب (م³)' },
+  { value: 'م2', label: 'متر مربع (م²)' },
+  { value: 'م.ط', label: 'متر طولي (م.ط)' },
+  { value: 'شكارة', label: 'شكارة / كيس' },
+  { value: 'قطعة', label: 'قطعة / عدد' },
+  { value: 'لتر', label: 'لتر / جالون' },
+];
 
 export function CreateMaterialRequisitionModal({
   open,
@@ -38,6 +50,17 @@ export function CreateMaterialRequisitionModal({
     recipientName: '',
     notes: '',
   });
+
+  const boqItemOptions = useMemo(() => {
+    const list = [{ value: '', label: '-- تحميل عام على مركز تكلفة المشروع --' }];
+    boqItems.forEach((b) => {
+      list.push({
+        value: String(b.id),
+        label: `${b.itemCode} - ${b.description.substring(0, 32)}`,
+      });
+    });
+    return list;
+  }, [boqItems]);
 
   const qty = Number(formData.quantity || 0);
   const unitCost = Number(formData.unitCost || 0);
@@ -83,167 +106,215 @@ export function CreateMaterialRequisitionModal({
       onClose={onClose}
       title="إذن صرف وتخصيص مواد وخامات للموقع (Material Requisition)"
       subtitle={projectName ? `المشروع: ${projectName}` : 'صرف خامات للمشروع وتحميل قيمتها مباشرة على بنود المقايسة ومراكز التكلفة'}
-      width="min(720px, 95vw)"
-    >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
-        {errorMsg && (
-          <div
-            style={{
-              padding: '10px 14px',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '8px',
-              color: '#991b1b',
-              fontSize: 'var(--font-body)',
-              fontWeight: 500,
-            }}
-          >
-            {errorMsg}
-          </div>
-        )}
-
-        {/* رقم الإذن وتاريخ الصرف والربط ببند المقايسة */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.8fr', gap: '14px' }}>
-          <Field label="رقم إذن الصرف">
-            <input
-              type="text"
-              value={formData.requisitionNumber}
-              onChange={(e) => setFormData({ ...formData, requisitionNumber: e.target.value })}
-              placeholder="تلقائي: MR-2026-0001"
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-            />
-          </Field>
-
-          <Field label="تاريخ الصرف *">
-            <input
-              type="date"
-              value={formData.issueDate}
-              onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-              required
-            />
-          </Field>
-
-          <Field label="تحميل على بند المقايسة (BOQ)">
-            <select
-              value={formData.boqItemId}
-              onChange={(e) => setFormData({ ...formData, boqItemId: e.target.value })}
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-            >
-              <option value="">-- تحميل عام على مركز تكلفة المشروع --</option>
-              {boqItems.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.itemCode} - {b.description.substring(0, 32)}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-
-        {/* اسم المادة والوحدة */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr', gap: '14px' }}>
-          <Field label="بيان واسم المادة / الخامة *">
-            <input
-              type="text"
-              value={formData.itemName}
-              onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
-              placeholder="مثال: حديد تسليح مشرشر 16 مم - عز الدخيلة"
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-              required
-            />
-          </Field>
-
-          <Field label="الوحدة">
-            <select
-              value={formData.unit}
-              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-            >
-              <option value="طن">طن (Ton)</option>
-              <option value="م3">متر مكعب (م³)</option>
-              <option value="م2">متر مربع (م²)</option>
-              <option value="م.ط">متر طولي (م.ط)</option>
-              <option value="شكارة">شكارة / كيس</option>
-              <option value="قطعة">قطعة / عدد</option>
-              <option value="لتر">لتر / جالون</option>
-            </select>
-          </Field>
-        </div>
-
-        {/* الكمية وسعر التكلفة وإجمالي القيمة */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '14px', alignItems: 'center' }}>
-          <Field label="الكمية المصروفة *">
-            <input
-              type="number"
-              step="any"
-              min="0.001"
-              value={formData.quantity}
-              onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-              placeholder="0.00"
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-              required
-            />
-          </Field>
-
-          <Field label={`تكلفة الوحدة (${currencySymbol}) *`}>
-            <input
-              type="number"
-              step="any"
-              min="0"
-              value={formData.unitCost}
-              onChange={(e) => setFormData({ ...formData, unitCost: e.target.value })}
-              placeholder="0.00"
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-              required
-            />
-          </Field>
-
-          <div style={{ background: '#f8fafc', padding: '8px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>إجمالي تكلفة الصرف الفعلية:</span>
-            <strong style={{ fontSize: '1.1rem', color: '#170e5e' }}>
-              {formatCurrency(totalCost)}
-            </strong>
-          </div>
-        </div>
-
-        {/* المستلم والملاحظات */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '14px' }}>
-          <Field label="المستلم بالموقع (المشرف / الفورمان)">
-            <input
-              type="text"
-              value={formData.recipientName}
-              onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
-              placeholder="مثال: م. مصطفى كامل (مهندس التنفيذ)"
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-            />
-          </Field>
-
-          <Field label="ملاحظات ورقم إذن المخزن الورقي">
-            <input
-              type="text"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="مثال: تم الصرف من مستودع العاشر، إذن تسليم رقم W-449"
-              className="form-input"
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px' }}
-            />
-          </Field>
-        </div>
-
+      width="min(920px, 95vw)"
+      minHeight="auto"
+      footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={() => handleSubmit()}
           submitText="توثيق إذن صرف المواد"
           isSubmitting={isSubmitting}
         />
+      )}
+    >
+      <style>{`
+        .mr-compact-modal .field {
+          margin-bottom: 0 !important;
+          gap: 3px !important;
+        }
+        .mr-compact-modal .field span {
+          font-size: 0.74rem !important;
+          font-weight: 600 !important;
+          color: #334155 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }
+        .mr-compact-modal input,
+        .mr-compact-modal textarea {
+          height: 33px !important;
+          font-size: 0.8125rem !important;
+          border-radius: 6px !important;
+          padding: 0 10px !important;
+          border: 1px solid #cbd5e1 !important;
+          background: #ffffff !important;
+          box-sizing: border-box !important;
+          outline: none !important;
+          width: 100% !important;
+          transition: border-color 0.15s, box-shadow 0.15s !important;
+        }
+        .mr-compact-modal input:focus,
+        .mr-compact-modal textarea:focus {
+          border-color: #170e5e !important;
+          box-shadow: 0 0 0 2px rgba(23, 14, 94, 0.1) !important;
+        }
+        .mr-compact-modal .custom-select-trigger {
+          min-height: 33px !important;
+          height: 33px !important;
+          font-size: 0.8125rem !important;
+          padding: 0 10px !important;
+          border-radius: 6px !important;
+          border: 1px solid #cbd5e1 !important;
+        }
+      `}</style>
+
+      <form onSubmit={handleSubmit} className="mr-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '9px' }} dir="rtl">
+        {errorMsg && (
+          <div
+            style={{
+              padding: '8px 12px',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              color: '#991b1b',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+            }}
+          >
+            {errorMsg}
+          </div>
+        )}
+
+        {/* 1. بيانات إذن الصرف وبند المقايسة */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Layers size={15} />
+            <span>1. بيانات إذن الصرف وبند المقايسة (Requisition & BOQ Allocation)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '10px', alignItems: 'start' }}>
+            <Field label="رقم إذن الصرف">
+              <input
+                type="text"
+                value={formData.requisitionNumber}
+                onChange={(e) => setFormData({ ...formData, requisitionNumber: e.target.value })}
+                placeholder="تلقائي: MR-2026-..."
+                style={{ fontFamily: 'monospace', fontWeight: 600 }}
+              />
+            </Field>
+
+            <Field label="تاريخ الصرف *">
+              <input
+                type="date"
+                value={formData.issueDate}
+                onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
+                required
+              />
+            </Field>
+
+            <Field label="تحميل على بند المقايسة (BOQ)">
+              <CustomSelect
+                value={formData.boqItemId}
+                options={boqItemOptions}
+                onChange={(val) => setFormData({ ...formData, boqItemId: val })}
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* 2. مواصفات الخامة والكميات والتكلفة */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Calculator size={15} />
+            <span>2. مواصفات الخامة والكميات والتكلفة (Material & Cost Specs)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1.2fr 1.2fr', gap: '10px', alignItems: 'start' }}>
+            <Field label="بيان واسم المادة / الخامة *">
+              <input
+                type="text"
+                value={formData.itemName}
+                onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
+                placeholder="مثال: حديد تسليح مشرشر 16 مم - عز الدخيلة"
+                required
+              />
+            </Field>
+
+            <Field label="الوحدة">
+              <CustomSelect
+                value={formData.unit}
+                options={MATERIAL_UNIT_OPTIONS}
+                onChange={(val) => setFormData({ ...formData, unit: val })}
+              />
+            </Field>
+
+            <Field label="الكمية المصروفة *">
+              <input
+                type="number"
+                step="any"
+                min="0.001"
+                dir="ltr"
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                placeholder="0.00"
+                style={{ fontWeight: 700, color: '#0f172a' }}
+                required
+              />
+            </Field>
+
+            <Field label={`تكلفة الوحدة (${currencySymbol}) *`}>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                dir="ltr"
+                value={formData.unitCost}
+                onChange={(e) => setFormData({ ...formData, unitCost: e.target.value })}
+                placeholder="0.00"
+                style={{ fontWeight: 700, color: '#170e5e' }}
+                required
+              />
+            </Field>
+
+            <Field label="إجمالي تكلفة الصرف">
+              <div
+                style={{
+                  height: '33px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  fontWeight: 800,
+                  color: '#170e5e',
+                  fontSize: '0.84rem',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {formatCurrency(totalCost)}
+              </div>
+            </Field>
+          </div>
+        </div>
+
+        {/* 3. جهة الاستلام والتوثيق المخزني */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Tag size={14} />
+            <span>3. جهة الاستلام والتوثيق المخزني (Recipient & Warehouse Notes)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '10px', alignItems: 'start' }}>
+            <Field label="المستلم بالموقع">
+              <input
+                type="text"
+                value={formData.recipientName}
+                onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
+                placeholder="اسم المهندس / المشرف المستلم..."
+              />
+            </Field>
+
+            <Field label="إذن المخزن الورقي / ملاحظات (اختياري)">
+              <input
+                type="text"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="مثال: مستودع العاشر، إذن تسليم W-449..."
+              />
+            </Field>
+          </div>
+        </div>
       </form>
     </StandardDialog>
   );

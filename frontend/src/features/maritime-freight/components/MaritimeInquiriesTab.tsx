@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MaritimeInquiry } from '../maritime-freight.types';
-import { SearchIcon, ArrowLeftIcon, FileTextIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import { SearchIcon, ArrowLeftIcon, FileTextIcon, CheckCircleIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
 
 interface MaritimeInquiriesTabProps {
@@ -14,13 +15,19 @@ interface MaritimeInquiriesTabProps {
 export function MaritimeInquiriesTab({
   inquiries,
   loading,
-  onOpenCreate,
+  onOpenCreate: _onOpenCreate,
   onConvertToRfq,
   onNavigateToRfq,
 }: MaritimeInquiriesTabProps) {
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [convertingId, setConvertingId] = useState<string | null>(null);
+
+  // Reset search on route or status filter change
+  useEffect(() => {
+    setSearchTerm('');
+  }, [location.pathname, statusFilter]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -33,7 +40,7 @@ export function MaritimeInquiriesTab({
       case 'rfq_created':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fef3c7', color: '#b45309', fontSize: '0.72rem', fontWeight: 700 }}>
-            تم استقصاء الخطوط (RFQ)
+            تم طلب عروض الخطوط (RFQ)
           </span>
         );
       case 'quoted':
@@ -117,48 +124,62 @@ export function MaritimeInquiriesTab({
           <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '12px' }}>
             {filteredInquiries.length} طلب
           </span>
-          {onOpenCreate && (
-            <button
-              type="button"
-              onClick={onOpenCreate}
-              style={{
-                padding: '7px 14px',
-                background: '#170e5e',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '0.8125rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(23, 14, 94, 0.15)',
-              }}
-            >
-              + تسجيل استفسار جديد
-            </button>
-          )}
         </div>
       </div>
 
       {/* شريط البحث والفلترة */}
       <div style={{ padding: '12px 20px', borderBottom: '1px solid #f1f5f9', background: '#ffffff', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: '400px' }}>
-          <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
+          <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}>
             <SearchIcon size={15} />
           </span>
           <input
             type="text"
+            role="searchbox"
+            name="search_maritime_inquiries"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-form-type="other"
+            data-lpignore="true"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="بحث برقم الطلب، اسم العميل، الميناء، أو البضاعة..."
             style={{
               width: '100%',
-              padding: '7px 32px 7px 10px',
+              padding: searchTerm ? '7px 32px 7px 28px' : '7px 32px 7px 10px',
               border: '1px solid #cbd5e1',
               borderRadius: '8px',
               fontSize: '0.78rem',
               outline: 'none',
+              boxSizing: 'border-box',
             }}
           />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              title="مسح البحث"
+              style={{
+                position: 'absolute',
+                left: '8px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#94a3b8',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '2px',
+                borderRadius: '50%',
+              }}
+            >
+              <XIcon size={14} />
+            </button>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -206,7 +227,7 @@ export function MaritimeInquiriesTab({
               <tr>
                 <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
                   {inquiries.length === 0
-                    ? 'لا توجد طلبات شحن واستفسارات مسجلة حتى الآن. انقر على "+ تسجيل استفسار جديد" لبدء دورة شحن.'
+                    ? 'لا توجد طلبات شحن مسجلة حتى الآن. انقر على "طلب شحن عميل" في الأعلى لبدء دورة شحن جديدة.'
                     : 'لا توجد نتائج مطابقة لبحثك الحالي.'}
                 </td>
               </tr>

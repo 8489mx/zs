@@ -83,4 +83,19 @@ export class CreateMaritimeRfqDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  urgencyLevel?: 'standard' | 'urgent';
+
+  @IsInt()
+  @IsOptional()
+  cutOffHours?: number;
+
+  @IsString()
+  @IsOptional()
+  cutOffDeadline?: string;
+
+  @IsOptional()
+  targetRateMax?: number;
 }

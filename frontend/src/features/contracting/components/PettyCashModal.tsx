@@ -236,86 +236,93 @@ export function PettyCashModal({
           <form
             onSubmit={handleCreatePettyCash}
             style={{
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '16px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px',
+              gap: '10px',
             }}
           >
-            <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <AppIcons.Lock size={16} />
-              <span>إصدار أمر صرف عهدة نقدية لمهندس الموقع</span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  اسم أمين العهدة (المهندس / المشرف)
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={custodianName}
-                  onChange={(e) => setCustodianName(e.target.value)}
-                  placeholder="مثال: م. محمود السيد"
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
-                {custodianName.trim() && hasActiveCustody(custodianName) && (
-                  <span style={{ fontSize: 'var(--font-micro)', color: '#b91c1c', fontWeight: 600, display: 'block', marginTop: '2px' }}>
-                    تنبيه: هذا المهندس لديه عهدة سابقة مفتوحة لم تتم تسويتها!
-                  </span>
-                )}
+            {/* بطاقة 1: بيانات أمين العهدة وتاريخ الصرف */}
+            <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.User size={15} />
+                <span>1. بيانات أمين العهدة وتاريخ الصرف والرقابة</span>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  مبلغ العهدة ({currencySymbol})
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  step="any"
-                  required
-                  value={amount || ''}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                  placeholder="0.00"
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  تاريخ الصرف
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={issueDate}
-                  onChange={(e) => setIssueDate(e.target.value)}
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    اسم أمين العهدة (المهندس / المشرف المستلم) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={custodianName}
+                    onChange={(e) => setCustodianName(e.target.value)}
+                    placeholder="مثال: م. محمود السيد"
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                  {custodianName.trim() && hasActiveCustody(custodianName) && (
+                    <span style={{ fontSize: '0.72rem', color: '#b91c1c', fontWeight: 600, display: 'block', marginTop: '3px' }}>
+                      تنبيه رقابي: هذا المهندس لديه عهدة سابقة مفتوحة لم تتم تسويتها!
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    تاريخ الصرف *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={issueDate}
+                    onChange={(e) => setIssueDate(e.target.value)}
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                الغرض من العهدة وبيان أوجه الصرف المصرح بها
-              </label>
-              <input
-                type="text"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="مثال: نثريات الموقع، مشال حديد طارئ، وقود المولدات، مستلزمات السلامة والصحة المهنية"
-                style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-              />
+            {/* بطاقة 2: القيمة المالية وأوجه الصرف */}
+            <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.DollarSign size={15} />
+                <span>2. القيمة المالية وأوجه الصرف المصرح بها</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    مبلغ العهدة ({currencySymbol}) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="any"
+                    required
+                    value={amount || ''}
+                    onChange={(e) => setAmount(Number(e.target.value))}
+                    placeholder="0.00"
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', fontWeight: 700, color: '#170e5e', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    الغرض من العهدة وبيان أوجه الصرف المصرح بها
+                  </label>
+                  <input
+                    type="text"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="مثال: نثريات الموقع، مشال حديد طارئ، وقود المولدات، مستلزمات السلامة والصحة المهنية"
+                    style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '2px' }}>
               <button
                 type="button"
                 onClick={() => setIsAdding(false)}
-                style={{ height: '32px', padding: '0 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', fontSize: 'var(--font-body)' }}
+                style={{ height: '33px', padding: '0 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
               >
                 إلغاء
               </button>
@@ -323,18 +330,18 @@ export function PettyCashModal({
                 type="submit"
                 disabled={saving || (custodianName.trim() !== '' && hasActiveCustody(custodianName))}
                 style={{
-                  height: '32px',
-                  padding: '0 14px',
+                  height: '33px',
+                  padding: '0 18px',
                   borderRadius: '6px',
                   border: 'none',
                   background: (custodianName.trim() !== '' && hasActiveCustody(custodianName)) ? '#94a3b8' : '#170e5e',
                   color: '#fff',
                   fontWeight: 700,
                   cursor: (custodianName.trim() !== '' && hasActiveCustody(custodianName)) ? 'not-allowed' : 'pointer',
-                  fontSize: 'var(--font-body)',
+                  fontSize: '0.8125rem',
                 }}
               >
-                {saving ? 'جاري الصرف...' : 'اعتماد وصرف العهدة'}
+                {saving ? 'جارٍ الصرف...' : 'اعتماد وصرف العهدة'}
               </button>
             </div>
           </form>

@@ -5,6 +5,7 @@ import { ComboboxSelect } from '@/shared/ui/ComboboxSelect';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { maritimeApi, ShippingPort, ShippingLine } from '../api/maritime-freight.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { CarrierSelectionGrid } from './CarrierSelectionGrid';
 
 interface CreateRfqModalProps {
   open: boolean;
@@ -38,6 +39,9 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
     customerEmail: '',
     targetLineIds: [] as number[],
     notes: '',
+    urgencyLevel: 'standard' as 'standard' | 'urgent',
+    cutOffHours: 24,
+    targetRateMax: '',
   });
 
   useEffect(() => {
@@ -45,66 +49,11 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
       maritimeApi.getPorts().then(setPorts).catch(() => {});
       maritimeApi.getShippingLines().then((lines) => {
         setCarriers(lines);
-        // Default select all active carriers
-        setFormData((prev) => ({
-          ...prev,
-          targetLineIds: lines.map((l) => Number(l.id)),
-        }));
+        // Do not preselect carriers by default as requested by user
       }).catch(() => {});
     }
   }, [open]);
 
-  const [carrierFilter, setCarrierFilter] = useState<'all' | 'far_east' | 'europe_med' | 'shipping_line' | 'overseas_agent'>('all');
-  const [carrierSearch, setCarrierSearch] = useState('');
-
-  const displayedCarriers = carriers.filter((c) => {
-    if (carrierFilter === 'shipping_line' && c.carrier_type && c.carrier_type !== 'shipping_line') return false;
-    if (carrierFilter === 'overseas_agent' && c.carrier_type !== 'overseas_agent') return false;
-    if (carrierFilter === 'far_east' && !c.trade_lanes?.includes('far_east') && c.country_code !== 'CN') return false;
-    if (carrierFilter === 'europe_med' && !c.trade_lanes?.includes('europe_med') && !['TR', 'DE', 'IT', 'EG'].includes(c.country_code || '')) return false;
-
-    if (carrierSearch.trim()) {
-      const q = carrierSearch.toLowerCase().trim();
-      const matchNameAr = c.name_ar?.toLowerCase().includes(q);
-      const matchNameEn = c.name_en?.toLowerCase().includes(q);
-      const matchCode = c.code?.toLowerCase().includes(q);
-      const matchEmail = c.email?.toLowerCase().includes(q) || c.rfq_email?.toLowerCase().includes(q);
-      const matchCountry = c.country_name?.toLowerCase().includes(q) || c.city_name?.toLowerCase().includes(q);
-      return Boolean(matchNameAr || matchNameEn || matchCode || matchEmail || matchCountry);
-    }
-    return true;
-  });
-
-  const handleSelectAllCarriers = () => {
-    if (formData.targetLineIds.length === carriers.length) {
-      setFormData({ ...formData, targetLineIds: [] });
-    } else {
-      setFormData({ ...formData, targetLineIds: carriers.map((c) => Number(c.id)) });
-    }
-  };
-
-  const handleSelectFilteredCarriers = () => {
-    const ids = displayedCarriers.map((c) => Number(c.id));
-    const allSelected = ids.every((id) => formData.targetLineIds.includes(id));
-    if (allSelected) {
-      setFormData({
-        ...formData,
-        targetLineIds: formData.targetLineIds.filter((id) => !ids.includes(id)),
-      });
-    } else {
-      const merged = Array.from(new Set([...formData.targetLineIds, ...ids]));
-      setFormData({ ...formData, targetLineIds: merged });
-    }
-  };
-
-  const handleToggleCarrier = (carrierId: number) => {
-    const exists = formData.targetLineIds.includes(carrierId);
-    if (exists) {
-      setFormData({ ...formData, targetLineIds: formData.targetLineIds.filter((id) => id !== carrierId) });
-    } else {
-      setFormData({ ...formData, targetLineIds: [...formData.targetLineIds, carrierId] });
-    }
-  };
 
   const handlePolChange = (code: string) => {
     const p = ports.find((item) => item.code === code);
@@ -139,7 +88,11 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
     try {
       setIsSubmitting(true);
       setErrorMsg(null);
-      const res = await maritimeApi.createRfq(formData);
+      const payload: any = {
+        ...formData,
+        targetRateMax: formData.targetRateMax ? parseFloat(formData.targetRateMax) : undefined,
+      };
+      const res = await maritimeApi.createRfq(payload);
       if (sendImmediately && res?.id && (formData.targetLineIds?.length || 0) > 0) {
         try {
           await maritimeApi.dispatchRfqEmails(res.id);
@@ -162,7 +115,8 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
       onClose={onClose}
       title="طلب تسعير ملاحي جديد (New Ocean RFQ)"
       subtitle="إرسال طلب تسعير فوري للخطوط الملاحية والوكلاء مع كود تتبع آلي [RFQ-YYYY-XXXX]"
-      width="min(860px, 95vw)"
+      width="min(980px, 96vw)"
+      minHeight="auto"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
@@ -173,28 +127,55 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
         />
       )}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <style>{`
+        .rfq-compact-modal .field {
+          margin-bottom: 0 !important;
+          gap: 3px !important;
+        }
+        .rfq-compact-modal .field span {
+          font-size: 0.74rem !important;
+          font-weight: 600 !important;
+          color: #334155 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }
+        .rfq-compact-modal input {
+          height: 33px !important;
+          font-size: 0.8125rem !important;
+          border-radius: 6px !important;
+          padding: 0 10px !important;
+        }
+        .rfq-compact-modal .custom-combobox,
+        .rfq-compact-modal .custom-select-trigger {
+          min-height: 33px !important;
+          height: 33px !important;
+          font-size: 0.8125rem !important;
+          border-radius: 6px !important;
+        }
+      `}</style>
+      <div className="rfq-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {errorMsg && (
-          <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#b91c1c', fontSize: '0.85rem' }}>
+          <div style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#b91c1c', fontSize: '0.8rem' }}>
             {errorMsg}
           </div>
         )}
 
         {/* بيانات العميل أو المستورد */}
-        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
-            <AppIcons.Users size={18} />
+        <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Users size={15} />
             <span>بيانات العميل أو المستورد (Customer Information - اختياري)</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1.2fr', gap: '10px' }}>
             <Field label="اسم العميل أو الشركة">
               <input
                 type="text"
                 value={formData.customerName}
                 onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                 placeholder="مثال: شركة النور للاستيراد"
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
+                style={{ width: '100%', border: '1px solid #cbd5e1' }}
               />
             </Field>
 
@@ -204,7 +185,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
                 value={formData.customerPhone}
                 onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
                 placeholder="01012345678"
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
+                style={{ width: '100%', border: '1px solid #cbd5e1' }}
               />
             </Field>
 
@@ -214,43 +195,43 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
                 value={formData.customerEmail}
                 onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                 placeholder="client@company.com"
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
+                style={{ width: '100%', border: '1px solid #cbd5e1' }}
               />
             </Field>
           </div>
         </div>
 
         {/* Section 1: المسار والاتجاه */}
-        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
-            <AppIcons.Ship size={18} />
+        <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Ship size={15} />
             <span>1. مسار الرحلة والاتجاه (Route & Direction)</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.1fr 1.6fr 1.6fr', gap: '10px' }}>
             <Field label="اتجاه الشحنة *">
               <CustomSelect
                 value={formData.direction}
                 onChange={(val) => setFormData({ ...formData, direction: (val || 'import') as any })}
                 options={[
-                  { value: 'import', label: 'شحن وارد (Import - إلى الموانئ المحلية)' },
-                  { value: 'export', label: 'شحن صادر (Export - إلى الموانئ الدولية)' },
-                  { value: 'cross_trade', label: 'شحن وسيط (Cross-Trade - بين دولتين خارجيتين)' },
+                  { value: 'import', label: 'شحن وارد (Import)' },
+                  { value: 'export', label: 'شحن صادر (Export)' },
+                  { value: 'cross_trade', label: 'شحن وسيط (Cross-Trade)' },
                 ]}
               />
             </Field>
 
-            <Field label="شرط التسليم الدولي (Incoterm) *">
+            <Field label="شرط التسليم (Incoterm) *">
               <CustomSelect
                 value={formData.incoterm}
                 onChange={(val) => setFormData({ ...formData, incoterm: val || 'FOB' })}
                 options={[
-                  { value: 'FOB', label: 'FOB - تسليم على ظهر السفينة (Free on Board)' },
-                  { value: 'EXW', label: 'EXW - تسليم أرض المصنع (Ex Works)' },
-                  { value: 'CFR', label: 'CFR - التكلفة والنولون (Cost & Freight)' },
-                  { value: 'CIF', label: 'CIF - التكلفة والتأمين والنولون (Cost, Insurance & Freight)' },
-                  { value: 'DDP', label: 'DDP - تسليم خالص الرسوم الجمركية (Delivered Duty Paid)' },
-                  { value: 'DAP', label: 'DAP - تسليم في المكان المعين (Delivered at Place)' },
+                  { value: 'FOB', label: 'FOB - على ظهر السفينة' },
+                  { value: 'EXW', label: 'EXW - أرض المصنع' },
+                  { value: 'CFR', label: 'CFR - التكلفة والنولون' },
+                  { value: 'CIF', label: 'CIF - شامل التأمين والنولون' },
+                  { value: 'DDP', label: 'DDP - خالص الجمارك' },
+                  { value: 'DAP', label: 'DAP - محل الوصول' },
                 ]}
               />
             </Field>
@@ -261,7 +242,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
                 onChange={handlePolChange}
                 options={ports.map((p) => ({
                   id: p.code,
-                  label: `${p.name_ar} - ${p.country_name} (${p.code})`,
+                  label: `${p.name_ar} (${p.code})`,
                 }))}
                 placeholder="ابحث عن ميناء الشحن أو الكود..."
               />
@@ -273,7 +254,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
                 onChange={handlePodChange}
                 options={ports.map((p) => ({
                   id: p.code,
-                  label: `${p.name_ar} - ${p.country_name} (${p.code})`,
+                  label: `${p.name_ar} (${p.code})`,
                 }))}
                 placeholder="ابحث عن ميناء التفريغ أو الكود..."
               />
@@ -282,37 +263,37 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
         </div>
 
         {/* Section 2: بيانات البضاعة والحاويات */}
-        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
-            <AppIcons.Container size={18} />
+        <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Container size={15} />
             <span>2. البضاعة ومواصفات الحاويات (Cargo & Equipment)</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.3fr 0.8fr 0.9fr 1.2fr 1fr', gap: '8px', marginBottom: '6px' }}>
             <Field label="نمط الشحن *">
               <CustomSelect
                 value={formData.cargoMode}
                 onChange={(val) => setFormData({ ...formData, cargoMode: val || 'FCL' })}
                 options={[
-                  { value: 'FCL', label: 'FCL - حمولة حاوية كاملة (Full Container Load)' },
-                  { value: 'LCL', label: 'LCL - حمولة مشتركة مجزأة (Less than Container)' },
+                  { value: 'FCL', label: 'FCL - حاوية كاملة' },
+                  { value: 'LCL', label: 'LCL - شحن مجزأ' },
                 ]}
               />
             </Field>
 
-            <Field label="مقاس ونوع الحاوية *">
+            <Field label="نوع الحاوية *">
               <CustomSelect
                 value={formData.containerType}
                 onChange={(val) => setFormData({ ...formData, containerType: val || '40HC' })}
                 options={[
-                  { value: '40HC', label: "40 قدم هاي كيوب (40' High Cube)" },
-                  { value: '20GP', label: "20 قدم عادي (20' Standard Dry)" },
-                  { value: '40GP', label: "40 قدم عادي (40' Standard Dry)" },
-                  { value: '40RF', label: "40 قدم مبرد ريفر (40' Reefer)" },
-                  { value: '20RF', label: "20 قدم مبرد ريفر (20' Reefer)" },
-                  { value: '45HC', label: "45 قدم هاي كيوب (45' High Cube)" },
-                  { value: 'OpenTop', label: 'حاوية مكشوفة السقف (Open Top)' },
-                  { value: 'FlatRack', label: 'حاوية فلات راك (Flat Rack)' },
+                  { value: '40HC', label: "40' High Cube (40HC)" },
+                  { value: '20GP', label: "20' Dry (20GP)" },
+                  { value: '40GP', label: "40' Dry (40GP)" },
+                  { value: '40RF', label: "40' Reefer مبرد" },
+                  { value: '20RF', label: "20' Reefer مبرد" },
+                  { value: '45HC', label: "45' High Cube" },
+                  { value: 'OpenTop', label: 'Open Top' },
+                  { value: 'FlatRack', label: 'Flat Rack' },
                 ]}
               />
             </Field>
@@ -323,201 +304,121 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
                 min={1}
                 value={formData.containerCount}
                 onChange={(e) => setFormData({ ...formData, containerCount: parseInt(e.target.value, 10) || 1 })}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
+                style={{ width: '100%', border: '1px solid #cbd5e1' }}
               />
             </Field>
 
-            <Field label="أيام السماح المطلوبة بالميناء (Free Days)">
+            <Field label="أيام السماح (Free Days)">
               <input
                 type="number"
                 min={7}
                 value={formData.targetFreeDays}
                 onChange={(e) => setFormData({ ...formData, targetFreeDays: parseInt(e.target.value, 10) || 14 })}
                 placeholder="14 أو 21 يوم"
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
+                style={{ width: '100%', border: '1px solid #cbd5e1' }}
               />
             </Field>
 
-            <Field label="طريقة سداد النولون *">
+            <Field label="طريقة السداد *">
               <CustomSelect
                 value={formData.paymentTerm}
                 onChange={(val) => setFormData({ ...formData, paymentTerm: (val || 'prepaid') as any })}
                 options={[
-                  { value: 'prepaid', label: 'Freight Prepaid - مدفوع مقدماً في ميناء الشحن' },
-                  { value: 'collect', label: 'Freight Collect - محصل في ميناء الوصول' },
+                  { value: 'prepaid', label: 'Freight Prepaid - مدفوع مقدماً' },
+                  { value: 'collect', label: 'Freight Collect - محصل بالوصول' },
                 ]}
               />
             </Field>
 
-            <Field label="تاريخ جاهزية البضاعة (CRD)">
+            <Field label="جاهزية البضاعة (CRD)">
               <input
                 type="date"
                 value={formData.cargoReadyDate}
                 onChange={(e) => setFormData({ ...formData, cargoReadyDate: e.target.value })}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
+                style={{ width: '100%', border: '1px solid #cbd5e1' }}
               />
             </Field>
           </div>
 
-          <div style={{ marginTop: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
             <Field label="توصيف البضاعة والصنف (Commodity Description) *">
               <input
                 type="text"
                 value={formData.commodityDescription}
                 onChange={(e) => setFormData({ ...formData, commodityDescription: e.target.value })}
                 placeholder="مثال: قطع غيار سيارات، أقمشة وبوليستر، أجهزة إلكترونية، سيراميك..."
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
+                style={{ width: '100%', border: '1px solid #cbd5e1' }}
               />
             </Field>
           </div>
         </div>
 
-        {/* Section 3: اختيار الخطوط الملاحية والوكلاء */}
-        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
-              <AppIcons.Users size={18} />
-              <span>3. الخطوط الملاحية والوكلاء المستهدفون ({formData.targetLineIds.length} محدد للإرسال)</span>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <button
-                type="button"
-                onClick={handleSelectFilteredCarriers}
-                style={{ background: 'none', border: 'none', color: '#1d4ed8', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'underline' }}
-              >
-                تحديد/إلغاء المفلترين ({displayedCarriers.length})
-              </button>
-              <span style={{ color: '#cbd5e1' }}>|</span>
-              <button
-                type="button"
-                onClick={handleSelectAllCarriers}
-                style={{ background: 'none', border: 'none', color: '#170e5e', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'underline' }}
-              >
-                {formData.targetLineIds.length === carriers.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
-              </button>
-            </div>
+        {/* Section 3: أولوية التسعير ومؤقت مهلة استلام العروض */}
+        <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Clock size={15} />
+            <span>3. أولوية التسعير ومؤقت مهلة استلام العروض (Pricing Urgency & Cut-off)</span>
           </div>
 
-          {/* بحث سريع + فلاتر الممرات */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ flex: '1 1 200px', minWidth: '180px', position: 'relative' }}>
-              <input
-                type="text"
-                value={carrierSearch}
-                onChange={(e) => setCarrierSearch(e.target.value)}
-                onFocus={(e) => e.target.select()}
-                onClick={(e) => (e.target as HTMLInputElement).select()}
-                placeholder="بحث باسم الخط، الوكيل، الكود، أو الإيميل..."
-                style={{
-                  width: '100%',
-                  height: '28px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  padding: '0 10px 0 26px',
-                  fontSize: '0.78rem',
-                  background: '#ffffff',
-                  boxSizing: 'border-box',
+          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1.4fr', gap: '10px' }}>
+            <Field label="أولوية الطلب والمهلة الافتراضية *">
+              <CustomSelect
+                value={formData.urgencyLevel}
+                onChange={(val) => {
+                  const urg = (val || 'standard') as 'standard' | 'urgent';
+                  setFormData({
+                    ...formData,
+                    urgencyLevel: urg,
+                    cutOffHours: urg === 'urgent' ? 6 : 24,
+                  });
                 }}
+                options={[
+                  { value: 'standard', label: 'عادي (Standard) - مهلة 24 ساعة' },
+                  { value: 'urgent', label: 'عاجل فوري (Urgent Spot) - مهلة 6 ساعات' },
+                ]}
               />
-              <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none', display: 'flex' }}>
-                <AppIcons.Search size={13} />
-              </span>
-            </div>
+            </Field>
 
-            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-              {[
-                { id: 'all', label: 'الكل' },
-                { id: 'far_east', label: 'الصين والشرق الأقصى' },
-                { id: 'europe_med', label: 'أوروبا والمتوسط' },
-                { id: 'shipping_line', label: 'خطوط الملاحة فقط' },
-                { id: 'overseas_agent', label: 'وكلاء الشحن بالخارج' },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setCarrierFilter(tab.id as any)}
-                  style={{
-                    height: '28px',
-                    padding: '0 10px',
-                    borderRadius: '6px',
-                    border: carrierFilter === tab.id ? '1px solid #170e5e' : '1px solid #e2e8f0',
-                    background: carrierFilter === tab.id ? '#170e5e' : '#ffffff',
-                    color: carrierFilter === tab.id ? '#ffffff' : '#475569',
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            <Field label="مهلة تلقي العروض (بالساعات) *">
+              <input
+                type="number"
+                min={1}
+                max={168}
+                value={formData.cutOffHours}
+                onChange={(e) => setFormData({ ...formData, cutOffHours: parseInt(e.target.value, 10) || 24 })}
+                style={{ width: '100%', border: '1px solid #cbd5e1' }}
+              />
+            </Field>
+
+            <Field label="سقف السعر للترسية المبكرة ($ USD) - اختياري">
+              <input
+                type="number"
+                min={0}
+                placeholder="مثال: 1900 (للترسية الفورية إن توفر)"
+                value={formData.targetRateMax}
+                onChange={(e) => setFormData({ ...formData, targetRateMax: e.target.value })}
+                style={{ width: '100%', border: '1px solid #cbd5e1' }}
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* Section 4: اختيار الخطوط الملاحية والوكلاء */}
+        <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem', marginBottom: '8px' }}>
+            <AppIcons.Users size={15} />
+            <span>4. الخطوط الملاحية والوكلاء المستهدفون للإرسال</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px', maxHeight: '180px', overflowY: 'auto', padding: '4px' }}>
-            {displayedCarriers.length === 0 ? (
-              <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', gridColumn: '1 / -1' }}>
-                لا توجد خطوط أو وكلاء مطابقة للبحث أو الفلتر المختار
-              </div>
-            ) : (
-              displayedCarriers.map((carrier) => {
-                const checked = formData.targetLineIds.includes(Number(carrier.id));
-                const isAgent = carrier.carrier_type === 'overseas_agent';
-                return (
-                  <label
-                    key={carrier.id}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                      padding: '8px 12px',
-                      background: checked ? '#eff6ff' : '#ffffff',
-                      border: checked ? '1px solid #3b82f6' : '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '0.82rem',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => handleToggleCarrier(Number(carrier.id))}
-                          style={{ accentColor: '#170e5e' }}
-                        />
-                        <span style={{ fontWeight: checked ? 700 : 600, color: checked ? '#1e40af' : '#1e293b' }}>
-                          {carrier.name_ar}
-                        </span>
-                      </div>
-                      <span
-                        style={{
-                          fontSize: '0.66rem',
-                          fontWeight: 700,
-                          padding: '1px 5px',
-                          borderRadius: '4px',
-                          background: isAgent ? '#f0fdf4' : '#eef2ff',
-                          color: isAgent ? '#15803d' : '#1e40af',
-                        }}
-                      >
-                        {isAgent ? `وكيل ${carrier.country_name || ''}` : 'خط ملاحي'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', paddingRight: '22px' }}>
-                      <span>{carrier.code}</span>
-                      <span style={{ color: carrier.rfq_email ? '#0284c7' : '#ef4444' }}>
-                        {carrier.rfq_email ? 'إيميل التسعير مفعّل' : 'لا يوجد إيميل'}
-                      </span>
-                    </div>
-                  </label>
-                );
-              })
-            )}
-          </div>
+          <CarrierSelectionGrid
+            carriers={carriers}
+            selectedIds={formData.targetLineIds}
+            onChangeSelectedIds={(ids) => setFormData((prev) => ({ ...prev, targetLineIds: ids }))}
+            maxHeight="180px"
+          />
 
-          <div style={{ marginTop: '12px', padding: '10px 14px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, color: '#166534' }}>
+          <div style={{ marginTop: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, color: '#166534' }}>
               <input
                 type="checkbox"
                 checked={sendImmediately}

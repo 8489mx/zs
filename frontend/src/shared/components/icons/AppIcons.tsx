@@ -158,6 +158,14 @@ export function ShieldCheckIcon({ size = 18, color = 'currentColor', strokeWidth
   );
 }
 
+export function ZapIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
 export function PrinterIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
@@ -936,10 +944,21 @@ export function UploadIcon({ size = 18, color = 'currentColor', strokeWidth = 2,
   );
 }
 
+export function HelpCircleIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+
 export const AppIcons = {
   Plus: PlusIcon,
   Trash: TrashIcon,
   Box: PackageIcon,
+  Package: PackageIcon,
   Barcode: BarcodeIcon,
   Refresh: RefreshCwIcon,
   RefreshCw: RefreshCwIcon,
@@ -958,6 +977,7 @@ export const AppIcons = {
   Printer: PrinterIcon,
   Settings: SettingsIcon,
   Users: UsersIcon,
+  User: UsersIcon,
   DollarSign: DollarSignIcon,
   Download: DownloadIcon,
   Upload: UploadIcon,
@@ -971,6 +991,8 @@ export const AppIcons = {
   ArrowLeft: ArrowLeftIcon,
   Home: HomeIcon,
   ShieldCheck: ShieldCheckIcon,
+  Shield: ShieldCheckIcon,
+  Zap: ZapIcon,
   Ship: ShipIcon,
   Container: ContainerIcon,
   Building: BuildingIcon,
@@ -985,6 +1007,9 @@ export const AppIcons = {
   ShoppingBag: ShoppingBagIcon,
   Maximize: MaximizeIcon,
   Share2: Share2Icon,
+  Coins: DollarSignIcon,
+  Truck: TruckIcon,
+  HelpCircle: HelpCircleIcon,
 };
 
 export default AppIcons;

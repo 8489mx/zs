@@ -10,7 +10,7 @@ import { SubmitMaritimeBidDto } from './dto/submit-bid.dto';
 import { CreateMaritimeQuotationDto } from './dto/create-quotation.dto';
 import { CreateMaritimeJobDto } from './dto/create-job.dto';
 import { UpdateMaritimeContainerDto } from './dto/update-container.dto';
-import { DCSA_STANDARD_MILESTONES, DcsaMilestoneKey } from './maritime-freight.types';
+import { DCSA_STANDARD_MILESTONES, DcsaMilestoneKey, MaritimePipelineConfig, DEFAULT_PIPELINE_CONFIG } from './maritime-freight.types';
 import * as crypto from 'crypto';
 import {
   DEFAULT_SHIPPING_LINES,
@@ -608,6 +608,20 @@ export class MaritimeFreightService {
   async createRfq(auth: AuthContext, dto: CreateMaritimeRfqDto) {
     const { tenantId } = requireTenantScope(auth);
     const rfqNumber = await this.generateNextRfqNumber(tenantId);
+    const pipelineConfig = await this.getTenantPipelineConfig(tenantId);
+
+    const urgency = dto.urgencyLevel || 'standard';
+    let cutOffDate: Date | null = null;
+    if (dto.cutOffDeadline) {
+      cutOffDate = new Date(dto.cutOffDeadline);
+    } else {
+      const hours = dto.cutOffHours && dto.cutOffHours > 0
+        ? dto.cutOffHours
+        : urgency === 'urgent'
+          ? (pipelineConfig.rfqCutOffHoursUrgent || 6)
+          : (pipelineConfig.rfqCutOffHoursStandard || 24);
+      cutOffDate = new Date(Date.now() + hours * 3600 * 1000);
+    }
 
     const [rfq] = await this.db
       .insertInto('maritime_rfqs')
@@ -636,6 +650,10 @@ export class MaritimeFreightService {
         target_line_ids: JSON.stringify(dto.targetLineIds || []),
         status: 'draft',
         notes: dto.notes || null,
+        urgency_level: urgency,
+        cut_off_deadline: cutOffDate ? cutOffDate.toISOString() : null,
+        auto_awarded: false,
+        target_rate_max: dto.targetRateMax ? Number(dto.targetRateMax) : null,
         created_by: auth.userId ? Number(auth.userId) : null,
       })
       .returningAll()
@@ -2585,6 +2603,225 @@ export class MaritimeFreightService {
       jobNumber: job.job_number,
       costCenterId: job.cost_center_id,
       entries: lines,
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // 11. Maritime Automation Pipeline & Checkpoints Engine
+  // --------------------------------------------------------------------------
+  async getTenantPipelineConfig(tenantId: string): Promise<MaritimePipelineConfig> {
+    const row = await this.db
+      .selectFrom('settings')
+      .select('value')
+      .where('tenant_id', '=', tenantId)
+      .where('key', '=', 'maritime_pipeline_config')
+      .executeTakeFirst();
+
+    if (!row?.value) {
+      return { ...DEFAULT_PIPELINE_CONFIG };
+    }
+
+    try {
+      const parsed = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+      return { ...DEFAULT_PIPELINE_CONFIG, ...parsed };
+    } catch {
+      return { ...DEFAULT_PIPELINE_CONFIG };
+    }
+  }
+
+  async getPipelineSettings(auth: AuthContext): Promise<MaritimePipelineConfig> {
+    const { tenantId } = requireTenantScope(auth);
+    return this.getTenantPipelineConfig(tenantId);
+  }
+
+  async savePipelineSettings(auth: AuthContext, dto: Partial<MaritimePipelineConfig>): Promise<MaritimePipelineConfig> {
+    const { tenantId } = requireTenantScope(auth);
+    const current = await this.getTenantPipelineConfig(tenantId);
+    const updated: MaritimePipelineConfig = { ...current, ...dto };
+
+    const existing = await this.db
+      .selectFrom('settings')
+      .select('key')
+      .where('tenant_id', '=', tenantId)
+      .where('key', '=', 'maritime_pipeline_config')
+      .executeTakeFirst();
+
+    if (existing) {
+      await this.db
+        .updateTable('settings')
+        .set({ value: JSON.stringify(updated) })
+        .where('tenant_id', '=', tenantId)
+        .where('key', '=', 'maritime_pipeline_config')
+        .execute();
+    } else {
+      await this.db
+        .insertInto('settings')
+        .values({
+          tenant_id: tenantId,
+          key: 'maritime_pipeline_config',
+          value: JSON.stringify(updated),
+        })
+        .execute();
+    }
+
+    return updated;
+  }
+
+  async processAutomatedPipelineForTenant(auth: AuthContext): Promise<{
+    processedRfqs: number;
+    awardedCount: number;
+    quotesGenerated: number;
+    details: string[];
+  }> {
+    const { tenantId } = requireTenantScope(auth);
+    const config = await this.getTenantPipelineConfig(tenantId);
+
+    if (config.automationMode === 'manual') {
+      return { processedRfqs: 0, awardedCount: 0, quotesGenerated: 0, details: ['الوضع التشغيلي مضبوط على يدوي بالكامل'] };
+    }
+
+    const openRfqs = await this.db
+      .selectFrom('maritime_rfqs')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('status', 'in', ['sent', 'bids_received'])
+      .where('auto_awarded', '=', false)
+      .execute();
+
+    if (openRfqs.length === 0) {
+      return { processedRfqs: 0, awardedCount: 0, quotesGenerated: 0, details: [] };
+    }
+
+    let awardedCount = 0;
+    let quotesGenerated = 0;
+    const details: string[] = [];
+    const now = new Date();
+
+    for (const rfq of openRfqs) {
+      const bids = await this.db
+        .selectFrom('maritime_rfq_bids')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('rfq_id', '=', String(rfq.id))
+        .execute();
+
+      if (bids.length === 0) continue;
+
+      const isDeadlineReached = rfq.cut_off_deadline ? now >= new Date(rfq.cut_off_deadline) : false;
+      const minFreeDays = config.earlyAwardingMinFreeDays || 14;
+      const targetRate = rfq.target_rate_max ? Number(rfq.target_rate_max) : null;
+
+      const earlyBid = config.earlyAwardingEnabled
+        ? bids.find((b) => Number(b.free_days) >= minFreeDays && (targetRate ? Number(b.total_freight_cost) <= targetRate : false))
+        : null;
+
+      if (!isDeadlineReached && !earlyBid) {
+        // Still within bidding window and no early trigger satisfied
+        continue;
+      }
+
+      // If checkpoint 2 (requireManualAwardAndMargin) is enabled, do NOT auto-award; just notify/update status
+      if (config.requireManualAwardAndMargin) {
+        if (rfq.status !== 'bids_received') {
+          await this.db
+            .updateTable('maritime_rfqs')
+            .set({ status: 'bids_received', updated_at: sql`NOW()` })
+            .where('tenant_id', '=', tenantId)
+            .where('id', '=', rfq.id)
+            .execute();
+        }
+        details.push(`طلب ${rfq.rfq_number}: العروض مكتملة، بانتظار الاعتماد والمراجعة البشرية للهامش (محطة توقف مفعلة)`);
+        continue;
+      }
+
+      // Pick best bid: Early bid if triggered, or lowest total freight cost
+      const sortedBids = [...bids].sort((a, b) => {
+        const costDiff = Number(a.total_freight_cost || 0) - Number(b.total_freight_cost || 0);
+        if (costDiff !== 0) return costDiff;
+        return Number(b.free_days || 0) - Number(a.free_days || 0);
+      });
+      const bestBid = earlyBid || sortedBids[0];
+      if (!bestBid) continue;
+
+      try {
+        // 1. Award bid
+        await this.awardBid(auth, String(bestBid.id));
+        await this.db
+          .updateTable('maritime_rfqs')
+          .set({ auto_awarded: true, updated_at: sql`NOW()` })
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', rfq.id)
+          .execute();
+        awardedCount++;
+
+        // 2. Compute margin
+        const baseCost = Number(bestBid.total_freight_cost || 0);
+        let profit = 0;
+        if (config.defaultMarginType === 'percentage') {
+          profit = baseCost * (config.defaultMarginValue / 100);
+        } else {
+          profit = Number(config.defaultMarginValue || 200);
+        }
+        if (profit < Number(config.marginFloor || 150)) {
+          profit = Number(config.marginFloor || 150);
+        }
+
+        // 3. Issue quotation
+        const quote = await this.createQuotation(auth, {
+          rfqId: String(rfq.id),
+          bidId: String(bestBid.id),
+          customerId: rfq.customer_id ? Number(rfq.customer_id) : undefined,
+          customerName: rfq.customer_name || 'عميل الشحنة',
+          customerPhone: rfq.customer_phone || undefined,
+          customerEmail: rfq.customer_email || undefined,
+          paymentTerm: rfq.payment_term || 'prepaid',
+          baseCost,
+          currency: bestBid.currency || 'USD',
+          marginType: config.defaultMarginType,
+          marginValue: config.defaultMarginValue,
+          exchangeRate: Number(config.defaultExchangeRate || 48.5),
+          notes: `عرض صادر آلياً وفقاً لمسار الأتمتة (${config.automationMode === 'full_autonomous' ? 'أتمتة كاملة' : 'هجين ذكي'}). العرض الفائز من ${bestBid.shipping_line_name}`,
+        });
+        quotesGenerated++;
+
+        // 4. Quote dispatch checkpoint
+        if (!config.requireManualQuoteDispatch) {
+          await this.db
+            .updateTable('maritime_quotations')
+            .set({ status: 'sent' })
+            .where('tenant_id', '=', tenantId)
+            .where('id', '=', quote.id as any)
+            .execute();
+
+          if (config.autoSendWhatsAppQuote && rfq.customer_phone) {
+            try {
+              const cleanPhone = rfq.customer_phone.replace(/[^0-9]/g, '');
+              const totalClient = baseCost + profit;
+              const msg = `مرحباً ${rfq.customer_name || 'عميلنا العزيز'}، يسعدنا تقديم عرض سعر الشحن البحري:\n` +
+                `• مسار: من ${rfq.pol_name} إلى ${rfq.pod_name}\n` +
+                `• الحاويات: ${rfq.container_count}x ${rfq.container_type}\n` +
+                `• الخط الملاحي: ${bestBid.shipping_line_name}\n` +
+                `• فترة السماح بالميناء: ${bestBid.free_days} يوم\n` +
+                `• السعر الإجمالي: $${totalClient.toLocaleString()} USD\n` +
+                `• رقم العرض المرجعي: ${quote.quotation_number}`;
+              await this.whatsAppGatewayService.sendRawMessage(tenantId, cleanPhone, msg);
+            } catch (err: any) {
+              this.logger.warn(`Failed auto WhatsApp quote dispatch for RFQ [${rfq.rfq_number}]: ${err?.message}`);
+            }
+          }
+        }
+
+        details.push(`طلب ${rfq.rfq_number}: تمت الترسية آلياً على خط ${bestBid.shipping_line_name} بسعر ${baseCost}$ مع هامش ربح ${profit}$ وإصدار عرض ${quote.quotation_number}`);
+      } catch (err: any) {
+        this.logger.error(`Error in automated RFQ pipeline for RFQ [${rfq.rfq_number}]: ${err?.message}`);
+      }
+    }
+
+    return {
+      processedRfqs: openRfqs.length,
+      awardedCount,
+      quotesGenerated,
+      details,
     };
   }
 }

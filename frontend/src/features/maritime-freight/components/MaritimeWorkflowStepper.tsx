@@ -27,7 +27,7 @@ const STEPS: StepItem[] = [
   {
     number: 2,
     id: 'rfq',
-    title: 'استقصاء الخطوط (RFQ)',
+    title: 'عروض تسعير الخطوط (RFQ)',
     subtitle: 'إرسال آلي وتلقي عروض الخطوط الملاحية',
     icon: SearchIcon,
   },
