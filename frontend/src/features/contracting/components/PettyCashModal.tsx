@@ -3,6 +3,7 @@ import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { contractingApi } from '../api/contracting.api';
 import { ContractingPettyCashRecord } from '../contracting.types';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface PettyCashModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export function PettyCashModal({
   projectId,
   projectName,
 }: PettyCashModalProps) {
+  const { currencySymbol, formatCurrency } = useSystemCurrency();
   const [records, setRecords] = useState<ContractingPettyCashRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -212,19 +214,19 @@ export function PettyCashModal({
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
             <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي العهد المنصرفة بالمشروع</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', marginTop: '2px' }}>
-              {totalIssued.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>ج.م</span>
+              {formatCurrency(totalIssued)}
             </div>
           </div>
           <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '8px', padding: '12px 14px' }}>
             <div style={{ fontSize: 'var(--font-micro)', color: '#9f1239', fontWeight: 600 }}>العهد المفتوحة قيد العمل (غير مصفاة)</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#b91c1c', marginTop: '2px' }}>
-              {totalActive.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span style={{ fontSize: 'var(--font-micro)', color: '#9f1239' }}>ج.م</span>
+              {formatCurrency(totalActive)}
             </div>
           </div>
           <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px 14px' }}>
             <div style={{ fontSize: 'var(--font-micro)', color: '#15803d', fontWeight: 600 }}>المصروفات النثرية المصفاة بالفواتير</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
-              {totalSpentSettled.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span style={{ fontSize: 'var(--font-micro)', color: '#15803d' }}>ج.م</span>
+              {formatCurrency(totalSpentSettled)}
             </div>
           </div>
         </div>
@@ -269,7 +271,7 @@ export function PettyCashModal({
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  مبلغ العهدة (ج.م)
+                  مبلغ العهدة ({currencySymbol})
                 </label>
                 <input
                   type="number"
@@ -349,9 +351,9 @@ export function PettyCashModal({
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>أمين العهدة</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>مبلغ العهدة</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المصروف الفعلي</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المتبقي / المردود</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>مبلغ العهدة ({currencySymbol})</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المصروف الفعلي ({currencySymbol})</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المتبقي / المردود ({currencySymbol})</th>
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>تاريخ الصرف</th>
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الحالة</th>
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>الإجراء والتصفية</th>

@@ -3,6 +3,7 @@ import { StandardDialog } from '@/shared/components/StandardDialog';
 import { ContractingInvoice, ContractingProject } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { getTextDirection } from '@/lib/arabic-normalization';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface PrintIpcCertificateModalProps {
   open: boolean;
@@ -12,6 +13,7 @@ interface PrintIpcCertificateModalProps {
 }
 
 export function PrintIpcCertificateModal({ open, invoice, project: propProject, onClose }: PrintIpcCertificateModalProps) {
+  const { currencySymbol } = useSystemCurrency();
   const printRef = useRef<HTMLDivElement>(null);
 
   if (!invoice) return null;
@@ -132,46 +134,46 @@ export function PrintIpcCertificateModal({ open, invoice, project: propProject, 
             <tbody>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td style={{ padding: '8px 12px', fontWeight: 600 }}>1. قيمة العقد الأصلي (Original Contract Sum)</td>
-                <td style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700 }}>{originalContract.toLocaleString('ar-EG')} ج.م</td>
+                <td style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700 }}>{originalContract.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td style={{ padding: '8px 12px', fontWeight: 600 }}>2. صافي أوامر التغيير والملحقات المعتمدة (Net Change by Change Orders)</td>
                 <td style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: netChangeOrders >= 0 ? '#059669' : '#dc2626' }}>
-                  {netChangeOrders >= 0 ? `+ ${netChangeOrders.toLocaleString('ar-EG')}` : netChangeOrders.toLocaleString('ar-EG')} ج.م
+                  {netChangeOrders >= 0 ? `+ ${netChangeOrders.toLocaleString('ar-EG')}` : netChangeOrders.toLocaleString('ar-EG')} {currencySymbol}
                 </td>
               </tr>
               <tr style={{ borderBottom: '2px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
                 <td style={{ padding: '8px 12px', fontWeight: 700 }}>3. القيمة التعاقدية المعدلة حتى تاريخه (Contract Sum to Date)</td>
-                <td style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 800, color: '#170e5e' }}>{revisedContract.toLocaleString('ar-EG')} ج.م</td>
+                <td style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 800, color: '#170e5e' }}>{revisedContract.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td style={{ padding: '8px 12px' }}>4. إجمالي الأعمال السابقة المعتمدة (Work from Previous Certificates)</td>
-                <td style={{ padding: '8px 12px', textAlign: 'left' }}>{previousWork.toLocaleString('ar-EG')} ج.م</td>
+                <td style={{ padding: '8px 12px', textAlign: 'left' }}>{previousWork.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td style={{ padding: '8px 12px' }}>5. إجمالي الأعمال المنفذة خلال الفترة الحالية (Work Completed This Period)</td>
-                <td style={{ padding: '8px 12px', textAlign: 'left' }}>{currentWork.toLocaleString('ar-EG')} ج.م</td>
+                <td style={{ padding: '8px 12px', textAlign: 'left' }}>{currentWork.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td style={{ padding: '8px 12px' }}>6. تشوينات المواد والخامات بالموقع (Materials Stored on Site)</td>
-                <td style={{ padding: '8px 12px', textAlign: 'left' }}>{storedMaterials.toLocaleString('ar-EG')} ج.م</td>
+                <td style={{ padding: '8px 12px', textAlign: 'left' }}>{storedMaterials.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               <tr style={{ borderBottom: '2px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
                 <td style={{ padding: '8px 12px', fontWeight: 700 }}>7. إجمالي المنفذ والتشوينات التراكمي (Total Completed & Stored to Date)</td>
-                <td style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 800 }}>{cumulativeWork.toLocaleString('ar-EG')} ج.م</td>
+                <td style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 800 }}>{cumulativeWork.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
-              <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#dc2626' }}>
-                <td style={{ padding: '8px 12px' }}>8. خصم: استرداد نسبة الدفعة المقدمة (Advance Payment Recovery)</td>
-                <td style={{ padding: '8px 12px', textAlign: 'left' }}>- {advanceRecovery.toLocaleString('ar-EG')} ج.م</td>
+              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '8px 12px', color: '#dc2626' }}>8. خصم: استرداد نسبة الدفعة المقدمة (Advance Payment Recovery)</td>
+                <td style={{ padding: '8px 12px', textAlign: 'left', color: '#dc2626' }}>- {advanceRecovery.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
-              <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#dc2626' }}>
-                <td style={{ padding: '8px 12px' }}>9. خصم: تأمين ضمان الأعمال وحسن التنفيذ (Retainage Withheld)</td>
-                <td style={{ padding: '8px 12px', textAlign: 'left' }}>- {retentionHeld.toLocaleString('ar-EG')} ج.م</td>
+              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '8px 12px', color: '#dc2626' }}>9. خصم: تأمين ضمان الأعمال وحسن التنفيذ (Retainage Withheld)</td>
+                <td style={{ padding: '8px 12px', textAlign: 'left', color: '#dc2626' }}>- {retentionHeld.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               {otherDeductions > 0 && (
-                <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#dc2626' }}>
-                  <td style={{ padding: '8px 12px' }}>10. خصم: استقطاعات وغرامات أخرى (Other Deductions)</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'left' }}>- {otherDeductions.toLocaleString('ar-EG')} ج.م</td>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '8px 12px', color: '#dc2626' }}>10. خصم: استقطاعات وغرامات أخرى (Other Deductions)</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'left', color: '#dc2626' }}>- {otherDeductions.toLocaleString('ar-EG')} {currencySymbol}</td>
                 </tr>
               )}
               <tr style={{ borderTop: '2px solid #170e5e', borderBottom: '2px solid #170e5e', backgroundColor: '#eef2ff' }}>
@@ -179,12 +181,12 @@ export function PrintIpcCertificateModal({ open, invoice, project: propProject, 
                   صافي المبلغ المستحق للدفع حالياً (CURRENT PAYMENT DUE)
                 </td>
                 <td style={{ padding: '12px 12px', textAlign: 'left', fontWeight: 800, fontSize: '15px', color: '#170e5e' }}>
-                  {netPayable.toLocaleString('ar-EG')} ج.م
+                  {netPayable.toLocaleString('ar-EG')} {currencySymbol}
                 </td>
               </tr>
               <tr>
                 <td style={{ padding: '8px 12px', color: '#64748b' }}>11. الرصيد المتبقي لإنهاء المشروع شاملاً التأمين (Balance to Finish)</td>
-                <td style={{ padding: '8px 12px', textAlign: 'left', color: '#64748b' }}>{balanceToFinish.toLocaleString('ar-EG')} ج.م</td>
+                <td style={{ padding: '8px 12px', textAlign: 'left', color: '#64748b' }}>{balanceToFinish.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
             </tbody>
           </table>
@@ -234,7 +236,7 @@ export function PrintIpcCertificateModal({ open, invoice, project: propProject, 
                       <td style={{ padding: '6px 8px', fontWeight: 700 }}>{Number(it.currentQty).toLocaleString('ar-EG')}</td>
                       <td style={{ padding: '6px 8px' }}>{Number(it.storedMaterialsQty || 0).toLocaleString('ar-EG')}</td>
                       <td style={{ padding: '6px 8px', fontWeight: 700 }}>{Number(it.cumulativeQty).toLocaleString('ar-EG')}</td>
-                      <td style={{ padding: '6px 8px', fontWeight: 700, color: '#170e5e' }}>{Number(it.cumulativeTotal).toLocaleString('ar-EG')} ج.م</td>
+                      <td style={{ padding: '6px 8px', fontWeight: 700, color: '#170e5e' }}>{Number(it.cumulativeTotal).toLocaleString('ar-EG')} {currencySymbol}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { contractingApi } from '../api/contracting.api';
 import { ContractingEngineeringConstant, AutoPriceBoqResult, ContractingBoqItem } from '../contracting.types';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface AutoPricingModalProps {
   isOpen: boolean;
@@ -20,12 +21,14 @@ export function AutoPricingModal({
   onApplyPrice,
   initialQuantity = 100,
   initialCode = '',
-  currencySymbol = 'ج.م',
+  currencySymbol: currencySymbolProp,
   boqItems = [],
   selectedBoqItemId = '',
 }: AutoPricingModalProps) {
+  const { currencySymbol: sysCurrencySymbol } = useSystemCurrency();
+  const currSymbol = currencySymbolProp || sysCurrencySymbol;
   const [constants, setConstants] = useState<ContractingEngineeringConstant[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
   const [applying, setApplying] = useState(false);
 
@@ -107,15 +110,14 @@ export function AutoPricingModal({
     }
   };
 
-  const currSymbol = currencySymbol || 'ج.م';
-
   return (
     <StandardDialog
       isOpen={isOpen}
       onClose={onClose}
       title="محرك التسعير التلقائي الذكي للبند (Engineering Pricing Engine)"
       subtitle="تسعير دقيق بضغطة زر بناءً على مكونات البند وثوابت الاستهلاك الهندسية وأسعار السوق"
-      maxWidth="780px"
+      width="min(780px, 95vw)"
+      minHeight="min(520px, 85vh)"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <button
@@ -147,10 +149,10 @@ export function AutoPricingModal({
                 color: '#170e5e',
                 fontSize: 'var(--font-body)',
                 fontWeight: 600,
-                cursor: 'pointer',
+                cursor: calculating || loading ? 'not-allowed' : 'pointer',
               }}
             >
-              {calculating ? 'جارٍ الحساب...' : 'إعادة الحساب الآن'}
+              {calculating ? 'جارٍ إعادة الحساب...' : 'إعادة الحساب الآن'}
             </button>
             {onApplyPrice && (
               <button
@@ -175,40 +177,49 @@ export function AutoPricingModal({
         </div>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
-        {errorMsg && (
-          <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 'var(--font-body)' }}>
-            {errorMsg}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }} dir="rtl">
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '380px', gap: '12px' }}>
+            <div style={{ width: '28px', height: '28px', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            <span style={{ fontSize: 'var(--font-body)', color: '#64748b' }}>
+              جارٍ تحميل المعادلات الهندسية وثوابت الاستهلاك...
+            </span>
           </div>
-        )}
+        ) : (
+          <>
+            {errorMsg && (
+              <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 'var(--font-body)' }}>
+                {errorMsg}
+              </div>
+            )}
 
-        {/* اختيار البند المستهدف في المقايسة إذا وُجدت بنود */}
-        {boqItems.length > 0 && (
-          <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd' }}>
-            <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#0369a1', marginBottom: '4px' }}>
-              البند المستهدف في المقايسة للتسعير والاعتماد:
-            </label>
-            <select
-              value={targetItemId}
-              onChange={(e) => {
-                const newId = e.target.value;
-                setTargetItemId(newId);
-                const found = boqItems.find((i) => String(i.id) === newId);
-                if (found) {
-                  setQuantity(found.contractQty || 1);
-                }
-              }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                border: '1px solid #0284c7',
-                fontSize: 'var(--font-body)',
-                fontWeight: 600,
-                backgroundColor: '#ffffff',
-                color: '#0c4a6e',
-              }}
-            >
+            {/* اختيار البند المستهدف في المقايسة إذا وُجدت بنود */}
+            {boqItems.length > 0 && (
+              <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd' }}>
+                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#0369a1', marginBottom: '4px' }}>
+                  البند المستهدف في المقايسة للتسعير والاعتماد:
+                </label>
+                <select
+                  value={targetItemId}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setTargetItemId(newId);
+                    const found = boqItems.find((i) => String(i.id) === newId);
+                    if (found) {
+                      setQuantity(found.contractQty || 1);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #0284c7',
+                    fontSize: 'var(--font-body)',
+                    fontWeight: 600,
+                    backgroundColor: '#ffffff',
+                    color: '#0c4a6e',
+                  }}
+                >
               {boqItems
                 .filter((i) => !i.isSectionHeader)
                 .map((item) => (
@@ -366,9 +377,9 @@ export function AutoPricingModal({
               <h4 style={{ fontSize: 'var(--font-subtitle)', fontWeight: 600, color: '#334155', margin: '8px 0 6px' }}>
                 تفكيك عناصر التكلفة القياسية للبند:
               </h4>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', maxHeight: '220px', overflowY: 'auto', background: '#ffffff' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
-                  <thead>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f8fafc' }}>
                     <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                       <th style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المكون / الخامة</th>
                       <th style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الكمية لكل وحدة</th>
@@ -396,6 +407,8 @@ export function AutoPricingModal({
               اضغط على زر <strong>إعادة الحساب الآن</strong> لتوليد تفكيك التكلفة وسعر البيع المقترح فوراً.
             </p>
           </div>
+        )}
+          </>
         )}
       </div>
     </StandardDialog>

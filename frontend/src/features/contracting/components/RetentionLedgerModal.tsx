@@ -18,7 +18,7 @@ export function RetentionLedgerModal({
   projectName,
 }: RetentionLedgerModalProps) {
   const [records, setRecords] = useState<ContractingRetentionRecord[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [releasingId, setReleasingId] = useState<string | null>(null);
   const [releaseAmount, setReleaseAmount] = useState<number>(0);
@@ -114,7 +114,8 @@ export function RetentionLedgerModal({
       isOpen={isOpen}
       onClose={onClose}
       title="سجل ضمان الأعمال وحجز الدفعات (Retention Ledger)"
-      maxWidth="900px"
+      width="min(1000px, 95vw)"
+      minHeight="min(580px, 85vh)"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -162,19 +163,19 @@ export function RetentionLedgerModal({
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
             <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي الضمان المحتجز</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', marginTop: '2px' }}>
-              {totalHeld.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {loading ? '—' : totalHeld.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
           </div>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
             <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي ما تم الإفراج عنه</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
-              {totalReleased.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {loading ? '—' : totalReleased.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
           </div>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
             <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>الضمان المحتجز المتبقي</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#b91c1c', marginTop: '2px' }}>
-              {totalRemaining.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {loading ? '—' : totalRemaining.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
           </div>
         </div>
@@ -285,9 +286,14 @@ export function RetentionLedgerModal({
         {/* جدول السجلات */}
         <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
           {loading ? (
-            <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جاري تحميل سجلات الضمان...</div>
+            <div style={{ minHeight: '260px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+              <div className="spinner" style={{ width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', fontWeight: 600 }}>جاري تحميل سجلات الضمان المحتجز...</span>
+            </div>
           ) : records.length === 0 ? (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>لا توجد سجلات ضمان محتجز مسجلة حتى الآن</div>
+            <div style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: 'var(--font-body)' }}>
+              لا توجد سجلات ضمان محتجز مسجلة حتى الآن
+            </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>

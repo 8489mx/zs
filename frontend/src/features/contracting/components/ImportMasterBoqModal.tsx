@@ -25,7 +25,7 @@ export function ImportMasterBoqModal({
   const [search, setSearch] = useState('');
   const [allItems, setAllItems] = useState<MasterBoqItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -130,6 +130,7 @@ export function ImportMasterBoqModal({
       title="سحب واستيراد من بنك بنود المقاولات المرجعي"
       subtitle={`سحب وتوريث البنود القياسية بأسعار السوق المحدثة إلى مشروع: ${projectName}`}
       width="min(1100px, 96vw)"
+      minHeight="min(600px, 85vh)"
       footerActions={(
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--font-subtitle)', color: '#475569' }}>
@@ -347,8 +348,11 @@ export function ImportMasterBoqModal({
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-                    جاري تحميل بنك البنود المرجعي...
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '90px 20px' }}>
+                    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                      <div className="spinner" style={{ width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                      <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', fontWeight: 600 }}>جاري تحميل بنك البنود المرجعي...</span>
+                    </div>
                   </td>
                 </tr>
               ) : filteredItems.length === 0 ? (

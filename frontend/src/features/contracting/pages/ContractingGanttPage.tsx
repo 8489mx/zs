@@ -42,6 +42,7 @@ export function ContractingGanttPage() {
       <ContractingGanttTab
         tasks={tasks}
         loading={loading}
+        projectId={selectedProjectId || undefined}
         projectName={activeProject?.name}
         onNewTask={() => setIsCreateTaskOpen(true)}
         onTaskUpdated={loadData}

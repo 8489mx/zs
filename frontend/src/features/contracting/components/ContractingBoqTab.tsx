@@ -12,6 +12,12 @@ import { ProjectMaterialsMrpModal } from './ProjectMaterialsMrpModal';
 import { BoqProfitabilityModal } from './BoqProfitabilityModal';
 import { CostSnapshotModal } from './CostSnapshotModal';
 import { CreateBoqItemModal } from './CreateBoqItemModal';
+import { BoqTakeoffSheetModal } from './BoqTakeoffSheetModal';
+import { SiteMobilizationModal } from './SiteMobilizationModal';
+import { ClientMilestonesModal } from './ClientMilestonesModal';
+import { EquipmentTrackingModal } from './EquipmentTrackingModal';
+import { SuppliersDirectoryModal } from './SuppliersDirectoryModal';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface ContractingBoqTabProps {
   items: ContractingBoqItem[];
@@ -61,6 +67,7 @@ export function ContractingBoqTab({
   onNewItem,
   onRefresh,
 }: ContractingBoqTabProps) {
+  const { currencySymbol } = useSystemCurrency();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isImportMasterOpen, setIsImportMasterOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -69,6 +76,11 @@ export function ContractingBoqTab({
   const [isMrpOpen, setIsMrpOpen] = useState(false);
   const [isProfitabilityOpen, setIsProfitabilityOpen] = useState(false);
   const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
+  const [takeoffItem, setTakeoffItem] = useState<ContractingBoqItem | null>(null);
+  const [isMobilizationOpen, setIsMobilizationOpen] = useState(false);
+  const [isMilestonesOpen, setIsMilestonesOpen] = useState(false);
+  const [isEquipmentOpen, setIsEquipmentOpen] = useState(false);
+  const [isSuppliersOpen, setIsSuppliersOpen] = useState(false);
 
   // Edit & Delete states
   const [editingItem, setEditingItem] = useState<ContractingBoqItem | null>(null);
@@ -167,7 +179,7 @@ export function ContractingBoqTab({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} dir="rtl">
       {/* إشعار النجاح أو الخطأ */}
       {notification && (
         <div
@@ -447,28 +459,118 @@ export function ContractingBoqTab({
             <span>تجميد خط الأساس (Baseline Lock)</span>
           </button>
         )}
+
+        {/* تجهيز الموقع وسكن العمال */}
+        {projectId && (
+          <button
+            type="button"
+            onClick={() => setIsMobilizationOpen(true)}
+            style={{
+              height: '32px',
+              padding: '0 12px',
+              borderRadius: '6px',
+              fontWeight: 600,
+              background: '#f8fafc',
+              color: '#0f766e',
+              border: '1px solid #99f6e4',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.Building size={14} />
+            <span>تجهيز الموقع وسكن العمال</span>
+          </button>
+        )}
+
+        {/* دفعات العميل والمقايضة العينية */}
+        {projectId && (
+          <button
+            type="button"
+            onClick={() => setIsMilestonesOpen(true)}
+            style={{
+              height: '32px',
+              padding: '0 12px',
+              borderRadius: '6px',
+              fontWeight: 600,
+              background: '#f8fafc',
+              color: '#c2410c',
+              border: '1px solid #fed7aa',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.FileText size={14} />
+            <span>دفعات العميل والوحدات العينية</span>
+          </button>
+        )}
+
+        {/* تتبع العِدة والمعدات */}
+        <button
+          type="button"
+          onClick={() => setIsEquipmentOpen(true)}
+          style={{
+            height: '32px',
+            padding: '0 12px',
+            borderRadius: '6px',
+            fontWeight: 600,
+            background: '#f8fafc',
+            color: '#1e40af',
+            border: '1px solid #bfdbfe',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            fontSize: 'var(--font-body)',
+          }}
+        >
+          <AppIcons.Tool size={14} />
+          <span>تتبع العِدة والمعدات</span>
+        </button>
+
+        {/* دليل الموردين والذاكرة السعرية */}
+        <button
+          type="button"
+          onClick={() => setIsSuppliersOpen(true)}
+          style={{
+            height: '32px',
+            padding: '0 12px',
+            borderRadius: '6px',
+            fontWeight: 600,
+            background: '#f8fafc',
+            color: '#854d0e',
+            border: '1px solid #fef08a',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            fontSize: 'var(--font-body)',
+          }}
+        >
+          <AppIcons.ShoppingBag size={14} />
+          <span>دليل الموردين والذاكرة السعرية</span>
+        </button>
       </div>
 
       {/* شريط الإحصائيات المصغر للجدول */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي قيمة جدول الكميات</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-            {totalContractValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </div>
-        </div>
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي قيمة جدول الكميات</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
             <span>{totalContractValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{currencySymbol}</span>
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>التكلفة التقديرية المستهدفة</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
             <span>{totalEstimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{currencySymbol}</span>
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
@@ -594,7 +696,7 @@ export function ContractingBoqTab({
             </div>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <table
               style={{
                 width: '100%',
@@ -803,7 +905,7 @@ export function ContractingBoqTab({
                           <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
                             {unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </span>
-                          <span style={{ fontSize: '0.6875rem', color: '#94a3b8' }}>ج.م</span>
+                          <span style={{ fontSize: '0.6875rem', color: '#94a3b8' }}>{currencySymbol}</span>
                         </div>
                       </td>
 
@@ -819,7 +921,7 @@ export function ContractingBoqTab({
                           >
                             {total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </span>
-                          <span style={{ fontSize: '0.6875rem', color: '#94a3b8' }}>ج.م</span>
+                          <span style={{ fontSize: '0.6875rem', color: '#94a3b8' }}>{currencySymbol}</span>
                         </div>
                       </td>
 
@@ -893,6 +995,34 @@ export function ContractingBoqTab({
                               <AppIcons.Calculator size={13} />
                             </button>
                           )}
+                          <button
+                            type="button"
+                            title="شيت حصر كميات لوحات الكاد (CAD Takeoff)"
+                            onClick={() => setTakeoffItem(item)}
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              background: '#f0fdf4',
+                              color: '#15803d',
+                              border: '1px solid #bbf7d0',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#15803d';
+                              e.currentTarget.style.color = '#ffffff';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = '#f0fdf4';
+                              e.currentTarget.style.color = '#15803d';
+                            }}
+                          >
+                            <AppIcons.Maximize size={13} />
+                          </button>
                           <button
                             type="button"
                             title="تعديل بيانات البند والكميات"
@@ -1000,7 +1130,7 @@ export function ContractingBoqTab({
             setIsAutoPricingOpen(false);
             setEditingItem(null);
           }}
-          currencySymbol="ج.م"
+          currencySymbol={currencySymbol}
           boqItems={items.filter((i) => !i.isSectionHeader)}
           selectedBoqItemId={editingItem ? String(editingItem.id) : undefined}
           initialCode={editingItem?.itemCode || ''}
@@ -1019,7 +1149,7 @@ export function ContractingBoqTab({
               });
               setNotification({
                 type: 'success',
-                text: `تم اعتماد وتحديث سعر الفئة (${suggestedUnitPrice.toLocaleString()} ج.م) للبند بنجاح!`,
+                text: `تم اعتماد وتحديث سعر الفئة (${suggestedUnitPrice.toLocaleString()} ${currencySymbol}) للبند بنجاح!`,
               });
               if (onRefresh) onRefresh();
             } catch (err: any) {
@@ -1072,6 +1202,68 @@ export function ContractingBoqTab({
           onClose={() => setIsSnapshotOpen(false)}
           projectId={projectId}
           projectName={projectName}
+        />
+      )}
+
+      {/* مودال حصر كميات الكاد */}
+      {takeoffItem && (
+        <BoqTakeoffSheetModal
+          open={Boolean(takeoffItem)}
+          boqItem={takeoffItem}
+          projectName={projectName}
+          onClose={() => setTakeoffItem(null)}
+          onSuccess={() => {
+            setTakeoffItem(null);
+            if (onRefresh) onRefresh();
+          }}
+        />
+      )}
+
+      {/* مودال تجهيز الموقع وسكن العمال */}
+      {isMobilizationOpen && projectId && (
+        <SiteMobilizationModal
+          open={isMobilizationOpen}
+          projectId={projectId}
+          projectName={projectName}
+          onClose={() => setIsMobilizationOpen(false)}
+          onSuccess={() => {
+            if (onRefresh) onRefresh();
+          }}
+        />
+      )}
+
+      {/* مودال دفعات العميل والمقايضة العينية */}
+      {isMilestonesOpen && projectId && (
+        <ClientMilestonesModal
+          open={isMilestonesOpen}
+          projectId={projectId}
+          projectName={projectName}
+          contractValue={totalContractValue}
+          onClose={() => setIsMilestonesOpen(false)}
+          onSuccess={() => {
+            if (onRefresh) onRefresh();
+          }}
+        />
+      )}
+
+      {/* مودال تتبع العِدة والمعدات */}
+      {isEquipmentOpen && (
+        <EquipmentTrackingModal
+          open={isEquipmentOpen}
+          projectId={projectId}
+          projectName={projectName}
+          onClose={() => setIsEquipmentOpen(false)}
+          onSuccess={() => {
+            if (onRefresh) onRefresh();
+          }}
+        />
+      )}
+
+      {/* مودال دليل الموردين والذاكرة السعرية */}
+      {isSuppliersOpen && (
+        <SuppliersDirectoryModal
+          open={isSuppliersOpen}
+          onClose={() => setIsSuppliersOpen(false)}
         />
       )}
     </div>

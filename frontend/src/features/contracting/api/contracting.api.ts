@@ -368,6 +368,132 @@ export const contractingApi = {
         body: JSON.stringify({ itemIds }),
       },
     ),
+
+  // 1. BOQ CAD Quantity Takeoffs
+  getBoqTakeoffs: (boqItemId: string) =>
+    http<import('../contracting.types').ContractingBoqTakeoff[]>(`/api/contracting/boq/${boqItemId}/takeoffs`),
+
+  saveBoqTakeoffs: (boqItemId: string, data: { takeoffs: import('../contracting.types').ContractingBoqTakeoff[]; syncToBoqQuantity?: boolean }) =>
+    http<{ success: boolean; totalCalculatedQty: number; count: number; takeoffs: any[] }>(
+      `/api/contracting/boq/${boqItemId}/takeoffs`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+
+  // 2. Site Mobilization & Worker Housing Expenses
+  getMobilizationExpenses: (projectId: string) =>
+    http<import('../contracting.types').ContractingMobilizationSummary>(`/api/contracting/projects/${projectId}/mobilization`),
+
+  getSiteMobilizationExpenses: (projectId: string) =>
+    http<import('../contracting.types').ContractingMobilizationSummary>(`/api/contracting/projects/${projectId}/mobilization`),
+
+  createMobilizationExpense: (projectId: string, data: Partial<import('../contracting.types').ContractingSiteMobilizationExpense>) =>
+    http<import('../contracting.types').ContractingSiteMobilizationExpense>(
+      `/api/contracting/projects/${projectId}/mobilization`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+
+  createSiteMobilizationExpense: (projectId: string, data: Partial<import('../contracting.types').ContractingSiteMobilizationExpense>) =>
+    http<import('../contracting.types').ContractingSiteMobilizationExpense>(
+      `/api/contracting/projects/${projectId}/mobilization`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+
+  deleteMobilizationExpense: (id: string) =>
+    http<{ success: boolean }>(`/api/contracting/mobilization/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // 3. Labor Attendance & Overtime Records
+  getLaborAttendanceRecords: (projectId: string, date?: string) =>
+    http<{ projectId: string; totalPayable: number; totalOvertimeHours: number; recordsCount: number; records: import('../contracting.types').ContractingLaborAttendanceRecord[] }>(
+      `/api/contracting/projects/${projectId}/labor-records${toQueryString({ date })}`,
+    ),
+
+  recordLaborAttendance: (projectId: string, data: Partial<import('../contracting.types').ContractingLaborAttendanceRecord>) =>
+    http<import('../contracting.types').ContractingLaborAttendanceRecord>(
+      `/api/contracting/projects/${projectId}/labor-records`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+
+  deleteLaborAttendanceRecord: (id: string) =>
+    http<{ success: boolean }>(`/api/contracting/labor-records/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // 4. Client Payment Milestones & In-Kind Barter
+  getClientPaymentMilestones: (projectId: string) =>
+    http<{ projectId: string; totalScheduled: number; totalReceived: number; totalInKindSettled: number; milestones: import('../contracting.types').ContractingClientPaymentMilestone[] }>(
+      `/api/contracting/projects/${projectId}/milestones`,
+    ),
+
+  createClientPaymentMilestone: (projectId: string, data: Partial<import('../contracting.types').ContractingClientPaymentMilestone>) =>
+    http<import('../contracting.types').ContractingClientPaymentMilestone>(
+      `/api/contracting/projects/${projectId}/milestones`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+
+  recordInKindBarterDeduction: (milestoneId: string, data: { inKindUnitRef: string; inKindValuation: number; notes?: string }) =>
+    http<import('../contracting.types').ContractingClientPaymentMilestone>(
+      `/api/contracting/milestones/${milestoneId}/barter-settlement`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+
+  deleteClientPaymentMilestone: (id: string) =>
+    http<{ success: boolean }>(`/api/contracting/milestones/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // 5. Equipment & Tools Asset Tracking
+  getEquipmentAssets: (params?: { projectId?: string; category?: string; operationalStatus?: string; search?: string }) =>
+    http<import('../contracting.types').ContractingEquipmentAsset[]>(`/api/contracting/equipment${toQueryString(params)}`),
+
+  createEquipmentAsset: (data: Partial<import('../contracting.types').ContractingEquipmentAsset>) =>
+    http<import('../contracting.types').ContractingEquipmentAsset>('/api/contracting/equipment', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  transferEquipmentAsset: (equipmentId: string, data: { toProjectId?: string; toProjectName?: string; transferDate?: string; dispatchedBy: string; receivedBy: string; conditionOnDispatch?: string; conditionOnReceipt?: string; notes?: string }) =>
+    http<import('../contracting.types').ContractingEquipmentAsset>(`/api/contracting/equipment/${equipmentId}/transfer`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getEquipmentTransfers: (equipmentId?: string) =>
+    http<import('../contracting.types').ContractingEquipmentTransfer[]>(`/api/contracting/equipment-transfers${toQueryString({ equipmentId })}`),
+
+  // 6. Supplier Price Memory & Rating Directory
+  getSupplierPriceMemory: (params?: { supplierId?: number; materialName?: string; governorate?: string; paymentTerms?: string }) =>
+    http<import('../contracting.types').ContractingSupplierPriceMemory[]>(`/api/contracting/supplier-price-memory${toQueryString(params)}`),
+
+  recordSupplierPriceMemory: (data: Partial<import('../contracting.types').ContractingSupplierPriceMemory>) =>
+    http<import('../contracting.types').ContractingSupplierPriceMemory>('/api/contracting/supplier-price-memory', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 7. Item-Level Direct Profitability Ledger
+  getItemProfitabilityLedger: (projectId: string) =>
+    http<import('../contracting.types').ContractingItemProfitabilitySummary>(`/api/contracting/projects/${projectId}/item-profitability`),
 };
+
 
 

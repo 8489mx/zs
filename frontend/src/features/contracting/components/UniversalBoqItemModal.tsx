@@ -3,6 +3,7 @@ import { StandardDialog, StandardDialogFooter } from '@/shared/components/Standa
 import { Field } from '@/shared/ui/field';
 import { contractingApi } from '../api/contracting.api';
 import { MasterBoqItem, MasterBoqTrade, ContractingBoqItem } from '../contracting.types';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 const EMPTY_ITEMS: any[] = [];
 
@@ -131,6 +132,7 @@ export function UniversalBoqItemModal({
   existingItems = EMPTY_ITEMS,
   initialTradeCategory,
 }: UniversalBoqItemModalProps) {
+  const { currencySymbol } = useSystemCurrency();
   const [internalTrades, setInternalTrades] = useState<MasterBoqTrade[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -406,6 +408,7 @@ export function UniversalBoqItemModal({
       title={dialogTitle}
       subtitle={dialogSubtitle}
       width="min(780px, 95vw)"
+      minHeight="min(560px, 85vh)"
       footer={
         <StandardDialogFooter
           onCancel={onClose}
@@ -683,7 +686,7 @@ export function UniversalBoqItemModal({
             </Field>
 
             {/* 3. سعر الفئة للعميل / سعر البيع المقترح */}
-            <Field label={mode === 'project' ? 'سعر الفئة للعميل (ج.م) *' : 'سعر البيع المقترح *'} hint="يُحسب تلقائياً من الهامش">
+            <Field label={mode === 'project' ? `سعر الفئة للعميل (${currencySymbol}) *` : `سعر البيع المقترح (${currencySymbol}) *`} hint="يُحسب تلقائياً من الهامش">
               <input
                 type="text"
                 inputMode="decimal"
@@ -722,7 +725,7 @@ export function UniversalBoqItemModal({
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ color: '#475569' }}>
-                  صافي ربح الوحدة: <strong style={{ color: '#170e5e' }}>{(price - cost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> ج.م / {formData.unit}
+                  صافي ربح الوحدة: <strong style={{ color: '#170e5e' }}>{(price - cost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> {currencySymbol} / {formData.unit}
                 </span>
                 <span
                   style={{
@@ -749,10 +752,10 @@ export function UniversalBoqItemModal({
                   }}
                 >
                   <span style={{ color: '#475569' }}>
-                    إجمالي قيمة البند للمشروع: <strong style={{ color: '#170e5e' }}>{totalContractVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong> ج.م
+                    إجمالي قيمة البند للمشروع: <strong style={{ color: '#170e5e' }}>{totalContractVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong> {currencySymbol}
                   </span>
                   <span style={{ color: '#059669', fontWeight: 700 }}>
-                    إجمالي أرباح البند المتوقعة: +{totalProfitVal.toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م
+                    إجمالي أرباح البند المتوقعة: +{totalProfitVal.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currencySymbol}
                   </span>
                 </div>
               )}

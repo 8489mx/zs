@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { ContractingScheduleTask } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { contractingApi } from '../api/contracting.api';
+import { ScheduleGeneratorModal } from './ScheduleGeneratorModal';
 
 interface ContractingGanttTabProps {
   tasks: ContractingScheduleTask[];
   loading: boolean;
+  projectId?: string;
   projectName?: string;
   onNewTask: () => void;
   onTaskUpdated: () => void;
@@ -14,11 +16,13 @@ interface ContractingGanttTabProps {
 export function ContractingGanttTab({
   tasks,
   loading,
+  projectId,
   projectName,
   onNewTask,
   onTaskUpdated,
 }: ContractingGanttTabProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [showGeneratorModal, setShowGeneratorModal] = useState(false);
 
   // Metrics
   const totalTasks = tasks.length;
@@ -75,27 +79,52 @@ export function ContractingGanttTab({
             {projectName ? `المشروع: ${projectName}` : 'متابعة مراحل التنفيذ، الأنشطة الحرجة، والمدد الزمنية المعتمدة'}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onNewTask}
-          style={{
-            height: '36px',
-            padding: '0 16px',
-            borderRadius: '8px',
-            fontWeight: 600,
-            background: '#170e5e',
-            color: '#ffffff',
-            border: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-            fontSize: 'var(--font-body)',
-          }}
-        >
-          <AppIcons.Plus size={16} />
-          <span>إضافة نشاط ومرحلة جديدة</span>
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {projectId && (
+            <button
+              type="button"
+              onClick={() => setShowGeneratorModal(true)}
+              style={{
+                height: '36px',
+                padding: '0 16px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                background: '#eff6ff',
+                color: '#1e40af',
+                border: '1px solid #bfdbfe',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                fontSize: 'var(--font-body)',
+              }}
+            >
+              <AppIcons.Calendar size={16} />
+              <span>توليد الجدول الزمني الذكي للأدوار</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onNewTask}
+            style={{
+              height: '36px',
+              padding: '0 16px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.Plus size={16} />
+            <span>إضافة نشاط ومرحلة جديدة</span>
+          </button>
+        </div>
       </div>
 
       {/* بطاقات المؤشرات السريعة للجدول */}
@@ -310,6 +339,19 @@ export function ContractingGanttTab({
           </div>
         )}
       </div>
+
+      {projectId && (
+        <ScheduleGeneratorModal
+          open={showGeneratorModal}
+          projectId={projectId}
+          projectName={projectName}
+          onClose={() => setShowGeneratorModal(false)}
+          onSuccess={() => {
+            setShowGeneratorModal(false);
+            onTaskUpdated();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -339,6 +339,7 @@ export function ImportBoqModal({
       title="استيراد جدول الكميات والمقايسة من ملف Excel"
       subtitle={projectName ? `المشروع: ${projectName}` : 'التعرف الذكي التلقائي على الأعمدة والوحدات باللغتين العربية والإنجليزية'}
       width="min(1280px, 98vw)"
+      minHeight="min(600px, 85vh)"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}

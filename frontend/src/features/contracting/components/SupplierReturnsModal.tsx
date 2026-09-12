@@ -3,6 +3,7 @@ import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { contractingApi } from '../api/contracting.api';
 import { ContractingSupplierReturn } from '../contracting.types';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface SupplierReturnsModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export function SupplierReturnsModal({
   projectId,
   projectName,
 }: SupplierReturnsModalProps) {
+  const { currencySymbol, formatCurrency } = useSystemCurrency();
   const [returns, setReturns] = useState<ContractingSupplierReturn[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -62,27 +64,34 @@ export function SupplierReturnsModal({
       setErrorMsg('يرجى تحديد كمية المرتجع بشكل صحيح');
       return;
     }
+    if (!supplierName.trim()) {
+      setErrorMsg('يرجى تحديد اسم المورد');
+      return;
+    }
+
     try {
       setSaving(true);
       setErrorMsg(null);
       await contractingApi.createSupplierReturn(projectId || '', {
-        supplierName: supplierName.trim() || 'مورد محلي',
+        supplierName: supplierName.trim(),
         materialName: materialName.trim(),
         quantity: Number(quantity),
-        unit: unit.trim() || 'وحدة',
+        unit,
         unitCost: Number(unitCost || 0),
         reason: reason.trim(),
         creditNoteNumber: creditNoteNumber.trim() || undefined,
+        returnDate: new Date().toISOString().split('T')[0],
       });
       setIsAdding(false);
       setSupplierName('');
       setMaterialName('');
       setQuantity(0);
       setUnitCost(0);
+      setReason('غير مطابق للمواصفات الفنية');
       setCreditNoteNumber('');
       await loadReturns();
     } catch (err: any) {
-      setErrorMsg(err?.message || 'تعذر تسجيل إذن مرتجع المورد');
+      setErrorMsg(err?.message || 'تعذر تسجيل إذن المرتجع');
     } finally {
       setSaving(false);
     }
@@ -92,25 +101,29 @@ export function SupplierReturnsModal({
 
   return (
     <StandardDialog
-      isOpen={isOpen}
+      open={isOpen}
       onClose={onClose}
-      title="أذون مرتجع المواد للموردين وإشعارات الدائن (Supplier Returns & Credit Notes)"
-      maxWidth="900px"
+      title="مرتجعات خامات ومواد للموردين (Supplier Returns & Credit Notes)"
+      maxWidth="940px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* هيدر المودال وزر الإضافة */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <div>
             <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b' }}>
-              سجل الخامات المرتجعة من الموقع للموردين
+              سجل رد وتكهين الخامات للموردين
             </div>
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
-              {projectName ? `المشروع: ${projectName}` : 'توثيق المواد المرفوضة والمسترجعة مع إصدار إشعارات الخصم المالي'}
+              {projectName ? `المشروع: ${projectName}` : 'توثيق أذون خروج الخامات المرفوضة وإشعارات الخصم الدائنة'}
             </div>
           </div>
           {!isAdding && (
             <button
               type="button"
-              onClick={() => setIsAdding(true)}
+              onClick={() => {
+                setIsAdding(true);
+                setErrorMsg(null);
+              }}
               style={{
                 height: '34px',
                 padding: '0 14px',
@@ -143,7 +156,7 @@ export function SupplierReturnsModal({
           <div>
             <div style={{ fontSize: 'var(--font-micro)', color: '#9a3412', fontWeight: 600 }}>إجمالي قيمة المرتجعات وإشعارات الدائن</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#c2410c', marginTop: '2px' }}>
-              {totalReturnValue.toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م
+              {formatCurrency(totalReturnValue)}
             </div>
           </div>
           <div style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#9a3412' }}>
@@ -227,7 +240,7 @@ export function SupplierReturnsModal({
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  سعر الوحدة (ج.م)
+                  سعر الوحدة ({currencySymbol})
                 </label>
                 <input
                   type="number"
@@ -300,7 +313,7 @@ export function SupplierReturnsModal({
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المورد</th>
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الخامة / المادة</th>
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الكمية والوحدة</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>إجمالي المبلغ</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>إجمالي المبلغ ({currencySymbol})</th>
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>سبب الإرجاع</th>
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>إشعار الدائن</th>
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>التاريخ</th>

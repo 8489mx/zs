@@ -3,6 +3,7 @@ import { ContractingMaterialRequisition } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { contractingApi } from '../api/contracting.api';
 import { SupplierReturnsModal } from './SupplierReturnsModal';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface ContractingMaterialsTabProps {
   requisitions: ContractingMaterialRequisition[];
@@ -21,6 +22,7 @@ export function ContractingMaterialsTab({
   onNewRequisition,
   onRequisitionDeleted,
 }: ContractingMaterialsTabProps) {
+  const { formatCurrency } = useSystemCurrency();
   const [isSupplierReturnsOpen, setIsSupplierReturnsOpen] = useState(false);
   const totalCost = requisitions.reduce((sum, r) => sum + Number(r.totalCost || 0), 0);
   const totalItemsCount = requisitions.length;
@@ -100,7 +102,7 @@ export function ContractingMaterialsTab({
           <div>
             <div style={{ fontSize: 'var(--font-table-head)', color: '#64748b' }}>إجمالي تكلفة الخامات المنصرفة</div>
             <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
-              {totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+              {formatCurrency(totalCost)}
             </div>
           </div>
           <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
@@ -192,11 +194,11 @@ export function ContractingMaterialsTab({
                     </td>
 
                     <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#475569' }}>
-                      {Number(req.unitCost).toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م
+                      {formatCurrency(req.unitCost)}
                     </td>
 
                     <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e' }}>
-                      {Number(req.totalCost).toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م
+                      {formatCurrency(req.totalCost)}
                     </td>
 
                     <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#475569' }}>

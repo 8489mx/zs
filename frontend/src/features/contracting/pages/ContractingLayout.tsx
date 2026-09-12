@@ -4,6 +4,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { ContractingProvider, useContracting } from '../context/ContractingContext';
+import { toast } from '@/shared/components/system-alert';
 import { CreateProjectModal } from '../components/CreateProjectModal';
 import { ContractingProjectsPage } from './ContractingProjectsPage';
 import { ContractingBoqPage } from './ContractingBoqPage';
@@ -81,7 +82,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
 
   return (
     <div className="page-stack page-shell contracting-page" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
         {/* هيدر الصفحة القياسي الموحد */}
         <PageHeader
           title="المقاولات والمشاريع"
@@ -112,8 +113,16 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
               </button>
               <button
                 type="button"
-                onClick={() => reloadProjects()}
+                onClick={async () => {
+                  try {
+                    await reloadProjects();
+                    toast.success('تم تحديث بيانات ومؤشرات المشاريع بنجاح', undefined, 2000);
+                  } catch (err) {
+                    toast.error('فشل تحديث بيانات المشاريع');
+                  }
+                }}
                 disabled={loading}
+                title="تحديث بيانات المشاريع والمؤشرات"
                 style={{
                   height: '38px',
                   padding: '0 14px',
@@ -125,12 +134,19 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  cursor: 'pointer',
+                  cursor: loading ? 'wait' : 'pointer',
                   fontSize: 'var(--font-body)',
+                  opacity: loading ? 0.7 : 1,
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <AppIcons.RefreshCw size={15} />
-                <span>تحديث</span>
+                <AppIcons.RefreshCw
+                  size={15}
+                  style={{
+                    animation: loading ? 'spin 0.7s linear infinite' : 'none',
+                  }}
+                />
+                <span>{loading ? 'جارٍ التحديث...' : 'تحديث'}</span>
               </button>
             </div>
           }
@@ -294,19 +310,19 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
           children
         ) : (
           <>
-            <div style={{ display: isTabActive('projects') ? 'block' : 'none' }}>
+            <div style={{ display: isTabActive('projects') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
               <ContractingProjectsPage />
             </div>
-            <div style={{ display: isTabActive('boq') ? 'block' : 'none' }}>
+            <div style={{ display: isTabActive('boq') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
               <ContractingBoqPage />
             </div>
-            <div style={{ display: isTabActive('financials') ? 'block' : 'none' }}>
+            <div style={{ display: isTabActive('financials') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
               <ContractingFinancialsPage initialSubTab={currentSubPath === 'change-orders' ? 'change-orders' : 'invoices'} />
             </div>
-            <div style={{ display: isTabActive('procurement') ? 'block' : 'none' }}>
+            <div style={{ display: isTabActive('procurement') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
               <ContractingProcurementPage initialSubTab={currentSubPath === 'materials' ? 'materials' : 'subcontracts'} />
             </div>
-            <div style={{ display: isTabActive('field') ? 'block' : 'none' }}>
+            <div style={{ display: isTabActive('field') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
               <ContractingFieldPage initialSubTab={currentSubPath === 'daily-logs' ? 'daily-logs' : currentSubPath === 'rfis' ? 'rfis' : 'gantt'} />
             </div>
           </>

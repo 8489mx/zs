@@ -89,7 +89,7 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
   }, [activeSubTab, loadSubcontracts, loadMaterials]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
       {/* شريط التبديل الفرعي */}
       <div
         style={{

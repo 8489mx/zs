@@ -57,7 +57,7 @@ export function ContractingProjectsTab({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} dir="rtl">
       {/* هيدر التبويب مع زر الإضافة */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -127,20 +127,32 @@ export function ContractingProjectsTab({
             </button>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+          <div style={{ overflowX: 'auto', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+            <table style={{ width: '100%', minWidth: '1060px', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right' }}>
+              <colgroup>
+                <col style={{ width: '105px' }} />
+                <col style={{ width: '185px' }} />
+                <col style={{ width: '120px' }} />
+                <col style={{ width: '105px' }} />
+                <col style={{ width: '105px' }} />
+                <col style={{ width: '105px' }} />
+                <col style={{ width: '100px' }} />
+                <col style={{ width: '105px' }} />
+                <col style={{ width: '65px' }} />
+                <col style={{ width: '85px' }} />
+              </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>كود المشروع</th>
-                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>اسم المشروع</th>
-                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>العميل / المالك</th>
-                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>مدير المشروع</th>
-                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>القيمة التعاقدية الأصلية</th>
-                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>القيمة المعدلة (بالتغييرات)</th>
-                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الدفعة المقدمة</th>
-                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الحالة</th>
-                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>صحة المشروع</th>
-                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '10px 6px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الكود</th>
+                  <th style={{ padding: '10px 8px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>المشروع والموقع</th>
+                  <th style={{ padding: '10px 8px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>العميل</th>
+                  <th style={{ padding: '10px 8px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>المدير</th>
+                  <th style={{ padding: '10px 6px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>التعاقد الأصلي</th>
+                  <th style={{ padding: '10px 6px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>القيمة المعدلة</th>
+                  <th style={{ padding: '10px 6px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الدفعة المقدمة</th>
+                  <th style={{ padding: '10px 6px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الحالة</th>
+                  <th style={{ padding: '10px 4px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الصحة</th>
+                  <th style={{ padding: '10px 6px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -148,77 +160,89 @@ export function ContractingProjectsTab({
                   const hasChanges = (prj.revisedContractValue || prj.contractValue) !== prj.contractValue;
                   return (
                     <tr key={prj.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '12px 16px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
-                        {prj.code}
+                      <td style={{ padding: '8px 6px', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#170e5e', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '3px 8px', borderRadius: '5px', fontSize: '0.78rem' }}>
+                          {prj.code}
+                        </span>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#0f172a' }}>
-                        <div>{prj.name}</div>
+                      <td style={{ padding: '8px 8px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#0f172a', textAlign: 'center', verticalAlign: 'middle' }}>
+                        <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={prj.name}>{prj.name}</div>
                         {prj.locationAddress && (
-                          <div style={{ fontSize: 'var(--font-micro)', color: '#94a3b8' }}>
+                          <div style={{ fontSize: 'var(--font-micro)', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }} title={prj.locationAddress}>
                             {prj.locationAddress}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 'var(--font-body)', color: '#475569' }}>
+                      <td style={{ padding: '8px 8px', fontSize: 'var(--font-body)', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', verticalAlign: 'middle' }} title={prj.clientName || ''}>
                         {prj.clientName || '—'}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 'var(--font-body)', color: '#475569' }}>
+                      <td style={{ padding: '8px 8px', fontSize: 'var(--font-body)', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', verticalAlign: 'middle' }} title={prj.projectManager || ''}>
                         {prj.projectManager || '—'}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#0f172a' }}>
-                        {Number(prj.contractValue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <td style={{ padding: '8px 6px', fontSize: '0.8rem', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', textAlign: 'center', verticalAlign: 'middle' }}>
+                        {Number(prj.contractValue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 'var(--font-body)', fontWeight: 700, color: hasChanges ? '#1e40af' : '#0f172a' }}>
-                        {Number(prj.revisedContractValue || prj.contractValue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <td style={{ padding: '8px 6px', fontSize: '0.8rem', fontWeight: 700, color: hasChanges ? '#1e40af' : '#0f172a', whiteSpace: 'nowrap', textAlign: 'center', verticalAlign: 'middle' }}>
+                        {Number(prj.revisedContractValue || prj.contractValue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                         {hasChanges && (
-                          <span style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#2563eb' }}>
-                            معدل بأوامر تغييرية
+                          <span style={{ display: 'block', fontSize: '9.5px', color: '#2563eb', fontWeight: 600 }}>
+                            معدل
                           </span>
                         )}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 'var(--font-body)', color: '#475569' }}>
-                        {Number(prj.downPaymentAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <td style={{ padding: '8px 6px', fontSize: '0.8rem', color: '#475569', whiteSpace: 'nowrap', textAlign: 'center', verticalAlign: 'middle' }}>
+                        {Number(prj.downPaymentAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                       </td>
-                      <td style={{ padding: '12px 16px' }}>
+                      <td style={{ padding: '8px 6px', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                         {getStatusBadge(prj.status)}
                       </td>
                       {/* Health Score */}
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                      <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                         <ProjectHealthWidget projectId={prj.id} />
                       </td>
-                      {/* Actions */}
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      {/* Actions - Stacked Vertically */}
+                      <td style={{ padding: '6px 4px', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center', justifyContent: 'center' }}>
                           <button
                             type="button"
                             onClick={() => onSelectProject(prj.id, 'boq')}
                             style={{
-                              height: '30px',
-                              padding: '0 10px',
-                              borderRadius: '6px',
-                              fontSize: 'var(--font-badge)',
+                              width: '70px',
+                              height: '21px',
+                              borderRadius: '4px',
+                              fontSize: '10.5px',
                               fontWeight: 600,
                               background: '#eff6ff',
                               color: '#1d4ed8',
                               border: '1px solid #bfdbfe',
                               cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: 0,
                             }}
                           >
-                            جدول الكميات
+                            المقايسة
                           </button>
                           <button
                             type="button"
                             onClick={() => onSelectProject(prj.id, 'invoices')}
                             style={{
-                              height: '30px',
-                              padding: '0 10px',
-                              borderRadius: '6px',
-                              fontSize: 'var(--font-badge)',
+                              width: '70px',
+                              height: '21px',
+                              borderRadius: '4px',
+                              fontSize: '10.5px',
                               fontWeight: 600,
                               background: '#f0fdf4',
                               color: '#15803d',
                               border: '1px solid #bbf7d0',
                               cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: 0,
                             }}
                           >
                             المستخلصات
@@ -227,15 +251,20 @@ export function ContractingProjectsTab({
                             type="button"
                             onClick={() => setLicensesModal({ open: true, projectId: prj.id, projectName: prj.name })}
                             style={{
-                              height: '30px',
-                              padding: '0 10px',
-                              borderRadius: '6px',
-                              fontSize: 'var(--font-badge)',
+                              width: '70px',
+                              height: '21px',
+                              borderRadius: '4px',
+                              fontSize: '10.5px',
                               fontWeight: 600,
                               background: '#fff7ed',
                               color: '#c2410c',
                               border: '1px solid #fed7aa',
                               cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: 0,
                             }}
                           >
                             تراخيص

@@ -121,7 +121,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
   }, [activeSubTab, loadGanttData, loadDailyLogs, loadRfis]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
       {/* شريط التبديل الفرعي */}
       <div
         style={{
@@ -199,6 +199,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
           <ContractingGanttTab
             tasks={tasks}
             loading={tasksLoading}
+            projectId={selectedProjectId || undefined}
             projectName={activeProject?.name}
             onNewTask={() => setIsCreateTaskOpen(true)}
             onTaskUpdated={loadGanttData}

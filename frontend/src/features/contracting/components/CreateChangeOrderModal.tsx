@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
 import { contractingApi } from '../api/contracting.api';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface CreateChangeOrderModalProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface CreateChangeOrderModalProps {
 }
 
 export function CreateChangeOrderModal({ open, projectId, projectName, onClose, onCreated }: CreateChangeOrderModalProps) {
+  const { currencySymbol } = useSystemCurrency();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -105,7 +107,7 @@ export function CreateChangeOrderModal({ open, projectId, projectName, onClose, 
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <Field label="الأثر المالي (ج.م) *" hint="موجب للزيادة، سالب للتخفيض">
+          <Field label={`الأثر المالي (${currencySymbol}) *`} hint="موجب للزيادة، سالب للتخفيض">
             <input
               type="number"
               step="any"

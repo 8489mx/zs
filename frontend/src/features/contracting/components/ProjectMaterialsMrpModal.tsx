@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { contractingApi } from '../api/contracting.api';
 import { ProjectMaterialRequirementsSummary } from '../contracting.types';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface ProjectMaterialsMrpModalProps {
   isOpen: boolean;
@@ -16,8 +17,9 @@ export function ProjectMaterialsMrpModal({
   projectId,
   projectName,
 }: ProjectMaterialsMrpModalProps) {
+  const { formatCurrency } = useSystemCurrency();
   const [summary, setSummary] = useState<ProjectMaterialRequirementsSummary | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
@@ -43,13 +45,14 @@ export function ProjectMaterialsMrpModal({
 
   return (
     <StandardDialog
-      isOpen={isOpen}
+      open={isOpen}
       onClose={onClose}
-      title="حصر الاحتياج الكلي لخامات وموارد المشروع (Material Requirements Planning - MRP)"
-      subtitle={`تحليل كامل ومفصل لإجمالي كميات الأسمنت، الحديد، الرمل، المصنعيات والمعدات اللازمة لكامل المشروع: ${projectName || ''}`}
-      maxWidth="850px"
+      title="حصر احتياجات المواد ومخطط التوريدات (Project MRP & Materials Takeoff)"
+      subtitle={projectName ? `المشروع: ${projectName}` : 'تجميع تلقائي لإجمالي كميات وتكاليف المواد الخام المطلوبة من واقع بنود المقايسة'}
+      width="min(980px, 95vw)"
+      minHeight="min(560px, 85vh)"
       footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"
             onClick={onClose}
@@ -57,7 +60,7 @@ export function ProjectMaterialsMrpModal({
               padding: '8px 20px',
               borderRadius: '8px',
               border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
+              backgroundColor: '#f8fafc',
               color: '#475569',
               fontSize: 'var(--font-body)',
               fontWeight: 600,
@@ -81,13 +84,13 @@ export function ProjectMaterialsMrpModal({
           <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
             <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>إجمالي أصناف المواد والموارد</span>
             <strong style={{ display: 'block', fontSize: '1.2rem', color: '#1e293b', marginTop: '4px' }}>
-              {summary?.totalDistinctMaterialsCount || 0} صنف
+              {loading ? '—' : `${summary?.totalDistinctMaterialsCount || 0} صنف`}
             </strong>
           </div>
           <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#eef2ff', border: '1px solid #c7d2fe' }}>
             <span style={{ fontSize: 'var(--font-micro)', color: '#4338ca' }}>إجمالي التكلفة التقديرية للخامات</span>
             <strong style={{ display: 'block', fontSize: '1.2rem', color: '#170e5e', marginTop: '4px' }}>
-              {(summary?.totalMaterialsCost || 0).toLocaleString()} ر.س
+              {loading ? '—' : formatCurrency(summary?.totalMaterialsCost || 0)}
             </strong>
           </div>
         </div>
@@ -109,16 +112,73 @@ export function ProjectMaterialsMrpModal({
           />
         </div>
 
-        {/* جدول حصر المواد والموارد */}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
-            جارٍ تحليل مقايسة المشروع وحصر إجمالي الخامات والمعدات...
-          </div>
-        ) : (
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+        {/* جدول حصر المواد والموارد - ثابت الارتفاع تماماً لمنع أي قفزة أو انكماش */}
+        <div
+          style={{
+            flex: 1,
+            minHeight: '320px',
+            maxHeight: '400px',
+            overflowY: 'auto',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            background: '#ffffff',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {loading ? (
+            <div
+              style={{
+                flex: 1,
+                minHeight: '320px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                color: '#64748b',
+                backgroundColor: '#f8fafc',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  border: '3px solid #cbd5e1',
+                  borderTopColor: '#170e5e',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                }}
+              />
+              <span style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}>
+                جارٍ تحليل مقايسة المشروع وحصر إجمالي الخامات والمعدات...
+              </span>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div
+              style={{
+                flex: 1,
+                minHeight: '320px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                color: '#94a3b8',
+                padding: '24px',
+              }}
+            >
+              <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#64748b' }}>
+                لا توجد خامات مسجلة للمشروع حتى الآن
+              </span>
+              <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8' }}>
+                أضف بنوداً تعاقدية لمقايسة المشروع ليتم حصر الخامات والموارد تلقائياً
+              </span>
+            </div>
+          ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f8fafc' }}>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>كود المورد</th>
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>اسم الخامة / المورد</th>
                   <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الوحدة</th>
@@ -129,14 +189,7 @@ export function ProjectMaterialsMrpModal({
                 </tr>
               </thead>
               <tbody>
-                {filteredItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                      لا توجد خامات مسجلة للمشروع حتى الآن
-                    </td>
-                  </tr>
-                ) : (
-                  filteredItems.map((item, idx) => (
+                {filteredItems.map((item, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#64748b' }}>
                         {item.code}
@@ -173,12 +226,11 @@ export function ProjectMaterialsMrpModal({
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
+                  ))}
               </tbody>
             </table>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </StandardDialog>
   );

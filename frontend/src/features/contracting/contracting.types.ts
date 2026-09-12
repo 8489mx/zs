@@ -394,6 +394,7 @@ export interface ContractingLaborAttendance {
   allocatedProjectSharePercent?: number;
   calculatedCost?: number;
   taskDescription?: string;
+  boqItemCode?: string;
   splitProjectId?: string | null;
   splitHours?: number;
   totalWage?: number;
@@ -570,3 +571,187 @@ export interface MasterBoqItem {
   tenantId?: string;
   createdAt: string;
 }
+
+// 1. BOQ CAD Takeoff Sheet
+export interface ContractingBoqTakeoff {
+  id?: string;
+  projectId?: string;
+  boqItemId?: string;
+  drawingRef: string;
+  axisRef: string;
+  description: string;
+  length: number;
+  width: number;
+  height: number;
+  countMultiplier: number;
+  voidDeduction: number;
+  netQty: number;
+  wastePercent: number;
+  totalWithWaste: number;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// 2. Site Mobilization & Worker Housing Expenses
+export type MobilizationExpenseCategory =
+  | 'worker_housing'
+  | 'site_preparation'
+  | 'temporary_utilities'
+  | 'site_cabins'
+  | 'permits_legal'
+  | 'transport_logistics'
+  | 'other';
+
+export interface ContractingSiteMobilizationExpense {
+  id: string;
+  projectId: string;
+  expenseCategory: MobilizationExpenseCategory;
+  title: string;
+  amount: number;
+  expenseDate: string;
+  paidTo: string;
+  paymentMethod: string;
+  referenceReceipt?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContractingMobilizationSummary {
+  projectId: string;
+  totalAmount: number;
+  itemsCount: number;
+  expenses: ContractingSiteMobilizationExpense[];
+}
+
+// 3. Labor Attendance, Overtime & Bonus/Deductions
+export interface ContractingLaborAttendanceRecord {
+  id: string;
+  projectId: string;
+  boqItemId?: string | null;
+  boqItemCode?: string | null;
+  boqDescription?: string | null;
+  workerName: string;
+  workerRole: 'supervisor' | 'master_craftsman' | 'technician' | 'helper' | 'laborer';
+  attendanceDate: string;
+  status: 'present' | 'absent' | 'half_day' | 'late';
+  dailyBaseWage: number;
+  overtimeHours: number;
+  overtimeRatePerHour: number;
+  nightShiftAllowance: number;
+  bonusAmount: number;
+  deductionAmount: number;
+  totalPayable: number;
+  isPaid: boolean;
+  paymentBatchRef?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 4. Client Payment Milestones & In-Kind Barter Settlements
+export interface ContractingClientPaymentMilestone {
+  id: string;
+  projectId: string;
+  milestoneName: string;
+  dueDate?: string | null;
+  requiredProgressPercent: number;
+  scheduledAmount: number;
+  receivedAmount: number;
+  settlementType: 'cash' | 'bank' | 'in_kind_unit' | 'mixed';
+  inKindUnitRef?: string | null;
+  inKindValuation: number;
+  status: 'pending' | 'partially_paid' | 'fully_paid' | 'in_kind_settled';
+  settledAt?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 5. Equipment & Tools Asset Tracking
+export interface ContractingEquipmentAsset {
+  id: string;
+  assetCode: string;
+  name: string;
+  category: 'heavy_machinery' | 'power_tools' | 'safety_gear' | 'scaffolding' | 'measurement_survey' | 'generators';
+  serialNumber?: string | null;
+  currentProjectId?: string | null;
+  currentProjectName?: string | null;
+  currentLocationDesc: string;
+  assignedSupervisor?: string | null;
+  operationalStatus: 'active_working' | 'under_maintenance' | 'idle_in_store' | 'retired';
+  purchaseCost: number;
+  purchaseDate?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContractingEquipmentTransfer {
+  id: string;
+  equipmentId: string;
+  equipmentCode?: string;
+  equipmentName?: string;
+  fromProjectId?: string | null;
+  fromProjectName?: string | null;
+  toProjectId?: string | null;
+  toProjectName?: string | null;
+  transferDate: string;
+  dispatchedBy: string;
+  receivedBy: string;
+  conditionOnDispatch: string;
+  conditionOnReceipt: string;
+  notes?: string | null;
+  createdAt: string;
+}
+
+// 6. Supplier Price Memory & Rating
+export interface ContractingSupplierPriceMemory {
+  id: string;
+  supplierId: number;
+  supplierName: string;
+  materialName: string;
+  unit: string;
+  lastUnitPrice: number;
+  lastPurchaseDate: string;
+  lastProjectId?: string | null;
+  lastProjectName?: string | null;
+  governorate: string;
+  paymentTerms: 'cash' | 'credit_30' | 'credit_60' | 'installments';
+  qualityRating: number;
+  deliverySpeedRating: number;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 7. Item Profitability Ledger
+export interface ContractingItemProfitabilityItem {
+  boqItemId: string;
+  itemCode: string;
+  description: string;
+  unit: string;
+  contractQty: number;
+  revisedQty: number;
+  unitPrice: number;
+  totalContractRevenue: number;
+  materialsCost: number;
+  laborCost: number;
+  subcontractsCost: number;
+  allocatedMobilizationCost: number;
+  totalActualCost: number;
+  grossProfit: number;
+  profitMarginPercent: number;
+  isProfitable: boolean;
+}
+
+export interface ContractingItemProfitabilitySummary {
+  projectId: string;
+  totalRevenue: number;
+  totalActualCost: number;
+  totalProfit: number;
+  overallMarginPercent: number;
+  items: ContractingItemProfitabilityItem[];
+}
+

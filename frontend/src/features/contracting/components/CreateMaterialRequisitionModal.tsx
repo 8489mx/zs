@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
 import { contractingApi } from '../api/contracting.api';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import type { ContractingBoqItem } from '../contracting.types';
 
 interface CreateMaterialRequisitionModalProps {
@@ -24,6 +25,7 @@ export function CreateMaterialRequisitionModal({
 }: CreateMaterialRequisitionModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { currencySymbol, formatCurrency } = useSystemCurrency();
 
   const [formData, setFormData] = useState({
     requisitionNumber: '',
@@ -189,7 +191,7 @@ export function CreateMaterialRequisitionModal({
             />
           </Field>
 
-          <Field label="تكلفة الوحدة (ج.م) *">
+          <Field label={`تكلفة الوحدة (${currencySymbol}) *`}>
             <input
               type="number"
               step="any"
@@ -206,7 +208,7 @@ export function CreateMaterialRequisitionModal({
           <div style={{ background: '#f8fafc', padding: '8px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>إجمالي تكلفة الصرف الفعلية:</span>
             <strong style={{ fontSize: '1.1rem', color: '#170e5e' }}>
-              {totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م
+              {formatCurrency(totalCost)}
             </strong>
           </div>
         </div>

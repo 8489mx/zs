@@ -4,6 +4,7 @@ import { Field } from '@/shared/ui/field';
 import { contractingApi } from '../api/contracting.api';
 import { ContractingBoqItem, ContractingProject } from '../contracting.types';
 import { getTextDirection } from '@/lib/arabic-normalization';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface CreateIpcInvoiceModalProps {
   open: boolean;
@@ -26,6 +27,7 @@ interface WorkingItem {
 }
 
 export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: CreateIpcInvoiceModalProps) {
+  const { currencySymbol } = useSystemCurrency();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [items, setItems] = useState<WorkingItem[]>([]);
@@ -241,7 +243,7 @@ export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: Cre
                       />
                     </td>
                     <td style={{ padding: '8px 12px', fontWeight: 600, color: itemPeriodSum > 0 ? '#170e5e' : '#94a3b8' }}>
-                      {itemPeriodSum.toLocaleString('ar-EG')} ج.م
+                      {itemPeriodSum.toLocaleString('ar-EG')} {currencySymbol}
                     </td>
                   </tr>
                 );
@@ -265,15 +267,15 @@ export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: Cre
         >
           <div>
             <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', display: 'block' }}>إجمالي أعمال الفترة:</span>
-            <strong style={{ fontSize: '1rem', color: '#1e293b' }}>{periodGrossTotal.toLocaleString('ar-EG')} ج.م</strong>
+            <strong style={{ fontSize: '1rem', color: '#1e293b' }}>{periodGrossTotal.toLocaleString('ar-EG')} {currencySymbol}</strong>
           </div>
           <div>
             <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', display: 'block' }}>استقطاع دفعة مقدمة:</span>
-            <span style={{ fontSize: '0.95rem', color: '#dc2626', fontWeight: 600 }}>- {advDeduction.toLocaleString('ar-EG')} ج.م</span>
+            <span style={{ fontSize: '0.95rem', color: '#dc2626', fontWeight: 600 }}>- {advDeduction.toLocaleString('ar-EG')} {currencySymbol}</span>
           </div>
           <div>
             <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', display: 'block' }}>ضمان حسن تنفيذ:</span>
-            <span style={{ fontSize: '0.95rem', color: '#dc2626', fontWeight: 600 }}>- {retDeduction.toLocaleString('ar-EG')} ج.م</span>
+            <span style={{ fontSize: '0.95rem', color: '#dc2626', fontWeight: 600 }}>- {retDeduction.toLocaleString('ar-EG')} {currencySymbol}</span>
           </div>
           <div>
             <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', display: 'block' }}>استقطاعات أخرى:</span>
@@ -287,7 +289,7 @@ export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: Cre
           </div>
           <div style={{ backgroundColor: '#ffffff', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
             <span style={{ fontSize: 'var(--font-micro)', color: '#170e5e', display: 'block', fontWeight: 700 }}>صافي المستحق للصرف:</span>
-            <strong style={{ fontSize: '1.1rem', color: '#170e5e' }}>{netPayable.toLocaleString('ar-EG')} ج.م</strong>
+            <strong style={{ fontSize: '1.1rem', color: '#170e5e' }}>{netPayable.toLocaleString('ar-EG')} {currencySymbol}</strong>
           </div>
         </div>
 

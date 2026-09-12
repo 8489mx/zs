@@ -87,7 +87,7 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
   }, [activeSubTab, loadInvoices, loadChangeOrders]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} dir="rtl">
       {/* شريط التبديل الفرعي (Sub-Pill Toggle) */}
       <div
         style={{
