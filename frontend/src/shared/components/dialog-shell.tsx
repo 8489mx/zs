@@ -7,6 +7,9 @@ interface DialogShellProps {
   onClose: () => void;
   children: ReactNode;
   width?: string;
+  minHeight?: string;
+  height?: string;
+  maxHeight?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   zIndex?: number;
   closeOnBackdrop?: boolean;
@@ -28,6 +31,9 @@ export function DialogShell({
   onClose,
   children,
   width,
+  minHeight,
+  height,
+  maxHeight,
   size,
   zIndex = 10000,
   closeOnBackdrop = true,
@@ -132,7 +138,12 @@ export function DialogShell({
       <div
         ref={shellRef}
         className={`dialog-shell ${shellClassName}`.trim()}
-        style={{ width: effectiveWidth }}
+        style={{
+          width: effectiveWidth,
+          ...(height ? { height } : {}),
+          ...(minHeight ? { minHeight } : {}),
+          ...(maxHeight ? { maxHeight } : {}),
+        }}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
