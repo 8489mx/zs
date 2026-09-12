@@ -1,6 +1,7 @@
 import React from 'react';
 import { Quotation } from '@/features/sales/api/quotations.api';
 import { Trash2Icon } from '@/shared/components/icons/AppIcons';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 interface QuotationsTableProps {
   quotations: Quotation[];
@@ -40,7 +41,7 @@ export function QuotationsTable({
               <td style={{ padding: '12px 16px', fontWeight: 700 }}>{q.customer_name}</td>
               <td style={{ padding: '12px 16px', color: '#64748b' }}>{q.customer_phone || '-'}</td>
               <td style={{ padding: '12px 16px', fontWeight: 800, color: '#0f172a' }}>
-                {Number(q.total_amount).toLocaleString('ar-EG')} ج.م
+                {Number(q.total_amount).toLocaleString('ar-EG')} {getGlobalCurrencySymbol()}
               </td>
               <td style={{ padding: '12px 16px' }}>{getStatusBadge(q.status, q.sale_id ?? undefined)}</td>
               <td style={{ padding: '12px 16px', color: '#64748b', fontSize: '12px' }}>

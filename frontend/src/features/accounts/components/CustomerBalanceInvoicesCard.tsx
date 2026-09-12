@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { FormSection } from '@/shared/components/form-section';
@@ -472,7 +473,7 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
           </strong>
 
           <div className="form-grid">
-            <Field label="المبلغ المحصل (ج.م)">
+            <Field label={`المبلغ المحصل (${getGlobalCurrencySymbol()})`}>
               <input
                 type="number"
                 min="0.01"
@@ -561,7 +562,7 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
                     const phone = formatWhatsAppNumber(rawPhone);
                     const remaining = successReceipt.remainingBalance;
                     const noteLine = successReceipt.note ? `\n• البيان: *${successReceipt.note}*` : '';
-                    const text = `مرحباً ${successReceipt.customer.name}،\nتم تسجيل استلام دفعة نقدية بقيمة: *${formatCurrency(successReceipt.amountPaid)} ج.م*${noteLine}\n• التاريخ والوقت: ${formatDateTimeArabic()}\n• إجمالي الرصيد المتبقي عليكم: *${formatCurrency(remaining)} ج.م*\nشكراً لتعاملكم معنا.`;
+                    const text = `مرحباً ${successReceipt.customer.name}،\nتم تسجيل استلام دفعة نقدية بقيمة: *${formatCurrency(successReceipt.amountPaid)} ${getGlobalCurrencySymbol()}*${noteLine}\n• التاريخ والوقت: ${formatDateTimeArabic()}\n• إجمالي الرصيد المتبقي عليكم: *${formatCurrency(remaining)} ${getGlobalCurrencySymbol()}*\nشكراً لتعاملكم معنا.`;
                     const encodedText = encodeURIComponent(text);
                     let url = `https://wa.me/${phone}?text=${encodedText}`;
                     if (settings?.whatsappLinkMode === 'web') {

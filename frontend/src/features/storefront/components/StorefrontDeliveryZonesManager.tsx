@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
@@ -494,7 +496,7 @@ export function StorefrontDeliveryZonesManager() {
                           fontFamily: 'monospace',
                         }}
                       >
-                        {zone.deliveryFee} <span style={{ fontSize: '11px', fontFamily: 'inherit', fontWeight: 600 }}>ج.م</span>
+                        {zone.deliveryFee} <span style={{ fontSize: '11px', fontFamily: 'inherit', fontWeight: 600 }}><CurrencySymbol /></span>
                       </span>
                     )}
                   </div>
@@ -714,7 +716,7 @@ export function StorefrontDeliveryZonesManager() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                      رسوم التوصيل (ج.م): <span style={{ color: '#ef4444' }}>*</span>
+                      رسوم التوصيل (${getGlobalCurrencySymbol()}): <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
                       type="number"

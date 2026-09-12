@@ -1,4 +1,5 @@
 import { XIcon } from '@/shared/components/icons/AppIcons';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -221,7 +222,7 @@ export function HrAssetsPage() {
 
                 {activeTab === 'cash' ? (
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>مبلغ العهدة (ج.م) <span style={{ color: '#dc2626' }}>*</span></label>
+                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>مبلغ العهدة (${getGlobalCurrencySymbol()}) <span style={{ color: '#dc2626' }}>*</span></label>
                     <input inputMode="decimal" value={form.cashAmount} onChange={(event) => setForm((prev) => ({ ...prev, cashAmount: event.target.value }))} placeholder="مثال: 5000" style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                     {errors.cashAmount ? <small style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '2px', display: 'block' }}>{errors.cashAmount}</small> : null}
                   </div>

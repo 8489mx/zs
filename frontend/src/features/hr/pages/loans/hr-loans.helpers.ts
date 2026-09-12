@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 export const monthNames = [
   'يناير',
   'فبراير',
@@ -62,8 +63,8 @@ export function createInitialLoanDraft(): LoanDraft {
 
 export function money(value: unknown) {
   const amount = Number(value || 0);
-  if (!Number.isFinite(amount)) return '0.00 ج.م';
-  return `${amount.toFixed(2)} ج.م`;
+  if (!Number.isFinite(amount)) return `0.00 ${getGlobalCurrencySymbol()}`;
+  return `${amount.toFixed(2)} ${getGlobalCurrencySymbol()}`;
 }
 
 export function fallbackText(value: unknown) {

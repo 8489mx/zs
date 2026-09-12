@@ -1,4 +1,4 @@
-import { formatCurrency } from '@/lib/format';
+import { formatCurrencyWithSymbol } from '@/lib/format';
 import { SearchIcon, FileTextIcon, Trash2Icon } from '@/shared/components/icons/AppIcons';
 import type { WithholdingTaxRecord } from '@/features/accounting/api/accounting.api';
 import { WHT_TYPE_LABELS } from './types';
@@ -166,10 +166,10 @@ export function WithholdingTaxTable({
                         </span>
                       </td>
                       <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                        {formatCurrency(t.base_amount)} ج.م
+                        {formatCurrencyWithSymbol(t.base_amount)}
                       </td>
                       <td style={{ padding: '12px 16px', fontWeight: 800, color: '#047857', whiteSpace: 'nowrap' }}>
-                        {formatCurrency(t.tax_amount)} ج.م
+                        {formatCurrencyWithSymbol(t.tax_amount)}
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                         <span style={{

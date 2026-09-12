@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/button';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import {
   TruckIcon,
   RefreshCwIcon,
@@ -144,7 +145,7 @@ export function DeliveryDriverHeader({
             {pendingCount}
           </div>
           <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-            بمبلغ: {pendingAmount.toLocaleString('ar-EG')} ج.م
+            بمبلغ: {pendingAmount.toLocaleString('ar-EG')} <CurrencySymbol />
           </span>
         </div>
 
@@ -154,7 +155,7 @@ export function DeliveryDriverHeader({
             {settledCount}
           </div>
           <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-            محصل: {totalCollected.toLocaleString('ar-EG')} ج.م
+            محصل: {totalCollected.toLocaleString('ar-EG')} <CurrencySymbol />
           </span>
         </div>
       </div>

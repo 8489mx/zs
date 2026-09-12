@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState } from 'react';
 import { OnlineOrderRecord, StorefrontInfo } from '../types/storefront.types';
 import { 
@@ -598,7 +599,7 @@ export function StorefrontCustomerOrderCard({
         <div style={{ fontSize: '13px' }}>
           <span style={{ color: '#64748b' }}>إجمالي الفاتورة: </span>
           <strong style={{ fontWeight: 800, color: '#170e5e', fontSize: '15px' }}>
-            {order.totalAmount.toFixed(0)} {info.currency || 'ج.م'}
+            {order.totalAmount.toFixed(0)} {info.currency || getGlobalCurrencySymbol()}
           </strong>
         </div>
 

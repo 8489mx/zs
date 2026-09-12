@@ -13,6 +13,7 @@ import {
   FileTextIcon,
   PackageIcon,
 } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
 
 export default function ShipmentsManager() {
   const { data, isLoading, refetch, isRefetching } = useShipmentsQuery();
@@ -83,7 +84,14 @@ export default function ShipmentsManager() {
               </Button>
               <Button 
                 variant="secondary" 
-                onClick={() => void refetch()}
+                onClick={async () => {
+                  try {
+                    await refetch();
+                    toast.success('تم تحديث قائمة الحاويات والمؤشرات بنجاح', undefined, 2000);
+                  } catch (err) {
+                    toast.error('فشل تحديث البيانات');
+                  }
+                }}
                 disabled={isLoading || isRefetching}
                 style={{
                   height: '38px',
@@ -95,8 +103,11 @@ export default function ShipmentsManager() {
                   gap: '6px',
                 }}
               >
-                <RefreshCwIcon size={15} />
-                <span>تحديث</span>
+                <RefreshCwIcon
+                  size={15}
+                  style={{ animation: isRefetching ? 'spin 0.7s linear infinite' : 'none' }}
+                />
+                <span>{isRefetching ? 'جارٍ التحديث...' : 'تحديث'}</span>
               </Button>
             </div>
           } 

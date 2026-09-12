@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import type { Product, ProductOffer, ProductUnit } from '@/types/domain';
 import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
 
@@ -222,7 +223,7 @@ export function getOfferDisplayName(offer: ProductOffer) {
   if (type === 'percent') return `تم تفعيل عرض: خصم ${val}%${qtyText}`;
   if (type === 'fixed') return `تم تفعيل عرض: خصم ${val} ثابت${qtyText}`;
   if (type === 'price') return `تم تفعيل عرض: سعر خاص ${val}${qtyText}`;
-  if (type === 'bundle') return `تم تفعيل عرض باقة: ${minQty} قطع بسعر ${val} ج.م`;
+  if (type === 'bundle') return `تم تفعيل عرض باقة: ${minQty} قطع بسعر ${val} ${getGlobalCurrencySymbol()}`;
   return 'تم تفعيل عرض خاص';
 }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Button } from '@/shared/ui/button';
 import { AlertTriangleIcon, UsersIcon } from '@/shared/components/icons/AppIcons';
 import { usePartnersQuery, useCreatePartnerMutation, useDeletePartnerMutation, useUpdatePartnerMutation, Partner } from './api/shipments.api';
@@ -166,7 +167,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                     min="0" 
                     value={capitalAmount} 
                     onChange={e => setCapitalAmount(e.target.value)} 
-                    placeholder="0.00 ج.م"
+                    placeholder="0.00"
                     style={{
                       width: '100%',
                       height: '36px',
@@ -289,7 +290,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                         <td style={{ padding: '10px 14px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#170e5e' }}>
-                              {Number(p.capital_amount || 0).toLocaleString()} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+                              {Number(p.capital_amount || 0).toLocaleString()} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
                             </span>
                             <div style={{ display: 'inline-flex', gap: '3px' }}>
                               <button 
@@ -381,7 +382,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                           <tr style={{ background: '#f8fafc', fontWeight: 800, color: '#0f172a', borderTop: '2px solid #e2e8f0' }}>
                             <td style={{ padding: '12px 14px' }}>الإجمالي الكلي</td>
                             <td style={{ padding: '12px 14px', fontSize: '0.88rem', color: '#170e5e' }}>
-                              {totalCapital.toLocaleString()} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+                              {totalCapital.toLocaleString()} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
                             </td>
                             <td style={{ padding: '12px 14px', textAlign: 'right', color: isPercentageValid ? '#15803d' : '#b91c1c', fontWeight: 800 }} dir="ltr">
                               {totalPercentage.toFixed(2)}%

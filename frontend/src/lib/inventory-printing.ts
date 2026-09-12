@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from './currencies';
 import { escapeHtml, printHtmlDocument, resolvePrintSettings } from '@/lib/browser';
 import type { AppSettings, StockTransfer } from '@/types/domain';
 import { defaultInvoiceFooter, formatDateTime, getPrintOption, getReceiptNumberLocale, type PosPrintPageSize } from '@/lib/pos-printing/shared';
@@ -333,7 +334,7 @@ export function buildInventoryStatusReport(rows: any[], options: PrintTransferOp
         </div>
         <div class="totals-row grand-total">
           <span>إجمالي قيمة المخزون: </span>
-          <strong>${formatReceiptNumber(totalStockValue, options.settings, 2)} ج.م</strong>
+          <strong>${formatReceiptNumber(totalStockValue, options.settings, 2)} ${getGlobalCurrencySymbol()}</strong>
         </div>
       </div>
     </section>

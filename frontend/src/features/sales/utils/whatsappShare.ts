@@ -1,5 +1,5 @@
 import type { Sale } from '@/types/domain';
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatCurrencyWithSymbol, formatDate } from '@/lib/format';
 import { triggerHaptic } from '@/shared/utils/haptics';
 
 export function buildSaleWhatsAppMessage(sale: Sale, storeName?: string): string {
@@ -10,14 +10,14 @@ export function buildSaleWhatsAppMessage(sale: Sale, storeName?: string): string
   if (sale.items && sale.items.length > 0) {
     sale.items.forEach((item, index) => {
       const unit = item.unitName ? ` (${item.unitName})` : '';
-      itemsText += `${index + 1}. ${item.name}${unit} × ${item.qty} = ${formatCurrency(item.total)}\n`;
+      itemsText += `${index + 1}. ${item.name}${unit} × ${item.qty} = ${formatCurrencyWithSymbol(item.total)}\n`;
     });
   }
 
-  const totalsText = `\nالإجمالي: ${formatCurrency(sale.total)}`;
-  const paidText = sale.paidAmount !== undefined ? `\nالمدفوع: ${formatCurrency(sale.paidAmount)}` : '';
+  const totalsText = `\nالإجمالي: ${formatCurrencyWithSymbol(sale.total)}`;
+  const paidText = sale.paidAmount !== undefined ? `\nالمدفوع: ${formatCurrencyWithSymbol(sale.paidAmount)}` : '';
   const remaining = Math.max(0, Number(sale.total || 0) - Number(sale.paidAmount || 0));
-  const remainingText = remaining > 0 ? `\nالمتبقي: ${formatCurrency(remaining)}` : '';
+  const remainingText = remaining > 0 ? `\nالمتبقي: ${formatCurrencyWithSymbol(remaining)}` : '';
   
   const footer = '\n\nشكراً لتعاملكم معنا!';
 

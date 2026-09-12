@@ -4,6 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import {
   installmentsApi,
   type InstallmentPlanItem,
@@ -159,7 +160,7 @@ export function InstallmentsPage() {
       return;
     }
     const formattedDate = new Date(receiptData.paid_at).toLocaleDateString('ar-EG');
-    const message = `مرحباً أستاذ/ة *${receiptData.customer_name}*،\nتم استلام دفعة قسطكم بنجاح!\n• رقم الإيصال: *#${receiptData.receipt_no}*\n• المبلغ المسدد: *${Number(receiptData.paid_amount).toLocaleString()} ج.م*\n• القسط: *#${receiptData.installment_number}*\n• طريقة الدفع: ${receiptData.payment_method}\n• التاريخ: ${formattedDate}\n\nشكراً لتعاملكم معنا!`;
+    const message = `مرحباً أستاذ/ة *${receiptData.customer_name}*،\nتم استلام دفعة قسطكم بنجاح!\n• رقم الإيصال: *#${receiptData.receipt_no}*\n• المبلغ المسدد: *${Number(receiptData.paid_amount).toLocaleString()} ${getGlobalCurrencySymbol()}*\n• القسط: *#${receiptData.installment_number}*\n• طريقة الدفع: ${receiptData.payment_method}\n• التاريخ: ${formattedDate}\n\nشكراً لتعاملكم معنا!`;
     openWhatsAppChat(receiptData.customer_phone, message);
   };
 

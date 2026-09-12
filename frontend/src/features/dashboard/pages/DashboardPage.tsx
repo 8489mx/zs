@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Navigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
@@ -182,7 +183,7 @@ export function DashboardPage() {
                         <strong style={{ color: '#170e5e', fontSize: '0.88rem', fontWeight: 800, whiteSpace: 'nowrap', display: 'block' }}>
                           {formatCurrency(row.total)}
                         </strong>
-                        <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>ج.م</span>
+                        <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}><CurrencySymbol /></span>
                       </div>
                     </div>
                   ))}

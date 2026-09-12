@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState } from 'react';
 import { CreateOnlineOrderResponse, StorefrontPaymentSessionResponse } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
@@ -30,7 +31,7 @@ export function StorefrontOnlinePaymentModal({
   if (!isOpen || !session || !orderData) return null;
 
   const totalAmount = session.amount || orderData.totalAmount;
-  const currencyLabel = session.currency || 'ج.م';
+  const currencyLabel = session.currency || getGlobalCurrencySymbol();
   const isLiveIframe =
     (session.mode === 'paymob' || session.mode === 'xpay' || session.mode === 'tap' || session.mode === 'stripe') &&
     !session.testMode &&

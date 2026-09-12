@@ -1,4 +1,6 @@
 import { XIcon } from '@/shared/components/icons/AppIcons';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -140,7 +142,7 @@ export default function PharmacyClinicalServicesPage() {
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إيراد الخدمات الصيدلانية</div>
               <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>
-                {totalFees.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>ج.م</span>
+                {totalFees.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}><CurrencySymbol /></span>
               </div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
@@ -191,7 +193,7 @@ export default function PharmacyClinicalServicesPage() {
                         {srv.pharmacist_notes || '—'}
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>
-                        {Number(srv.fee) > 0 ? (Number(srv.fee).toFixed(2) + ' ج.م') : 'مجانية'}
+                        {Number(srv.fee) > 0 ? (Number(srv.fee).toFixed(2) + ' ' + getGlobalCurrencySymbol()) : 'مجانية'}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '0.74rem' }}>
                         {new Date(srv.created_at).toLocaleString('ar-EG')}
@@ -322,7 +324,7 @@ export default function PharmacyClinicalServicesPage() {
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      رسوم الخدمة (ج.م)
+                      رسوم الخدمة (${getGlobalCurrencySymbol()})
                     </label>
                     <input
                       type="number"

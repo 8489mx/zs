@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDateTimeArabic } from '@/lib/format';
@@ -402,7 +403,7 @@ export function CashierFraudRadarSection() {
         >
           <div style={{ fontSize: '12.5px', color: '#0f766e', fontWeight: 600 }}>الخسائر المرصودة / المحمية</div>
           <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f766e', marginTop: '6px' }}>
-            {formatCurrency(summary?.estimatedProtectedLoss ?? 0)} ج.م
+            {formatCurrency(summary?.estimatedProtectedLoss ?? 0)} <CurrencySymbol />
           </div>
           <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '4px' }}>
             إجمالي مبالغ الحركات الملغاة والمحذوفة
@@ -678,7 +679,7 @@ export function CashierFraudRadarSection() {
 
                   {typeof evt.amount === 'number' && evt.amount > 0 ? (
                     <div style={{ fontSize: '11px', fontWeight: 700, color: '#b91c1c', textAlign: 'left' }}>
-                      القيمة: {formatCurrency(evt.amount)} ج.م
+                      القيمة: {formatCurrency(evt.amount)} <CurrencySymbol />
                     </div>
                   ) : null}
                 </div>

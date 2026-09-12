@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useEffect, type FormEvent, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { customersApi } from '@/shared/api/customers.api';
@@ -279,7 +281,7 @@ export function PosCheckoutCustomerSection({
               <>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <StarIcon size={14} color="#059669" />
-                  <span>تم استبدال <strong>{(pos.loyaltyPointsRedeemed || 0).toLocaleString()} نقطة</strong> بخصم <strong>{discountInCurrency.toLocaleString()} ج.م</strong></span>
+                  <span>تم استبدال <strong>{(pos.loyaltyPointsRedeemed || 0).toLocaleString()} نقطة</strong> بخصم <strong>{discountInCurrency.toLocaleString()} <CurrencySymbol /></strong></span>
                 </span>
                 <Button
                   type="button"
@@ -303,7 +305,7 @@ export function PosCheckoutCustomerSection({
               <>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <StarIcon size={14} color="#b45309" />
-                  <span>رصيد نقاط الولاء: <strong>{loyaltyPoints.toLocaleString()} نقطة</strong> (تساوي {totalValueInCurrency.toLocaleString()} ج.م خصم)</span>
+                  <span>رصيد نقاط الولاء: <strong>{loyaltyPoints.toLocaleString()} نقطة</strong> (تساوي {totalValueInCurrency.toLocaleString()} ${getGlobalCurrencySymbol()} خصم)</span>
                 </span>
                 {loyaltyPoints < minPoints ? (
                   <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 600 }}>
@@ -814,7 +816,7 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
         </div>
 
         <div className="field" style={{ margin: 0 }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block' }}>رسوم التوصيل (ج.م)</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block' }}>رسوم التوصيل (${getGlobalCurrencySymbol()})</span>
           <input
             type="number"
             min="0"

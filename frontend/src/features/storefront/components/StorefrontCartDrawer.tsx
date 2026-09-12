@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { CartItem, StorefrontInfo } from '../types/storefront.types';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
@@ -319,7 +321,7 @@ export function StorefrontCartDrawer({
                   textAlign: 'center',
                 }}
               >
-                الحد الأدنى للطلب هو {minOrder} ج.م (متبقي {(minOrder - subtotal).toFixed(0)} ج)
+                الحد الأدنى للطلب هو {minOrder} <CurrencySymbol /> (متبقي {(minOrder - subtotal).toFixed(0)} ج)
               </div>
             )}
 
@@ -327,12 +329,12 @@ export function StorefrontCartDrawer({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
                 <span>مجموع الأصناف:</span>
-                <span style={{ fontWeight: 600, color: '#0f172a' }}>{subtotal.toFixed(0)} ج.م</span>
+                <span style={{ fontWeight: 600, color: '#0f172a' }}>{subtotal.toFixed(0)} <CurrencySymbol /></span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
                 <span>رسوم التوصيل:</span>
                 <span style={{ fontWeight: 600, color: '#0f172a' }}>
-                  {deliveryFee > 0 ? `${deliveryFee.toFixed(0)} ج.م` : 'مجاناً'}
+                  {deliveryFee > 0 ? `${deliveryFee.toFixed(0)} ${getGlobalCurrencySymbol()}` : 'مجاناً'}
                 </span>
               </div>
               <div
@@ -347,7 +349,7 @@ export function StorefrontCartDrawer({
                 }}
               >
                 <span>المبلغ الإجمالي:</span>
-                <span>{total.toFixed(0)} ج.م</span>
+                <span>{total.toFixed(0)} <CurrencySymbol /></span>
               </div>
             </div>
 

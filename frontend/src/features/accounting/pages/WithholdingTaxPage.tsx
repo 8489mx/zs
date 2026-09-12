@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrencyWithSymbol } from '@/lib/format';
 import {
   PlusIcon,
   RefreshCwIcon,
@@ -356,22 +356,22 @@ export function WithholdingTaxPage() {
               {
                 key: 'tax',
                 label: selectedDirection === 'payable' ? 'إجمالي الضريبة واجبة التوريد' : 'إجمالي مبالغ الخصم المستردة',
-                value: `${formatCurrency(reportData?.total_tax_amount || 0)} ج.م`,
+                value: formatCurrencyWithSymbol(reportData?.total_tax_amount || 0),
               },
               {
                 key: 'goods',
                 label: 'وعاء توريدات السلع (1%)',
-                value: `${formatCurrency(reportData?.breakdown.goods.base_amount || 0)} ج.م`,
+                value: formatCurrencyWithSymbol(reportData?.breakdown.goods.base_amount || 0),
               },
               {
                 key: 'services',
                 label: 'وعاء الخدمات والمصنعيات (3%)',
-                value: `${formatCurrency(reportData?.breakdown.services.base_amount || 0)} ج.م`,
+                value: formatCurrencyWithSymbol(reportData?.breakdown.services.base_amount || 0),
               },
               {
                 key: 'prof',
                 label: 'وعاء المهن الحرة والعمولات (5%)',
-                value: `${formatCurrency(reportData?.breakdown.professional.base_amount || 0)} ج.م`,
+                value: formatCurrencyWithSymbol(reportData?.breakdown.professional.base_amount || 0),
               },
             ]}
           />

@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React, { useState } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
@@ -109,7 +110,7 @@ function renderStatusBadge(status: string) {
 
 function renderVarianceBadge(variance: number) {
   if (Math.abs(variance) < 0.01) {
-    return <span style={{ color: '#64748b', fontWeight: 600, fontSize: '0.85rem' }}>0.00 ج.م</span>;
+    return <span style={{ color: '#64748b', fontWeight: 600, fontSize: '0.85rem' }}>0.00 <CurrencySymbol /></span>;
   }
   if (variance > 0) {
     return (

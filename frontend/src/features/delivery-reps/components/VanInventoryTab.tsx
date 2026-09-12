@@ -1,4 +1,5 @@
 import React from 'react';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { VanStockItem } from '../api/van-sales.api';
 
 interface VanInventoryTabProps {
@@ -51,7 +52,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
               <h4 style={{ margin: 0, fontWeight: 800, fontSize: '12.5px', color: '#0f172a' }}>{item.productName}</h4>
               <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace', display: 'block' }}>{item.barcode}</span>
               <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669', display: 'block', marginTop: '2px' }}>
-                {item.retailPrice.toFixed(2)} ج.م
+                {item.retailPrice.toFixed(2)} <CurrencySymbol />
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>

@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
@@ -422,14 +424,14 @@ export function StorefrontCouponsManager() {
                             )}
                           </div>
                         )}
-                        {coupon.discountType === 'fixed' && <span>{coupon.discountValue} ج.م</span>}
+                        {coupon.discountType === 'fixed' && <span>{coupon.discountValue} <CurrencySymbol /></span>}
                         {coupon.discountType === 'free_shipping' && <span style={{ color: '#6d28d9' }}>100% التوصيل</span>}
                       </td>
 
                       {/* Min Order */}
                       <td style={{ padding: '12px 14px', verticalAlign: 'middle', color: '#475569' }}>
                         {coupon.minOrderAmount > 0 ? (
-                          <span>{coupon.minOrderAmount} ج.م فما فوق</span>
+                          <span>{coupon.minOrderAmount} ${getGlobalCurrencySymbol()} فما فوق</span>
                         ) : (
                           <span style={{ color: '#94a3b8' }}>بدون حد أدنى</span>
                         )}
@@ -685,7 +687,7 @@ export function StorefrontCouponsManager() {
                         color: formDiscountType === 'fixed' ? '#170e5e' : '#475569',
                       }}
                     >
-                      مبلغ ثابت (ج.م)
+                      مبلغ ثابت (${getGlobalCurrencySymbol()})
                     </button>
                     <button
                       type="button"
@@ -716,7 +718,7 @@ export function StorefrontCouponsManager() {
                   <div style={{ display: 'grid', gridTemplateColumns: formDiscountType === 'percentage' ? '1fr 1fr' : '1fr', gap: '10px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                        {formDiscountType === 'percentage' ? 'نسبة الخصم (%):' : 'مبلغ الخصم (ج.م):'}
+                        {formDiscountType === 'percentage' ? 'نسبة الخصم (%):' : 'مبلغ الخصم (${getGlobalCurrencySymbol()}):'}
                       </label>
                       <input
                         type="number"
@@ -739,7 +741,7 @@ export function StorefrontCouponsManager() {
                     {formDiscountType === 'percentage' && (
                       <div>
                         <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                          أقصى خصم (ج.م) [اختياري]:
+                          أقصى خصم (${getGlobalCurrencySymbol()}) [اختياري]:
                         </label>
                         <input
                           type="number"
@@ -765,7 +767,7 @@ export function StorefrontCouponsManager() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                      الحد الأدنى للطلب (ج.م):
+                      الحد الأدنى للطلب (${getGlobalCurrencySymbol()}):
                     </label>
                     <input
                       type="number"

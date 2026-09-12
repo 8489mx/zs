@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React, { useState } from 'react';
 import { StorefrontProduct } from '../types/storefront.types';
 import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
@@ -515,7 +516,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             >
               {product.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
             </span>
-            <span className="storefront-product-price-curr" style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>ج.م</span>
+            <span className="storefront-product-price-curr" style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}><CurrencySymbol /></span>
             {hasDiscount && (
               <>
                 <span

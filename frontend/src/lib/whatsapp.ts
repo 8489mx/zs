@@ -1,6 +1,4 @@
-/**
- * Utility helpers for WhatsApp messaging and formatting across Z-Systems
- */
+import { getGlobalCurrencySymbol } from './currencies';
 
 export function cleanWhatsAppPhone(phone: string): string {
   const digits = String(phone || '').replace(/[^0-9]/g, '');
@@ -62,7 +60,7 @@ export function formatInstallmentReminderMessage({
   return `${storeHeader}مرحباً أستاذ/ة *${customerName}*،
 نود تذكيركم بموعد استحقاق الدفعة القادمة:
 - *${installmentText}* ${planNumber ? `(خطة: ${planNumber})` : ''}
-- المبلغ المستحق: *${Number(amount).toLocaleString()} ج.م*
+- المبلغ المستحق: *${Number(amount).toLocaleString()} ${getGlobalCurrencySymbol()}*
 - تاريخ الاستحقاق: *${formattedDate}*
 
 نشكركم على التزامكم ويسعدنا دائماً خدمتكم!`;
@@ -90,7 +88,7 @@ export function formatInvoiceShareMessage({
   return `${storeHeader}${greeting}شكراً لتسوقكم معنا! تفاصيل الفاتورة:
 - رقم الفاتورة: *#${docNo}*
 - التاريخ: ${formattedDate}
-${itemsCount ? `- عدد الأصناف: ${itemsCount}\n` : ''}- الإجمالي: *${Number(total).toLocaleString()} ج.م*
+${itemsCount ? `- عدد الأصناف: ${itemsCount}\n` : ''}- الإجمالي: *${Number(total).toLocaleString()} ${getGlobalCurrencySymbol()}*
 
 نتطلع لزيارتكم مجدداً!`;
 }

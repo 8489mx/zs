@@ -70,6 +70,24 @@ export class MaritimeFreightController {
     return this.freightService.deleteShippingLine(req.authContext!, id);
   }
 
+  @Post('master-data/seed-defaults')
+  async seedDefaultMasterData(@Req() req: RequestWithAuth) {
+    return this.freightService.seedDefaultMasterData(req.authContext!);
+  }
+
+  @Get('reference-data')
+  async getReferenceData() {
+    return this.freightService.getReferenceData();
+  }
+
+  @Post('shipping-lines/import-bulk')
+  async importCarriersBulk(
+    @Body() body: { items: any[] },
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.importCarriersBulk(req.authContext!, body.items);
+  }
+
   // 3. Maritime RFQs
   @Post('rfqs')
   async createRfq(@Body() dto: CreateMaritimeRfqDto, @Req() req: RequestWithAuth) {

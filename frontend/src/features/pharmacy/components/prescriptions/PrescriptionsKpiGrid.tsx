@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React from 'react';
 import { IconPrescription, IconCheck } from '../PharmacyIcons';
 
@@ -30,7 +31,7 @@ export const PrescriptionsKpiGrid: React.FC<PrescriptionsKpiGridProps> = ({
         <div>
           <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي قيمة الروشتات</div>
           <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-            {totalAmountSum.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>ج.م</span>
+            {totalAmountSum.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}><CurrencySymbol /></span>
           </div>
         </div>
         <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
@@ -42,7 +43,7 @@ export const PrescriptionsKpiGrid: React.FC<PrescriptionsKpiGridProps> = ({
         <div>
           <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>تحصيل المرضى (Co-pay)</div>
           <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>
-            {totalPatientSum.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>ج.م</span>
+            {totalPatientSum.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}><CurrencySymbol /></span>
           </div>
         </div>
         <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
@@ -54,7 +55,7 @@ export const PrescriptionsKpiGrid: React.FC<PrescriptionsKpiGridProps> = ({
         <div>
           <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>مطالبات شركات التأمين</div>
           <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary, #1e1b4b)', marginTop: '2px' }}>
-            {totalInsuranceSum.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>ج.م</span>
+            {totalInsuranceSum.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}><CurrencySymbol /></span>
           </div>
         </div>
         <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary, #1e1b4b)' }}>

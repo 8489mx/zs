@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { Button } from '@/shared/ui/button';
 import {
   ApprovalRule,
@@ -168,8 +170,8 @@ export const ApprovalRulesManager: React.FC = () => {
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px', color: '#334155' }}>
-                    من {Number(r.min_amount).toLocaleString('ar-EG')} ج.م
-                    {r.max_amount ? ` حتى ${Number(r.max_amount).toLocaleString('ar-EG')} ج.م` : ' فأكثر (بدون سقف)'}
+                    من {Number(r.min_amount).toLocaleString('ar-EG')} <CurrencySymbol />
+                    {r.max_amount ? ` حتى ${Number(r.max_amount).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}` : ' فأكثر (بدون سقف)'}
                   </td>
                   <td style={{ padding: '12px 16px', color: '#170e5e', fontWeight: 600 }}>
                     {roleLabels[r.required_role] || r.required_role}
@@ -362,7 +364,7 @@ export const ApprovalRulesManager: React.FC = () => {
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="مثال: يلزم اعتماد المدير المالي للمشتريات التي تتجاوز 20,000 ج.م"
+              placeholder="مثال: يلزم اعتماد المدير المالي للمشتريات التي تتجاوز 20,000"
               style={{
                 padding: '8px 12px',
                 borderRadius: '6px',

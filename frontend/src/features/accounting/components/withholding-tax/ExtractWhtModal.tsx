@@ -1,6 +1,7 @@
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { XIcon, SparklesIcon } from '@/shared/components/icons/AppIcons';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 interface ExtractWhtModalProps {
   isOpen: boolean;
@@ -40,7 +41,7 @@ export function ExtractWhtModal({
               <SparklesIcon size={18} />
               <h3 className="standard-dialog-title" style={{ color: '#065f46' }}>استيراد آلي من فواتير المشتريات المسجلة</h3>
             </div>
-            <p className="standard-dialog-subtitle">فحص الفواتير التي تجاوزت 300 ج.م واستخراج بيانات الموردين</p>
+            <p className="standard-dialog-subtitle">فحص الفواتير التي تجاوزت 300 {getGlobalCurrencySymbol()} واستخراج بيانات الموردين</p>
           </div>
           <button
             type="button"
@@ -54,7 +55,7 @@ export function ExtractWhtModal({
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <p style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.6, margin: 0 }}>
-            يقوم هذا المعالج بفحص جميع فواتير الشراء غير الملغاة التي تجاوزت 300 ج.م في الفترة المحددة، ويستخرج بيانات المورد والرقم الضريبي والوعاء تلقائياً لتضمينها في نموذج 41 دون تكرار.
+            يقوم هذا المعالج بفحص جميع فواتير الشراء غير الملغاة التي تجاوزت 300 {getGlobalCurrencySymbol()} في الفترة المحددة، ويستخرج بيانات المورد والرقم الضريبي والوعاء تلقائياً لتضمينها في نموذج 41 دون تكرار.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

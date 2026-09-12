@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React from 'react';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
@@ -121,8 +123,7 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
                     />
                   </td>
                   <td style={{ padding: '8px', fontWeight: '500' }}>
-                    {((line.expectedCost || 0) * (line.quantity || 0) * (1 / (1 - ((line.wastePercentage || 0) / 100)))).toLocaleString('ar-EG', { maximumFractionDigits: 2 })}{' '}
-                    ج.م
+                    {((line.expectedCost || 0) * (line.quantity || 0) * (1 / (1 - ((line.wastePercentage || 0) / 100)))).toLocaleString('ar-EG', { maximumFractionDigits: 2 })}{' '} <CurrencySymbol />
                   </td>
                   <td style={{ padding: '8px', textAlign: 'center' }}>
                     <Button
@@ -157,7 +158,7 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
                 <div className="item-card-badge">
                   <span className="item-card-num">مكون #{index + 1}</span>
                   <span className="item-card-stock-pill stock-ok">
-                    الإجمالي: {totalItemCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م
+                    الإجمالي: {totalItemCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ${getGlobalCurrencySymbol()}
                   </span>
                 </div>
                 <button

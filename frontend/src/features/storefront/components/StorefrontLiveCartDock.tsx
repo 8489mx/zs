@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useEffect, useRef } from 'react';
 import { CartItem, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontLiveCartItem } from './StorefrontLiveCartItem';
@@ -309,13 +311,13 @@ export function StorefrontLiveCartDock({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
             <span>قيمة الأصناف ({cartItems.length === totalQuantity ? formatArabicItems(cartItems.length) : `${cartItems.length} صنف • ${totalQuantity} قطعة`}):</span>
-            <span style={{ fontWeight: 700, color: '#0f172a' }}>{subtotal.toFixed(0)} ج.م</span>
+            <span style={{ fontWeight: 700, color: '#0f172a' }}>{subtotal.toFixed(0)} ${getGlobalCurrencySymbol()}</span>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
             <span>مصاريف التوصيل:</span>
             <span style={{ fontWeight: 700, color: deliveryFee > 0 ? '#0f172a' : '#166534' }}>
-              {deliveryFee > 0 ? `${deliveryFee.toFixed(0)} ج.م` : 'توصيل مجاني'}
+              {deliveryFee > 0 ? `${deliveryFee.toFixed(0)} ${getGlobalCurrencySymbol()}` : 'توصيل مجاني'}
             </span>
           </div>
 
@@ -355,7 +357,7 @@ export function StorefrontLiveCartDock({
             }}
           >
             <span>المبلغ الإجمالي:</span>
-            <span style={{ fontSize: '18px', color: '#166534' }}>{total.toFixed(0)} ج.م</span>
+            <span style={{ fontSize: '18px', color: '#166534' }}>{total.toFixed(0)} <CurrencySymbol /></span>
           </div>
         </div>
 
@@ -384,7 +386,7 @@ export function StorefrontLiveCartDock({
               transition: 'all 0.15s ease',
             }}
           >
-            <span>إتمام الطلب الآن ({total.toFixed(0)} ج.م)</span>
+            <span>إتمام الطلب الآن ({total.toFixed(0)} <CurrencySymbol />)</span>
             <span
               className="storefront-checkout-arrow"
               style={{

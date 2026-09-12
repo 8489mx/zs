@@ -377,10 +377,10 @@ export function ProductOfferItemEditorTab({
                   offerType === 'percent'
                     ? 'نسبة الخصم (%)'
                     : offerType === 'fixed'
-                      ? 'قيمة الخصم للقطعة (ج.م)'
+                      ? 'قيمة الخصم للقطعة (${getGlobalCurrencySymbol()})'
                       : offerType === 'bundle'
-                        ? 'إجمالي سعر الباقة (ج.م)'
-                        : 'سعر القطعة بالعرض (ج.م)'
+                        ? 'إجمالي سعر الباقة (${getGlobalCurrencySymbol()})'
+                        : 'سعر القطعة بالعرض (${getGlobalCurrencySymbol()})'
                 }>
                   <input
                     type="number"

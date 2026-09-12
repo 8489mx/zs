@@ -1,4 +1,5 @@
-﻿import type { HrContact, HrEmployee } from '@/types/domain';
+import type { HrContact, HrEmployee } from '@/types/domain';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 export function fallbackText(value: unknown) {
   return String(value || '').trim() || '—';
@@ -7,7 +8,7 @@ export function fallbackText(value: unknown) {
 export function money(value: unknown) {
   const amount = Number(value || 0);
   if (!Number.isFinite(amount)) return '—';
-  return `${amount.toFixed(2)} ج.م`;
+  return `${amount.toFixed(2)} ${getGlobalCurrencySymbol()}`;
 }
 
 export function statusLabel(status: unknown) {

@@ -18,10 +18,12 @@ import { useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 import { SalesOrdersTable } from '../components/SalesOrdersTable';
 import { CreateSalesOrderModal } from '../components/CreateSalesOrderModal';
 import { SalesOrderDetailsModal } from '../components/SalesOrderDetailsModal';
+import { toast } from '@/shared/components/system-alert';
 
 export function SalesOrdersPage() {
   useAppToolbar([{ label: 'المبيعات', to: '/sales' }, { label: 'أوامر البيع وحجز المخزون' }]);
   const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { data: catalogProducts = [] } = useProductsQuery();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
@@ -124,11 +126,23 @@ export function SalesOrdersPage() {
               </Button>
               <Button
                 variant="secondary"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ['sales-orders-list'] })}
-                className="flex items-center gap-1.5"
+                onClick={async () => {
+                  try {
+                    setIsRefreshing(true);
+                    await queryClient.invalidateQueries({ queryKey: ['sales-orders-list'] });
+                    toast.success('تم تحديث قائمة أوامر البيع بنجاح', undefined, 2000);
+                  } finally {
+                    setIsRefreshing(false);
+                  }
+                }}
+                disabled={isRefreshing}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <RefreshCwIcon size={14} />
-                <span>تحديث</span>
+                <RefreshCwIcon
+                  size={14}
+                  style={{ animation: isRefreshing ? 'spin 0.7s linear infinite' : 'none' }}
+                />
+                <span>{isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}</span>
               </Button>
             </div>
           }

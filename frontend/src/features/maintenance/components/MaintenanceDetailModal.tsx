@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -303,7 +305,7 @@ export function MaintenanceDetailModal({
                 retailPrice: p.retailPrice ?? p.retail_price ?? 0,
                 barcode: p.barcode || '',
               }))}
-              getLabel={(p) => `${p.name} (متاح: ${p.stock}) - ${p.retailPrice} ج.م`}
+              getLabel={(p) => `${p.name} (متاح: ${p.stock}) - ${p.retailPrice} ${getGlobalCurrencySymbol()}`}
               getMeta={(p) => `${p.barcode} ${p.name}`}
               onSelect={(p) => {
                 setSelectedProductId(p.id);
@@ -357,8 +359,8 @@ export function MaintenanceDetailModal({
                   <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '7px 10px', fontWeight: 600, color: '#0f172a' }}>{p.productName}</td>
                     <td style={{ padding: '7px 10px' }}>{p.qty}</td>
-                    <td style={{ padding: '7px 10px' }}>{p.unitPrice.toFixed(2)} ج.م</td>
-                    <td style={{ padding: '7px 10px', fontWeight: 700, color: '#0f172a' }}>{p.totalPrice.toFixed(2)} ج.م</td>
+                    <td style={{ padding: '7px 10px' }}>{p.unitPrice.toFixed(2)} <CurrencySymbol /></td>
+                    <td style={{ padding: '7px 10px', fontWeight: 700, color: '#0f172a' }}>{p.totalPrice.toFixed(2)} <CurrencySymbol /></td>
                     <td style={{ padding: '7px 10px', textAlign: 'center' }}>
                       <button
                         type="button"
@@ -418,20 +420,20 @@ export function MaintenanceDetailModal({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', fontSize: '0.78rem', textAlign: 'center' }}>
             <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
               <div style={{ color: '#64748b', marginBottom: '1px' }}>قطع الغيار (قطاعي)</div>
-              <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{partsPrice.toFixed(2)} ج.م</strong>
+              <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{partsPrice.toFixed(2)} <CurrencySymbol /></strong>
               {partsProfit > 0 && <div style={{ fontSize: '0.68rem', color: '#16a34a', marginTop: '1px', fontWeight: 600 }}>ربح بضاعة: +{partsProfit.toFixed(0)}</div>}
             </div>
             <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
               <div style={{ color: '#64748b', marginBottom: '1px' }}>صافي المصنعية</div>
-              <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{laborPrice.toFixed(2)} ج.م</strong>
+              <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{laborPrice.toFixed(2)} <CurrencySymbol /></strong>
             </div>
             <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
               <div style={{ color: '#64748b', marginBottom: '1px' }}>عمولة الفني ({commissionRate}%)</div>
-              <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{technicianCommission.toFixed(2)} ج.م</strong>
+              <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{technicianCommission.toFixed(2)} <CurrencySymbol /></strong>
             </div>
             <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
               <div style={{ color: '#64748b', marginBottom: '1px' }}>صافي ربح المحل</div>
-              <strong style={{ color: '#16a34a', fontSize: '0.875rem' }}>{storeProfit.toFixed(2)} ج.م</strong>
+              <strong style={{ color: '#16a34a', fontSize: '0.875rem' }}>{storeProfit.toFixed(2)} <CurrencySymbol /></strong>
             </div>
           </div>
         </div>
@@ -449,18 +451,18 @@ export function MaintenanceDetailModal({
                 <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي حساب الصيانة والتسليم:</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>
-                    {totalCost.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+                    {totalCost.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
                   </strong>
                   {discountInfo.amount > 0 && (
                     <span style={{ fontSize: '0.75rem', color: '#475569', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                      خصم: -{discountInfo.amount.toFixed(2)} ج.م (الصافي: {netTotal.toFixed(2)} ج.م)
+                      خصم: -{discountInfo.amount.toFixed(2)} <CurrencySymbol /> (الصافي: {netTotal.toFixed(2)} ${getGlobalCurrencySymbol()})
                     </span>
                   )}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '3px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <CheckIcon size={12} color="#16a34a" />
                   <span>تم السداد والتحصيل في الخزينة بالكامل</span>
-                  {advancePaid > 0 ? ` (مقدم: ${advancePaid.toFixed(2)} ج.م + عند الاستلام: ${collectedAtDelivery.toFixed(2)} ج.م)` : ` (المحصل عند الاستلام: ${collectedAtDelivery.toFixed(2)} ج.م)`}
+                  {advancePaid > 0 ? ` (مقدم: ${advancePaid.toFixed(2)} ${getGlobalCurrencySymbol()} + عند الاستلام: ${collectedAtDelivery.toFixed(2)} ${getGlobalCurrencySymbol()})` : ` (المحصل عند الاستلام: ${collectedAtDelivery.toFixed(2)} ${getGlobalCurrencySymbol()})`}
                 </div>
                 {discountInfo.amount > 0 && (
                   <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
@@ -473,7 +475,7 @@ export function MaintenanceDetailModal({
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>الرصيد المتبقي:</div>
                   <strong style={{ fontSize: '1.2rem', color: '#16a34a', fontWeight: 800 }}>
-                    0.00 <span style={{ fontSize: '0.75rem' }}>ج.م (خالص)</span>
+                    0.00 <span style={{ fontSize: '0.75rem' }}><CurrencySymbol /> (خالص)</span>
                   </strong>
                 </div>
                 <span style={{ padding: '6px 12px', borderRadius: '6px', background: '#f0fdf4', color: '#166534', fontWeight: 700, fontSize: '0.85rem', border: '1px solid #dcfce7', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -496,7 +498,7 @@ export function MaintenanceDetailModal({
                 {advancePaid > 0 ? (
                   <div style={{ fontSize: '0.78rem', color: '#c2410c', marginTop: '3px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <AlertTriangleIcon size={14} color="#c2410c" />
-                    <span>مستحق رد العربون للعميل بالكامل: {advancePaid.toFixed(2)} ج.م عند تسليم الجهاز</span>
+                    <span>مستحق رد العربون للعميل بالكامل: {advancePaid.toFixed(2)} <CurrencySymbol /> عند تسليم الجهاز</span>
                   </div>
                 ) : (
                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
@@ -508,7 +510,7 @@ export function MaintenanceDetailModal({
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: '0.75rem', color: '#64748b' }}>المطلوب تحصيله:</div>
                 <strong style={{ fontSize: '1.2rem', color: '#64748b', fontWeight: 700 }}>
-                  0.00 <span style={{ fontSize: '0.75rem' }}>ج.م</span>
+                  0.00 <span style={{ fontSize: '0.75rem' }}><CurrencySymbol /></span>
                 </strong>
               </div>
             </div>
@@ -518,11 +520,11 @@ export function MaintenanceDetailModal({
             <div>
               <div style={{ fontSize: '0.78rem', color: '#64748b' }}>إجمالي حساب الصيانة والقطع:</div>
               <strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>
-                {(currentTicket.finalCost || currentTicket.expectedCost || 0).toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+                {(currentTicket.finalCost || currentTicket.expectedCost || 0).toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
               </strong>
               {currentTicket.advancePayment > 0 && (
                 <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '2px', fontWeight: 600 }}>
-                  (المدفوع مقدماً: {currentTicket.advancePayment.toFixed(2)} ج.م)
+                  (المدفوع مقدماً: {currentTicket.advancePayment.toFixed(2)} <CurrencySymbol />)
                 </div>
               )}
             </div>
@@ -531,7 +533,7 @@ export function MaintenanceDetailModal({
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>المتبقي للتحصيل:</div>
                 <strong style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>
-                  {Math.max(0, (currentTicket.finalCost || currentTicket.expectedCost || 0) - (currentTicket.advancePayment || 0)).toFixed(2)} <span style={{ fontSize: '0.75rem', color: '#64748b' }}>ج.م</span>
+                  {Math.max(0, (currentTicket.finalCost || currentTicket.expectedCost || 0) - (currentTicket.advancePayment || 0)).toFixed(2)} <span style={{ fontSize: '0.75rem', color: '#64748b' }}><CurrencySymbol /></span>
                 </strong>
               </div>
 

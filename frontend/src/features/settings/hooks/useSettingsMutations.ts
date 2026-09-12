@@ -4,6 +4,7 @@ import { queryKeys } from '@/app/query-keys';
 import { settingsApi } from '@/features/settings/api/settings.api';
 import { useAuthStore } from '@/stores/auth-store';
 import { buildBranchPayload, buildLocationPayload, buildSettingsUpdatePayload } from '@/features/settings/contracts';
+import { setGlobalSystemCurrency } from '@/lib/currencies';
 import type { AppSettings } from '@/types/domain';
 import type { BranchFormOutput, LocationFormOutput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 
@@ -23,6 +24,9 @@ export function useSettingsUpdateMutation(currentSettings?: AppSettings, onSucce
       });
       queryClient.setQueryData(queryKeys.settings, updatedSettings);
       queryClient.setQueryData(queryKeys.posSettings, updatedSettings);
+      if (updatedSettings?.currency) {
+        setGlobalSystemCurrency(updatedSettings.currency);
+      }
       
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.settings }),

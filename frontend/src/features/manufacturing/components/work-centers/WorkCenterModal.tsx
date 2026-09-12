@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -97,7 +98,7 @@ export function WorkCenterModal({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-            <Field label="تكلفة تشغيل الساعة (ج.م/ساعة)">
+            <Field label={`تكلفة تشغيل الساعة (${getGlobalCurrencySymbol()}/ساعة)`}>
               <input
                 type="number"
                 min="0"

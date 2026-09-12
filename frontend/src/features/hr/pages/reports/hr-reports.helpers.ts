@@ -1,4 +1,5 @@
-﻿import type { HrEmployee } from '@/types/domain';
+import type { HrEmployee } from '@/types/domain';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 export type ReportType = 'all' | 'employees' | 'attendance' | 'leaves' | 'loans' | 'payroll' | 'assets' | 'alerts';
 
@@ -16,7 +17,7 @@ export const reportTypeOptions: Array<{ value: ReportType; label: string }> = [
 export function money(value: unknown) {
   const amount = Number(value || 0);
   if (!Number.isFinite(amount)) return 'غير متاح';
-  return `${amount.toFixed(2)} ج.م`;
+  return `${amount.toFixed(2)} ${getGlobalCurrencySymbol()}`;
 }
 
 export function countText(value: unknown) {

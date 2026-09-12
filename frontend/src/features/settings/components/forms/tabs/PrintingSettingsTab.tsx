@@ -6,6 +6,8 @@ import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 const checkboxGridStyle: CSSProperties = {
   display: 'grid',
@@ -518,19 +520,19 @@ export function PrintingSettingsTab({
               <div style={{ borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px', marginBottom: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>المجموع الفرعي:</span>
-                  <span>250.00 ج.م</span>
+                  <span>250.00 <CurrencySymbol /></span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>ضريبة القيمة المضافة (14%):</span>
-                  <span>35.00 ج.م</span>
+                  <span>35.00 <CurrencySymbol /></span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b45309' }}>
                   <span>خصم نقاط الولاء:</span>
-                  <span>-20.00 ج.م</span>
+                  <span>-20.00 <CurrencySymbol /></span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 900, marginTop: '4px' }}>
                   <span>الصافي النهائي:</span>
-                  <span>265.00 ج.م</span>
+                  <span>265.00 ${getGlobalCurrencySymbol()}</span>
                 </div>
               </div>
 
@@ -566,11 +568,11 @@ export function PrintingSettingsTab({
                       <p style="margin: 0; font-size: 10px;">#TEST-001 • ${new Date().toLocaleDateString('ar-EG')}</p>
                     </div>
                     <div style="font-size: 11px; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
-                      <div style="display: flex; justify-content: space-between;"><span>صنف تجريبي A (x2)</span><span>100.00 ج.م</span></div>
-                      <div style="display: flex; justify-content: space-between;"><span>صنف تجريبي B (x1)</span><span>150.00 ج.م</span></div>
+                      <div style="display: flex; justify-content: space-between;"><span>صنف تجريبي A (x2)</span><span>100.00 <CurrencySymbol /></span></div>
+                      <div style="display: flex; justify-content: space-between;"><span>صنف تجريبي B (x1)</span><span>150.00 <CurrencySymbol /></span></div>
                     </div>
                     <div style="font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 6px;">
-                      <span>الإجمالي الصافي:</span><span>250.00 ج.م</span>
+                      <span>الإجمالي الصافي:</span><span>250.00 <CurrencySymbol /></span>
                     </div>
                     <div style="text-align: center; font-size: 10px; border-top: 1px dashed #000; padding-top: 6px;">
                       ${footerText}

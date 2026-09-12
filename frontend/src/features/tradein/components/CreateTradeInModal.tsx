@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -158,7 +159,7 @@ export function CreateTradeInModal({
               </div>
 
               <div>
-                <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>سعر الشراء المتفق عليه (ج.م) *</label>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>سعر الشراء المتفق عليه (${getGlobalCurrencySymbol()}) *</label>
                 <input
                   type="number"
                   required

@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
@@ -459,7 +460,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                         {product.name}
                       </h4>
                       <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#170e5e' }}>
-                        {product.price > 0 ? `${product.price} ج.م` : 'غير مسعر'}
+                        {product.price > 0 ? `${product.price} ${getGlobalCurrencySymbol()}` : 'غير مسعر'}
                       </div>
                     </div>
 

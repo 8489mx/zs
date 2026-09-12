@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState, useEffect } from 'react';
 import { StorefrontProduct, StorefrontReview } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
@@ -230,7 +231,7 @@ export function StorefrontReviewModal({
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
               <span style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>
-                {product.price > 0 ? `${product.price} ج.م` : 'مجاني'}
+                {product.price > 0 ? `${product.price} ${getGlobalCurrencySymbol()}` : 'مجاني'}
               </span>
               <span
                 style={{

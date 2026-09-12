@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React from 'react';
 import { StorefrontProduct } from '../types/storefront.types';
 import { getAutoProductPhoto } from '../lib/storefront-photo-matcher';
@@ -165,7 +166,7 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
                 {/* Price & Name */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '3px' }}>
                   <span style={{ fontSize: '13.5px', fontWeight: 900, color: '#0f172a' }}>
-                    {p.price > 0 ? `${p.price} ج.م` : 'تواصل'}
+                    {p.price > 0 ? `${p.price} ${getGlobalCurrencySymbol()}` : 'تواصل'}
                   </span>
                 </div>
 

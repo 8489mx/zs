@@ -6,6 +6,7 @@ import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/
 import type { AppSettings } from '@/types/domain';
 import { FormSection } from '@/shared/components/form-section';
 import { CustomSelect } from '@/shared/ui/custom-select';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 
 interface SalesInventoryTabProps {
   form: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>;
@@ -545,7 +546,7 @@ export function SalesInventorySettingsTab({
                         onChange={(val) => form.setValue('posMaxDiscountThresholdType', val as any, { shouldDirty: true, shouldValidate: true })}
                         options={[
                           { value: 'percentage', label: 'نسبة مئوية من إجمالي الفاتورة (%)' },
-                          { value: 'fixed', label: 'مبلغ ثابت بالجنيه (ج.م)' },
+                          { value: 'fixed', label: 'مبلغ ثابت بالجنيه (${getGlobalCurrencySymbol()})' },
                         ]}
                         disabled={disabled}
                       />
@@ -553,7 +554,7 @@ export function SalesInventorySettingsTab({
 
                     <div>
                       <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                        قيمة سقف الخصم المسموح به {form.watch('posMaxDiscountThresholdType') === 'fixed' ? '(ج.م)' : '(%)'}
+                        قيمة سقف الخصم المسموح به {form.watch('posMaxDiscountThresholdType') === 'fixed' ? '(${getGlobalCurrencySymbol()})' : '(%)'}
                       </label>
                       <input
                         type="number"
@@ -658,7 +659,7 @@ export function SalesInventorySettingsTab({
                     placeholder="0"
                     style={{ width: '85px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                   />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>ج.م</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}><CurrencySymbol /></span>
                 </div>
               </div>
 
@@ -934,7 +935,7 @@ export function SalesInventorySettingsTab({
                     placeholder="0.10"
                     style={{ width: '85px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
                   />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>ج.م</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}><CurrencySymbol /></span>
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
@@ -1043,13 +1044,13 @@ export function SalesInventorySettingsTab({
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <LightbulbIcon size={18} color="#170e5e" />
                 <span style={{ fontSize: '0.84rem', color: '#1e293b', fontWeight: 700 }}>
-                  معاينة حية للمحرك: مشتريات بقيمة <strong>1,000 ج.م</strong> تمنح العميل{' '}
+                  معاينة حية للمحرك: مشتريات بقيمة <strong>1,000 <CurrencySymbol /></strong> تمنح العميل{' '}
                   <strong style={{ color: '#170e5e' }}>
                     {Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10))} نقطة
                   </strong>{' '}
                   قيمتها{' '}
                   <strong style={{ color: '#170e5e' }}>
-                    {(Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10)) * Number(form.watch('loyaltyPointRedeemValue') || 0.1)).toFixed(2)} ج.م
+                    {(Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10)) * Number(form.watch('loyaltyPointRedeemValue') || 0.1)).toFixed(2)} <CurrencySymbol />
                   </strong>{' '}
                   خصم فوري في مشترياته القادمة (معدل استرجاع{' '}
                   <strong>

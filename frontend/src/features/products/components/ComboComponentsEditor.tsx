@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React, { useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
@@ -125,7 +126,7 @@ export function ComboComponentsEditor({ value, onChange, products, disabled }: C
         </Button>
         {totalComponentsPrice > 0 && (
           <div style={{ fontSize: 13, background: 'rgba(59, 130, 246, 0.08)', padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(59, 130, 246, 0.2)', color: '#1e40af' }}>
-            إجمالي أسعار المكونات الفردية قبل العرض: <strong>{totalComponentsPrice.toFixed(2)} ج.م</strong>
+            إجمالي أسعار المكونات الفردية قبل العرض: <strong>{totalComponentsPrice.toFixed(2)} <CurrencySymbol /></strong>
           </div>
         )}
       </div>

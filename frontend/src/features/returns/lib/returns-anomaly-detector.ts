@@ -1,4 +1,5 @@
 import type { ReturnRecord, Sale } from '@/types/domain';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 export type RiskLevel = 'low' | 'medium' | 'high';
 
@@ -141,7 +142,7 @@ export function detectReturnsAnomalies(
     if (returnAmount >= highValLimit) {
       flags.push({
         id: 'high_value',
-        label: `قيمة مرتجع عالية (${returnAmount.toLocaleString('ar-EG')} ج.م)`,
+        label: `قيمة مرتجع عالية (${returnAmount.toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()})`,
         severity: 'warning',
       });
       riskScore += 20;

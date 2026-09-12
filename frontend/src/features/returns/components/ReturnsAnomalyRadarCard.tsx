@@ -9,6 +9,7 @@ import {
   PrinterIcon,
 } from '@/shared/components/icons/AppIcons';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import {
   detectReturnsAnomalies,
   type AnalyzedReturnRecord,
@@ -72,7 +73,7 @@ export function ReturnsAnomalyRadarCard({
   }, [summary.analyzedRecords, selectedCashier, riskFilter, searchQuery]);
 
   const handleCopyCctvTime = (record: AnalyzedReturnRecord) => {
-    const text = `فحص كاميرا المراقبة:\nالكاشير: ${record.cashierName}\nتاريخ الفاتورة: ${record.saleDate ? formatDate(record.saleDate) : '—'}\nتاريخ المرتجع: ${record.returnDate ? formatDate(record.returnDate) : '—'}\nالفارق الزمني: ${record.timeGapMinutes !== null ? `${record.timeGapMinutes} دقيقة` : 'غير محدد'}\nالصنف: ${record.record.productName}\nالمبلغ: ${record.record.total} ج.م`;
+    const text = `فحص كاميرا المراقبة:\nالكاشير: ${record.cashierName}\nتاريخ الفاتورة: ${record.saleDate ? formatDate(record.saleDate) : '—'}\nتاريخ المرتجع: ${record.returnDate ? formatDate(record.returnDate) : '—'}\nالفارق الزمني: ${record.timeGapMinutes !== null ? `${record.timeGapMinutes} دقيقة` : 'غير محدد'}\nالصنف: ${record.record.productName}\nالمبلغ: ${record.record.total} ${getGlobalCurrencySymbol()}`;
     navigator.clipboard.writeText(text);
     setCopiedId(record.record.id);
     setTimeout(() => setCopiedId(null), 2500);

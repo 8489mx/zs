@@ -3,6 +3,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { useProfitReportQuery, usePartnerPayoutMutation, Partner } from './api/shipments.api';
 import { formatCurrency } from '@/lib/format';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { ManagePartnersDialog } from './ManagePartnersDialog';
 import { PartnerLedgerDialog } from './PartnerLedgerComponents';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -53,20 +54,20 @@ function PartnerPayoutModal({
             <div>
               <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>إجمالي الربح المستحق</span>
               <strong style={{ color: '#0f172a', fontSize: '0.88rem' }}>
-                {formatCurrency(partner.shareAmount)} ج.م
+                {formatCurrency(partner.shareAmount)} <CurrencySymbol />
               </strong>
             </div>
             <div>
               <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>المنصرف سابقاً</span>
               <strong style={{ color: '#64748b', fontSize: '0.88rem' }}>
-                {formatCurrency(partner.withdrawnProfit)} ج.م
+                {formatCurrency(partner.withdrawnProfit)} <CurrencySymbol />
               </strong>
             </div>
           </div>
           <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: '#0f172a', fontWeight: 700, fontSize: '0.82rem' }}>الرصيد المتبقي المتاح:</span>
             <span style={{ fontSize: '1.05rem', fontWeight: 800, color: partner.currentBalance > 0 ? '#170e5e' : '#64748b' }}>
-              {formatCurrency(partner.currentBalance)} ج.م
+              {formatCurrency(partner.currentBalance)} <CurrencySymbol />
             </span>
           </div>
         </div>
@@ -91,7 +92,7 @@ function PartnerPayoutModal({
                   textDecoration: 'underline',
                 }}
               >
-                صرف كامل المتبقي ({Number(partner.currentBalance).toLocaleString()} ج.م)
+                صرف كامل المتبقي ({Number(partner.currentBalance).toLocaleString()} <CurrencySymbol />)
               </button>
             )}
           </div>
@@ -102,7 +103,7 @@ function PartnerPayoutModal({
             value={amount} 
             onChange={e => setAmount(e.target.value)} 
             required 
-            placeholder="0.00 ج.م"
+            placeholder="0.00"
             style={{
               width: '100%',
               height: '38px',
@@ -272,7 +273,7 @@ export default function ProfitPool() {
                   إجمالي الإيرادات (المبيعات)
                 </div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a' }}>
-                  {formatCurrency(data.totalRevenue)} <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8' }}>ج.م</span>
+                  {formatCurrency(data.totalRevenue)} <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8' }}><CurrencySymbol /></span>
                 </div>
                 <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '6px' }}>
                   إجمالي المبيعات المحققة بالفترة
@@ -285,10 +286,10 @@ export default function ProfitPool() {
                   إجمالي التكلفة والمصاريف
                 </div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a' }}>
-                  {formatCurrency(data.totalCost + data.totalExpenses)} <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8' }}>ج.م</span>
+                  {formatCurrency(data.totalCost + data.totalExpenses)} <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8' }}><CurrencySymbol /></span>
                 </div>
                 <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px' }}>
-                  بضاعة: {formatCurrency(data.totalCost)} ج.م &bull; مصاريف: {formatCurrency(data.totalExpenses)} ج.م
+                  بضاعة: {formatCurrency(data.totalCost)} <CurrencySymbol /> &bull; مصاريف: {formatCurrency(data.totalExpenses)} <CurrencySymbol />
                 </div>
               </div>
 
@@ -298,7 +299,7 @@ export default function ProfitPool() {
                   صافي الربح المتاح للتوزيع
                 </div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a' }}>
-                  {formatCurrency(data.netProfitPool)} <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8' }}>ج.م</span>
+                  {formatCurrency(data.netProfitPool)} <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8' }}><CurrencySymbol /></span>
                 </div>
                 <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px' }}>
                   صافي الوعاء القابل للتوزيع على الشركاء
@@ -346,17 +347,17 @@ export default function ProfitPool() {
                           </span>
                         </td>
                         <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>
-                          {formatCurrency(partner.shareAmount)} <span style={{ fontSize: '0.72rem', color: '#64748b' }}>ج.م</span>
+                          {formatCurrency(partner.shareAmount)} <span style={{ fontSize: '0.72rem', color: '#64748b' }}><CurrencySymbol /></span>
                         </td>
                         <td style={{ padding: '10px 14px', color: '#64748b' }}>
-                          {formatCurrency(partner.withdrawnProfit)} <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>ج.م</span>
+                          {formatCurrency(partner.withdrawnProfit)} <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}><CurrencySymbol /></span>
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           <span style={{ 
                             fontWeight: 800, 
                             color: partner.currentBalance > 0 ? '#170e5e' : (partner.currentBalance < 0 ? '#dc2626' : '#64748b') 
                           }}>
-                            {formatCurrency(partner.currentBalance)} <span style={{ fontSize: '0.72rem', fontWeight: 600 }}>ج.م</span>
+                            {formatCurrency(partner.currentBalance)} <span style={{ fontSize: '0.72rem', fontWeight: 600 }}><CurrencySymbol /></span>
                           </span>
                         </td>
                         <td style={{ padding: '10px 14px', textAlign: 'center' }}>

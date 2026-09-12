@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { deliveryRepsApi, type DeliveryOrder, type DeliveryRep, type SettleOrderPayload } from '@/features/delivery-reps/api/delivery-reps.api';
 import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
@@ -205,7 +206,7 @@ export function DeliveryDriverMobilePage() {
           <div class="row"><span>العميل:</span><strong>${order.customerName}</strong></div>
           <div class="row"><span>الهاتف:</span><span>${order.customerPhone || '—'}</span></div>
           <div class="row"><span>العنوان:</span><span>${order.customerAddress || order.deliveryStatus || '—'}</span></div>
-          <div class="row total"><span>المبلغ المطلوب:</span><span>${Number(order.total).toLocaleString('ar-EG')} ج.م</span></div>
+          <div class="row total"><span>المبلغ المطلوب:</span><span>${Number(order.total).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}</span></div>
           ${order.settledAt ? '<div class="row" style="color: green;"><span>حالة التحصيل:</span><strong>تم التحصيل بالكامل</strong></div>' : ''}
           <div class="footer">شكراً لتعاملكم معنا!</div>
           <script>window.print(); window.close();</script>

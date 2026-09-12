@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
@@ -345,7 +346,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
                           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                         >
                           <span style={{ fontWeight: 600, color: '#0f172a' }}>{srv.name}</span>
-                          <span style={{ fontWeight: 700, color: '#2563eb', fontSize: '0.825rem' }}>{srv.price} ج.م</span>
+                          <span style={{ fontWeight: 700, color: '#2563eb', fontSize: '0.825rem' }}>{srv.price} <CurrencySymbol /></span>
                         </button>
                       ))}
                     </div>
@@ -375,7 +376,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
                         onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#2563eb')}
                         onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
                       >
-                        {srv.name} ({srv.price} ج.م)
+                        {srv.name} ({srv.price} <CurrencySymbol />)
                       </button>
                     ))}
                   </div>
@@ -402,7 +403,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
                       {...register('retailPrice', { valueAsNumber: true })}
                       style={{ width: '100%', padding: '7px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}
                     />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>ج.م</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}><CurrencySymbol /></span>
                   </div>
                   {errors.retailPrice?.message && (
                     <div style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '4px' }}>{errors.retailPrice.message}</div>

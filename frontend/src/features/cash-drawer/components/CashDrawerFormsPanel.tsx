@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useWatch, type Control, type UseFormReturn } from 'react-hook-form';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -302,7 +303,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
                   MozAppearance: 'textfield',
                 }}
               />
-              <span style={{ position: 'absolute', left: '8px', fontSize: '0.75rem', color: '#94a3b8', pointerEvents: 'none' }}>ج.م</span>
+              <span style={{ position: 'absolute', left: '8px', fontSize: '0.75rem', color: '#94a3b8', pointerEvents: 'none' }}><CurrencySymbol /></span>
             </div>
           </div>
 
@@ -1033,7 +1034,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                           MozAppearance: 'textfield',
                         }}
                       />
-                      <span style={{ position: 'absolute', left: '8px', fontSize: '0.75rem', color: '#16a34a', pointerEvents: 'none' }}>ج.م</span>
+                      <span style={{ position: 'absolute', left: '8px', fontSize: '0.75rem', color: '#16a34a', pointerEvents: 'none' }}><CurrencySymbol /></span>
                     </div>
                   </div>
                 </div>

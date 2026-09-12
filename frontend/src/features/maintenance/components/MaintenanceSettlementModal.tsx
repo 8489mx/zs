@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { XIcon } from '@/shared/components/icons/AppIcons';
@@ -70,15 +71,15 @@ export function MaintenanceSettlementModal({
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center', fontSize: '0.78rem' }}>
           <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
             <div style={{ color: '#64748b', marginBottom: '2px' }}>إجمالي الحساب</div>
-            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{totalCost.toFixed(2)} ج.م</strong>
+            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{totalCost.toFixed(2)} <CurrencySymbol /></strong>
           </div>
           <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
             <div style={{ color: '#64748b', marginBottom: '2px' }}>المدفوع مقدماً</div>
-            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{advancePaid.toFixed(2)} ج.م</strong>
+            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{advancePaid.toFixed(2)} <CurrencySymbol /></strong>
           </div>
           <div style={{ background: '#ffffff', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
             <div style={{ color: '#475569', marginBottom: '2px' }}>المطلوب تحصيله</div>
-            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{expectedRem.toFixed(2)} ج.م</strong>
+            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{expectedRem.toFixed(2)} <CurrencySymbol /></strong>
           </div>
         </div>
 
@@ -96,7 +97,7 @@ export function MaintenanceSettlementModal({
               onChange={(e) => setCollectedAmount(Number(e.target.value))}
               style={{ width: '100%', height: '38px', fontSize: '1.1rem', fontWeight: 800, padding: '0 12px', borderRadius: '6px', border: '1px solid #cbd5e1', color: '#0f172a' }}
             />
-            <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', whiteSpace: 'nowrap' }}>ج.م</span>
+            <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', whiteSpace: 'nowrap' }}><CurrencySymbol /></span>
           </div>
         </div>
 
@@ -106,7 +107,7 @@ export function MaintenanceSettlementModal({
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>
                 فرق / خصم مسموح به للعميل:
               </span>
-              <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{diff.toFixed(2)} ج.م</strong>
+              <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{diff.toFixed(2)} <CurrencySymbol /></strong>
             </div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>
               اختر سبب الخصم / الفرق:
@@ -138,7 +139,7 @@ export function MaintenanceSettlementModal({
         {diff < 0 && (
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>باقي مستحق للعميل:</span>
-            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{Math.abs(diff).toFixed(2)} ج.م</strong>
+            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{Math.abs(diff).toFixed(2)} <CurrencySymbol /></strong>
           </div>
         )}
 

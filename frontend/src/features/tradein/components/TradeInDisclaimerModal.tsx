@@ -1,3 +1,5 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 ﻿import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { buildCode128Svg } from '@/lib/barcode';
@@ -56,7 +58,7 @@ export function TradeInDisclaimerModal({ open, transaction, settings, onClose }:
         <div>• نوع وموديل الجهاز: <strong>${escapeHtml(deviceLabel)}</strong></div>
         <div>• ${escapeHtml(profile.serialLabel)}: <strong dir="ltr">${escapeHtml(transaction.serialNumber)}</strong></div>
         ${transaction.imei2 ? `<div>• ${escapeHtml(profile.secondarySerialLabel)}: <strong dir="ltr">${escapeHtml(transaction.imei2)}</strong></div>` : ''}
-        <div>• السعر المتفق عليه والمدفوع: <strong>${Number(transaction.agreedPurchasePrice).toFixed(2)} ج.م</strong></div>
+        <div>• السعر المتفق عليه والمدفوع: <strong>${Number(transaction.agreedPurchasePrice).toFixed(2)} ${getGlobalCurrencySymbol()}</strong></div>
         ${transaction.deviceConditionNotes ? `<div>• حالة وملاحظات الجهاز: ${escapeHtml(transaction.deviceConditionNotes)}</div>` : ''}
       </div>
 
@@ -132,7 +134,7 @@ export function TradeInDisclaimerModal({ open, transaction, settings, onClose }:
           <div style={{ background: '#f1f5f9', padding: '10px', borderRadius: '6px', marginBottom: '14px' }}>
             <div>• الجهاز: <strong>{transaction.deviceBrand ? `${transaction.deviceBrand} ` : ''}{transaction.deviceModel}</strong></div>
             <div>• {profile.serialLabel}: <strong dir="ltr">{transaction.serialNumber}</strong></div>
-            <div>• السعر المتفق عليه: <strong>{Number(transaction.agreedPurchasePrice).toFixed(2)} ج.م</strong></div>
+            <div>• السعر المتفق عليه: <strong>{Number(transaction.agreedPurchasePrice).toFixed(2)} <CurrencySymbol /></strong></div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', borderTop: '2px solid #0f172a', paddingTop: '12px', textAlign: 'center', fontSize: '0.8rem' }}>
             <div><strong>توقيع البائع</strong><br /><br />الاسم: .............<br />التوقيع: ............</div>

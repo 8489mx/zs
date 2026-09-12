@@ -1,4 +1,4 @@
-import { formatCurrency } from '@/lib/format';
+import { formatCurrencyWithSymbol } from '@/lib/format';
 import { SearchIcon, FileTextIcon, Trash2Icon } from '@/shared/components/icons/AppIcons';
 import type { CostCenterRecord } from '../../api/cost-centers.api';
 import { COST_CENTER_DIMENSIONS } from './types';
@@ -144,7 +144,7 @@ export function CostCentersTable({
                       </td>
                       <td style={{ padding: '10px 14px', color: '#64748b' }}>{getParentName(c.parentId)}</td>
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>
-                        {c.budgetAmount ? `${formatCurrency(c.budgetAmount)} ج.م` : '—'}
+                        {c.budgetAmount ? formatCurrencyWithSymbol(c.budgetAmount) : '—'}
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                         <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 600, backgroundColor: c.isActive ? '#ecfdf5' : '#f1f5f9', color: c.isActive ? '#059669' : '#64748b' }}>

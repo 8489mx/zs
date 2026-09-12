@@ -95,7 +95,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
       </Field>
 
       <Field 
-        label="الرصيد الافتتاحي (ج.م)" 
+        label="الرصيد الافتتاحي (${getGlobalCurrencySymbol()})" 
         hint="المبلغ المستحق على العميل عند بداية التسجيل (إن وجد)"
         error={form.formState.errors.balance?.message}
       >
@@ -109,7 +109,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
       </Field>
 
       <Field 
-        label="حد الائتمان (ج.م)" 
+        label="حد الائتمان (${getGlobalCurrencySymbol()})" 
         hint="أقصى مبلغ مسموح بالسحب الآجل (0 = نقدي فقط)"
         error={form.formState.errors.creditLimit?.message}
       >

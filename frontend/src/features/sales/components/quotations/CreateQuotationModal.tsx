@@ -1,4 +1,5 @@
 import { DialogShell } from '@/shared/components/dialog-shell';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { Button } from '@/shared/ui/button';
 import { PlusIcon, Trash2Icon } from '@/shared/components/icons/AppIcons';
 import { QuotationItem } from '@/features/sales/api/quotations.api';
@@ -50,6 +51,8 @@ export function CreateQuotationModal({
   onSubmit,
   isPending,
 }: CreateQuotationModalProps) {
+  const { currencySymbol } = useSystemCurrency();
+  if (!open) return null;
   const totals = calculateTotals();
 
   return (
@@ -198,9 +201,9 @@ export function CreateQuotationModal({
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '20px', marginTop: '12px', fontSize: '13px', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
-            <span>المجموع الفرعي: <strong>{totals.subtotal.toFixed(2)} ج.م</strong></span>
-            <span>الضريبة: <strong>{totals.taxTotal.toFixed(2)} ج.م</strong></span>
-            <span style={{ fontSize: '15px', color: '#170e5e' }}>الإجمالي: <strong>{totals.grandTotal.toFixed(2)} ج.م</strong></span>
+            <span>المجموع الفرعي: <strong>{totals.subtotal.toFixed(2)} {currencySymbol}</strong></span>
+            <span>الضريبة: <strong>{totals.taxTotal.toFixed(2)} {currencySymbol}</strong></span>
+            <span style={{ fontSize: '15px', color: '#170e5e' }}>الإجمالي: <strong>{totals.grandTotal.toFixed(2)} {currencySymbol}</strong></span>
           </div>
         </div>
 

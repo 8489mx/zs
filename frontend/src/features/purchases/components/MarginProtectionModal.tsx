@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { TrendingUpIcon, XIcon, CheckIcon, TagIcon, MessageSquareIcon } from '@/shared/components/icons/AppIcons';
 import {
   marginProtectionApi,
@@ -22,6 +23,7 @@ export function MarginProtectionModal({
   onClose,
   onRepricingApplied,
 }: MarginProtectionModalProps) {
+  const { currencySymbol } = useSystemCurrency();
   const [targetMargin, setTargetMargin] = useState(initialTargetMargin);
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -334,7 +336,7 @@ export function MarginProtectionModal({
                               onChange={(e) => handlePriceChange(item.productId, Number(e.target.value))}
                               className="w-24 h-8 px-2 text-center font-bold text-slate-800 bg-white border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#170e5e]/20"
                             />
-                            <span className="text-[10px] text-slate-500 font-bold">ج.م</span>
+                            <span className="text-[10px] text-slate-500 font-bold">{currencySymbol}</span>
                           </div>
                         </td>
                         <td className="p-3 text-center">

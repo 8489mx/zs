@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React from 'react';
 import type { TradeInTransaction } from '@/types/domain-models/tradein';
 import { TradeInIcons } from './TradeInIcons';
@@ -97,7 +98,7 @@ export function TradeInTable({
                   </span>
                 </td>
                 <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                  {(t.agreedPurchasePrice || 0).toLocaleString('ar-EG')} ج.م
+                  {(t.agreedPurchasePrice || 0).toLocaleString('ar-EG')} <CurrencySymbol />
                 </td>
                 <td style={{ padding: '10px 14px' }}>
                   <span style={{ display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 600, background: t.transactionType === 'exchange_trade_in' ? '#f5f3ff' : '#eff6ff', color: t.transactionType === 'exchange_trade_in' ? '#7c3aed' : '#1d4ed8' }}>

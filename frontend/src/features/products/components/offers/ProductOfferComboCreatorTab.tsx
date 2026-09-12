@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -131,7 +133,7 @@ export function ProductOfferComboCreatorTab({
               </Field>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <Field label="سعر بيع العرض (ج.م) *">
+                <Field label="سعر بيع العرض (${getGlobalCurrencySymbol()}) *">
                   <input
                     type="number"
                     step="0.01"
@@ -189,13 +191,13 @@ export function ProductOfferComboCreatorTab({
                     fontSize: '0.88rem',
                     textDecoration: numericComboPrice > 0 && numericComboPrice < comboTotalItemsPrice ? 'line-through' : 'none'
                   }}>
-                    {formatCurrency(comboTotalItemsPrice)} ج.م
+                    {formatCurrency(comboTotalItemsPrice)} <CurrencySymbol />
                   </strong>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#64748b', marginBottom: 6 }}>
                   <span>تكلفة المكونات:</span>
-                  <span style={{ fontWeight: 600 }}>{formatCurrency(comboTotalCost)} ج.م</span>
+                  <span style={{ fontWeight: 600 }}>{formatCurrency(comboTotalCost)} <CurrencySymbol /></span>
                 </div>
 
                 <div style={{
@@ -211,7 +213,7 @@ export function ProductOfferComboCreatorTab({
                 }}>
                   <span>سعر العرض الترويجي:</span>
                   <span style={{ color: '#16a34a', fontSize: '1.15rem', fontWeight: 800 }}>
-                    {formatCurrency(numericComboPrice)} ج.م
+                    {formatCurrency(numericComboPrice)} <CurrencySymbol />
                   </span>
                 </div>
 
@@ -230,7 +232,7 @@ export function ProductOfferComboCreatorTab({
                     fontWeight: 700
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span>توفير للزبون:</span> <strong>{formatCurrency(comboSavings)} ج.م</strong>
+                      <span>توفير للزبون:</span> <strong>{formatCurrency(comboSavings)} <CurrencySymbol /></strong>
                     </span>
                     <span style={{ background: '#059669', color: '#ffffff', padding: '1px 8px', borderRadius: 12, fontSize: '0.74rem' }}>
                       خصم {comboSavingsPercent}%
@@ -250,7 +252,7 @@ export function ProductOfferComboCreatorTab({
                   }}>
                     <span>هامش ربح التاجر:</span>
                     <strong style={{ color: '#047857' }}>
-                      {formatCurrency(numericComboPrice - comboTotalCost)} ج.م ({comboTotalCost > 0 ? (((numericComboPrice - comboTotalCost) / numericComboPrice) * 100).toFixed(0) : 100}%)
+                      {formatCurrency(numericComboPrice - comboTotalCost)} <CurrencySymbol /> ({comboTotalCost > 0 ? (((numericComboPrice - comboTotalCost) / numericComboPrice) * 100).toFixed(0) : 100}%)
                     </strong>
                   </div>
                 )}
@@ -269,7 +271,7 @@ export function ProductOfferComboCreatorTab({
                     alignItems: 'center',
                     gap: 6
                   }}>
-                    <span>تنبيه: سعر العرض أقل من تكلفة المكونات بخسارة قدرها {formatCurrency(comboTotalCost - numericComboPrice)} ج.م</span>
+                    <span>تنبيه: سعر العرض أقل من تكلفة المكونات بخسارة قدرها {formatCurrency(comboTotalCost - numericComboPrice)} ${getGlobalCurrencySymbol()}</span>
                   </div>
                 )}
               </div>
@@ -445,7 +447,7 @@ export function ProductOfferComboCreatorTab({
                           </span>
                         )}
                         <span style={{ fontWeight: 700, fontSize: '0.82rem', color: isAdded ? '#15803d' : '#2563eb' }}>
-                          {formatCurrency(prodPrice)} ج.م
+                          {formatCurrency(prodPrice)} <CurrencySymbol />
                         </span>
                         <span style={{
                           background: isAdded ? '#16a34a' : '#2563eb',
@@ -520,11 +522,11 @@ export function ProductOfferComboCreatorTab({
                           {item.product.name}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 1 }}>
-                          <span>{formatCurrency(itemRetail)} ج.م</span>
+                          <span>{formatCurrency(itemRetail)} <CurrencySymbol /></span>
                           <span style={{ margin: '0 4px', color: '#cbd5e1' }}>×</span>
                           <span style={{ fontWeight: 600, color: '#0f172a' }}>{item.quantity}</span>
                           <span style={{ margin: '0 4px', color: '#cbd5e1' }}>=</span>
-                          <span style={{ fontWeight: 700, color: '#16a34a' }}>{formatCurrency(itemRetail * item.quantity)} ج.م</span>
+                          <span style={{ fontWeight: 700, color: '#16a34a' }}>{formatCurrency(itemRetail * item.quantity)} <CurrencySymbol /></span>
                         </div>
                       </div>
 

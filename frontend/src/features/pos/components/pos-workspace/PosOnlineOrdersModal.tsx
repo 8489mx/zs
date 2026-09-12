@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -238,7 +239,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                       <div>
                         <span style={{ fontSize: '11.5px', color: '#64748b' }}>الإجمالي: </span>
                         <span style={{ fontSize: '15px', fontWeight: 900, color: '#170e5e' }}>
-                          {order.totalAmount} ج.م
+                          {order.totalAmount} ${getGlobalCurrencySymbol()}
                         </span>
                       </div>
 

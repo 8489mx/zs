@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { FormSection } from '@/shared/components/form-section';
@@ -657,7 +658,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
               </strong>
 
               <div className="form-grid">
-                <Field label="المبلغ المدفوع للمورد (ج.م)">
+                <Field label={`المبلغ المدفوع للمورد (${getGlobalCurrencySymbol()})`}>
                   <input
                     type="number"
                     min="0.01"
@@ -925,7 +926,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                       const phone = formatWhatsAppNumber(rawPhone);
                       const remaining = successReceipt.remainingBalance;
                       const noteSuffix = successReceipt.note ? ` (${successReceipt.note})` : '';
-                      const text = `مرحباً ${supplierName}،\nتم سداد دفعة نقدية لكم بقيمة: *${formatCurrency(successReceipt.amountPaid)} ج.م*\n• البيان: *تسوية القسط رقم (${successReceipt.row.installmentNo}) من جدول المستحقات*${noteSuffix}\n• التاريخ والوقت: ${formatDateTimeArabic()}\n• إجمالي الرصيد المتبقي لكم: *${formatCurrency(remaining)} ج.م*\nشكراً لتعاملكم معنا.`;
+                      const text = `مرحباً ${supplierName}،\nتم سداد دفعة نقدية لكم بقيمة: *${formatCurrency(successReceipt.amountPaid)} ${getGlobalCurrencySymbol()}*\n• البيان: *تسوية القسط رقم (${successReceipt.row.installmentNo}) من جدول المستحقات*${noteSuffix}\n• التاريخ والوقت: ${formatDateTimeArabic()}\n• إجمالي الرصيد المتبقي لكم: *${formatCurrency(remaining)} ${getGlobalCurrencySymbol()}*\nشكراً لتعاملكم معنا.`;
                       const encodedText = encodeURIComponent(text);
                       let url = `https://wa.me/${phone}?text=${encodedText}`;
                       if (settings?.whatsappLinkMode === 'web') {
@@ -969,7 +970,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                       const phone = formatWhatsAppNumber(rawPhone);
                       const remaining = directSuccessReceipt.remainingBalance;
                       const noteLine = directSuccessReceipt.note ? `\n• البيان: *${directSuccessReceipt.note}*` : '';
-                      const text = `مرحباً ${supplierName}،\nتم تسجيل صرف دفعة نقدية لكم بقيمة: *${formatCurrency(directSuccessReceipt.amountPaid)} ج.م*${noteLine}\n• التاريخ والوقت: ${formatDateTimeArabic()}\n• إجمالي الرصيد المتبقي لكم: *${formatCurrency(remaining)} ج.م*\nشكراً لتعاملكم معنا.`;
+                      const text = `مرحباً ${supplierName}،\nتم تسجيل صرف دفعة نقدية لكم بقيمة: *${formatCurrency(directSuccessReceipt.amountPaid)} ${getGlobalCurrencySymbol()}*${noteLine}\n• التاريخ والوقت: ${formatDateTimeArabic()}\n• إجمالي الرصيد المتبقي لكم: *${formatCurrency(remaining)} ${getGlobalCurrencySymbol()}*\nشكراً لتعاملكم معنا.`;
                       const encodedText = encodeURIComponent(text);
                       let url = `https://wa.me/${phone}?text=${encodedText}`;
                       if (settings?.whatsappLinkMode === 'web') {

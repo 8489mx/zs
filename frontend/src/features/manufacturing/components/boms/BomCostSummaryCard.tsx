@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React from 'react';
 import { FormSection } from '@/shared/components/form-section';
 
@@ -28,11 +29,11 @@ export const BomCostSummaryCard: React.FC<BomCostSummaryCardProps> = ({
         <div style={{ height: '1px', backgroundColor: '#e5e7eb' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 'bold', color: '#111827' }}>
           <span>إجمالي التكلفة للكمية ({quantity})</span>
-          <span>{batchTotalCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م</span>
+          <span>{batchTotalCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} <CurrencySymbol /></span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', color: '#059669', fontWeight: '500' }}>
           <span>تكلفة الوحدة الواحدة المنتجة</span>
-          <span>{singleUnitTotalCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م</span>
+          <span>{singleUnitTotalCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} <CurrencySymbol /></span>
         </div>
       </div>
     </FormSection>

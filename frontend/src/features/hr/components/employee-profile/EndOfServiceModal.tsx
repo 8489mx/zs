@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { FormEvent, useState } from 'react';
 import { hrApi } from '@/features/hr/api/hr.api';
 import { useQuery } from '@tanstack/react-query';
@@ -98,15 +99,15 @@ export function EndOfServiceModal({ employeeId, employeeName, isOpen, onClose, o
                 <tr><td>تاريخ التعيين</td><td>{preview.hireDate?.slice(0,10)}</td></tr>
                 <tr><td>تاريخ إنهاء الخدمة</td><td>{preview.endDate}</td></tr>
                 <tr><td>سنوات الخدمة</td><td>{preview.yearsWorked} سنة</td></tr>
-                <tr><td>الراتب الأساسي</td><td>{preview.baseSalary} ج.م</td></tr>
-                <tr><td>أجر اليوم الواحد</td><td>{preview.dailyRate} ج.م</td></tr>
-                <tr><td>مكافأة نهاية الخدمة (قانون العمل)</td><td>{preview.severancePay} ج.م</td></tr>
+                <tr><td>الراتب الأساسي</td><td>{preview.baseSalary} <CurrencySymbol /></td></tr>
+                <tr><td>أجر اليوم الواحد</td><td>{preview.dailyRate} <CurrencySymbol /></td></tr>
+                <tr><td>مكافأة نهاية الخدمة (قانون العمل)</td><td>{preview.severancePay} <CurrencySymbol /></td></tr>
                 <tr><td>رصيد الإجازات المتبقي</td><td>{preview.remainingLeaves} يوم</td></tr>
-                <tr><td>بدل نقدي للإجازات</td><td>{preview.leaveEncashment} ج.م</td></tr>
-                <tr><td>سلف غير مسددة (تخصم)</td><td style={{ color: 'var(--danger-color)' }}>{preview.unpaidLoans} ج.م</td></tr>
+                <tr><td>بدل نقدي للإجازات</td><td>{preview.leaveEncashment} <CurrencySymbol /></td></tr>
+                <tr><td>سلف غير مسددة (تخصم)</td><td style={{ color: 'var(--danger-color)' }}>{preview.unpaidLoans} <CurrencySymbol /></td></tr>
                 <tr style={{ fontWeight: 'bold', fontSize: '1.1em', backgroundColor: 'var(--border-color)' }}>
                   <td>إجمالي التسوية المستحقة للموظف</td>
-                  <td>{preview.finalSettlementAmount} ج.م</td>
+                  <td>{preview.finalSettlementAmount} <CurrencySymbol /></td>
                 </tr>
               </tbody>
             </table>

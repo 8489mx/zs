@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -445,7 +446,7 @@ export function MaintenanceCreateTicketModal({
                     placeholder="0.00"
                     style={{ width: '100%', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '5px', fontWeight: 700, fontSize: '0.9rem' }}
                   />
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>ج.م</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}><CurrencySymbol /></span>
                 </div>
               </div>
 
@@ -464,7 +465,7 @@ export function MaintenanceCreateTicketModal({
                     placeholder="0.00"
                     style={{ width: '100%', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '5px', fontWeight: 700, fontSize: '0.9rem' }}
                   />
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>ج.م</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}><CurrencySymbol /></span>
                 </div>
               </div>
 
@@ -474,7 +475,7 @@ export function MaintenanceCreateTicketModal({
                 </label>
                 <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', padding: '5px 0' }}>
                   {Math.max(0, (formData.expectedCost || 0) - (formData.advancePayment || 0)).toFixed(2)}{' '}
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>ج.م</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}><CurrencySymbol /></span>
                 </div>
               </div>
 

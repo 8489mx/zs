@@ -1,4 +1,5 @@
 import type { HrEmployee, HrPayrollRunItem } from '@/types/domain';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 export type PayrollReviewStatus = 'all' | 'needs_review' | 'ready' | 'approved' | 'paid';
 
@@ -12,8 +13,8 @@ export const reviewStatusOptions: Array<{ value: PayrollReviewStatus; label: str
 
 export function money(value: unknown) {
   const amount = Number(value || 0);
-  if (!Number.isFinite(amount)) return '0.00 ج.م';
-  return `${amount.toFixed(2)} ج.م`;
+  if (!Number.isFinite(amount)) return `0.00 ${getGlobalCurrencySymbol()}`;
+  return `${amount.toFixed(2)} ${getGlobalCurrencySymbol()}`;
 }
 
 export function text(value: unknown) {

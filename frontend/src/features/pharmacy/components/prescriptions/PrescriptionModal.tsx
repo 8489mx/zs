@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { XIcon } from '@/shared/components/icons/AppIcons';
@@ -160,7 +161,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                إجمالي قيمة الأدوية (ج.م) <span style={{ color: '#dc2626' }}>*</span>
+                إجمالي قيمة الأدوية (${getGlobalCurrencySymbol()}) <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <input
                 type="number"

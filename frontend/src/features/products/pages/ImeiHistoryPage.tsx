@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -348,7 +349,7 @@ export function ImeiHistoryPage() {
                             {t.status}
                           </span>
                         </td>
-                        <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f172a' }}>{(t.finalCost || t.expectedCost).toFixed(2)} ج.م</td>
+                        <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f172a' }}>{(t.finalCost || t.expectedCost).toFixed(2)} <CurrencySymbol /></td>
                         <td style={{ padding: '8px 12px', color: '#64748b' }}>{new Date(t.receivedAt).toLocaleDateString('ar-EG')}</td>
                       </tr>
                     ))}
@@ -382,7 +383,7 @@ export function ImeiHistoryPage() {
                         <td style={{ padding: '8px 12px', fontWeight: 700, fontFamily: 'monospace', color: '#0f172a' }}>{tr.docNo}</td>
                         <td style={{ padding: '8px 12px' }}>{tr.sellerName}</td>
                         <td style={{ padding: '8px 12px', fontFamily: 'monospace' }} dir="ltr">{tr.sellerNationalId}</td>
-                        <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f172a' }}>{tr.agreedPurchasePrice.toFixed(2)} ج.م</td>
+                        <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f172a' }}>{tr.agreedPurchasePrice.toFixed(2)} <CurrencySymbol /></td>
                         <td style={{ padding: '8px 12px', color: '#64748b' }}>{new Date(tr.createdAt).toLocaleDateString('ar-EG')}</td>
                       </tr>
                     ))}

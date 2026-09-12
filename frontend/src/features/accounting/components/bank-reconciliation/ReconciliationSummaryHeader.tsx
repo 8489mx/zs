@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrencyWithSymbol } from '@/lib/format';
 import { RefreshCwIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 
 interface ReconciliationSummaryHeaderProps {
@@ -40,7 +40,7 @@ export const ReconciliationSummaryHeader: React.FC<ReconciliationSummaryHeaderPr
                 border: `1px solid ${summary?.isBalanced ? '#bbf7d0' : '#fed7aa'}`,
               }}
             >
-              {summary?.isBalanced ? 'الحساب متطابق 100%' : `فارق غير مطابق: ${formatCurrency(summary?.difference || 0)}`}
+              {summary?.isBalanced ? 'الحساب متطابق 100%' : `فارق غير مطابق: ${formatCurrencyWithSymbol(summary?.difference || 0)}`}
             </span>
           </div>
           <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
@@ -73,21 +73,21 @@ export const ReconciliationSummaryHeader: React.FC<ReconciliationSummaryHeaderPr
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
           <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 700 }}>رصيد بداية الكشف:</span>
           <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
-            {formatCurrency(summary?.startingBalance || 0)}
+            {formatCurrencyWithSymbol(summary?.startingBalance || 0)}
           </div>
         </div>
 
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
           <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 700 }}>رصيد نهاية الكشف المستهدف:</span>
           <div style={{ fontSize: '18px', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>
-            {formatCurrency(summary?.endingBalance || 0)}
+            {formatCurrencyWithSymbol(summary?.endingBalance || 0)}
           </div>
         </div>
 
         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '12px 16px' }}>
           <span style={{ fontSize: '11.5px', color: '#166534', fontWeight: 700 }}>إجمالي الحركات المطابقة:</span>
           <div style={{ fontSize: '18px', fontWeight: 900, color: '#166534', marginTop: '2px' }}>
-            {formatCurrency(summary?.reconciledAmount || 0)}
+            {formatCurrencyWithSymbol(summary?.reconciledAmount || 0)}
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#4ade80', marginInlineStart: '6px' }}>
               ({summary?.reconciledLinesCount || 0} من {summary?.totalLines || 0} بنود)
             </span>
@@ -106,7 +106,7 @@ export const ReconciliationSummaryHeader: React.FC<ReconciliationSummaryHeaderPr
             {summary?.isBalanced ? 'حالة التطابق:' : 'الفارق المتبقي (Difference):'}
           </span>
           <div style={{ fontSize: '18px', fontWeight: 900, color: summary?.isBalanced ? '#166534' : '#dc2626', marginTop: '2px' }}>
-            {summary?.isBalanced ? '0.00 ج.م (متطابق بالكامل)' : formatCurrency(summary?.difference || 0)}
+            {summary?.isBalanced ? `${formatCurrencyWithSymbol(0)} (متطابق بالكامل)` : formatCurrencyWithSymbol(summary?.difference || 0)}
           </div>
         </div>
       </div>

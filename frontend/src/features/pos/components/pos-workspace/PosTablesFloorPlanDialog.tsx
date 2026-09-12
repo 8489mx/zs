@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useEffect, useState, useCallback } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -100,7 +102,7 @@ export function PosTablesFloorPlanDialog({
       if (currentTableNumber && currentTableNumber !== tableNum) {
         const isTargetOccupied = occupiedMap.has(tableNum);
         if (isTargetOccupied && onMergeTable) {
-          const confirmMerge = window.confirm(`الطاولة ${tableNum} مشغولة بالفعل بطلب قيمته ${Number(occupiedMap.get(tableNum)?.total || 0).toLocaleString('ar-EG')} ج.م.\n\nهل ترغب في دمج طلب الطاولة ${currentTableNumber} مع هذه الطاولة؟`);
+          const confirmMerge = window.confirm(`الطاولة ${tableNum} مشغولة بالفعل بطلب قيمته ${Number(occupiedMap.get(tableNum)?.total || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}.\n\nهل ترغب في دمج طلب الطاولة ${currentTableNumber} مع هذه الطاولة؟`);
           if (confirmMerge) {
             onMergeTable(currentTableNumber, tableNum);
             setIsTransferring(false);
@@ -244,7 +246,7 @@ export function PosTablesFloorPlanDialog({
                         fontWeight: 900,
                       }}
                     >
-                      {Number(currentCartTotal).toLocaleString('ar-EG')} ج.م ({currentCartItemsCount} صنف بالسلة)
+                      {Number(currentCartTotal).toLocaleString('ar-EG')} <CurrencySymbol /> ({currentCartItemsCount} صنف بالسلة)
                     </span>
                   )}
                 </span>
@@ -338,7 +340,7 @@ export function PosTablesFloorPlanDialog({
                 </div>
                 <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#991b1b', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
-                  <span>طاولات مشغولة: <strong>{occupiedCount}</strong> ({totalOccupiedMoney.toLocaleString('ar-EG')} ج.م)</span>
+                  <span>طاولات مشغولة: <strong>{occupiedCount}</strong> ({totalOccupiedMoney.toLocaleString('ar-EG')} <CurrencySymbol />)</span>
                 </div>
                 {nonTableDrafts.length > 0 && (
                   <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#1e40af', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -407,7 +409,7 @@ export function PosTablesFloorPlanDialog({
                       title="استرجاع هذا الطلب للسلة فوراً"
                     >
                       <span>{d.label || 'طلب تيك أواي'}</span>
-                      <strong style={{ color: '#16a34a' }}>{Number(d.total || 0).toLocaleString('ar-EG')} ج.م</strong>
+                      <strong style={{ color: '#16a34a' }}>{Number(d.total || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}</strong>
                       <span style={{ color: '#64748b' }}>({d.itemsCount} صنف)</span>
                       <span style={{ color: '#170e5e', fontWeight: 800 }}>
                         {pendingRecallId === d.id ? 'جارٍ الفتح...' : 'استرجاع'}
@@ -509,7 +511,7 @@ export function PosTablesFloorPlanDialog({
                     {hasLiveCart ? (
                       <div style={{ textAlign: 'center', width: '100%' }}>
                         <div style={{ fontSize: '13px', fontWeight: 900, color: '#170e5e' }}>
-                          {Number(currentCartTotal).toLocaleString('ar-EG')} ج.م
+                          {Number(currentCartTotal).toLocaleString('ar-EG')} <CurrencySymbol />
                         </div>
                         <div style={{ fontSize: '10.5px', color: '#475569', marginTop: '1px' }}>
                           {currentCartItemsCount} أصناف • بالسلة النشطة
@@ -518,7 +520,7 @@ export function PosTablesFloorPlanDialog({
                     ) : occupied ? (
                       <div style={{ textAlign: 'center', width: '100%' }}>
                         <div style={{ fontSize: '13px', fontWeight: 900, color: '#dc2626' }}>
-                          {Number(occupied.total).toLocaleString('ar-EG')} ج.م
+                          {Number(occupied.total).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}
                         </div>
                         <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '1px' }}>
                           {occupied.itemsCount} أصناف • معلقة

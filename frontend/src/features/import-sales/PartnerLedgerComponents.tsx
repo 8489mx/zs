@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Button } from '@/shared/ui/button';
 import { FileTextIcon } from '@/shared/components/icons/AppIcons';
 import { usePartnerLedgerQuery, useRecordCapitalTransactionMutation, Partner } from './api/shipments.api';
@@ -71,7 +72,7 @@ export function CapitalTransactionDialog({
             value={amount} 
             onChange={e => setAmount(e.target.value)} 
             required 
-            placeholder="0.00 ج.م"
+            placeholder="0.00 ${getGlobalCurrencySymbol()}"
             style={{
               width: '100%',
               height: '38px',
@@ -213,7 +214,7 @@ export function PartnerLedgerDialog({ partner, open, onClose }: { partner: Partn
           <div>
             <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>رأس المال الحالي المسجل</span>
             <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#170e5e' }}>
-              {Number(partner?.capital_amount || 0).toLocaleString()} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+              {Number(partner?.capital_amount || 0).toLocaleString()} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
             </span>
           </div>
           <div>
@@ -262,7 +263,7 @@ export function PartnerLedgerDialog({ partner, open, onClose }: { partner: Partn
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 800, fontSize: '0.85rem' }} dir="ltr">
                       <span style={{ color: entry.type === 'DEPOSIT' ? '#16a34a' : '#dc2626' }}>
-                        {entry.type !== 'DEPOSIT' ? '-' : '+'}{Number(entry.amount).toLocaleString()} ج.م
+                        {entry.type !== 'DEPOSIT' ? '-' : '+'}{Number(entry.amount).toLocaleString()} <CurrencySymbol />
                       </span>
                     </td>
                     <td style={{ padding: '10px 14px', color: '#64748b' }}>

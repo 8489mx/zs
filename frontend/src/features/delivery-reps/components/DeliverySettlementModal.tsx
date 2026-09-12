@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { DeliveryOrder, SettleOrderPayload } from '../api/delivery-reps.api';
 import { Button } from '@/shared/ui/button';
 import { XIcon, Trash2Icon, CameraIcon, MapPinIcon } from '@/shared/components/icons/AppIcons';
@@ -244,7 +245,7 @@ export function DeliverySettlementModal({
               </div>
             </div>
             <div style={{ fontSize: '20px', fontWeight: 900, color: '#15803d' }}>
-              {Number(order.total).toLocaleString('ar-EG')} ج.م
+              {Number(order.total).toLocaleString('ar-EG')} <CurrencySymbol />
             </div>
           </div>
 

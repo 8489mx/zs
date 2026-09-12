@@ -4,6 +4,7 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import {
   purchasesApi,
@@ -22,6 +23,7 @@ export function PurchaseLandedCostsModal({
   onClose,
   onApplied,
 }: PurchaseLandedCostsModalProps) {
+  const { currencySymbol } = useSystemCurrency();
   const queryClient = useQueryClient();
   const [allocationMethod, setAllocationMethod] = useState<'value' | 'qty' | 'equal'>('value');
   const [notes, setNotes] = useState('');
@@ -250,7 +252,7 @@ export function PurchaseLandedCostsModal({
                       type="number"
                       step="0.01"
                       min="0"
-                      placeholder="المبلغ (ج.م)"
+                      placeholder={`المبلغ (${currencySymbol})`}
                       value={cost.amount || ''}
                       onChange={(e) => {
                         const val = Number(e.target.value);

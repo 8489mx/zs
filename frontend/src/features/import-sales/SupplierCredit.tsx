@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -240,7 +241,7 @@ export default function SupplierCredit() {
                   boxSizing: 'border-box',
                   fontFamily: 'monospace',
                 }}>
-                  {exchangeRate} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#64748b', marginInlineStart: '6px' }}>ج.م / عملة</span>
+                  {exchangeRate} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#64748b', marginInlineStart: '6px' }}><CurrencySymbol /> / عملة</span>
                 </div>
               </div>
 

@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -274,14 +276,14 @@ export function PriceStockCheckerModal({
                   <div className="price-box retail">
                     <span className="price-box-label">سعر البيع (قطاعي)</span>
                     <strong className="price-box-val">
-                      {(selectedProduct.retailPrice || 0).toLocaleString()} <small>ج.م</small>
+                      {(selectedProduct.retailPrice || 0).toLocaleString()} <small><CurrencySymbol /></small>
                     </strong>
                   </div>
 
                   <div className="price-box wholesale">
                     <span className="price-box-label">سعر الجملة</span>
                     <strong className="price-box-val">
-                      {(selectedProduct.wholesalePrice || 0).toLocaleString()} <small>ج.م</small>
+                      {(selectedProduct.wholesalePrice || 0).toLocaleString()} <small><CurrencySymbol /></small>
                     </strong>
                   </div>
 
@@ -289,7 +291,7 @@ export function PriceStockCheckerModal({
                     <div className="price-box cost">
                       <span className="price-box-label">سعر التكلفة</span>
                       <strong className="price-box-val">
-                        {(selectedProduct.costPrice || 0).toLocaleString()} <small>ج.م</small>
+                        {(selectedProduct.costPrice || 0).toLocaleString()} <small><CurrencySymbol /></small>
                       </strong>
                     </div>
                   )}
@@ -306,7 +308,7 @@ export function PriceStockCheckerModal({
                           <div key={unit.id || idx} className="price-checker-unit-row">
                             <span className="unit-name">{unit.name} (معامل {unit.multiplier})</span>
                             <span className="unit-price">
-                              {unitPrice.toLocaleString()} ج.م
+                              {unitPrice.toLocaleString()} ${getGlobalCurrencySymbol()}
                             </span>
                             {unit.barcode && <span className="unit-barcode">{unit.barcode}</span>}
                           </div>
@@ -389,7 +391,7 @@ export function PriceStockCheckerModal({
                       </div>
                       <div className="result-item-end">
                         <span className="result-item-price">
-                          {(prod.retailPrice || 0).toLocaleString()} ج.م
+                          {(prod.retailPrice || 0).toLocaleString()} <CurrencySymbol />
                         </span>
                         <span className="result-item-stock">
                           المتاح: {prod.stock || 0}

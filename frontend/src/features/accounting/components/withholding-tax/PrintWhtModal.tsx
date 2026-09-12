@@ -1,7 +1,7 @@
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { XIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatCurrencyWithSymbol } from '@/lib/format';
 import type { WithholdingTaxRecord, Form41SummaryResponse } from '@/features/accounting/api/accounting.api';
 import { WHT_TYPE_LABELS, QUARTERS } from './types';
 
@@ -86,11 +86,11 @@ export function PrintWhtModal({
             </div>
             <div>
               <span style={{ color: '#64748b', display: 'block' }}>إجمالي وعاء التعامل:</span>
-              <span style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>{formatCurrency(reportData?.total_base_amount || 0)} ج.م</span>
+              <span style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>{formatCurrencyWithSymbol(reportData?.total_base_amount || 0)}</span>
             </div>
             <div>
               <span style={{ color: '#64748b', display: 'block' }}>إجمالي الضريبة واجبة التوريد:</span>
-              <span style={{ fontWeight: 800, fontSize: '14px', color: '#059669' }}>{formatCurrency(reportData?.total_tax_amount || 0)} ج.م</span>
+              <span style={{ fontWeight: 800, fontSize: '14px', color: '#059669' }}>{formatCurrencyWithSymbol(reportData?.total_tax_amount || 0)}</span>
             </div>
           </div>
 

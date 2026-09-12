@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { buildCode128Svg } from '@/lib/barcode';
@@ -73,29 +74,29 @@ export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: Ap
       <div style="border: 1px solid #000; border-radius: 4px; padding: 5px 6px; margin-bottom: 6px; font-size: 10px; color: #000; box-sizing: border-box;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
           <span>القيمة الإجمالية:</span>
-          <span style="font-weight: 700;">${totalCost.toFixed(2)} ج.م</span>
+          <span style="font-weight: 700;">${totalCost.toFixed(2)} ${getGlobalCurrencySymbol()}</span>
         </div>
         ${advancePaid > 0 ? `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
             <span>المدفوع مقدماً (عربون):</span>
-            <span style="font-weight: 700;">${advancePaid.toFixed(2)} ج.م</span>
+            <span style="font-weight: 700;">${advancePaid.toFixed(2)} ${getGlobalCurrencySymbol()}</span>
           </div>
         ` : ''}
         ${discountInfo.amount > 0 ? `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; color: #000;">
             <span>خصم (${escapeHtml(discountInfo.reason)}):</span>
-            <span style="font-weight: 700;">-${discountInfo.amount.toFixed(2)} ج.م</span>
+            <span style="font-weight: 700;">-${discountInfo.amount.toFixed(2)} ${getGlobalCurrencySymbol()}</span>
           </div>
         ` : ''}
         ${ticket.status === 'delivered' ? `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; border-top: 1px dashed #000; padding-top: 2px;">
             <span>المحصل عند الاستلام:</span>
-            <span style="font-weight: 700;">${collectedAtDelivery.toFixed(2)} ج.م</span>
+            <span style="font-weight: 700;">${collectedAtDelivery.toFixed(2)} ${getGlobalCurrencySymbol()}</span>
           </div>
         ` : ''}
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 900; border-top: 1px dashed #000; padding-top: 3px; margin-top: 2px;">
           <span>المتبقي:</span>
-          <span>${ticket.status === 'delivered' ? '0.00 ج.م (خالص بالكامل)' : `${remainingAmount.toFixed(2)} ج.م`}</span>
+          <span>${ticket.status === 'delivered' ? '0.00 ${getGlobalCurrencySymbol()} (خالص بالكامل)' : `${remainingAmount.toFixed(2)} ${getGlobalCurrencySymbol()}`}</span>
         </div>
       </div>
 
@@ -289,30 +290,30 @@ export async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, set
       <div style="border-top: 2px dashed #94a3b8; border-bottom: 2px dashed #94a3b8; padding: 10px 0; margin-bottom: 14px; font-size: 12px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
           <span style="color: #64748b;">القيمة الإجمالية:</span>
-          <strong style="font-size: 13px;">${totalCost.toFixed(2)} ج.م</strong>
+          <strong style="font-size: 13px;">${totalCost.toFixed(2)} ${getGlobalCurrencySymbol()}</strong>
         </div>
         ${advancePaid > 0 ? `
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #16a34a;">
             <span>المدفوع مقدماً (عربون):</span>
-            <strong style="font-size: 13px;">${advancePaid.toFixed(2)} ج.م</strong>
+            <strong style="font-size: 13px;">${advancePaid.toFixed(2)} ${getGlobalCurrencySymbol()}</strong>
           </div>
         ` : ''}
         ${discountInfo.amount > 0 ? `
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #b45309;">
             <span>خصم (${escapeHtml(discountInfo.reason)}):</span>
-            <strong style="font-size: 13px;">-${discountInfo.amount.toFixed(2)} ج.م</strong>
+            <strong style="font-size: 13px;">-${discountInfo.amount.toFixed(2)} ${getGlobalCurrencySymbol()}</strong>
           </div>
         ` : ''}
         ${ticket.status === 'delivered' ? `
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px; border-top: 1px dashed #cbd5e1; padding-top: 4px;">
             <span style="color: #64748b;">المحصل عند الاستلام:</span>
-            <strong style="font-size: 13px;">${collectedAtDelivery.toFixed(2)} ج.م</strong>
+            <strong style="font-size: 13px;">${collectedAtDelivery.toFixed(2)} ${getGlobalCurrencySymbol()}</strong>
           </div>
         ` : ''}
         <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; border-top: 1px dashed #cbd5e1; padding-top: 5px; margin-top: 4px;">
           <span>المتبقي:</span>
           <span style="color: #16a34a;">
-            ${ticket.status === 'delivered' ? '0.00 ج.م (خالص بالكامل)' : `${remainingAmount.toFixed(2)} ج.م`}
+            ${ticket.status === 'delivered' ? '0.00 ${getGlobalCurrencySymbol()} (خالص بالكامل)' : `${remainingAmount.toFixed(2)} ${getGlobalCurrencySymbol()}`}
           </span>
         </div>
       </div>

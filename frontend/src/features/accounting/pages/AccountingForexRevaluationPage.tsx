@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid, type StatsGridItem } from '@/shared/components/stats-grid';
@@ -12,6 +13,7 @@ import {
 import { CheckIcon, ShieldAlertIcon, ClockIcon } from '@/shared/components/icons/AppIcons';
 
 export const AccountingForexRevaluationPage: React.FC = () => {
+  const { currencySymbol } = useSystemCurrency();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'wizard' | 'history'>('wizard');
 
@@ -187,7 +189,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                 أسعار الصرف الحالية المسجلة في النظام:
               </span>
               <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                سعر الأساس 1.00 ج.م
+                سعر الأساس 1.00 {currencySymbol}
               </span>
             </div>
 
@@ -210,7 +212,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                     <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{c.code} {c.symbol}</div>
                   </div>
                   <strong style={{ fontSize: 'var(--font-body)', color: '#170e5e' }}>
-                    {Number(c.exchangeRate).toFixed(2)} ج.م
+                    {Number(c.exchangeRate).toFixed(2)} {currencySymbol}
                   </strong>
                 </div>
               ))}
@@ -320,7 +322,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                       width: '100%',
                     }}
                   />
-                  <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+                  <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#64748b' }}>{currencySymbol}</span>
                 </div>
               </div>
 
@@ -358,7 +360,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                       }}
                     >
                       {previewData.netUnrealizedGainLoss >= 0 ? 'أرباح فروق عملة محققة: +' : 'خسائر فروق عملة: '}
-                      {Math.abs(previewData.netUnrealizedGainLoss).toLocaleString('ar-EG')} ج.م
+                      {Math.abs(previewData.netUnrealizedGainLoss).toLocaleString('ar-EG')} {currencySymbol}
                     </div>
                   </div>
 
@@ -398,10 +400,10 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                             {l.foreignBalance.toLocaleString('ar-EG')} {previewData.currencyCode}
                           </td>
                           <td style={{ padding: '10px 14px', color: '#64748b' }}>
-                            {l.bookLocalValue.toLocaleString('ar-EG')} ج.م
+                            {l.bookLocalValue.toLocaleString('ar-EG')} {currencySymbol}
                           </td>
                           <td style={{ padding: '10px 14px', color: '#0f172a', fontWeight: 600 }}>
-                            {l.revaluedLocalValue.toLocaleString('ar-EG')} ج.م
+                            {l.revaluedLocalValue.toLocaleString('ar-EG')} {currencySymbol}
                           </td>
                           <td style={{ padding: '10px 14px' }}>
                             <span
@@ -411,7 +413,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                               }}
                             >
                               {l.unrealizedDifference >= 0 ? '+' : ''}
-                              {l.unrealizedDifference.toLocaleString('ar-EG')} ج.م
+                              {l.unrealizedDifference.toLocaleString('ar-EG')} {currencySymbol}
                             </span>
                           </td>
                         </tr>
@@ -504,7 +506,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                       {r.currency_code}
                     </td>
                     <td style={{ padding: '12px 16px', color: '#334155' }}>
-                      {Number(r.closing_exchange_rate).toFixed(2)} ج.م
+                      {Number(r.closing_exchange_rate).toFixed(2)} {currencySymbol}
                     </td>
                     <td style={{ padding: '12px 16px', color: '#475569' }}>
                       {Number(r.foreign_balance_total).toLocaleString('ar-EG')} {r.currency_code}
@@ -517,7 +519,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                         }}
                       >
                         {Number(r.unrealized_gain_loss) >= 0 ? '+' : ''}
-                        {Number(r.unrealized_gain_loss).toLocaleString('ar-EG')} ج.م
+                        {Number(r.unrealized_gain_loss).toLocaleString('ar-EG')} {currencySymbol}
                       </span>
                     </td>
                     <td style={{ padding: '12px 16px', fontWeight: 600, color: '#2563eb' }}>

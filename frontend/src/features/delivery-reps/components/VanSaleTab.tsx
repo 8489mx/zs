@@ -1,4 +1,5 @@
 import React from 'react';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Button } from '@/shared/ui/button';
 
 export interface CartItem {
@@ -76,7 +77,7 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
           <option value="">-- عميل نقدي عام (أو اختر من خط السير) --</option>
           {customers.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name} {c.phone ? `(${c.phone})` : ''} - مديونية: {c.balance.toFixed(2)} ج.م
+              {c.name} {c.phone ? `(${c.phone})` : ''} - مديونية: {c.balance.toFixed(2)} <CurrencySymbol />
             </option>
           ))}
         </select>
@@ -166,7 +167,7 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
                 <div>
                   <h5 style={{ margin: 0, fontWeight: 800, fontSize: '12px', color: '#0f172a' }}>{c.name}</h5>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    {c.unitPrice.toFixed(2)} × {c.qty} = {(c.qty * c.unitPrice).toFixed(2)} ج.م
+                    {c.unitPrice.toFixed(2)} × {c.qty} = {(c.qty * c.unitPrice).toFixed(2)} <CurrencySymbol />
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -196,7 +197,7 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
         <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 900, fontSize: '15px', backgroundColor: '#f1f5f9', padding: '12px', borderRadius: '10px' }}>
             <span>إجمالي الفاتورة المطلوب:</span>
-            <span style={{ color: '#059669' }}>{cartTotal.toFixed(2)} ج.م</span>
+            <span style={{ color: '#059669' }}>{cartTotal.toFixed(2)} <CurrencySymbol /></span>
           </div>
 
           <Button

@@ -1,5 +1,6 @@
 import { type FormEvent } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { Button } from '@/shared/ui/button';
 import type { PurchaseRfq, SubmitSupplierBidPayload } from '../../api/purchase-rfqs.api';
 
@@ -23,6 +24,8 @@ export function SubmitSupplierBidModal({
   submitting,
 }: SubmitSupplierBidModalProps) {
   if (!isOpen || !activeRfq) return null;
+
+  const { currencySymbol } = useSystemCurrency();
 
   return (
     <StandardDialog
@@ -97,7 +100,7 @@ export function SubmitSupplierBidModal({
               <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0', fontSize: 'var(--font-micro)', color: '#475569' }}>
                 <th style={{ padding: '8px', textAlign: 'right' }}>الصنف</th>
                 <th style={{ padding: '8px', textAlign: 'center' }}>الكمية</th>
-                <th style={{ padding: '8px', textAlign: 'center' }}>سعر الوحدة المقترح (ج.م) *</th>
+                <th style={{ padding: '8px', textAlign: 'center' }}>سعر الوحدة المقترح ({currencySymbol}) *</th>
               </tr>
             </thead>
             <tbody>

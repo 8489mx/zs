@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { CreateOnlineOrderResponse } from '../types/storefront.types';
 import { PackageIcon } from '@/shared/components/icons/AppIcons';
 
@@ -127,7 +128,7 @@ export function StorefrontSuccessModal({
             {(activeOrder.discountAmount ?? 0) > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontSize: '12.5px' }}>
                 <span>خصم الكوبون {activeOrder.couponCode ? `(${activeOrder.couponCode})` : ''}:</span>
-                <span style={{ fontWeight: 700 }}>-{(activeOrder.discountAmount ?? 0).toFixed(0)} ج.م</span>
+                <span style={{ fontWeight: 700 }}>-{(activeOrder.discountAmount ?? 0).toFixed(0)} <CurrencySymbol /></span>
               </div>
             )}
 
@@ -144,7 +145,7 @@ export function StorefrontSuccessModal({
               }}
             >
               <span>المطلوب دفعه:</span>
-              <span>{activeOrder.totalAmount.toFixed(0)} ج.م</span>
+              <span>{activeOrder.totalAmount.toFixed(0)} <CurrencySymbol /></span>
             </div>
 
             {(activeOrder as any).paymentStatus === 'paid' && (

@@ -17,10 +17,12 @@ import { PurchaseOrdersTable } from '../components/PurchaseOrdersTable';
 import { CreatePurchaseOrderModal } from '../components/CreatePurchaseOrderModal';
 import { PurchaseOrderDetailsModal } from '../components/PurchaseOrderDetailsModal';
 import { ReceivePurchaseOrderModal } from '../components/ReceivePurchaseOrderModal';
+import { toast } from '@/shared/components/system-alert';
 
 export function PurchaseOrdersPage() {
   useAppToolbar([{ label: 'المشتريات والموردين', to: '/purchases' }, { label: 'أوامر الشراء (PO)' }]);
   const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -195,12 +197,24 @@ export function PurchaseOrdersPage() {
                 <span>+ أمر شراء جديد</span>
               </Button>
               <Button
-                onClick={() => queryClient.invalidateQueries({ queryKey: ['purchase-orders-list'] })}
+                onClick={async () => {
+                  try {
+                    setIsRefreshing(true);
+                    await queryClient.invalidateQueries({ queryKey: ['purchase-orders-list'] });
+                    toast.success('تم تحديث قائمة أوامر الشراء بنجاح', undefined, 2000);
+                  } finally {
+                    setIsRefreshing(false);
+                  }
+                }}
+                disabled={isRefreshing}
                 variant="secondary"
-                className="flex items-center gap-1.5"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <RefreshCwIcon className="w-3.5 h-3.5" />
-                <span>تحديث</span>
+                <RefreshCwIcon
+                  size={14}
+                  style={{ animation: isRefreshing ? 'spin 0.7s linear infinite' : 'none' }}
+                />
+                <span>{isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}</span>
               </Button>
             </div>
           )}

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { LoadingState } from '@/shared/ui/loading-state';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatCurrencyWithSymbol } from '@/lib/format';
 import type {
   DashboardBuyingItem,
   DashboardCollectionItem,
@@ -294,7 +294,7 @@ export function DashboardDailyDecisionGrid({
         <div key="tab-payables" className="page-stack decision-grid-tab-content" style={{ gap: '12px' }}>
           <div className="manager-overview-mini-metrics">
             <MetricTile label="إجمالي ديون الموردين" value={formatCurrency(totalSupplierDebt)} />
-            <MetricTile label="أعلى مورد مستحق" value={topSuppliers[0] ? formatCurrency(topSuppliers[0].total) : '0 ج.م'} />
+            <MetricTile label="أعلى مورد مستحق" value={topSuppliers[0] ? formatCurrency(topSuppliers[0].total) : formatCurrencyWithSymbol(0)} />
             <MetricTile label="عدد الموردين الدائنين" value={formatNumber(topSuppliers.length)} />
           </div>
           <SupplierList rows={topSuppliers} />

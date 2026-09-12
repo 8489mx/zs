@@ -4,6 +4,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { CheckIcon, XIcon, DownloadIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
 import {
   financialReportsApi,
@@ -57,7 +58,7 @@ export function CashFlowStatementPage() {
 
   const handleExportCsv = () => {
     if (!report) return;
-    const lines: string[] = ['البند,المبلغ (ج.م),ملاحظات توضيحية'];
+    const lines: string[] = [`البند,المبلغ (${getGlobalCurrencySymbol()}),ملاحظات توضيحية`];
 
     const addSection = (sec: CashFlowSection) => {
       lines.push(`"--- ${sec.titleAr} ---",,`);

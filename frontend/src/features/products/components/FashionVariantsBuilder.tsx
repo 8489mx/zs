@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
@@ -655,8 +656,8 @@ export function FashionVariantsBuilder({
                   <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>{templateConfig.secondarySingleLabel}</th>
                   <th style={{ padding: '8px 6px', width: '15%', verticalAlign: 'middle' }}>رمز SKU</th>
                   <th style={{ padding: '8px 6px', width: '17%', verticalAlign: 'middle' }}>الباركود</th>
-                  <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>سعر البيع (ج.م)</th>
-                  <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>سعر التكلفة (ج.م)</th>
+                  <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>سعر البيع (${getGlobalCurrencySymbol()})</th>
+                  <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>سعر التكلفة (${getGlobalCurrencySymbol()})</th>
                   <th style={{ padding: '8px 6px', width: '10%', textAlign: 'center', verticalAlign: 'middle' }}>الرصيد</th>
                   <th style={{ padding: '8px 4px', width: '36px', textAlign: 'center', verticalAlign: 'middle' }}>حذف</th>
                 </tr>

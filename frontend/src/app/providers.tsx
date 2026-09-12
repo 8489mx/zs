@@ -7,6 +7,7 @@ import { SystemAlertProvider } from '@/shared/components/system-alert';
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { applyAccentColorToDocument } from '@/lib/theme';
+import { setGlobalSystemCurrency } from '@/lib/currencies';
 
 function ThemeProvider({ children }: PropsWithChildren) {
   const theme = useAuthStore((state) => state.theme);
@@ -26,6 +27,12 @@ function ThemeProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     applyAccentColorToDocument(settings?.accentColor);
   }, [settings?.accentColor]);
+
+  useEffect(() => {
+    if (settings?.currency) {
+      setGlobalSystemCurrency(settings.currency);
+    }
+  }, [settings?.currency]);
 
   return <>{children}</>;
 }

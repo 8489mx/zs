@@ -4,7 +4,7 @@ import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { ReturnsInvoiceItemsTable } from '@/features/returns/components/ReturnsInvoiceItemsTable';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatCurrencyWithSymbol } from '@/lib/format';
 import type { ReturnFormState } from '@/features/returns/lib/returns-workspace.helpers';
 import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';
 
@@ -306,7 +306,7 @@ export function ReturnsCreateModal(props: Props) {
                     {form.type === 'sale' ? 'إجمالي المبلغ المسترد للعميل' : 'إجمالي المبلغ المسترد من المورد'}
                   </div>
                   <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#1d4ed8', marginTop: '4px' }}>
-                    {selectedItemsCount ? formatCurrency(expectedReturnValue) : '0.00 ج.م'}
+                    {selectedItemsCount ? formatCurrency(expectedReturnValue) : formatCurrencyWithSymbol(0)}
                   </div>
                 </div>
               </div>

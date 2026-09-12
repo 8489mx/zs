@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { TradeInIcons } from './TradeInIcons';
 
 interface TradeInStatsCardsProps {
@@ -51,7 +52,7 @@ export function TradeInStatsCards({
         </div>
         <div>
           <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>إجمالي مبالغ الشراء</div>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{totalPurchaseSpend.toLocaleString('ar-EG')} ج.م</div>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{totalPurchaseSpend.toLocaleString('ar-EG')} <CurrencySymbol /></div>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import type { EmployeeEditDraft } from './employee-edit.helpers';
 
@@ -44,7 +45,7 @@ export const EmployeeCompensationSection: React.FC<EmployeeCompensationSectionPr
         {draft.compensationType === 'hourly' ? (
           <>
             <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>أجر الساعة (ج.م)</label>
+              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>أجر الساعة (${getGlobalCurrencySymbol()})</label>
               <input
                 inputMode="decimal"
                 min="0"

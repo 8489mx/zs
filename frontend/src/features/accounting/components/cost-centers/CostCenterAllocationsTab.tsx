@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import {
   costCentersApi,
   type CostCenterAllocation,
@@ -14,6 +15,7 @@ interface CostCenterAllocationsTabProps {
 }
 
 export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> = ({ costCenters }) => {
+  const { currencySymbol } = useSystemCurrency();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAllocation, setEditingAllocation] = useState<CostCenterAllocation | null>(null);
@@ -335,7 +337,7 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
                         fontWeight: 700,
                       }}
                     />
-                    <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>ج.م</span>
+                    <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{currencySymbol}</span>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -351,7 +353,7 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
                           }}
                         >
                           <span style={{ color: '#64748b' }}>{s.costCenterName}:</span>
-                          <strong style={{ color: '#0f172a' }}>{share.toLocaleString('ar-EG')} ج.م</strong>
+                          <strong style={{ color: '#0f172a' }}>{share.toLocaleString('ar-EG')} {currencySymbol}</strong>
                         </div>
                       );
                     })}

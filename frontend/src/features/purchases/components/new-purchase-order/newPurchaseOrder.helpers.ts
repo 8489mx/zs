@@ -1,6 +1,11 @@
+import { getGlobalCurrencySymbol, getGlobalSystemCurrency } from '@/lib/currencies';
 import type { SupplierOption, ContactOption, CostCenterOption, ProjectOption } from './newPurchaseOrder.types';
 
-export const formatMoney = (value: number, lang?: string) => `${value.toFixed(2)} ${lang === 'en' ? 'EGP' : 'ج.م'}`;
+export const formatMoney = (value: number, lang?: string, currency?: string) => {
+  const code = currency || getGlobalSystemCurrency();
+  const symbol = lang === 'en' ? code : getGlobalCurrencySymbol();
+  return `${Number(value || 0).toFixed(2)} ${symbol}`;
+};
 
 export const normalizeSearchText = (value: string) =>
   value

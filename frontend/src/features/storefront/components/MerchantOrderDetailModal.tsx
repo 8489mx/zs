@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import type { OnlineOrderRecord } from '../types/storefront.types';
 import {
@@ -332,7 +333,7 @@ export function MerchantOrderDetailModal({
             {(order.discountAmount ?? 0) > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
                 <span>قيمة الخصم:</span>
-                <span style={{ fontWeight: 700 }}>-{(order.discountAmount ?? 0).toFixed(0)} ج.م</span>
+                <span style={{ fontWeight: 700 }}>-{(order.discountAmount ?? 0).toFixed(0)} <CurrencySymbol /></span>
               </div>
             )}
             <div
@@ -347,7 +348,7 @@ export function MerchantOrderDetailModal({
               }}
             >
               <span>المبلغ المطلوب:</span>
-              <span>{order.totalAmount.toFixed(0)} ج.م</span>
+              <span>{order.totalAmount.toFixed(0)} <CurrencySymbol /></span>
             </div>
           </div>
 

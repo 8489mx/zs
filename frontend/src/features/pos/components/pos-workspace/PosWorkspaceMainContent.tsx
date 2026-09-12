@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -292,7 +293,7 @@ export function PosWorkspaceMainContent({
                 <div className="pos-mobile-floating-cart-text">
                   <div className="pos-mobile-floating-cart-text-row">
                     <strong className="pos-mobile-floating-cart-total">{formatCurrency(pos.totals.total)}</strong>
-                    <span className="pos-mobile-floating-cart-unit">ج.م</span>
+                    <span className="pos-mobile-floating-cart-unit"><CurrencySymbol /></span>
                   </div>
                   <span className="pos-mobile-floating-cart-sub">
                     {isFloatingCartExpanded ? 'أصناف السلة (انقر للإغلاق)' : `${cartItemsCount} صنف بالسلة • اضغط لمعاينة الأصناف`}
@@ -350,7 +351,7 @@ export function PosWorkspaceMainContent({
                       <div key={item.lineKey || idx} className="pos-mobile-floating-cart-item-row">
                         <div className="pos-mobile-floating-cart-item-name-col">
                           <strong className="pos-mobile-floating-cart-item-name">{item.name}</strong>
-                          <span className="pos-mobile-floating-cart-item-price-each">{formatCurrency(item.price)} ج.م / للوحدة</span>
+                          <span className="pos-mobile-floating-cart-item-price-each">{formatCurrency(item.price)} <CurrencySymbol /> / للوحدة</span>
                         </div>
 
                         <div className="pos-mobile-floating-cart-item-qty-col">
@@ -375,7 +376,7 @@ export function PosWorkspaceMainContent({
 
                         <div className="pos-mobile-floating-cart-item-total-col">
                           <strong>{formatCurrency(lineTotal)}</strong>
-                          <span className="pos-mobile-floating-cart-unit-small">ج.م</span>
+                          <span className="pos-mobile-floating-cart-unit-small"><CurrencySymbol /></span>
                         </div>
 
                         <button

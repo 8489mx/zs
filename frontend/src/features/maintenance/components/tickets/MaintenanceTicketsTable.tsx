@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { MaintenanceTicket } from '@/types/domain-models/maintenance';
 import {
   ClockIcon,
@@ -195,7 +196,7 @@ export function MaintenanceTicketsTable({
                     <td style={{ padding: '12px 14px' }} onClick={() => onOpenDetail(t)}>
                       <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem' }}>
                         {totalCost.toFixed(2)}{' '}
-                        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
                         {t.advancePayment > 0 && (

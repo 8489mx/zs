@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -165,7 +167,7 @@ export function OwnerCompanionPage() {
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>مبيعات اليوم</div>
           <div style={{ fontSize: '20px', fontWeight: 900, color: '#170e5e' }}>
-            {isLoading ? '...' : `${Number(stats?.todaySalesAmount || 0).toLocaleString('ar-EG')} ج.م`}
+            {isLoading ? '...' : `${Number(stats?.todaySalesAmount || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}`}
           </div>
           <div style={{ fontSize: '11px', color: '#059669', fontWeight: 600, marginTop: '2px' }}>
             {stats?.todaySalesCount || 0} فاتورة بيع
@@ -176,7 +178,7 @@ export function OwnerCompanionPage() {
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>مشتريات وتوريد اليوم</div>
           <div style={{ fontSize: '20px', fontWeight: 900, color: '#c2410c' }}>
-            {isLoading ? '...' : `${Number(stats?.todayPurchasesAmount || 0).toLocaleString('ar-EG')} ج.م`}
+            {isLoading ? '...' : `${Number(stats?.todayPurchasesAmount || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}`}
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
             {stats?.todayPurchasesCount || 0} حركة شراء
@@ -187,7 +189,7 @@ export function OwnerCompanionPage() {
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>ديون العملاء الإجمالية</div>
           <div style={{ fontSize: '20px', fontWeight: 900, color: '#b91c1c' }}>
-            {isLoading ? '...' : `${Number(stats?.customerDebt || 0).toLocaleString('ar-EG')} ج.م`}
+            {isLoading ? '...' : `${Number(stats?.customerDebt || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}`}
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
             مستحقات آجلة لدى العملاء
@@ -198,7 +200,7 @@ export function OwnerCompanionPage() {
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>قيمة المخزون الحالي</div>
           <div style={{ fontSize: '20px', fontWeight: 900, color: '#2563eb' }}>
-            {isLoading ? '...' : `${Number(stats?.inventoryCost || 0).toLocaleString('ar-EG')} ج.م`}
+            {isLoading ? '...' : `${Number(stats?.inventoryCost || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}`}
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
             بسعر تكلفة البضاعة
@@ -239,7 +241,7 @@ export function OwnerCompanionPage() {
                   <span style={{ fontWeight: 700, color: '#0f172a' }}>{p.name}</span>
                 </div>
                 <div style={{ textAlign: 'left' }}>
-                  <span style={{ fontWeight: 800, color: '#170e5e' }}>{Number(p.total).toLocaleString('ar-EG')} ج.م</span>
+                  <span style={{ fontWeight: 800, color: '#170e5e' }}>{Number(p.total).toLocaleString('ar-EG')} <CurrencySymbol /></span>
                   <span style={{ fontSize: '11px', color: '#64748b', marginInlineStart: '4px' }}>({p.qty} قطعة)</span>
                 </div>
               </div>

@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -81,13 +83,13 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
       `- *كود الجهاز:* ${ticket.ticketNo}`,
       `- *العطل المسجل:* ${ticket.problemDescription}`,
       ``,
-      `- *إجمالي قيمة الإصلاح:* ${totalCost.toFixed(2)} ج.م`,
+      `- *إجمالي قيمة الإصلاح:* ${totalCost.toFixed(2)} ${getGlobalCurrencySymbol()}`,
       ...(discountInfo.amount > 0 ? [
-        `- *خصم خاص للعميل (${discountInfo.reason}):* -${discountInfo.amount.toFixed(2)} ج.م`,
-        `- *الصافي بعد الخصم:* ${netTotal.toFixed(2)} ج.م`,
+        `- *خصم خاص للعميل (${discountInfo.reason}):* -${discountInfo.amount.toFixed(2)} ${getGlobalCurrencySymbol()}`,
+        `- *الصافي بعد الخصم:* ${netTotal.toFixed(2)} ${getGlobalCurrencySymbol()}`,
       ] : []),
-      ...(advancePaid > 0 ? [`- *المدفوع مقدماً (عربون):* ${advancePaid.toFixed(2)} ج.م`] : []),
-      `- *المتبقي عند الاستلام:* ${remaining.toFixed(2)} ج.م ${ticket.status === 'delivered' ? '(خالص بالكامل)' : ''}`,
+      ...(advancePaid > 0 ? [`- *المدفوع مقدماً (عربون):* ${advancePaid.toFixed(2)} ${getGlobalCurrencySymbol()}`] : []),
+      `- *المتبقي عند الاستلام:* ${remaining.toFixed(2)} ${getGlobalCurrencySymbol()} ${ticket.status === 'delivered' ? '(خالص بالكامل)' : ''}`,
       `----------------------------------------`,
       `- *تم إرفاق إيصال الاستلام الرسمي بصيغة PDF.*`,
       ``,
@@ -266,30 +268,30 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
             <div style={{ borderTop: '1px dashed #94a3b8', borderBottom: '1px dashed #94a3b8', padding: '8px 0', marginBottom: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <span>القيمة الإجمالية:</span>
-                <strong>{totalCost.toFixed(2)} ج.م</strong>
+                <strong>{totalCost.toFixed(2)} <CurrencySymbol /></strong>
               </div>
               {ticket.advancePayment > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#16a34a' }}>
                   <span>المدفوع مقدماً (عربون):</span>
-                  <strong>{ticket.advancePayment.toFixed(2)} ج.م</strong>
+                  <strong>{ticket.advancePayment.toFixed(2)} <CurrencySymbol /></strong>
                 </div>
               )}
               {discountInfo.amount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#b45309' }}>
                   <span>خصم ممنوح للعميل ({discountInfo.reason}):</span>
-                  <strong>-{discountInfo.amount.toFixed(2)} ج.م</strong>
+                  <strong>-{discountInfo.amount.toFixed(2)} <CurrencySymbol /></strong>
                 </div>
               )}
               {ticket.status === 'delivered' && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
                   <span>المحصل عند الاستلام:</span>
-                  <strong>{collectedAtDelivery.toFixed(2)} ج.م</strong>
+                  <strong>{collectedAtDelivery.toFixed(2)} <CurrencySymbol /></strong>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, borderTop: '1px dashed #cbd5e1', paddingTop: '4px', marginTop: '4px' }}>
                 <span>المتبقي:</span>
                 <span style={{ color: '#16a34a' }}>
-                  {ticket.status === 'delivered' ? '0.00 ج.م (خالص بالكامل)' : `${remainingAmount.toFixed(2)} ج.م`}
+                  {ticket.status === 'delivered' ? '0.00 ${getGlobalCurrencySymbol()} (خالص بالكامل)' : `${remainingAmount.toFixed(2)} ${getGlobalCurrencySymbol()}`}
                 </span>
               </div>
             </div>

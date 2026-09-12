@@ -1,4 +1,5 @@
 import type { HrEmployee, HrEmployeeAsset } from '@/types/domain';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 export type CustodyTab = 'physical' | 'cash';
 
@@ -54,7 +55,7 @@ export function parseAmount(value: unknown) {
 }
 
 export function money(value: unknown) {
-  return `${parseAmount(value).toFixed(2)} ج.م`;
+  return `${parseAmount(value).toFixed(2)} ${getGlobalCurrencySymbol()}`;
 }
 
 export function text(value: unknown) {

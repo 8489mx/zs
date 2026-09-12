@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { CalendarIcon } from '@/shared/components/icons/AppIcons';
 import { OnlineOrderRecord, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontCustomerOrderCard } from './StorefrontCustomerOrderCard';
@@ -95,7 +96,7 @@ export function StorefrontOrderDateGroupCard({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>
-            {group.totalAmount.toFixed(0)} {info.currency || 'ج.م'}
+            {group.totalAmount.toFixed(0)} {info.currency || getGlobalCurrencySymbol()}
           </span>
           <span
             style={{

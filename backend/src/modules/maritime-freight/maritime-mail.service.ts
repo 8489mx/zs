@@ -413,11 +413,7 @@ export class MaritimeMailService {
     });
 
     try {
-      const info = await transporter.sendMail({
-        from: `"${config.fromName || 'Z-Systems Maritime'}" <${senderEmail}>`,
-        to: targetEmail,
-        subject: `[Z-Systems] اختبار اتصال خادم البريد الملاحي بنجاح`,
-        html: `
+      const testEmailHtml = `
           <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;" dir="rtl">
             <div style="background: #170e5e; color: #ffffff; padding: 20px; text-align: center;">
               <h2 style="margin: 0; font-size: 1.25rem;">منظومة الشحن البحري واللوجستيات</h2>
@@ -435,14 +431,160 @@ export class MaritimeMailService {
               </div>
             </div>
           </div>
-        `,
+        `;
+
+      const info = await transporter.sendMail({
+        from: `"${config.fromName || 'Z-Systems Maritime'}" <${senderEmail}>`,
+        to: targetEmail,
+        subject: `[Z-Systems] اختبار اتصال خادم البريد الملاحي بنجاح`,
+        html: testEmailHtml,
       });
+
+      // Automatically archive a copy into IMAP Sent folder
+      this.appendSentEmailToImap(tenantId, {
+        fromName: config.fromName || 'Z-Systems Maritime',
+        fromEmail: senderEmail,
+        to: targetEmail,
+        subject: `[Z-Systems] اختبار اتصال خادم البريد الملاحي بنجاح`,
+        html: testEmailHtml,
+      }).catch((e) => this.logger.warn(`Failed to archive test email to Sent: ${e.message}`));
 
       return { success: true, messageId: info.messageId, recipient: targetEmail };
     } catch (err: any) {
       this.logger.error(`Failed to send test email: ${err?.message}`);
       throw new BadRequestException(`فشل إرسال البريد التجريبي: ${err?.message || 'خطأ في خادم البريد'}`);
     }
+  }
+
+  /**
+   * Automatically archives an exact copy of an outgoing email into the IMAP "Sent" folder.
+   * Dynamically discovers the Sent mailbox (e.g. INBOX.Sent, Sent, Sent Items)
+   * Runs asynchronously without blocking the user interface or email flow.
+   */
+  async appendSentEmailToImap(
+    tenantId: string,
+    emailData: {
+      fromName: string;
+      fromEmail: string;
+      to: string;
+      subject: string;
+      html: string;
+    },
+  ): Promise<boolean> {
+    const config = await this.getRawMailConfig(tenantId);
+    if (!config?.imapHost || !config.imapUser || !config.imapPassword) {
+      return false;
+    }
+
+    const rawMessage = [
+      `From: "${emailData.fromName}" <${emailData.fromEmail}>`,
+      `To: ${emailData.to}`,
+      `Subject: ${emailData.subject}`,
+      `Date: ${new Date().toUTCString()}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: text/html; charset=utf-8`,
+      `Content-Transfer-Encoding: 8bit`,
+      ``,
+      emailData.html,
+    ].join('\r\n');
+
+    const byteLength = Buffer.byteLength(rawMessage, 'utf8');
+
+    return new Promise((resolve) => {
+      let resolved = false;
+      const socket = tls.connect({
+        host: config.imapHost,
+        port: config.imapPort || 993,
+        rejectUnauthorized: false,
+      });
+
+      const finish = (result: boolean) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          try {
+            socket.write('A99 LOGOUT\r\n');
+            socket.end();
+          } catch {
+            // ignore
+          }
+          resolve(result);
+        }
+      };
+
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          try { socket.destroy(); } catch {}
+          resolve(false);
+        }
+      }, 15000);
+
+      let step = 0;
+      let buffer = '';
+      let targetSentFolder = 'INBOX.Sent';
+
+      socket.on('data', (d) => {
+        buffer += d.toString();
+
+        if (step === 0 && buffer.includes('* OK')) {
+          step = 1;
+          buffer = '';
+          socket.write(`A01 LOGIN "${config.imapUser}" "${config.imapPassword}"\r\n`);
+        } else if (step === 1) {
+          if (buffer.includes('A01 OK')) {
+            step = 2;
+            buffer = '';
+            socket.write('A02 LIST "" "*"\r\n');
+          } else if (buffer.includes('A01 NO') || buffer.includes('A01 BAD')) {
+            finish(false);
+          }
+        } else if (step === 2 && buffer.includes('A02 OK')) {
+          // Parse LIST output for mailbox with \Sent flag or name ending in Sent
+          const listLines = buffer.split('\r\n');
+          for (const line of listLines) {
+            if (/\\Sent/i.test(line)) {
+              const match = line.match(/\* LIST \([^)]*\) "[^"]*" "?([^"\r\n]+)"?/i);
+              if (match && match[1]) {
+                targetSentFolder = match[1].trim();
+                break;
+              }
+            }
+          }
+          step = 3;
+          buffer = '';
+          socket.write(`A03 APPEND "${targetSentFolder}" (\\Seen) {${byteLength}}\r\n`);
+        } else if (step === 3) {
+          if (buffer.includes('+')) {
+            step = 4;
+            buffer = '';
+            socket.write(rawMessage + '\r\n');
+          } else if (buffer.includes('A03 NO') || buffer.includes('A03 BAD')) {
+            if (targetSentFolder !== 'Sent') {
+              targetSentFolder = 'Sent';
+              step = 3;
+              buffer = '';
+              socket.write(`A03 APPEND "Sent" (\\Seen) {${byteLength}}\r\n`);
+            } else {
+              finish(false);
+            }
+          }
+        } else if (step === 4) {
+          if (buffer.includes('A03 OK')) {
+            this.logger.log(`Successfully archived outgoing email into IMAP Sent folder [${targetSentFolder}]`);
+            finish(true);
+          } else if (buffer.includes('A03 NO') || buffer.includes('A03 BAD')) {
+            this.logger.warn(`IMAP append to [${targetSentFolder}] failed: ${buffer.trim()}`);
+            finish(false);
+          }
+        }
+      });
+
+      socket.on('error', (err) => {
+        this.logger.warn(`IMAP append error: ${err.message}`);
+        finish(false);
+      });
+    });
   }
 
   // --------------------------------------------------------------------------

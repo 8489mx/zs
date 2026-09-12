@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -208,7 +209,7 @@ export function VanSaleNewInvoiceModal({
         (i) => `
         <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px;">
           <span>${i.product.name} × ${i.qty}</span>
-          <span>${(i.qty * i.price).toLocaleString()} ج.م</span>
+          <span>${(i.qty * i.price).toLocaleString()} ${getGlobalCurrencySymbol()}</span>
         </div>`
       )
       .join('');
@@ -229,7 +230,7 @@ export function VanSaleNewInvoiceModal({
       </div>
       <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 8px;">
         <span>الإجمالي المدفوع:</span>
-        <span>${completedSale.total.toLocaleString()} ج.م</span>
+        <span>${completedSale.total.toLocaleString()} ${getGlobalCurrencySymbol()}</span>
       </div>
       <div style="text-align: center; font-size: 10px; color: #555;">
         شكراً لتعاملكم معنا!

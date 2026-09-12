@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState, useEffect, useRef } from 'react';
 import { CartItem, CreateOnlineOrderResponse, StorefrontInfo, ValidateCouponResponse, StorefrontPaymentSessionResponse } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
@@ -699,7 +701,7 @@ export function StorefrontCheckoutModal({
                 >
                   {activeDeliveryZones.map((z) => (
                     <option key={z.id} value={z.id}>
-                      {z.name} — {z.deliveryFee === 0 ? 'توصيل مجاني (0 ج)' : `${z.deliveryFee} ج.م`} {z.estimatedTime ? `(${z.estimatedTime})` : ''}
+                      {z.name} — {z.deliveryFee === 0 ? 'توصيل مجاني (0 ج)' : `${z.deliveryFee} ${getGlobalCurrencySymbol()}`} {z.estimatedTime ? `(${z.estimatedTime})` : ''}
                     </option>
                   ))}
                 </select>
@@ -933,7 +935,7 @@ export function StorefrontCheckoutModal({
                     دفع إلكتروني فوري وآمن:
                   </div>
                   <div style={{ color: '#0c4a6e', fontSize: '11px', lineHeight: '1.4' }}>
-                    سيتم فتح بوابة الدفع الآمنة لسداد مبلغ الطلب ({total.toFixed(0)} ج.م) ببطاقتك البنكية فور الضغط على إرسال الطلب.
+                    سيتم فتح بوابة الدفع الآمنة لسداد مبلغ الطلب ({total.toFixed(0)} <CurrencySymbol />) ببطاقتك البنكية فور الضغط على إرسال الطلب.
                   </div>
                 </div>
               )}
@@ -961,7 +963,7 @@ export function StorefrontCheckoutModal({
                     </span>
                   </div>
                   <div style={{ color: '#15803d', fontSize: '11px', lineHeight: '1.4' }}>
-                    يرجى تحويل مبلغ الطلب ({total.toFixed(0)} ج.م) وإرسال إشعار التحويل عبر الواتساب لتأكيد الشحن فوراً.
+                    يرجى تحويل مبلغ الطلب ({total.toFixed(0)} <CurrencySymbol />) وإرسال إشعار التحويل عبر الواتساب لتأكيد الشحن فوراً.
                   </div>
                 </div>
               )}
@@ -986,7 +988,7 @@ export function StorefrontCheckoutModal({
                     }}
                   >
                     <span>
-                      مبروك! مشترياتك تجاوزت {freeShippingThreshold} ج.م وحصلت على شحن مجاني (توفير {rawDeliveryFee.toFixed(0)} ج.م).
+                      مبروك! مشترياتك تجاوزت {freeShippingThreshold} <CurrencySymbol /> وحصلت على شحن مجاني (توفير {rawDeliveryFee.toFixed(0)} <CurrencySymbol />).
                     </span>
                   </div>
                 ) : freeShippingRemaining > 0 ? (
@@ -1006,7 +1008,7 @@ export function StorefrontCheckoutModal({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <TruckIcon size={14} color="#0284c7" />
                       <span>
-                        أضف بـ <strong style={{ color: '#0284c7' }}>{freeShippingRemaining.toFixed(0)} ج.م</strong> إضافية للحصول على شحن مجاني!
+                        أضف بـ <strong style={{ color: '#0284c7' }}>{freeShippingRemaining.toFixed(0)} ${getGlobalCurrencySymbol()}</strong> إضافية للحصول على شحن مجاني!
                       </span>
                     </div>
                     <span
@@ -1157,7 +1159,7 @@ export function StorefrontCheckoutModal({
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
                 <span>مجموع الأصناف:</span>
-                <span style={{ fontWeight: 600, color: '#334155' }}>{subtotal.toFixed(0)} ج.م</span>
+                <span style={{ fontWeight: 600, color: '#334155' }}>{subtotal.toFixed(0)} ${getGlobalCurrencySymbol()}</span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
@@ -1172,14 +1174,14 @@ export function StorefrontCheckoutModal({
                     <strong style={{ color: '#16a34a' }}>توصيل مجاني</strong>
                   </div>
                 ) : (
-                  <span style={{ fontWeight: 600, color: '#334155' }}>{effectiveDeliveryFee.toFixed(0)} ج.م</span>
+                  <span style={{ fontWeight: 600, color: '#334155' }}>{effectiveDeliveryFee.toFixed(0)} <CurrencySymbol /></span>
                 )}
               </div>
 
               {discountAmount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#16a34a' }}>
                   <span>خصم الكوبون ({appliedCoupon?.code}):</span>
-                  <strong style={{ fontWeight: 800 }}>- {discountAmount.toFixed(0)} ج.م</strong>
+                  <strong style={{ fontWeight: 800 }}>- {discountAmount.toFixed(0)} <CurrencySymbol /></strong>
                 </div>
               )}
 
@@ -1197,7 +1199,7 @@ export function StorefrontCheckoutModal({
                   المبلغ الإجمالي للدفع:
                 </span>
                 <span style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                  {total.toFixed(0)} ج.م
+                  {total.toFixed(0)} ${getGlobalCurrencySymbol()}
                 </span>
               </div>
             </div>

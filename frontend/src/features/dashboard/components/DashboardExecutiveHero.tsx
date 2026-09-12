@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useMemo } from 'react';
 import {
   AreaChart,
@@ -370,7 +372,7 @@ export function DashboardExecutiveHero({
               <strong className="dashboard-hero-kpi-value" style={{ fontSize: '1.05rem', color: isDark ? '#ffffff' : '#0f172a', fontWeight: 800 }}>
                 {formatCurrency(todaySalesAmount)}
               </strong>
-              <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>ج.م</span>
+              <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}><CurrencySymbol /></span>
             </div>
           </div>
 
@@ -446,7 +448,7 @@ export function DashboardExecutiveHero({
               >
                 {treasuryNet < 0 ? `-${formatCurrency(Math.abs(treasuryNet))}` : formatCurrency(treasuryNet)}
               </strong>
-              <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>ج.م</span>
+              <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}><CurrencySymbol /></span>
             </div>
           </div>
 
@@ -722,7 +724,7 @@ export function DashboardExecutiveHero({
                           }}
                         >
                           <span>{entry.name === 'sales' ? 'المبيعات:' : 'المشتريات:'}</span>
-                          <span dir="ltr">{formatCurrency(Number(entry.value || 0))} ج.م</span>
+                          <span dir="ltr">{formatCurrency(Number(entry.value || 0))} ${getGlobalCurrencySymbol()}</span>
                         </div>
                       ))}
                     </div>

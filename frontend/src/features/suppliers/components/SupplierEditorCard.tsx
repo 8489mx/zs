@@ -60,7 +60,7 @@ export function SupplierEditorCard({ supplier, onSaved }: { supplier?: Supplier;
       </Field>
 
       <Field 
-        label="الرصيد الافتتاحي (ج.م)" 
+        label="الرصيد الافتتاحي (${getGlobalCurrencySymbol()})" 
         hint="المبلغ المستحق للمورد عند بداية التسجيل (إن وجد)"
         error={form.formState.errors.balance?.message}
       >

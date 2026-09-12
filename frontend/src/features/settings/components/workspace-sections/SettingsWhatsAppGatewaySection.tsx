@@ -59,7 +59,7 @@ export function SettingsWhatsAppGatewaySection() {
     autoSendInvoice: form.autoSendInvoice ?? data?.autoSendInvoice ?? false,
     autoSendOnlineOrder: form.autoSendOnlineOrder ?? data?.autoSendOnlineOrder ?? false,
     invoiceTemplate: form.invoiceTemplate ?? data?.invoiceTemplate ??
-      'مرحباً بك يا {customerName} في {businessName}، يسعدنا تسوقك معنا! يمكنك استعراض فاتورتك رقم #{invoiceNo} بقيمة {totalAmount} ج.م عبر الرابط التالي: {invoiceLink}',
+      'مرحباً بك يا {customerName} في {businessName}، يسعدنا تسوقك معنا! يمكنك استعراض فاتورتك رقم #{invoiceNo} بقيمة {totalAmount} <CurrencySymbol /> عبر الرابط التالي: {invoiceLink}',
     aiBotEnabled: form.aiBotEnabled ?? data?.aiBotEnabled ?? false,
     aiBotPrompt: form.aiBotPrompt ?? data?.aiBotPrompt ?? '',
     aiBotWelcomeMessage: form.aiBotWelcomeMessage ?? data?.aiBotWelcomeMessage ?? '',

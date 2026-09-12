@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '../currencies';
 import { escapeHtml } from '@/lib/browser';
 import type { AppSettings, Sale } from '@/types/domain';
 import { getPrintOption, getReceiptNumberLocale, isCompactReceipt, getReceiptTheme, formatDateTime, type PosPrintPageSize } from '@/lib/pos-printing/shared';
@@ -316,7 +317,7 @@ function renderTotals(options: {
       { label: 'التوصيل', value: formatReceiptMoney(Number(options.deliveryFee || 0), options.settings) },
       ...(options.isMerchantCopy && options.orderType === 'delivery' && (options.payments?.some(p => p.paymentChannel !== 'cash') || (options.paymentText && !options.paymentText.includes('نقدي'))) ? [{
         label: 'تسوية المندوب',
-        value: `<span style="font-size:0.86em; font-weight:700; color:#000;">تم صرف ${formatReceiptMoney(Number(options.deliveryFee || 0), options.settings)} ج.م نقداً من الدرج</span>`,
+        value: `<span style="font-size:0.86em; font-weight:700; color:#000;">تم صرف ${formatReceiptMoney(Number(options.deliveryFee || 0), options.settings)} ${getGlobalCurrencySymbol()} نقداً من الدرج</span>`,
         isHtml: true,
       }] : []),
     ] : []),
@@ -366,7 +367,7 @@ function renderTotals(options: {
           <circle cx="9" cy="8.5" r="1.3" fill="#000"/>
           <circle cx="15" cy="15.5" r="1.3" fill="#000"/>
         </svg>
-        <span>إجمالي ما وفّرته في هذه الفاتورة: ${formatReceiptMoney(totalAllSavings, options.settings)} ج.م</span>
+        <span>إجمالي ما وفّرته في هذه الفاتورة: ${formatReceiptMoney(totalAllSavings, options.settings)} ${getGlobalCurrencySymbol()}</span>
       </div>
     `
     : '';
@@ -713,7 +714,7 @@ function renderLoyaltySummary(options: {
       ${balance !== undefined ? `
         <div style="display: flex; justify-content: space-between; font-weight: 800; margin-top: 1px; border-top: 1px dashed #e2e8f0; padding-top: 1px;">
           <span>رصيد نقاطك الكلي:</span>
-          <strong>${balance.toLocaleString()} نقطة${balanceCurrency !== null ? ` (${balanceCurrency.toLocaleString()} ج.م)` : ''}</strong>
+          <strong>${balance.toLocaleString()} نقطة${balanceCurrency !== null ? ` (${balanceCurrency.toLocaleString()} ${getGlobalCurrencySymbol()})` : ''}</strong>
         </div>
       ` : ''}
     </section>

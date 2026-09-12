@@ -1,4 +1,5 @@
 import React from 'react';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { DeliveryOrder } from '../api/delivery-reps.api';
 import {
   SmartphoneIcon,
@@ -77,7 +78,7 @@ export const DriverOrderCard: React.FC<DriverOrderCardProps> = ({
         <div style={{ textAlign: 'left' }}>
           <div style={{ fontSize: '11px', color: '#64748b' }}>المطلوب:</div>
           <div style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e' }}>
-            {Number(order.total || 0).toLocaleString('ar-EG')} ج.م
+            {Number(order.total || 0).toLocaleString('ar-EG')} <CurrencySymbol />
           </div>
         </div>
       </div>
@@ -185,7 +186,7 @@ export const DriverOrderCard: React.FC<DriverOrderCardProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#16a34a', background: '#f0fdf4', padding: '6px 10px', borderRadius: '6px' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             <CheckIcon size={12} color="#16a34a" strokeWidth={2.5} />
-            <span>تم تسليمها وتحصيل {Number(order.total || 0).toLocaleString('ar-EG')} ج.م</span>
+            <span>تم تسليمها وتحصيل {Number(order.total || 0).toLocaleString('ar-EG')} <CurrencySymbol /></span>
           </span>
           {order.deliverySignature && <span>موقّع</span>}
         </div>

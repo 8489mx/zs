@@ -1,4 +1,6 @@
 import React from 'react';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { Button } from '@/shared/ui/button';
 import { CheckIcon, AlertTriangleIcon, ReceiptIcon } from '@/shared/components/icons/AppIcons';
 import { VanActiveTripResponse } from '../api/van-sales.api';
@@ -50,21 +52,21 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
       <div style={{ backgroundColor: '#f8fafc', borderRadius: '10px', padding: '12px', border: '1px solid #e2e8f0', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontWeight: 600 }}>
           <span>إجمالي المبيعات المحققة اليوم:</span>
-          <span style={{ fontWeight: 800, color: '#0f172a' }}>{tripData?.salesAmount.toFixed(2)} ج.م</span>
+          <span style={{ fontWeight: 800, color: '#0f172a' }}>{tripData?.salesAmount.toFixed(2)} <CurrencySymbol /></span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontWeight: 600 }}>
           <span>المبيعات الآجلة على المحلات:</span>
-          <span style={{ fontWeight: 800, color: '#d97706' }}>{tripData?.creditSales.toFixed(2)} ج.م</span>
+          <span style={{ fontWeight: 800, color: '#d97706' }}>{tripData?.creditSales.toFixed(2)} <CurrencySymbol /></span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#065f46', fontWeight: 900, fontSize: '13px', borderTop: '1px solid #e2e8f0', paddingTop: '6px' }}>
           <span>النقدية المتوقع تسليمها (كاش):</span>
-          <span>{cashCollected.toFixed(2)} ج.م</span>
+          <span>{cashCollected.toFixed(2)} <CurrencySymbol /></span>
         </div>
       </div>
 
       <div>
         <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-          الكاش الفعلي الموجود معك للتوريد (ج.م):
+          الكاش الفعلي الموجود معك للتوريد (${getGlobalCurrencySymbol()}):
         </label>
         <input
           type="number"
@@ -84,11 +86,11 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             ) : countedNum < cashCollected ? (
               <span style={{ color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <AlertTriangleIcon size={14} color="#dc2626" strokeWidth={2} />
-                <span>يوجد عجز بمبلغ {(cashCollected - countedNum).toFixed(2)} ج.م</span>
+                <span>يوجد عجز بمبلغ {(cashCollected - countedNum).toFixed(2)} <CurrencySymbol /></span>
               </span>
             ) : (
               <span style={{ color: '#2563eb' }}>
-                يوجد زيادة بمبلغ {(countedNum - cashCollected).toFixed(2)} ج.م
+                يوجد زيادة بمبلغ {(countedNum - cashCollected).toFixed(2)} <CurrencySymbol />
               </span>
             )}
           </div>

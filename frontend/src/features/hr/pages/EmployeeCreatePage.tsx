@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -179,7 +180,7 @@ export function EmployeeCreatePage() {
                 {draft.compensationType === 'monthly' ? (
                   <>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الراتب الأساسي الشهري (ج.م)</label>
+                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الراتب الأساسي الشهري (${getGlobalCurrencySymbol()})</label>
                       <input
                         inputMode="decimal"
                         min="0"
@@ -190,7 +191,7 @@ export function EmployeeCreatePage() {
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الراتب التأميني (ج.م)</label>
+                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الراتب التأميني (${getGlobalCurrencySymbol()})</label>
                       <input
                         inputMode="decimal"
                         min="0"
@@ -204,7 +205,7 @@ export function EmployeeCreatePage() {
                 ) : (
                   <>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>أجر الساعة (ج.م) <span style={{ color: '#dc2626' }}>*</span></label>
+                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>أجر الساعة (${getGlobalCurrencySymbol()}) <span style={{ color: '#dc2626' }}>*</span></label>
                       <input
                         inputMode="decimal"
                         min="0"

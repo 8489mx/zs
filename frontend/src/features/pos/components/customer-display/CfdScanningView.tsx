@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React from 'react';
 import { ShoppingCartIcon, AwardIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
@@ -108,7 +109,7 @@ export const CfdScanningView: React.FC<CfdScanningViewProps> = ({
             <div className="cfd-total-label">المبلغ الإجمالي المطلوب سداده</div>
             <div className="cfd-total-amount">
               {payload.total.toFixed(2)}
-              <span className="cfd-total-currency">ج.م</span>
+              <span className="cfd-total-currency"><CurrencySymbol /></span>
             </div>
           </div>
 

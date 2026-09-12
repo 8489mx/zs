@@ -2,6 +2,7 @@ import React from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { XIcon } from '@/shared/components/icons/AppIcons';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import type { CostCenterRecord } from '../../api/cost-centers.api';
 import { COST_CENTER_DIMENSIONS } from './types';
 
@@ -133,7 +134,7 @@ export function CostCenterFormModal({
 
           <div>
             <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-              الموازنة التقديرية (اختياري - ج.م)
+              الموازنة التقديرية (اختياري - {getGlobalCurrencySymbol()})
             </label>
             <input
               type="number"

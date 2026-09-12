@@ -1,6 +1,6 @@
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
-import { formatCurrency, formatDateOnly } from '@/lib/format';
+import { formatCurrency, formatCurrencyWithSymbol, formatDateOnly } from '@/lib/format';
 import { XIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
 
 interface CostCenterReportModalProps {
@@ -96,19 +96,19 @@ export function CostCenterReportModal({
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
                 <div style={{ fontSize: '11.5px', color: '#64748b' }}>إجمالي المدين (المصروفات)</div>
                 <div style={{ fontSize: '16px', fontWeight: 800, color: '#dc2626' }}>
-                  {formatCurrency(reportData?.summary?.totalDebit || 0)} ج.م
+                  {formatCurrencyWithSymbol(reportData?.summary?.totalDebit || 0)}
                 </div>
               </div>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
                 <div style={{ fontSize: '11.5px', color: '#64748b' }}>إجمالي الدائن (الإيرادات)</div>
                 <div style={{ fontSize: '16px', fontWeight: 800, color: '#059669' }}>
-                  {formatCurrency(reportData?.summary?.totalCredit || 0)} ج.م
+                  {formatCurrencyWithSymbol(reportData?.summary?.totalCredit || 0)}
                 </div>
               </div>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
                 <div style={{ fontSize: '11.5px', color: '#64748b' }}>صافي الرصيد</div>
                 <div style={{ fontSize: '16px', fontWeight: 800, color: '#170e5e' }}>
-                  {formatCurrency(reportData?.summary?.netBalance || 0)} ج.م
+                  {formatCurrencyWithSymbol(reportData?.summary?.netBalance || 0)}
                 </div>
               </div>
             </div>

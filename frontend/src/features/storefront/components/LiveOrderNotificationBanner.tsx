@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -269,7 +270,7 @@ export function LiveOrderNotificationBanner() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
             <span style={{ color: '#64748b', fontSize: '11.5px', flexShrink: 0 }}>الإجمالي:</span>
             <span style={{ color: '#166534', fontWeight: 800, fontSize: '12.5px' }}>
-              {Number(latestNewOrder.totalAmount).toLocaleString('ar-EG')} ج.م
+              {Number(latestNewOrder.totalAmount).toLocaleString('ar-EG')} <CurrencySymbol />
             </span>
             {latestNewOrder.items && latestNewOrder.items.length > 0 && (
               <span style={{ color: '#94a3b8', fontSize: '11px', marginRight: '4px' }}>

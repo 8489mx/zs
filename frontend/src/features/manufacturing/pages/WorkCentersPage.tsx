@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, type ReactNode } from 'react';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
@@ -155,7 +156,7 @@ export default function WorkCentersPage() {
       header: 'تكلفة الساعة',
       cell: (row) => (
         <span style={{ fontWeight: 600, color: '#0f172a' }}>
-          {Number(row.cost_per_hour).toLocaleString('ar-EG')} ج.م
+          {Number(row.cost_per_hour).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}
         </span>
       ),
     },

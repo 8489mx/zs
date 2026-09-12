@@ -1,4 +1,5 @@
 import React from 'react';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { CheckIcon } from '@/shared/components/icons/AppIcons';
@@ -40,7 +41,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({ rece
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#166534', fontWeight: 800, paddingTop: '6px', borderTop: '1px solid #e2e8f0', fontSize: '13.5px' }}>
             <span>الإجمالي:</span>
-            <span>{receipt.total} ج.م</span>
+            <span>{receipt.total} <CurrencySymbol /></span>
           </div>
         </div>
 

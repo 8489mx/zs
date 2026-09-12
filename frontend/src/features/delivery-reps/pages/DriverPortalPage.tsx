@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { driverPortalApi, DeliveryOrder, SettleOrderPayload, DriverPortalUser } from '../api/delivery-reps.api';
 import { DeliverySettlementModal } from '../components/DeliverySettlementModal';
@@ -211,7 +212,7 @@ export function DriverPortalPage() {
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
           <div style={{ fontSize: '11px', color: '#64748b' }}>المطلوب تحصيله</div>
-          <div style={{ fontSize: '15px', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>{pendingAmount.toLocaleString('ar-EG')} ج.م</div>
+          <div style={{ fontSize: '15px', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>{pendingAmount.toLocaleString('ar-EG')} <CurrencySymbol /></div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
           <div style={{ fontSize: '11px', color: '#64748b' }}>تم تسليمها</div>

@@ -1,4 +1,6 @@
 import React from 'react';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { Button } from '@/shared/ui/button';
 
 interface CustomerOption {
@@ -53,7 +55,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
           <option value="">-- اختر العميل --</option>
           {customers.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name} - مديونية حالية: {c.balance.toFixed(2)} ج.م
+              {c.name} - مديونية حالية: {c.balance.toFixed(2)} <CurrencySymbol />
             </option>
           ))}
         </select>
@@ -61,7 +63,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
 
       <div>
         <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-          المبلغ المحصل نقداً (ج.م):
+          المبلغ المحصل نقداً (${getGlobalCurrencySymbol()}):
         </label>
         <input
           type="number"

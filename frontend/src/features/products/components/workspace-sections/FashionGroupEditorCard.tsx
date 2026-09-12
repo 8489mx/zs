@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -913,8 +914,8 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                 <th style={{ padding: '8px 8px', minWidth: '100px' }}>{secondaryLabel}</th>
                 <th style={{ padding: '8px 8px', minWidth: '110px' }}>رمز SKU</th>
                 <th style={{ padding: '8px 8px', minWidth: '120px' }}>الباركود</th>
-                <th style={{ padding: '8px 8px', minWidth: '95px' }}>سعر البيع (ج.م)</th>
-                <th style={{ padding: '8px 8px', minWidth: '95px' }}>سعر الشراء (ج.م)</th>
+                <th style={{ padding: '8px 8px', minWidth: '95px' }}>سعر البيع (${getGlobalCurrencySymbol()})</th>
+                <th style={{ padding: '8px 8px', minWidth: '95px' }}>سعر الشراء (${getGlobalCurrencySymbol()})</th>
                 <th style={{ padding: '8px 8px', width: '70px', textAlign: 'center' }}>الرصيد</th>
                 <th style={{ padding: '8px 8px', minWidth: '140px' }}>الاسم النهائي للصنف</th>
                 <th style={{ padding: '8px 8px', width: '110px', textAlign: 'center' }}>التسعير المخصص</th>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -42,19 +43,19 @@ export default function VanSalesAdminManagementPage() {
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs">
           <span className="text-xs font-bold text-slate-500 block">إجمالي مبيعات سيارات الفان</span>
           <span className="text-2xl font-black text-slate-900 mt-1 block">
-            {totalSales.toFixed(2)} <span className="text-xs font-semibold text-slate-400">ج.م</span>
+            {totalSales.toFixed(2)} <span className="text-xs font-semibold text-slate-400"><CurrencySymbol /></span>
           </span>
         </div>
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs">
           <span className="text-xs font-bold text-emerald-600 block">إجمالي النقدية المحصلة (كاش)</span>
           <span className="text-2xl font-black text-emerald-700 mt-1 block">
-            {totalCash.toFixed(2)} <span className="text-xs font-semibold text-emerald-500">ج.م</span>
+            {totalCash.toFixed(2)} <span className="text-xs font-semibold text-emerald-500"><CurrencySymbol /></span>
           </span>
         </div>
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs">
           <span className="text-xs font-bold text-indigo-600 block">إجمالي البضاعة المشحونة بالفان</span>
           <span className="text-2xl font-black text-indigo-900 mt-1 block">
-            {totalLoaded.toFixed(2)} <span className="text-xs font-semibold text-indigo-400">ج.م</span>
+            {totalLoaded.toFixed(2)} <span className="text-xs font-semibold text-indigo-400"><CurrencySymbol /></span>
           </span>
         </div>
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs">
@@ -136,10 +137,10 @@ export default function VanSalesAdminManagementPage() {
                         {t.status === 'open' ? 'نشطة بالشارع' : 'تمت التصفية'}
                       </span>
                     </td>
-                    <td className="p-3 text-center font-bold text-slate-800">{t.loadedAmount.toFixed(2)} ج.م</td>
-                    <td className="p-3 text-center font-bold text-slate-900">{t.salesAmount.toFixed(2)} ج.م</td>
-                    <td className="p-3 text-center font-black text-emerald-700">{t.cashCollected.toFixed(2)} ج.م</td>
-                    <td className="p-3 text-center font-bold text-amber-700">{t.creditSales.toFixed(2)} ج.م</td>
+                    <td className="p-3 text-center font-bold text-slate-800">{t.loadedAmount.toFixed(2)} <CurrencySymbol /></td>
+                    <td className="p-3 text-center font-bold text-slate-900">{t.salesAmount.toFixed(2)} <CurrencySymbol /></td>
+                    <td className="p-3 text-center font-black text-emerald-700">{t.cashCollected.toFixed(2)} <CurrencySymbol /></td>
+                    <td className="p-3 text-center font-bold text-amber-700">{t.creditSales.toFixed(2)} <CurrencySymbol /></td>
                     <td className="p-3 text-center font-mono font-bold">
                       {t.variance === 0 ? (
                         <span className="text-slate-400">0.00</span>

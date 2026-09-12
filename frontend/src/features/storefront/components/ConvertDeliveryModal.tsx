@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -139,7 +140,7 @@ export function ConvertDeliveryModal({
             <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '4px' }}>
               <span style={{ color: '#64748b' }}>إجمالي الطلب:</span>
               <span style={{ fontWeight: 900, color: '#170e5e', fontSize: '14px' }}>
-                {order.totalAmount} ج.م
+                {order.totalAmount} ${getGlobalCurrencySymbol()}
               </span>
             </div>
           </div>

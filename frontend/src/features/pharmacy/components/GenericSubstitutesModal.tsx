@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -106,11 +107,11 @@ export function GenericSubstitutesModal({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ textAlign: 'left' }}>
                       <strong style={{ fontSize: '0.95rem', color: '#16a34a', display: 'block' }}>
-                        {Number(drug.box_price).toFixed(2)} ج.م
+                        {Number(drug.box_price).toFixed(2)} <CurrencySymbol />
                       </strong>
                       {Number(drug.strip_price) > 0 && (
                         <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                          {Number(drug.strip_price).toFixed(2)} ج.م / {drug.unit_name}
+                          {Number(drug.strip_price).toFixed(2)} <CurrencySymbol /> / {drug.unit_name}
                         </span>
                       )}
                     </div>

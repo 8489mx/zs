@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React from 'react';
 import { Button } from '@/shared/ui/button';
 import { IconTag } from '../PharmacyIcons';
@@ -53,10 +54,10 @@ export const PrescriptionsTable: React.FC<PrescriptionsTableProps> = ({
                   {rx.approval_code && <div style={{ fontSize: '0.74rem', color: '#64748b' }}>موافقة: {rx.approval_code}</div>}
                 </td>
                 <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0f172a' }}>
-                  {Number(rx.total_amount).toFixed(2)} ج.م
+                  {Number(rx.total_amount).toFixed(2)} <CurrencySymbol />
                 </td>
                 <td style={{ padding: '10px 14px' }}>
-                  <strong style={{ color: '#16a34a' }}>{Number(rx.patient_amount).toFixed(2)} ج.م</strong>
+                  <strong style={{ color: '#16a34a' }}>{Number(rx.patient_amount).toFixed(2)} <CurrencySymbol /></strong>
                   {Number(rx.patient_copay_percent) > 0 && (
                     <span style={{ fontSize: '0.72rem', color: '#64748b', marginRight: '4px' }}>
                       ({rx.patient_copay_percent}%)

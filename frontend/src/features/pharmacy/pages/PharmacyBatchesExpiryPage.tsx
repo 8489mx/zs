@@ -1,4 +1,5 @@
 import { XIcon } from '@/shared/components/icons/AppIcons';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -252,7 +253,7 @@ export default function PharmacyBatchesExpiryPage() {
                       {batch.quantity} علبة
                     </td>
                     <td style={{ padding: '10px 14px' }}>
-                      {Number(batch.unit_cost).toFixed(2)} ج.م
+                      {Number(batch.unit_cost).toFixed(2)} <CurrencySymbol />
                     </td>
                     <td style={{ padding: '10px 14px', color: '#475569' }}>
                       {batch.supplier_name || '—'}

@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { vanSalesApi, VanActiveTripResponse, VanStockItem } from '../api/van-sales.api';
@@ -110,7 +112,7 @@ export default function VanSalesMobilePage() {
   const executeSaleMutation = useMutation({
     mutationFn: vanSalesApi.executeSale,
     onSuccess: (res) => {
-      showAlert('success', `تم إصدار الفاتورة #${res.docNo} بمبلغ ${res.total} ج.م بنجاح!`);
+      showAlert('success', `تم إصدار الفاتورة #${res.docNo} بمبلغ ${res.total} ${getGlobalCurrencySymbol()} بنجاح!`);
       setLastSaleReceipt(res);
       setCart([]);
       setSelectedCustomerId('');
@@ -123,7 +125,7 @@ export default function VanSalesMobilePage() {
   const recordCollectionMutation = useMutation({
     mutationFn: vanSalesApi.recordCollection,
     onSuccess: (res) => {
-      showAlert('success', `تم تسجيل تحصيل ${res.amount} ج.م من "${res.customerName}"، الرصيد المتبقي: ${res.newBalance} ج.م`);
+      showAlert('success', `تم تسجيل تحصيل ${res.amount} ${getGlobalCurrencySymbol()} من "${res.customerName}"، الرصيد المتبقي: ${res.newBalance} ${getGlobalCurrencySymbol()}`);
       setColAmount('');
       setColCustomerId('');
       queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] });
@@ -134,7 +136,7 @@ export default function VanSalesMobilePage() {
   const settleTripMutation = useMutation({
     mutationFn: vanSalesApi.settleTrip,
     onSuccess: (res) => {
-      showAlert('success', `تم إغلاق وتصفية رحلة التوزيع بنجاح! عجز/زيادة الكاش: ${res.variance} ج.م`);
+      showAlert('success', `تم إغلاق وتصفية رحلة التوزيع بنجاح! عجز/زيادة الكاش: ${res.variance} ${getGlobalCurrencySymbol()}`);
       setCountedCash('');
       queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] });
     },
@@ -224,15 +226,15 @@ export default function VanSalesMobilePage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '14px' }}>
               <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '12px', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', display: 'block' }}>إجمالي مبيعات اليوم</span>
-                <span style={{ fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>{data.trip?.salesAmount.toFixed(2)} ج.م</span>
+                <span style={{ fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>{data.trip?.salesAmount.toFixed(2)} <CurrencySymbol /></span>
               </div>
               <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '12px', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: '#059669', display: 'block' }}>النقدية المحصلة (كاش)</span>
-                <span style={{ fontSize: '16px', fontWeight: 900, color: '#047857' }}>{data.trip?.cashCollected.toFixed(2)} ج.م</span>
+                <span style={{ fontSize: '16px', fontWeight: 900, color: '#047857' }}>{data.trip?.cashCollected.toFixed(2)} <CurrencySymbol /></span>
               </div>
               <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '12px', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: '#d97706', display: 'block' }}>المبيعات الآجلة</span>
-                <span style={{ fontSize: '16px', fontWeight: 900, color: '#b45309' }}>{data.trip?.creditSales.toFixed(2)} ج.م</span>
+                <span style={{ fontSize: '16px', fontWeight: 900, color: '#b45309' }}>{data.trip?.creditSales.toFixed(2)} ${getGlobalCurrencySymbol()}</span>
               </div>
               <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '12px', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: '#170e5e', display: 'block' }}>بضاعة السيارة الحالية</span>

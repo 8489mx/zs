@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/button';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { CheckIcon, ClockIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
 import { DeliveryOrder } from '@/features/delivery-reps/api/delivery-reps.api';
 
@@ -93,7 +94,7 @@ export function DeliveryOrderCard({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px' }}>
         <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>المبلغ المطلوب تحصيله:</span>
         <span style={{ fontSize: '16px', fontWeight: 900, color: '#16a34a' }}>
-          {Number(order.total).toLocaleString('ar-EG')} ج.م
+          {Number(order.total).toLocaleString('ar-EG')} <CurrencySymbol />
         </span>
       </div>
 

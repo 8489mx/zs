@@ -1,3 +1,4 @@
+import { getGlobalSystemCurrency } from '@/lib/currencies';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -172,7 +173,7 @@ export function DigitalSignagePage() {
   };
 
   const storeName = settings?.storeName || 'مؤسستنا التجارية';
-  const currencyCode = settings?.currency || 'ج.م';
+  const currencyCode = settings?.currency || getGlobalSystemCurrency();
   const storefrontUrl = typeof window !== 'undefined' ? `${window.location.origin}/storefront` : '';
 
   const qrSvgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(

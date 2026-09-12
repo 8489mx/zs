@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { IconSearch, IconPrinter, IconEdit, IconTrash } from './PharmacyIcons';
 import type { PharmacyDrug } from '../types/pharmacy.types';
@@ -77,10 +78,10 @@ export function PharmacyDrugsTable({
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     <div style={{ fontWeight: 700, color: '#0f172a' }}>
-                      علبة: {drug.box_price} ج.م
+                      علبة: {drug.box_price} <CurrencySymbol />
                     </div>
                     <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>
-                      شريط: {drug.strip_price} ج.م ({drug.units_per_box} شرائط)
+                      شريط: {drug.strip_price} <CurrencySymbol /> ({drug.units_per_box} شرائط)
                     </div>
                   </td>
                   <td style={{ padding: '10px 14px' }}>

@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
@@ -864,7 +865,7 @@ export function StorefrontSettingsTab() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    رسوم التوصيل (ج.م):
+                    رسوم التوصيل (${getGlobalCurrencySymbol()}):
                   </label>
                   <input
                     type="number"
@@ -885,7 +886,7 @@ export function StorefrontSettingsTab() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    الحد الأدنى للطلب (ج.م):
+                    الحد الأدنى للطلب (${getGlobalCurrencySymbol()}):
                   </label>
                   <input
                     type="number"
@@ -985,7 +986,7 @@ export function StorefrontSettingsTab() {
                     }}
                   >
                     <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#166534', whiteSpace: 'nowrap' }}>
-                      شحن مجاني عند الطلب بمبلغ (ج.م) أو أكثر:
+                      شحن مجاني عند الطلب بمبلغ (${getGlobalCurrencySymbol()}) أو أكثر:
                     </label>
                     <input
                       type="number"

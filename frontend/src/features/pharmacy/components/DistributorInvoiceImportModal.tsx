@@ -1,3 +1,5 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -217,11 +219,11 @@ export function DistributorInvoiceImportModal({
           <div style={{ display: 'flex', gap: '14px', alignItems: 'center', background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
             <div>
               <div style={{ fontSize: '0.72rem', color: '#64748b' }}>إجمالي التكلفة:</div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>{totalCostSum.toFixed(2)} ج.م</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>{totalCostSum.toFixed(2)} <CurrencySymbol /></div>
             </div>
             <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '14px' }}>
               <div style={{ fontSize: '0.72rem', color: '#64748b' }}>قيمة البيع للجمهور:</div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#16a34a' }}>{totalPublicSum.toFixed(2)} ج.م</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#16a34a' }}>{totalPublicSum.toFixed(2)} ${getGlobalCurrencySymbol()}</div>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { AlertTriangleIcon , XIcon } from '@/shared/components/icons/AppIcons';
@@ -249,7 +250,7 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
                         </span>
                       </td>
                       <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
-                        <div style={{ fontWeight: 800, color: '#16a34a', fontSize: '0.82rem', lineHeight: '1.2' }}>{d.box_price.toFixed(2)} ج.م</div>
+                        <div style={{ fontWeight: 800, color: '#16a34a', fontSize: '0.82rem', lineHeight: '1.2' }}>{d.box_price.toFixed(2)} ${getGlobalCurrencySymbol()}</div>
                         <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
                           الشريط: {d.strip_price.toFixed(2)}
                         </div>

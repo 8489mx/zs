@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React, { useRef } from 'react';
 
 interface StorefrontLiveCartPillProps {
@@ -103,7 +104,7 @@ export function StorefrontLiveCartPill({
           {itemsCount} صنف • {totalQuantity} قطعة
         </div>
         <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#166534', whiteSpace: 'nowrap' }}>
-          الإجمالي: {total.toFixed(0)} ج.م
+          الإجمالي: {total.toFixed(0)} <CurrencySymbol />
         </div>
       </div>
 

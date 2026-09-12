@@ -1,3 +1,4 @@
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 export type ComparisonRow = {
   key: string;
   label: string;
@@ -28,7 +29,7 @@ export function differenceTone(value: number): 'ok' | 'negative' | 'positive' {
 
 export function formatMoney(value: number): string {
   const amount = toMoney(value);
-  return `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)} ج.م`;
+  return `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)} ${getGlobalCurrencySymbol()}`;
 }
 
 export function formatCount(value: number): string {

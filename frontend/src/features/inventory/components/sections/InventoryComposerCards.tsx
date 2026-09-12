@@ -8,6 +8,7 @@ import { SubmitButton } from '@/shared/components/submit-button';
 import { InventoryProductPicker } from '@/features/inventory/components/InventoryProductPicker';
 import { exportStockCountSheetExcel, printStockCountSheet, type StockCountSheetRow } from '@/features/inventory/lib/inventory-documents';
 import { useCategoriesQuery, useSuppliersQuery } from '@/shared/hooks/use-catalog-queries';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import {
   BarcodeIcon,
   PrinterIcon,
@@ -581,7 +582,7 @@ export function StockCountComposerCard({
                 <span className="stat-pill">المعدود: <strong>{totalCounted}</strong></span>
                 <span className="stat-pill">الفروقات: <strong>{totalVariance}</strong></span>
                 {canShowExpectedCount && financialSummary.deficitCost > 0 ? (
-                  <span className="stat-pill stat-pill--deficit">قيمة العجز: <strong>{financialSummary.deficitCost.toLocaleString('ar-EG')} ج.م</strong></span>
+                  <span className="stat-pill stat-pill--deficit">قيمة العجز: <strong>{financialSummary.deficitCost.toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}</strong></span>
                 ) : null}
               </div>
             </div>

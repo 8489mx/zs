@@ -12,6 +12,15 @@ import { CreateMaritimeJobDto } from './dto/create-job.dto';
 import { UpdateMaritimeContainerDto } from './dto/update-container.dto';
 import { DCSA_STANDARD_MILESTONES, DcsaMilestoneKey } from './maritime-freight.types';
 import * as crypto from 'crypto';
+import {
+  DEFAULT_SHIPPING_LINES,
+  DEFAULT_OVERSEAS_AGENTS,
+  DEFAULT_SHIPPING_PORTS,
+  DEFAULT_CONTAINER_TYPES,
+  DEFAULT_INCOTERMS,
+  DEFAULT_PORT_TERMINALS,
+} from './maritime-defaults.data';
+import { MaritimeMailService } from './maritime-mail.service';
 
 @Injectable()
 export class MaritimeFreightService {
@@ -19,20 +28,140 @@ export class MaritimeFreightService {
 
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly maritimeMailService: MaritimeMailService,
   ) {}
+
+  /**
+   * Ensures hardcoded master catalog (14 shipping lines, 27 overseas agents, 18 ports)
+   * is seeded for the specified tenant. If records are missing, it safely seeds them
+   * without overwriting existing client modifications.
+   */
+  async ensureDefaultMasterData(tenantId: string): Promise<{ portsAdded: number; linesAdded: number; agentsAdded: number }> {
+    if (!tenantId) return { portsAdded: 0, linesAdded: 0, agentsAdded: 0 };
+
+    let portsAdded = 0;
+    let linesAdded = 0;
+    let agentsAdded = 0;
+
+    try {
+      // 1. Check & Seed Ports for this tenant
+      const existingPorts = await this.db
+        .selectFrom('shipping_ports')
+        .select('code')
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      const existingPortCodes = new Set(existingPorts.map((p) => p.code));
+      const missingPorts = DEFAULT_SHIPPING_PORTS.filter((p) => !existingPortCodes.has(p.code));
+
+      for (const port of missingPorts) {
+        await sql`
+          INSERT INTO shipping_ports (tenant_id, code, name_ar, name_en, country_code, country_name, is_active)
+          VALUES (${tenantId}, ${port.code}, ${port.name_ar}, ${port.name_en}, ${port.country_code}, ${port.country_name}, true)
+          ON CONFLICT (tenant_id, code) DO NOTHING
+        `.execute(this.db);
+        portsAdded++;
+      }
+
+      // 2. Check & Seed Shipping Lines for this tenant
+      const existingLines = await this.db
+        .selectFrom('shipping_lines')
+        .select('code')
+        .where('tenant_id', '=', tenantId)
+        .where('carrier_type', '=', 'shipping_line')
+        .execute();
+
+      const existingLineCodes = new Set(existingLines.map((l) => l.code));
+      const missingLines = DEFAULT_SHIPPING_LINES.filter((l) => !existingLineCodes.has(l.code));
+
+      for (const line of missingLines) {
+        await sql`
+          INSERT INTO shipping_lines (
+            tenant_id, code, name_ar, name_en, carrier_type, country_name, country_code,
+            city_name, contact_person, email, rfq_email, booking_email, phone, whatsapp,
+            wechat, trade_lanes, services_offered, supported_ports, notes, is_active
+          )
+          VALUES (
+            ${tenantId}, ${line.code}, ${line.name_ar}, ${line.name_en}, 'shipping_line',
+            ${line.country_name || null}, ${line.country_code || null}, ${line.city_name || null},
+            ${line.contact_person || null}, ${line.email || null}, ${line.rfq_email || null},
+            ${line.booking_email || null}, ${line.phone || null}, ${line.whatsapp || null},
+            ${line.wechat || null}, ${line.trade_lanes || null}, ${line.services_offered || null},
+            ${line.supported_ports || null}, ${line.notes || null}, true
+          )
+          ON CONFLICT (tenant_id, code) DO NOTHING
+        `.execute(this.db);
+        linesAdded++;
+      }
+
+      // 3. Check & Seed Overseas Agents for this tenant
+      const existingAgents = await this.db
+        .selectFrom('shipping_lines')
+        .select('code')
+        .where('tenant_id', '=', tenantId)
+        .where('carrier_type', '=', 'overseas_agent')
+        .execute();
+
+      const existingAgentCodes = new Set(existingAgents.map((a) => a.code));
+      const missingAgents = DEFAULT_OVERSEAS_AGENTS.filter((a) => !existingAgentCodes.has(a.code));
+
+      for (const agent of missingAgents) {
+        await sql`
+          INSERT INTO shipping_lines (
+            tenant_id, code, name_ar, name_en, carrier_type, country_name, country_code,
+            city_name, contact_person, email, rfq_email, booking_email, phone, whatsapp,
+            wechat, trade_lanes, services_offered, supported_ports, notes, is_active
+          )
+          VALUES (
+            ${tenantId}, ${agent.code}, ${agent.name_ar}, ${agent.name_en}, 'overseas_agent',
+            ${agent.country_name || null}, ${agent.country_code || null}, ${agent.city_name || null},
+            ${agent.contact_person || null}, ${agent.email || null}, ${agent.rfq_email || null},
+            ${agent.booking_email || null}, ${agent.phone || null}, ${agent.whatsapp || null},
+            ${agent.wechat || null}, ${agent.trade_lanes || null}, ${agent.services_offered || null},
+            ${agent.supported_ports || null}, ${agent.notes || null}, true
+          )
+          ON CONFLICT (tenant_id, code) DO NOTHING
+        `.execute(this.db);
+        agentsAdded++;
+      }
+
+      if (portsAdded > 0 || linesAdded > 0 || agentsAdded > 0) {
+        this.logger.log(`Seeded maritime defaults for tenant ${tenantId}: ports=${portsAdded}, lines=${linesAdded}, agents=${agentsAdded}`);
+      }
+    } catch (err) {
+      this.logger.error(`Error ensuring maritime defaults for tenant ${tenantId}:`, err);
+    }
+
+    return { portsAdded, linesAdded, agentsAdded };
+  }
+
+  async seedDefaultMasterData(auth: AuthContext) {
+    const { tenantId } = requireTenantScope(auth);
+    return await this.ensureDefaultMasterData(tenantId);
+  }
 
   // --------------------------------------------------------------------------
   // 1. Ports Master Data
   // --------------------------------------------------------------------------
   async getPorts(auth: AuthContext) {
     const { tenantId } = requireTenantScope(auth);
+    await this.ensureDefaultMasterData(tenantId);
+    const tenantPorts = await this.db
+      .selectFrom('shipping_ports')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('is_active', '=', true)
+      .orderBy('name_ar', 'asc')
+      .execute();
+
+    if (tenantPorts.length > 0) {
+      return tenantPorts;
+    }
+
     return await this.db
       .selectFrom('shipping_ports')
       .selectAll()
-      .where((eb) => eb.or([
-        eb('tenant_id', '=', tenantId),
-        eb('tenant_id', '=', 'default')
-      ]))
+      .where('tenant_id', '=', 'default')
       .where('is_active', '=', true)
       .orderBy('name_ar', 'asc')
       .execute();
@@ -73,41 +202,50 @@ export class MaritimeFreightService {
   // --------------------------------------------------------------------------
   async getShippingLines(auth: AuthContext, filters?: { carrierType?: string; tradeLane?: string; countryCode?: string; search?: string }) {
     const { tenantId } = requireTenantScope(auth);
-    let query = this.db
-      .selectFrom('shipping_lines')
-      .selectAll()
-      .where((eb) => eb.or([
-        eb('tenant_id', '=', tenantId),
-        eb('tenant_id', '=', 'default')
-      ]))
-      .where('is_active', '=', true);
+    await this.ensureDefaultMasterData(tenantId);
 
-    if (filters?.carrierType && filters.carrierType !== 'all') {
-      query = query.where('carrier_type', '=', filters.carrierType as any);
+    const buildQuery = (scopedTenantId: string) => {
+      let q = this.db
+        .selectFrom('shipping_lines')
+        .selectAll()
+        .where('tenant_id', '=', scopedTenantId)
+        .where('is_active', '=', true);
+
+      if (filters?.carrierType && filters.carrierType !== 'all') {
+        q = q.where('carrier_type', '=', filters.carrierType as any);
+      }
+
+      if (filters?.tradeLane && filters.tradeLane !== 'all') {
+        q = q.where('trade_lanes', 'like', `%${filters.tradeLane}%`);
+      }
+
+      if (filters?.countryCode && filters.countryCode !== 'all') {
+        q = q.where('country_code', '=', filters.countryCode.toUpperCase());
+      }
+
+      if (filters?.search) {
+        const term = `%${filters.search}%`;
+        q = q.where((eb) => eb.or([
+          eb('code', 'ilike', term),
+          eb('name_ar', 'ilike', term),
+          eb('name_en', 'ilike', term),
+          eb('contact_person', 'ilike', term),
+          eb('country_name', 'ilike', term),
+          eb('city_name', 'ilike', term),
+          eb('rfq_email', 'ilike', term)
+        ]));
+      }
+
+      return q.orderBy('carrier_type', 'asc').orderBy('name_ar', 'asc');
+    };
+
+    const tenantLines = await buildQuery(tenantId).execute();
+    if (tenantLines.length > 0) {
+      return tenantLines;
     }
 
-    if (filters?.tradeLane && filters.tradeLane !== 'all') {
-      query = query.where('trade_lanes', 'like', `%${filters.tradeLane}%`);
-    }
-
-    if (filters?.countryCode && filters.countryCode !== 'all') {
-      query = query.where('country_code', '=', filters.countryCode.toUpperCase());
-    }
-
-    if (filters?.search) {
-      const term = `%${filters.search}%`;
-      query = query.where((eb) => eb.or([
-        eb('code', 'ilike', term),
-        eb('name_ar', 'ilike', term),
-        eb('name_en', 'ilike', term),
-        eb('contact_person', 'ilike', term),
-        eb('country_name', 'ilike', term),
-        eb('city_name', 'ilike', term),
-        eb('rfq_email', 'ilike', term)
-      ]));
-    }
-
-    return await query.orderBy('carrier_type', 'asc').orderBy('name_ar', 'asc').execute();
+    // Fallback to default tenant catalog if tenant has not yet seeded
+    return await buildQuery('default').execute();
   }
 
   async createShippingLine(auth: AuthContext, data: {
@@ -170,6 +308,100 @@ export class MaritimeFreightService {
       .execute();
 
     return inserted;
+  }
+
+  getReferenceData() {
+    return {
+      containerTypes: DEFAULT_CONTAINER_TYPES,
+      incoterms: DEFAULT_INCOTERMS,
+      portTerminals: DEFAULT_PORT_TERMINALS,
+    };
+  }
+
+  async importCarriersBulk(auth: AuthContext, items: any[]) {
+    const { tenantId } = requireTenantScope(auth);
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new BadRequestException('قائمة البيانات المستوردة فارغة');
+    }
+
+    let insertedCount = 0;
+    let updatedCount = 0;
+
+    for (const item of items) {
+      const code = String(item.code || '').trim().toUpperCase();
+      const nameAr = String(item.nameAr || item.name_ar || '').trim();
+      if (!code || !nameAr) continue;
+
+      const carrierType = item.carrierType === 'overseas_agent' || item.carrier_type === 'overseas_agent'
+        ? 'overseas_agent'
+        : 'shipping_line';
+
+      const existing = await this.db
+        .selectFrom('shipping_lines')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('code', '=', code)
+        .executeTakeFirst();
+
+      if (existing) {
+        await this.db
+          .updateTable('shipping_lines')
+          .set({
+            name_ar: nameAr,
+            name_en: item.nameEn || item.name_en || nameAr,
+            carrier_type: carrierType,
+            country_name: item.countryName || item.country_name || null,
+            country_code: item.countryCode || item.country_code ? String(item.countryCode || item.country_code).toUpperCase() : null,
+            city_name: item.cityName || item.city_name || null,
+            contact_person: item.contactPerson || item.contact_person || null,
+            email: item.email || null,
+            rfq_email: item.rfqEmail || item.rfq_email || item.email || null,
+            booking_email: item.bookingEmail || item.booking_email || null,
+            phone: item.phone || null,
+            whatsapp: item.whatsapp || null,
+            wechat: item.wechat || null,
+            trade_lanes: item.tradeLanes || item.trade_lanes || null,
+            services_offered: item.servicesOffered || item.services_offered || null,
+            supported_ports: item.supportedPorts || item.supported_ports || null,
+            notes: item.notes || null,
+            is_active: true,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', existing.id)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+        updatedCount++;
+      } else {
+        await this.db
+          .insertInto('shipping_lines')
+          .values({
+            tenant_id: tenantId,
+            code,
+            name_ar: nameAr,
+            name_en: item.nameEn || item.name_en || nameAr,
+            carrier_type: carrierType,
+            country_name: item.countryName || item.country_name || null,
+            country_code: item.countryCode || item.country_code ? String(item.countryCode || item.country_code).toUpperCase() : null,
+            city_name: item.cityName || item.city_name || null,
+            contact_person: item.contactPerson || item.contact_person || null,
+            email: item.email || null,
+            rfq_email: item.rfqEmail || item.rfq_email || item.email || null,
+            booking_email: item.bookingEmail || item.booking_email || null,
+            phone: item.phone || null,
+            whatsapp: item.whatsapp || null,
+            wechat: item.wechat || null,
+            trade_lanes: item.tradeLanes || item.trade_lanes || null,
+            services_offered: item.servicesOffered || item.services_offered || null,
+            supported_ports: item.supportedPorts || item.supported_ports || null,
+            notes: item.notes || null,
+            is_active: true,
+          })
+          .execute();
+        insertedCount++;
+      }
+    }
+
+    return { insertedCount, updatedCount, totalProcessed: insertedCount + updatedCount };
   }
 
   async updateShippingLine(auth: AuthContext, id: string, data: any) {
@@ -694,6 +926,19 @@ export class MaritimeFreightService {
             html,
           });
           sentCount++;
+
+          // Automatically archive sent RFQ email into IMAP Sent folder
+          this.maritimeMailService
+            .appendSentEmailToImap(tenantId, {
+              fromName,
+              fromEmail,
+              to: targetEmail,
+              subject,
+              html,
+            })
+            .catch((err) => {
+              this.logger.warn(`Failed to archive sent RFQ to IMAP Sent: ${err?.message}`);
+            });
         } catch (err: any) {
           this.logger.error(`Failed to send RFQ email to ${targetEmail}: ${err?.message}`);
         }

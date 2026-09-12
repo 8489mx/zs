@@ -1,4 +1,5 @@
 import { Quotation } from '@/features/sales/api/quotations.api';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 export function printQuotation(q: Quotation) {
   const printWindow = window.open('', '_blank', 'width=800,height=900');
@@ -10,9 +11,9 @@ export function printQuotation(q: Quotation) {
       <td style="text-align: center;">${idx + 1}</td>
       <td><strong>${item.product_name || item.productName || ''}</strong></td>
       <td style="text-align: center;">${item.quantity}</td>
-      <td style="text-align: left;">${Number(item.unit_price ?? item.unitPrice ?? 0).toLocaleString('ar-EG')} ج.م</td>
-      <td style="text-align: left;">${Number(item.tax_amount || 0).toLocaleString('ar-EG')} ج.م</td>
-      <td style="text-align: left; font-weight: bold;">${Number(item.total).toLocaleString('ar-EG')} ج.م</td>
+      <td style="text-align: left;">${Number(item.unit_price ?? item.unitPrice ?? 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}</td>
+      <td style="text-align: left;">${Number(item.tax_amount || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}</td>
+      <td style="text-align: left; font-weight: bold;">${Number(item.total).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}</td>
     </tr>
   `).join('');
 
@@ -75,17 +76,17 @@ export function printQuotation(q: Quotation) {
         <div class="totals">
           <div class="totals-row">
             <span>المجموع الفرعي:</span>
-            <span>${Number(q.subtotal).toLocaleString('ar-EG')} ج.م</span>
+            <span>${Number(q.subtotal).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}</span>
           </div>
           ${Number(q.tax_amount) > 0 ? `
             <div class="totals-row">
               <span>ضريبة القيمة المضافة:</span>
-              <span>${Number(q.tax_amount).toLocaleString('ar-EG')} ج.م</span>
+              <span>${Number(q.tax_amount).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}</span>
             </div>
           ` : ''}
           <div class="totals-row grand">
             <span>الإجمالي النهائي:</span>
-            <span>${Number(q.total_amount).toLocaleString('ar-EG')} ج.م</span>
+            <span>${Number(q.total_amount).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}</span>
           </div>
         </div>
 

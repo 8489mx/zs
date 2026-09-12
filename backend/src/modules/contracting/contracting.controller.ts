@@ -34,7 +34,16 @@ import {
   CreateMasterBoqLibraryItemDto,
   UpdateMasterBoqLibraryItemDto,
   ImportMasterBoqToProjectDto,
+  SaveBoqTakeoffsDto,
+  CreateSiteMobilizationExpenseDto,
+  RecordLaborAttendanceRecordDto,
+  CreateClientPaymentMilestoneDto,
+  RecordInKindBarterDeductionDto,
+  CreateEquipmentAssetDto,
+  TransferEquipmentAssetDto,
+  RecordSupplierPriceMemoryDto,
 } from './dto/contracting.dto';
+
 
 @Controller(['contracting', 'api/contracting'])
 @UseGuards(SessionAuthGuard)
@@ -596,5 +605,173 @@ export class ContractingController {
   ) {
     return this.contractingService.importMasterBoqItemsToProject(req.authContext!, projectId, dto);
   }
+
+  // --------------------------------------------------------------------------
+  // 22. BOQ CAD Quantity Takeoff Sheet
+  // --------------------------------------------------------------------------
+
+  @Get('boq/:boqItemId/takeoffs')
+  async getTakeoffsByBoqItem(@Param('boqItemId') boqItemId: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getTakeoffsByBoqItem(req.authContext!, boqItemId);
+  }
+
+  @Post('boq/:boqItemId/takeoffs')
+  async saveTakeoffs(
+    @Param('boqItemId') boqItemId: string,
+    @Body() dto: SaveBoqTakeoffsDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.saveTakeoffs(req.authContext!, boqItemId, dto);
+  }
+
+  // --------------------------------------------------------------------------
+  // 23. Site Mobilization & Setup Expenses
+  // --------------------------------------------------------------------------
+
+  @Get('projects/:projectId/mobilization')
+  async getMobilizationExpenses(@Param('projectId') projectId: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getMobilizationExpenses(req.authContext!, projectId);
+  }
+
+  @Post('projects/:projectId/mobilization')
+  async createMobilizationExpense(
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateSiteMobilizationExpenseDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.createMobilizationExpense(req.authContext!, projectId, dto);
+  }
+
+  @Delete('mobilization/:id')
+  async deleteMobilizationExpense(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.deleteMobilizationExpense(req.authContext!, id);
+  }
+
+  // --------------------------------------------------------------------------
+  // 24. Labor Attendance & Overtime Records (Linked to BOQ Item)
+  // --------------------------------------------------------------------------
+
+  @Get('projects/:projectId/labor-records')
+  async getLaborAttendanceRecords(
+    @Param('projectId') projectId: string,
+    @Query('date') date: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.getLaborAttendanceRecords(req.authContext!, projectId, date);
+  }
+
+  @Post('projects/:projectId/labor-records')
+  async recordLaborAttendance(
+    @Param('projectId') projectId: string,
+    @Body() dto: RecordLaborAttendanceRecordDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.recordLaborAttendance(req.authContext!, projectId, dto);
+  }
+
+  @Delete('labor-records/:id')
+  async deleteLaborAttendanceRecord(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.deleteLaborAttendanceRecord(req.authContext!, id);
+  }
+
+  // --------------------------------------------------------------------------
+  // 25. Client Payment Milestones & In-Kind Barter Settlements
+  // --------------------------------------------------------------------------
+
+  @Get('projects/:projectId/milestones')
+  async getClientPaymentMilestones(@Param('projectId') projectId: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getClientPaymentMilestones(req.authContext!, projectId);
+  }
+
+  @Post('projects/:projectId/milestones')
+  async createClientPaymentMilestone(
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateClientPaymentMilestoneDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.createClientPaymentMilestone(req.authContext!, projectId, dto);
+  }
+
+  @Post('milestones/:id/barter-settlement')
+  async recordInKindBarterDeduction(
+    @Param('id') id: string,
+    @Body() dto: RecordInKindBarterDeductionDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.recordInKindBarterDeduction(req.authContext!, id, dto);
+  }
+
+  @Delete('milestones/:id')
+  async deleteClientPaymentMilestone(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.deleteClientPaymentMilestone(req.authContext!, id);
+  }
+
+  // --------------------------------------------------------------------------
+  // 26. Equipment & Tools Asset Tracking
+  // --------------------------------------------------------------------------
+
+  @Get('equipment')
+  async getEquipmentAssets(
+    @Query('projectId') projectId: string,
+    @Query('operationalStatus') operationalStatus: string,
+    @Query('search') search: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.getEquipmentAssets(req.authContext!, { projectId, operationalStatus, search });
+  }
+
+  @Post('equipment')
+  async createEquipmentAsset(@Body() dto: CreateEquipmentAssetDto, @Req() req: RequestWithAuth) {
+    return this.contractingService.createEquipmentAsset(req.authContext!, dto);
+  }
+
+  @Post('equipment/:id/transfer')
+  async transferEquipmentAsset(
+    @Param('id') id: string,
+    @Body() dto: TransferEquipmentAssetDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.transferEquipmentAsset(req.authContext!, id, dto);
+  }
+
+  @Get('equipment-transfers')
+  async getEquipmentTransfers(@Query('equipmentId') equipmentId: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getEquipmentTransfers(req.authContext!, equipmentId);
+  }
+
+  // --------------------------------------------------------------------------
+  // 27. Supplier Price Memory & Rating Directory
+  // --------------------------------------------------------------------------
+
+  @Get('supplier-price-memory')
+  async getSupplierPriceMemory(
+    @Query('supplierId') supplierId: string,
+    @Query('materialName') materialName: string,
+    @Query('governorate') governorate: string,
+    @Query('paymentTerms') paymentTerms: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.getSupplierPriceMemory(req.authContext!, {
+      supplierId: supplierId ? Number(supplierId) : undefined,
+      materialName,
+      governorate,
+      paymentTerms,
+    });
+  }
+
+  @Post('supplier-price-memory')
+  async recordSupplierPriceMemory(@Body() dto: RecordSupplierPriceMemoryDto, @Req() req: RequestWithAuth) {
+    return this.contractingService.recordSupplierPriceMemory(req.authContext!, dto);
+  }
+
+  // --------------------------------------------------------------------------
+  // 28. Item-Level Direct Profitability Ledger
+  // --------------------------------------------------------------------------
+
+  @Get('projects/:projectId/item-profitability')
+  async getItemProfitabilityLedger(@Param('projectId') projectId: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getItemProfitabilityLedger(req.authContext!, projectId);
+  }
 }
+
 

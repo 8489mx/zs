@@ -1,7 +1,7 @@
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { XIcon } from '@/shared/components/icons/AppIcons';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrencyWithSymbol } from '@/lib/format';
 import type { CreateWhtTransactionPayload } from '@/features/accounting/api/accounting.api';
 
 interface CreateWhtModalProps {
@@ -167,7 +167,7 @@ export function CreateWhtModal({
               />
               {newTx.base_amount > 0 && (
                 <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#059669', fontWeight: 700 }}>
-                  قيمة الضريبة المحتسبة: {formatCurrency(newTx.base_amount * ((newTx.wht_rate || 1) / 100))} ج.م
+                  قيمة الضريبة المحتسبة: {formatCurrencyWithSymbol(newTx.base_amount * ((newTx.wht_rate || 1) / 100))}
                 </div>
               )}
             </div>
