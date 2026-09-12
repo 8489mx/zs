@@ -3328,3 +3328,63 @@
   4. **الحفظ الدفعي وترقية رسائل التأكيد المؤسسية (Zero Native Confirm Standard):**
      - حفظ التحديثات في دفعات خفيفة مع عداد رقمي لنسبة الإنجاز.
      - تطهير زر حذف المهام في جدول جانت من `window.confirm` التقليدية واستبدالها بنظام `await systemConfirm(...)` المعتمد.
+
+---
+
+## 106. المرحلة الأولى لأتمتة وربط الشحن الملاحي محاسبياً وجدولة المزامنة الذكية (Maritime Freight Phase 1: GL Financial Ledger Automation, Background Scheduler & Universal Combobox)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومفعل في شاشات الشحن الملاحي والباك إند (Double-Entry General Ledger Posting, Background Automation Cron Engine & Universal CustomSelect UI).
+* **مسارات الكود الأساسية:**
+  - الباك إند وخدمات الترحيل المحاسبي: `backend/src/modules/maritime-freight/maritime-freight.service.ts`
+  - خدمة الجدولة الآلية والمزامنة الخلفية: `backend/src/modules/maritime-freight/maritime-automation-scheduler.service.ts`
+  - وحدة الشحن الملاحي: `backend/src/modules/maritime-freight/maritime-freight.module.ts`
+  - متحكم الشحن الملاحي: `backend/src/modules/maritime-freight/maritime-freight.controller.ts`
+  - واجهة برمجة التطبيقات للفرونت إند: `frontend/src/features/maritime-freight/api/maritime-freight.api.ts`
+  - تفاصيل أمر الشغل والقيود المحاسبية الحية: `frontend/src/features/maritime-freight/components/JobDetailsModal.tsx`
+  - مكونات الواجهة المطهرة بنظام CustomSelect: `CreateRfqModal.tsx`, `CarrierBidEntryModal.tsx`, `ContainerReturnModal.tsx`, `CreateInquiryModal.tsx`, `MaritimeMatrixTab.tsx`, `MaritimeInquiriesTab.tsx`, `MaritimeMasterDataTab.tsx`, `MaritimeSettingsTab.tsx`, `PartnerFormModal.tsx`, `ImportCarriersModal.tsx`, `PublicCarrierQuotePage.tsx`.
+* **الميزات والترقيات الهندسية المنفذة:**
+  1. **الترحيل المالي المحاسبي المزدوج لأوامر الشغل الملاحية (Real Double-Entry GL Ledger Posting):**
+     - إصدار فاتورة المبيعات للعميل (`issueJobSalesInvoice`): توليد قيد يومية متزن نظامي بقيد مدين على حـ/ العملاء المدينين (`1130`) وقيد دائن على حـ/ إيرادات الشحن والخدمات (`4200` / `4100`) مع ربط طرف القيد بمركز تكلفة الشحنة (`cost_center_id`) وتحديث إجمالي المفوتر للعميل وصافي الربحية.
+     - تسجيل إذن صرف مصروفات الشحنة والخط الملاحي (`recordJobExpenseVoucher`): توليد قيد يومية متزن نظامي بقيد مدين على حـ/ مصروفات الشحن والنولون (`6400` / `5100`) مربوط بمركز التكلفة وقيد دائن على حـ/ الخط الملاحي أو المورد (`2110`) أو الخزينة النقدية (`1110`) أو البنك (`1120`).
+     - عرض دفتر الأستاذ المالي الحي للشحنة (`JobDetailsModal - Finance Tab`) يوضح أرقام القيود اليومية المنشأة، أطراف القيد المدينة والدائنة، أكواد الحسابات، والمطابقة المحاسبية بدقة.
+  2. **خدمة الجدولة الآلية الخلفية للشحن الملاحي (Maritime Automation Background Scheduler):**
+     - بناء وتشغيل `MaritimeAutomationSchedulerService` عبر `@nestjs/schedule` كمهام مجدولة (Cron Jobs).
+     - مهمة دورية للمزامنة البريدية الذكية (IMAP Bids Sync) تقرأ وتفحص عروض أسعار الخطوط الواردة لكل مشترك لديه الإعداد مفعل دون تدخل بشري.
+     - مهمة يومية صباحية لفحص رادار الحاويات ورصد ومراقبة الحاويات الحرجة التي يقترب انتهاء فترات سماحها (Free Days ≤ 3 أيام) لتجنب غرامات الأرضيات (Demurrage).
+  3. **التطهير الشامل وتوحيد القوائم المنسدلة (Strict Universal CustomSelect Standard):**
+     - إزالة وتطهير 100% من عناصر `<select>` التقليدية في كافة ملفات ومكونات موديول الشحن واللوجستك واستبدالها بالمكون الموحد البريميوم `CustomSelect`.
+
+---
+
+## 107. الأتمتة الكاملة لموديول الشحن واللوجستك: إشعارات الواتساب السحابية، بوابة التتبع المباشر، محرك بوالص e-B/L ومستندات الموانئ، ورادار الأقمار الصناعية (Maritime Freight Complete Automation: Cloud WhatsApp, Public Tracking Portal, e-B/L Engine & AIS Satellite Radar)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومفعل في الباك إند والفرونت إند (End-to-End Enterprise Freight Automation, Automated WhatsApp Milestones, Public DCSA Tracking Portal, FIATA/BIMCO e-B/L & D/O Engine, and Live AIS Satellite Tracking).
+* **معيار المقارنة الدولي:** Freightos / Flexport / Portcast / CargoWise End-to-End Maritime Logistics & Multimodal Tracking.
+* **روابط وشاشات الوصول:**
+  - نافذة إدارة وتتبع العملية ومستندات الشحن: `/logistics/ocean-freight` ➔ (انقر على أي عملية ➔ تبويب "بيانات الرحلة"، "مسار التتبع"، "مستندات الشحن وبوالص B/L").
+  - بوابة التتبع العامة للعملاء: `/public/track/:token` و `/track/:token` و `/track`.
+* **مسارات الكود الأساسية:**
+  - الباك إند:
+    - `backend/src/modules/maritime-freight/maritime-freight.module.ts`: ربط وحدة الإعدادات وخدمة `WhatsAppGatewayService`.
+    - `backend/src/modules/maritime-freight/maritime-freight.service.ts`: الربط السحابي لإرسال رسائل الواتساب اللحظية عند تسجيل محطات DCSA، نقطة البحث الشامل في بوابة التتبع العام عبر التوكن أو رقم البوليصة أو الحاوية أو الحجز، وخدمة الإرسال المباشر.
+    - `backend/src/modules/maritime-freight/maritime-automation-scheduler.service.ts`: الأتمتة الذكية لإنذارات الأرضيات (Demurrage Proactive Alerts) عبر إرسال رسائل تحذيرية تلقائية للعملاء عبر الواتساب للحاويات التي يتبقى عليها $\le 3$ أيام سماح بالميناء.
+    - `backend/src/modules/maritime-freight/maritime-freight.controller.ts`: تسجيل نقطة `POST /api/maritime-freight/jobs/:id/send-whatsapp` ونقطة بوابة التتبع العامة `GET /api/public/freight-tracking/:token`.
+  - الفرونت إند:
+    - `frontend/src/features/maritime-freight/api/maritime-freight.api.ts`: دوال `sendJobMilestoneWhatsApp` و `getPublicTracking`.
+    - `frontend/src/features/maritime-freight/utils/maritime-documents.ts`: محرك توليد وطباعة وثائق الشحن الرسمية المتوافقة مع FIATA و BIMCO (بوليصة الشحن البحرية HBL، إذن التسليم الملاحي D/O مع مربعات أختام الإفراج والجمارك، وإشعار وصول الشحنة Consignee Arrival Notice).
+    - `frontend/src/features/maritime-freight/pages/PublicShipmentTrackingPage.tsx`: بوابة التتبع العامة المتطابقة مع معايير DCSA، توضح خط سير المحطات، حالة ومواصفات الحاويات، عد تنازلي لمهل الأرضيات، ورابط رادار الأقمار الصناعية المباشر.
+    - `frontend/src/features/maritime-freight/components/JobDetailsModal.tsx`: تكامل كامل لتبويب مستندات الشحن، بطاقة رادار AIS الحي لتتبع السفينة (MarineTraffic / VesselFinder)، وأزرار الإرسال السحابي واليدوي للواتساب.
+    - `frontend/src/app/router/root-router.tsx`: تسجيل مسارات التتبع العامة.
+* **الميزات والترقيات الهندسية المنفذة:**
+  1. **الأتمتة التامة لإشعارات الواتساب السحابية والميدانية (Automated WhatsApp Milestones & Proactive Demurrage Alerts):**
+     - إرسال سحابي تلقائي لرسائل الواتساب إلى هاتف العميل عبر `WhatsAppGatewayService` فور تسجيل أي محطة ملاحية (مثل خروج البضاعة من المصنع، وصول الحاويات للميناء، إبحار السفينة، وصول الميناء، إصدار إذن التسليم D/O).
+     - جدولة ذكية ترسل تلقائياً إنذار استباقي للعميل عبر الواتساب عند اقتراب انتهاء أيام السماح للحاويات ($\le 3$ أيام) لتفادي غرامات الأرضيات والتأخير.
+     - أزرار إرسال سحابية فورية مباشرة في واجهة متابعة الشحنة مع زر احتياطي للفتح في تطبيق واتساب مباشرة (`wa.me`).
+  2. **بوابة التتبع الملاحي العامة للعملاء (Customer Self-Service Tracking Portal):**
+     - صفحة عامة بريميوم ذات هوية مؤسسية وتصميم RTL احترافي، خالية من أي إيموجيز ومعتمدة على `AppIcons`.
+     - دعم البحث المرن والفوري برمز التتبع الفريد، رقم العملية Job #، رقم بوليصة الشحن الرئيسية MBL، رقم بوليصة الشحن الداخلية HBL، أو رقم الحجز Booking #.
+     - عرض حي لمسار الرحلة POL ➔ POD، جدول محطات DCSA التفاعلي، بطاقات الحاويات مع عداد أيام السماح ومهلة الإرجاع، وبيانات السفينة والخط الملاحي.
+  3. **محرك إصدار وطباعة بوالص الشحن والمستندات الملاحية (e-B/L & Maritime Documents Engine):**
+     - **بوليصة الشحن البحري القياسية (FIATA/BIMCO Compliant House B/L):** وثيقة دولية قياسية بمقاس A4 تتضمن تفاصيل الشاحن، المستلم، جهة الإخطار، السفينة، الرحلة، مواصفات الحاويات، الأوزان الإجمالية، الحجم بالمتر المكعب CBM، وأختام الناقل.
+     - **إذن التسليم الملاحي الرسمي (Delivery Order - D/O):** مستند إفراج رسمي موجه لسلطات الموانئ والجمارك ومحطات الحاويات، يتضمن جدول الحاويات ومربعات توقيع واعتماد الفحص الجمركي وجهات التخليص.
+     - **إشعار وصول الشحنة (Consignee Arrival Notice):** إخطار رسمي للعميل بموعد وصول السفينة وتفريغ البضائع وتفاصيل المستندات المطلوبة لاستلام إذن التسليم.
+  4. **رادار الأقمار الصناعية لتتبع السفن الحية (Live Satellite AIS Vessel Radar):**
+     - بطاقة ملاحية مدمجة في ملف العملية تتيح تتبع السفينة مباشرة عبر رادار الأقمار الصناعية وأنظمة AIS العالمية (MarineTraffic & VesselFinder) بنقرة واحدة بمجرد إدخال اسم السفينة ورقم الرحلة.

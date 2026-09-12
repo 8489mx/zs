@@ -12,6 +12,7 @@ import {
   CheckIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
+import { CustomSelect } from '@/shared/ui/custom-select';
 
 export const STANDARD_EMAIL_TEMPLATES = {
   subject: '[{{rfq_number}}] Ocean Freight Rate Inquiry: {{pol_name}} to {{pod_name}} ({{container_count}}x {{container_type}})',
@@ -604,14 +605,14 @@ export function MaritimeSettingsTab() {
                     {config.smtpSecure ? 'SSL / TLS (Port 465)' : 'STARTTLS (Port 587)'}
                   </div>
                 ) : (
-                  <select
+                  <CustomSelect
                     value={config.smtpSecure ? 'ssl' : 'starttls'}
-                    onChange={(e) => setConfig({ ...config, smtpSecure: e.target.value === 'ssl' })}
-                    style={{ width: '100%', padding: '7px 10px', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '0.8125rem', background: '#fff' }}
-                  >
-                    <option value="ssl">SSL / TLS (Port 465)</option>
-                    <option value="starttls">STARTTLS (Port 587)</option>
-                  </select>
+                    onChange={(val) => setConfig({ ...config, smtpSecure: val === 'ssl' })}
+                    options={[
+                      { value: 'ssl', label: 'SSL / TLS (Port 465)' },
+                      { value: 'starttls', label: 'STARTTLS (Port 587)' },
+                    ]}
+                  />
                 )}
               </div>
             </div>
@@ -781,14 +782,14 @@ export function MaritimeSettingsTab() {
                     {config.imapSecure ? 'SSL / TLS (الافتراضي المنفذ 993)' : 'غير مشفر (منفذ 143)'}
                   </div>
                 ) : (
-                  <select
+                  <CustomSelect
                     value={config.imapSecure ? 'ssl' : 'plain'}
-                    onChange={(e) => setConfig({ ...config, imapSecure: e.target.value === 'ssl' })}
-                    style={{ width: '100%', padding: '7px 10px', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '0.8125rem', background: '#fff' }}
-                  >
-                    <option value="ssl">SSL / TLS (الافتراضي المنفذ 993)</option>
-                    <option value="plain">غير مشفر (منفذ 143)</option>
-                  </select>
+                    onChange={(val) => setConfig({ ...config, imapSecure: val === 'ssl' })}
+                    options={[
+                      { value: 'ssl', label: 'SSL / TLS (الافتراضي المنفذ 993)' },
+                      { value: 'plain', label: 'غير مشفر (منفذ 143)' },
+                    ]}
+                  />
                 )}
               </div>
             </div>

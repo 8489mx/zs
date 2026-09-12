@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MaritimeRfq, MaritimeRfqBid, maritimeApi } from '../api/maritime-freight.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { CustomSelect } from '@/shared/ui/custom-select';
 
 interface MaritimeMatrixTabProps {
   rfqs: MaritimeRfq[];
@@ -44,19 +45,19 @@ export function MaritimeMatrixTab({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* شريط اختيار طلب التسعير */}
       <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontWeight: 700, color: '#170e5e', fontSize: '0.88rem' }}>طلب التسعير النشط:</span>
-          <select
-            value={activeRfqId || ''}
-            onChange={(e) => onSelectRfqId(e.target.value)}
-            style={{ minWidth: '320px', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem', fontWeight: 600 }}
-          >
-            {rfqs.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.rfq_number} — {r.pol_code} إلى {r.pod_code} ({r.container_count}x {r.container_type})
-              </option>
-            ))}
-          </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '280px', maxWidth: '520px' }}>
+          <span style={{ fontWeight: 700, color: '#170e5e', fontSize: '0.88rem', whiteSpace: 'nowrap' }}>طلب التسعير النشط:</span>
+          <div style={{ flex: 1 }}>
+            <CustomSelect
+              value={activeRfqId || ''}
+              onChange={(val) => onSelectRfqId(val)}
+              placeholder="اختر طلب التسعير..."
+              options={rfqs.map((r) => ({
+                value: String(r.id),
+                label: `${r.rfq_number} — ${r.pol_code} إلى ${r.pod_code} (${r.container_count}x ${r.container_type})`,
+              }))}
+            />
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

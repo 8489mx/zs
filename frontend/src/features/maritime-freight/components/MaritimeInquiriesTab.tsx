@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { MaritimeInquiry } from '../maritime-freight.types';
 import { SearchIcon, ArrowLeftIcon, FileTextIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import { CustomSelect } from '@/shared/ui/custom-select';
 
 interface MaritimeInquiriesTabProps {
   inquiries: MaritimeInquiry[];
@@ -162,25 +163,20 @@ export function MaritimeInquiriesTab({
 
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>الحالة:</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              fontSize: '0.78rem',
-              background: '#ffffff',
-              color: '#334155',
-            }}
-          >
-            <option value="all">كافة الحالات</option>
-            <option value="received">طلبات مستلمة جديدة</option>
-            <option value="rfq_created">تم تحويلها لـ RFQ</option>
-            <option value="quoted">تم تسعيرها للعميل</option>
-            <option value="converted_to_job">تم التعميد (أمر تشغيل)</option>
-            <option value="cancelled">ملغية</option>
-          </select>
+          <div style={{ width: 170 }}>
+            <CustomSelect
+              value={statusFilter}
+              onChange={(val) => setStatusFilter(val || 'all')}
+              options={[
+                { value: 'all', label: 'كافة الحالات' },
+                { value: 'received', label: 'طلبات مستلمة جديدة' },
+                { value: 'rfq_created', label: 'تم تحويلها لـ RFQ' },
+                { value: 'quoted', label: 'تم تسعيرها للعميل' },
+                { value: 'converted_to_job', label: 'تم التعميد (أمر تشغيل)' },
+                { value: 'cancelled', label: 'ملغية' },
+              ]}
+            />
+          </div>
         </div>
       </div>
 

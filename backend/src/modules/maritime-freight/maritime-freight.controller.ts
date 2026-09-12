@@ -212,6 +212,42 @@ export class MaritimeFreightController {
     return this.freightService.getMilestoneWhatsAppMessage(req.authContext!, id, milestoneKey);
   }
 
+  @Post('jobs/:id/send-whatsapp')
+  async sendJobMilestoneWhatsApp(
+    @Param('id') id: string,
+    @Body('milestone') milestoneKey: DcsaMilestoneKey,
+    @Body('phone') phone: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.sendMilestoneWhatsApp(req.authContext!, id, milestoneKey, phone);
+  }
+
+  @Post('jobs/:id/issue-invoice')
+  async issueJobSalesInvoice(
+    @Param('id') id: string,
+    @Body() body: { amount?: number; notes?: string },
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.issueJobSalesInvoice(req.authContext!, id, body);
+  }
+
+  @Post('jobs/:id/record-expense')
+  async recordJobExpenseVoucher(
+    @Param('id') id: string,
+    @Body() body: { amount: number; expenseType?: 'carrier' | 'port' | 'other'; paymentMethod?: 'payable' | 'cash' | 'bank'; supplierId?: number; supplierName?: string; description?: string },
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.recordJobExpenseVoucher(req.authContext!, id, body);
+  }
+
+  @Get('jobs/:id/financial-ledger')
+  async getJobFinancialLedger(
+    @Param('id') id: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.getJobFinancialLedger(req.authContext!, id);
+  }
+
   // 7. Containers & Demurrage Radar
   @Get('containers')
   async getContainers(

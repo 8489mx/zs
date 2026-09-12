@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { maritimeApi, ShippingLine } from '../api/maritime-freight.api';
 
 interface PartnerFormModalProps {
@@ -298,17 +299,14 @@ export function PartnerFormModal({
         {/* الموقع الجغرافي والدولة */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
           <Field label="الدولة (Country)">
-            <select
+            <CustomSelect
               value={countryCode}
-              onChange={(e) => handleCountrySelect(e.target.value)}
-              style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.84rem', background: '#fff' }}
-            >
-              {POPULAR_COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name} ({c.code})
-                </option>
-              ))}
-            </select>
+              onChange={(val) => handleCountrySelect(val || 'CN')}
+              options={POPULAR_COUNTRIES.map((c) => ({
+                value: c.code,
+                label: `${c.name} (${c.code})`,
+              }))}
+            />
           </Field>
 
           <Field label="اسم الدولة المخصص">

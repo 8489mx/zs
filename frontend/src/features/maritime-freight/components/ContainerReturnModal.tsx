@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { maritimeApi, MaritimeContainer } from '../api/maritime-freight.api';
 
 interface ContainerReturnModalProps {
@@ -89,15 +90,15 @@ export function ContainerReturnModal({ open, container, onClose, onUpdated }: Co
         </Field>
 
         <Field label="حالة مبلغ تأمين الحاوية *">
-          <select
+          <CustomSelect
             value={depositStatus}
-            onChange={(e) => setDepositStatus(e.target.value as any)}
-            style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-          >
-            <option value="pending_return_proof">بانتظار إشعار ومطابقة إيصال الرد من التوكيل (Pending Return Proof)</option>
-            <option value="refunded_to_treasury">تم استرداد التأمين نقداً وإيداعه بالخزينة (Refunded to Treasury)</option>
-            <option value="held_by_line">محتجز لدى الخط لوجود مطالبات أو غرامات (Held by Line)</option>
-          </select>
+            onChange={(val) => setDepositStatus(val as any)}
+            options={[
+              { value: 'pending_return_proof', label: 'بانتظار إشعار ومطابقة إيصال الرد من التوكيل (Pending Return Proof)' },
+              { value: 'refunded_to_treasury', label: 'تم استرداد التأمين نقداً وإيداعه بالخزينة (Refunded to Treasury)' },
+              { value: 'held_by_line', label: 'محتجز لدى الخط لوجود مطالبات أو غرامات (Held by Line)' },
+            ]}
+          />
         </Field>
 
         <Field label="رقم أو رابط إيصال إرجاع الفارغ (EIR / Yard Receipt)">

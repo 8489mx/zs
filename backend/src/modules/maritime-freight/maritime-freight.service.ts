@@ -21,6 +21,7 @@ import {
   DEFAULT_PORT_TERMINALS,
 } from './maritime-defaults.data';
 import { MaritimeMailService } from './maritime-mail.service';
+import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 
 @Injectable()
 export class MaritimeFreightService {
@@ -29,6 +30,7 @@ export class MaritimeFreightService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly maritimeMailService: MaritimeMailService,
+    private readonly whatsAppGatewayService: WhatsAppGatewayService,
   ) {}
 
   /**
@@ -1677,6 +1679,30 @@ export class MaritimeFreightService {
       .returningAll()
       .execute();
 
+    // Automated Proactive WhatsApp Notification on Milestone Change
+    try {
+      let customerPhone: string | null = null;
+      if (updatedJob.customer_id) {
+        const cust = await this.db
+          .selectFrom('customers')
+          .select(['phone'])
+          .where('id', '=', updatedJob.customer_id as any)
+          .executeTakeFirst();
+        customerPhone = cust?.phone || null;
+      }
+      if (!customerPhone && (updatedJob as any).customer_phone) {
+        customerPhone = (updatedJob as any).customer_phone;
+      }
+
+      if (customerPhone) {
+        const msgData = await this.getMilestoneWhatsAppMessage(auth, jobId, milestoneKey);
+        await this.whatsAppGatewayService.sendRawMessage(tenantId, customerPhone, msgData.message);
+        this.logger.log(`Auto-sent WhatsApp milestone update to ${customerPhone} for job ${updatedJob.job_number}`);
+      }
+    } catch (err: any) {
+      this.logger.debug(`Could not auto-send milestone WhatsApp for job ${jobId}: ${err?.message}`);
+    }
+
     return updatedJob;
   }
 
@@ -1688,6 +1714,31 @@ export class MaritimeFreightService {
       'GTO',
       'تم اعتماد وإصدار إذن التسليم الملاحي الرسمي (Delivery Order D/O) للعميل'
     );
+  }
+
+  async sendMilestoneWhatsApp(auth: AuthContext, jobId: string, milestoneKey: DcsaMilestoneKey, targetPhone?: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const msgData = await this.getMilestoneWhatsAppMessage(auth, jobId, milestoneKey);
+    let phone = targetPhone || msgData.customerPhone;
+
+    if (!phone) {
+      const job = await this.getJobById(auth, jobId);
+      if (job.customer_id) {
+        const cust = await this.db
+          .selectFrom('customers')
+          .select(['phone'])
+          .where('id', '=', job.customer_id as any)
+          .executeTakeFirst();
+        phone = cust?.phone || null;
+      }
+    }
+
+    if (!phone) {
+      return { success: false, message: 'لا يوجد رقم هاتف مسجل للعميل' };
+    }
+
+    const res = await this.whatsAppGatewayService.sendRawMessage(tenantId, phone, msgData.message);
+    return res;
   }
 
   async getMilestoneWhatsAppMessage(auth: AuthContext, jobId: string, milestoneKey: DcsaMilestoneKey) {
@@ -1934,37 +1985,29 @@ export class MaritimeFreightService {
   // 8. Public Live Tracking for Clients (Flexport Standard)
   // --------------------------------------------------------------------------
   async getPublicTrackingByToken(token: string) {
-    if (!token || token.length < 16) {
-      throw new BadRequestException('Invalid tracking token');
+    if (!token || token.trim().length === 0) {
+      throw new BadRequestException('رمز التتبع غير صحيح');
     }
+
+    const cleanToken = token.trim();
 
     const job = await this.db
       .selectFrom('maritime_jobs')
-      .select([
-        'id',
-        'job_number',
-        'customer_name',
-        'direction',
-        'shipping_line_name',
-        'vessel_name',
-        'voyage_number',
-        'pol_code',
-        'pol_name',
-        'pod_code',
-        'pod_name',
-        'etd',
-        'eta',
-        'bl_type',
-        'milestone_status',
-        'status',
-        'created_at'
-      ])
-      .where('tracking_token', '=', token)
+      .selectAll()
+      .where((eb) => eb.or([
+        eb('tracking_token', '=', cleanToken),
+        eb('job_number', '=', cleanToken),
+        eb('mbl_number', '=', cleanToken),
+        eb('hbl_number', '=', cleanToken),
+        eb('booking_number', '=', cleanToken),
+      ]))
       .executeTakeFirst();
 
     if (!job) {
-      throw new NotFoundException('Tracking shipment not found or expired link');
+      throw new NotFoundException('الشحنة المطلوبة غير موجودة أو انتهت صلاحية الرابط');
     }
+
+    const tenantId = job.tenant_id;
 
     const milestones = await this.db
       .selectFrom('maritime_job_milestones')
@@ -1975,23 +2018,80 @@ export class MaritimeFreightService {
 
     const containers = await this.db
       .selectFrom('maritime_containers')
-      .select([
-        'container_number',
-        'container_type',
-        'seal_number',
-        'free_days',
-        'return_deadline',
-        'is_overdue',
-        'empty_returned_at'
-      ])
+      .selectAll()
       .where('job_id', '=', String(job.id))
       .execute();
 
+    // Fetch company branding settings
+    const companySettingsRows = await this.db
+      .selectFrom('settings')
+      .select(['key', 'value'])
+      .where('tenant_id', '=', tenantId)
+      .where('key', 'in', ['companyName', 'storeName', 'email', 'phone', 'logo'])
+      .execute();
+
+    const companySettings = companySettingsRows.reduce<Record<string, string>>((acc, r) => {
+      try { acc[r.key] = JSON.parse(r.value); } catch { acc[r.key] = r.value; }
+      return acc;
+    }, {});
+
     return {
       shipment: job,
-      milestones,
-      containers,
+      job: {
+        id: job.id,
+        jobNumber: job.job_number,
+        bookingNumber: job.booking_number,
+        mblNumber: job.mbl_number,
+        hblNumber: job.hbl_number,
+        vesselName: job.vessel_name,
+        voyageNumber: job.voyage_number,
+        direction: job.direction,
+        paymentTerm: job.payment_term,
+        shippingLineName: job.shipping_line_name,
+        polCode: job.pol_code,
+        polName: job.pol_name,
+        podCode: job.pod_code,
+        podName: job.pod_name,
+        etd: job.etd,
+        eta: job.eta,
+        portCutOff: job.port_cut_off,
+        milestoneStatus: job.milestone_status,
+        deliveryOrderReleased: job.delivery_order_released,
+        deliveryOrderReleasedAt: job.delivery_order_released_at,
+        customerName: job.customer_name,
+        status: job.status,
+      },
+      milestones: milestones.map((m) => ({
+        id: m.id,
+        key: m.milestone_key,
+        title: m.milestone_title,
+        occurredAt: m.occurred_at,
+        location: m.location,
+        notes: m.notes,
+      })),
+      containers: containers.map((c) => ({
+        id: c.id,
+        containerNumber: c.container_number,
+        containerType: c.container_type,
+        sealNumber: c.seal_number,
+        grossWeightKg: c.gross_weight_kg,
+        cbm: c.cbm,
+        freeDays: c.free_days,
+        returnDeadline: c.return_deadline,
+        isOverdue: c.is_overdue,
+        overdueDays: c.overdue_days,
+        dischargedAt: c.discharged_at,
+        gatedOutAt: c.gated_out_at,
+        emptyReturnedAt: c.empty_returned_at,
+      })),
       dcsaMilestones: DCSA_STANDARD_MILESTONES,
+      dcsaDefinitions: DCSA_STANDARD_MILESTONES,
+      company: {
+        name: companySettings.companyName || companySettings.storeName || 'منظومة Z-Systems للشحن الملاحي',
+        phone: companySettings.phone || '',
+        email: companySettings.email || '',
+        logo: companySettings.logo || null,
+      },
     };
   }
 
@@ -2116,5 +2216,375 @@ export class MaritimeFreightService {
       .execute();
 
     return bid;
+  }
+
+  // --------------------------------------------------------------------------
+  // 10. Financial Accounting & Cost Center Posting
+  // --------------------------------------------------------------------------
+  private async resolveAccountId(tenantId: string, code: string, fallbackCode?: string): Promise<number | null> {
+    const acc = await this.db
+      .selectFrom('accounting_accounts')
+      .select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('code', '=', code)
+      .where('is_active', '=', true)
+      .executeTakeFirst();
+    if (acc) return Number(acc.id);
+    if (fallbackCode) {
+      const fallback = await this.db
+        .selectFrom('accounting_accounts')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('code', '=', fallbackCode)
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+      if (fallback) return Number(fallback.id);
+    }
+    return null;
+  }
+
+  async issueJobSalesInvoice(auth: AuthContext, jobId: string, dto?: { amount?: number; notes?: string }) {
+    const { tenantId } = requireTenantScope(auth);
+    const job = await this.getJobById(auth, jobId);
+
+    // 1. Ensure cost center exists
+    let costCenterId = job.cost_center_id ? Number(job.cost_center_id) : null;
+    if (!costCenterId) {
+      try {
+        const [newCc] = await this.db
+          .insertInto('cost_centers')
+          .values({
+            tenant_id: tenantId,
+            code: job.job_number,
+            name: `شحنة بحرية: ${job.job_number} - ${job.customer_name}`,
+            dimension: 'project',
+            is_active: true,
+            description: `مركز تكلفة تلقائي للعملية الملاحية ${job.job_number}`,
+          })
+          .returning('id')
+          .execute();
+        if (newCc) {
+          costCenterId = Number(newCc.id);
+          await this.db
+            .updateTable('maritime_jobs')
+            .set({ cost_center_id: String(costCenterId) })
+            .where('id', '=', job.id as any)
+            .execute();
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    const invoiceAmount = Number(dto?.amount ?? (Number(job.client_invoiced_total) || 0));
+    if (invoiceAmount <= 0) {
+      throw new BadRequestException('يجب تحديد مبلغ صالح للفاتورة أكبر من صفر');
+    }
+
+    // Resolve accounts: Customer Receivable (1130), Service Revenue (4200 or 4100)
+    const customerAccId = await this.resolveAccountId(tenantId, '1130');
+    const revenueAccId = await this.resolveAccountId(tenantId, '4200', '4100');
+
+    let entryId: number | null = null;
+    let entryNo = `INV-${job.job_number}`;
+
+    if (customerAccId && revenueAccId) {
+      const tempNo = `TMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const [inserted] = await this.db
+        .insertInto('journal_entries')
+        .values({
+          entry_no: tempNo,
+          tenant_id: tenantId,
+          account_id: tenantId,
+          entry_date: new Date(),
+          description: dto?.notes || `فاتورة مبيعات خدمات ملاحية - العملية #${job.job_number} (${job.customer_name})`,
+          source_type: 'maritime_job',
+          source_id: Number(job.id),
+          status: 'posted',
+          created_by: auth.userId ? Number(auth.userId) : null,
+          posted_by: auth.userId ? Number(auth.userId) : null,
+          posted_at: sql`NOW()`,
+        } as any)
+        .returning('id')
+        .execute();
+
+      entryId = Number(inserted.id);
+      entryNo = `JE-${String(entryId).padStart(8, '0')}`;
+      await this.db
+        .updateTable('journal_entries')
+        .set({ entry_no: entryNo, updated_at: sql`NOW()` } as any)
+        .where('id', '=', entryId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      // Line 1: Debit Customer Receivable (1130)
+      // Line 2: Credit Service Revenue (4200)
+      await this.db
+        .insertInto('journal_entry_lines')
+        .values([
+          {
+            journal_entry_id: entryId,
+            tenant_id: tenantId,
+            account_id: customerAccId,
+            cost_center_id: costCenterId,
+            description: `مستحق فاتورة شحن بحري - ${job.job_number}`,
+            debit: invoiceAmount,
+            credit: 0,
+            partner_type: 'customer',
+            partner_id: job.customer_id ? Number(job.customer_id) : null,
+          } as any,
+          {
+            journal_entry_id: entryId,
+            tenant_id: tenantId,
+            account_id: revenueAccId,
+            cost_center_id: costCenterId,
+            description: `إيراد خدمات ونولون ملاحي - ${job.job_number}`,
+            debit: 0,
+            credit: invoiceAmount,
+            partner_type: 'none',
+            partner_id: null,
+          } as any,
+        ])
+        .execute();
+    }
+
+    // Update Job Totals
+    const carrierCost = Number(job.carrier_cost_total || 0);
+    const otherCosts = Number(job.other_costs_total || 0);
+    const netProfit = invoiceAmount - (carrierCost + otherCosts);
+
+    const [updatedJob] = await this.db
+      .updateTable('maritime_jobs')
+      .set({
+        client_invoiced_total: invoiceAmount,
+        net_profit: netProfit,
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', job.id as any)
+      .returningAll()
+      .execute();
+
+    return {
+      success: true,
+      job: updatedJob,
+      journalEntryId: entryId,
+      entryNo,
+      amount: invoiceAmount,
+      message: `تم إصدار وترحيل فاتورة المبيعات للعملية #${job.job_number} بقيمة ${invoiceAmount} بنجاح`,
+    };
+  }
+
+  async recordJobExpenseVoucher(
+    auth: AuthContext,
+    jobId: string,
+    dto: {
+      amount: number;
+      expenseType?: 'carrier' | 'port' | 'other';
+      paymentMethod?: 'payable' | 'cash' | 'bank';
+      supplierId?: number;
+      supplierName?: string;
+      description?: string;
+    },
+  ) {
+    const { tenantId } = requireTenantScope(auth);
+    const job = await this.getJobById(auth, jobId);
+
+    const amount = Number(dto.amount || 0);
+    if (amount <= 0) {
+      throw new BadRequestException('يجب تحديد مبلغ صالح للمصروف أكبر من صفر');
+    }
+
+    // 1. Ensure cost center exists
+    let costCenterId = job.cost_center_id ? Number(job.cost_center_id) : null;
+    if (!costCenterId) {
+      try {
+        const [newCc] = await this.db
+          .insertInto('cost_centers')
+          .values({
+            tenant_id: tenantId,
+            code: job.job_number,
+            name: `شحنة بحرية: ${job.job_number} - ${job.customer_name}`,
+            dimension: 'project',
+            is_active: true,
+            description: `مركز تكلفة تلقائي للعملية الملاحية ${job.job_number}`,
+          })
+          .returning('id')
+          .execute();
+        if (newCc) {
+          costCenterId = Number(newCc.id);
+          await this.db
+            .updateTable('maritime_jobs')
+            .set({ cost_center_id: String(costCenterId) })
+            .where('id', '=', job.id as any)
+            .execute();
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // 2. Resolve accounts:
+    const expenseAccId = await this.resolveAccountId(tenantId, '6400', '5100');
+
+    let creditAccCode = '2110';
+    let partnerType: 'supplier' | 'none' = 'supplier';
+    if (dto.paymentMethod === 'cash') {
+      creditAccCode = '1110';
+      partnerType = 'none';
+    } else if (dto.paymentMethod === 'bank') {
+      creditAccCode = '1120';
+      partnerType = 'none';
+    }
+    const creditAccId = await this.resolveAccountId(tenantId, creditAccCode);
+
+    let entryId: number | null = null;
+    let entryNo = `EXP-${job.job_number}`;
+
+    const desc = dto.description || `سند مصروفات ملاحية (${dto.expenseType === 'carrier' ? 'نولون الخط الملاحي' : 'مصروفات موانئ وتخليص'}) - العملية #${job.job_number}`;
+
+    if (expenseAccId && creditAccId) {
+      const tempNo = `TMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const [inserted] = await this.db
+        .insertInto('journal_entries')
+        .values({
+          entry_no: tempNo,
+          tenant_id: tenantId,
+          account_id: tenantId,
+          entry_date: new Date(),
+          description: desc,
+          source_type: 'maritime_job_expense',
+          source_id: Number(job.id),
+          status: 'posted',
+          created_by: auth.userId ? Number(auth.userId) : null,
+          posted_by: auth.userId ? Number(auth.userId) : null,
+          posted_at: sql`NOW()`,
+        } as any)
+        .returning('id')
+        .execute();
+
+      entryId = Number(inserted.id);
+      entryNo = `JE-${String(entryId).padStart(8, '0')}`;
+      await this.db
+        .updateTable('journal_entries')
+        .set({ entry_no: entryNo, updated_at: sql`NOW()` } as any)
+        .where('id', '=', entryId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      await this.db
+        .insertInto('journal_entry_lines')
+        .values([
+          {
+            journal_entry_id: entryId,
+            tenant_id: tenantId,
+            account_id: expenseAccId,
+            cost_center_id: costCenterId,
+            description: desc,
+            debit: amount,
+            credit: 0,
+            partner_type: 'none',
+            partner_id: null,
+          } as any,
+          {
+            journal_entry_id: entryId,
+            tenant_id: tenantId,
+            account_id: creditAccId,
+            cost_center_id: costCenterId,
+            description: desc,
+            debit: 0,
+            credit: amount,
+            partner_type: partnerType,
+            partner_id: dto.supplierId ? Number(dto.supplierId) : null,
+          } as any,
+        ])
+        .execute();
+    }
+
+    let carrierCost = Number(job.carrier_cost_total || 0);
+    let otherCosts = Number(job.other_costs_total || 0);
+
+    if (dto.expenseType === 'carrier') {
+      carrierCost += amount;
+    } else {
+      otherCosts += amount;
+    }
+
+    const revenue = Number(job.client_invoiced_total || 0);
+    const netProfit = revenue - (carrierCost + otherCosts);
+
+    const [updatedJob] = await this.db
+      .updateTable('maritime_jobs')
+      .set({
+        carrier_cost_total: carrierCost,
+        other_costs_total: otherCosts,
+        net_profit: netProfit,
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', job.id as any)
+      .returningAll()
+      .execute();
+
+    return {
+      success: true,
+      job: updatedJob,
+      journalEntryId: entryId,
+      entryNo,
+      amount,
+      message: `تم تسجيل سند المصروفات الملاحية للعملية #${job.job_number} بقيمة ${amount} بنجاح`,
+    };
+  }
+
+  async getJobFinancialLedger(auth: AuthContext, jobId: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const job = await this.getJobById(auth, jobId);
+
+    const costCenterId = job.cost_center_id ? Number(job.cost_center_id) : null;
+
+    let query = this.db
+      .selectFrom('journal_entries as je')
+      .innerJoin('journal_entry_lines as jel', 'jel.journal_entry_id', 'je.id')
+      .innerJoin('accounting_accounts as acc', 'acc.id', 'jel.account_id')
+      .select([
+        'je.id as entry_id',
+        'je.entry_no',
+        'je.entry_date',
+        'je.description as entry_description',
+        'je.source_type',
+        'jel.id as line_id',
+        'jel.description as line_description',
+        'jel.debit',
+        'jel.credit',
+        'jel.partner_type',
+        'jel.cost_center_id',
+        'acc.code as account_code',
+        'acc.name_ar as account_name',
+      ])
+      .where('je.tenant_id', '=', tenantId);
+
+    if (costCenterId) {
+      query = query.where((eb) =>
+        eb.or([
+          eb('jel.cost_center_id', '=', costCenterId),
+          eb.and([
+            eb('je.source_type', 'in', ['maritime_job', 'maritime_job_expense']),
+            eb('je.source_id', '=', Number(jobId)),
+          ]),
+        ]),
+      );
+    } else {
+      query = query.where('je.source_type', 'in', ['maritime_job', 'maritime_job_expense'])
+        .where('je.source_id', '=', Number(jobId));
+    }
+
+    const lines = await query.orderBy('je.id', 'desc').execute();
+
+    return {
+      jobId: job.id,
+      jobNumber: job.job_number,
+      costCenterId: job.cost_center_id,
+      entries: lines,
+    };
   }
 }

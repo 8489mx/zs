@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
 import { ComboboxSelect } from '@/shared/ui/ComboboxSelect';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { maritimeApi, ShippingPort } from '../api/maritime-freight.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
@@ -163,30 +164,30 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <Field label="اتجاه الشحنة *">
-              <select
+              <CustomSelect
                 value={formData.direction}
-                onChange={(e) => setFormData({ ...formData, direction: e.target.value as any })}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                <option value="import">شحن وارد (Import - إلى الموانئ المحلية)</option>
-                <option value="export">شحن صادر (Export - إلى الموانئ الدولية)</option>
-                <option value="cross_trade">شحن وسيط (Cross-Trade - بين دولتين خارجيتين)</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, direction: val as any })}
+                options={[
+                  { value: 'import', label: 'شحن وارد (Import - إلى الموانئ المحلية)' },
+                  { value: 'export', label: 'شحن صادر (Export - إلى الموانئ الدولية)' },
+                  { value: 'cross_trade', label: 'شحن وسيط (Cross-Trade - بين دولتين خارجيتين)' },
+                ]}
+              />
             </Field>
 
             <Field label="شرط التسليم الدولي (Incoterm) *">
-              <select
+              <CustomSelect
                 value={formData.incoterm}
-                onChange={(e) => setFormData({ ...formData, incoterm: e.target.value })}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                <option value="FOB">FOB - تسليم على ظهر السفينة (Free on Board)</option>
-                <option value="EXW">EXW - تسليم أرض المصنع (Ex Works)</option>
-                <option value="CFR">CFR - التكلفة والنولون (Cost & Freight)</option>
-                <option value="CIF">CIF - التكلفة والتأمين والنولون (Cost, Insurance & Freight)</option>
-                <option value="DDP">DDP - تسليم خالص الرسوم الجمركية (Delivered Duty Paid)</option>
-                <option value="DAP">DAP - تسليم في المكان المعين (Delivered at Place)</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, incoterm: val })}
+                options={[
+                  { value: 'FOB', label: 'FOB - تسليم على ظهر السفينة (Free on Board)' },
+                  { value: 'EXW', label: 'EXW - تسليم أرض المصنع (Ex Works)' },
+                  { value: 'CFR', label: 'CFR - التكلفة والنولون (Cost & Freight)' },
+                  { value: 'CIF', label: 'CIF - التكلفة والتأمين والنولون (Cost, Insurance & Freight)' },
+                  { value: 'DDP', label: 'DDP - تسليم خالص الرسوم الجمركية (Delivered Duty Paid)' },
+                  { value: 'DAP', label: 'DAP - تسليم في المكان المعين (Delivered at Place)' },
+                ]}
+              />
             </Field>
 
             <Field label="ميناء الشحن والتحميل (POL) *">
@@ -224,31 +225,31 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
             <Field label="نمط الشحن *">
-              <select
+              <CustomSelect
                 value={formData.cargoMode}
-                onChange={(e) => setFormData({ ...formData, cargoMode: e.target.value })}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                <option value="FCL">FCL - حمولة حاوية كاملة</option>
-                <option value="LCL">LCL - حمولة مجزأة</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, cargoMode: val })}
+                options={[
+                  { value: 'FCL', label: 'FCL - حمولة حاوية كاملة' },
+                  { value: 'LCL', label: 'LCL - حمولة مجزأة' },
+                ]}
+              />
             </Field>
 
             <Field label="نوع الحاوية *">
-              <select
+              <CustomSelect
                 value={formData.containerType}
-                onChange={(e) => setFormData({ ...formData, containerType: e.target.value })}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                <option value="40HC">40' High Cube (40HC)</option>
-                <option value="20GP">20' Standard Dry (20GP)</option>
-                <option value="40GP">40' Standard Dry (40GP)</option>
-                <option value="40RF">40' Reefer مبرد</option>
-                <option value="20RF">20' Reefer مبرد</option>
-                <option value="45HC">45' High Cube</option>
-                <option value="OpenTop">Open Top</option>
-                <option value="FlatRack">Flat Rack</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, containerType: val })}
+                options={[
+                  { value: '40HC', label: "40' High Cube (40HC)" },
+                  { value: '20GP', label: "20' Standard Dry (20GP)" },
+                  { value: '40GP', label: "40' Standard Dry (40GP)" },
+                  { value: '40RF', label: "40' Reefer مبرد" },
+                  { value: '20RF', label: "20' Reefer مبرد" },
+                  { value: '45HC', label: "45' High Cube" },
+                  { value: 'OpenTop', label: 'Open Top' },
+                  { value: 'FlatRack', label: 'Flat Rack' },
+                ]}
+              />
             </Field>
 
             <Field label="عدد الحاويات *">

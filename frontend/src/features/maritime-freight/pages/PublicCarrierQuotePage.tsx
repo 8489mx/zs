@@ -7,6 +7,7 @@ import {
   CheckCircleIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
+import { CustomSelect } from '@/shared/ui/custom-select';
 
 interface PublicRfqData {
   rfq: {
@@ -316,15 +317,15 @@ export function PublicCarrierQuotePage() {
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
                     العملة *
                   </label>
-                  <select
+                  <CustomSelect
                     value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
-                    style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.86rem', boxSizing: 'border-box', background: '#ffffff' }}
-                  >
-                    <option value="USD">USD ($)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="EGP">EGP (${getGlobalCurrencySymbol()})</option>
-                  </select>
+                    onChange={(val) => setCurrency(val || 'USD')}
+                    options={[
+                      { value: 'USD', label: 'USD ($)' },
+                      { value: 'EUR', label: 'EUR (€)' },
+                      { value: 'EGP', label: `EGP (${getGlobalCurrencySymbol()})` },
+                    ]}
+                  />
                 </div>
               </div>
 

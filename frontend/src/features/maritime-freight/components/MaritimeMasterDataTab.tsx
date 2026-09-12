@@ -10,6 +10,7 @@ import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { PartnerFormModal } from './PartnerFormModal';
 import { ImportCarriersModal } from './ImportCarriersModal';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
+import { CustomSelect } from '@/shared/ui/custom-select';
 
 interface MaritimeMasterDataTabProps {
   ports: ShippingPort[];
@@ -757,29 +758,13 @@ export function MaritimeMasterDataTab({
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>دولة ومقر الوكيل:</span>
-              <select
-                value={selectedCountry}
-                onChange={(e) => setSelectedCountry(e.target.value)}
-                style={{
-                  height: '34px',
-                  padding: '0 12px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  background: '#ffffff',
-                  fontSize: '0.8125rem',
-                  fontWeight: 600,
-                  color: '#1e293b',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  minWidth: '200px',
-                }}
-              >
-                {COUNTRY_OPTIONS.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <div style={{ minWidth: '200px' }}>
+                <CustomSelect
+                  value={selectedCountry}
+                  onChange={(val) => setSelectedCountry(val || 'all')}
+                  options={COUNTRY_OPTIONS.map((c) => ({ value: c.code, label: c.name }))}
+                />
+              </div>
             </div>
           </div>
         )}

@@ -3,6 +3,7 @@ import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { downloadExcelFile } from '@/lib/browser';
 import { maritimeApi } from '../api/maritime-freight.api';
+import { CustomSelect } from '@/shared/ui/custom-select';
 
 interface ImportCarriersModalProps {
   open: boolean;
@@ -514,24 +515,13 @@ export function ImportCarriersModal({
               {sheetNames.length > 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: '0.75rem', color: '#1e293b' }}>الصفحة:</span>
-                  <select
-                    value={selectedSheet}
-                    onChange={(e) => handleSheetChange(e.target.value)}
-                    style={{
-                      height: '30px',
-                      padding: '0 8px',
-                      borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.75rem',
-                      background: '#ffffff',
-                    }}
-                  >
-                    {sheetNames.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                  <div style={{ minWidth: '130px' }}>
+                    <CustomSelect
+                      value={selectedSheet}
+                      onChange={(val) => handleSheetChange(val || sheetNames[0])}
+                      options={sheetNames.map((s) => ({ value: s, label: s }))}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -644,54 +634,33 @@ export function ImportCarriersModal({
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
                   الرمز أو الكود <span style={{ color: '#dc2626' }}>*</span>
                 </label>
-                <select
+                <CustomSelect
                   value={columnMapping.codeCol}
-                  onChange={(e) => setColumnMapping({ ...columnMapping, codeCol: e.target.value })}
-                  style={{ width: '100%', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem' }}
-                >
-                  <option value="">-- اختر عمود الكود --</option>
-                  {headers.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setColumnMapping({ ...columnMapping, codeCol: val || '' })}
+                  options={[{ value: '', label: '-- اختر عمود الكود --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
                   الاسم بالعربي <span style={{ color: '#dc2626' }}>*</span>
                 </label>
-                <select
+                <CustomSelect
                   value={columnMapping.nameArCol}
-                  onChange={(e) => setColumnMapping({ ...columnMapping, nameArCol: e.target.value })}
-                  style={{ width: '100%', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem' }}
-                >
-                  <option value="">-- اختر عمود الاسم بالعربي --</option>
-                  {headers.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setColumnMapping({ ...columnMapping, nameArCol: val || '' })}
+                  options={[{ value: '', label: '-- اختر عمود الاسم بالعربي --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
                   الاسم بالإنجليزي
                 </label>
-                <select
+                <CustomSelect
                   value={columnMapping.nameEnCol}
-                  onChange={(e) => setColumnMapping({ ...columnMapping, nameEnCol: e.target.value })}
-                  style={{ width: '100%', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem' }}
-                >
-                  <option value="">-- اختياري (مطابق للاسم) --</option>
-                  {headers.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setColumnMapping({ ...columnMapping, nameEnCol: val || '' })}
+                  options={[{ value: '', label: '-- اختياري (مطابق للاسم) --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                />
               </div>
 
               {carrierType === 'overseas_agent' && (
@@ -700,36 +669,22 @@ export function ImportCarriersModal({
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
                       الدولة
                     </label>
-                    <select
+                    <CustomSelect
                       value={columnMapping.countryNameCol}
-                      onChange={(e) => setColumnMapping({ ...columnMapping, countryNameCol: e.target.value })}
-                      style={{ width: '100%', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem' }}
-                    >
-                      <option value="">-- اختياري --</option>
-                      {headers.map((h) => (
-                        <option key={h} value={h}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setColumnMapping({ ...columnMapping, countryNameCol: val || '' })}
+                      options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                    />
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
                       المدينة
                     </label>
-                    <select
+                    <CustomSelect
                       value={columnMapping.cityNameCol}
-                      onChange={(e) => setColumnMapping({ ...columnMapping, cityNameCol: e.target.value })}
-                      style={{ width: '100%', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem' }}
-                    >
-                      <option value="">-- اختياري --</option>
-                      {headers.map((h) => (
-                        <option key={h} value={h}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setColumnMapping({ ...columnMapping, cityNameCol: val || '' })}
+                      options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                    />
                   </div>
                 </>
               )}
@@ -738,60 +693,39 @@ export function ImportCarriersModal({
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
                   جهة الاتصال / المسؤول
                 </label>
-                <select
+                <CustomSelect
                   value={columnMapping.contactPersonCol}
-                  onChange={(e) => setColumnMapping({ ...columnMapping, contactPersonCol: e.target.value })}
-                  style={{ width: '100%', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem' }}
-                >
-                  <option value="">-- اختياري --</option>
-                  {headers.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setColumnMapping({ ...columnMapping, contactPersonCol: val || '' })}
+                  options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
                   البريد الإلكتروني / RFQ Email
                 </label>
-                <select
+                <CustomSelect
                   value={carrierType === 'shipping_line' ? columnMapping.rfqEmailCol : columnMapping.emailCol}
-                  onChange={(e) => {
+                  onChange={(val) => {
                     if (carrierType === 'shipping_line') {
-                      setColumnMapping({ ...columnMapping, rfqEmailCol: e.target.value });
+                      setColumnMapping({ ...columnMapping, rfqEmailCol: val || '' });
                     } else {
-                      setColumnMapping({ ...columnMapping, emailCol: e.target.value });
+                      setColumnMapping({ ...columnMapping, emailCol: val || '' });
                     }
                   }}
-                  style={{ width: '100%', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem' }}
-                >
-                  <option value="">-- اختياري --</option>
-                  {headers.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
+                  options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
                   الهاتف
                 </label>
-                <select
+                <CustomSelect
                   value={columnMapping.phoneCol}
-                  onChange={(e) => setColumnMapping({ ...columnMapping, phoneCol: e.target.value })}
-                  style={{ width: '100%', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem' }}
-                >
-                  <option value="">-- اختياري --</option>
-                  {headers.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setColumnMapping({ ...columnMapping, phoneCol: val || '' })}
+                  options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                />
               </div>
 
               {carrierType === 'overseas_agent' ? (
@@ -800,35 +734,21 @@ export function ImportCarriersModal({
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
                       واتساب (WhatsApp)
                     </label>
-                    <select
+                    <CustomSelect
                       value={columnMapping.whatsappCol}
-                      onChange={(e) => setColumnMapping({ ...columnMapping, whatsappCol: e.target.value })}
-                      style={{ width: '100%', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem' }}
-                    >
-                      <option value="">-- اختياري --</option>
-                      {headers.map((h) => (
-                        <option key={h} value={h}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setColumnMapping({ ...columnMapping, whatsappCol: val || '' })}
+                      options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                    />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
                       وي شات (WeChat ID)
                     </label>
-                    <select
+                    <CustomSelect
                       value={columnMapping.wechatCol}
-                      onChange={(e) => setColumnMapping({ ...columnMapping, wechatCol: e.target.value })}
-                      style={{ width: '100%', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem' }}
-                    >
-                      <option value="">-- اختياري --</option>
-                      {headers.map((h) => (
-                        <option key={h} value={h}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setColumnMapping({ ...columnMapping, wechatCol: val || '' })}
+                      options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                    />
                   </div>
                 </>
               ) : (
@@ -836,18 +756,11 @@ export function ImportCarriersModal({
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
                     رابط التتبع (Tracking URL)
                   </label>
-                  <select
+                  <CustomSelect
                     value={columnMapping.trackingUrlCol}
-                    onChange={(e) => setColumnMapping({ ...columnMapping, trackingUrlCol: e.target.value })}
-                    style={{ width: '100%', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem' }}
-                  >
-                    <option value="">-- اختياري --</option>
-                    {headers.map((h) => (
-                      <option key={h} value={h}>
-                        {h}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setColumnMapping({ ...columnMapping, trackingUrlCol: val || '' })}
+                    options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                  />
                 </div>
               )}
             </div>

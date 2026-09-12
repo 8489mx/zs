@@ -431,7 +431,46 @@ export const maritimeApi = {
       method: 'POST',
     }),
 
+  // Financial Ledger & Accounting Posting
+  issueJobSalesInvoice: (id: string, payload?: { amount?: number; notes?: string }) =>
+    http<{ success: boolean; job: MaritimeJob; journalEntryId: number; entryNo: string; amount: number; message: string }>(
+      `/api/maritime-freight/jobs/${id}/issue-invoice`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload || {}),
+      },
+    ),
+  recordJobExpenseVoucher: (
+    id: string,
+    payload: {
+      amount: number;
+      expenseType?: 'carrier' | 'port' | 'other';
+      paymentMethod?: 'payable' | 'cash' | 'bank';
+      supplierId?: number;
+      supplierName?: string;
+      description?: string;
+    },
+  ) =>
+    http<{ success: boolean; job: MaritimeJob; journalEntryId: number; entryNo: string; amount: number; message: string }>(
+      `/api/maritime-freight/jobs/${id}/record-expense`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    ),
+  getJobFinancialLedger: (id: string) =>
+    http<{ jobId: string; jobNumber: string; costCenterId?: string; entries: any[] }>(
+      `/api/maritime-freight/jobs/${id}/financial-ledger`,
+    ),
+
   // Public Tracking
   getPublicTracking: (token: string) =>
     http<any>(`/api/public/freight-tracking/${token}`),
+
+  // Direct WhatsApp Milestone Dispatch
+  sendJobMilestoneWhatsApp: (jobId: string, milestone: string, phone?: string) =>
+    http<{ success: boolean; message?: string }>(`/api/maritime-freight/jobs/${jobId}/send-whatsapp`, {
+      method: 'POST',
+      body: JSON.stringify({ milestone, phone }),
+    }),
 };

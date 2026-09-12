@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { maritimeApi, MaritimeRfq } from '../api/maritime-freight.api';
 
 interface CarrierBidEntryModalProps {
@@ -151,16 +152,16 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
           </Field>
 
           <Field label="عملة التسعير *">
-            <select
+            <CustomSelect
               value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-            >
-              <option value="USD">USD - دولار أمريكي</option>
-              <option value="EUR">EUR - يورو أوروبي</option>
-              <option value="EGP">EGP - جنيه مصري</option>
-              <option value="SAR">SAR - ريال سعودي</option>
-            </select>
+              onChange={(val) => setCurrency(val)}
+              options={[
+                { value: 'USD', label: 'USD - دولار أمريكي' },
+                { value: 'EUR', label: 'EUR - يورو أوروبي' },
+                { value: 'EGP', label: 'EGP - جنيه مصري' },
+                { value: 'SAR', label: 'SAR - ريال سعودي' },
+              ]}
+            />
           </Field>
 
           <Field label="النولون البحري الأساسي (Ocean Freight) *">

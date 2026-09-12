@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
 import { ComboboxSelect } from '@/shared/ui/ComboboxSelect';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { maritimeApi, ShippingPort, ShippingLine } from '../api/maritime-freight.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
@@ -228,30 +229,30 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <Field label="اتجاه الشحنة *">
-              <select
+              <CustomSelect
                 value={formData.direction}
-                onChange={(e) => setFormData({ ...formData, direction: e.target.value as any })}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                <option value="import">شحن وارد (Import - إلى الموانئ المحلية)</option>
-                <option value="export">شحن صادر (Export - إلى الموانئ الدولية)</option>
-                <option value="cross_trade">شحن وسيط (Cross-Trade - بين دولتين خارجيتين)</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, direction: (val || 'import') as any })}
+                options={[
+                  { value: 'import', label: 'شحن وارد (Import - إلى الموانئ المحلية)' },
+                  { value: 'export', label: 'شحن صادر (Export - إلى الموانئ الدولية)' },
+                  { value: 'cross_trade', label: 'شحن وسيط (Cross-Trade - بين دولتين خارجيتين)' },
+                ]}
+              />
             </Field>
 
             <Field label="شرط التسليم الدولي (Incoterm) *">
-              <select
+              <CustomSelect
                 value={formData.incoterm}
-                onChange={(e) => setFormData({ ...formData, incoterm: e.target.value })}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                <option value="FOB">FOB - تسليم على ظهر السفينة (Free on Board)</option>
-                <option value="EXW">EXW - تسليم أرض المصنع (Ex Works)</option>
-                <option value="CFR">CFR - التكلفة والنولون (Cost & Freight)</option>
-                <option value="CIF">CIF - التكلفة والتأمين والنولون (Cost, Insurance & Freight)</option>
-                <option value="DDP">DDP - تسليم خالص الرسوم الجمركية (Delivered Duty Paid)</option>
-                <option value="DAP">DAP - تسليم في المكان المعين (Delivered at Place)</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, incoterm: val || 'FOB' })}
+                options={[
+                  { value: 'FOB', label: 'FOB - تسليم على ظهر السفينة (Free on Board)' },
+                  { value: 'EXW', label: 'EXW - تسليم أرض المصنع (Ex Works)' },
+                  { value: 'CFR', label: 'CFR - التكلفة والنولون (Cost & Freight)' },
+                  { value: 'CIF', label: 'CIF - التكلفة والتأمين والنولون (Cost, Insurance & Freight)' },
+                  { value: 'DDP', label: 'DDP - تسليم خالص الرسوم الجمركية (Delivered Duty Paid)' },
+                  { value: 'DAP', label: 'DAP - تسليم في المكان المعين (Delivered at Place)' },
+                ]}
+              />
             </Field>
 
             <Field label="ميناء الشحن والتحميل (POL) *">
@@ -289,31 +290,31 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <Field label="نمط الشحن *">
-              <select
+              <CustomSelect
                 value={formData.cargoMode}
-                onChange={(e) => setFormData({ ...formData, cargoMode: e.target.value })}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                <option value="FCL">FCL - حمولة حاوية كاملة (Full Container Load)</option>
-                <option value="LCL">LCL - حمولة مشتركة مجزأة (Less than Container)</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, cargoMode: val || 'FCL' })}
+                options={[
+                  { value: 'FCL', label: 'FCL - حمولة حاوية كاملة (Full Container Load)' },
+                  { value: 'LCL', label: 'LCL - حمولة مشتركة مجزأة (Less than Container)' },
+                ]}
+              />
             </Field>
 
             <Field label="مقاس ونوع الحاوية *">
-              <select
+              <CustomSelect
                 value={formData.containerType}
-                onChange={(e) => setFormData({ ...formData, containerType: e.target.value })}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                <option value="40HC">40 قدم هاي كيوب (40' High Cube)</option>
-                <option value="20GP">20 قدم عادي (20' Standard Dry)</option>
-                <option value="40GP">40 قدم عادي (40' Standard Dry)</option>
-                <option value="40RF">40 قدم مبرد ريفر (40' Reefer)</option>
-                <option value="20RF">20 قدم مبرد ريفر (20' Reefer)</option>
-                <option value="45HC">45 قدم هاي كيوب (45' High Cube)</option>
-                <option value="OpenTop">حاوية مكشوفة السقف (Open Top)</option>
-                <option value="FlatRack">حاوية فلات راك (Flat Rack)</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, containerType: val || '40HC' })}
+                options={[
+                  { value: '40HC', label: "40 قدم هاي كيوب (40' High Cube)" },
+                  { value: '20GP', label: "20 قدم عادي (20' Standard Dry)" },
+                  { value: '40GP', label: "40 قدم عادي (40' Standard Dry)" },
+                  { value: '40RF', label: "40 قدم مبرد ريفر (40' Reefer)" },
+                  { value: '20RF', label: "20 قدم مبرد ريفر (20' Reefer)" },
+                  { value: '45HC', label: "45 قدم هاي كيوب (45' High Cube)" },
+                  { value: 'OpenTop', label: 'حاوية مكشوفة السقف (Open Top)' },
+                  { value: 'FlatRack', label: 'حاوية فلات راك (Flat Rack)' },
+                ]}
+              />
             </Field>
 
             <Field label="عدد الحاويات *">
@@ -338,14 +339,14 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
             </Field>
 
             <Field label="طريقة سداد النولون *">
-              <select
+              <CustomSelect
                 value={formData.paymentTerm}
-                onChange={(e) => setFormData({ ...formData, paymentTerm: e.target.value as any })}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                <option value="prepaid">Freight Prepaid - مدفوع مقدماً في ميناء الشحن</option>
-                <option value="collect">Freight Collect - محصل في ميناء الوصول</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, paymentTerm: (val || 'prepaid') as any })}
+                options={[
+                  { value: 'prepaid', label: 'Freight Prepaid - مدفوع مقدماً في ميناء الشحن' },
+                  { value: 'collect', label: 'Freight Collect - محصل في ميناء الوصول' },
+                ]}
+              />
             </Field>
 
             <Field label="تاريخ جاهزية البضاعة (CRD)">

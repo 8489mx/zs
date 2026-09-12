@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { maritimeApi, MaritimeJob, MaritimeContainer } from '../api/maritime-freight.api';
 import { DCSA_STANDARD_MILESTONES, DcsaMilestoneKey } from '../maritime-freight.types';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
+import { printOceanBillOfLading, printDeliveryOrder, printArrivalNotice } from '../utils/maritime-documents';
 
 interface JobDetailsModalProps {
   open: boolean;
@@ -16,15 +18,32 @@ interface JobDetailsModalProps {
 export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsModalProps) {
   const { currencySymbol } = useSystemCurrency();
   const [job, setJob] = useState<MaritimeJob | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'containers' | 'milestones' | 'finance'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'containers' | 'milestones' | 'documents' | 'finance'>('overview');
   const [nextMilestone, setNextMilestone] = useState<DcsaMilestoneKey>('GTI');
   const [milestoneNotes, setMilestoneNotes] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [sendingWhatsAppKey, setSendingWhatsAppKey] = useState<string | null>(null);
 
   // Sub-Modals
   const [showEditVoyage, setShowEditVoyage] = useState(false);
   const [showAddContainer, setShowAddContainer] = useState(false);
   const [editingContainer, setEditingContainer] = useState<MaritimeContainer | null>(null);
+
+  // Financial Posting Modals State
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [invoiceAmountInput, setInvoiceAmountInput] = useState('');
+  const [invoiceNotesInput, setInvoiceNotesInput] = useState('');
+  const [isSubmittingInvoice, setIsSubmittingInvoice] = useState(false);
+
+  const [showExpenseDialog, setShowExpenseDialog] = useState(false);
+  const [expenseAmountInput, setExpenseAmountInput] = useState('');
+  const [expenseTypeInput, setExpenseTypeInput] = useState<'carrier' | 'port' | 'other'>('carrier');
+  const [expensePaymentMethodInput, setExpensePaymentMethodInput] = useState<'payable' | 'cash' | 'bank'>('payable');
+  const [expenseNotesInput, setExpenseNotesInput] = useState('');
+  const [isSubmittingExpense, setIsSubmittingExpense] = useState(false);
+
+  const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
+  const [loadingLedger, setLoadingLedger] = useState(false);
 
   // Edit Voyage Form
   const [voyageForm, setVoyageForm] = useState({
@@ -80,13 +99,32 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
     }
   };
 
+  const fetchLedger = async (id: string) => {
+    try {
+      setLoadingLedger(true);
+      const res = await maritimeApi.getJobFinancialLedger(id);
+      setLedgerEntries(res.entries || []);
+    } catch {
+      setLedgerEntries([]);
+    } finally {
+      setLoadingLedger(false);
+    }
+  };
+
   useEffect(() => {
     if (open && jobId) {
       fetchJob();
     } else if (!open) {
       setJob(null);
+      setLedgerEntries([]);
     }
   }, [open, jobId]);
+
+  useEffect(() => {
+    if (activeTab === 'finance' && job?.id) {
+      fetchLedger(String(job.id));
+    }
+  }, [activeTab, job?.id]);
 
   // Populate Edit Voyage form when opening
   const handleOpenEditVoyage = () => {
@@ -271,32 +309,72 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
   };
 
   // Quick Billing / Voucher Triggers
-  const handleIssueSalesInvoice = async () => {
+  const handleOpenIssueInvoice = () => {
     if (!job) return;
-    const confirmed = await systemConfirm({
-      title: 'إصدار فاتورة مبيعات خدمات ملاحية للعميل',
-      badge: job.customer_name,
-      message: `سيتم توليد مسودة فاتورة مبيعات بقيمة ${currencySymbol} ${Number(job.client_invoiced_total || 0).toLocaleString()} لحساب العميل [${job.customer_name}] وتوجيهها لمركز تكلفة العملية #${job.job_number}.`,
-      confirmText: 'إصدار مسودة الفاتورة',
-      cancelText: 'تراجع',
-      variant: 'primary',
-    });
-    if (!confirmed) return;
-    toast.success(`تم إنشاء فاتورة المبيعات للعميل بنجاح للعملية #${job.job_number}`);
+    setInvoiceAmountInput(String(job.client_invoiced_total || ''));
+    setInvoiceNotesInput(`فاتورة مبيعات خدمات ملاحية - العملية #${job.job_number} (${job.customer_name})`);
+    setShowInvoiceDialog(true);
   };
 
-  const handleRecordExpenseVoucher = async () => {
+  const handleConfirmIssueInvoice = async () => {
     if (!job) return;
-    const confirmed = await systemConfirm({
-      title: 'تسجيل سند مصروفات الخط الملاحي والميناء',
-      badge: job.shipping_line_name,
-      message: `سيتم إنشاء سند استحقاق مصروفات بقيمة ${currencySymbol} ${Number(job.carrier_cost_total || 0).toLocaleString()} لصالح [${job.shipping_line_name}] وخصمه من أرباح العملية.`,
-      confirmText: 'تسجيل سند المصروفات',
-      cancelText: 'تراجع',
-      variant: 'primary',
-    });
-    if (!confirmed) return;
-    toast.success(`تم تسجيل سند المصروفات الملاحية للعملية #${job.job_number}`);
+    const amount = Number(invoiceAmountInput);
+    if (!amount || amount <= 0) {
+      toast.warning('يرجى إدخال مبلغ صالح للفاتورة أكبر من صفر');
+      return;
+    }
+    try {
+      setIsSubmittingInvoice(true);
+      const res = await maritimeApi.issueJobSalesInvoice(job.id, {
+        amount,
+        notes: invoiceNotesInput,
+      });
+      toast.success(res.message || `تم إصدار وترحيل فاتورة المبيعات للعملية #${job.job_number} بقيمة ${amount} بنجاح`);
+      setShowInvoiceDialog(false);
+      await fetchJob();
+      await fetchLedger(String(job.id));
+      onUpdated();
+    } catch (err: any) {
+      toast.error(err?.message || 'فشل إصدار فاتورة المبيعات');
+    } finally {
+      setIsSubmittingInvoice(false);
+    }
+  };
+
+  const handleOpenRecordExpense = () => {
+    if (!job) return;
+    setExpenseAmountInput('');
+    setExpenseTypeInput('carrier');
+    setExpensePaymentMethodInput('payable');
+    setExpenseNotesInput(`سند استحقاق نولون ومصروفات ملاحية - العملية #${job.job_number}`);
+    setShowExpenseDialog(true);
+  };
+
+  const handleConfirmRecordExpense = async () => {
+    if (!job) return;
+    const amount = Number(expenseAmountInput);
+    if (!amount || amount <= 0) {
+      toast.warning('يرجى إدخال مبلغ صالح للمصروف أكبر من صفر');
+      return;
+    }
+    try {
+      setIsSubmittingExpense(true);
+      const res = await maritimeApi.recordJobExpenseVoucher(job.id, {
+        amount,
+        expenseType: expenseTypeInput,
+        paymentMethod: expensePaymentMethodInput,
+        description: expenseNotesInput,
+      });
+      toast.success(res.message || `تم تسجيل وترحيل سند المصروفات للعملية #${job.job_number} بقيمة ${amount} بنجاح`);
+      setShowExpenseDialog(false);
+      await fetchJob();
+      await fetchLedger(String(job.id));
+      onUpdated();
+    } catch (err: any) {
+      toast.error(err?.message || 'فشل تسجيل سند المصروفات');
+    } finally {
+      setIsSubmittingExpense(false);
+    }
   };
 
   if (!open) return null;
@@ -366,6 +444,23 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
     }
   };
 
+  const handleSendDirectWhatsApp = async (milestoneKey: string) => {
+    if (!job) return;
+    try {
+      setSendingWhatsAppKey(milestoneKey);
+      const res = await maritimeApi.sendJobMilestoneWhatsApp(job.id, milestoneKey, job.customer_phone || undefined);
+      if (res.success) {
+        toast.success('تم إرسال إشعار الواتساب للعميل عبر بوابة Cloud WhatsApp بنجاح');
+      } else {
+        toast.info(res.message || 'تمت محاولة الإرسال');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'فشل إرسال إشعار الواتساب المباشر');
+    } finally {
+      setSendingWhatsAppKey(null);
+    }
+  };
+
   return (
     <>
       <StandardDialog
@@ -432,6 +527,22 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
               }}
             >
               مسار التتبع DCSA ({job.milestones?.length || 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('documents')}
+              style={{
+                padding: '6px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === 'documents' ? '#170e5e' : '#f1f5f9',
+                color: activeTab === 'documents' ? '#ffffff' : '#475569',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+              }}
+            >
+              مستندات الشحن وبوالص B/L
             </button>
             <button
               type="button"
@@ -567,6 +678,81 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     >
                       {copiedLink ? 'تم النسخ!' : 'نسخ الرابط'}
                     </button>
+                  </div>
+
+                  {/* رادار القمر الصناعي الحي (AIS) وتتبع السفينة */}
+                  <div style={{ gridColumn: '1 / -1', background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>
+                        <AppIcons.Ship size={18} />
+                        <span>رادار القمر الصناعي لتتبع حركة السفينة الحية (Live Satellite AIS Tracker)</span>
+                      </div>
+                      {job.vessel_name && (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                          رادار AIS متصل
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                      <div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
+                          {job.vessel_name || 'لم يتم تسجيل اسم السفينة بعد'}
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
+                          المسار البحري: <strong>{job.pol_name}</strong> ➔ <strong>{job.pod_name}</strong> {job.voyage_number ? `| رحلة رقم: ${job.voyage_number}` : ''}
+                        </div>
+                      </div>
+
+                      {job.vessel_name ? (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <a
+                            href={`https://www.marinetraffic.com/en/ais/details/ships/shipid:0/vessel:${encodeURIComponent(job.vessel_name)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              padding: '6px 12px',
+                              background: '#1d4ed8',
+                              color: '#ffffff',
+                              borderRadius: '6px',
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              textDecoration: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                            }}
+                          >
+                            <span>MarineTraffic AIS</span>
+                            <AppIcons.Globe size={14} />
+                          </a>
+                          <a
+                            href={`https://www.vesselfinder.com/vessels?name=${encodeURIComponent(job.vessel_name)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              padding: '6px 12px',
+                              background: '#047857',
+                              color: '#ffffff',
+                              borderRadius: '6px',
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              textDecoration: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                            }}
+                          >
+                            <span>VesselFinder AIS</span>
+                            <AppIcons.Globe size={14} />
+                          </a>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
+                          قم بإدخال اسم السفينة في بيانات الرحلة لتفعيل الرادار الملاحي
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -818,36 +1004,58 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       </div>
 
                       {job.customer_phone && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              const alertData = await maritimeApi.getJobWhatsAppAlert(job.id, m.milestone_key);
-                              const cleanPhone = (alertData.customerPhone || job.customer_phone || '').replace(/[^0-9]/g, '');
-                              if (cleanPhone) {
-                                window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(alertData.message)}`, '_blank');
-                              } else {
-                                toast.warning('لا يوجد رقم هاتف مسجل للعميل');
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            type="button"
+                            disabled={sendingWhatsAppKey === m.milestone_key}
+                            onClick={() => handleSendDirectWhatsApp(m.milestone_key)}
+                            title="إرسال إشعار فوري عبر بوابة Cloud WhatsApp"
+                            style={{
+                              padding: '4px 10px',
+                              background: '#15803d',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              cursor: sendingWhatsAppKey === m.milestone_key ? 'not-allowed' : 'pointer',
+                              whiteSpace: 'nowrap',
+                              opacity: sendingWhatsAppKey === m.milestone_key ? 0.7 : 1,
+                            }}
+                          >
+                            {sendingWhatsAppKey === m.milestone_key ? 'جاري الإرسال...' : 'إرسال سحابي فوري'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const alertData = await maritimeApi.getJobWhatsAppAlert(job.id, m.milestone_key);
+                                const cleanPhone = (alertData.customerPhone || job.customer_phone || '').replace(/[^0-9]/g, '');
+                                if (cleanPhone) {
+                                  window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(alertData.message)}`, '_blank');
+                                } else {
+                                  toast.warning('لا يوجد رقم هاتف مسجل للعميل');
+                                }
+                              } catch (err: any) {
+                                toast.error(err?.message || 'فشل توليد رسالة واتساب');
                               }
-                            } catch (err: any) {
-                              toast.error(err?.message || 'فشل توليد رسالة واتساب');
-                            }
-                          }}
-                          title="إرسال إشعار بالواتساب للعميل"
-                          style={{
-                            padding: '4px 8px',
-                            background: '#f0fdf4',
-                            color: '#166534',
-                            border: '1px solid #bbf7d0',
-                            borderRadius: '6px',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          إشعار واتساب
-                        </button>
+                            }}
+                            title="فتح تطبيق أو ويب واتساب مباشرة"
+                            style={{
+                              padding: '4px 8px',
+                              background: '#f0fdf4',
+                              color: '#166534',
+                              border: '1px solid #bbf7d0',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            فتح واتساب
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -855,7 +1063,157 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
               </div>
             )}
 
-            {/* Tab 4: ربحية العملية والحسابات */}
+            {/* Tab 4: مستندات الشحن وبوالص B/L */}
+            {activeTab === 'documents' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#170e5e' }}>
+                      مركز إصدار وطباعة المستندات الملاحية المعتمدة (e-B/L & Maritime Documents)
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
+                      طباعة وثائق وبوالص الشحن القياسية المتوافقة مع معايير FIATA و BIMCO والجمارك
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px' }}>
+                  {/* 1. بوليصة الشحن B/L */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#170e5e' }}>
+                          بوليصة الشحن البحري (Bill of Lading - HBL)
+                        </div>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8' }}>
+                          {job.bl_type?.toUpperCase() || 'SEA WAYBILL'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
+                        وثيقة شحن بحرية متعددة الوسائط قياسية معتمدة تتضمن بيانات الشاحن والمستلم ومواصفات الحاويات والأختام والأوزان، وتصلح للتداول والتوثيق البنكي.
+                      </div>
+                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
+                        <div>رقم البوليصة: <strong style={{ color: '#0f172a' }}>{job.hbl_number || job.mbl_number || job.job_number}</strong></div>
+                        <div>الحاويات المسجلة: <strong style={{ color: '#0f172a' }}>{job.containers?.length || 0} حاوية</strong></div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => printOceanBillOfLading(job, job.containers || [])}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        background: '#170e5e',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <AppIcons.FileText size={16} />
+                      <span>طباعة بوليصة الشحن الرسمية (Print HBL)</span>
+                    </button>
+                  </div>
+
+                  {/* 2. إذن التسليم D/O */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#170e5e' }}>
+                          إذن التسليم الملاحي (Delivery Order - D/O)
+                        </div>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: job.delivery_order_released ? '#f0fdf4' : '#fffbeb', color: job.delivery_order_released ? '#15803d' : '#b45309' }}>
+                          {job.delivery_order_released ? 'معتمد ومسلّم' : 'محتجز مؤقتاً'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
+                        مستند رسمي موجه لسلطات الميناء والجمارك ومحطات الحاويات للإفراج عن البضائع واستلام الحاويات، موضحاً به مهل السماح ومربعات أختام الإفراج.
+                      </div>
+                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
+                        <div>كود إذن التسليم: <strong style={{ color: '#0f172a' }}>DO-{job.job_number}</strong></div>
+                        <div>ميناء التفريغ: <strong style={{ color: '#0f172a' }}>{job.pod_name}</strong></div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => printDeliveryOrder(job, job.containers || [])}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        background: '#0284c7',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <AppIcons.FileText size={16} />
+                      <span>طباعة إذن التسليم الملاحي (Print D/O)</span>
+                    </button>
+                  </div>
+
+                  {/* 3. إشعار الوصول Arrival Notice */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#170e5e' }}>
+                          إشعار وصول الشحنة (Consignee Arrival Notice)
+                        </div>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#faf5ff', color: '#7e22ce' }}>
+                          إخطار عميل
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
+                        إشعار رسمي مرسل للمستلم وجهة الإخطار بتوقيت وصول السفينة وتفريغ الحاويات بمحطة الوصول وتفاصيل المستندات المطلوبة لاستلام إذن التسليم.
+                      </div>
+                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
+                        <div>تاريخ الوصول المقدر (ETA): <strong style={{ color: '#0f172a' }}>{job.eta || 'قيد الجدولة'}</strong></div>
+                        <div>جهة الإخطار: <strong style={{ color: '#0f172a' }}>{job.notify_party || job.customer_name}</strong></div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => printArrivalNotice(job, job.containers || [])}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        background: '#475569',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <AppIcons.FileText size={16} />
+                      <span>طباعة إشعار الوصول (Arrival Notice)</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 5: ربحية العملية والحسابات */}
             {activeTab === 'finance' && (() => {
               const revenue = Number(job.client_invoiced_total || 0);
               const carrierCost = Number(job.carrier_cost_total || 0);
@@ -875,7 +1233,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
                         type="button"
-                        onClick={handleIssueSalesInvoice}
+                        onClick={handleOpenIssueInvoice}
                         style={{
                           padding: '6px 14px',
                           background: '#170e5e',
@@ -891,7 +1249,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       </button>
                       <button
                         type="button"
-                        onClick={handleRecordExpenseVoucher}
+                        onClick={handleOpenRecordExpense}
                         style={{
                           padding: '6px 14px',
                           background: '#f1f5f9',
@@ -1147,6 +1505,80 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         {job.payment_term === 'prepaid' ? 'سداد مسبق (Prepaid)' : 'تحصيل بميناء الوصول (Collect)'}
                       </span>
                     </div>
+                  </div>
+
+                  {/* 4. قيود اليومية المحاسبية المعتمدة (Live GL Entries) */}
+                  <div
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '8px 14px',
+                        background: '#f8fafc',
+                        borderBottom: '1px solid #e2e8f0',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>
+                        سجل قيود اليومية المحاسبية المعتمدة للعملية (General Ledger)
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: ledgerEntries.length > 0 ? '#15803d' : '#64748b', fontWeight: 700 }}>
+                        {loadingLedger
+                          ? 'جاري تحميل القيود...'
+                          : ledgerEntries.length > 0
+                          ? `قيود معتمدة (${ledgerEntries.length} حركة)`
+                          : 'لا توجد قيود مرحلة بعد'}
+                      </div>
+                    </div>
+
+                    {ledgerEntries.length > 0 ? (
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                        <thead>
+                          <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
+                            <th style={{ padding: '6px 12px', fontWeight: 700 }}>رقم القيد والتاريخ</th>
+                            <th style={{ padding: '6px 12px', fontWeight: 700 }}>الحساب المحاسبي</th>
+                            <th style={{ padding: '6px 12px', fontWeight: 700 }}>البيان / الوصف</th>
+                            <th style={{ padding: '6px 12px', fontWeight: 700, color: '#15803d' }}>مدين (Debit)</th>
+                            <th style={{ padding: '6px 12px', fontWeight: 700, color: '#b91c1c' }}>دائن (Credit)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ledgerEntries.map((row: any, i: number) => (
+                            <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '6px 12px', fontWeight: 700, color: '#170e5e' }}>
+                                <div>{row.entry_no}</div>
+                                <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                                  {row.entry_date ? new Date(row.entry_date).toLocaleDateString('ar-EG') : '-'}
+                                </div>
+                              </td>
+                              <td style={{ padding: '6px 12px', color: '#0f172a' }}>
+                                <span style={{ fontWeight: 700 }}>[{row.account_code}]</span> {row.account_name}
+                              </td>
+                              <td style={{ padding: '6px 12px', color: '#475569' }}>
+                                {row.line_description || row.entry_description}
+                              </td>
+                              <td style={{ padding: '6px 12px', fontWeight: 700, color: Number(row.debit) > 0 ? '#15803d' : '#94a3b8' }}>
+                                {Number(row.debit) > 0 ? `${currencySymbol} ${Number(row.debit).toLocaleString()}` : '-'}
+                              </td>
+                              <td style={{ padding: '6px 12px', fontWeight: 700, color: Number(row.credit) > 0 ? '#b91c1c' : '#94a3b8' }}>
+                                {Number(row.credit) > 0 ? `${currencySymbol} ${Number(row.credit).toLocaleString()}` : '-'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem' }}>
+                        اضغط على "إصدار فاتورة مبيعات" أو "تسجيل سند مصروفات" لترحيل القيود لمركز تكلفة الشحنة.
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -1442,6 +1874,138 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                   { value: 'pending_return_proof', label: 'بانتظار إثبات إرجاع الفارغ' },
                   { value: 'refunded_to_treasury', label: 'تم الاسترداد للخزينة' },
                 ]}
+              />
+            </div>
+          </div>
+        </StandardDialog>
+      )}
+
+      {/* Modal 4: Issue Sales Invoice Dialog */}
+      {showInvoiceDialog && (
+        <StandardDialog
+          open={showInvoiceDialog}
+          onClose={() => setShowInvoiceDialog(false)}
+          title="إصدار وترحيل فاتورة مبيعات خدمات ملاحية"
+          subtitle={`العملية: ${job.job_number} | العميل: ${job.customer_name}`}
+          width="min(560px, 95vw)"
+          footerActions={(
+            <StandardDialogFooter
+              onConfirm={handleConfirmIssueInvoice}
+              confirmText={isSubmittingInvoice ? 'جاري الترحيل...' : 'ترحيل الفاتورة للدفاتر'}
+              isSubmitting={isSubmittingInvoice}
+              onCancel={() => setShowInvoiceDialog(false)}
+              cancelText="إلغاء"
+            />
+          )}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
+            <div style={{ background: '#eff6ff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bfdbfe', fontSize: '0.78rem', color: '#1e40af' }}>
+              سيتم إنشاء وترحيل قيد يومية معتمد (مدين: حساب العملاء 1130 / دائن: مبيعات الخدمات 4200) وتوجيهه آلياً لمركز تكلفة العملية <strong>#{job.job_number}</strong>.
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                مبلغ الفاتورة المفوتر للعميل ({currencySymbol}) *
+              </label>
+              <input
+                type="number"
+                value={invoiceAmountInput}
+                onChange={(e) => setInvoiceAmountInput(e.target.value)}
+                placeholder="0.00"
+                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.9rem', fontWeight: 800, color: '#170e5e' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                بيان ووصف الفاتورة
+              </label>
+              <input
+                type="text"
+                value={invoiceNotesInput}
+                onChange={(e) => setInvoiceNotesInput(e.target.value)}
+                placeholder="بيان الفاتورة..."
+                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
+              />
+            </div>
+          </div>
+        </StandardDialog>
+      )}
+
+      {/* Modal 5: Record Expense Voucher Dialog */}
+      {showExpenseDialog && (
+        <StandardDialog
+          open={showExpenseDialog}
+          onClose={() => setShowExpenseDialog(false)}
+          title="تسجيل وترحيل سند مصروفات ملاحية"
+          subtitle={`العملية: ${job.job_number} | التوكيل: ${job.shipping_line_name}`}
+          width="min(580px, 95vw)"
+          footerActions={(
+            <StandardDialogFooter
+              onConfirm={handleConfirmRecordExpense}
+              confirmText={isSubmittingExpense ? 'جاري الترحيل...' : 'ترحيل سند المصروفات'}
+              isSubmitting={isSubmittingExpense}
+              onCancel={() => setShowExpenseDialog(false)}
+              cancelText="إلغاء"
+            />
+          )}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
+            <div style={{ background: '#fef2f2', padding: '10px 14px', borderRadius: '8px', border: '1px solid #fecaca', fontSize: '0.78rem', color: '#991b1b' }}>
+              سيتم إنشاء قيد استحقاق مصروفات (مدين: مصروفات نقل وشحن 6400 بمركز تكلفة العملية / دائن: حساب السداد المحدد) وخصمه من أرباح العملية.
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>نوع المصروف</label>
+                <CustomSelect
+                  value={expenseTypeInput}
+                  onChange={(val) => setExpenseTypeInput(val as any)}
+                  options={[
+                    { value: 'carrier', label: 'نولون وتكاليف الخط الملاحي' },
+                    { value: 'port', label: 'رسوم ومصروفات محطات الميناء THC' },
+                    { value: 'other', label: 'مصروفات تخليص أو خدمات أخرى' },
+                  ]}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>طريقة السداد والتسوية</label>
+                <CustomSelect
+                  value={expensePaymentMethodInput}
+                  onChange={(val) => setExpensePaymentMethodInput(val as any)}
+                  options={[
+                    { value: 'payable', label: 'استحقاق أجل على حساب المورد (2110)' },
+                    { value: 'cash', label: 'صرف نقدي فوري من الخزينة (1110)' },
+                    { value: 'bank', label: 'تحويل / شيك بنكي (1120)' },
+                  ]}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                مبلغ المصروف ({currencySymbol}) *
+              </label>
+              <input
+                type="number"
+                value={expenseAmountInput}
+                onChange={(e) => setExpenseAmountInput(e.target.value)}
+                placeholder="0.00"
+                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.9rem', fontWeight: 800, color: '#b91c1c' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                البيان / الوصف
+              </label>
+              <input
+                type="text"
+                value={expenseNotesInput}
+                onChange={(e) => setExpenseNotesInput(e.target.value)}
+                placeholder="بيان سند المصروفات..."
+                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
               />
             </div>
           </div>
