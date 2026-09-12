@@ -1,11 +1,19 @@
-import { getCurrencyDecimals } from './currencies';
+import { getCurrencyDecimals, getCurrencySymbol, getGlobalSystemCurrency } from './currencies';
 
-export function formatCurrency(value: number, currencyCode?: string | null) {
-  const decimals = getCurrencyDecimals(currencyCode);
+export function formatCurrency(value: number | string | undefined | null, currencyCode?: string | null): string {
+  const code = currencyCode || getGlobalSystemCurrency();
+  const decimals = getCurrencyDecimals(code);
+  const num = Number(value || 0);
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
-  }).format(value || 0);
+  }).format(num);
+}
+
+export function formatCurrencyWithSymbol(value: number | string | undefined | null, currencyCode?: string | null): string {
+  const code = currencyCode || getGlobalSystemCurrency();
+  const symbol = getCurrencySymbol(code);
+  return `${formatCurrency(value, code)} ${symbol}`;
 }
 
 export function formatWhatsAppNumber(phone: string) {
