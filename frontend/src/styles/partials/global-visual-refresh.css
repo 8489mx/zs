@@ -180,6 +180,9 @@ th {
 .sidebar-label {
   font-size: 13.5px;
   line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-icon {

@@ -728,16 +728,16 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('importModuleEnabled')} checked={Boolean(isImportActive)} disabled={disabled || !hasImportFeature} />
           </label>
 
-          {/* موديول الشحن البحري واللوجستيات */}
+          {/* موديول الشحن واللوجستيات */}
           <label 
             style={getCardStyle(Boolean(isMaritimeFreightActive), hasMaritimeFreightFeature)}
             onClick={(e) => {
               if (!hasMaritimeFreightFeature) {
                 e.preventDefault();
                 handleLockedCardClick(
-                  'موديول الشحن البحري واللوجستيات',
+                  'موديول الشحن واللوجستيات',
                   'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول إدارة طلبات التسعير البحري، مقارنة عروض شركات الشحن، إصدار عروض أسعار العملاء، أوامر الشحن، وتتبع الحاويات.'
+                  'يتيح لك هذا الموديول إدارة طلبات تسعير الشحن، مقارنة عروض الأسعار، إصدار عروض أسعار العملاء، أوامر الشحن والعمليات، وتتبع الحاويات.'
                 );
               }
             }}
@@ -748,27 +748,27 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               </div>
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الشحن البحري واللوجستيات</strong>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الشحن واللوجستيات</strong>
                   {!hasMaritimeFreightFeature && (
                     <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
                       <LockIcon size={11} /> الباقة المتكاملة
                     </span>
                   )}
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة طلبات التسعير البحري، عروض الأسعار، أوامر الشحن، وتتبع الحاويات</small>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة طلبات التسعير، عروض الأسعار، أوامر الشحن والعمليات، وتتبع الحاويات</small>
               </div>
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('maritimeFreightModuleEnabled')} checked={Boolean(isMaritimeFreightActive)} disabled={disabled || !hasMaritimeFreightFeature} />
           </label>
 
-          {/* موديول المقاولات والمشاريع الإنشائية */}
+          {/* موديول المقاولات والمشاريع */}
           <label 
             style={getCardStyle(Boolean(isContractingActive), hasContractingFeature)}
             onClick={(e) => {
               if (!hasContractingFeature) {
                 e.preventDefault();
                 handleLockedCardClick(
-                  'موديول المقاولات والمشاريع الإنشائية',
+                  'موديول المقاولات والمشاريع',
                   'الباقة المتكاملة (Ultimate ERP)',
                   'يتيح لك هذا الموديول إدارة مشاريع المقاولات، جداول الكميات SOV/BOQ، الأوامر التغييرية، مستخلصات الدفع الدورية AIA G702/G703، ومقاولي الباطن واليوميات الميدانية.'
                 );
@@ -781,7 +781,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               </div>
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المقاولات والمشاريع الإنشائية</strong>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المقاولات والمشاريع</strong>
                   {!hasContractingFeature && (
                     <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
                       <LockIcon size={11} /> الباقة المتكاملة

@@ -11,7 +11,7 @@ import { getTextDirection } from '@/lib/arabic-normalization';
 export function ContractingMasterBoqPage() {
   useAppToolbar([
     { label: 'الرئيسية', to: '/dashboard' },
-    { label: 'المقاولات والمشاريع الإنشائية', to: '/contracting' },
+    { label: 'المقاولات والمشاريع', to: '/contracting' },
     { label: 'إعدادات وبنك بنود المقاولات', to: '/contracting/master-boq' },
   ]);
 

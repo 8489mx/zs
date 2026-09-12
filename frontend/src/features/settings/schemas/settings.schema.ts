@@ -40,6 +40,8 @@ export const settingsFormSchema = z.object({
     'manufacturing',
     'services',
     'ecommerce',
+    'import_export',
+    'appliances_installments',
     'custom',
     'spices',
     'perfumes',

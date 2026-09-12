@@ -14,7 +14,7 @@ export const importSalesRouteModule: FeatureRouteModule = {
     { path: '/import-sales/profit-pool', element: <ProfitPool /> },
   ],
   navigation: [
-    { key: 'import-shipments', to: '/import-sales/shipments', label: 'إدارة الحاويات والشحن' },
+    { key: 'import-shipments', to: '/import-sales/shipments', label: 'إدارة الشحنات' },
     { key: 'import-supplier-credit', to: '/import-sales/supplier-credit', label: 'مديونية الصين (المورد)' },
     { key: 'import-profit-pool', to: '/import-sales/profit-pool', label: 'أرباح الشركاء (نهاية المدة)' },
   ],

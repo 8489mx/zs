@@ -11,7 +11,7 @@ import { downloadSettingsTemplate, exportSettingsData, getSettingsSectionDescrip
 import { useSettingsPageController } from '@/features/settings/pages/useSettingsPageController';
 import type { BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 import { useAuthStore } from '@/stores/auth-store';
-import { isPlatformAdmin } from '@/app/router/access';
+import { isPlatformAdmin, isDesktopOfflineApp } from '@/app/router/access';
 import { demoDataApi } from '@/features/settings/api/demo-data.api';
 
 export function SettingsPage() {
@@ -27,21 +27,26 @@ export function SettingsPage() {
   }, [activeSetupSection, navigate, section, setupFlow.currentStep, setupMode]);
 
   const sectionConfig = settingsSections.find(s => s.key === section) || settingsStandaloneLinks.find(s => s.to.endsWith(section || ''));
-  const deploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
   const currentUser = useAuthStore((state) => state.user);
+  const tenant = useAuthStore((state) => state.tenant);
+  const isPlatform = isPlatformAdmin(currentUser);
+
+  const hasFeature = (feat: string) => isPlatform || Boolean(tenant?.features?.includes(feat));
 
   const demoStatusQuery = useQuery({
     queryKey: ['demo-data', 'status'],
     queryFn: () => demoDataApi.getStatus(),
     staleTime: 30_000,
-    enabled: section === 'demo-data' && !isPlatformAdmin(currentUser),
+    enabled: section === 'demo-data' && !isPlatform,
   });
   
   if (!isSettingsSection(section) && !sectionConfig) return <Navigate to="/settings/core" replace />;
-  if (sectionConfig?.superAdminOnly && !isPlatformAdmin(currentUser)) return <Navigate to="/settings/core" replace />;
+  if (sectionConfig?.superAdminOnly && !isPlatform) return <Navigate to="/settings/core" replace />;
   if (sectionConfig?.adminOnly && page.currentUserRole !== 'super_admin' && page.currentUserRole !== 'admin') return <Navigate to="/settings/core" replace />;
-  if (sectionConfig?.offlineOnly && deploymentMode !== 'desktop' && !import.meta.env.DEV) return <Navigate to="/settings/core" replace />;
-  if (resolvedSection === 'demo-data' && !isPlatformAdmin(currentUser) && demoStatusQuery.data && !demoStatusQuery.data.isEmpty) {
+  if (sectionConfig?.offlineOnly && !isDesktopOfflineApp()) return <Navigate to="/settings/core" replace />;
+  if (sectionConfig?.requiredFeature && !hasFeature(sectionConfig.requiredFeature)) return <Navigate to="/settings/core" replace />;
+  if (sectionConfig?.requiredModule && !isPlatform && page.settings && !sectionConfig.requiredModule(page.settings)) return <Navigate to="/settings/core" replace />;
+  if (resolvedSection === 'demo-data' && !isPlatform && demoStatusQuery.data && !demoStatusQuery.data.isEmpty) {
     return <Navigate to="/settings/core" replace />;
   }
 

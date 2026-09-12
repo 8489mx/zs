@@ -5,7 +5,7 @@ import { FeatureGate } from '@/shared/components/feature-gate';
 import { MaritimeLayout } from './pages/MaritimeLayout';
 
 const wrapMaritime = (Component: React.ComponentType) => (
-  <FeatureGate feature="maritime_freight" featureName="الشحن البحري واللوجستيات">
+  <FeatureGate feature="maritime_freight" featureName="الشحن واللوجستيات">
     <MaritimeLayout>
       <Component />
     </MaritimeLayout>
@@ -96,13 +96,13 @@ export const maritimeFreightRouteModule: FeatureRouteModule = {
     },
   ],
   navigation: [
-    { key: 'maritime-inquiries', label: 'طلبات الشحن (Inquiries)', to: '/maritime/inquiries' },
-    { key: 'maritime-rfqs', label: 'طلبات التسعير (RFQs)', to: '/maritime/rfqs' },
-    { key: 'maritime-matrix', label: 'مصفوفة مقارنة العروض', to: '/maritime/matrix' },
+    { key: 'maritime-inquiries', label: 'استفسارات شحن العملاء', to: '/maritime/inquiries' },
+    { key: 'maritime-rfqs', label: 'استقصاء أسعار الخطوط (RFQ)', to: '/maritime/rfqs' },
+    { key: 'maritime-matrix', label: 'مقارنة عروض الخطوط', to: '/maritime/matrix' },
     { key: 'maritime-quotations', label: 'عروض أسعار العملاء', to: '/maritime/quotations' },
-    { key: 'maritime-jobs', label: 'أوامر التشغيل والعمليات', to: '/maritime/jobs' },
-    { key: 'maritime-containers', label: 'الحاويات وفترة السماح', to: '/maritime/containers' },
+    { key: 'maritime-jobs', label: 'أوامر تشغيل الشحنات', to: '/maritime/jobs' },
+    { key: 'maritime-containers', label: 'تتبع الحاويات وفترات السماح', to: '/maritime/containers' },
     { key: 'maritime-lines', label: 'دليل الخطوط والموانئ', to: '/maritime/lines' },
-    { key: 'maritime-settings', label: 'إعدادات البريد والأتمتة', to: '/maritime/settings' },
+    { key: 'maritime-settings', label: 'أتمتة المراسلات والبريد', to: '/maritime/settings' },
   ],
 };

@@ -15,14 +15,14 @@ import { CreateRfqModal } from '../components/CreateRfqModal';
 import { CreateInquiryModal } from '../components/CreateInquiryModal';
 
 const NAV_TABS = [
-  { path: 'inquiries', label: 'طلبات الشحن (Inquiries)', countKey: 'inquiries' as const },
-  { path: 'rfqs', label: 'استقصاء الخطوط (RFQs)', countKey: 'rfqs' as const },
-  { path: 'matrix', label: 'مصفوفة مقارنة العروض', countKey: 'matrixBids' as const },
+  { path: 'inquiries', label: 'استفسارات شحن العملاء', countKey: 'inquiries' as const },
+  { path: 'rfqs', label: 'استقصاء أسعار الخطوط (RFQ)', countKey: 'rfqs' as const },
+  { path: 'matrix', label: 'مقارنة عروض الخطوط', countKey: 'matrixBids' as const },
   { path: 'quotations', label: 'عروض أسعار العملاء', countKey: 'quotations' as const },
-  { path: 'jobs', label: 'أوامر التشغيل والعمليات', countKey: 'jobs' as const },
-  { path: 'containers', label: 'الحاويات وفترة السماح', countKey: 'containers' as const },
+  { path: 'jobs', label: 'أوامر تشغيل الشحنات', countKey: 'jobs' as const },
+  { path: 'containers', label: 'تتبع الحاويات وفترات السماح', countKey: 'containers' as const },
   { path: 'lines', label: 'دليل الخطوط والموانئ', countKey: 'master' as const },
-  { path: 'settings', label: 'إعدادات البريد والأتمتة', countKey: 'settings' as const },
+  { path: 'settings', label: 'أتمتة المراسلات والبريد', countKey: 'settings' as const },
 ];
 
 function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
@@ -41,7 +41,7 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
 
   useAppToolbar([
     { label: 'الرئيسية', to: '/dashboard' },
-    { label: 'الشحن البحري واللوجستيات', to: '/maritime' },
+    { label: 'الشحن واللوجستيات', to: '/maritime' },
   ]);
 
   // Backward compatibility: If accessed via `/maritime?tab=xxx`, redirect to `/maritime/xxx`
@@ -68,8 +68,8 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
       <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         {/* هيدر الصفحة القياسي الموحد */}
         <PageHeader
-          title="الشحن البحري واللوجستيات"
-          description="منظومة إدارة الشحن البحري، دورة الشحن المؤتمتة من استفسار العميل، استقصاء الأسعار، DCSA وحتى التسليم."
+          title="الشحن واللوجستيات"
+          description="منظومة إدارة الشحن واللوجستيات، دورة الشحن المؤتمتة من استفسار العميل، استقصاء الأسعار وحتى التسليم والتخليص."
           actions={
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button
@@ -180,7 +180,7 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أوامر التشغيل والعمليات</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أوامر تشغيل الشحنات</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
                 {counts.jobs} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أمر</span>
               </div>

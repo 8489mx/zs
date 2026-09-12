@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { formatDate } from '@/lib/format';
 import { saasAdminApi, SaasTenantRow } from '../api/saas-admin.api';
@@ -15,12 +16,16 @@ export interface CreateTrialTenantModalProps {
 }
 
 const INDUSTRY_MODE_OPTIONS = [
-  { value: 'contracting', label: 'المقاولات والمشاريع الإنشائية والهندسية (ERP)', badge: 'مود المقاولات' },
-  { value: 'maritime', label: 'الشحن البحري والتوكيلات اللوجستية والموانئ', badge: 'مود الشحن' },
+  { value: 'contracting', label: 'المقاولات والمشاريع الهندسية (ERP)', badge: 'مود المقاولات' },
+  { value: 'maritime', label: 'الشحن والخدمات اللوجستية والموانئ (ERP)', badge: 'مود الشحن' },
+  { value: 'ecommerce', label: 'المتاجر الرقمية والتجارة الإلكترونية', badge: 'متجر أونلاين وبوابات دفع' },
+  { value: 'import_export', label: 'الاستيراد والتصدير والتجارة الدولية', badge: 'حاويات وتكاليف جمركية' },
   { value: 'supermarket', label: 'السوبرماركت والبقالة والمواد الغذائية', badge: 'كاشير وميزان' },
   { value: 'spices', label: 'العطارة والمحامص والمطاحن والبهارات', badge: 'خلطات وميزان' },
   { value: 'retail', label: 'التجزئة والمحلات والمتاجر العامة', badge: 'تجزئة سريعة' },
+  { value: 'appliances_installments', label: 'الأجهزة الكهربائية والمنزلية والأثاث', badge: 'مبيعات وتقسيط' },
   { value: 'fashion', label: 'الملابس والأزياء والأحذية والشنط', badge: 'مقاسات وألوان' },
+  { value: 'perfumes', label: 'العطور ومستحضرات التجميل والتركيبات', badge: 'تركيبات وتصنيع وأحجام' },
   { value: 'pharmacy', label: 'الصيدليات والمستلزمات الطبية والعلاجية', badge: 'تشغيلات FEFO' },
   { value: 'electronics', label: 'الموبايل والإلكترونيات ومراكز الصيانة', badge: 'صيانة وسيريال' },
   { value: 'restaurant', label: 'المطاعم والكافيهات والأغذية المجهزة', badge: 'طاولات ومطبخ KDS' },
@@ -121,41 +126,27 @@ export function CreateTrialTenantModal({
     <DialogShell
       open={open}
       onClose={handleClose}
-      width="840px"
+      width="980px"
       shellClassName="saas-create-modal-shell"
       ariaLabel="إنشاء نسخة تجريبية جديدة"
     >
       <div className="dialog-card saas-compact-dialog-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+        <div className="standard-dialog-header" style={{ marginBottom: '14px', paddingBottom: '12px' }}>
+          <div className="standard-dialog-header-info">
+            <h3 className="standard-dialog-title" style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#170c5c' }}>
               إنشاء نسخة تجريبية جديدة
             </h3>
-            <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: '#64748b' }}>
+            <p className="standard-dialog-subtitle" style={{ margin: '3px 0 0 0', fontSize: '12px', color: '#64748b' }}>
               إدخال بيانات المنشأة والمالك لتوليد نسخة سحابية فورية بحساب كامل الصلاحيات.
             </p>
           </div>
           <button
             type="button"
-            style={{
-              border: '1px solid #e2e8f0',
-              background: '#f8fafc',
-              color: '#64748b',
-              width: '26px',
-              height: '26px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '13px',
-              fontWeight: 700,
-              lineHeight: 1,
-            }}
+            className="standard-dialog-close-btn"
             onClick={handleClose}
             title="إغلاق"
           >
-            <XIcon size={14} />
+            <XIcon size={16} />
           </button>
         </div>
 
@@ -283,7 +274,7 @@ export function CreateTrialTenantModal({
               <div className="saas-modal-card-title">
                 <span>1. بيانات النشاط التجاري</span>
               </div>
-              <div className="saas-modal-grid-3">
+              <div className="saas-modal-grid-2">
                 <Field label="اسم النشاط / المحل *">
                   <input
                     type="text"
@@ -303,11 +294,13 @@ export function CreateTrialTenantModal({
                     dir="ltr"
                   />
                 </Field>
+              </div>
+
+              <div style={{ marginTop: '10px' }}>
                 <Field label="نمط المنشأة والمود القطاعي (Vertical Mode) *">
-                  <select
+                  <CustomSelect
                     value={createForm.businessIndustry}
-                    onChange={(e) => {
-                      const val = e.target.value;
+                    onChange={(val) => {
                       const found = INDUSTRY_MODE_OPTIONS.find((opt) => opt.value === val);
                       setCreateForm((s) => ({
                         ...s,
@@ -315,24 +308,20 @@ export function CreateTrialTenantModal({
                         activityType: found ? found.label : s.activityType,
                       }));
                     }}
+                    options={INDUSTRY_MODE_OPTIONS.map((opt) => ({
+                      value: opt.value,
+                      label: `${opt.label} — [${opt.badge}]`,
+                    }))}
                     style={{
+                      height: '38px',
                       fontWeight: 700,
                       color: '#170e5e',
-                      backgroundColor: '#f8fafc',
-                      border: '1.5px solid #cbd5e1',
-                      borderRadius: '8px',
-                      padding: '8px 10px',
-                      fontSize: '13px',
-                      width: '100%',
                     }}
-                  >
-                    {INDUSTRY_MODE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label} — [{opt.badge}]
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </Field>
+              </div>
+
+              <div className="saas-modal-grid-2" style={{ marginTop: '10px' }}>
                 <Field label="الوصف التجاري للنشاط">
                   <input
                     type="text"
@@ -387,7 +376,7 @@ export function CreateTrialTenantModal({
                   />
                 </Field>
               </div>
-              <div className="saas-modal-grid-2" style={{ marginTop: '6px' }}>
+              <div className="saas-modal-grid-2" style={{ marginTop: '10px' }}>
                 <Field label="اسم المستخدم">
                   <input
                     type="text"
@@ -416,22 +405,28 @@ export function CreateTrialTenantModal({
                   <span>3. باقة التجربة والميزات</span>
                 </div>
                 <Field label="خطة الميزات المفعلة للنسخة *">
-                  <select
+                  <CustomSelect
                     value={createForm.featurePlanId}
-                    onChange={(e) => setCreateForm((s) => ({ ...s, featurePlanId: e.target.value }))}
-                    style={{ fontWeight: 700, width: '100%' }}
-                  >
-                    <option value="plan_ultimate">المتكاملة (الباقة الشاملة - كافة الميزات)</option>
-                    <option value="plan_pro">الاحترافية (المبيعات، المخازن، الحسابات)</option>
-                    <option value="plan_basic">الأساسية (نقطة البيع، الكاشير، المخزون)</option>
-                    {(featurePlans || [])
-                      .filter((p: any) => !['plan_ultimate', 'plan_pro', 'plan_basic'].includes(p.id))
-                      .map((p: any) => (
-                        <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
-                      ))}
-                  </select>
+                    onChange={(val) => setCreateForm((s) => ({ ...s, featurePlanId: val }))}
+                    options={[
+                      { value: 'plan_ultimate', label: 'المتكاملة — [الباقة الشاملة - كافة الميزات]' },
+                      { value: 'plan_pro', label: 'الاحترافية — [المبيعات والمخازن والحسابات]' },
+                      { value: 'plan_basic', label: 'الأساسية — [نقطة البيع والكاشير والمخزون]' },
+                      ...(featurePlans || [])
+                        .filter((p: any) => !['plan_ultimate', 'plan_pro', 'plan_basic'].includes(p.id))
+                        .map((p: any) => ({
+                          value: p.id,
+                          label: `${p.name} — [${p.code}]`,
+                        })),
+                    ]}
+                    style={{
+                      height: '38px',
+                      fontWeight: 700,
+                      color: '#170e5e',
+                    }}
+                  />
                 </Field>
-                <div style={{ marginTop: '6px' }}>
+                <div style={{ marginTop: '10px' }}>
                   <Field label="مدة التجربة (أيام)">
                     <input
                       type="number"
@@ -466,7 +461,7 @@ export function CreateTrialTenantModal({
                     />
                   </Field>
                 </div>
-                <div style={{ marginTop: '6px' }}>
+                <div style={{ marginTop: '10px' }}>
                   <Field label="ملاحظات إضافية">
                     <input
                       type="text"
@@ -479,12 +474,12 @@ export function CreateTrialTenantModal({
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+            <div className="standard-dialog-footer" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
               <button
                 type="button"
                 className="button button-secondary"
                 onClick={handleClose}
-                style={{ padding: '7px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700, fontSize: '13px' }}
+                style={{ padding: '8px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
               >
                 إلغاء
               </button>
@@ -492,14 +487,16 @@ export function CreateTrialTenantModal({
                 type="submit"
                 className="button"
                 style={{
-                  background: '#0f172a',
+                  background: '#170e5e',
                   color: '#ffffff',
                   fontWeight: 800,
-                  padding: '8px 24px',
+                  padding: '9px 28px',
                   borderRadius: '8px',
                   border: 'none',
                   cursor: 'pointer',
                   fontSize: '13px',
+                  boxShadow: '0 2px 4px rgba(23, 14, 94, 0.2)',
+                  transition: 'background 0.15s ease',
                 }}
                 disabled={createTrialMutation.isPending || !createForm.businessName || !createForm.slug || !createForm.ownerPhone}
               >
@@ -512,3 +509,4 @@ export function CreateTrialTenantModal({
     </DialogShell>
   );
 }
+

@@ -35,7 +35,7 @@ const AVAILABLE_FEATURES = [
   { id: 'manufacturing', name: 'التصنيع وقوائم المواد وأوامر الإنتاج', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
   { id: 'import', name: 'الاستيراد والشراكة والحاويات', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
   { id: 'pharmacy', name: 'الصيدليات والأدوية والبدائل والنواقص', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
-  { id: 'maritime_freight', name: 'الشحن البحري واللوجستيات والموانئ', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'maritime_freight', name: 'الشحن واللوجستيات والموانئ', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
 
   // 4. باقة التجارة الشاملة (Omnichannel Enterprise)
   { id: 'storefront', name: 'المتجر الإلكتروني وطلبات الأونلاين', planName: 'التجارة الشاملة', planBadgeBg: '#fef3c7', planBadgeColor: '#b45309' },

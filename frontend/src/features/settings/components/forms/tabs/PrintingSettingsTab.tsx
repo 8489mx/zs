@@ -4,6 +4,7 @@ import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/
 import type { AppSettings } from '@/types/domain';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
 
 const checkboxGridStyle: CSSProperties = {
@@ -121,6 +122,12 @@ export function PrintingSettingsTab({
   savedKitchenPrinter,
   posKitchenPrinterEnabled,
 }: PrintingTabProps) {
+  const industry = String(settings?.businessIndustry || form.watch('businessIndustry') || 'general').toLowerCase();
+  const isPosModuleEnabled = Boolean(form.watch('posModuleEnabled') ?? settings?.posModuleEnabled ?? true);
+  const isNonPosVertical = ['contracting', 'maritime', 'services'].includes(industry) || (industry === 'import_export' && !isPosModuleEnabled);
+  const showPosSettings = isPosModuleEnabled && !isNonPosVertical;
+  const isRestaurantVertical = ['restaurant', 'cafe'].includes(industry) || Boolean(form.watch('restaurantModuleEnabled'));
+
   return (
     <div style={{ display: activeTab === 'printing' ? 'block' : 'none' }}>
       {/* ===== 1. إعدادات الإيصال ونمط الفاتورة العامة ===== */}
@@ -131,35 +138,57 @@ export function PrintingSettingsTab({
         <div className="document-prototype-grid compact-grid-2">
           <div className="field">
             <label>مقاس الطباعة الافتراضي</label>
-            <select className="purchase-prototype-field-input" {...form.register('paperSize')} disabled={disabled}>
-              <option value="receipt">إيصال حراري (Receipt 80mm)</option>
-              <option value="a4">ورق كبير قياسي (A4)</option>
-            </select>
+            <CustomSelect
+              value={form.watch('paperSize') || (isNonPosVertical ? 'a4' : 'receipt')}
+              onChange={(val) => form.setValue('paperSize', val as any, { shouldDirty: true, shouldValidate: true })}
+              options={[
+                { value: 'receipt', label: 'إيصال حراري (Receipt 80mm)' },
+                { value: 'a4', label: 'ورق كبير قياسي (A4)' },
+              ]}
+              disabled={disabled}
+            />
           </div>
 
-          <div className="field">
-            <label>شكل وتصميم الإيصال (Receipt Theme)</label>
-            <select className="purchase-prototype-field-input" {...form.register('posReceiptTheme')} disabled={disabled}>
-              <option value="boxed">نمط المربعات (Boxed) — أنيق ومنظم</option>
-              <option value="classic">النمط الكلاسيكي (Classic)</option>
-              <option value="ultra-compact">نمط مصغر جداً لتوفير الورق (Ultra Compact)</option>
-            </select>
-          </div>
+          {showPosSettings && (
+            <div className="field">
+              <label>شكل وتصميم الإيصال (Receipt Theme)</label>
+              <CustomSelect
+                value={form.watch('posReceiptTheme') || 'boxed'}
+                onChange={(val) => form.setValue('posReceiptTheme', val as any, { shouldDirty: true, shouldValidate: true })}
+                options={[
+                  { value: 'boxed', label: 'نمط المربعات (Boxed) — أنيق ومنظم' },
+                  { value: 'classic', label: 'النمط الكلاسيكي (Classic)' },
+                  { value: 'ultra-compact', label: 'نمط مصغر جداً لتوفير الورق (Ultra Compact)' },
+                ]}
+                disabled={disabled}
+              />
+            </div>
+          )}
 
           <div className="field">
             <label>نمط ترقيم الفواتير والمرتجعات</label>
-            <select className="purchase-prototype-field-input" {...form.register('invoiceNumberingScheme')} disabled={disabled}>
-              <option value="daily">ترقيم يومي مدمج بالتاريخ (Z-260818-0001)</option>
-              <option value="sequential">ترقيم تسلسلي كلاسيكي مستمر (Z-1, Z-2...)</option>
-            </select>
+            <CustomSelect
+              value={form.watch('invoiceNumberingScheme') || 'daily'}
+              onChange={(val) => form.setValue('invoiceNumberingScheme', val as any, { shouldDirty: true, shouldValidate: true })}
+              options={[
+                { value: 'daily', label: 'ترقيم يومي مدمج بالتاريخ (Z-260818-0001)' },
+                { value: 'sequential', label: 'ترقيم تسلسلي كلاسيكي مستمر (Z-1, Z-2...)' },
+              ]}
+              disabled={disabled}
+            />
           </div>
 
           <div className="field">
             <label>تنسيق أرقام الفاتورة المطبوعة</label>
-            <select className="purchase-prototype-field-input" {...form.register('printNumberFormat')} disabled={disabled}>
-              <option value="arabic">أرقام عربية: ١٢٣٤</option>
-              <option value="english">أرقام إنجليزية: 1234</option>
-            </select>
+            <CustomSelect
+              value={form.watch('printNumberFormat') || 'arabic'}
+              onChange={(val) => form.setValue('printNumberFormat', val as any, { shouldDirty: true, shouldValidate: true })}
+              options={[
+                { value: 'arabic', label: 'أرقام عربية: ١٢٣٤' },
+                { value: 'english', label: 'أرقام إنجليزية: 1234' },
+              ]}
+              disabled={disabled}
+            />
           </div>
 
           <div className="field">
@@ -254,30 +283,26 @@ export function PrintingSettingsTab({
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowOrderType')} disabled={disabled} />
                   إظهار نوع الطلب
                 </label>
-                <label className="settings-print-option" style={checkboxStyle}>
-                  <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCashier')} disabled={disabled} />
-                  إظهار الكاشير
-                </label>
-                <label className="settings-print-option" style={checkboxStyle}>
-                  <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPaymentMethod')} disabled={disabled} />
-                  إظهار طريقة الدفع
-                </label>
-                <label className="settings-print-option" style={checkboxStyle}>
-                  <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCustomer')} disabled={disabled} />
-                  إظهار العميل
-                </label>
-                <label className="settings-print-option" style={checkboxStyle}>
-                  <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDeliveryCustomerDetails')} disabled={disabled} />
-                  تفاصيل العميل في الدليفري
-                </label>
-                <label className="settings-print-option" style={checkboxStyle}>
-                  <input type="checkbox" style={checkboxInputStyle} {...form.register('printDeliveryRepOnReceipt')} disabled={disabled} />
-                  إظهار اسم المندوب
-                </label>
-                <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
-                  <input type="checkbox" style={checkboxInputStyle} {...form.register('printDualReceiptForOnlineDelivery')} disabled={disabled} />
-                  طباعة نسختين تلقائياً للدليفري والدفع الإلكتروني (عميل + محل)
-                </label>
+                {showPosSettings && (
+                  <>
+                    <label className="settings-print-option" style={checkboxStyle}>
+                      <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCashier')} disabled={disabled} />
+                      إظهار الكاشير
+                    </label>
+                    <label className="settings-print-option" style={checkboxStyle}>
+                      <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDeliveryCustomerDetails')} disabled={disabled} />
+                      تفاصيل العميل في الدليفري
+                    </label>
+                    <label className="settings-print-option" style={checkboxStyle}>
+                      <input type="checkbox" style={checkboxInputStyle} {...form.register('printDeliveryRepOnReceipt')} disabled={disabled} />
+                      إظهار اسم المندوب
+                    </label>
+                    <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
+                      <input type="checkbox" style={checkboxInputStyle} {...form.register('printDualReceiptForOnlineDelivery')} disabled={disabled} />
+                      طباعة نسختين تلقائياً للدليفري والدفع الإلكتروني (عميل + محل)
+                    </label>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -359,75 +384,77 @@ export function PrintingSettingsTab({
       </FormSection>
 
       {/* ===== 3. طابعة وشيت المطبخ ومناداة العميل (KOT) ===== */}
-      <FormSection
-        title="طابعة وشيت المطبخ ومناداة العميل (KOT)"
-        description="إعدادات طباعة تذكرة التحضير بالمطبخ أو إيصال المناداة الصغير للعميل."
-      >
-        <div className="document-prototype-grid compact-grid-2">
-          <label style={premiumCardStyle}>
-            <div style={premiumCardTextStyle}>
-              <strong>تفعيل طباعة شيت المطبخ (KOT)</strong>
-              <small className="muted">تمكين خيار طباعة إيصال التحضير أو المناداة</small>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posKitchenPrinterEnabled')} disabled={disabled} />
-          </label>
+      {(isRestaurantVertical || posKitchenPrinterEnabled) && (
+        <FormSection
+          title="طابعة وشيت المطبخ ومناداة العميل (KOT)"
+          description="إعدادات طباعة تذكرة التحضير بالمطبخ أو إيصال المناداة الصغير للعميل."
+        >
+          <div className="document-prototype-grid compact-grid-2">
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>
+                <strong>تفعيل طباعة شيت المطبخ (KOT)</strong>
+                <small className="muted">تمكين خيار طباعة إيصال التحضير أو المناداة</small>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posKitchenPrinterEnabled')} disabled={disabled} />
+            </label>
 
-          <label style={premiumCardStyle}>
-            <div style={premiumCardTextStyle}>
-              <strong>طباعة شيت المطبخ تلقائياً</strong>
-              <small className="muted">إرسال التذكرة للطابعة فور حفظ فاتورة البيع</small>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posKitchenPrinterAuto')} disabled={disabled} />
-          </label>
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>
+                <strong>طباعة شيت المطبخ تلقائياً</strong>
+                <small className="muted">إرسال التذكرة للطابعة فور حفظ فاتورة البيع</small>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posKitchenPrinterAuto')} disabled={disabled} />
+            </label>
 
-          <div className="field" style={{ gridColumn: '1 / -1' }}>
-            <label>نوع شيت المطبخ المطلوب</label>
-            <select className="purchase-prototype-field-input" {...form.register('posKitchenPrinterMode')} disabled={disabled || !posKitchenPrinterEnabled}>
-              <option value="detailed">إيصال مطبخ مفصل (شامل قائمة الأصناف والإضافات)</option>
-              <option value="mini">إيصال مصغر لتوفير الورق (رقم الطلب فقط لمناداة العميل)</option>
-            </select>
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label>نوع شيت المطبخ المطلوب</label>
+              <select className="purchase-prototype-field-input" {...form.register('posKitchenPrinterMode')} disabled={disabled || !posKitchenPrinterEnabled}>
+                <option value="detailed">إيصال مطبخ مفصل (شامل قائمة الأصناف والإضافات)</option>
+                <option value="mini">إيصال مصغر لتوفير الورق (رقم الطلب فقط لمناداة العميل)</option>
+              </select>
+            </div>
+
+            {typeof window !== 'undefined' && (window as any).electronPrinter && (
+              <div
+                key={`printers-${String(settings?.posElectronCashierPrinter || '')}-${String(settings?.posElectronKitchenPrinter || '')}-${systemPrinters.length}`}
+                className="document-prototype-grid compact-grid-2"
+                style={{ gridColumn: '1 / -1', marginTop: 8, padding: '12px', border: '1px solid var(--border)', borderRadius: 8, background: '#f8fafc' }}
+              >
+                <div className="field">
+                  <label>طابعة الكاشير المباشرة (الريسيت)</label>
+                  <select className="purchase-prototype-field-input" {...form.register('posElectronCashierPrinter')} disabled={disabled}>
+                    <option value="">- الطباعة العادية (نافذة المتصفح) -</option>
+                    {savedCashierPrinter && !systemPrinters.some(p => p.name === savedCashierPrinter) && (
+                      <option value={savedCashierPrinter}>{savedCashierPrinter}</option>
+                    )}
+                    {systemPrinters.map(p => (
+                      <option key={p.name} value={p.name}>{p.displayName || p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label>طابعة المطبخ المباشرة (KOT)</label>
+                  <select className="purchase-prototype-field-input" {...form.register('posElectronKitchenPrinter')} disabled={disabled || !posKitchenPrinterEnabled}>
+                    <option value="">- الطباعة العادية (نافذة المتصفح) -</option>
+                    {savedKitchenPrinter && !systemPrinters.some(p => p.name === savedKitchenPrinter) && (
+                      <option value={savedKitchenPrinter}>{savedKitchenPrinter}</option>
+                    )}
+                    {systemPrinters.map(p => (
+                      <option key={p.name} value={p.name}>{p.displayName || p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="muted small" style={{ gridColumn: '1 / -1' }}>
+                  <strong>معلومة:</strong> إذا اخترت طابعة هنا، سيتم إرسال الطباعة <b>مباشرة وبدون أي شاشة تأكيد</b>.
+                  ولو اخترت <b>نفس الطابعة</b> للكاشير والمطبخ، سيتم طباعة الإيصالين ورا بعد تلقائياً.
+                </div>
+              </div>
+            )}
           </div>
-
-          {typeof window !== 'undefined' && (window as any).electronPrinter && (
-            <div
-              key={`printers-${String(settings?.posElectronCashierPrinter || '')}-${String(settings?.posElectronKitchenPrinter || '')}-${systemPrinters.length}`}
-              className="document-prototype-grid compact-grid-2"
-              style={{ gridColumn: '1 / -1', marginTop: 8, padding: '12px', border: '1px solid var(--border)', borderRadius: 8, background: '#f8fafc' }}
-            >
-              <div className="field">
-                <label>طابعة الكاشير المباشرة (الريسيت)</label>
-                <select className="purchase-prototype-field-input" {...form.register('posElectronCashierPrinter')} disabled={disabled}>
-                  <option value="">- الطباعة العادية (نافذة المتصفح) -</option>
-                  {savedCashierPrinter && !systemPrinters.some(p => p.name === savedCashierPrinter) && (
-                    <option value={savedCashierPrinter}>{savedCashierPrinter}</option>
-                  )}
-                  {systemPrinters.map(p => (
-                    <option key={p.name} value={p.name}>{p.displayName || p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="field">
-                <label>طابعة المطبخ المباشرة (KOT)</label>
-                <select className="purchase-prototype-field-input" {...form.register('posElectronKitchenPrinter')} disabled={disabled || !posKitchenPrinterEnabled}>
-                  <option value="">- الطباعة العادية (نافذة المتصفح) -</option>
-                  {savedKitchenPrinter && !systemPrinters.some(p => p.name === savedKitchenPrinter) && (
-                    <option value={savedKitchenPrinter}>{savedKitchenPrinter}</option>
-                  )}
-                  {systemPrinters.map(p => (
-                    <option key={p.name} value={p.name}>{p.displayName || p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="muted small" style={{ gridColumn: '1 / -1' }}>
-                <strong>معلومة:</strong> إذا اخترت طابعة هنا، سيتم إرسال الطباعة <b>مباشرة وبدون أي شاشة تأكيد</b>.
-                ولو اخترت <b>نفس الطابعة</b> للكاشير والمطبخ، سيتم طباعة الإيصالين ورا بعض تلقائياً.
-              </div>
-            </div>
-          )}
-        </div>
-      </FormSection>
+        </FormSection>
+      )}
 
       {/* ===== 4. مصمم ومعاين الفاتورة البصري التفاعلي (Visual Receipt Designer & Live Mockup) ===== */}
       <FormSection

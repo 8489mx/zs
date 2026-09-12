@@ -38,7 +38,7 @@ export const contractingRouteModule: FeatureRouteModule = {
     },
   ],
   navigation: [
-    { key: 'contracting-projects', label: 'سجل المشاريع الإنشائية', to: '/contracting/projects' },
+    { key: 'contracting-projects', label: 'سجل المشاريع', to: '/contracting/projects' },
     { key: 'contracting-boq', label: 'جدول الكميات والمقايسات (SOV)', to: '/contracting/boq' },
     { key: 'contracting-financials', label: 'المالية والمستخلصات (IPC)', to: '/contracting/financials' },
     { key: 'contracting-procurement', label: 'مقاولو الباطن والتوريدات', to: '/contracting/procurement' },

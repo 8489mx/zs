@@ -10,6 +10,11 @@ export type IndustryPresetId =
   | 'manufacturing'
   | 'services'
   | 'ecommerce'
+  | 'import_export'
+  | 'appliances_installments'
+  | 'perfumes'
+  | 'spices'
+  | 'supermarket'
   | 'custom';
 
 export type PlanTierKey = 'plan_basic' | 'plan_pro' | 'plan_ultimate' | 'plan_omnichannel';
@@ -185,7 +190,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
   },
   {
     key: 'maritimeFreightModuleEnabled',
-    title: 'الشحن البحري واللوجستيات والموانئ',
+    title: 'الشحن واللوجستيات والموانئ',
     category: 'specialized',
     categoryLabel: 'الخدمات والتخصصات التشغيلية',
     shortDesc: 'أتمتة طلبات تسعير الخطوط الملاحية (RFQ)، مقارنة عروض الأسعار، إدارة الحاويات وفترة السماح، والتتبع المباشر.',
@@ -193,7 +198,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
   },
   {
     key: 'contractingModuleEnabled',
-    title: 'المقاولات وإدارة المشاريع الإنشائية',
+    title: 'المقاولات والمشاريع',
     category: 'specialized',
     categoryLabel: 'الخدمات والتخصصات التشغيلية',
     shortDesc: 'إدارة مشاريع المقاولات، جداول الكميات (BOQ/SOV)، الأوامر التغييرية، مستخلصات الدفع (AIA G702/G703)، ومقاولي الباطن واليوميات.',
@@ -379,7 +384,7 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
 
   maritime: {
     id: 'maritime',
-    name: 'شركات الشحن والتوكيلات البحرية واللوجستيات',
+    name: 'شركات الشحن والخدمات اللوجستية',
     subtitle: 'الوكلاء الملاحيون، وسطاء الشحن، والتخليص الجمركي',
     description: 'إدارة أوامر التشغيل، بوالص الشحن (B/L)، فترات سماح الحاويات وغرامات التأخير (Demurrage)، ومصفوفة مقارنة عروض الخطوط الملاحية.',
     badge: 'شحن ولوجستيات',
@@ -623,6 +628,152 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
     defaultPosMode: 'scanner',
     defaultProductKind: 'standard',
     highlights: ['المتجر الإلكتروني السحابي وبوابات الدفع', 'مشتريات وتوريد منتجات المتجر أونلاين', 'مخازن البضاعة وبوالص الشحن والمناديب'],
+  },
+
+  import_export: {
+    id: 'import_export',
+    name: 'الاستيراد والتصدير والتجارة الدولية',
+    subtitle: 'شركات الاستيراد والرسائل الجمركية والحاويات',
+    description: 'إدارة الرسائل الجمركية، الحاويات، تكاليف الشحن، وتوزيع المصروفات Landed Costs.',
+    badge: 'حاويات وتكاليف جمركية',
+    recommendedModules: [
+      'posModuleEnabled',
+      'inventoryModuleEnabled',
+      'purchasesModuleEnabled',
+      'importModuleEnabled',
+      'enableEnterpriseFeatures',
+      'taxDeclarationModuleEnabled',
+      'installmentsModuleEnabled',
+    ],
+    disabledModules: [
+      'weightedBarcodeEnabled',
+      'restaurantModuleEnabled',
+      'enablePharmacyModule',
+      'enableMobileStoreFeatures',
+      'clothingModuleEnabled',
+      'contractingModuleEnabled',
+      'maritimeFreightModuleEnabled',
+    ],
+    recommendedPlan: 'plan_ultimate',
+    defaultPosMode: 'scanner',
+    defaultProductKind: 'standard',
+    highlights: ['الرسائل الاستيرادية والحاويات', 'حساب تكلفة الشحنات وتوزيع التكاليف Landed Costs', 'المخازن والاعتمادات المستندية'],
+  },
+
+  appliances_installments: {
+    id: 'appliances_installments',
+    name: 'الأجهزة الكهربائية والمنزلية والأثاث',
+    subtitle: 'معارض الأجهزة الكهربائية، الأثاث، والموتوسيكلات',
+    description: 'إدارة مبيعات التقسيط، جدولة الأقساط الشهرية، طباعة الكمبيالات والعقود، وإدارة الضامنين والمتحصلات.',
+    badge: 'مبيعات وتقسيط',
+    recommendedModules: [
+      'posModuleEnabled',
+      'inventoryModuleEnabled',
+      'purchasesModuleEnabled',
+      'installmentsModuleEnabled',
+      'deliveryFleetModuleEnabled',
+      'enableEnterpriseFeatures',
+      'taxDeclarationModuleEnabled',
+    ],
+    disabledModules: [
+      'weightedBarcodeEnabled',
+      'restaurantModuleEnabled',
+      'enablePharmacyModule',
+      'clothingModuleEnabled',
+      'manufacturingModuleEnabled',
+      'contractingModuleEnabled',
+      'maritimeFreightModuleEnabled',
+    ],
+    recommendedPlan: 'plan_ultimate',
+    defaultPosMode: 'scanner',
+    defaultProductKind: 'standard',
+    highlights: ['جدولة الأقساط الشهرية والفوائد', 'طباعة الكمبيالات وعقود البيع بالتقسيط', 'إدارة الضامنين والمخازن والتوصيل'],
+  },
+
+  perfumes: {
+    id: 'perfumes',
+    name: 'العطور ومستحضرات التجميل والتركيبات',
+    subtitle: 'محلات ومصانع العطور، الزيوت العطرية ومستحضرات التجميل',
+    description: 'إدارة خلطات وتركيبات العطور، الأحجام والسعات (ML)، وتصنيع الزيوت العطرية.',
+    badge: 'تركيبات وتصنيع وأحجام',
+    recommendedModules: [
+      'posModuleEnabled',
+      'inventoryModuleEnabled',
+      'purchasesModuleEnabled',
+      'clothingModuleEnabled',
+      'manufacturingModuleEnabled',
+      'comboModuleEnabled',
+      'taxDeclarationModuleEnabled',
+    ],
+    disabledModules: [
+      'weightedBarcodeEnabled',
+      'restaurantModuleEnabled',
+      'enablePharmacyModule',
+      'enableMobileStoreFeatures',
+      'contractingModuleEnabled',
+      'maritimeFreightModuleEnabled',
+    ],
+    recommendedPlan: 'plan_ultimate',
+    defaultPosMode: 'scanner',
+    defaultProductKind: 'fashion',
+    highlights: ['تصنيع وتركيب الزيوت العطرية', 'إدارة المقاسات والأحجام والسعات بالمللي', 'عروض الكومبو والخصومات'],
+  },
+
+  spices: {
+    id: 'spices',
+    name: 'العطارة والمحامص والمطاحن والبهارات',
+    subtitle: 'محلات العطارة والمحامص والبهارات والمطاحن',
+    description: 'إدارة خلطات التوابل والموازين الإلكترونية والتصنيع الخفيف وتجزئة الوزن.',
+    badge: 'خلطات وميزان',
+    recommendedModules: [
+      'posModuleEnabled',
+      'inventoryModuleEnabled',
+      'purchasesModuleEnabled',
+      'weightedBarcodeEnabled',
+      'manufacturingModuleEnabled',
+      'comboModuleEnabled',
+    ],
+    disabledModules: [
+      'restaurantModuleEnabled',
+      'enablePharmacyModule',
+      'enableMobileStoreFeatures',
+      'contractingModuleEnabled',
+      'maritimeFreightModuleEnabled',
+    ],
+    recommendedPlan: 'plan_pro',
+    defaultPosMode: 'scanner',
+    defaultProductKind: 'standard',
+    highlights: ['باركود الموازين الإلكترونية للأوزان الدقيقة', 'خلطات التوابل والتصنيع الخفيف', 'الجرد ونواقص المخزون والتجزئة'],
+  },
+
+  supermarket: {
+    id: 'supermarket',
+    name: 'السوبرماركت والبقالة والمواد الغذائية',
+    subtitle: 'سوبرماركت، هايبرماركت، وبقالة تموينية',
+    description: 'البيع السريع بالماسح الضوئي، باركود الموازين الإلكترونية للأجبان واللحوم، والعروض الترويجية.',
+    badge: 'كاشير وميزان',
+    recommendedModules: [
+      'posModuleEnabled',
+      'purchasesModuleEnabled',
+      'inventoryModuleEnabled',
+      'weightedBarcodeEnabled',
+      'comboModuleEnabled',
+    ],
+    disabledModules: [
+      'manufacturingModuleEnabled',
+      'importModuleEnabled',
+      'enablePharmacyModule',
+      'enableMobileStoreFeatures',
+      'clothingModuleEnabled',
+      'restaurantModuleEnabled',
+      'enableEnterpriseFeatures',
+      'contractingModuleEnabled',
+      'maritimeFreightModuleEnabled',
+    ],
+    recommendedPlan: 'plan_pro',
+    defaultPosMode: 'scanner',
+    defaultProductKind: 'standard',
+    highlights: ['كاشير الباركود السريع ونقاط البيع المتعددة', 'باركود الموازين للأجبان واللحوم', 'تنبيهات نواقص الرف والمخزون'],
   },
 
   custom: {

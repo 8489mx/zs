@@ -148,7 +148,12 @@ export function CustomSelect({
     <div
       ref={containerRef}
       className={`custom-select-wrapper ${className}`.trim()}
-      style={{ position: 'relative', width: '100%', ...style }}
+      style={{
+        position: 'relative',
+        width: '100%',
+        ...style,
+        ...(isOpen ? { zIndex: 60 } : {}),
+      }}
     >
       <div style={{ position: 'relative' }}>
         {selectedOption?.icon && !isSearching && (
@@ -195,8 +200,8 @@ export function CustomSelect({
             border: '1px solid #cbd5e1',
             boxSizing: 'border-box',
             fontSize: style?.fontSize || '13px',
-            color: '#0f172a',
-            fontWeight: 500,
+            color: style?.color || '#0f172a',
+            fontWeight: style?.fontWeight || 500,
             cursor: disabled ? 'not-allowed' : 'text',
             textAlign: 'right',
           }}

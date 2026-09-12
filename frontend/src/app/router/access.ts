@@ -398,6 +398,10 @@ export const routeFeatureMap: Record<string, string | null> = {
   '/online-orders': 'storefront',
   storefront: 'storefront',
   '/storefront': 'storefront',
+  'settings/storefront': 'storefront',
+  '/settings/storefront': 'storefront',
+  'settings/marketplaces': 'storefront',
+  '/settings/marketplaces': 'storefront',
 
   // Mobile / Maintenance
   maintenance: 'maintenance',

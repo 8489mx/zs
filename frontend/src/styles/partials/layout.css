@@ -495,7 +495,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   line-height: 1;
 }
 
-.app-layout { --sidebar-width: 240px; display: flex; height: 100%; min-height: 100%; min-height: 100dvh; overflow: hidden; }
+.app-layout { --sidebar-width: 256px; display: flex; height: 100%; min-height: 100%; min-height: 100dvh; overflow: hidden; }
 .sidebar-fixed {
   width: var(--sidebar-width);
   background: #ffffff;
@@ -908,11 +908,14 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
 }
 .sidebar-label {
   flex: 1;
+  min-width: 0;
   text-align: right;
   font-size: 14px;
   line-height: 1.2;
   white-space: nowrap;
   letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .sidebar-nav::-webkit-scrollbar { display: none; width: 0; background: transparent; }
 .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(148,163,184,.32); border-radius: 8px; }

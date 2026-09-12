@@ -112,6 +112,19 @@ export class TrialTenantProvisioningService {
         base.taxDeclarationModuleEnabled = true;
         break;
 
+      case 'ecommerce':
+        base.storefrontModuleEnabled = true;
+        base.deliveryFleetModuleEnabled = true;
+        base.enableEnterpriseFeatures = true;
+        break;
+
+      case 'import_export':
+        base.importModuleEnabled = true;
+        base.enableEnterpriseFeatures = true;
+        base.taxDeclarationModuleEnabled = true;
+        base.installmentsModuleEnabled = true;
+        break;
+
       case 'spices':
         base.weightedBarcodeEnabled = true;
         base.clothingModuleEnabled = true;
@@ -121,6 +134,12 @@ export class TrialTenantProvisioningService {
       case 'supermarket':
         base.weightedBarcodeEnabled = true;
         base.defaultPosMode = 'scanner';
+        break;
+
+      case 'appliances_installments':
+        base.installmentsModuleEnabled = true;
+        base.deliveryFleetModuleEnabled = true;
+        base.enableEnterpriseFeatures = true;
         break;
 
       case 'fashion':
@@ -136,6 +155,7 @@ export class TrialTenantProvisioningService {
 
       case 'pharmacy':
         base.enablePharmacyModule = true;
+        base.deliveryFleetModuleEnabled = true;
         break;
 
       case 'electronics':
@@ -165,6 +185,13 @@ export class TrialTenantProvisioningService {
         base.deliveryFleetModuleEnabled = true;
         break;
 
+      case 'manufacturing':
+        base.manufacturingModuleEnabled = true;
+        base.importModuleEnabled = true;
+        base.enableEnterpriseFeatures = true;
+        break;
+
+      case 'retail':
       case 'general':
       default:
         base.defaultPosMode = 'scanner';

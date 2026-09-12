@@ -31,8 +31,8 @@ export function SmartModularQuickBar({
   const presetsList: Array<{ id: IndustryPresetId; shortLabel: string }> = [
     { id: 'retail', shortLabel: 'تجارة التجزئة والسوبرماركت' },
     { id: 'wholesale', shortLabel: 'مبيعات الجملة والتوزيع' },
-    { id: 'contracting', shortLabel: 'المقاولات والمشاريع الإنشائية' },
-    { id: 'maritime', shortLabel: 'الشحن البحري واللوجستيات' },
+    { id: 'contracting', shortLabel: 'المقاولات والمشاريع' },
+    { id: 'maritime', shortLabel: 'الشحن واللوجستيات' },
     { id: 'restaurant', shortLabel: 'المطاعم والكافيهات' },
     { id: 'fashion', shortLabel: 'الملابس والأزياء' },
     { id: 'electronics', shortLabel: 'الصيانة والإلكترونيات' },

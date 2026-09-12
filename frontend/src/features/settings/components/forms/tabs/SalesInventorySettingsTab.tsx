@@ -5,6 +5,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import type { AppSettings } from '@/types/domain';
 import { FormSection } from '@/shared/components/form-section';
+import { CustomSelect } from '@/shared/ui/custom-select';
 
 interface SalesInventoryTabProps {
   form: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>;
@@ -219,6 +220,16 @@ export function SalesInventorySettingsTab({
   activeTab,
   settings,
 }: SalesInventoryTabProps) {
+  const industry = String(settings?.businessIndustry || form.watch('businessIndustry') || 'general').toLowerCase();
+  const isPosModuleEnabled = Boolean(form.watch('posModuleEnabled') ?? settings?.posModuleEnabled ?? true);
+  const isNonPosVertical = ['contracting', 'maritime', 'services'].includes(industry) || (industry === 'import_export' && !isPosModuleEnabled);
+  const showPosSettings = isPosModuleEnabled && !isNonPosVertical;
+  const showPhysicalInventory = industry !== 'services';
+  const isDedicatedContracting = industry === 'contracting';
+  const isDedicatedMaritime = industry === 'maritime';
+  const isDedicatedImport = industry === 'import_export';
+  const isDedicatedServices = industry === 'services';
+
   const isStoreFleet = form.watch('deliveryFeeMode') === 'store_fleet';
   const [isChangingPin, setIsChangingPin] = useState(false);
 
@@ -264,18 +275,15 @@ export function SalesInventorySettingsTab({
                 <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
                   طريقة احتساب الضريبة
                 </label>
-                <select
-                  {...form.register('taxMode')}
+                <CustomSelect
+                  value={form.watch('taxMode') || 'exclusive'}
+                  onChange={(val) => form.setValue('taxMode', val as any, { shouldDirty: true, shouldValidate: true })}
+                  options={[
+                    { value: 'exclusive', label: 'تضاف فوق السعر' },
+                    { value: 'inclusive', label: 'ضمن السعر' },
+                  ]}
                   disabled={disabled}
-                  style={{
-                    ...fieldControlStyle,
-                    cursor: 'pointer',
-                    paddingInlineEnd: '28px',
-                  }}
-                >
-                  <option value="exclusive">تضاف فوق السعر</option>
-                  <option value="inclusive">ضمن السعر</option>
-                </select>
+                />
               </div>
             </div>
           </div>
@@ -326,18 +334,20 @@ export function SalesInventorySettingsTab({
       >
         <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
           {/* Card 1: Negative Stock */}
-          <label style={premiumCardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
-                <NegativeStockIcon size={20} />
+          {showPhysicalInventory && (
+            <label style={premiumCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={iconBadgeStyle}>
+                  <NegativeStockIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>السماح بالبيع بالسالب</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>تخطي تحذير عدم كفاية المخزون عند إتمام الفاتورة بالكاشير</small>
+                </div>
               </div>
-              <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>السماح بالبيع بالسالب</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>تخطي تحذير عدم كفاية المخزون عند إتمام الفاتورة بالكاشير</small>
-              </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowNegativeStockSales')} disabled={disabled} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowNegativeStockSales')} disabled={disabled} />
+            </label>
+          )}
 
           {/* Card 2: Zero Purchase Cost */}
           <label style={premiumCardStyle}>
@@ -353,483 +363,624 @@ export function SalesInventorySettingsTab({
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowZeroPurchaseCost')} disabled={disabled} />
           </label>
 
-          {/* Card 3: Require Shift */}
-          <label style={premiumCardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
-                <CashierShiftLockIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إجبار فتح وردية لعمليات الكاشير</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>منع البيع قبل فتح الوردية وتحديد العهدة لضبط الخزينة</small>
-              </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('requireCashierShiftForSales')} disabled={disabled} />
-          </label>
-
-          {/* Card 4: Low Stock Alert */}
-          <div style={{ ...premiumCardStyle, cursor: 'default' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-              <div style={iconBadgeStyle}>
-                <LowStockIndicatorIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>حد التنبيه لنقص المخزون</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يظهر تنبيه نواقص عندما يصل الرصيد لهذا الحد أو أقل</small>
-              </div>
-            </div>
-            <input
-              className="purchase-prototype-field-input"
-              type="number"
-              min="0"
-              {...form.register('lowStockThreshold')}
-              disabled={disabled}
-              placeholder="5"
-              style={{ width: '80px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-            />
-          </div>
-
-          {/* Card 4.5: Max Cashier Discount Approval Threshold & Manager PIN */}
-          <div style={{ gridColumn: '1 / -1', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Card 3: Require Shift (Only for POS) */}
+          {showPosSettings && (
+            <label style={premiumCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={iconBadgeStyle}>
                   <CashierShiftLockIcon size={20} />
                 </div>
-                <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>سقف خصم الكاشير واعتماد المدير (PIN)</strong>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>اشتراط إدخال PIN المدير عند إعطاء الكاشير خصماً يتجاوز حداً معيناً أو لتعديل العمليات الحساسة</span>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إجبار فتح وردية لعمليات الكاشير</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>منع البيع قبل فتح الوردية وتحديد العهدة لضبط الخزينة</small>
                 </div>
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: form.watch('posMaxDiscountThresholdEnabled') ? '#166534' : '#64748b' }}>
-                  {form.watch('posMaxDiscountThresholdEnabled') ? 'سقف الخصم: مفعّل' : 'سقف الخصم: معطل'}
-                </span>
-                <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posMaxDiscountThresholdEnabled')} disabled={disabled} />
-              </label>
-            </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('requireCashierShiftForSales')} disabled={disabled} />
+            </label>
+          )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  الرمز السري للمدير (PIN)
-                </label>
-                {settings?.hasManagerPin && !isChangingPin ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', minHeight: '38px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534' }}>
-                        تم حفظ وتفعيل رمز سري للمدير
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsChangingPin(true);
-                        form.setValue('managerPin', '', { shouldDirty: true });
-                      }}
-                      disabled={disabled}
-                      style={{
-                        padding: '3px 10px',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        color: '#170c5c',
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      تغيير الرمز
-                    </button>
-                  </div>
-                ) : !settings?.hasManagerPin && !isChangingPin ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', minHeight: '38px' }}>
-                    <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                      لم يتم تعيين رمز سري بعد (اختياري)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsChangingPin(true);
-                        form.setValue('managerPin', '', { shouldDirty: true });
-                      }}
-                      disabled={disabled}
-                      style={{
-                        padding: '3px 10px',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        color: '#170c5c',
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      تعيين رمز PIN
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <input
-                        type="password"
-                        inputMode="numeric"
-                        autoComplete="new-password"
-                        data-lpignore="true"
-                        data-1p-ignore="true"
-                        maxLength={10}
-                        className="purchase-prototype-field-input"
-                        {...form.register('managerPin')}
-                        onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
-                          form.setValue('managerPin', digits, { shouldValidate: true, shouldDirty: true });
-                        }}
-                        disabled={disabled}
-                        placeholder="أدخل الرمز الجديد (4 - 10 أرقام)"
-                        style={fieldControlStyle}
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsChangingPin(false);
-                          form.setValue('managerPin', '', { shouldDirty: false });
-                          form.clearErrors('managerPin');
-                        }}
-                        style={{
-                          padding: '7px 12px',
-                          fontSize: '0.74rem',
-                          fontWeight: 700,
-                          color: '#64748b',
-                          background: '#f1f5f9',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        إلغاء
-                      </button>
-                    </div>
-                    <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                      الرمز السري المطلوب لاعتماد العمليات الحساسة وتجاوز سقف الخصم بالكاشير.
-                    </small>
-                  </div>
-                )}
-              </div>
-
-              {form.watch('posMaxDiscountThresholdEnabled') && (
-                <>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                      طريقة حساب سقف الخصم
-                    </label>
-                    <select
-                      className="purchase-prototype-field-input"
-                      {...form.register('posMaxDiscountThresholdType')}
-                      disabled={disabled}
-                      style={fieldControlStyle}
-                    >
-                      <option value="percentage">نسبة مئوية من إجمالي الفاتورة (%)</option>
-                      <option value="fixed">مبلغ ثابت بالجنيه (ج.م)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                      قيمة سقف الخصم المسموح به {form.watch('posMaxDiscountThresholdType') === 'fixed' ? '(ج.م)' : '(%)'}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      className="purchase-prototype-field-input"
-                      {...form.register('posMaxDiscountThresholdValue')}
-                      disabled={disabled}
-                      placeholder={form.watch('posMaxDiscountThresholdType') === 'fixed' ? 'مثال: 50' : 'مثال: 15'}
-                      style={fieldControlStyle}
-                    />
-                    <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                      عند تطبيق خصم أعلى من هذا الحد بالكاشير، لن تكتمل الفاتورة إلا بإدخال رمز مرور المدير (PIN).
-                    </small>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Card 5: Default Branch Issue Mode (Span 2) */}
-          <div style={{ gridColumn: '1 / -1', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={iconBadgeStyle}>
-                <IssueModeDocIcon size={20} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>وضع إذن الصرف الافتراضي</strong>
-                  <select
-                    className="purchase-prototype-field-input"
-                    {...form.register('defaultBranchIssueMode')}
-                    disabled={disabled}
-                    style={{ minWidth: '280px', height: '36px', fontSize: '0.82rem', fontWeight: 700 }}
-                  >
-                    <option value="final_issue">صرف نهائي (يتم خصم الرصيد فوراً)</option>
-                    <option value="transfer_to_branch_stock">تحويل إلى رصيد فرع (يبقى بانتظار الاستلام)</option>
-                  </select>
+          {/* Card 4: Low Stock Alert */}
+          {showPhysicalInventory && (
+            <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                <div style={iconBadgeStyle}>
+                  <LowStockIndicatorIcon size={20} />
                 </div>
-                <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  استخدم <strong>الصرف النهائي</strong> إذا كان الفرع لا يدار مخزونه على النظام، أو <strong>تحويل إلى رصيد فرع</strong> إذا كان الفرع يبيع من رصيده على النظام.
-                </span>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>حد التنبيه لنقص المخزون</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يظهر تنبيه نواقص عندما يصل الرصيد لهذا الحد أو أقل</small>
+                </div>
               </div>
-            </div>
-          </div>
-
-          {/* Card 6: Delivery Fee Mode */}
-          <div style={{ ...premiumCardStyle, cursor: 'default' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-              <div style={iconBadgeStyle}>
-                <DeliveryModeIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>معالجة رسوم التوصيل</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                  {isStoreFleet ? 'أسطول المتجر (إيراد للمحل وتُطبق عمولة الطيار)' : 'مناديب حرة / طياري (100% للمندوب ولا تدخل الخزينة)'}
-                </small>
-              </div>
-            </div>
-            <select
-              className="purchase-prototype-field-input"
-              {...form.register('deliveryFeeMode')}
-              disabled={disabled}
-              style={{ width: isStoreFleet ? '160px' : '190px', height: '36px', fontSize: '0.82rem', fontWeight: 700 }}
-            >
-              <option value="freelance_courier">مناديب حرة (طياري)</option>
-              <option value="store_fleet">أسطول المتجر (داخلي)</option>
-            </select>
-          </div>
-
-          {/* Card 7: Default Delivery Fee */}
-          <div style={{ ...premiumCardStyle, cursor: 'default' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-              <div style={iconBadgeStyle}>
-                <DefaultDeliveryFeeIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>رسوم التوصيل الافتراضية</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                  تُملأ تلقائياً عند اختيار دليفري وقابلة للتعديل بالكاشير
-                </small>
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <input
                 className="purchase-prototype-field-input"
                 type="number"
                 min="0"
-                step="1"
-                {...form.register('defaultDeliveryFee')}
+                {...form.register('lowStockThreshold')}
                 disabled={disabled}
-                placeholder="0"
-                style={{ width: '85px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                placeholder="5"
+                style={{ width: '80px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
               />
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>ج.م</span>
             </div>
-          </div>
+          )}
 
-          {/* Card 8: Store Fleet Courier Commission Rate (Only visible when store fleet is active) */}
-          {isStoreFleet ? (
-            <div style={{ ...premiumCardStyle, cursor: 'default', gridColumn: '1 / -1' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                <div style={iconBadgeStyle}>
-                  <CourierCommissionIcon size={20} />
+          {/* Card 4.5: Max Cashier Discount Approval Threshold & Manager PIN (Only for POS) */}
+          {showPosSettings && (
+            <div style={{ gridColumn: '1 / -1', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={iconBadgeStyle}>
+                    <CashierShiftLockIcon size={20} />
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>سقف خصم الكاشير واعتماد المدير (PIN)</strong>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>اشتراط إدخال PIN المدير عند إعطاء الكاشير خصماً يتجاوز حداً معيناً أو لتعديل العمليات الحساسة</span>
+                  </div>
                 </div>
-                <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نسبة الطيار من التوصيل</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>عمولة طياري الأسطول (0% للثابت)</small>
-                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: form.watch('posMaxDiscountThresholdEnabled') ? '#166534' : '#64748b' }}>
+                    {form.watch('posMaxDiscountThresholdEnabled') ? 'سقف الخصم: مفعّل' : 'سقف الخصم: معطل'}
+                  </span>
+                  <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posMaxDiscountThresholdEnabled')} disabled={disabled} />
+                </label>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <input
-                  className="purchase-prototype-field-input"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  {...form.register('storeFleetCommissionRate')}
-                  disabled={disabled}
-                  placeholder="0"
-                  style={{ width: '70px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                />
-                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#334155' }}>%</span>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    الرمز السري للمدير (PIN)
+                  </label>
+                  {settings?.hasManagerPin && !isChangingPin ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', minHeight: '38px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534' }}>
+                          تم حفظ وتفعيل رمز سري للمدير
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsChangingPin(true);
+                          form.setValue('managerPin', '', { shouldDirty: true });
+                        }}
+                        disabled={disabled}
+                        style={{
+                          padding: '3px 10px',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          color: '#170c5c',
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        تغيير الرمز
+                      </button>
+                    </div>
+                  ) : !settings?.hasManagerPin && !isChangingPin ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', minHeight: '38px' }}>
+                      <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                        لم يتم تعيين رمز سري بعد (اختياري)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsChangingPin(true);
+                          form.setValue('managerPin', '', { shouldDirty: true });
+                        }}
+                        disabled={disabled}
+                        style={{
+                          padding: '3px 10px',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          color: '#170c5c',
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        تعيين رمز PIN
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input
+                          type="password"
+                          inputMode="numeric"
+                          autoComplete="new-password"
+                          data-lpignore="true"
+                          data-1p-ignore="true"
+                          maxLength={10}
+                          className="purchase-prototype-field-input"
+                          {...form.register('managerPin')}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            form.setValue('managerPin', digits, { shouldValidate: true, shouldDirty: true });
+                          }}
+                          disabled={disabled}
+                          placeholder="أدخل الرمز الجديد (4 - 10 أرقام)"
+                          style={fieldControlStyle}
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsChangingPin(false);
+                            form.setValue('managerPin', '', { shouldDirty: false });
+                            form.clearErrors('managerPin');
+                          }}
+                          style={{
+                            padding: '7px 12px',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            color: '#64748b',
+                            background: '#f1f5f9',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          إلغاء
+                        </button>
+                      </div>
+                      <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                        الرمز السري المطلوب لاعتماد العمليات الحساسة وتجاوز سقف الخصم بالكاشير.
+                      </small>
+                    </div>
+                  )}
+                </div>
+
+                {form.watch('posMaxDiscountThresholdEnabled') && (
+                  <>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                        طريقة حساب سقف الخصم
+                      </label>
+                      <CustomSelect
+                        value={form.watch('posMaxDiscountThresholdType') || 'percentage'}
+                        onChange={(val) => form.setValue('posMaxDiscountThresholdType', val as any, { shouldDirty: true, shouldValidate: true })}
+                        options={[
+                          { value: 'percentage', label: 'نسبة مئوية من إجمالي الفاتورة (%)' },
+                          { value: 'fixed', label: 'مبلغ ثابت بالجنيه (ج.م)' },
+                        ]}
+                        disabled={disabled}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                        قيمة سقف الخصم المسموح به {form.watch('posMaxDiscountThresholdType') === 'fixed' ? '(ج.م)' : '(%)'}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        className="purchase-prototype-field-input"
+                        {...form.register('posMaxDiscountThresholdValue')}
+                        disabled={disabled}
+                        placeholder={form.watch('posMaxDiscountThresholdType') === 'fixed' ? 'مثال: 50' : 'مثال: 15'}
+                        style={fieldControlStyle}
+                      />
+                      <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                        عند تطبيق خصم أعلى من هذا الحد بالكاشير، لن تكتمل الفاتورة إلا بإدخال رمز مرور المدير (PIN).
+                      </small>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-          ) : null}
+          )}
+
+          {/* Card 5: Default Branch Issue Mode (Span 2) */}
+          {showPhysicalInventory && (
+            <div style={{ gridColumn: '1 / -1', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={iconBadgeStyle}>
+                  <IssueModeDocIcon size={20} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>وضع إذن الصرف الافتراضي</strong>
+                    <div style={{ minWidth: '280px' }}>
+                      <CustomSelect
+                        value={form.watch('defaultBranchIssueMode') || 'final_issue'}
+                        onChange={(val) => form.setValue('defaultBranchIssueMode', val as any, { shouldDirty: true, shouldValidate: true })}
+                        options={[
+                          { value: 'final_issue', label: 'صرف نهائي (يتم خصم الرصيد فوراً)' },
+                          { value: 'transfer_to_branch_stock', label: 'تحويل إلى رصيد فرع (يبقى بانتظار الاستلام)' },
+                        ]}
+                        disabled={disabled}
+                      />
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                    استخدم <strong>الصرف النهائي</strong> إذا كان الفرع لا يدار مخزونه على النظام، أو <strong>تحويل إلى رصيد فرع</strong> إذا كان الفرع يبيع من رصيده على النظام.
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delivery Handling Cards (Only for POS / Retail / Fleets) */}
+          {showPosSettings && (
+            <>
+              {/* Card 6: Delivery Fee Mode */}
+              <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                  <div style={iconBadgeStyle}>
+                    <DeliveryModeIcon size={20} />
+                  </div>
+                  <div style={premiumCardTextStyle}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>معالجة رسوم التوصيل</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                      {isStoreFleet ? 'أسطول المتجر (إيراد للمحل وتُطبق عمولة الطيار)' : 'مناديب حرة / طياري (100% للمندوب ولا تدخل الخزينة)'}
+                    </small>
+                  </div>
+                </div>
+                <div style={{ width: isStoreFleet ? '170px' : '200px' }}>
+                  <CustomSelect
+                    value={form.watch('deliveryFeeMode') || 'freelance_courier'}
+                    onChange={(val) => form.setValue('deliveryFeeMode', val as any, { shouldDirty: true, shouldValidate: true })}
+                    options={[
+                      { value: 'freelance_courier', label: 'مناديب حرة (طياري)' },
+                      { value: 'store_fleet', label: 'أسطول المتجر (داخلي)' },
+                    ]}
+                    disabled={disabled}
+                  />
+                </div>
+              </div>
+
+              {/* Card 7: Default Delivery Fee */}
+              <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                  <div style={iconBadgeStyle}>
+                    <DefaultDeliveryFeeIcon size={20} />
+                  </div>
+                  <div style={premiumCardTextStyle}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>رسوم التوصيل الافتراضية</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                      تُملأ تلقائياً عند اختيار دليفري وقابلة للتعديل بالكاشير
+                    </small>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input
+                    className="purchase-prototype-field-input"
+                    type="number"
+                    min="0"
+                    step="1"
+                    {...form.register('defaultDeliveryFee')}
+                    disabled={disabled}
+                    placeholder="0"
+                    style={{ width: '85px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>ج.م</span>
+                </div>
+              </div>
+
+              {/* Card 8: Store Fleet Courier Commission Rate (Only visible when store fleet is active) */}
+              {isStoreFleet && (
+                <div style={{ ...premiumCardStyle, cursor: 'default', gridColumn: '1 / -1' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                    <div style={iconBadgeStyle}>
+                      <CourierCommissionIcon size={20} />
+                    </div>
+                    <div style={premiumCardTextStyle}>
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نسبة الطيار من التوصيل</strong>
+                      <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>عمولة طياري الأسطول (0% للثابت)</small>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      className="purchase-prototype-field-input"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      {...form.register('storeFleetCommissionRate')}
+                      disabled={disabled}
+                      placeholder="0"
+                      style={{ width: '70px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                    />
+                    <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#334155' }}>%</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </FormSection>
 
       {/* ===== ماكينات نقاط البيع والدفع البنكي الذكية ===== */}
-      <FormSection
-        title="ماكينات نقاط البيع والدفع البنكي الذكية (Smart POS Terminals)"
-        description="الربط الشبكي المباشر مع ماكينات الدفع الإلكتروني البنكية (Geidea, Paymob, Network International) لتمرير مبالغ الفواتير آلياً وقراءة نجاح السحب دون إدخال يدوي."
-      >
-        <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
-          {/* Card 1: Activation Toggle & Provider Selection */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-            <label style={{ ...premiumCardStyle, padding: 0, border: 'none', background: 'transparent', boxShadow: 'none' }}>
+      {showPosSettings && (
+        <FormSection
+          title="ماكينات نقاط البيع والدفع البنكي الذكية (Smart POS Terminals)"
+          description="الربط الشبكي المباشر مع ماكينات الدفع الإلكتروني البنكية (Geidea, Paymob, Network International) لتمرير مبالغ الفواتير آلياً وقراءة نجاح السحب دون إدخال يدوي."
+        >
+          <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
+            {/* Card 1: Activation Toggle & Provider Selection */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <label style={{ ...premiumCardStyle, padding: 0, border: 'none', background: 'transparent', boxShadow: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={iconBadgeStyle}>
+                    <PosTerminalIcon size={20} />
+                  </div>
+                  <div style={premiumCardTextStyle}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>تفعيل ربط ماكينات الدفع (POS Terminal)</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إظهار خيار إرسال المبلغ لماكينة البنك آلياً في شاشة الكاشير عند الدفع بالبطاقة</small>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  style={premiumCheckboxInputStyle}
+                  {...form.register('posTerminalEnabled')}
+                  disabled={disabled}
+                />
+              </label>
+
+              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  مزود خدمة ماكينة الدفع البنكي
+                </label>
+                <CustomSelect
+                  value={form.watch('posTerminalProvider') || 'mock_sandbox'}
+                  onChange={(val) => form.setValue('posTerminalProvider', val as any, { shouldDirty: true, shouldValidate: true })}
+                  options={[
+                    { value: 'geidea', label: 'Geidea POS (جيديا - السعودية / مصر)' },
+                    { value: 'paymob', label: 'Paymob Smart POS (باي موب نقاط البيع)' },
+                    { value: 'network_international', label: 'Network International (NI)' },
+                    { value: 'mock_sandbox', label: 'محاكي نقاط البيع التجريبي (Mock Simulator)' },
+                  ]}
+                  disabled={disabled || !form.watch('posTerminalEnabled')}
+                />
+                <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  يدعم الربط الشبكي بروتوكول TCP/IP و ECR عبر الشبكة المحلية (LAN/Wi-Fi).
+                </span>
+              </div>
+            </div>
+
+            {/* Card 2: Terminal Details & IP Configuration */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  اسم الجهاز / الماكينة
+                </label>
+                <input
+                  className="purchase-prototype-field-input"
+                  {...form.register('posTerminalName')}
+                  disabled={disabled || !form.watch('posTerminalEnabled')}
+                  placeholder="مثال: جهاز الكاشير الرئيسي (EDC)"
+                  style={fieldControlStyle}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px', alignItems: 'end' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    عنوان IP الماكينة (Local IP)
+                  </label>
+                  <input
+                    className="purchase-prototype-field-input"
+                    {...form.register('posTerminalIp')}
+                    disabled={disabled || !form.watch('posTerminalEnabled')}
+                    placeholder="192.168.1.150"
+                    dir="ltr"
+                    style={{ ...fieldControlStyle, textAlign: 'left', fontFamily: 'monospace' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    المنفذ (Port)
+                  </label>
+                  <input
+                    type="number"
+                    className="purchase-prototype-field-input"
+                    {...form.register('posTerminalPort')}
+                    disabled={disabled || !form.watch('posTerminalEnabled')}
+                    placeholder="8080"
+                    dir="ltr"
+                    style={{ ...fieldControlStyle, textAlign: 'center', fontFamily: 'monospace' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: form.watch('posTerminalEnabled') ? '#10b981' : '#94a3b8', display: 'inline-block' }}></span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>
+                    حالة التكامل: {form.watch('posTerminalEnabled') ? 'مفعل وجاهز بالكاشير' : 'معطل'}
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  بروتوكول ECR / IP Direct
+                </span>
+              </div>
+            </div>
+          </div>
+        </FormSection>
+      )}
+
+      {/* ===== برنامج نقاط وولاء العملاء ===== */}
+      {showPosSettings && (
+        <FormSection
+          title="برنامج نقاط ومكافآت ولاء العملاء (Customer Loyalty Program)"
+          description="تحفيز العملاء على الشراء المتكرر عبر منحهم نقاطاً مع كل فاتورة، وإمكانية استبدالها برصيد وخصم فوري في الفواتير التالية."
+        >
+          <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
+            {/* 1. Toggle Loyalty */}
+            <label style={premiumCardStyle}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={iconBadgeStyle}>
-                  <PosTerminalIcon size={20} />
+                  <LoyaltyPointsIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>تفعيل ربط ماكينات الدفع (POS Terminal)</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إظهار خيار إرسال المبلغ لماكينة البنك آلياً في شاشة الكاشير عند الدفع بالبطاقة</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>تفعيل برنامج نقاط الولاء</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>احتساب نقاط تلقائياً للعميل عند البيع وإتاحة استبدالها في الكاشير</small>
                 </div>
               </div>
               <input
                 type="checkbox"
                 style={premiumCheckboxInputStyle}
-                {...form.register('posTerminalEnabled')}
+                {...form.register('loyaltyEnabled')}
                 disabled={disabled}
               />
             </label>
 
-            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                مزود خدمة ماكينة الدفع البنكي
-              </label>
-              <select
-                className="purchase-prototype-field-input"
-                {...form.register('posTerminalProvider')}
-                disabled={disabled || !form.watch('posTerminalEnabled')}
-                style={fieldControlStyle}
-              >
-                <option value="geidea">Geidea POS (جيديا - السعودية / مصر)</option>
-                <option value="paymob">Paymob Smart POS (باي موب نقاط البيع)</option>
-                <option value="network_international">Network International (NI)</option>
-                <option value="mock_sandbox">محاكي نقاط البيع التجريبي (Mock Simulator)</option>
-              </select>
-              <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                يدعم الربط الشبكي بروتوكول TCP/IP و ECR عبر الشبكة المحلية (LAN/Wi-Fi).
-              </span>
-            </div>
-          </div>
-
-          {/* Card 2: Terminal Details & IP Configuration */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                اسم الجهاز / الماكينة
-              </label>
+            {/* 2. Print on Receipt */}
+            <label style={premiumCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={iconBadgeStyle}>
+                  <IssueModeDocIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إظهار رصيد النقاط في الفاتورة</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>طباعة النقاط المكتسبة والرصيد الإجمالي في الإيصالات الحرارية وفواتير A4</small>
+                </div>
+              </div>
               <input
-                className="purchase-prototype-field-input"
-                {...form.register('posTerminalName')}
-                disabled={disabled || !form.watch('posTerminalEnabled')}
-                placeholder="مثال: جهاز الكاشير الرئيسي (EDC)"
-                style={fieldControlStyle}
+                type="checkbox"
+                style={premiumCheckboxInputStyle}
+                {...form.register('printShowLoyaltyPoints')}
+                disabled={disabled}
               />
+            </label>
+
+            {/* 3. Earning Rate */}
+            <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                  <div style={iconBadgeStyle}>
+                    <LoyaltyPointsIcon size={20} />
+                  </div>
+                  <div style={premiumCardTextStyle}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>معدل اكتساب النقاط</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>عدد النقاط المكتسبة لكل 100 جنيه مشتريات مسددة:</small>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input
+                    className="purchase-prototype-field-input"
+                    type="number"
+                    min="0"
+                    step="1"
+                    {...form.register('loyaltyPointsPer100Egp')}
+                    disabled={disabled || !form.watch('loyaltyEnabled')}
+                    placeholder="10"
+                    style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
+                  />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>نقطة</span>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
+                {[
+                  { label: '5 نقاط', val: 5 },
+                  { label: '10 نقاط', val: 10 },
+                  { label: '20 نقطة', val: 20 },
+                  { label: '50 نقطة', val: 50 },
+                ].map((p) => {
+                  const currentVal = Number(form.watch('loyaltyPointsPer100Egp') ?? 10);
+                  const isSelected = currentVal === p.val;
+                  return (
+                    <button
+                      key={p.val}
+                      type="button"
+                      onClick={() => form.setValue('loyaltyPointsPer100Egp', p.val, { shouldDirty: true, shouldValidate: true })}
+                      disabled={disabled || !form.watch('loyaltyEnabled')}
+                      style={{
+                        padding: '4px 2px',
+                        fontSize: '0.71rem',
+                        textAlign: 'center',
+                        borderRadius: '6px',
+                        border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                        background: isSelected ? '#eef2ff' : '#f8fafc',
+                        color: isSelected ? '#170e5e' : '#475569',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px', alignItems: 'end' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  عنوان IP الماكينة (Local IP)
-                </label>
-                <input
-                  className="purchase-prototype-field-input"
-                  {...form.register('posTerminalIp')}
-                  disabled={disabled || !form.watch('posTerminalEnabled')}
-                  placeholder="192.168.1.150"
-                  dir="ltr"
-                  style={{ ...fieldControlStyle, textAlign: 'left', fontFamily: 'monospace' }}
-                />
+            {/* 4. Redemption Value */}
+            <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                  <div style={iconBadgeStyle}>
+                    <ZeroCostIcon size={20} />
+                  </div>
+                  <div style={premiumCardTextStyle}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>قيمة النقطة عند الاستبدال</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>القيمة المالية للنقطة الواحدة كخصم بالجنيه:</small>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input
+                    className="purchase-prototype-field-input"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    {...form.register('loyaltyPointRedeemValue')}
+                    disabled={disabled || !form.watch('loyaltyEnabled')}
+                    placeholder="0.10"
+                    style={{ width: '85px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
+                  />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>ج.م</span>
+                </div>
               </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  المنفذ (Port)
-                </label>
-                <input
-                  type="number"
-                  className="purchase-prototype-field-input"
-                  {...form.register('posTerminalPort')}
-                  disabled={disabled || !form.watch('posTerminalEnabled')}
-                  placeholder="8080"
-                  dir="ltr"
-                  style={{ ...fieldControlStyle, textAlign: 'center', fontFamily: 'monospace' }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: form.watch('posTerminalEnabled') ? '#10b981' : '#94a3b8', display: 'inline-block' }}></span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>
-                  حالة التكامل: {form.watch('posTerminalEnabled') ? 'مفعل وجاهز بالكاشير' : 'معطل'}
-                </span>
-              </div>
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                بروتوكول ECR / IP Direct
-              </span>
-            </div>
-          </div>
-        </div>
-      </FormSection>
-
-      {/* ===== برنامج نقاط وولاء العملاء ===== */}
-      <FormSection
-        title="برنامج نقاط ومكافآت ولاء العملاء (Customer Loyalty Program)"
-        description="تحفيز العملاء على الشراء المتكرر عبر منحهم نقاطاً مع كل فاتورة، وإمكانية استبدالها برصيد وخصم فوري في الفواتير التالية."
-      >
-        <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
-          {/* 1. Toggle Loyalty */}
-          <label style={premiumCardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
-                <LoyaltyPointsIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>تفعيل برنامج نقاط الولاء</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>احتساب نقاط تلقائياً للعميل عند البيع وإتاحة استبدالها في الكاشير</small>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
+                {[
+                  { label: '0.05 ج (5 قروش)', val: 0.05 },
+                  { label: '0.10 ج (10 قروش)', val: 0.1 },
+                  { label: '0.50 ج (نصف جنيه)', val: 0.5 },
+                  { label: '1.00 ج (جنيه كامل)', val: 1 },
+                ].map((p) => {
+                  const currentVal = Number(form.watch('loyaltyPointRedeemValue') ?? 0.1);
+                  const isSelected = Math.abs(currentVal - p.val) < 0.001;
+                  return (
+                    <button
+                      key={p.val}
+                      type="button"
+                      onClick={() => form.setValue('loyaltyPointRedeemValue', p.val, { shouldDirty: true, shouldValidate: true })}
+                      disabled={disabled || !form.watch('loyaltyEnabled')}
+                      style={{
+                        padding: '4px 2px',
+                        fontSize: '0.71rem',
+                        textAlign: 'center',
+                        borderRadius: '6px',
+                        border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                        background: isSelected ? '#eef2ff' : '#f8fafc',
+                        color: isSelected ? '#170e5e' : '#475569',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <input
-              type="checkbox"
-              style={premiumCheckboxInputStyle}
-              {...form.register('loyaltyEnabled')}
-              disabled={disabled}
-            />
-          </label>
 
-          {/* 2. Print on Receipt */}
-          <label style={premiumCardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
-                <IssueModeDocIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إظهار رصيد النقاط في الفاتورة</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>طباعة النقاط المكتسبة والرصيد الإجمالي في الإيصالات الحرارية وفواتير A4</small>
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              style={premiumCheckboxInputStyle}
-              {...form.register('printShowLoyaltyPoints')}
-              disabled={disabled}
-            />
-          </label>
-
-          {/* 3. Earning Rate */}
-          <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+            {/* 5. Minimum Redeem Points */}
+            <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={iconBadgeStyle}>
                   <LoyaltyPointsIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>معدل اكتساب النقاط</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>عدد النقاط المكتسبة لكل 100 جنيه مشتريات مسددة:</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الحد الأدنى للنقاط للاستبدال</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>أقل رصيد نقاط يجب أن يمتلكه العميل ليتمكن من الخصم</small>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -838,333 +989,371 @@ export function SalesInventorySettingsTab({
                   type="number"
                   min="0"
                   step="1"
-                  {...form.register('loyaltyPointsPer100Egp')}
+                  {...form.register('loyaltyMinRedeemPoints')}
                   disabled={disabled || !form.watch('loyaltyEnabled')}
-                  placeholder="10"
+                  placeholder="50"
                   style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
                 />
                 <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>نقطة</span>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
-              {[
-                { label: '5 نقاط', val: 5 },
-                { label: '10 نقاط', val: 10 },
-                { label: '20 نقطة', val: 20 },
-                { label: '50 نقطة', val: 50 },
-              ].map((p) => {
-                const currentVal = Number(form.watch('loyaltyPointsPer100Egp') ?? 10);
-                const isSelected = currentVal === p.val;
-                return (
-                  <button
-                    key={p.val}
-                    type="button"
-                    onClick={() => form.setValue('loyaltyPointsPer100Egp', p.val, { shouldDirty: true, shouldValidate: true })}
-                    disabled={disabled || !form.watch('loyaltyEnabled')}
-                    style={{
-                      padding: '4px 2px',
-                      fontSize: '0.71rem',
-                      textAlign: 'center',
-                      borderRadius: '6px',
-                      border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
-                      background: isSelected ? '#eef2ff' : '#f8fafc',
-                      color: isSelected ? '#170e5e' : '#475569',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
-                    }}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* 4. Redemption Value */}
-          <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+            {/* 6. Max Discount Percentage */}
+            <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={iconBadgeStyle}>
-                  <ZeroCostIcon size={20} />
+                  <TaxCalcIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>قيمة النقطة عند الاستبدال</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>القيمة المالية للنقطة الواحدة كخصم بالجنيه:</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>سقف الخصم بالنقاط من الفاتورة</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>أقصى نسبة مئوية مسموح بخصمها من إجمالي الفاتورة عبر النقاط</small>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <input
                   className="purchase-prototype-field-input"
                   type="number"
-                  min="0.01"
-                  step="0.01"
-                  {...form.register('loyaltyPointRedeemValue')}
+                  min="1"
+                  max="100"
+                  step="1"
+                  {...form.register('loyaltyMaxDiscountPercentage')}
                   disabled={disabled || !form.watch('loyaltyEnabled')}
-                  placeholder="0.10"
-                  style={{ width: '85px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
+                  placeholder="50"
+                  style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
                 />
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>ج.م</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>%</span>
               </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
-              {[
-                { label: '0.05 ج (5 قروش)', val: 0.05 },
-                { label: '0.10 ج (10 قروش)', val: 0.1 },
-                { label: '0.50 ج (نصف جنيه)', val: 0.5 },
-                { label: '1.00 ج (جنيه كامل)', val: 1 },
-              ].map((p) => {
-                const currentVal = Number(form.watch('loyaltyPointRedeemValue') ?? 0.1);
-                const isSelected = Math.abs(currentVal - p.val) < 0.001;
-                return (
-                  <button
-                    key={p.val}
-                    type="button"
-                    onClick={() => form.setValue('loyaltyPointRedeemValue', p.val, { shouldDirty: true, shouldValidate: true })}
-                    disabled={disabled || !form.watch('loyaltyEnabled')}
-                    style={{
-                      padding: '4px 2px',
-                      fontSize: '0.71rem',
-                      textAlign: 'center',
-                      borderRadius: '6px',
-                      border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
-                      background: isSelected ? '#eef2ff' : '#f8fafc',
-                      color: isSelected ? '#170e5e' : '#475569',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
-                    }}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
             </div>
           </div>
 
-          {/* 5. Minimum Redeem Points */}
-          <div style={{ ...premiumCardStyle, cursor: 'default' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
-                <LoyaltyPointsIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الحد الأدنى للنقاط للاستبدال</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>أقل رصيد نقاط يجب أن يمتلكه العميل ليتمكن من الخصم</small>
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <input
-                className="purchase-prototype-field-input"
-                type="number"
-                min="0"
-                step="1"
-                {...form.register('loyaltyMinRedeemPoints')}
-                disabled={disabled || !form.watch('loyaltyEnabled')}
-                placeholder="50"
-                style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
-              />
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>نقطة</span>
-            </div>
-          </div>
-
-          {/* 6. Max Discount Percentage */}
-          <div style={{ ...premiumCardStyle, cursor: 'default' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
-                <TaxCalcIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>سقف الخصم بالنقاط من الفاتورة</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>أقصى نسبة مئوية مسموح بخصمها من إجمالي الفاتورة عبر النقاط</small>
+          {/* Live Simulation Card */}
+          {form.watch('loyaltyEnabled') ? (
+            <div style={{
+              marginTop: '12px',
+              padding: '12px 16px',
+              borderRadius: '10px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <LightbulbIcon size={18} color="#170e5e" />
+                <span style={{ fontSize: '0.84rem', color: '#1e293b', fontWeight: 700 }}>
+                  معاينة حية للمحرك: مشتريات بقيمة <strong>1,000 ج.م</strong> تمنح العميل{' '}
+                  <strong style={{ color: '#170e5e' }}>
+                    {Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10))} نقطة
+                  </strong>{' '}
+                  قيمتها{' '}
+                  <strong style={{ color: '#170e5e' }}>
+                    {(Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10)) * Number(form.watch('loyaltyPointRedeemValue') || 0.1)).toFixed(2)} ج.م
+                  </strong>{' '}
+                  خصم فوري في مشترياته القادمة (معدل استرجاع{' '}
+                  <strong>
+                    {(((Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10)) * Number(form.watch('loyaltyPointRedeemValue') || 0.1)) / 1000) * 100).toFixed(1)}%
+                  </strong>).
+                </span>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <input
-                className="purchase-prototype-field-input"
-                type="number"
-                min="1"
-                max="100"
-                step="1"
-                {...form.register('loyaltyMaxDiscountPercentage')}
-                disabled={disabled || !form.watch('loyaltyEnabled')}
-                placeholder="50"
-                style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
-              />
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>%</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Live Simulation Card */}
-        {form.watch('loyaltyEnabled') ? (
-          <div style={{
-            marginTop: '12px',
-            padding: '12px 16px',
-            borderRadius: '10px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <LightbulbIcon size={18} color="#170e5e" />
-              <span style={{ fontSize: '0.84rem', color: '#1e293b', fontWeight: 700 }}>
-                معاينة حية للمحرك: مشتريات بقيمة <strong>1,000 ج.م</strong> تمنح العميل{' '}
-                <strong style={{ color: '#170e5e' }}>
-                  {Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10))} نقطة
-                </strong>{' '}
-                قيمتها{' '}
-                <strong style={{ color: '#170e5e' }}>
-                  {(Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10)) * Number(form.watch('loyaltyPointRedeemValue') || 0.1)).toFixed(2)} ج.م
-                </strong>{' '}
-                خصم فوري في مشترياته القادمة (معدل استرجاع{' '}
-                <strong>
-                  {(((Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10)) * Number(form.watch('loyaltyPointRedeemValue') || 0.1)) / 1000) * 100).toFixed(1)}%
-                </strong>).
-              </span>
-            </div>
-          </div>
-        ) : null}
-      </FormSection>
+          ) : null}
+        </FormSection>
+      )}
 
       {/* ===== تنبيهات الصلاحية والأصناف الراكدة ===== */}
-      <FormSection
-        title="تنبيهات الصلاحية وحركة المخزون الراكد"
-        description="تخصيص الفترات الزمنية لتنبيهات قرب انتهاء صلاحية المنتجات وتحديد متى يُصنف الصنف كـ 'راكد' في لوحة التحكم والتقارير."
-      >
-        <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
-          {/* Card: Expiry Alert Days */}
-          <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                <div style={iconBadgeStyle}>
-                  <ExpiryAlertIcon size={20} />
+      {showPhysicalInventory && (
+        <FormSection
+          title="تنبيهات الصلاحية وحركة المخزون الراكد"
+          description="تخصيص الفترات الزمنية لتنبيهات قرب انتهاء صلاحية المنتجات وتحديد متى يُصنف الصنف كـ 'راكد' في لوحة التحكم والتقارير."
+        >
+          <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
+            {/* Card: Expiry Alert Days */}
+            <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                  <div style={iconBadgeStyle}>
+                    <ExpiryAlertIcon size={20} />
+                  </div>
+                  <div style={premiumCardTextStyle}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>تنبيه قرب انتهاء الصلاحية</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إظهار تنبيهات وتصنيف الأصناف كـ "وشيكة الانتهاء" قبل انتهاء تاريخها بـ:</small>
+                  </div>
                 </div>
-                <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>تنبيه قرب انتهاء الصلاحية</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إظهار تنبيهات وتصنيف الأصناف كـ "وشيكة الانتهاء" قبل انتهاء تاريخها بـ:</small>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <input
-                  className="purchase-prototype-field-input"
-                  type="number"
-                  min="1"
-                  {...form.register('expiryAlertDays')}
-                  disabled={disabled}
-                  placeholder="30"
-                  style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
-                />
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>يوم</span>
-              </div>
-            </div>
-            {/* Quick Presets */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
-              {[
-                { label: '15 يوم', days: 15 },
-                { label: '30 يوم', days: 30 },
-                { label: '60 يوم', days: 60 },
-                { label: '90 يوم', days: 90 },
-                { label: '180 يوم', days: 180 },
-              ].map((p) => {
-                const currentVal = Number(form.watch('expiryAlertDays') || 30);
-                const isSelected = currentVal === p.days;
-                return (
-                  <button
-                    key={p.days}
-                    type="button"
-                    onClick={() => form.setValue('expiryAlertDays', p.days, { shouldDirty: true, shouldValidate: true })}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input
+                    className="purchase-prototype-field-input"
+                    type="number"
+                    min="1"
+                    {...form.register('expiryAlertDays')}
                     disabled={disabled}
-                    style={{
-                      padding: '4px 2px',
-                      fontSize: '0.71rem',
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                      borderRadius: '6px',
-                      border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
-                      background: isSelected ? '#eef2ff' : '#f8fafc',
-                      color: isSelected ? '#170e5e' : '#475569',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
-                    }}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
+                    placeholder="30"
+                    style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
+                  />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>يوم</span>
+                </div>
+              </div>
+              {/* Quick Presets */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
+                {[
+                  { label: '15 يوم', days: 15 },
+                  { label: '30 يوم', days: 30 },
+                  { label: '60 يوم', days: 60 },
+                  { label: '90 يوم', days: 90 },
+                  { label: '180 يوم', days: 180 },
+                ].map((p) => {
+                  const currentVal = Number(form.watch('expiryAlertDays') || 30);
+                  const isSelected = currentVal === p.days;
+                  return (
+                    <button
+                      key={p.days}
+                      type="button"
+                      onClick={() => form.setValue('expiryAlertDays', p.days, { shouldDirty: true, shouldValidate: true })}
+                      disabled={disabled}
+                      style={{
+                        padding: '4px 2px',
+                        fontSize: '0.71rem',
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
+                        borderRadius: '6px',
+                        border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                        background: isSelected ? '#eef2ff' : '#f8fafc',
+                        color: isSelected ? '#170e5e' : '#475569',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          {/* Card: Stagnant Product Days */}
-          <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                <div style={iconBadgeStyle}>
-                  <StagnantStockIcon size={20} />
+            {/* Card: Stagnant Product Days */}
+            <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                  <div style={iconBadgeStyle}>
+                    <StagnantStockIcon size={20} />
+                  </div>
+                  <div style={premiumCardTextStyle}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>معيار الأصناف الراكدة</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>تصنيف الصنف كـ "راكد" في لوحة التحكم والتقارير إذا لم يُبَع منه منذ:</small>
+                  </div>
                 </div>
-                <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>معيار الأصناف الراكدة</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>تصنيف الصنف كـ "راكد" في لوحة التحكم والتقارير إذا لم يُبَع منه منذ:</small>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <input
-                  className="purchase-prototype-field-input"
-                  type="number"
-                  min="1"
-                  {...form.register('stagnantProductDays')}
-                  disabled={disabled}
-                  placeholder="30"
-                  style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
-                />
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>يوم</span>
-              </div>
-            </div>
-            {/* Quick Presets */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
-              {[
-                { label: '30 يوم', days: 30 },
-                { label: '60 يوم', days: 60 },
-                { label: '90 يوم', days: 90 },
-                { label: '120 يوم', days: 120 },
-                { label: '180 يوم', days: 180 },
-                { label: '365 يوم', days: 365 },
-              ].map((p) => {
-                const currentVal = Number(form.watch('stagnantProductDays') || 30);
-                const isSelected = currentVal === p.days;
-                return (
-                  <button
-                    key={p.days}
-                    type="button"
-                    onClick={() => form.setValue('stagnantProductDays', p.days, { shouldDirty: true, shouldValidate: true })}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input
+                    className="purchase-prototype-field-input"
+                    type="number"
+                    min="1"
+                    {...form.register('stagnantProductDays')}
                     disabled={disabled}
-                    style={{
-                      padding: '4px 2px',
-                      fontSize: '0.71rem',
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                      borderRadius: '6px',
-                      border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
-                      background: isSelected ? '#eef2ff' : '#f8fafc',
-                      color: isSelected ? '#170e5e' : '#475569',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
-                    }}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
+                    placeholder="30"
+                    style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
+                  />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>يوم</span>
+                </div>
+              </div>
+              {/* Quick Presets */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
+                {[
+                  { label: '30 يوم', days: 30 },
+                  { label: '60 يوم', days: 60 },
+                  { label: '90 يوم', days: 90 },
+                  { label: '120 يوم', days: 120 },
+                  { label: '180 يوم', days: 180 },
+                  { label: '365 يوم', days: 365 },
+                ].map((p) => {
+                  const currentVal = Number(form.watch('stagnantProductDays') || 30);
+                  const isSelected = currentVal === p.days;
+                  return (
+                    <button
+                      key={p.days}
+                      type="button"
+                      onClick={() => form.setValue('stagnantProductDays', p.days, { shouldDirty: true, shouldValidate: true })}
+                      disabled={disabled}
+                      style={{
+                        padding: '4px 2px',
+                        fontSize: '0.71rem',
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
+                        borderRadius: '6px',
+                        border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                        background: isSelected ? '#eef2ff' : '#f8fafc',
+                        color: isSelected ? '#170e5e' : '#475569',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      </FormSection>
+        </FormSection>
+      )}
+
+      {/* ===== مخصص لشركات المقاولات والمشاريع (Contracting Dedicated) ===== */}
+      {isDedicatedContracting && (
+        <FormSection
+          title="ضوابط مشاريع المقاولات والمستخلصات (BOQ & IPC Controls)"
+          description="تحديد القواعد المالية لمشاريع المقاولات، ونسب دفعات الضمان المحتجزة، واستقطاعات الدفعة المقدمة من المستخلصات الجارية."
+        >
+          <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نسبة دفعة ضمان الأعمال المحتجزة (Retention %)</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>النسبة المئوية المحتجزة تلقائياً من مستخلصات المالك أو الاستشاري لصالح فترة الضمان والصيانة.</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="number"
+                  defaultValue={5}
+                  disabled={disabled}
+                  style={{ ...fieldControlStyle, width: '120px', textAlign: 'center' }}
+                />
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>% (الافتراضي 5% - 10%)</span>
+              </div>
+            </div>
+
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>استقطاع الدفعة المقدمة من المستخلصات</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>طريقة إهلاك وخصم الدفعة المقدمة من مستخلصات التنفيذ التراكمية.</span>
+              <CustomSelect
+                value="proportional"
+                onChange={() => {}}
+                options={[
+                  { value: 'proportional', label: 'خصم نسبي تلقائي حسب نسبة إنجاز المستخلص' },
+                  { value: 'fixed', label: 'مبلغ قطعي محدد لكل مستخلص' },
+                ]}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+        </FormSection>
+      )}
+
+      {/* ===== مخصص لشركات الشحن واللوجستيات (Maritime Dedicated) ===== */}
+      {isDedicatedMaritime && (
+        <FormSection
+          title="ضوابط الشحن الدولي والعمليات الملاحية (Maritime Operations)"
+          description="تحديد العملة الافتراضية لفواتير الشحن والنولون، وأيام السماح لغرامات الأرضيات والحاويات (Demurrage & Detention)."
+        >
+          <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>أيام السماح المجانية للحاويات (Demurrage Free Days)</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>عدد الأيام المسموح بها في الميناء وساحات التخزين قبل بدء احتساب غرامات التأخير اليومية.</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="number"
+                  defaultValue={14}
+                  disabled={disabled}
+                  style={{ ...fieldControlStyle, width: '120px', textAlign: 'center' }}
+                />
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>يوم (الافتراضي 14 أو 21 يوماً)</span>
+              </div>
+            </div>
+
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>عملة تسعير النولون والخدمات البحرية الافتراضية</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>العملة الأساسية لعروض الأسعار الملاحية والتعامل مع الخطوط الدولية.</span>
+              <CustomSelect
+                value="USD"
+                onChange={() => {}}
+                options={[
+                  { value: 'USD', label: 'الدولار الأمريكي (USD $)' },
+                  { value: 'EUR', label: 'اليورو الأوروبي (EUR €)' },
+                  { value: 'EGP', label: 'الجنيه المصري (EGP)' },
+                ]}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+        </FormSection>
+      )}
+
+      {/* ===== مخصص لشركات الاستيراد والتصدير (Import/Export Dedicated) ===== */}
+      {isDedicatedImport && (
+        <FormSection
+          title="ضوابط الرسائل الجمركية وتكاليف الاستيراد (Landed Cost & Customs)"
+          description="تحديد معيار توزيع مصاريف الشحن والتخليص الجمركي وضريبة الوارد على بنود وأصناف الرسالة الاستيرادية."
+        >
+          <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>أساس توزيع تكلفة الاستيراد الإجمالية (Landed Cost)</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>المعيار المحاسبي لتوزيع مصاريف الشحن والجمارك والمصادقات على تكلفة الوحدة في المخزن.</span>
+              <CustomSelect
+                value="by_value"
+                onChange={() => {}}
+                options={[
+                  { value: 'by_value', label: 'حسب القيمة المالية لكل صنف (Value Proportional)' },
+                  { value: 'by_weight', label: 'حسب الوزن الإجمالي (Gross Weight - KG/Ton)' },
+                  { value: 'by_volume', label: 'حسب الحجم بالمتر المكعب (CBM)' },
+                  { value: 'by_quantity', label: 'حسب عدد القطع والوحدات (Quantity)' },
+                ]}
+                disabled={disabled}
+              />
+            </div>
+
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الربط التلقائي للمصاريف البنكية والاعتمادات</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>إدراج عمولات فتح الاعتماد المستندي (LC) وفروق أسعار الصرف ضمن تكلفة الشحنة.</span>
+              <CustomSelect
+                value="auto_link"
+                onChange={() => {}}
+                options={[
+                  { value: 'auto_link', label: 'ربط تلقائي بالرسالة الجمركية المفتوحة' },
+                  { value: 'manual', label: 'ترحيل يدوي لحساب المصروفات التمويلية' },
+                ]}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+        </FormSection>
+      )}
+
+      {/* ===== مخصص للمكاتب والشركات الخدمية (Services Dedicated) ===== */}
+      {isDedicatedServices && (
+        <FormSection
+          title="ضوابط العقود والخدمات المهنية والاستشارية"
+          description="تحديد نمط فوترة عقود الخدمات وإدارة فترات الاشتراكات والدفعات التعاقدية."
+        >
+          <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نمط احتساب وإصدار فواتير الخدمات</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>الأساس المعتمد لفوترة الخدمات المهنية والاستشارية لعملاء الشركة.</span>
+              <CustomSelect
+                value="deliverable"
+                onChange={() => {}}
+                options={[
+                  { value: 'deliverable', label: 'حسب تسليم البنود والمراحل (Milestone / Deliverable)' },
+                  { value: 'subscription', label: 'اشتراكات شهرية متكررة (Retainer / Monthly)' },
+                  { value: 'hourly', label: 'حسب ساعات العمل المسجلة (Time & Material)' },
+                ]}
+                disabled={disabled}
+              />
+            </div>
+
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>فترة السماح لتجديد عقود الخدمات</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>أيام الإشعار التلقائي قبل انتهاء مدة العقد أو الاشتراك لطلب التجديد.</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="number"
+                  defaultValue={30}
+                  disabled={disabled}
+                  style={{ ...fieldControlStyle, width: '120px', textAlign: 'center' }}
+                />
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>يوم قبل الانتهاء</span>
+              </div>
+            </div>
+          </div>
+        </FormSection>
+      )}
     </div>
   );
 }

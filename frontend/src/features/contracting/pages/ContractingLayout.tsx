@@ -38,7 +38,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
 
   useAppToolbar([
     { label: 'الرئيسية', to: '/dashboard' },
-    { label: 'المقاولات وإدارة المشاريع الإنشائية', to: '/contracting' },
+    { label: 'المقاولات والمشاريع', to: '/contracting' },
   ]);
 
   // Backward compatibility & direct URL normalization: If accessed via `/contracting` or `/contracting?tab=xxx`, redirect cleanly to `/contracting/xxx`
@@ -84,7 +84,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
       <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         {/* هيدر الصفحة القياسي الموحد */}
         <PageHeader
-          title="المقاولات وإدارة المشاريع الإنشائية"
+          title="المقاولات والمشاريع"
           description="إدارة العقود وجداول الكميات (SOV/BOQ)، الأوامر التغييرية، مستخلصات الدفع (AIA G702/G703)، واليوميات الميدانية."
           actions={
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
