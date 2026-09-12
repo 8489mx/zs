@@ -258,25 +258,10 @@ export class SessionService {
     const rawCompanyCode = meta?.companyCode?.trim();
     let resolvedTenantId = rawCompanyCode;
 
-    const isDesktop = process.env.APP_MODE === 'SELF_CONTAINED' 
-      || process.env.PORTABLE_MODE === 'true' 
-      || process.env.IS_ELECTRON === 'true';
+    const appMode = this.configService.get<string>('APP_MODE') || process.env.APP_MODE || 'CLOUD_SAAS';
+    const isDesktop = (appMode === 'SELF_CONTAINED' || process.env.PORTABLE_MODE === 'true' || process.env.IS_ELECTRON === 'true') && appMode !== 'CLOUD_SAAS';
 
-    if (isDesktop) {
-      // In offline/desktop mode, the local database belongs exclusively to the store.
-      // Strictly resolve to the local tenant (prioritizing 'default' or any tenant other than 'zs').
-      try {
-        const localTenant = await this.db
-          .selectFrom('tenants')
-          .select(['id', 'slug'])
-          .where('id', '!=', 'zs')
-          .orderBy('created_at', 'asc')
-          .executeTakeFirst();
-        resolvedTenantId = localTenant?.id || 'default';
-      } catch {
-        resolvedTenantId = 'default';
-      }
-    } else if (rawCompanyCode) {
+    if (rawCompanyCode) {
       try {
         const tenantMatch = await this.db
           .selectFrom('tenants')
@@ -288,6 +273,18 @@ export class SessionService {
         }
       } catch {
         // fallback to rawCompanyCode
+      }
+    } else if (isDesktop) {
+      // In offline/desktop mode with single-tenant store, resolve to local tenant only if no explicit companyCode is provided
+      try {
+        const localTenant = await this.db
+          .selectFrom('tenants')
+          .select(['id', 'slug'])
+          .orderBy('created_at', 'asc')
+          .executeTakeFirst();
+        resolvedTenantId = localTenant?.id || 'default';
+      } catch {
+        resolvedTenantId = 'default';
       }
     }
 

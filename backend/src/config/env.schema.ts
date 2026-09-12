@@ -157,8 +157,8 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
   }
 
   if (parsed.NODE_ENV === 'production' && parsed.APP_MODE === 'CLOUD_SAAS') {
-    if (!parsed.DATABASE_SSL || !parsed.DATABASE_SSL_REJECT_UNAUTHORIZED) {
-      throw new Error('DATABASE_SSL and DATABASE_SSL_REJECT_UNAUTHORIZED must be true for CLOUD_SAAS production mode');
+    if (!isLocalDatabaseHost(parsed.DATABASE_HOST) && (!parsed.DATABASE_SSL || !parsed.DATABASE_SSL_REJECT_UNAUTHORIZED)) {
+      throw new Error('DATABASE_SSL and DATABASE_SSL_REJECT_UNAUTHORIZED must be true for CLOUD_SAAS production mode when using remote DB');
     }
 
     if (hasUnsafeCorsOrigin(parsed.CORS_ORIGINS)) {
