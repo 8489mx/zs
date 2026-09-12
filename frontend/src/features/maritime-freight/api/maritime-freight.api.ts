@@ -355,6 +355,11 @@ export const maritimeApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  updateJob: (id: string, data: any) =>
+    http<MaritimeJob>(`/api/maritime-freight/jobs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
   addJobMilestone: (id: string, milestoneKey: string, notes?: string, location?: string) =>
     http<MaritimeJob>(`/api/maritime-freight/jobs/${id}/milestones`, {
       method: 'POST',
@@ -372,6 +377,11 @@ export const maritimeApi = {
   // Containers
   getContainers: (params?: { overdueOnly?: boolean; depositHeldOnly?: boolean; search?: string }) =>
     http<MaritimeContainer[]>(`/api/maritime-freight/containers${toQueryString(params)}`),
+  createContainer: (data: any) =>
+    http<MaritimeContainer>('/api/maritime-freight/containers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   updateContainer: (id: string, data: any) =>
     http<MaritimeContainer>(`/api/maritime-freight/containers/${id}`, {
       method: 'PUT',

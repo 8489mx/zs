@@ -36,6 +36,7 @@ export function MaritimeContainersPage() {
           setSelectedContainer(c);
           setIsReturnModalOpen(true);
         }}
+        onRefresh={loadContainers}
       />
 
       <ContainerReturnModal

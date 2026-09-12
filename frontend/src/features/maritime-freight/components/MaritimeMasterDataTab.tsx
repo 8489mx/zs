@@ -256,6 +256,79 @@ export function MaritimeMasterDataTab({
     navigator.clipboard.writeText(email);
     toast.success(`تم نسخ البريد الإلكتروني: ${email}`);
   };
+  const exportMasterDataCsv = () => {
+    let filename = 'maritime_data.csv';
+    let headers: string[] = [];
+    let rows: (string | number)[][] = [];
+
+    if (subTab === 'lines') {
+      filename = `maritime_shipping_lines_${new Date().toISOString().split('T')[0]}.csv`;
+      headers = ['كود الخط', 'اسم الخط بالعربية', 'اسم الخط بالإنجليزية', 'مسؤول الاتصال', 'الهاتف', 'البريد الإلكتروني', 'بريد الحجز', 'مسارات الشحن'];
+      rows = filteredLines.map((l) => [
+        `"${l.code || ''}"`,
+        `"${l.name_ar || ''}"`,
+        `"${l.name_en || ''}"`,
+        `"${l.contact_person || ''}"`,
+        `"${l.phone || ''}"`,
+        `"${l.rfq_email || ''}"`,
+        `"${l.booking_email || ''}"`,
+        `"${l.trade_lanes || ''}"`
+      ]);
+    } else if (subTab === 'agents') {
+      filename = `maritime_overseas_agents_${new Date().toISOString().split('T')[0]}.csv`;
+      headers = ['كود الوكيل', 'اسم الوكيل بالعربية', 'اسم الوكيل بالإنجليزية', 'الدولة', 'المدينة', 'مسؤول التواصل', 'واتساب', 'البريد الإلكتروني (RFQ)', 'الخدمات المقدمة'];
+      rows = filteredAgents.map((a) => [
+        `"${a.code || ''}"`,
+        `"${a.name_ar || ''}"`,
+        `"${a.name_en || ''}"`,
+        `"${a.country_name || ''}"`,
+        `"${a.city_name || ''}"`,
+        `"${a.contact_person || ''}"`,
+        `"${a.whatsapp || ''}"`,
+        `"${a.rfq_email || ''}"`,
+        `"${a.services_offered || ''}"`
+      ]);
+    } else if (subTab === 'ports') {
+      filename = `maritime_ports_${new Date().toISOString().split('T')[0]}.csv`;
+      headers = ['كود الميناء (UN/LOCODE)', 'اسم الميناء بالعربية', 'اسم الميناء بالإنجليزية', 'كود الدولة', 'اسم الدولة'];
+      rows = filteredPorts.map((p) => [
+        `"${p.code || ''}"`,
+        `"${p.name_ar || ''}"`,
+        `"${p.name_en || ''}"`,
+        `"${p.country_code || ''}"`,
+        `"${p.country_name || ''}"`
+      ]);
+    } else {
+      filename = `maritime_containers_specs_${new Date().toISOString().split('T')[0]}.csv`;
+      headers = ['كود الحاوية', 'الاسم بالعربية', 'الاسم بالإنجليزية', 'الفئة', 'الطول بالقدم', 'أقصى وزن حمولة (كجم)', 'الحجم CBM'];
+      rows = (filteredContainers || []).map((c) => [
+        `"${c.code || ''}"`,
+        `"${c.name_ar || ''}"`,
+        `"${c.name_en || ''}"`,
+        `"${c.category || ''}"`,
+        c.length_feet || '',
+        c.max_payload_kg || '',
+        c.max_cbm || ''
+      ]);
+    }
+
+    if (rows.length === 0) {
+      toast.warning('لا توجد بيانات للتصدير في هذا التبويب.');
+      return;
+    }
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('تم تصدير البيانات بنجاح إلى ملف CSV.');
+  };
+
 
 
 
@@ -321,6 +394,31 @@ export function MaritimeMasterDataTab({
               <AppIcons.FileSpreadsheet size={15} />
               <span>استيراد من Excel / CSV</span>
             </button>
+            <button
+              type="button"
+              onClick={exportMasterDataCsv}
+              title="تصدير السجلات الحالية إلى ملف Excel أو CSV"
+              style={{
+                height: '36px',
+                padding: '0 12px',
+                background: '#ffffff',
+                color: '#15803d',
+                border: '1px solid #bbf7d0',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              }}
+            >
+              <AppIcons.FileSpreadsheet size={15} />
+              <span>تصدير إلى Excel / CSV</span>
+            </button>
+
 
             <span
               style={{
@@ -988,6 +1086,29 @@ export function MaritimeMasterDataTab({
                         <div style={{ fontSize: '0.74rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={line.name_en || ''}>
                           {line.name_en}
                         </div>
+                        {line.trade_lanes && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '3px' }}>
+                            {line.trade_lanes.split(',').slice(0, 2).map((lane: string) => {
+                              const trimmed = lane.trim();
+                              return (
+                                <span
+                                  key={trimmed}
+                                  style={{
+                                    fontSize: '0.66rem',
+                                    fontWeight: 600,
+                                    padding: '1px 5px',
+                                    borderRadius: '4px',
+                                    background: '#f1f5f9',
+                                    color: '#475569',
+                                    border: '1px solid #e2e8f0',
+                                  }}
+                                >
+                                  {TRADE_LANE_LABELS[trimmed] || trimmed}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
                         {(line.notes || line.services_offered) && (
                           <div style={{ fontSize: '0.68rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }} title={line.notes || line.services_offered || undefined}>
                             {line.notes || line.services_offered}
@@ -1067,9 +1188,29 @@ export function MaritimeMasterDataTab({
                         )}
                       </td>
                       <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
-                        <div style={{ fontSize: '0.76rem', color: '#334155', direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {line.phone || '-'}
-                        </div>
+                        {line.phone ? (
+                          <a
+                            href={`https://wa.me/${line.phone.replace(/[^\d]/g, '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              fontSize: '0.74rem',
+                              color: '#15803d',
+                              fontWeight: 700,
+                              textDecoration: 'none',
+                              direction: 'ltr',
+                              textAlign: 'right',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                            title="فتح محادثة واتساب"
+                          >
+                            <span>{line.phone}</span>
+                          </a>
+                        ) : (
+                          <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>-</div>
+                        )}
                         {line.contact_person && (
                           <div style={{ fontSize: '0.72rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {line.contact_person}
@@ -1167,8 +1308,29 @@ export function MaritimeMasterDataTab({
                           {agent.contact_person || '-'}
                         </div>
                         {agent.whatsapp && (
-                          <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'ltr', textAlign: 'right' }}>
-                            WA: {agent.whatsapp}
+                          <div style={{ marginTop: '2px' }}>
+                            <a
+                              href={`https://wa.me/${agent.whatsapp.replace(/[^\d]/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                fontSize: '0.72rem',
+                                color: '#15803d',
+                                fontWeight: 700,
+                                textDecoration: 'none',
+                                background: '#f0fdf4',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid #bbf7d0',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                direction: 'ltr',
+                              }}
+                              title="فتح محادثة واتساب فورية"
+                            >
+                              WA: {agent.whatsapp}
+                            </a>
                           </div>
                         )}
                         {agent.wechat && !agent.whatsapp && (

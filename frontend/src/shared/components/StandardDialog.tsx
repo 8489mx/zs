@@ -15,6 +15,7 @@ export interface StandardDialogProps {
   minHeight?: string;
   height?: string;
   maxHeight?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | string;
   zIndex?: number;
   ariaLabel?: string;
   footerActions?: ReactNode;
@@ -51,10 +52,19 @@ export function StandardDialog({
   footer,
   loading = false,
   loadingText,
+  size,
 }: StandardDialogProps) {
   const isVisible = open !== undefined ? open : Boolean(isOpen);
   if (!isVisible) return null;
-  const resolvedWidth = width || maxWidth || 'min(840px, 95vw)';
+
+  const sizeMap: Record<string, string> = {
+    sm: 'min(500px, 90vw)',
+    md: 'min(680px, 92vw)',
+    lg: 'min(840px, 95vw)',
+    xl: 'min(1080px, 95vw)',
+  };
+
+  const resolvedWidth = width || maxWidth || (size && sizeMap[size]) || 'min(840px, 95vw)';
   const resolvedFooter = footerActions || footer;
 
   // Universal Pre-balanced Dimensions:
@@ -176,8 +186,10 @@ export function StandardDialog({
 export interface StandardDialogFooterProps {
   onCancel: () => void;
   onSubmit?: () => void;
+  onConfirm?: () => void;
   cancelText?: string;
   submitText?: string;
+  confirmText?: string;
   isSubmitting?: boolean;
   submitDisabled?: boolean;
   extraActions?: ReactNode;
@@ -186,12 +198,17 @@ export interface StandardDialogFooterProps {
 export function StandardDialogFooter({
   onCancel,
   onSubmit,
+  onConfirm,
   cancelText = 'إلغاء',
-  submitText = 'حفظ التغييرات',
+  submitText,
+  confirmText,
   isSubmitting = false,
   submitDisabled = false,
   extraActions,
 }: StandardDialogFooterProps) {
+  const handleSubmit = onSubmit || onConfirm;
+  const resolvedSubmitText = confirmText || submitText || 'حفظ التغييرات';
+
   return (
     <div className="standard-dialog-footer">
       {extraActions}
@@ -203,14 +220,14 @@ export function StandardDialogFooter({
       >
         {cancelText}
       </Button>
-      {onSubmit && (
+      {handleSubmit && (
         <Button
           type="button"
           variant="primary"
-          onClick={onSubmit}
+          onClick={handleSubmit}
           disabled={submitDisabled || isSubmitting}
         >
-          {isSubmitting ? 'جاري الحفظ...' : submitText}
+          {isSubmitting ? 'جاري الحفظ...' : resolvedSubmitText}
         </Button>
       )}
     </div>

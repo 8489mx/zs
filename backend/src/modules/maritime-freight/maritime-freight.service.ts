@@ -1543,6 +1543,52 @@ export class MaritimeFreightService {
     };
   }
 
+  async updateJob(auth: AuthContext, id: string, dto: any) {
+    const { tenantId } = requireTenantScope(auth);
+    const existing = await this.db
+      .selectFrom('maritime_jobs')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .executeTakeFirst();
+
+    if (!existing) throw new NotFoundException('Shipment Job not found');
+
+    const updatePayload: any = {
+      updated_at: sql`NOW()`,
+    };
+
+    if (dto.vesselName !== undefined) updatePayload.vessel_name = dto.vesselName || null;
+    if (dto.voyageNumber !== undefined) updatePayload.voyage_number = dto.voyageNumber || null;
+    if (dto.bookingNumber !== undefined) updatePayload.booking_number = dto.bookingNumber || null;
+    if (dto.polCode !== undefined) updatePayload.pol_code = dto.polCode;
+    if (dto.polName !== undefined) updatePayload.pol_name = dto.polName;
+    if (dto.podCode !== undefined) updatePayload.pod_code = dto.podCode;
+    if (dto.podName !== undefined) updatePayload.pod_name = dto.podName;
+    if (dto.etd !== undefined) updatePayload.etd = dto.etd || null;
+    if (dto.eta !== undefined) updatePayload.eta = dto.eta || null;
+    if (dto.portCutOff !== undefined) updatePayload.port_cut_off = dto.portCutOff || null;
+    if (dto.blType !== undefined) updatePayload.bl_type = dto.blType;
+    if (dto.mblNumber !== undefined) updatePayload.mbl_number = dto.mblNumber || null;
+    if (dto.hblNumber !== undefined) updatePayload.hbl_number = dto.hblNumber || null;
+    if (dto.shipperDetails !== undefined) updatePayload.shipper_details = dto.shipperDetails || null;
+    if (dto.consigneeDetails !== undefined) updatePayload.consignee_details = dto.consigneeDetails || null;
+    if (dto.notifyParty !== undefined) updatePayload.notify_party = dto.notifyParty || null;
+    if (dto.shippingLineId !== undefined) updatePayload.shipping_line_id = dto.shippingLineId || null;
+    if (dto.shippingLineName !== undefined) updatePayload.shipping_line_name = dto.shippingLineName;
+    if (dto.notes !== undefined) updatePayload.notes = dto.notes || null;
+
+    const [updatedJob] = await this.db
+      .updateTable('maritime_jobs')
+      .set(updatePayload)
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    return updatedJob;
+  }
+
   async addJobMilestone(auth: AuthContext, jobId: string, milestoneKey: DcsaMilestoneKey, notes?: string, location?: string) {
     const { tenantId } = requireTenantScope(auth);
     const milestoneDef = DCSA_STANDARD_MILESTONES.find((m) => m.key === milestoneKey);
@@ -1850,6 +1896,38 @@ export class MaritimeFreightService {
       .execute();
 
     return updated;
+  }
+
+  async createContainer(auth: AuthContext, dto: any) {
+    const { tenantId } = requireTenantScope(auth);
+
+    let depositStatus: 'not_required' | 'held_by_line' = 'not_required';
+    if (dto.depositAmount && Number(dto.depositAmount) > 0) {
+      depositStatus = 'held_by_line';
+    }
+
+    const [inserted] = await this.db
+      .insertInto('maritime_containers')
+      .values({
+        tenant_id: tenantId,
+        job_id: dto.jobId,
+        container_number: (dto.containerNumber || '').toUpperCase(),
+        container_type: dto.containerType || "40' HC",
+        seal_number: dto.sealNumber || null,
+        gross_weight_kg: Number(dto.grossWeightKg) || 0,
+        cbm: Number(dto.cbm) || 0,
+        free_days: Number(dto.freeDays) || 14,
+        return_deadline: dto.returnDeadline || null,
+        demurrage_rate_per_day: Number(dto.demurrageRatePerDay) || 0,
+        deposit_amount: Number(dto.depositAmount) || 0,
+        deposit_currency: dto.depositCurrency || 'USD',
+        deposit_status: depositStatus,
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .execute();
+
+    return inserted;
   }
 
   // --------------------------------------------------------------------------

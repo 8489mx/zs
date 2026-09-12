@@ -178,6 +178,15 @@ export class MaritimeFreightController {
     return this.freightService.getJobById(req.authContext!, id);
   }
 
+  @Put('jobs/:id')
+  async updateJob(
+    @Param('id') id: string,
+    @Body() body: any,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.updateJob(req.authContext!, id, body);
+  }
+
   @Post('jobs/:id/milestones')
   async addMilestone(
     @Param('id') id: string,
@@ -216,6 +225,14 @@ export class MaritimeFreightController {
       depositHeldOnly: depositHeldOnly === 'true',
       search,
     });
+  }
+
+  @Post('containers')
+  async createContainer(
+    @Body() body: any,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.createContainer(req.authContext!, body);
   }
 
   @Put('containers/:id')
