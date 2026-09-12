@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { http } from '@/lib/http';
 import {
   ShipIcon,
   CheckCircleIcon,
 } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
 
 interface PublicRfqData {
   rfq: {
@@ -102,7 +104,7 @@ export function PublicCarrierQuotePage() {
     e.preventDefault();
 
     if (!oceanFreight || oceanFreight <= 0) {
-      alert('يرجى إدخال قيمة النولون البحري الأساسي (Ocean Freight)');
+      toast.warning('يرجى إدخال قيمة النولون البحري الأساسي (Ocean Freight)');
       return;
     }
 
@@ -126,8 +128,9 @@ export function PublicCarrierQuotePage() {
         }),
       });
       setIsSubmitted(true);
+      toast.success('تم إرسال عرض السعر بنجاح!');
     } catch (err: any) {
-      alert(err?.message || 'فشل إرسال عرض السعر، يرجى المحاولة مرة أخرى');
+      toast.error(err?.message || 'فشل إرسال عرض السعر، يرجى المحاولة مرة أخرى');
     } finally {
       setIsSubmitting(false);
     }
@@ -320,7 +323,7 @@ export function PublicCarrierQuotePage() {
                   >
                     <option value="USD">USD ($)</option>
                     <option value="EUR">EUR (€)</option>
-                    <option value="EGP">EGP (ج.م)</option>
+                    <option value="EGP">EGP (${getGlobalCurrencySymbol()})</option>
                   </select>
                 </div>
               </div>

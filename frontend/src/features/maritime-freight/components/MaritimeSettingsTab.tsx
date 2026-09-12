@@ -11,6 +11,7 @@ import {
   SendIcon,
   CheckIcon,
 } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
 
 export const STANDARD_EMAIL_TEMPLATES = {
   subject: '[{{rfq_number}}] Ocean Freight Rate Inquiry: {{pol_name}} to {{pod_name}} ({{container_count}}x {{container_type}})',
@@ -309,7 +310,7 @@ export function MaritimeSettingsTab() {
 
   const handleSendTestEmail = async () => {
     if (!testTargetEmail.trim()) {
-      alert('يرجى كتابة البريد الإلكتروني المستلم للتجربة.');
+      toast.warning('يرجى كتابة البريد الإلكتروني المستلم للتجربة.');
       return;
     }
     try {

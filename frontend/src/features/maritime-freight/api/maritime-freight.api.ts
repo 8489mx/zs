@@ -35,6 +35,54 @@ export interface ShippingLine {
   notes?: string | null;
 }
 
+export interface ContainerTypeSpec {
+  code: string;
+  name_ar: string;
+  name_en: string;
+  category: 'dry' | 'reefer' | 'special';
+  length_feet: number;
+  max_payload_kg: number;
+  tare_weight_kg: number;
+  max_cbm: number;
+  internal_length_m: number;
+  internal_width_m: number;
+  internal_height_m: number;
+  door_width_m: number;
+  door_height_m: number;
+  description_ar: string;
+}
+
+export interface IncotermRule {
+  code: string;
+  name_ar: string;
+  name_en: string;
+  rule_type: 'any_mode' | 'sea_inland_waterway';
+  seller_pays_export_customs: boolean;
+  seller_pays_origin_thc: boolean;
+  seller_pays_ocean_freight: boolean;
+  seller_pays_destination_thc: boolean;
+  seller_pays_import_customs: boolean;
+  seller_pays_insurance: boolean;
+  risk_transfer_point_ar: string;
+  description_ar: string;
+}
+
+export interface PortTerminal {
+  code: string;
+  name_ar: string;
+  name_en: string;
+  port_code: string;
+  terminal_operator: string;
+  terminal_type: 'container' | 'general_cargo' | 'bulk';
+  notes?: string;
+}
+
+export interface ReferenceDataResponse {
+  containerTypes: ContainerTypeSpec[];
+  incoterms: IncotermRule[];
+  portTerminals: PortTerminal[];
+}
+
 export interface MaritimeRfqBid {
   id: string;
   rfq_id: string;
@@ -241,6 +289,17 @@ export const maritimeApi = {
     http<{ success: boolean }>(`/api/maritime-freight/shipping-lines/${id}`, {
       method: 'DELETE',
     }),
+  seedDefaultMasterData: () =>
+    http<{ portsAdded: number; linesAdded: number; agentsAdded: number }>('/api/maritime-freight/master-data/seed-defaults', {
+      method: 'POST',
+    }),
+  importCarriersBulk: (items: any[]) =>
+    http<{ insertedCount: number; updatedCount: number; totalProcessed: number; summary: string }>('/api/maritime-freight/shipping-lines/import-bulk', {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    }),
+  getReferenceData: () =>
+    http<ReferenceDataResponse>('/api/maritime-freight/reference-data'),
 
   // RFQs
   getRfqs: (params?: { status?: string; search?: string }) =>

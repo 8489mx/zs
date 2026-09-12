@@ -8,7 +8,7 @@ import { DispatchRfqModal } from '../components/DispatchRfqModal';
 
 export function MaritimeRfqsPage() {
   const navigate = useNavigate();
-  const { setIsCreateRfqOpen, refreshCounts } = useMaritime();
+  const { setIsCreateRfqOpen, refreshCounts, refreshKey } = useMaritime();
   const [rfqs, setRfqs] = useState<MaritimeRfq[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +32,7 @@ export function MaritimeRfqsPage() {
 
   useEffect(() => {
     loadRfqs();
-  }, [loadRfqs]);
+  }, [loadRfqs, refreshKey]);
 
   const handleSelectRfqForMatrix = (rfq: MaritimeRfq) => {
     navigate(`/maritime/matrix?rfqId=${rfq.id}`);

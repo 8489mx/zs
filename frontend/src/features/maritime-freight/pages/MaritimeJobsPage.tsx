@@ -5,7 +5,7 @@ import { MaritimeJobsTab } from '../components/MaritimeJobsTab';
 import { JobDetailsModal } from '../components/JobDetailsModal';
 
 export function MaritimeJobsPage() {
-  const { setIsCreateRfqOpen, refreshCounts } = useMaritime();
+  const { setIsCreateRfqOpen, refreshCounts, refreshKey } = useMaritime();
   const [jobs, setJobs] = useState<MaritimeJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function MaritimeJobsPage() {
 
   useEffect(() => {
     loadJobs();
-  }, [loadJobs]);
+  }, [loadJobs, refreshKey]);
 
   return (
     <>

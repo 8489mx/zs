@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { maritimeApi, MaritimeQuotation } from '../api/maritime-freight.api';
 import { useMaritime } from '../context/MaritimeContext';
 import { MaritimeQuotationsTab } from '../components/MaritimeQuotationsTab';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 
 export function MaritimeQuotationsPage() {
   const navigate = useNavigate();
-  const { refreshCounts } = useMaritime();
+  const { refreshCounts, refreshKey } = useMaritime();
   const [quotations, setQuotations] = useState<MaritimeQuotation[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -24,17 +25,30 @@ export function MaritimeQuotationsPage() {
 
   useEffect(() => {
     loadQuotations();
-  }, [loadQuotations]);
+  }, [loadQuotations, refreshKey]);
 
   const handleConvertToJob = async (quote: MaritimeQuotation) => {
-    if (!confirm(`هل ترغب في تعميد عرض السعر ${quote.quotation_number} وتحويله مباشرة إلى أمر تشغيل ملاحي وفتح ملف الشحنة؟`)) return;
+    const confirmed = await systemConfirm({
+      title: 'تعميد عرض السعر وفتح ملف الشحنة',
+      badge: quote.quotation_number,
+      message: 'هل ترغب في تعميد عرض السعر وتحويله مباشرة إلى أمر تشغيل ملاحي رسمي وفتح ملف الشحنة؟',
+      impactItems: [
+        'فتح ملف أمر تشغيل ملاحي رسمي في سجل الشحنات المعتمدة.',
+        'تحويل حالة عرض السعر إلى "معتمد ومُعَمَّد" (Approved).',
+        'تفعيل تتبع مراحل الشحنة القياسية (DCSA) وإتاحة إصدار إذن التسليم.',
+      ],
+      confirmText: 'تأكيد التحويل وأمر التشغيل',
+      cancelText: 'تراجع',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
     try {
       const job = await maritimeApi.autoConvertQuotationToJob(quote.id);
-      alert(`تم بنجاح فتح ملف الشحنة وأمر التشغيل رقم: ${job.job_number}`);
+      toast.success(`تم بنجاح فتح ملف الشحنة وأمر التشغيل رقم: ${job.job_number}`, 'أمر التشغيل');
       await refreshCounts();
       navigate('/maritime/jobs');
     } catch (err: any) {
-      alert(err?.message || 'فشل تحويل أمر التشغيل');
+      toast.error(err?.message || 'فشل تحويل أمر التشغيل', 'خطأ في التحويل');
     }
   };
 
@@ -43,8 +57,9 @@ export function MaritimeQuotationsPage() {
       await maritimeApi.updateQuotationStatus(id, status);
       await loadQuotations();
       await refreshCounts();
+      toast.info('تم تحديث حالة العرض بنجاح');
     } catch (err: any) {
-      alert(err?.message || 'فشل تحديث حالة العرض');
+      toast.error(err?.message || 'فشل تحديث حالة العرض', 'خطأ في التحديث');
     }
   };
 

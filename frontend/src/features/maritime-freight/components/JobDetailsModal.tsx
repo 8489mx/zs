@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { maritimeApi, MaritimeJob } from '../api/maritime-freight.api';
 import { DCSA_STANDARD_MILESTONES, DcsaMilestoneKey } from '../maritime-freight.types';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 
 interface JobDetailsModalProps {
   open: boolean;
@@ -30,10 +32,29 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
   useEffect(() => {
     if (open && jobId) {
       fetchJob();
+    } else if (!open) {
+      setJob(null);
     }
   }, [open, jobId]);
 
-  if (!job) return null;
+  if (!open) return null;
+
+  if (!job) {
+    return (
+      <StandardDialog
+        open={open}
+        onClose={onClose}
+        title="ملف العملية الملاحية"
+        subtitle="جاري جلب تفاصيل وبيانات العملية..."
+        width="min(1080px, 95vw)"
+        height="min(760px, 90vh)"
+        loading={true}
+        loadingText="جاري تحميل ملف العملية الملاحية..."
+      >
+        <div style={{ minHeight: '420px' }} />
+      </StandardDialog>
+    );
+  }
 
   const handleAdvanceMilestone = async () => {
     try {
@@ -41,19 +62,33 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
       setMilestoneNotes('');
       await fetchJob();
       onUpdated();
+      toast.success('تم تسجيل المرحلة الملاحية وتحديث التتبع بنجاح');
     } catch (err: any) {
-      alert(err?.message || 'فشل تحديث المرحلة الملاحية');
+      toast.error(err?.message || 'فشل تحديث المرحلة الملاحية');
     }
   };
 
   const handleReleaseDo = async () => {
-    if (!confirm('هل أنت متأكد من اعتماد وتسليم إذن التسليم الملاحي الرسمي (Delivery Order D/O) للعميل؟')) return;
+    const confirmed = await systemConfirm({
+      title: 'اعتماد وتسليم إذن التسليم الملاحي D/O',
+      badge: job.job_number,
+      message: 'هل أنت متأكد من اعتماد وتسليم إذن التسليم الملاحي الرسمي (Delivery Order) للعميل؟',
+      impactItems: [
+        'تسجيل مرحلة D/O الرسمية في سجل الشحنة وتحديث بوابات التتبع للعميل.',
+        'إتمام إجراءات الإفراج الجمركي والسماح بخروج الحاويات من ساحات الميناء.',
+      ],
+      confirmText: 'اعتماد وتسليم إذن الإفراج',
+      cancelText: 'تراجع',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
     try {
       await maritimeApi.releaseDeliveryOrder(job.id);
       await fetchJob();
       onUpdated();
+      toast.success('تم اعتماد وتسليم إذن التسليم D/O بنجاح');
     } catch (err: any) {
-      alert(err?.message || 'فشل تسليم إذن الإفراج');
+      toast.error(err?.message || 'فشل تسليم إذن الإفراج');
     }
   };
 
@@ -75,7 +110,8 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
       onClose={onClose}
       title={`ملف العملية الملاحية: ${job.job_number}`}
       subtitle={`العميل: ${job.customer_name} | المسار: ${job.pol_name} إلى ${job.pod_name}`}
-      width="min(880px, 95vw)"
+      width="min(1080px, 95vw)"
+      height="min(760px, 90vh)"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
@@ -83,9 +119,9 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         />
       )}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '100%' }}>
         {/* هيدر التبويبات القياسي */}
-        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', flexShrink: 0 }}>
           <button
             type="button"
             onClick={() => setActiveTab('overview')}
@@ -152,8 +188,10 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           </button>
         </div>
 
-        {/* Tab 1: نظرة عامة وبيانات الحجز */}
-        {activeTab === 'overview' && (
+        {/* جسم التبويبات الموحد بارتفاع ثابت يمنع التذبذب أو التغير نهائياً */}
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', paddingInlineEnd: '4px' }}>
+          {/* Tab 1: نظرة عامة وبيانات الحجز */}
+          {activeTab === 'overview' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
             <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '0.78rem', color: '#64748b' }}>الخط الملاحي ورقم الحجز</div>
@@ -271,17 +309,15 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', gap: '10px', alignItems: 'center' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '4px' }}>ترقية المرحلة الملاحية (DCSA Milestone)</div>
-                <select
+                <CustomSelect
                   value={nextMilestone}
-                  onChange={(e) => setNextMilestone(e.target.value as any)}
-                  style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.85rem' }}
-                >
-                  {DCSA_STANDARD_MILESTONES.map((m) => (
-                    <option key={m.key} value={m.key}>
-                      [{m.key}] {m.title_ar} - {m.title_en}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setNextMilestone(val as DcsaMilestoneKey)}
+                  options={DCSA_STANDARD_MILESTONES.map((m) => ({
+                    value: m.key,
+                    label: `[${m.key}] ${m.title_ar} - ${m.title_en}`,
+                  }))}
+                  placeholder="اختر المرحلة الملاحية..."
+                />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '4px' }}>ملاحظات المرحلة أو الموقع</div>
@@ -366,10 +402,10 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           if (cleanPhone) {
                             window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(alertData.message)}`, '_blank');
                           } else {
-                            alert('لا يوجد رقم هاتف للعميل');
+                            toast.warning('لا يوجد رقم هاتف مسجل للعميل');
                           }
                         } catch (err: any) {
-                          alert(err?.message || 'فشل توليد رسالة واتساب');
+                          toast.error(err?.message || 'فشل توليد رسالة واتساب');
                         }
                       }}
                       title="إرسال إشعار بالواتساب للعميل"
@@ -395,34 +431,261 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         )}
 
         {/* Tab 4: ربحية العملية والحسابات */}
-        {activeTab === 'finance' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ background: '#170e5e', color: '#ffffff', padding: '18px', borderRadius: '12px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', textAlign: 'center' }}>
-              <div>
-                <div style={{ fontSize: '0.76rem', color: '#cbd5e1' }}>إجمالي الفاتورة للعميل (Revenue)</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '4px' }}>
-                  ${Number(job.client_invoiced_total || 0).toLocaleString()}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.76rem', color: '#fca5a5' }}>تكلفة الخط الملاحي (Cost)</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f87171', marginTop: '4px' }}>
-                  ${Number(job.carrier_cost_total || 0).toLocaleString()}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.76rem', color: '#86efac' }}>صافي ربح العملية (Net P&L)</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#4ade80', marginTop: '4px' }}>
-                  ${Number(job.net_profit || 0).toLocaleString()}
-                </div>
-              </div>
-            </div>
+        {activeTab === 'finance' && (() => {
+          const revenue = Number(job.client_invoiced_total || 0);
+          const carrierCost = Number(job.carrier_cost_total || 0);
+          const otherCosts = Number(job.other_costs_total || 0);
+          const totalCost = carrierCost + otherCosts;
+          const netProfit = Number(job.net_profit || (revenue - totalCost));
+          const marginPercent = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(1) : '0.0';
+          const containerDeposits = job.containers?.reduce((acc, c) => acc + (Number(c.deposit_amount) || 0), 0) || 0;
 
-            <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.82rem', color: '#475569' }}>
-              مركز التكلفة المرتبط في دليل الحسابات: <strong>{job.cost_center_id ? `ID #${job.cost_center_id} (${job.job_number})` : 'مفعل تلقائياً'}</strong>. يتم ترحيل كافة فواتير الخدمات ومصروفات الموانئ وسندات صرف التأمين مباشرة لهذا المركز.
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* 1. الثلاث بطاقات المالية المعتمدة (Clean White KPI Cards) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                {/* Card 1: Revenue */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                    borderTop: '3px solid #170e5e',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي الفاتورة للعميل</span>
+                    <span style={{ padding: '2px 8px', background: '#eff6ff', color: '#1e40af', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700 }}>
+                      Revenue
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#170e5e', letterSpacing: '-0.02em' }}>
+                    ${revenue.toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    مبيعات الشحن والخدمات البحرية
+                  </div>
+                </div>
+
+                {/* Card 2: Cost */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                    borderTop: '3px solid #ef4444',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>تكلفة الخط والموانئ</span>
+                    <span style={{ padding: '2px 8px', background: '#fef2f2', color: '#b91c1c', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700 }}>
+                      Direct Cost
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: totalCost > 0 ? '#b91c1c' : '#0f172a', letterSpacing: '-0.02em' }}>
+                    ${totalCost.toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    نولون بحري ومصروفات محطات الموانئ
+                  </div>
+                </div>
+
+                {/* Card 3: Net Profit */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                    borderTop: '3px solid #10b981',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>صافي ربح العملية</span>
+                    <span style={{ padding: '2px 8px', background: '#f0fdf4', color: '#166534', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700 }}>
+                      هامش: {marginPercent}%
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: netProfit >= 0 ? '#15803d' : '#b91c1c', letterSpacing: '-0.02em' }}>
+                    ${netProfit.toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    المساهمة الصافية في أرباح التشغيل
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. جدول البيان المالي وتفكيك التكاليف والإيرادات */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    padding: '8px 14px',
+                    background: '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>
+                    بيان وتفكيك الحسابات التقديرية والفعلية للعملية
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    العملة الأساسية: الدولار الأمريكي (USD)
+                  </div>
+                </div>
+
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
+                      <th style={{ padding: '8px 14px', fontWeight: 700 }}>بند الحساب</th>
+                      <th style={{ padding: '8px 14px', fontWeight: 700 }}>الطرف والجهة</th>
+                      <th style={{ padding: '8px 14px', fontWeight: 700 }}>التصنيف المحاسبي</th>
+                      <th style={{ padding: '8px 14px', fontWeight: 700 }}>المبلغ</th>
+                      <th style={{ padding: '8px 14px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px 14px', fontWeight: 700, color: '#170e5e' }}>إيراد الشحن البحري للعميل (Ocean Freight Billed)</td>
+                      <td style={{ padding: '8px 14px', color: '#334155' }}>{job.customer_name}</td>
+                      <td style={{ padding: '8px 14px', color: '#64748b' }}>إيراد تشغيلي معتمد</td>
+                      <td style={{ padding: '8px 14px', fontWeight: 800, color: '#170e5e' }}>${revenue.toLocaleString()}</td>
+                      <td style={{ padding: '8px 14px', textAlign: 'center' }}>
+                        <span style={{ padding: '2px 8px', background: '#eff6ff', color: '#1e40af', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>مفوتر بالكامل</span>
+                      </td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px 14px', fontWeight: 700, color: '#0f172a' }}>نولون الخط الملاحي الأساسي (Carrier Ocean Freight)</td>
+                      <td style={{ padding: '8px 14px', color: '#334155' }}>{job.shipping_line_name || 'غير محدد'}</td>
+                      <td style={{ padding: '8px 14px', color: '#64748b' }}>تكلفة شحن مباشرة</td>
+                      <td style={{ padding: '8px 14px', fontWeight: 800, color: totalCost > 0 ? '#b91c1c' : '#64748b' }}>${carrierCost.toLocaleString()}</td>
+                      <td style={{ padding: '8px 14px', textAlign: 'center' }}>
+                        <span style={{ padding: '2px 8px', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>مطابقة الخط</span>
+                      </td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px 14px', fontWeight: 700, color: '#0f172a' }}>مصروفات الموانئ والمناولة (Port & THC Charges)</td>
+                      <td style={{ padding: '8px 14px', color: '#334155' }}>{job.pol_name} ➔ {job.pod_name}</td>
+                      <td style={{ padding: '8px 14px', color: '#64748b' }}>خدمات موانئ وتداول</td>
+                      <td style={{ padding: '8px 14px', fontWeight: 800, color: otherCosts > 0 ? '#b91c1c' : '#64748b' }}>
+                        {otherCosts > 0 ? `$${otherCosts.toLocaleString()}` : 'ضمن النولون'}
+                      </td>
+                      <td style={{ padding: '8px 14px', textAlign: 'center' }}>
+                        <span style={{ padding: '2px 8px', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>تسوية مباشرة</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style={{ padding: '8px 14px', fontWeight: 700, color: '#0f172a' }}>تأمين الحاويات المسترد (Container Deposit)</td>
+                      <td style={{ padding: '8px 14px', color: '#334155' }}>خزينة أمانات الخط الملاحي</td>
+                      <td style={{ padding: '8px 14px', color: '#64748b' }}>أمانات مستردة (خارج الأرباح)</td>
+                      <td style={{ padding: '8px 14px', fontWeight: 800, color: '#475569' }}>
+                        ${containerDeposits.toLocaleString()}
+                      </td>
+                      <td style={{ padding: '8px 14px', textAlign: 'center' }}>
+                        <span style={{ padding: '2px 8px', background: '#f0fdf4', color: '#166534', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>تحت التسوية</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 3. بطاقة تكامل دليل الحسابات ومراكز التكلفة */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: '#eff6ff',
+                      color: '#1e40af',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    GL
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#170e5e' }}>
+                      {job.cost_center_id ? `مركز تكلفة #${job.cost_center_id} (${job.job_number})` : `مركز تكلفة ملاحي #${job.job_number}`}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '1px' }}>
+                      مربوط بدليل الحسابات العام (شجرة الحسابات ➔ مراكز تكلفة الشحن واللوجستيات)
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span
+                    style={{
+                      padding: '3px 10px',
+                      background: '#f0fdf4',
+                      color: '#166534',
+                      border: '1px solid #bbf7d0',
+                      borderRadius: '20px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    الترحيل الآلي للقيود مفعل
+                  </span>
+                  <span
+                    style={{
+                      padding: '3px 10px',
+                      background: '#f8fafc',
+                      color: '#475569',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '20px',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {job.payment_term === 'prepaid' ? 'سداد مسبق (Prepaid)' : 'تحصيل بميناء الوصول (Collect)'}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
+        </div>
       </div>
     </StandardDialog>
   );

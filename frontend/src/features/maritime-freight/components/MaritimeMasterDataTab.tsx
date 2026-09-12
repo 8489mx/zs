@@ -1,8 +1,15 @@
-import { useState, useMemo } from 'react';
-import { ShippingPort, ShippingLine, maritimeApi } from '../api/maritime-freight.api';
+import { useState, useMemo, useEffect } from 'react';
+import {
+  ShippingPort,
+  ShippingLine,
+  ReferenceDataResponse,
+  maritimeApi,
+} from '../api/maritime-freight.api';
 import { Field } from '@/shared/ui/field';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { PartnerFormModal } from './PartnerFormModal';
+import { ImportCarriersModal } from './ImportCarriersModal';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 
 interface MaritimeMasterDataTabProps {
   ports: ShippingPort[];
@@ -39,7 +46,7 @@ export function MaritimeMasterDataTab({
   lines,
   onRefresh,
 }: MaritimeMasterDataTabProps) {
-  const [subTab, setSubTab] = useState<'lines' | 'agents' | 'ports'>('agents');
+  const [subTab, setSubTab] = useState<'lines' | 'agents' | 'ports' | 'standards'>('agents');
   
   // Search and Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,6 +57,24 @@ export function MaritimeMasterDataTab({
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'shipping_line' | 'overseas_agent'>('shipping_line');
   const [editingPartner, setEditingPartner] = useState<ShippingLine | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+
+  // Standards & Reference Data States
+  const [referenceData, setReferenceData] = useState<ReferenceDataResponse | null>(null);
+  const [isLoadingRefData, setIsLoadingRefData] = useState(false);
+  const [standardsSubCategory, setStandardsSubCategory] = useState<'containers' | 'incoterms' | 'terminals'>('containers');
+  const [containerCategoryFilter, setContainerCategoryFilter] = useState<'all' | 'dry' | 'reefer' | 'special'>('all');
+
+  useEffect(() => {
+    if (subTab === 'standards' && !referenceData && !isLoadingRefData) {
+      setIsLoadingRefData(true);
+      maritimeApi
+        .getReferenceData()
+        .then((data) => setReferenceData(data))
+        .catch((err) => console.error('Failed to load reference data:', err))
+        .finally(() => setIsLoadingRefData(false));
+    }
+  }, [subTab, referenceData, isLoadingRefData]);
 
   // New Port Form States
   const [showAddPortForm, setShowAddPortForm] = useState(false);
@@ -122,6 +147,52 @@ export function MaritimeMasterDataTab({
     });
   }, [ports, searchQuery]);
 
+  // Filtered Containers
+  const filteredContainers = useMemo(() => {
+    if (!referenceData?.containerTypes) return [];
+    return referenceData.containerTypes.filter((c) => {
+      const matchCategory =
+        containerCategoryFilter === 'all' || c.category === containerCategoryFilter;
+      const matchQuery =
+        !searchQuery ||
+        c.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.name_ar.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.name_en.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.description_ar.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchCategory && matchQuery;
+    });
+  }, [referenceData?.containerTypes, containerCategoryFilter, searchQuery]);
+
+  // Filtered Incoterms
+  const filteredIncoterms = useMemo(() => {
+    if (!referenceData?.incoterms) return [];
+    return referenceData.incoterms.filter((inc) => {
+      return (
+        !searchQuery ||
+        inc.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        inc.name_ar.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        inc.name_en.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        inc.description_ar.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        inc.risk_transfer_point_ar.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+  }, [referenceData?.incoterms, searchQuery]);
+
+  // Filtered Port Terminals
+  const filteredTerminals = useMemo(() => {
+    if (!referenceData?.portTerminals) return [];
+    return referenceData.portTerminals.filter((term) => {
+      return (
+        !searchQuery ||
+        term.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        term.name_ar.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        term.name_en.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        term.terminal_operator.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        term.port_code.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+  }, [referenceData?.portTerminals, searchQuery]);
+
   const handleOpenAdd = (type: 'shipping_line' | 'overseas_agent') => {
     setEditingPartner(null);
     setModalType(type);
@@ -135,14 +206,25 @@ export function MaritimeMasterDataTab({
   };
 
   const handleDeletePartner = async (partner: ShippingLine) => {
-    if (!window.confirm(`هل أنت متأكد من حذف الشريك "${partner.name_ar}" من الدليل؟`)) {
-      return;
-    }
+    const confirmed = await systemConfirm({
+      title: 'حذف شريك من الدليل الملاحي',
+      badge: partner.code || partner.name_ar,
+      message: `هل أنت متأكد من حذف الشريك "${partner.name_ar}" من الدليل القياسي؟`,
+      impactItems: [
+        'سيتم استبعاد الخط/الوكيل من قائمة الاختيار السريع في طلبات عروض الأسعار.',
+        'يمكنك استعادة الشركاء الافتراضيين في أي وقت عبر زر "استعادة الدليل القياسي".',
+      ],
+      confirmText: 'حذف الشريك',
+      cancelText: 'تراجع',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await maritimeApi.deleteShippingLine(partner.id);
+      toast.success(`تم حذف الشريك "${partner.name_ar}" بنجاح`, 'حذف شريك');
       onRefresh();
     } catch (err: any) {
-      alert(err?.message || 'فشل حذف الشريك');
+      toast.error(err?.message || 'فشل حذف الشريك', 'خطأ');
     }
   };
 
@@ -161,9 +243,10 @@ export function MaritimeMasterDataTab({
       setNewPortNameAr('');
       setNewPortNameEn('');
       setShowAddPortForm(false);
+      toast.success('تمت إضافة الميناء بنجاح', 'إضافة ميناء');
       onRefresh();
     } catch (err: any) {
-      alert(err?.message || 'فشل إضافة الميناء');
+      toast.error(err?.message || 'فشل إضافة الميناء', 'خطأ');
     } finally {
       setIsAddingPort(false);
     }
@@ -171,8 +254,10 @@ export function MaritimeMasterDataTab({
 
   const handleCopyEmail = (email: string) => {
     navigator.clipboard.writeText(email);
-    alert(`تم نسخ الإيميل: ${email}`);
+    toast.success(`تم نسخ البريد الإلكتروني: ${email}`);
   };
+
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', minWidth: 0, boxSizing: 'border-box' }} dir="rtl">
@@ -212,6 +297,31 @@ export function MaritimeMasterDataTab({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setImportModalOpen(true)}
+              title="استيراد جهات الاتصال وخطوط الشحن من ملف Excel أو CSV"
+              style={{
+                height: '36px',
+                padding: '0 12px',
+                background: '#ffffff',
+                color: '#0284c7',
+                border: '1px solid #bae6fd',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              }}
+            >
+              <AppIcons.FileSpreadsheet size={15} />
+              <span>استيراد من Excel / CSV</span>
+            </button>
+
             <span
               style={{
                 fontSize: '0.75rem',
@@ -230,6 +340,7 @@ export function MaritimeMasterDataTab({
               {subTab === 'lines' && `${shippingLinesList.length} خط ملاحي`}
               {subTab === 'agents' && `${overseasAgentsList.length} وكيل شحن`}
               {subTab === 'ports' && `${ports.length} ميناء بحري`}
+              {subTab === 'standards' && 'المواصفات القياسية'}
             </span>
 
             {subTab === 'lines' && (
@@ -409,6 +520,34 @@ export function MaritimeMasterDataTab({
           >
             <AppIcons.Globe size={15} />
             <span>دليل الموانئ البحرية الدولية ({ports.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSubTab('standards');
+              setSearchQuery('');
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              height: '36px',
+              padding: '0 16px',
+              borderRadius: '8px',
+              border: subTab === 'standards' ? '1.5px solid #170e5e' : '1.5px solid #cbd5e1',
+              background: subTab === 'standards' ? '#170e5e' : '#ffffff',
+              color: subTab === 'standards' ? '#ffffff' : '#334155',
+              fontWeight: 700,
+              fontSize: '0.8125rem',
+              cursor: 'pointer',
+              transition: 'background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <AppIcons.Container size={15} />
+            <span>المواصفات القياسية و Incoterms 2020</span>
           </button>
         </div>
 
@@ -644,6 +783,163 @@ export function MaritimeMasterDataTab({
               </div>
             </div>
           </>
+        )}
+
+        {/* شريط البحث وتصنيفات المواصفات القياسية */}
+        {subTab === 'standards' && (
+          <div
+            style={{
+              padding: '12px 16px',
+              borderBottom: '1px solid #e2e8f0',
+              background: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
+              minHeight: '58px',
+              boxSizing: 'border-box',
+            }}
+          >
+            {/* أزرار التنقل بين الفئات القياسية */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setStandardsSubCategory('containers');
+                  setSearchQuery('');
+                }}
+                style={{
+                  height: '32px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                  border: standardsSubCategory === 'containers' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                  background: standardsSubCategory === 'containers' ? '#170e5e' : '#f8fafc',
+                  color: standardsSubCategory === 'containers' ? '#ffffff' : '#334155',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <AppIcons.Container size={14} />
+                <span>مواصفات الحاويات (ISO Containers)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStandardsSubCategory('incoterms');
+                  setSearchQuery('');
+                }}
+                style={{
+                  height: '32px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                  border: standardsSubCategory === 'incoterms' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                  background: standardsSubCategory === 'incoterms' ? '#170e5e' : '#f8fafc',
+                  color: standardsSubCategory === 'incoterms' ? '#ffffff' : '#334155',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <AppIcons.FileCheck size={14} />
+                <span>شروط التجارة الدولية (Incoterms 2020)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStandardsSubCategory('terminals');
+                  setSearchQuery('');
+                }}
+                style={{
+                  height: '32px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                  border: standardsSubCategory === 'terminals' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                  background: standardsSubCategory === 'terminals' ? '#170e5e' : '#f8fafc',
+                  color: standardsSubCategory === 'terminals' ? '#ffffff' : '#334155',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <AppIcons.Building size={14} />
+                <span>محطات الحاويات بالموانئ (Terminals)</span>
+              </button>
+            </div>
+
+            {/* البحث وفلاتر الحاويات */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {standardsSubCategory === 'containers' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {[
+                    { id: 'all', label: 'الكل' },
+                    { id: 'dry', label: 'جافة (Dry)' },
+                    { id: 'reefer', label: 'مبردة (Reefer)' },
+                    { id: 'special', label: 'خاصة (Special)' },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setContainerCategoryFilter(cat.id as any)}
+                      style={{
+                        height: '28px',
+                        padding: '0 10px',
+                        borderRadius: '6px',
+                        border: containerCategoryFilter === cat.id ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                        background: containerCategoryFilter === cat.id ? '#170e5e' : '#f8fafc',
+                        color: containerCategoryFilter === cat.id ? '#ffffff' : '#475569',
+                        fontSize: '0.74rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ position: 'relative', width: '240px', maxWidth: '100%' }}>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={
+                    standardsSubCategory === 'containers'
+                      ? 'بحث في الحاويات...'
+                      : standardsSubCategory === 'incoterms'
+                      ? 'بحث في الـ Incoterms...'
+                      : 'بحث في محطات الموانئ...'
+                  }
+                  style={{
+                    width: '100%',
+                    height: '32px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    padding: '0 30px 0 8px',
+                    fontSize: '0.78rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ position: 'absolute', right: '8px', top: '7px', color: '#94a3b8' }}>
+                  <AppIcons.Search size={14} />
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* 4. جداول البيانات المتطابقة بنسبة 100% مع معيار جداول رادار الحاويات والـ RFQ */}
@@ -1006,6 +1302,513 @@ export function MaritimeMasterDataTab({
             </table>
           </div>
         )}
+
+        {/* د. قسم المواصفات القياسية و Incoterms 2020 */}
+        {subTab === 'standards' && (
+          <div style={{ padding: '16px', minHeight: '480px', boxSizing: 'border-box' }}>
+            {isLoadingRefData ? (
+              <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontSize: '0.84rem' }}>
+                جاري تحميل المراجع القياسية ومواصفات الحاويات...
+              </div>
+            ) : standardsSubCategory === 'containers' ? (
+              <div>
+                <div style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
+                      المواصفات الهندسية للحاويات القياسية (ISO 6346 Container Specifications)
+                    </h4>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                      الأوزان القصوى، السعات الحجمية بالمتر المكعب (CBM)، والأبعاد الداخلية والخارجية المعتمدة دولياً
+                    </p>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#170e5e', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 10px', borderRadius: '12px' }}>
+                    {filteredContainers.length} نوع حاوية
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+                    gap: '14px',
+                  }}
+                >
+                  {filteredContainers.map((c) => (
+                    <div
+                      key={c.code}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                      }}
+                    >
+                      {/* هيدر كارت الحاوية */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span
+                              style={{
+                                fontWeight: 800,
+                                fontSize: '0.88rem',
+                                color: '#170e5e',
+                                background: '#f1f5f9',
+                                border: '1px solid #cbd5e1',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                              }}
+                            >
+                              {c.code}
+                            </span>
+                            <span style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>
+                              {c.name_ar}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                            {c.name_en} ({c.length_feet} ft)
+                          </div>
+                        </div>
+
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            background:
+                              c.category === 'dry'
+                                ? '#f1f5f9'
+                                : c.category === 'reefer'
+                                ? '#eff6ff'
+                                : '#fef3c7',
+                            color:
+                              c.category === 'dry'
+                                ? '#334155'
+                                : c.category === 'reefer'
+                                ? '#1d4ed8'
+                                : '#b45309',
+                            border: `1px solid ${
+                              c.category === 'dry'
+                                ? '#cbd5e1'
+                                : c.category === 'reefer'
+                                ? '#bfdbfe'
+                                : '#fde68a'
+                            }`,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {c.category === 'dry'
+                            ? 'بضائع عامة جافة'
+                            : c.category === 'reefer'
+                            ? 'مبردة ومجمدة'
+                            : 'تجهيز وتداول خاص'}
+                        </span>
+                      </div>
+
+                      {/* مؤشرات السعة والأوزان */}
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr 1fr',
+                          gap: '6px',
+                          background: '#f8fafc',
+                          padding: '8px',
+                          borderRadius: '6px',
+                          border: '1px solid #f1f5f9',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>السعة (CBM)</div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0369a1', marginTop: '2px' }}>
+                            {c.max_cbm} م³
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>أقصى حمولة</div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
+                            {c.max_payload_kg.toLocaleString()} كجم
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>الوزن فارغ</div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#475569', marginTop: '2px' }}>
+                            {c.tare_weight_kg.toLocaleString()} كجم
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* الأبعاد الهندسية */}
+                      <div
+                        style={{
+                          fontSize: '0.74rem',
+                          color: '#334155',
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                          padding: '6px 10px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '3px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>الأبعاد الداخلية (ط × ع × ع):</span>
+                          <span style={{ fontWeight: 600, direction: 'ltr' }}>
+                            {c.internal_length_m} × {c.internal_width_m} × {c.internal_height_m} m
+                          </span>
+                        </div>
+                        {c.door_width_m > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#64748b' }}>أبعاد فتحة الباب (ع × ع):</span>
+                            <span style={{ fontWeight: 600, direction: 'ltr' }}>
+                              {c.door_width_m} × {c.door_height_m} m
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* الوصف الفني للضبط المتوازي */}
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                          textAlign: 'justify',
+                          textJustify: 'inter-word',
+                          textAlignLast: 'start',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {c.description_ar}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : standardsSubCategory === 'incoterms' ? (
+              <div>
+                <div style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
+                      قواعد التجارة الدولية (Incoterms 2020 Rules)
+                    </h4>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                      توزيع التكاليف ومسؤوليات الشحن والتأمين ونقاط انتقال المخاطر القانونية بين البائع والمشتري
+                    </p>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#170e5e', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 10px', borderRadius: '12px' }}>
+                    {filteredIncoterms.length} قاعدة تجارية
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+                    gap: '14px',
+                  }}
+                >
+                  {filteredIncoterms.map((inc) => (
+                    <div
+                      key={inc.code}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                      }}
+                    >
+                      {/* هيدر القاعدة */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span
+                              style={{
+                                fontWeight: 800,
+                                fontSize: '0.88rem',
+                                color: '#170e5e',
+                                background: '#eff6ff',
+                                border: '1px solid #bfdbfe',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                              }}
+                            >
+                              {inc.code}
+                            </span>
+                            <span style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>
+                              {inc.name_ar}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                            {inc.name_en}
+                          </div>
+                        </div>
+
+                        <span
+                          style={{
+                            fontSize: '0.6875rem',
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            background: inc.rule_type === 'sea_inland_waterway' ? '#f0fdf4' : '#f8fafc',
+                            color: inc.rule_type === 'sea_inland_waterway' ? '#166534' : '#475569',
+                            border: `1px solid ${inc.rule_type === 'sea_inland_waterway' ? '#bbf7d0' : '#e2e8f0'}`,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {inc.rule_type === 'sea_inland_waterway' ? 'بحري ونهري فقط' : 'متعدد الوسائط'}
+                        </span>
+                      </div>
+
+                      {/* نقطة انتقال المخاطر */}
+                      <div
+                        style={{
+                          background: '#f8fafc',
+                          borderInlineStart: '3px solid #170e5e',
+                          padding: '6px 10px',
+                          borderRadius: '0 4px 4px 0',
+                          fontSize: '0.74rem',
+                          color: '#1e293b',
+                        }}
+                      >
+                        <strong style={{ color: '#170e5e' }}>نقطة انتقال المسؤولية: </strong>
+                        <span>{inc.risk_transfer_point_ar}</span>
+                      </div>
+
+                      {/* جدول المسؤوليات والتكاليف */}
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: '6px',
+                          fontSize: '0.72rem',
+                        }}
+                      >
+                        <div
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            background: inc.seller_pays_export_customs ? '#f0fdf4' : '#f8fafc',
+                            border: `1px solid ${inc.seller_pays_export_customs ? '#bbf7d0' : '#e2e8f0'}`,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <span style={{ color: '#475569' }}>جمارك التصدير:</span>
+                          <strong style={{ color: inc.seller_pays_export_customs ? '#166534' : '#64748b' }}>
+                            {inc.seller_pays_export_customs ? 'البائع' : 'المشتري'}
+                          </strong>
+                        </div>
+
+                        <div
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            background: inc.seller_pays_origin_thc ? '#f0fdf4' : '#f8fafc',
+                            border: `1px solid ${inc.seller_pays_origin_thc ? '#bbf7d0' : '#e2e8f0'}`,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <span style={{ color: '#475569' }}>شحن المغادرة THC:</span>
+                          <strong style={{ color: inc.seller_pays_origin_thc ? '#166534' : '#64748b' }}>
+                            {inc.seller_pays_origin_thc ? 'البائع' : 'المشتري'}
+                          </strong>
+                        </div>
+
+                        <div
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            background: inc.seller_pays_ocean_freight ? '#f0fdf4' : '#f8fafc',
+                            border: `1px solid ${inc.seller_pays_ocean_freight ? '#bbf7d0' : '#e2e8f0'}`,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <span style={{ color: '#475569' }}>نولون الشحن البحري:</span>
+                          <strong style={{ color: inc.seller_pays_ocean_freight ? '#166534' : '#64748b' }}>
+                            {inc.seller_pays_ocean_freight ? 'البائع' : 'المشتري'}
+                          </strong>
+                        </div>
+
+                        <div
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            background: inc.seller_pays_destination_thc ? '#f0fdf4' : '#f8fafc',
+                            border: `1px solid ${inc.seller_pays_destination_thc ? '#bbf7d0' : '#e2e8f0'}`,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <span style={{ color: '#475569' }}>شحن الوصول THC:</span>
+                          <strong style={{ color: inc.seller_pays_destination_thc ? '#166534' : '#64748b' }}>
+                            {inc.seller_pays_destination_thc ? 'البائع' : 'المشتري'}
+                          </strong>
+                        </div>
+
+                        <div
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            background: inc.seller_pays_insurance ? '#eff6ff' : '#f8fafc',
+                            border: `1px solid ${inc.seller_pays_insurance ? '#bfdbfe' : '#e2e8f0'}`,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <span style={{ color: '#475569' }}>التأمين البحري:</span>
+                          <strong style={{ color: inc.seller_pays_insurance ? '#1d4ed8' : '#64748b' }}>
+                            {inc.seller_pays_insurance ? 'البائع' : 'المشتري'}
+                          </strong>
+                        </div>
+
+                        <div
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            background: inc.seller_pays_import_customs ? '#f0fdf4' : '#f8fafc',
+                            border: `1px solid ${inc.seller_pays_import_customs ? '#bbf7d0' : '#e2e8f0'}`,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <span style={{ color: '#475569' }}>جمارك الاستيراد:</span>
+                          <strong style={{ color: inc.seller_pays_import_customs ? '#166534' : '#64748b' }}>
+                            {inc.seller_pays_import_customs ? 'البائع' : 'المشتري'}
+                          </strong>
+                        </div>
+                      </div>
+
+                      {/* الوصف */}
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: '0.74rem',
+                          color: '#64748b',
+                          textAlign: 'justify',
+                          textJustify: 'inter-word',
+                          textAlignLast: 'start',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {inc.description_ar}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
+                      محطات الحاويات واللوجستيات بالموانئ (Port Terminals)
+                    </h4>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                      دليل محطات تداول الحاويات والبضائع بالموانئ المصرية والدولية والربط مع منظومة نافذة
+                    </p>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#170e5e', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 10px', borderRadius: '12px' }}>
+                    {filteredTerminals.length} محطة
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                    gap: '14px',
+                  }}
+                >
+                  {filteredTerminals.map((t) => (
+                    <div
+                      key={t.code}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <span
+                            style={{
+                              fontWeight: 800,
+                              fontSize: '0.84rem',
+                              color: '#170e5e',
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            {t.code}
+                          </span>
+                          <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a', marginTop: '6px' }}>
+                            {t.name_ar}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t.name_en}</div>
+                        </div>
+
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1px solid #bfdbfe',
+                          }}
+                        >
+                          {t.port_code}
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '0.75rem', color: '#334155' }}>
+                        <span style={{ color: '#64748b' }}>المشغل: </span>
+                        <strong>{t.terminal_operator}</strong>
+                      </div>
+
+                      {t.notes && (
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: '0.74rem',
+                            color: '#64748b',
+                            background: '#f8fafc',
+                            padding: '6px 10px',
+                            borderRadius: '4px',
+                            border: '1px solid #f1f5f9',
+                            lineHeight: 1.45,
+                          }}
+                        >
+                          {t.notes}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* النافذة المنبثقة الموحدة لإضافة وتعديل الشركاء */}
@@ -1015,6 +1818,17 @@ export function MaritimeMasterDataTab({
         onSaved={onRefresh}
         partner={editingPartner}
         defaultType={modalType}
+      />
+
+      {/* النافذة المنبثقة لاستيراد البيانات من Excel / CSV */}
+      <ImportCarriersModal
+        open={importModalOpen}
+        defaultType={subTab === 'lines' ? 'shipping_line' : 'overseas_agent'}
+        onClose={() => setImportModalOpen(false)}
+        onSuccess={() => {
+          setImportModalOpen(false);
+          onRefresh();
+        }}
       />
     </div>
   );

@@ -1,3 +1,4 @@
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { MaritimeContainer } from '../api/maritime-freight.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
@@ -91,7 +92,7 @@ export function MaritimeContainersTab({
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #fed7aa', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <div style={{ fontSize: '0.78rem', color: '#c2410c', fontWeight: 600 }}>تأمينات محتجزة لدى التوكيلات</div>
           <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ea580c', marginTop: '4px' }}>
-            {depositHeldTotal.toLocaleString()} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#c2410c' }}>ج.م</span>
+            {depositHeldTotal.toLocaleString()} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#c2410c' }}><CurrencySymbol /></span>
           </div>
         </div>
 

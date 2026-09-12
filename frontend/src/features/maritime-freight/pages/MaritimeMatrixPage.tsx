@@ -5,13 +5,14 @@ import { useMaritime } from '../context/MaritimeContext';
 import { MaritimeMatrixTab } from '../components/MaritimeMatrixTab';
 import { ApplyMarginModal } from '../components/ApplyMarginModal';
 import { CarrierBidEntryModal } from '../components/CarrierBidEntryModal';
+import { toast } from '@/shared/components/system-alert';
 
 export function MaritimeMatrixPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const rfqIdParam = searchParams.get('rfqId');
 
-  const { refreshCounts } = useMaritime();
+  const { refreshCounts, refreshKey } = useMaritime();
   const [rfqs, setRfqs] = useState<MaritimeRfq[]>([]);
   const [selectedRfqId, setSelectedRfqId] = useState<string | null>(rfqIdParam || null);
 
@@ -35,7 +36,7 @@ export function MaritimeMatrixPage() {
 
   useEffect(() => {
     loadRfqs();
-  }, [loadRfqs]);
+  }, [loadRfqs, refreshKey]);
 
   const handleSelectRfqId = (id: string | null) => {
     setSelectedRfqId(id);
@@ -65,10 +66,10 @@ export function MaritimeMatrixPage() {
       await loadRfqs();
       await refreshCounts();
       if (res.summary) {
-        alert(res.summary);
+        toast.success(res.summary, 'مزامنة البريد الملاحي');
       }
     } catch (err: any) {
-      alert(err?.message || 'فشل مزامنة البريد الوارد');
+      toast.error(err?.message || 'فشل مزامنة البريد الوارد', 'خطأ في المزامنة');
     } finally {
       setSyncing(false);
     }

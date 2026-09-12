@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import {
@@ -11,8 +11,17 @@ import {
   MailIcon,
 } from '@/shared/components/icons/AppIcons';
 import { MaritimeProvider, useMaritime } from '../context/MaritimeContext';
+import { toast } from '@/shared/components/system-alert';
 import { CreateRfqModal } from '../components/CreateRfqModal';
 import { CreateInquiryModal } from '../components/CreateInquiryModal';
+import { MaritimeInquiriesPage } from './MaritimeInquiriesPage';
+import { MaritimeRfqsPage } from './MaritimeRfqsPage';
+import { MaritimeMatrixPage } from './MaritimeMatrixPage';
+import { MaritimeQuotationsPage } from './MaritimeQuotationsPage';
+import { MaritimeJobsPage } from './MaritimeJobsPage';
+import { MaritimeContainersPage } from './MaritimeContainersPage';
+import { MaritimeLinesPage } from './MaritimeLinesPage';
+import { MaritimeSettingsPage } from './MaritimeSettingsPage';
 
 const NAV_TABS = [
   { path: 'inquiries', label: 'استفسارات شحن العملاء', countKey: 'inquiries' as const },
@@ -33,38 +42,53 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
   const {
     counts,
     refreshCounts,
+    refreshAll,
+    isRefreshing,
     isCreateRfqOpen,
     setIsCreateRfqOpen,
     isCreateInquiryOpen,
     setIsCreateInquiryOpen,
   } = useMaritime();
 
+  const handleGlobalRefresh = async () => {
+    try {
+      await refreshAll();
+      toast.success('تم تحديث بيانات ومؤشرات الشحن بنجاح', undefined, 2500);
+    } catch (err) {
+      toast.error('فشل تحديث بيانات الشحن');
+    }
+  };
+
   useAppToolbar([
     { label: 'الرئيسية', to: '/dashboard' },
     { label: 'الشحن واللوجستيات', to: '/maritime' },
   ]);
 
-  // Backward compatibility: If accessed via `/maritime?tab=xxx`, redirect to `/maritime/xxx`
+  // Backward compatibility & direct URL normalization: If accessed via `/maritime?tab=xxx`, redirect cleanly to `/maritime/xxx`
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam && location.pathname === '/maritime') {
+    if (tabParam && (location.pathname === '/maritime' || location.pathname === '/maritime/')) {
       const targetSub = tabParam === 'master' ? 'lines' : tabParam;
-      const targetPath = targetSub === 'inquiries' || targetSub === 'rfqs' ? '/maritime' : `/maritime/${targetSub}`;
-      navigate(targetPath, { replace: true });
+      navigate(`/maritime/${targetSub}`, { replace: true });
     }
-  }, [searchParams, location.pathname, navigate]);
+  }, [location.pathname, searchParams, navigate]);
 
-  // Detect current active tab
-  let currentSubPath = location.pathname.replace('/maritime', '').replace('/', '') || 'inquiries';
+  // Robust active tab subpath detection
+  const subSegments = location.pathname.split('/').filter(Boolean);
+  let currentSubPath = (subSegments[0] === 'maritime' && subSegments[1]) ? subSegments[1] : 'inquiries';
   if (currentSubPath === 'master') currentSubPath = 'lines';
 
+  const isTabActive = (tabPath: string) => {
+    if (tabPath === 'inquiries') return currentSubPath === 'inquiries' || currentSubPath === '';
+    return currentSubPath === tabPath;
+  };
+
   const handleNavigate = (path: string) => {
-    const targetUrl = path === 'inquiries' ? '/maritime' : `/maritime/${path}`;
-    navigate(targetUrl);
+    navigate(`/maritime/${path}`);
   };
 
   return (
-    <div className="page-stack page-shell maritime-page" dir="rtl">
+    <div className="document-form-prototype" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         {/* هيدر الصفحة القياسي الموحد */}
         <PageHeader
@@ -117,7 +141,9 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
               </button>
               <button
                 type="button"
-                onClick={() => void refreshCounts()}
+                onClick={handleGlobalRefresh}
+                disabled={isRefreshing}
+                title="تحديث بيانات الشحن والمؤشرات"
                 style={{
                   height: '38px',
                   padding: '0 14px',
@@ -129,12 +155,19 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  cursor: 'pointer',
+                  cursor: isRefreshing ? 'wait' : 'pointer',
                   fontSize: '0.8125rem',
+                  opacity: isRefreshing ? 0.7 : 1,
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <RefreshCwIcon size={15} />
-                <span>تحديث</span>
+                <RefreshCwIcon
+                  size={15}
+                  style={{
+                    animation: isRefreshing ? 'spin 0.7s linear infinite' : 'none',
+                  }}
+                />
+                <span>{isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}</span>
               </button>
             </div>
           }
@@ -221,9 +254,7 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
           }}
         >
           {NAV_TABS.map((tab) => {
-            const isActive =
-              currentSubPath === tab.path ||
-              (tab.path === 'inquiries' && (currentSubPath === '' || currentSubPath === 'inquiries'));
+            const isActive = isTabActive(tab.path);
             const count = counts[tab.countKey];
 
             return (
@@ -276,10 +307,37 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
           })}
         </div>
 
-        {/* جسم الصفحة المستقلة التابعة للمسار النشط */}
-        <div style={{ width: '100%', minWidth: 0, minHeight: '480px' }}>
-          {children || <Outlet />}
-        </div>
+        {/* تابات بيئة عمل الشحن المحفوظة بالذاكرة (Keep-Alive) لمنع الهدم وإعادة التحميل والرعشة */}
+        {children ? (
+          children
+        ) : (
+          <div style={{ width: '100%', minWidth: 0, minHeight: '480px' }}>
+            <div style={{ display: isTabActive('inquiries') ? 'block' : 'none' }}>
+              <MaritimeInquiriesPage />
+            </div>
+            <div style={{ display: isTabActive('rfqs') ? 'block' : 'none' }}>
+              <MaritimeRfqsPage />
+            </div>
+            <div style={{ display: isTabActive('matrix') ? 'block' : 'none' }}>
+              <MaritimeMatrixPage />
+            </div>
+            <div style={{ display: isTabActive('quotations') ? 'block' : 'none' }}>
+              <MaritimeQuotationsPage />
+            </div>
+            <div style={{ display: isTabActive('jobs') ? 'block' : 'none' }}>
+              <MaritimeJobsPage />
+            </div>
+            <div style={{ display: isTabActive('containers') ? 'block' : 'none' }}>
+              <MaritimeContainersPage />
+            </div>
+            <div style={{ display: isTabActive('lines') ? 'block' : 'none' }}>
+              <MaritimeLinesPage />
+            </div>
+            <div style={{ display: isTabActive('settings') ? 'block' : 'none' }}>
+              <MaritimeSettingsPage />
+            </div>
+          </div>
+        )}
 
         {/* نافذة إنشاء طلب تسعير جديد */}
         <CreateRfqModal

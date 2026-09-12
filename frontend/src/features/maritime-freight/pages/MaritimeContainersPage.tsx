@@ -5,7 +5,7 @@ import { MaritimeContainersTab } from '../components/MaritimeContainersTab';
 import { ContainerReturnModal } from '../components/ContainerReturnModal';
 
 export function MaritimeContainersPage() {
-  const { refreshCounts } = useMaritime();
+  const { refreshCounts, refreshKey } = useMaritime();
   const [containers, setContainers] = useState<MaritimeContainer[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedContainer, setSelectedContainer] = useState<MaritimeContainer | null>(null);
@@ -25,7 +25,7 @@ export function MaritimeContainersPage() {
 
   useEffect(() => {
     loadContainers();
-  }, [loadContainers]);
+  }, [loadContainers, refreshKey]);
 
   return (
     <>

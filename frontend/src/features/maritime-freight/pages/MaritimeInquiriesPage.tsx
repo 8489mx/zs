@@ -6,10 +6,11 @@ import { useMaritime } from '../context/MaritimeContext';
 import { MaritimeInquiriesTab } from '../components/MaritimeInquiriesTab';
 import { CreateInquiryModal } from '../components/CreateInquiryModal';
 import { MaritimeWorkflowStepper } from '../components/MaritimeWorkflowStepper';
+import { toast } from '@/shared/components/system-alert';
 
 export function MaritimeInquiriesPage() {
   const navigate = useNavigate();
-  const { refreshCounts } = useMaritime();
+  const { refreshCounts, refreshKey } = useMaritime();
   const [inquiries, setInquiries] = useState<MaritimeInquiry[]>([]);
   const [loading, setLoading] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -28,18 +29,18 @@ export function MaritimeInquiriesPage() {
 
   useEffect(() => {
     loadInquiries();
-  }, [loadInquiries]);
+  }, [loadInquiries, refreshKey]);
 
   const handleConvertToRfq = async (inquiryId: string) => {
     try {
       const res: any = await maritimeApi.convertInquiryToRfq(inquiryId);
       const rfqNumber = res?.rfq_number || res?.rfq?.rfq_number || '';
-      alert(`تم بنجاح تحويل طلب العميل إلى طلب تسعير ملاحي رقم: ${rfqNumber}`);
+      toast.success(`تم بنجاح تحويل طلب العميل إلى طلب تسعير ملاحي رقم: ${rfqNumber}`, 'تحويل الطلب');
       await loadInquiries();
       await refreshCounts();
       navigate('/maritime/rfqs');
     } catch (err: any) {
-      alert(err?.message || 'فشل تحويل الطلب إلى طلب تسعير');
+      toast.error(err?.message || 'فشل تحويل الطلب إلى طلب تسعير', 'خطأ في التحويل');
     }
   };
 
