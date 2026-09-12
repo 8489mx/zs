@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { ContractingScheduleTask } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { systemConfirm } from '@/shared/components/system-alert';
 import { contractingApi } from '../api/contracting.api';
 import { ScheduleGeneratorModal } from './ScheduleGeneratorModal';
+import { TaskDelayModal } from './TaskDelayModal';
 
 interface ContractingGanttTabProps {
   tasks: ContractingScheduleTask[];
@@ -23,6 +25,7 @@ export function ContractingGanttTab({
 }: ContractingGanttTabProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [showGeneratorModal, setShowGeneratorModal] = useState(false);
+  const [selectedDelayTask, setSelectedDelayTask] = useState<ContractingScheduleTask | null>(null);
 
   // Metrics
   const totalTasks = tasks.length;
@@ -45,7 +48,15 @@ export function ContractingGanttTab({
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذه المهمة من الجدول الزمني؟')) return;
+    const confirmed = await systemConfirm({
+      title: 'حذف نشاط من الجدول الزمني',
+      message: 'هل أنت متأكد من حذف هذه المهمة من الجدول الزمني للمشروع؟ لا يمكن التراجع عن هذا الإجراء.',
+      confirmText: 'تأكيد الحذف',
+      cancelText: 'إلغاء',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
     try {
       await contractingApi.deleteScheduleTask(taskId);
       onTaskUpdated();
@@ -315,21 +326,50 @@ export function ContractingGanttTab({
                       </td>
 
                       <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTask(task.id)}
-                          title="حذف المهمة"
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#94a3b8',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            borderRadius: '4px',
-                          }}
-                        >
-                          <AppIcons.Trash size={16} />
-                        </button>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDelayTask(task)}
+                            title="إثبات تأخير وتمديد المدة وترحيل المواعيد"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              border: '1px solid #fed7aa',
+                              backgroundColor: '#fff7ed',
+                              color: '#c2410c',
+                              fontSize: 'var(--font-micro)',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <AppIcons.Clock size={13} />
+                            <span>ترحيل / تأخير</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTask(task.id)}
+                            title="حذف المهمة"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#94a3b8',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              borderRadius: '4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <AppIcons.Trash size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -348,6 +388,20 @@ export function ContractingGanttTab({
           onClose={() => setShowGeneratorModal(false)}
           onSuccess={() => {
             setShowGeneratorModal(false);
+            onTaskUpdated();
+          }}
+        />
+      )}
+
+      {selectedDelayTask && (
+        <TaskDelayModal
+          open={Boolean(selectedDelayTask)}
+          task={selectedDelayTask}
+          allTasks={tasks}
+          projectId={projectId}
+          onClose={() => setSelectedDelayTask(null)}
+          onSuccess={() => {
+            setSelectedDelayTask(null);
             onTaskUpdated();
           }}
         />
