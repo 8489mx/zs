@@ -121,7 +121,7 @@ export const settingsApi = {
       '/api/settings/industry-profiles',
     ),
   setActivityProfile: (activityType: string) =>
-    http<{ ok: boolean; activityType: string; pillar: string; message: string }>('/api/settings/activity-profile', {
+    http<{ ok: boolean; activityType: string; pillar: string; message: string; settingsPatch?: Record<string, boolean> }>('/api/settings/activity-profile', {
       method: 'PUT',
       body: JSON.stringify({ activityType }),
     }),

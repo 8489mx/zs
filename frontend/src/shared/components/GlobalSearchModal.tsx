@@ -55,10 +55,11 @@ export function GlobalSearchModal() {
   const user = useAuthStore((state) => state.user);
   const normalizedQuery = useMemo(() => normalizeArabicSearchKey(debouncedQuery), [debouncedQuery]);
 
-  const industry = String(settings?.businessIndustry || 'general').toLowerCase();
-  const isContractingVertical = industry === 'contracting';
-  const isMaritimeVertical = industry === 'maritime';
-  const isRetailOrMarketVertical = ['retail', 'supermarket', 'spices', 'perfumes', 'fashion'].includes(industry);
+  const tenant = useAuthStore((state) => state.tenant);
+  const rawActivity = String(tenant?.activityType || tenant?.pillar || settings?.activityType || settings?.businessIndustry || 'retail_general').trim().toLowerCase();
+  const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
+  const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+  const isRetailOrMarketVertical = !isContractingVertical && !isMaritimeVertical;
 
   const navMatches = useMemo(() => {
     if (!hasQuery || !user) return [];
@@ -81,11 +82,11 @@ export function GlobalSearchModal() {
 
         if (isContractingVertical) {
           if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'pricing-center', 'products', 'product-categories', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales', 'returns', 'sales-orders', 'price-lists', 'crm'].includes(item.key)) return false;
-          if ((item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
+          if (item.key?.startsWith('maritime-') || item.key === 'maritime' || item.key === 'maritime-freight' || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
         }
         if (isMaritimeVertical) {
           if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'pricing-center', 'products', 'product-categories', 'inventory', 'inventory-warehouses', 'inventory-bins', 'inventory-tree', 'inventory-issue-orders', 'inventory-issue-order-new', 'reports-inventory', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales-orders', 'returns', 'price-lists'].includes(item.key)) return false;
-          if ((item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
+          if (item.key?.startsWith('contracting-') || item.key === 'contracting' || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
         }
         if (isRetailOrMarketVertical) {
           if ((item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) || (item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history' || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
@@ -94,7 +95,7 @@ export function GlobalSearchModal() {
       })
       .filter((item) => normalizeArabicSearchKey(item.label).includes(normalizedQuery))
       .slice(0, 6);
-  }, [hasQuery, isContractingVertical, isMaritimeVertical, isRetailOrMarketVertical, normalizedQuery, settings?.contractingModuleEnabled, settings?.enableEnterpriseFeatures, settings?.importModuleEnabled, settings?.installmentsModuleEnabled, settings?.inventoryModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, user]);
+  }, [hasQuery, isContractingVertical, isMaritimeVertical, isRetailOrMarketVertical, normalizedQuery, settings?.activityType, settings?.businessIndustry, settings?.contractingModuleEnabled, settings?.enableEnterpriseFeatures, settings?.importModuleEnabled, settings?.installmentsModuleEnabled, settings?.inventoryModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, tenant?.activityType, tenant?.pillar, user]);
 
   // Real API queries
   const { data: productsData, isLoading: isLoadingProducts } = useQuery({

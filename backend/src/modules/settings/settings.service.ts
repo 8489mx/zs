@@ -473,10 +473,38 @@ export class SettingsService {
       .where('id', '=', scope.tenantId)
       .execute();
 
-    // 2. Also persist in settings table for backwards compatibility
-    const settingsEntries = [
+    // 2. Also persist in settings table and reconcile mutually-exclusive module flags
+    const modulePatch: Record<string, boolean> = {};
+    if (profile.pillar === 'contracting') {
+      modulePatch.contractingModuleEnabled = true;
+      modulePatch.maritimeFreightModuleEnabled = false;
+      modulePatch.posModuleEnabled = false;
+      modulePatch.requireCashierShiftForSales = false;
+    } else if (profile.pillar === 'maritime_freight') {
+      modulePatch.maritimeFreightModuleEnabled = true;
+      modulePatch.contractingModuleEnabled = false;
+      modulePatch.posModuleEnabled = false;
+      modulePatch.requireCashierShiftForSales = false;
+    } else {
+      // commerce pillar
+      modulePatch.contractingModuleEnabled = false;
+      modulePatch.maritimeFreightModuleEnabled = false;
+      modulePatch.posModuleEnabled = true;
+      if (normalizedKey === 'pharmacy') {
+        modulePatch.enablePharmacyModule = true;
+      } else if (normalizedKey === 'restaurant') {
+        modulePatch.restaurantModuleEnabled = true;
+      } else if (normalizedKey === 'manufacturing') {
+        modulePatch.manufacturingModuleEnabled = true;
+      } else if (normalizedKey === 'maintenance') {
+        modulePatch.enableMobileStoreFeatures = true;
+      }
+    }
+
+    const settingsEntries: Array<[string, any]> = [
       ['activityType', normalizedKey],
       ['businessIndustry', normalizedKey],
+      ...Object.entries(modulePatch),
     ];
     for (const [key, value] of settingsEntries) {
       await sql`insert into settings (key, value, tenant_id, account_id) values (${key}, ${JSON.stringify(value)}, ${scope.tenantId}, ${scope.accountId}) on conflict (tenant_id, key) do update set value = excluded.value, account_id = excluded.account_id`.execute(this.db);
@@ -498,6 +526,7 @@ export class SettingsService {
       activityType: normalizedKey,
       pillar: profile.pillar,
       profile,
+      settingsPatch: modulePatch,
       message: `تم ضبط نمط المنظومة بنجاح إلى: ${profile.labelAr}`,
     };
   }

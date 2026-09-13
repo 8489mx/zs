@@ -187,6 +187,17 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
             });
           }
 
+          // Immediately patch settings in React Query cache so the entire app updates with 0ms lag
+          queryClient.setQueriesData({ queryKey: ['settings'] }, (old: any) => {
+            if (!old) return old;
+            return {
+              ...old,
+              activityType: res.activityType,
+              businessIndustry: res.activityType,
+              ...(res.settingsPatch || {}),
+            };
+          });
+
           // Invalidate settings and auth query caches
           await queryClient.invalidateQueries({ queryKey: ['settings'] });
           await queryClient.invalidateQueries({ queryKey: ['auth'] });

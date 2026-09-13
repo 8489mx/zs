@@ -757,12 +757,12 @@ export function AppShell({ children }: PropsWithChildren) {
         // Strict bidirectional vertical isolation:
         if (isContractingVertical) {
           if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'pricing-center', 'products', 'product-categories', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales', 'returns', 'sales-orders', 'price-lists', 'crm'].includes(item.key)) return false;
-          if ((item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
+          if (item.key?.startsWith('maritime-') || item.key === 'maritime' || item.key === 'maritime-freight' || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
         }
 
         if (isMaritimeVertical) {
           if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'pricing-center', 'products', 'product-categories', 'inventory', 'inventory-warehouses', 'inventory-bins', 'inventory-tree', 'inventory-issue-orders', 'inventory-issue-order-new', 'reports-inventory', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales-orders', 'returns', 'price-lists'].includes(item.key)) return false;
-          if ((item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
+          if (item.key?.startsWith('contracting-') || item.key === 'contracting' || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
         }
 
         if (isRetailOrMarketVertical) {
@@ -851,7 +851,7 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, tenant?.features, t, isEtaActive, settings?.businessIndustry, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.hrModuleEnabled, settings?.enableEnterpriseFeatures, settings?.restaurantModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.contractingModuleEnabled]);
+  }, [user, tenant?.features, tenant?.activityType, tenant?.pillar, t, isEtaActive, settings?.activityType, settings?.businessIndustry, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.hrModuleEnabled, settings?.enableEnterpriseFeatures, settings?.restaurantModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.contractingModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => {
@@ -861,26 +861,26 @@ export function AppShell({ children }: PropsWithChildren) {
     const hasReports = isPlatformAdminUser || Boolean(tenant?.features?.includes('reports'));
     const dashKeys = hasReports ? ['dashboard'] : [];
 
-    const industry = String(settings?.businessIndustry || 'general').toLowerCase();
-    const isContractingVertical = industry === 'contracting';
-    const isMaritimeVertical = industry === 'maritime';
-    const isImportVertical = industry === 'import_export';
-    const isServicesVertical = industry === 'services';
-    const isEcommerceVertical = industry === 'ecommerce';
+    const rawActivity = String(tenant?.activityType || tenant?.pillar || settings?.activityType || settings?.businessIndustry || 'retail_general').trim().toLowerCase();
+    const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
+    const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+    const isImportVertical = rawActivity === 'import_export' || rawActivity === 'import';
+    const isServicesVertical = rawActivity === 'services';
+    const isEcommerceVertical = rawActivity === 'ecommerce';
 
-    if (isContractingVertical && settings?.maritimeFreightModuleEnabled !== true) {
+    if (isContractingVertical) {
       return [...dashKeys, 'contracting-projects', 'contracting-boq'];
     }
 
-    if (isMaritimeVertical && settings?.contractingModuleEnabled !== true) {
+    if (isMaritimeVertical) {
       return [...dashKeys, 'maritime-jobs', 'maritime-containers', 'maritime-quotations'];
     }
 
-    if (isImportVertical && settings?.contractingModuleEnabled !== true && settings?.maritimeFreightModuleEnabled !== true) {
+    if (isImportVertical && !isContractingVertical && !isMaritimeVertical) {
       return [...dashKeys, 'import-shipments', 'purchases', 'inventory-warehouses'];
     }
 
-    if (isServicesVertical && settings?.contractingModuleEnabled !== true && settings?.maritimeFreightModuleEnabled !== true) {
+    if (isServicesVertical && !isContractingVertical && !isMaritimeVertical) {
       return [...dashKeys, 'services', 'sales', 'customers'];
     }
 
@@ -899,7 +899,7 @@ export function AppShell({ children }: PropsWithChildren) {
       ];
     }
     return [...dashKeys, 'pos', ...(storefrontActive ? ['online-orders'] : []), 'cash-drawer'];
-  }, [settings?.businessIndustry, settings?.contractingModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.importModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, settings?.storefrontModuleEnabled, tenant?.features, user]);
+  }, [settings?.businessIndustry, settings?.activityType, settings?.contractingModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.importModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, settings?.storefrontModuleEnabled, tenant?.features, tenant?.activityType, tenant?.pillar, user]);
 
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => {
     const isPlatformAdminUser = isPlatformAdmin(user);
@@ -912,18 +912,19 @@ export function AppShell({ children }: PropsWithChildren) {
     const hasInventory = isPlatformAdminUser || Boolean(tenant?.features?.includes('inventory'));
     const hasPurchases = isPlatformAdminUser || Boolean(tenant?.features?.includes('purchases'));
 
-    const industry = String(settings?.businessIndustry || 'general').toLowerCase();
-    const isDedicatedContractingOnly = industry === 'contracting' && settings?.maritimeFreightModuleEnabled !== true && settings?.importModuleEnabled !== true;
-    const isDedicatedMaritimeOnly = industry === 'maritime' && settings?.contractingModuleEnabled !== true && settings?.importModuleEnabled !== true;
-    const isDedicatedImportOnly = industry === 'import_export' && settings?.contractingModuleEnabled !== true && settings?.maritimeFreightModuleEnabled !== true;
-    const isDedicatedServicesOnly = industry === 'services' && settings?.contractingModuleEnabled !== true && settings?.maritimeFreightModuleEnabled !== true;
-    const isRetailOrMarketVertical = ['retail', 'supermarket', 'spices', 'perfumes', 'fashion'].includes(industry);
-    const isRestaurantVertical = ['restaurant', 'cafe'].includes(industry);
-    const isPharmacyVertical = industry === 'pharmacy';
-    const isElectronicsVertical = industry === 'electronics';
+    const rawActivity = String(tenant?.activityType || tenant?.pillar || settings?.activityType || settings?.businessIndustry || 'retail_general').trim().toLowerCase();
+    const isDedicatedContractingOnly = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
+    const isDedicatedMaritimeOnly = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+    const isDedicatedImportOnly = rawActivity === 'import_export' || rawActivity === 'import';
+    const isDedicatedServicesOnly = rawActivity === 'services';
+    const isRestaurantVertical = rawActivity === 'restaurant' || rawActivity === 'cafe' || rawActivity === 'مطعم' || rawActivity === 'كافيه';
+    const isPharmacyVertical = rawActivity === 'pharmacy' || rawActivity === 'صيدلية' || rawActivity === 'صيدليات';
+    const isElectronicsVertical = rawActivity === 'electronics' || rawActivity === 'maintenance' || rawActivity === 'repair' || rawActivity === 'صيانة';
+    const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
+    const isRetailOrMarketVertical = !isDedicatedContractingOnly && !isDedicatedMaritimeOnly && !isRestaurantVertical && !isPharmacyVertical && !isManufacturingVertical && !isElectronicsVertical && !isDedicatedImportOnly && !isDedicatedServicesOnly;
 
     // 1. Dedicated Contracting Enterprise Workspace
-    if (isDedicatedContractingOnly && (settings?.contractingModuleEnabled || hasContracting)) {
+    if (isDedicatedContractingOnly) {
       return [
         {
           key: 'contracting-group',
@@ -971,7 +972,7 @@ export function AppShell({ children }: PropsWithChildren) {
     }
 
     // 2. Dedicated Maritime Freight Enterprise Workspace
-    if (isDedicatedMaritimeOnly && (settings?.maritimeFreightModuleEnabled || hasMaritimeFreight)) {
+    if (isDedicatedMaritimeOnly) {
       return [
         {
           key: 'maritime-group',
@@ -1116,7 +1117,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
     // 5. Multi-Modular & Enterprise Standard Workspace (Supports all modules simultaneously)
     return [
-      ...(settings?.contractingModuleEnabled && hasContracting ? [{
+      ...(!isDedicatedMaritimeOnly && settings?.contractingModuleEnabled && hasContracting ? [{
         key: 'contracting-group',
         label: 'المقاولات والمشاريع',
         itemKeys: [
@@ -1129,7 +1130,7 @@ export function AppShell({ children }: PropsWithChildren) {
         ],
         iconKey: 'contracting',
       }] : []),
-      ...(settings?.maritimeFreightModuleEnabled && hasMaritimeFreight ? [{
+      ...(!isDedicatedContractingOnly && settings?.maritimeFreightModuleEnabled && hasMaritimeFreight ? [{
         key: 'maritime-group',
         label: 'الشحن واللوجستيات',
         itemKeys: ['maritime-inquiries', 'maritime-rfqs', 'maritime-matrix', 'maritime-quotations', 'maritime-jobs', 'maritime-containers', 'maritime-lines', 'maritime-settings'],
@@ -1193,7 +1194,7 @@ export function AppShell({ children }: PropsWithChildren) {
       }] : []),
       { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'hr-settlements', 'audit', 'settings'], iconKey: 'admin' },
     ];
-  }, [t, settings?.businessIndustry, settings?.maintenanceProfile, settings?.restaurantModuleEnabled, settings?.enableMobileStoreFeatures, settings?.enablePharmacyModule, settings?.importModuleEnabled, settings?.manufacturingModuleEnabled, settings?.enableEnterpriseFeatures, settings?.maritimeFreightModuleEnabled, settings?.contractingModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.installmentsModuleEnabled, tenant?.features, user]);
+  }, [t, settings?.businessIndustry, settings?.activityType, settings?.maintenanceProfile, settings?.restaurantModuleEnabled, settings?.enableMobileStoreFeatures, settings?.enablePharmacyModule, settings?.importModuleEnabled, settings?.manufacturingModuleEnabled, settings?.enableEnterpriseFeatures, settings?.maritimeFreightModuleEnabled, settings?.contractingModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.installmentsModuleEnabled, tenant?.features, tenant?.activityType, tenant?.pillar, user]);
 
   const visiblePrimaryNavigationItems = useMemo(() => primaryNavigationKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)), [navigationMap, primaryNavigationKeys]);
   const activeSidebarGroupKey = useMemo(() => sidebarGroups.find((group) => group.itemKeys.some((itemKey) => {
