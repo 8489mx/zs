@@ -138,6 +138,11 @@ export class MaritimeFreightController {
     return this.freightService.parseCarrierEmailText(text);
   }
 
+  @Post('jobs/parse-booking-text')
+  parseBookingText(@Body('text') text: string) {
+    return this.freightService.parseCarrierBookingText(text);
+  }
+
   // 5. Client Quotations
   @Post('quotations')
   async createQuotation(@Body() dto: CreateMaritimeQuotationDto, @Req() req: RequestWithAuth) {
@@ -251,6 +256,23 @@ export class MaritimeFreightController {
     @Req() req: RequestWithAuth,
   ) {
     return this.freightService.getJobFinancialLedger(req.authContext!, id);
+  }
+
+  @Post('jobs/:id/settle-from-balance')
+  async settleJobFromBalance(
+    @Param('id') id: string,
+    @Body() body: { amount?: number },
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.settleJobFromCustomerBalance(req.authContext!, id, body);
+  }
+
+  @Get('customers/:customerId/active-jobs')
+  async getCustomerActiveJobs(
+    @Param('customerId') customerId: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.getCustomerActiveJobs(req.authContext!, customerId);
   }
 
   // 7. Containers & Demurrage Radar

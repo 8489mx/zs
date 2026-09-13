@@ -55,4 +55,10 @@ export class CreateCustomerPaymentDto {
   @IsNumber()
   @Min(1)
   locationId?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  jobId?: number;
 }

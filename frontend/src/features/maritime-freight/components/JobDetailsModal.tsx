@@ -42,6 +42,13 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
   const [expenseNotesInput, setExpenseNotesInput] = useState('');
   const [isSubmittingExpense, setIsSubmittingExpense] = useState(false);
 
+  // Smart Booking Extraction State
+  const [showSmartParseModal, setShowSmartParseModal] = useState(false);
+  const [smartParseText, setSmartParseText] = useState('');
+  const [isParsingSmartBooking, setIsParsingSmartBooking] = useState(false);
+  const [parsedBookingData, setParsedBookingData] = useState<any | null>(null);
+  const [isApplyingParsedData, setIsApplyingParsedData] = useState(false);
+
   const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
   const [loadingLedger, setLoadingLedger] = useState(false);
 
@@ -377,6 +384,108 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
     }
   };
 
+  const [isSettlingFromBalance, setIsSettlingFromBalance] = useState(false);
+
+  const handleSettleFromBalance = async () => {
+    if (!job?.id) return;
+    const availableCredit = Number(job.customerAvailableCredit || 0);
+    const invoiced = Number(job.client_invoiced_total || 0);
+    const paid = Number(job.client_paid_total || 0);
+    const unpaid = Math.max(0, invoiced - paid);
+    const amountToSettle = Math.min(unpaid > 0 ? unpaid : invoiced, availableCredit);
+
+    if (amountToSettle <= 0) {
+      toast.warning('لا يوجد مبلغ مستحق للتسوية أو رصيد دائن متاح');
+      return;
+    }
+
+    const confirmed = await systemConfirm({
+      title: 'تأكيد سداد الشحنة من الرصيد الدائن',
+      message: `هل تريد تسوية وخصم مبلغ ${currencySymbol} ${amountToSettle.toLocaleString()} من رصيد العميل المتاح (${job.customer_name}) لصالح هذه الشحنة؟`,
+      confirmText: 'نعم، خصم وسداد الشحنة',
+      cancelText: 'إلغاء',
+    });
+
+    if (!confirmed) return;
+
+    try {
+      setIsSettlingFromBalance(true);
+      const res = await maritimeApi.settleJobFromBalance(String(job.id), amountToSettle);
+      toast.success(res.message);
+      await fetchJob();
+      if (activeTab === 'finance') {
+        await fetchLedger(String(job.id));
+      }
+      onUpdated();
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر تسوية الشحنة من رصيد العميل');
+    } finally {
+      setIsSettlingFromBalance(false);
+    }
+  };
+
+  const handleParseBookingEmail = async () => {
+    if (!smartParseText.trim()) {
+      toast.warning('يرجى لصق نص إيميل أو تأكيد الحجز أولاً');
+      return;
+    }
+    try {
+      setIsParsingSmartBooking(true);
+      const res = await maritimeApi.parseBookingText(smartParseText);
+      setParsedBookingData(res);
+      toast.success('تم استخراج بيانات الحجز والرحلة بنجاح. يرجى مراجعتها واعتمادها');
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر استخراج بيانات الحجز');
+    } finally {
+      setIsParsingSmartBooking(false);
+    }
+  };
+
+  const handleApplyParsedBooking = async () => {
+    if (!job?.id || !parsedBookingData) return;
+    try {
+      setIsApplyingParsedData(true);
+      const updatePayload: any = {};
+      if (parsedBookingData.bookingNumber) updatePayload.bookingNumber = parsedBookingData.bookingNumber;
+      if (parsedBookingData.vesselName) updatePayload.vesselName = parsedBookingData.vesselName;
+      if (parsedBookingData.voyageNumber) updatePayload.voyageNumber = parsedBookingData.voyageNumber;
+      if (parsedBookingData.etd) updatePayload.etd = parsedBookingData.etd;
+      if (parsedBookingData.eta) updatePayload.eta = parsedBookingData.eta;
+      if (parsedBookingData.portCutOff) updatePayload.portCutOff = parsedBookingData.portCutOff;
+      if (parsedBookingData.mblNumber) updatePayload.mblNumber = parsedBookingData.mblNumber;
+      if (parsedBookingData.shippingLineName) updatePayload.shippingLineName = parsedBookingData.shippingLineName;
+
+      await maritimeApi.updateJob(String(job.id), updatePayload);
+
+      // Auto add containers if found
+      if (parsedBookingData.containers && parsedBookingData.containers.length > 0) {
+        for (const c of parsedBookingData.containers) {
+          try {
+            await maritimeApi.createContainer({
+              jobId: String(job.id),
+              containerNumber: c.containerNumber,
+              containerType: c.containerType || '40HC',
+              freeDays: 14,
+            });
+          } catch {
+            // ignore duplicates
+          }
+        }
+      }
+
+      toast.success('تم اعتماد وتحديث بيانات الحجز والرحلة بنجاح');
+      setShowSmartParseModal(false);
+      setSmartParseText('');
+      setParsedBookingData(null);
+      await fetchJob();
+      onUpdated();
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر تحديث بيانات الحجز');
+    } finally {
+      setIsApplyingParsedData(false);
+    }
+  };
+
   if (!open) return null;
 
   if (!job) {
@@ -572,22 +681,104 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                   <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#170e5e' }}>
                     تفاصيل بوالص الشحن والرحلة البحرية
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleOpenEditVoyage}
-                    style={{
-                      padding: '6px 14px',
-                      background: '#170e5e',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    تعديل بيانات الرحلة والبوالص
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSmartParseText('');
+                        setParsedBookingData(null);
+                        setShowSmartParseModal(true);
+                      }}
+                      style={{
+                        padding: '6px 14px',
+                        background: '#047857',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      استخراج ذكي من إيميل الحجز
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenEditVoyage}
+                      style={{
+                        padding: '6px 14px',
+                        background: '#170e5e',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      تعديل بيانات الرحلة والبوالص
+                    </button>
+                  </div>
+                </div>
+
+                {/* بطاقة الموقف المالي وحالة السداد */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '10px',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        background: job.payment_status === 'paid' ? '#dcfce7' : job.payment_status === 'partially_paid' ? '#fef3c7' : '#f1f5f9',
+                        color: job.payment_status === 'paid' ? '#15803d' : job.payment_status === 'partially_paid' ? '#b45309' : '#64748b',
+                      }}
+                    >
+                      {job.payment_status === 'paid' ? 'مسددة بالكامل' : job.payment_status === 'partially_paid' ? 'مسددة جزئياً' : 'غير مسددة'}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#475569' }}>
+                      المفوتر: <strong style={{ color: '#170e5e' }}>{currencySymbol} {Number(job.client_invoiced_total || 0).toLocaleString()}</strong>
+                      {' | '}
+                      المسدد: <strong style={{ color: '#15803d' }}>{currencySymbol} {Number(job.client_paid_total || 0).toLocaleString()}</strong>
+                    </div>
+                  </div>
+
+                  {Number(job.customerAvailableCredit || 0) > 0 && job.payment_status !== 'paid' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 700 }}>
+                        رصيد العميل المتاح: {currencySymbol} {Number(job.customerAvailableCredit || 0).toLocaleString()}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleSettleFromBalance}
+                        disabled={isSettlingFromBalance}
+                        style={{
+                          padding: '5px 12px',
+                          background: '#166534',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          cursor: isSettlingFromBalance ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {isSettlingFromBalance ? 'جاري السداد...' : 'سداد الشحنة من الرصيد المتاح'}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
@@ -1266,6 +1457,56 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     </div>
                   </div>
 
+                  {/* شريط تسوية رصيد العميل الدائن المتاح */}
+                  {Number(job.customerAvailableCredit || 0) > 0 && (
+                    <div
+                      style={{
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '12px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#166534' }}>
+                          رصيد العميل المتاح للخصم (دفعات مقدمة / على الحساب): {currencySymbol} {Number(job.customerAvailableCredit || 0).toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#15803d', marginTop: '2px' }}>
+                          العميل ({job.customer_name}) قام بسداد مبالغ على حسابه العام، ويمكنك تسوية نولون هذه الشحنة مباشرة دون الحاجة لطلب تحويل إضافي.
+                        </div>
+                      </div>
+
+                      {job.payment_status === 'paid' ? (
+                        <span style={{ padding: '5px 12px', background: '#dcfce7', color: '#15803d', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700 }}>
+                          الشحنة مسددة بالكامل
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleSettleFromBalance}
+                          disabled={isSettlingFromBalance}
+                          style={{
+                            padding: '7px 16px',
+                            background: '#166534',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            cursor: isSettlingFromBalance ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {isSettlingFromBalance ? 'جاري التسوية...' : 'سداد الشحنة من الرصيد المتاح'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* 1. الثلاث بطاقات المالية المعتمدة (Clean White KPI Cards bound to system currency) */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                     {/* Card 1: Revenue */}
@@ -1284,8 +1525,15 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي الفاتورة للعميل</span>
-                        <span style={{ padding: '2px 8px', background: '#eff6ff', color: '#1e40af', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700 }}>
-                          Revenue
+                        <span style={{
+                          padding: '2px 8px',
+                          background: job.payment_status === 'paid' ? '#dcfce7' : job.payment_status === 'partially_paid' ? '#fef3c7' : '#eff6ff',
+                          color: job.payment_status === 'paid' ? '#15803d' : job.payment_status === 'partially_paid' ? '#b45309' : '#1e40af',
+                          borderRadius: '6px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                        }}>
+                          {job.payment_status === 'paid' ? 'مسدد بالكامل' : job.payment_status === 'partially_paid' ? `مسدد: ${Number(job.client_paid_total || 0).toLocaleString()}` : 'غير مسدد'}
                         </span>
                       </div>
                       <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#170e5e', letterSpacing: '-0.02em' }}>
@@ -2008,6 +2256,171 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
               />
             </div>
+          </div>
+        </StandardDialog>
+      )}
+
+      {/* Modal 6: Smart Booking Confirmation Parser Dialog */}
+      {showSmartParseModal && (
+        <StandardDialog
+          open={showSmartParseModal}
+          onClose={() => {
+            setShowSmartParseModal(false);
+            setParsedBookingData(null);
+          }}
+          title="الاستخراج والتحليل الذكي لبيانات الحجز الملاحي"
+          subtitle={`العملية: ${job.job_number} | يدعم Maersk, MSC, CMA CGM, Hapag-Lloyd, Cosco, Evergreen والخطوط العالمية`}
+          width="min(720px, 95vw)"
+          footerActions={
+            parsedBookingData ? (
+              <StandardDialogFooter
+                onConfirm={handleApplyParsedBooking}
+                confirmText={isApplyingParsedData ? 'جاري الاعتماد...' : 'اعتماد وملء بيانات الحجز بالشحنة'}
+                isSubmitting={isApplyingParsedData}
+                onCancel={() => {
+                  setShowSmartParseModal(false);
+                  setParsedBookingData(null);
+                }}
+                cancelText="إلغاء"
+              />
+            ) : undefined
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#334155', lineHeight: 1.6 }}>
+              انسخ نص إيميل تأكيد الحجز (Booking Confirmation) المستلم من الخط الملاحي أو الوكيل والصقه في الحقل أدناه. سيقوم الذكاء الاصطناعي ومحلل النصوص باستخراج رقم الحجز، اسم السفينة، رقم الرحلة، تواريخ ETD / ETA، موعد Cut-off، ورقم البوليصة والحاويات تمهيداً لمراجعتها واعتمادها بنقرة واحدة.
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                نص تأكيد الحجز أو محتوى الإيميل الملاحي *
+              </label>
+              <textarea
+                rows={6}
+                value={smartParseText}
+                onChange={(e) => setSmartParseText(e.target.value)}
+                placeholder="الصق نص إيميل تأكيد الحجز هنا (مثال: Booking Confirmation: MSK12345678, Vessel: MAERSK MC-KINNEY MOLLER, Voyage: 2401E, ETD: 2026-09-20, ETA: 2026-10-05, Port Cut-off: 2026-09-18, Containers: MSKU1234567, MSKU7654321)..."
+                style={{
+                  width: '100%',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  padding: '10px 12px',
+                  fontSize: '0.82rem',
+                  fontFamily: 'monospace',
+                  lineHeight: 1.5,
+                  resize: 'vertical',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+              <button
+                type="button"
+                onClick={handleParseBookingEmail}
+                disabled={isParsingSmartBooking || !smartParseText.trim()}
+                style={{
+                  padding: '8px 20px',
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: isParsingSmartBooking || !smartParseText.trim() ? 'not-allowed' : 'pointer',
+                  opacity: isParsingSmartBooking || !smartParseText.trim() ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <AppIcons.Search size={15} />
+                {isParsingSmartBooking ? 'جاري التحليل والاستخراج...' : 'تحليل واستخراج البيانات'}
+              </button>
+            </div>
+
+            {/* Results Preview Card */}
+            {parsedBookingData && (
+              <div
+                style={{
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '10px',
+                  padding: '14px 16px',
+                  marginTop: '4px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#166534' }}>
+                    نتائج الاستخراج المكتشفة من نص الحجز:
+                  </span>
+                  {parsedBookingData.shippingLineName && (
+                    <span style={{ padding: '3px 10px', background: '#dcfce7', color: '#15803d', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700 }}>
+                      الخط المكتشف: {parsedBookingData.shippingLineName}
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                  <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>رقم الحجز (Booking No)</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>{parsedBookingData.bookingNumber || '—'}</div>
+                  </div>
+
+                  <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>السفينة والرحلة (Vessel / Voyage)</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>
+                      {parsedBookingData.vesselName || '—'} {parsedBookingData.voyageNumber ? ` / ${parsedBookingData.voyageNumber}` : ''}
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>تاريخ الإبحار (ETD)</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>{parsedBookingData.etd || '—'}</div>
+                  </div>
+
+                  <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>تاريخ الوصول (ETA)</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>{parsedBookingData.eta || '—'}</div>
+                  </div>
+
+                  <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>إغلاق الميناء (Cut-Off)</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#b91c1c' }}>{parsedBookingData.portCutOff || '—'}</div>
+                  </div>
+
+                  <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>بوليصة الشحن (MBL)</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>{parsedBookingData.mblNumber || '—'}</div>
+                  </div>
+                </div>
+
+                {parsedBookingData.containers && parsedBookingData.containers.length > 0 && (
+                  <div style={{ marginTop: '12px', background: '#ffffff', padding: '10px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
+                    <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#166534', marginBottom: '6px' }}>
+                      الحاويات المكتشفة ({parsedBookingData.containers.length} حاوية):
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {parsedBookingData.containers.map((cnt: any, idx: number) => (
+                        <span
+                          key={idx}
+                          style={{
+                            padding: '4px 10px',
+                            background: '#f1f5f9',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            fontSize: '0.78rem',
+                            fontWeight: 800,
+                            color: '#1e293b',
+                          }}
+                        >
+                          {cnt.containerNumber} ({cnt.containerType || "40' HC"})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </StandardDialog>
       )}

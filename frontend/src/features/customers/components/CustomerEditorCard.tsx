@@ -12,8 +12,11 @@ import { useUpdateCustomerMutation } from '@/features/customers/hooks/useCustome
 import { customerFormSchema, type CustomerFormInput, type CustomerFormOutput } from '@/features/customers/schemas/customer.schema';
 import type { Customer } from '@/types/domain';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { useCustomerProfile } from '@/features/customers/constants/customer-profiles';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer; onSaved?: () => void }) {
+  const profile = useCustomerProfile();
   const settingsQuery = useSettingsQuery();
   const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
   const form = useForm<CustomerFormInput, undefined, CustomerFormOutput>({
@@ -42,26 +45,26 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
 
   return (
     <form className="form-grid customer-form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
-      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="تعديلات العميل الحالية غير محفوظة" hint="احفظ التغييرات أو أعد تعيين القيم قبل الانتقال إلى عميل آخر." />
+      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="تعديلات الحساب الحالية غير محفوظة" hint="احفظ التغييرات أو أعد تعيين القيم قبل الانتقال إلى حساب آخر." />
       
-      <Field label="اسم العميل *" error={form.formState.errors.name?.message} className="field-full-span">
+      <Field label={profile.nameLabel} error={form.formState.errors.name?.message} className="field-full-span">
         <input 
           {...form.register('name')} 
           disabled={mutation.isPending} 
-          placeholder="مثال: شركة الأمل / أحمد محمود"
+          placeholder={profile.namePlaceholder}
         />
       </Field>
 
-      <Field label="رقم الهاتف" error={form.formState.errors.phone?.message}>
+      <Field label={profile.phoneLabel} error={form.formState.errors.phone?.message}>
         <input 
           type="tel"
           {...form.register('phone')} 
           disabled={mutation.isPending} 
-          placeholder="مثال: 010xxxxxxxx"
+          placeholder={profile.phonePlaceholder}
         />
       </Field>
 
-      <Field label="نوع وتصنيف العميل">
+      <Field label={profile.typeLabel}>
         <Controller
           name="type"
           control={form.control}
@@ -70,28 +73,23 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
               value={field.value}
               onChange={field.onChange}
               disabled={mutation.isPending}
-              options={[
-                { value: 'cash', label: 'عميل عادي / تجزئة (افتراضي)' },
-                { value: 'vip', label: 'عميل مميز (VIP) - خصومات خاصة' },
-                { value: 'credit', label: 'عميل آجل (سحب على الحساب)' },
-                { value: 'wholesale', label: 'عميل جملة (أسعار جملة)' },
-              ]}
+              options={profile.types.map((t) => ({ value: t.value, label: t.label }))}
             />
           )}
         />
       </Field>
 
-      <Field label="العنوان / المنطقة" className="field-full-span">
+      <Field label={profile.addressLabel} className="field-full-span">
         <input 
           {...form.register('address')} 
           disabled={mutation.isPending} 
-          placeholder="المدينة، الحي، اسم الشارع..."
+          placeholder={profile.addressPlaceholder}
         />
       </Field>
 
       <Field 
-        label="الرصيد الافتتاحي (${getGlobalCurrencySymbol()})" 
-        hint="المبلغ المستحق على العميل عند بداية التسجيل (إن وجد)"
+        label={`${profile.balanceLabel} (${getGlobalCurrencySymbol()})`} 
+        hint={profile.balanceHint}
         error={form.formState.errors.balance?.message}
       >
         <input 
@@ -104,8 +102,8 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
       </Field>
 
       <Field 
-        label="حد الائتمان (${getGlobalCurrencySymbol()})" 
-        hint="أقصى مبلغ مسموح بالسحب الآجل (0 = نقدي فقط)"
+        label={`${profile.creditLimitLabel} (${getGlobalCurrencySymbol()})`} 
+        hint={profile.creditLimitHint}
         error={form.formState.errors.creditLimit?.message}
       >
         <input 
@@ -141,10 +139,10 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
           </div>
         </fieldset>
       )}
-      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر تحديث العميل" successText="تم تحديث العميل بنجاح." />
+      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر تحديث البيانات" successText="تم تحديث البيانات بنجاح." />
       <div className="actions sticky-form-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '16px', flexWrap: 'wrap' }}>
         <Button type="button" variant="secondary" onClick={() => form.reset()} disabled={mutation.isPending} style={{ flex: '1 1 120px' }}>إعادة القيم</Button>
-        <SubmitButton type="submit" isPending={mutation.isPending} idleText="حفظ التعديل" pendingText="جارٍ الحفظ..." style={{ flex: '2 1 180px' }} />
+        <SubmitButton type="submit" isPending={mutation.isPending} idleText={profile.submitEditText} pendingText="جارٍ الحفظ..." style={{ flex: '2 1 180px' }} />
       </div>
     </form>
   );

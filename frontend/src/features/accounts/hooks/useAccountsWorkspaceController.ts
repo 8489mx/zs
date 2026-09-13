@@ -96,10 +96,13 @@ export function useAccountsWorkspaceController() {
     }));
   }, [suppliers, supplierBalanceMap]);
 
-  const collectableCustomers = useMemo(
-    () => mergedCustomerLedgerOptions.filter((customer) => Number((customer as BalanceCarrier).balance || 0) > 0),
-    [mergedCustomerLedgerOptions]
-  );
+  const collectableCustomers = useMemo(() => {
+    return [...mergedCustomerLedgerOptions].sort((a, b) => {
+      const balA = Number((a as BalanceCarrier).balance || 0);
+      const balB = Number((b as BalanceCarrier).balance || 0);
+      return balB - balA;
+    });
+  }, [mergedCustomerLedgerOptions]);
 
   const payableSuppliers = useMemo(
     () => mergedSupplierLedgerOptions.filter((supplier) => Number((supplier as BalanceCarrier).balance || 0) > 0),

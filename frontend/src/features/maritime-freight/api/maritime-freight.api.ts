@@ -259,10 +259,15 @@ export interface MaritimeJob {
   delivery_order_released_at: string | null;
   cost_center_id: string | null;
   client_invoiced_total: number;
+  client_paid_total?: number;
+  payment_status?: 'unpaid' | 'partially_paid' | 'paid';
+  paid_at?: string | null;
   carrier_cost_total: number;
   other_costs_total: number;
   net_profit: number;
   tracking_token: string | null;
+  customerBalance?: number;
+  customerAvailableCredit?: number;
   status: 'active' | 'completed' | 'cancelled';
   notes: string | null;
   created_at: string;
@@ -381,6 +386,23 @@ export const maritimeApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+  parseBookingText: (text: string) =>
+    http<{
+      bookingNumber: string | null;
+      shippingLineName: string | null;
+      vesselName: string | null;
+      voyageNumber: string | null;
+      polName: string | null;
+      podName: string | null;
+      etd: string | null;
+      eta: string | null;
+      portCutOff: string | null;
+      mblNumber: string | null;
+      containers: Array<{ containerNumber: string; containerType: string }>;
+    }>('/api/maritime-freight/jobs/parse-booking-text', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }),
   addJobMilestone: (id: string, milestoneKey: string, notes?: string, location?: string) =>
     http<MaritimeJob>(`/api/maritime-freight/jobs/${id}/milestones`, {
       method: 'POST',
@@ -394,6 +416,35 @@ export const maritimeApi = {
     http<{ message: string; customerPhone?: string; customerName: string; jobNumber: string }>(
       `/api/maritime-freight/jobs/${id}/whatsapp-alert?milestone=${milestone}`,
     ),
+  settleJobFromBalance: (jobId: string, amount?: number) =>
+    http<{
+      success: boolean;
+      job: MaritimeJob;
+      settledAmount: number;
+      remainingUnpaid: number;
+      customerBalanceAfter: number;
+      customerAvailableCreditAfter: number;
+      message: string;
+    }>(`/api/maritime-freight/jobs/${jobId}/settle-from-balance`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    }),
+  getCustomerActiveJobs: (customerId: number | string) =>
+    http<Array<{
+      id: string;
+      job_number: string;
+      pol_name: string;
+      pod_name: string;
+      vessel_name: string | null;
+      milestone_status: string;
+      client_invoiced_total: number;
+      client_paid_total: number;
+      payment_status: 'unpaid' | 'partially_paid' | 'paid';
+      status: string;
+      invoiced: number;
+      paid: number;
+      unpaid: number;
+    }>>(`/api/maritime-freight/customers/${customerId}/active-jobs`),
 
   // Containers
   getContainers: (params?: { overdueOnly?: boolean; depositHeldOnly?: boolean; search?: string }) =>

@@ -112,11 +112,27 @@ export function MaritimeJobsTab({
                     </span>
                   </td>
                   <td style={{ padding: '12px 14px' }}>
-                    {job.delivery_order_released ? (
-                      <span style={{ color: '#15803d', fontWeight: 700, fontSize: '0.75rem' }}>تم التسليم (D/O)</span>
-                    ) : (
-                      <span style={{ color: '#d97706', fontWeight: 600, fontSize: '0.75rem' }}>محتجز لحين السداد</span>
-                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          textAlign: 'center',
+                          background: job.payment_status === 'paid' ? '#dcfce7' : job.payment_status === 'partially_paid' ? '#fef3c7' : '#f1f5f9',
+                          color: job.payment_status === 'paid' ? '#15803d' : job.payment_status === 'partially_paid' ? '#b45309' : '#64748b',
+                        }}
+                      >
+                        {job.payment_status === 'paid' ? 'مسدد بالكامل' : job.payment_status === 'partially_paid' ? 'مسدد جزئياً' : 'غير مسدد'}
+                      </span>
+                      {job.delivery_order_released ? (
+                        <span style={{ color: '#15803d', fontWeight: 600, fontSize: '0.7rem' }}>تم التسليم (D/O)</span>
+                      ) : (
+                        <span style={{ color: '#d97706', fontWeight: 600, fontSize: '0.7rem' }}>إذن تسليم معلق</span>
+                      )}
+                    </div>
                   </td>
                   <td style={{ padding: '12px 14px' }}>
                     <div style={{ fontWeight: 800, color: '#15803d' }}>

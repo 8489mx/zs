@@ -11,10 +11,13 @@ import { useMutationFeedbackReset } from '@/shared/hooks/use-mutation-feedback-r
 import { useCreateCustomerMutation } from '@/features/customers/hooks/useCreateCustomerMutation';
 import { customerFormSchema, type CustomerFormInput, type CustomerFormOutput } from '@/features/customers/schemas/customer.schema';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { useCustomerProfile } from '@/features/customers/constants/customer-profiles';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 const DEFAULT_VALUES = { name: '', phone: '', address: '', balance: 0, type: 'cash' as const, creditLimit: 0, metadata: { currency: 'EGP' } };
 
 export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
+  const profile = useCustomerProfile();
   const settingsQuery = useSettingsQuery();
   const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
 
@@ -46,27 +49,27 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
 
   return (
     <form className="form-grid customer-form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
-      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="بيانات العميل الجديدة لم تُحفظ بعد" hint="يمكنك الحفظ الآن أو تفريغ النموذج قبل الانتقال لعميل آخر." />
+      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="بيانات السجل الجديدة لم تُحفظ بعد" hint="يمكنك الحفظ الآن أو تفريغ النموذج قبل الانتقال لحساب آخر." />
       
-      <Field label="اسم العميل *" error={form.formState.errors.name?.message} className="field-full-span">
+      <Field label={profile.nameLabel} error={form.formState.errors.name?.message} className="field-full-span">
         <input 
           {...form.register('name')} 
           disabled={mutation.isPending} 
-          placeholder="مثال: شركة الأمل / أحمد محمود"
+          placeholder={profile.namePlaceholder}
           data-autofocus
         />
       </Field>
 
-      <Field label="رقم الهاتف" error={form.formState.errors.phone?.message}>
+      <Field label={profile.phoneLabel} error={form.formState.errors.phone?.message}>
         <input 
           type="tel"
           {...form.register('phone')} 
           disabled={mutation.isPending} 
-          placeholder="مثال: 010xxxxxxxx"
+          placeholder={profile.phonePlaceholder}
         />
       </Field>
 
-      <Field label="نوع وتصنيف العميل">
+      <Field label={profile.typeLabel}>
         <Controller
           name="type"
           control={form.control}
@@ -75,28 +78,23 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
               value={field.value}
               onChange={field.onChange}
               disabled={mutation.isPending}
-              options={[
-                { value: 'cash', label: 'عميل عادي / تجزئة (افتراضي)' },
-                { value: 'vip', label: 'عميل مميز (VIP) - خصومات خاصة' },
-                { value: 'credit', label: 'عميل آجل (سحب على الحساب)' },
-                { value: 'wholesale', label: 'عميل جملة (أسعار جملة)' },
-              ]}
+              options={profile.types.map((t) => ({ value: t.value, label: t.label }))}
             />
           )}
         />
       </Field>
 
-      <Field label="العنوان / المنطقة" className="field-full-span">
+      <Field label={profile.addressLabel} className="field-full-span">
         <input 
           {...form.register('address')} 
           disabled={mutation.isPending} 
-          placeholder="المدينة، الحي، اسم الشارع..."
+          placeholder={profile.addressPlaceholder}
         />
       </Field>
 
       <Field 
-        label="الرصيد الافتتاحي (${getGlobalCurrencySymbol()})" 
-        hint="المبلغ المستحق على العميل عند بداية التسجيل (إن وجد)"
+        label={`${profile.balanceLabel} (${getGlobalCurrencySymbol()})`} 
+        hint={profile.balanceHint}
         error={form.formState.errors.balance?.message}
       >
         <input 
@@ -109,8 +107,8 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
       </Field>
 
       <Field 
-        label="حد الائتمان (${getGlobalCurrencySymbol()})" 
-        hint="أقصى مبلغ مسموح بالسحب الآجل (0 = نقدي فقط)"
+        label={`${profile.creditLimitLabel} (${getGlobalCurrencySymbol()})`} 
+        hint={profile.creditLimitHint}
         error={form.formState.errors.creditLimit?.message}
       >
         <input 
@@ -146,10 +144,10 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
           </div>
         </fieldset>
       )}
-      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ العميل" successText="تم حفظ العميل بنجاح." />
+      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ البيانات" successText="تم الحفظ بنجاح." />
       <div className="actions sticky-form-actions">
         <FormResetButton onReset={handleReset} disabled={mutation.isPending || !form.formState.isDirty}>تفريغ النموذج</FormResetButton>
-        <SubmitButton type="submit" isPending={mutation.isPending} idleText="حفظ العميل" pendingText="جارٍ الحفظ..." />
+        <SubmitButton type="submit" isPending={mutation.isPending} idleText={profile.submitCreateText} pendingText="جارٍ الحفظ..." />
       </div>
     </form>
   );

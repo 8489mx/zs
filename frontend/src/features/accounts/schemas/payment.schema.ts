@@ -3,7 +3,8 @@ import { z } from 'zod';
 export const customerPaymentSchema = z.object({
   customerId: z.string().min(1, 'اختر العميل'),
   amount: z.coerce.number().positive('المبلغ يجب أن يكون أكبر من صفر'),
-  note: z.string().optional()
+  note: z.string().optional(),
+  jobId: z.string().optional(),
 });
 
 export const supplierPaymentSchema = z.object({

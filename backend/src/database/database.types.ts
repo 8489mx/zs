@@ -886,6 +886,7 @@ export interface CustomerPaymentTable {
   note: string;
   branch_id: number | null;
   location_id: number | null;
+  job_id?: number | null;
   created_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
 }
@@ -3267,6 +3268,9 @@ export interface MaritimeJobTable {
   delivery_address: string | null;
   cost_center_id: string | null;
   client_invoiced_total: ColumnType<number, number | string | undefined, number | string | undefined>;
+  client_paid_total: ColumnType<number, number | string | undefined, number | string | undefined>;
+  payment_status: ColumnType<'unpaid' | 'partially_paid' | 'paid', 'unpaid' | 'partially_paid' | 'paid' | undefined, 'unpaid' | 'partially_paid' | 'paid' | undefined>;
+  paid_at: Date | null;
   carrier_cost_total: ColumnType<number, number | string | undefined, number | string | undefined>;
   other_costs_total: ColumnType<number, number | string | undefined, number | string | undefined>;
   net_profit: ColumnType<number, number | string | undefined, number | string | undefined>;

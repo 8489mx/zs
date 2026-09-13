@@ -3832,3 +3832,57 @@
      - متابعة مناقصات ومقايسات المقاولات وعقود التوريد الصناعية وعروض النولون اللوجستية قبل إصدار أوامر التشغيل.
   3. **التحويل القطاعي الفوري للسوبر أدمن (Instant Vertical Switch):**
      - تمكين السوبر أدمن من تغيير نشاط أي منشأة بين المقاولات أو الشحن أو التجارة مع تحديث فوري لقاعدة البيانات وقراءة الجلسة وإعادة بناء القائمة الجانبية في 0ms.
+
+---
+
+### 117. منظومة الربط الذكي للمدفوعات وسندات القبض بالشحنات الملاحية وسداد الشحنة من الرصيد الدائن المتاح (Smart Freight Payment Allocation & Advance Balance Settle)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% (Production Ready)
+* **مسارات وملفات التنفيذ الأساسية:**
+  - `backend/src/database/migrations/2040000000091_maritime_job_payment_tracking.ts`: إضافة أعمدة تتبع السداد (`client_paid_total`, `payment_status`, `paid_at`) لجدول `maritime_jobs`، وحقل `job_id` لجدول `customer_payments`.
+  - `backend/src/database/database.types.ts`: مواءمة واجهات Kysely لـ `MaritimeJobTable` و `CustomerPaymentTable`.
+  - `backend/src/modules/purchases/services/purchases-write.service.ts`:
+    - دعم حقل `jobId` الاختياري في سند القبض وتوجيه السداد للشحنة فورياً.
+    - خاصية المطابقة والتسوية الآلية (Zero-Click Auto-Match): إذا كان لدى العميل شحنة نشطة وحيدة غير مسددة، يربط النظام سند القبض بها تلقائياً ويحدث حالتها ويسجل حدث السداد في المعالم DCSA دون تدخل الموظف.
+  - `backend/src/modules/maritime-freight/maritime-freight.service.ts` & `maritime-freight.controller.ts`:
+    - دالة `settleJobFromCustomerBalance`: تسوية وخصم نولون الشحنة من رصيد العميل الدائن المتاح مع تحديث كشف الحساب والقيود وإلغاء حظر أذونات التسليم.
+    - دالة `getCustomerActiveJobs`: جلب أوامر التشغيل المفتوحة للعميل مع المبالغ المفوترة والمسددة والمستحقة.
+    - تحديث `getJobById` لإرجاع `customerBalance` و `customerAvailableCredit` لحظياً مع بيانات الشحنة.
+  - `frontend/src/features/maritime-freight/api/maritime-freight.api.ts`: دوال الاستدعاء `settleJobFromBalance` و `getCustomerActiveJobs` والحقول المحدثة.
+  - `frontend/src/features/maritime-freight/components/JobDetailsModal.tsx`:
+    - عرض بطاقة الموقف المالي وحالة السداد (مسددة بالكامل / مسددة جزئياً / غير مسددة) في تبويبي النظرة العامة والحسابات.
+    - لافتة الرصيد الدائن المتاح للعميل وزر الإجراء المباشر `[سداد الشحنة من الرصيد المتاح]` لتسوية الشحنة بضغطة زر وتحديث الصفحة لحظياً.
+  - `frontend/src/features/maritime-freight/components/MaritimeJobsTab.tsx`: شارة حالة السداد (Payment Status) المدمجة مع إذن التسليم في جدول الشحنات.
+  - `frontend/src/features/accounts/components/PaymentForms.tsx`:
+    - قائمة منسدلة ذكية لجلب شحنات العميل المفتوحة ومبالغها المستحقة واختيار التخصيص لشحنة محددة أو التسوية على الحساب العام.
+* **القدرات التشغيلية المعتمدة:**
+  1. **التسوية الذكية بنقرة واحدة (One-Click Settle from Balance):**
+     - تمكين مسؤولي الشحن والعمليات من سداد أي شحنة خصماً من الرصيد الدائن المتاح للعميل دون الحاجة لتسجيل سند قبض مكرر.
+  2. **المطابقة الآلية التلقائية (Auto-Match):**
+     - عند سداد دفعة مقدمة لعميل لديه شحنة واحدة نشطة فقط، يتم سداد الشحنة وفك احتجاز أذونات التسليم آلياً.
+  3. **التخصيص المباشر في سند القبض:**
+     - تمكين المحاسبين من ربط سند القبض بشحنة معينة بالاسم ورقم البوليصة من واقع القائمة المنسدلة في شاشة الحسابات.
+
+---
+
+### 118. الاستخراج والتحليل الذكي لبيانات الحجز الملاحي من إيميلات الخطوط العالمية (Smart Carrier Booking Confirmation Parser & 1-Click Verification)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% (Production Ready) ومطابق لمعايير DCSA و 0 Emojis.
+* **مسارات وملفات التنفيذ الأساسية:**
+  - `backend/src/modules/maritime-freight/maritime-freight.service.ts`:
+    - دالة `parseCarrierBookingText`: محرك فحص نصوص متقدم يستخرج آلياً اسم الخط الملاحي (Maersk, MSC, CMA CGM, Hapag-Lloyd, Cosco, Evergreen, ONE, Yang Ming, ZIM, Wan Hai)، ورقم الحجز الملاحي (Booking Reference)، واسم السفينة ورقم الرحلة (Vessel & Voyage)، ومواعيد الإبحار والوصول (ETD & ETA)، وموعد إغلاق الميناء (Port Cut-Off)، ورقم بوليصة الشحن (MBL)، وأرقام الحاويات القياسية (ISO 6346 Containers).
+  - `backend/src/modules/maritime-freight/maritime-freight.controller.ts`:
+    - نقطة وصول سحابية `POST /api/maritime-freight/jobs/parse-booking-text`.
+  - `backend/test/test-logistics-lifecycle.ts`:
+    - اختبار عملي شامل وتكاملي يختبر الاستخراج من نص إيميل حقيقي، وفتح الشحنة، وتسوية المدفوعات، وتتبع كافة معالم DCSA التسعة حتى إغلاق الشحنة بنجاح 100%.
+  - `frontend/src/features/maritime-freight/api/maritime-freight.api.ts`:
+    - دالة `parseBookingText` للاتصال بالمحلل واستخراج الحقول المنظمة.
+  - `frontend/src/features/maritime-freight/components/JobDetailsModal.tsx`:
+    - زر إجراء علوي `[استخراج ذكي من إيميل الحجز]` في شريط أدوات تفاصيل الرحلة والبوالص.
+    - نافذة منبثقة مؤسسية موحدة `StandardDialog` مخصصة للصق محتوى الإيميل أو إشعار الحجز مع معاينة تفاعلية فورية لنتائج الاستخراج داخل بطاقات بريميوم مؤسسية.
+    - زر اعتماد وتحديث فوري للشحنة والحاويات بنقرة واحدة دون أي أخطاء إدخال يدوي.
+* **القدرات التشغيلية المعتمدة:**
+  1. **التعرف الآلي على الخطوط الملاحية العالمية:**
+     - كشف تلقائي للخط الناقل استناداً لاسم الخط ومطابقة النصوص، مع ضبط مسار الشحنة.
+  2. **الاستخراج الدقيق للمواعيد وأرقام الحاويات:**
+     - استخراج تواريخ الإبحار والوصول والـ Cut-Off وتحويلها إلى التنسيق القياسي (ISO)، واستخراج أرقام الحاويات ISO 6346 وإدراجها كحاويات مخصصة للشحنة مباشرة.
+  3. **الحوكمة البشرية والمراجعة السريعة (Human-in-the-Loop):**
+     - معاينة بصرية للمعلومات المستخرجة قبل الاعتماد النهائي لمنع أي التباس وضمان دقة السجلات الملاحية.

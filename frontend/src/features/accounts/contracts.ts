@@ -2,6 +2,7 @@ export interface CustomerPaymentPayloadInput {
   customerId: string;
   amount: number;
   note?: string;
+  jobId?: string | number | null;
 }
 
 export interface SupplierPaymentPayloadInput {
@@ -21,7 +22,8 @@ export function buildCustomerPaymentPayload(input: CustomerPaymentPayloadInput) 
   return {
     customerId: input.customerId,
     amount: normalizeMoney(input.amount),
-    note: String(input.note || '').trim()
+    note: String(input.note || '').trim(),
+    jobId: input.jobId ? Number(input.jobId) : undefined,
   };
 }
 

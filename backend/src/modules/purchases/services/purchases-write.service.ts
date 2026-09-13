@@ -878,7 +878,7 @@ export class PurchasesWriteService {
     const amount = Number(payload.amount);
     if (!Number.isFinite(amount) || amount <= 0) throw new AppError('Payment amount must be greater than zero', 'INVALID_PAYMENT_AMOUNT', 400);
 
-    await this.tx.runInTransaction(this.db, async (trx) => {
+    const paymentResult = await this.tx.runInTransaction(this.db, async (trx) => {
       const customer = await trx
         .selectFrom('customers')
         .select(['id', 'name', 'balance'])
@@ -888,9 +888,29 @@ export class PurchasesWriteService {
       if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
 
       const currentBalance = Number(customer.balance || 0);
-      if (!(currentBalance > 0)) throw new AppError('Customer has no outstanding balance', 'CUSTOMER_NO_BALANCE', 400);
-      if (amount > currentBalance + 0.0001) throw new AppError('Customer payment cannot exceed outstanding balance', 'CUSTOMER_OVERPAYMENT', 400);
       const { branchId, locationId } = normalizePurchaseScope(payload);
+
+      let targetJobId: number | null = payload.jobId ? Number(payload.jobId) : null;
+
+      // Smart Auto-Match: If no explicit job specified, check if customer has exactly ONE active maritime job needing payment
+      if (!targetJobId) {
+        try {
+          const activeJobs = await trx
+            .selectFrom('maritime_jobs')
+            .select(['id', 'job_number', 'client_invoiced_total', 'client_paid_total', 'payment_status'])
+            .where('tenant_id', '=', scope.tenantId)
+            .where('customer_id', '=', customer.id)
+            .where('status', '=', 'active')
+            .where('payment_status', '!=', 'paid')
+            .execute();
+
+          if (activeJobs.length === 1) {
+            targetJobId = Number(activeJobs[0].id);
+          }
+        } catch {
+          // Ignore if table not ready
+        }
+      }
 
       const insert = await trx
         .insertInto('customer_payments')
@@ -900,6 +920,7 @@ export class PurchasesWriteService {
           note: normalizeOptionalNote(payload.note),
           branch_id: branchId,
           location_id: locationId,
+          job_id: targetJobId || null,
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
@@ -909,13 +930,85 @@ export class PurchasesWriteService {
 
       const paymentId = Number(insert.id);
       const paymentNote = normalizeOptionalNote(payload.note);
-      await this.financeService.addCustomerLedgerEntry(trx, customer.id, -amount, `تحصيل من العميل ${customer.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'customer_payment', paymentId, auth, branchId, locationId);
-      await this.financeService.addTreasuryTransaction(trx, 'customer_payment', amount, `تحصيل من العميل ${customer.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'customer_payment', paymentId, auth, branchId, locationId);
+      const isAdvance = currentBalance <= 0;
+      const isOverpayment = currentBalance > 0 && amount > currentBalance;
+      const descPrefix = isAdvance
+        ? `دفعة مقدمة / عربون من العميل ${customer.name}`
+        : isOverpayment
+          ? `تحصيل وسداد مع دفعة مقدمة من العميل ${customer.name}`
+          : `تحصيل من العميل ${customer.name}`;
+
+      const fullDesc = `${descPrefix}${paymentNote ? ` - ${paymentNote}` : ''}`;
+      await this.financeService.addCustomerLedgerEntry(trx, customer.id, -amount, fullDesc, 'customer_payment', paymentId, auth, branchId, locationId);
+      await this.financeService.addTreasuryTransaction(trx, 'customer_payment', amount, fullDesc, 'customer_payment', paymentId, auth, branchId, locationId);
       await this.accountingPosting.postCustomerPayment(trx, paymentId, auth);
+
+      const docNo = await this.generateCustomerPaymentDocNo(trx, scope.tenantId);
+
+      let allocatedJobNumber: string | null = null;
+      if (targetJobId) {
+        try {
+          const job = await trx
+            .selectFrom('maritime_jobs')
+            .select(['id', 'job_number', 'client_invoiced_total', 'client_paid_total', 'payment_status'])
+            .where('tenant_id', '=', scope.tenantId)
+            .where('id', '=', String(targetJobId))
+            .executeTakeFirst();
+
+          if (job) {
+            allocatedJobNumber = job.job_number;
+            const currentPaid = Number(job.client_paid_total || 0);
+            const newPaid = currentPaid + amount;
+            const invoiced = Number(job.client_invoiced_total || 0);
+            const newPaymentStatus = (invoiced > 0 && newPaid >= invoiced) ? 'paid' : (newPaid > 0 ? 'partially_paid' : 'unpaid');
+
+            await trx
+              .updateTable('maritime_jobs')
+              .set({
+                client_paid_total: newPaid,
+                payment_status: newPaymentStatus,
+                paid_at: newPaymentStatus === 'paid' ? sql`NOW()` : null,
+                updated_at: sql`NOW()`,
+              } as any)
+              .where('id', '=', String(targetJobId))
+              .where('tenant_id', '=', scope.tenantId)
+              .execute();
+
+            await trx
+              .insertInto('maritime_job_milestones')
+              .values({
+                tenant_id: scope.tenantId,
+                job_id: String(targetJobId),
+                milestone_key: 'PAYMENT',
+                milestone_title: `سداد مالي: سند قبض #${docNo} (${newPaymentStatus === 'paid' ? 'مسدد بالكامل' : 'سداد جزئي'})`,
+                location: 'الخزينة والحسابات',
+                notes: `تم ربط وتخصيص دفعة نقدية بقيمة ${amount} ج.م من سند القبض ${docNo} للشحنة ${job.job_number}`,
+                recorded_by: auth.userId ? Number(auth.userId) : null,
+              } as any)
+              .execute();
+          }
+        } catch {
+          // Ignore
+        }
+      }
+
+      return {
+        id: paymentId,
+        docNo,
+        customerId: customer.id,
+        customerName: customer.name,
+        amount,
+        balanceBefore: currentBalance,
+        balanceAfter: currentBalance - amount,
+        note: paymentNote,
+        jobId: targetJobId,
+        jobNumber: allocatedJobNumber,
+        createdAt: new Date().toISOString(),
+      };
     });
 
-    await this.audit.log('تحصيل عميل', `تم تسجيل تحصيل عميل بواسطة ${auth.username}`, auth);
-    return { ok: true };
+    await this.audit.log('سند قبض / تحصيل عميل', `تم تسجيل سند قبض ${paymentResult.docNo} للعميل ${paymentResult.customerName} بمبلغ ${paymentResult.amount} بواسطة ${auth.username}`, auth);
+    return { ok: true, ...paymentResult };
   }
 
   private async generatePurchaseDocNo(trx: Kysely<Database>, purchaseId: number, tenantId: string): Promise<string> {
@@ -998,6 +1091,26 @@ export class PurchasesWriteService {
     const nextSeq = Number(lastDoc?.last_seq || 0) + 1;
     const seq = String(nextSeq).padStart(4, '0');
     return `ZPV-${datePrefix}-${seq}`;
+  }
+
+  private async generateCustomerPaymentDocNo(trx: Kysely<Database>, tenantId: string): Promise<string> {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const datePrefix = `${yy}${mm}${dd}`;
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+    const countToday = await trx
+      .selectFrom('customer_payments')
+      .select(sql<number>`COUNT(*)::int`.as('cnt'))
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('created_at', '>=', startOfDay)
+      .executeTakeFirst();
+
+    const nextSeq = Number(countToday?.cnt || 0) + 1;
+    const seq = String(nextSeq).padStart(4, '0');
+    return `REC-${datePrefix}-${seq}`;
   }
 
   async receivePurchaseGoods(

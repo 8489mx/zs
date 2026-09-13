@@ -10,11 +10,13 @@ import { AccountsLedgerActions } from '@/features/accounts/components/AccountsLe
 import { SupplierBalanceScheduleCard } from '@/features/accounts/components/SupplierBalanceScheduleCard';
 import { useAccountsWorkspaceController } from '@/features/accounts/hooks/useAccountsWorkspaceController';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
+import { useCustomerProfile } from '@/features/customers/constants/customer-profiles';
 import type { Customer, Supplier } from '@/types/domain';
 
 type AccountsFocusMode = 'customers' | 'suppliers';
 
 export function AccountsWorkspace() {
+  const profile = useCustomerProfile();
   const controller = useAccountsWorkspaceController();
   const canManageAccounts = useHasAnyPermission('accounts');
   const canManageCustomers = useHasAnyPermission('customers');
@@ -117,17 +119,17 @@ export function AccountsWorkspace() {
           </AccountsLedgerCard>
 
           <AccountsPartyCard
-            title="تحصيل من عميل"
-            description="اختر العميل أولًا ثم سجل التحصيل على العملاء الذين لديهم رصيد مستحق."
-            badge="تحصيل"
+            title={profile.id === 'maritime' ? 'سند قبض / تحصيل نولون ودفعات شحن' : profile.id === 'contracting' ? 'سند قبض / تحصيل دفعات ومستخلصات' : 'سند قبض / تحصيل من عميل'}
+            description={profile.id === 'maritime' ? 'تسجيل سند قبض لحساب الشاحن أو المستورد (سداد نولون، أو دفعة مقدمة / عربون على الحساب).' : profile.id === 'contracting' ? 'تسجيل سند قبض لجهة الإسناد أو المالك (سداد مستخلصات، أو دفعة مقدمة للمشروع).' : 'تسجيل سند قبض لحساب العميل سواء سداد مديونية مستحقة أو دفعة مقدمة / عربون على الحساب.'}
+            badge="سند قبض"
             isLoading={controller.customersQuery.isLoading}
             isError={controller.customersQuery.isError}
             error={controller.customersQuery.error}
             isEmpty={!controller.collectableCustomers.length}
-            loadingText="جاري تحميل العملاء..."
-            emptyTitle="لا يوجد عملاء عليهم رصيد حاليًا"
-            emptyHint="سيظهر العملاء هنا بمجرد وجود رصيد مستحق للتحصيل."
-            quickLabel="إضافة عميل سريع"
+            loadingText="جاري تحميل البيانات..."
+            emptyTitle={profile.id === 'maritime' ? 'لا يوجد شاحنون مسجلون حالياً' : profile.id === 'contracting' ? 'لا توجد جهات إسناد مسجلة حالياً' : 'لا يوجد عملاء مسجلون حالياً'}
+            emptyHint="سجل طرفاً جديداً للبدء في إصدار سندات القبض والتحصيل."
+            quickLabel={profile.id === 'maritime' ? 'إضافة شاحن سريع' : profile.id === 'contracting' ? 'إضافة جهة إسناد سريعة' : 'إضافة عميل سريع'}
             quickName={controller.quickCustomerName}
             onQuickNameChange={controller.setQuickCustomerName}
             quickPhone={controller.quickCustomerPhone}
@@ -135,8 +137,8 @@ export function AccountsWorkspace() {
             quickPending={controller.quickCustomerMutation.isPending}
             canManageParty={canManageCustomers}
             onQuickSubmit={controller.handleQuickCustomerSubmit}
-            quickSubmitLabel="إضافة العميل فورًا"
-            permissionHint="هذا الحساب لا يملك صلاحية إنشاء عميل جديد من شاشة الحسابات."
+            quickSubmitLabel="إضافة فوراً"
+            permissionHint="هذا الحساب لا يملك صلاحية إنشاء حساب جديد من شاشة الحسابات."
           >
             <CustomerPaymentForm customers={controller.collectableCustomers as Customer[]} activeCustomerId={controller.selectedCustomerId} disabled={!canManageAccounts} />
           </AccountsPartyCard>
@@ -183,15 +185,15 @@ export function AccountsWorkspace() {
             </AccountsLedgerCard>
 
             <AccountsPartyCard
-              title="دفع لمورد"
-              description="اختر المورد أولًا ثم سجل الدفع على الموردين الذين لهم رصيد مستحق."
-              badge="دفع"
+              title="سند صرف / دفع لمورد"
+              description="اختر المورد وسجل سند صرف لمستحقاته أو دفعة تعاقدية."
+              badge="سند صرف"
               isLoading={controller.supplierBalancesQuery.isLoading}
               isError={controller.supplierBalancesQuery.isError}
               error={controller.supplierBalancesQuery.error}
               isEmpty={!controller.payableSuppliers.length}
               loadingText="جاري تحميل الموردين..."
-              emptyTitle="لا يوجد موردون عليهم رصيد حاليًا"
+              emptyTitle="لا يوجد موردون عليهم رصيد حالياً"
               emptyHint="سيظهر الموردون هنا بمجرد وجود رصيد مستحق للسداد."
               quickLabel="إضافة مورد سريع"
               quickName={controller.quickSupplierName}
@@ -201,7 +203,7 @@ export function AccountsWorkspace() {
               quickPending={controller.quickSupplierMutation.isPending}
               canManageParty={canManageSuppliers}
               onQuickSubmit={controller.handleQuickSupplierSubmit}
-              quickSubmitLabel="إضافة المورد فورًا"
+              quickSubmitLabel="إضافة المورد فوراً"
               permissionHint="هذا الحساب لا يملك صلاحية إنشاء مورد جديد من شاشة الحسابات."
             >
               <SupplierPaymentForm suppliers={controller.payableSuppliers as Supplier[]} activeSupplierId={controller.selectedSupplierId} disabled={!canManageAccounts} />

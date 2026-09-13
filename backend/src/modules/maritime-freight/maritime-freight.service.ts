@@ -1176,6 +1176,126 @@ export class MaritimeFreightService {
     };
   }
 
+  // AI & Regex text parser for Carrier Booking Confirmations
+  parseCarrierBookingText(rawText: string) {
+    const text = String(rawText || '');
+    let bookingNumber: string | null = null;
+    let shippingLineName: string | null = null;
+    let vesselName: string | null = null;
+    let voyageNumber: string | null = null;
+    let polName: string | null = null;
+    let podName: string | null = null;
+    let etd: string | null = null;
+    let eta: string | null = null;
+    let portCutOff: string | null = null;
+    let mblNumber: string | null = null;
+    const containers: Array<{ containerNumber: string; containerType: string }> = [];
+
+    // 1. Detect Shipping Line
+    const lines = [
+      { name: 'Maersk Line', match: /\b(?:maersk|safmarine|sealand)\b/i },
+      { name: 'MSC Mediterranean Shipping', match: /\bmsc\b/i },
+      { name: 'CMA CGM', match: /\b(?:cma\s*cgm|cma)\b/i },
+      { name: 'Hapag-Lloyd', match: /\bhapag(?:-lloyd)?\b/i },
+      { name: 'Cosco Shipping Lines', match: /\bcosco\b/i },
+      { name: 'Evergreen Line', match: /\bevergreen\b/i },
+      { name: 'Ocean Network Express (ONE)', match: /\b(?:one|ocean\s*network\s*express)\b/i },
+      { name: 'Yang Ming', match: /\byang\s*ming\b/i },
+      { name: 'ZIM Integrated', match: /\bzim\b/i },
+      { name: 'Wan Hai Lines', match: /\bwan\s*hai\b/i },
+    ];
+    for (const l of lines) {
+      if (l.match.test(text)) {
+        shippingLineName = l.name;
+        break;
+      }
+    }
+
+    // 2. Booking Number
+    const bkgMatch = text.match(/(?:booking\s*(?:reference|ref|number|no|confirmation|#)|bkg\s*(?:no|#)?)\s*[:=]?\s*([A-Z0-9-]{5,30})/i) ||
+                     text.match(/booking\s*[:=]\s*([A-Z0-9-]{5,30})/i) ||
+                     text.match(/\b([0-9]{9})\b/);
+    if (bkgMatch && bkgMatch[1]) {
+      bookingNumber = bkgMatch[1].trim();
+    }
+
+    // 3. Vessel Name & Voyage
+    const vesselMatch = text.match(/(?:vessel\s*(?:name)?|mother\s*vessel|ship\s*name)\s*[:=]?\s*([A-Za-z0-9\s.-]+?)(?=\s*(?:voyage|voy|etd|pol|pod|\n|$))/i);
+    if (vesselMatch && vesselMatch[1]) {
+      vesselName = vesselMatch[1].replace(/[\r\n]+/g, ' ').trim();
+    }
+
+    const voyMatch = text.match(/(?:voyage\s*(?:no|number|#)?|voy\s*(?:no|#)?)\s*[:=]?\s*([A-Z0-9-]{2,14})/i);
+    if (voyMatch && voyMatch[1]) {
+      voyageNumber = voyMatch[1].trim();
+    }
+
+    // Helper for date extraction
+    const extractDate = (labelRegex: RegExp): string | null => {
+      const match = text.match(labelRegex);
+      if (!match || !match[1]) return null;
+      const rawDate = match[1].trim();
+      const parsed = new Date(rawDate);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString().split('T')[0];
+      }
+      return rawDate;
+    };
+
+    // 4. ETD / ETA / Cut-off
+    etd = extractDate(/(?:etd|departure\s*date|sailing\s*date|est\.?\s*dep\.?)\s*[:=]?\s*([0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2}|[0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4}|[0-9]{1,2}\s+[A-Za-z]{3,9}\s+[0-9]{4})/i);
+    eta = extractDate(/(?:eta|arrival\s*date|est\.?\s*arr\.?)\s*[:=]?\s*([0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2}|[0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4}|[0-9]{1,2}\s+[A-Za-z]{3,9}\s+[0-9]{4})/i);
+    portCutOff = extractDate(/(?:port\s*cut[- ]?off|cy\s*cut[- ]?off|closing\s*date|cargo\s*cut[- ]?off|cut[- ]?off)\s*[:=]?\s*([0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2}|[0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4}|[0-9]{1,2}\s+[A-Za-z]{3,9}\s+[0-9]{4})/i);
+
+    // 5. POL / POD
+    const polMatch = text.match(/(?:pol|port\s*of\s*loading|origin\s*port|from)\s*[:=]?\s*([A-Za-z0-9\s,.-]+?)(?=\s*(?:pod|port\s*of\s*discharge|to|etd|\n|$))/i);
+    if (polMatch && polMatch[1]) {
+      polName = polMatch[1].replace(/[\r\n]+/g, ' ').trim();
+    }
+
+    const podMatch = text.match(/(?:pod|port\s*of\s*discharge|destination\s*port|to)\s*[:=]?\s*([A-Za-z0-9\s,.-]+?)(?=\s*(?:eta|vessel|\n|$))/i);
+    if (podMatch && podMatch[1]) {
+      podName = podMatch[1].replace(/[\r\n]+/g, ' ').trim();
+    }
+
+    // 6. Master B/L Number
+    const mblMatch = text.match(/(?:master\s*b\/?l|mbl|ocean\s*b\/?l|b\/?l\s*no)\s*[:=]?\s*([A-Z0-9-]{6,25})/i);
+    if (mblMatch && mblMatch[1]) {
+      mblNumber = mblMatch[1].trim();
+    } else if (bookingNumber) {
+      mblNumber = bookingNumber;
+    }
+
+    // 7. Containers Match (e.g. MSKU9482710)
+    const containerRegex = /\b([A-Z]{4}\s?[0-9]{7})\b/g;
+    let matchC: RegExpExecArray | null;
+    const foundContainers = new Set<string>();
+    while ((matchC = containerRegex.exec(text)) !== null) {
+      const cleanNum = matchC[1].replace(/\s+/g, '').toUpperCase();
+      if (!foundContainers.has(cleanNum)) {
+        foundContainers.add(cleanNum);
+        containers.push({
+          containerNumber: cleanNum,
+          containerType: /20/i.test(text) ? '20GP' : '40HC',
+        });
+      }
+    }
+
+    return {
+      bookingNumber,
+      shippingLineName,
+      vesselName,
+      voyageNumber,
+      polName,
+      podName,
+      etd,
+      eta,
+      portCutOff,
+      mblNumber,
+      containers,
+    };
+  }
+
   // --------------------------------------------------------------------------
   // 5. Client Quotations Engine
   // --------------------------------------------------------------------------
@@ -1607,8 +1727,25 @@ export class MaritimeFreightService {
       .orderBy('occurred_at', 'asc')
       .execute();
 
+    let customerBalance = 0;
+    let customerAvailableCredit = 0;
+    if (job.customer_id) {
+      const cust = await this.db
+        .selectFrom('customers')
+        .select(['balance'])
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', job.customer_id as any)
+        .executeTakeFirst();
+      if (cust) {
+        customerBalance = Number(cust.balance || 0);
+        customerAvailableCredit = Math.max(0, -customerBalance);
+      }
+    }
+
     return {
       ...job,
+      customerBalance,
+      customerAvailableCredit,
       containers,
       milestones,
       dcsaDefinitions: DCSA_STANDARD_MILESTONES,
@@ -2656,6 +2793,164 @@ export class MaritimeFreightService {
       costCenterId: job.cost_center_id,
       entries: lines,
     };
+  }
+
+  async settleJobFromCustomerBalance(auth: AuthContext, jobId: string, dto?: { amount?: number }) {
+    const { tenantId } = requireTenantScope(auth);
+    const job = await this.getJobById(auth, jobId);
+
+    if (!job.customer_id) {
+      throw new BadRequestException('هذه الشحنة غير مربوطة بسجل عميل معتمد في النظام');
+    }
+
+    const customer = await this.db
+      .selectFrom('customers')
+      .select(['id', 'name', 'balance'])
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', job.customer_id as any)
+      .executeTakeFirst();
+
+    if (!customer) {
+      throw new NotFoundException('تعذر العثور على سجل العميل');
+    }
+
+    const currentBalance = Number(customer.balance || 0);
+    // When balance is negative, customer has advance credit
+    const availableCredit = Math.max(0, -currentBalance);
+
+    if (availableCredit <= 0) {
+      throw new BadRequestException(
+        `لا يوجد رصيد دائن متاح للعميل ${customer.name}. رصيد حسابه الحالي هو ${currentBalance > 0 ? `مدين بمبلغ ${currentBalance.toLocaleString()} ج.م` : '0 ج.م'}`
+      );
+    }
+
+    const invoicedTotal = Number(job.client_invoiced_total || 0);
+    const paidTotal = Number((job as any).client_paid_total || 0);
+    const unpaidAmount = Math.max(0, invoicedTotal - paidTotal);
+
+    let targetSettlement = unpaidAmount;
+    if (targetSettlement <= 0 && invoicedTotal === 0) {
+      if (dto?.amount && dto.amount > 0) {
+        targetSettlement = dto.amount;
+      } else {
+        throw new BadRequestException('لم يتم إصدار فاتورة للشحنة بعد أو لا توجد مبالغ مستحقة. يرجى إصدار فاتورة الشحن أولاً أو تحديد المبلغ');
+      }
+    }
+
+    const amountToDeduct = dto?.amount && dto.amount > 0
+      ? Math.min(dto.amount, targetSettlement, availableCredit)
+      : Math.min(targetSettlement, availableCredit);
+
+    if (amountToDeduct <= 0) {
+      throw new BadRequestException('الشحنة مسددة بالكامل بالفعل أو المبلغ المطلوب تسويته غير صالح');
+    }
+
+    const newPaidTotal = paidTotal + amountToDeduct;
+    const finalInvoiced = Math.max(invoicedTotal, newPaidTotal);
+    const isFull = newPaidTotal >= finalInvoiced;
+    const newStatus = isFull ? 'paid' : 'partially_paid';
+
+    // 1. Update customer balance (+amountToDeduct consumes the credit)
+    const newCustomerBalance = currentBalance + amountToDeduct;
+    await this.db
+      .updateTable('customers')
+      .set({ balance: newCustomerBalance, updated_at: sql`NOW()` })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', customer.id as any)
+      .execute();
+
+    // 2. Add customer ledger entry
+    const ledgerDesc = `سداد وتسوية مستحقات الشحنة #${job.job_number} من الرصيد الدائن المتاح`;
+    await this.db
+      .insertInto('customer_ledger')
+      .values({
+        tenant_id: tenantId,
+        account_id: tenantId,
+        customer_id: customer.id,
+        entry_type: 'job_settlement',
+        amount: amountToDeduct,
+        balance_after: newCustomerBalance,
+        note: ledgerDesc,
+        reference_type: 'maritime_job',
+        reference_id: Number(job.id),
+        created_by: auth.userId ? Number(auth.userId) : null,
+      } as any)
+      .execute();
+
+    // 3. Update maritime_jobs
+    const [updatedJob] = await this.db
+      .updateTable('maritime_jobs')
+      .set({
+        client_invoiced_total: finalInvoiced,
+        client_paid_total: newPaidTotal,
+        payment_status: newStatus,
+        paid_at: isFull ? sql`NOW()` : (job.paid_at || null),
+        updated_at: sql`NOW()`,
+      } as any)
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', job.id as any)
+      .returningAll()
+      .execute();
+
+    // 4. Record job milestone
+    await this.db
+      .insertInto('maritime_job_milestones')
+      .values({
+        tenant_id: tenantId,
+        job_id: String(job.id),
+        milestone_key: 'PAYMENT',
+        milestone_title: `تسوية سداد من الرصيد الدائن (${isFull ? 'مسددة بالكامل' : 'سداد جزئي'})`,
+        location: 'الحسابات والخزينة',
+        notes: `تم خصم وتسوية مبلغ ${amountToDeduct.toLocaleString()} ج.م من رصيد العميل المتاح (${customer.name}) لصالح الشحنة #${job.job_number}`,
+        recorded_by: auth.userId ? Number(auth.userId) : null,
+      } as any)
+      .execute();
+
+    return {
+      success: true,
+      job: updatedJob,
+      settledAmount: amountToDeduct,
+      remainingUnpaid: Math.max(0, finalInvoiced - newPaidTotal),
+      customerBalanceAfter: newCustomerBalance,
+      customerAvailableCreditAfter: Math.max(0, -newCustomerBalance),
+      message: `تم سداد وتسوية ${amountToDeduct.toLocaleString()} ج.م من رصيد العميل المتاح بنجاح`,
+    };
+  }
+
+  async getCustomerActiveJobs(auth: AuthContext, customerId: string | number) {
+    const { tenantId } = requireTenantScope(auth);
+    const jobs = await this.db
+      .selectFrom('maritime_jobs')
+      .select([
+        'id',
+        'job_number',
+        'pol_name',
+        'pod_name',
+        'vessel_name',
+        'milestone_status',
+        'client_invoiced_total',
+        'client_paid_total',
+        'payment_status',
+        'status',
+        'created_at',
+      ])
+      .where('tenant_id', '=', tenantId)
+      .where('customer_id', '=', Number(customerId))
+      .where('status', '=', 'active')
+      .orderBy('id', 'desc')
+      .execute();
+
+    return jobs.map((j) => {
+      const invoiced = Number(j.client_invoiced_total || 0);
+      const paid = Number(j.client_paid_total || 0);
+      const unpaid = Math.max(0, invoiced - paid);
+      return {
+        ...j,
+        invoiced,
+        paid,
+        unpaid,
+      };
+    });
   }
 
   // --------------------------------------------------------------------------
