@@ -937,7 +937,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           {[
             { id: 'general', label: 'عام' },
             { id: 'sales_inventory', label: 'البيع وقواعد المخزون' },
-            { id: 'modules', label: 'موديولات النظام' },
+            { id: 'modules', label: 'متجر التطبيقات والموديولات' },
             { id: 'printing', label: 'الطباعة والإيصالات' },
           ].map(tab => (
             <button

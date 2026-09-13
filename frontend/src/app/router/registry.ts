@@ -29,8 +29,10 @@ import { pharmacyRouteModule } from '@/features/pharmacy/routes';
 import { crmRouteModule } from '@/features/crm/routes';
 import { approvalsRouteModule } from '@/features/approvals/routes';
 import { contractingRouteModule } from '@/features/contracting/routes';
+import { appsStoreRouteModule } from '@/features/apps-store/routes';
 
 export const featureRouteModules: FeatureRouteModule[] = [
+  appsStoreRouteModule,
   dashboardRouteModule,
   approvalsRouteModule,
   productsRouteModule,

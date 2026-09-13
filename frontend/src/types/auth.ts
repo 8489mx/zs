@@ -28,6 +28,7 @@ export interface AuthTenant {
   createdAt?: string | null;
   features?: string[];
   planId?: string | null;
+  plan?: string;
   extraFeatures?: string[];
 }
 

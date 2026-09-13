@@ -251,10 +251,6 @@ const router = createRouter([
     element: <Navigate to="/hub" replace />,
   },
   {
-    path: '/apps',
-    element: <Navigate to="/hub" replace />,
-  },
-  {
     path: '/launchpad',
     element: <Navigate to="/hub" replace />,
   },

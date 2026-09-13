@@ -529,8 +529,45 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
         disabled={disabled}
       />
 
+      {/* ===== متجر التطبيقات المستقل ===== */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        background: '#eef2ff',
+        border: '1px solid #c7d2fe',
+        padding: '12px 18px',
+        borderRadius: '12px',
+        marginBottom: '18px',
+        flexWrap: 'wrap',
+        gap: '12px',
+      }}>
+        <div>
+          <strong style={{ fontSize: '0.88rem', color: '#1e1b4b', display: 'block', marginBottom: '2px' }}>
+            متجر التطبيقات والموديولات الكامل (Apps Store)
+          </strong>
+          <span style={{ fontSize: '0.78rem', color: '#4338ca' }}>
+            يمكنك الانتقال لمركز التطبيقات المستقل لاستعراض وإدارة وتثبيت الموديولات بشبكة كروت عصرية وبحث وتصنيفات تفصيلية.
+          </span>
+        </div>
+        <Link
+          to="/apps"
+          style={{
+            padding: '7px 16px',
+            background: '#170e5e',
+            color: '#ffffff',
+            borderRadius: '8px',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            textDecoration: 'none',
+          }}
+        >
+          فتح متجر التطبيقات
+        </Link>
+      </div>
+
       {/* ===== موديولات النظام ===== */}
-      <FormSection title="موديولات النظام" description={<>شغّل الأجزاء التي تحتاجها لنشاطك، وسيتم ضبط وتحديث القوائم والشاشات تلقائياً.</>}>
+      <FormSection title="متجر التطبيقات والموديولات" description={<>شغّل الأجزاء التي تحتاجها لنشاطك، وسيتم ضبط وتحديث القوائم والشاشات تلقائياً.</>}>
         <div className="document-prototype-grid compact-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '14px' }}>
           
           {/* نقاط البيع السريعة والكاشير */}

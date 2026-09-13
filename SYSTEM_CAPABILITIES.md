@@ -3540,3 +3540,29 @@
      - تغيير النمط يعيد تشكيل مسارات السايدبار والصلاحيات دون المساس أو حذف أي قيد أو فاتورة أو مشروع مسجل سابقاً.
      - المزامنة الفورية مع `useAuthStore` و `useQueryClient` تتيح تبديل النمط وانعكاسه لحظياً بدون الحاجة لتسجيل الخروج أو وميض الصفحة.
 
+---
+
+## 113. متجر التطبيقات والموديولات المؤسسي المستقل (Enterprise Apps Store & Modular Grid Ecosystem)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis, Responsive Grid & Clean Enterprise SaaS).
+* **مسارات وملفات التنفيذ الأساسية:**
+  - واجهة المتجر الرئيسية: `frontend/src/features/apps-store/pages/AppsStorePage.tsx`
+  - كتالوج التطبيقات والبيانات التعريفية: `frontend/src/features/apps-store/data/apps-catalog.ts`
+  - بطاقات التطبيقات التفاعلية: `frontend/src/features/apps-store/components/AppCard.tsx`
+  - الترويسة الإحصائية للمتجر: `frontend/src/features/apps-store/components/AppsKpiHeader.tsx`
+  - نافذة ترقية الباقات التلقائية: `frontend/src/features/apps-store/components/AppUpgradeModal.tsx`
+  - توجيه المسار وموديول الراوتر: `frontend/src/features/apps-store/routes.tsx`, `frontend/src/app/router/registry.ts`, `frontend/src/app/router/root-router.tsx`
+  - القائمة الجانبية والصلاحيات: `frontend/src/shared/layout/app-shell.tsx`, `frontend/src/app/router/access.ts`
+  - تبويب الإعدادات العامة: `frontend/src/features/settings/components/forms/SettingsMainForm.tsx`, `frontend/src/features/settings/components/forms/tabs/ModulesSettingsTab.tsx`
+* **القدرات التشغيلية والمشكلات المعالجة:**
+  1. **التحول إلى عقلية المنصة السحابية (Odoo & Shopify Ecosystem Standard):**
+     - تم تحويل مفهوم "موديولات النظام" من مجرد قائمة إعدادات تقليدية وخانات اختيار (Checkboxes) متكدسة، إلى **«متجر التطبيقات» (Apps Store)** متكامل ومستقل بمسار رسمي `/apps`.
+  2. **شبكة الجريد العصرية المتجاوبة (Modern Apps Grid Layout):**
+     - بطاقات متوازنة هندسياً داخل حاوية الـ 1280px القياسية تعرض 22 تطبيقاً مع أيقونات SVG بريميوم مؤسسية وشارات الفئات (مبيعات، مخازن، مالية، مقاولات، شحن، تصنيع، خدمات، لوجستيات).
+     - شارات الحالة الثلاثية: [مُثبت ونشط]، [متاح للتثبيت]، و[يتطلب ترقية الباقة] مع قفل الأمان واسم الباقة المحددة.
+  3. **التثبيت والإلغاء الفوري (Instant Real-time Toggle):**
+     - إمكانية تفعيل أو إلغاء تثبيت أي تطبيق بضغطة زر واحدة مع تأكيد الأمان (`systemConfirm`) ومنع التعطيل العرضي للتطبيقات الحيوية، وتحديث القوائم الجانبية فورياً بدون إعادة تحميل الصفحة.
+     - معالجة التبعيات التشغيلية (Dependencies Resolution) آلياً قبل التفعيل.
+  4. **محرك ترقية الاشتراكات الذاتي (Upselling & Subscription Engine):**
+     - التطبيقات التي تتجاوز باقة المستأجر الحالية تعرض زر "ترقية الباقة" الذي يفتح نافذة مواصفات التطبيق ومميزاته ورابطاً مباشراً لصفحة الاشتراكات والترقية.
+  5. **شريط البحث والتصنيف اللحظي والمؤشرات (KPIs & Filters):**
+     - 9 تبويبات تصفية سريعة مع عداد لحظي لكل تصنيف، وشريط بحث فوري يطابق اسم التطبيق، وصفه، وفئته ومميزاته، مع شريط إحصائيات علوي يرصد إجمالي التطبيقات والمفعل منها والمتاح.
