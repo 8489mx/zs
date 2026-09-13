@@ -7,10 +7,16 @@ import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { formatBranchStockLocationName } from '../../common/utils/branch-stock.util';
+import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
+import { getIndustryProfile, normalizeIndustryProfileKey, listSupportedIndustryProfiles, type IndustryProfile } from '../../core/tenant/industry-profiles';
 
 @Injectable()
 export class SettingsService {
-  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService) {}
+  constructor(
+    @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly audit: AuditService,
+    private readonly authCache: AuthCacheService,
+  ) {}
 
   // ── Plan features TTL cache (5 min) ─────────────────────────────────────
   private readonly _planFeaturesCache = new Map<string, { features: string[]; expiresAt: number }>();
@@ -115,17 +121,25 @@ export class SettingsService {
       return acc;
     }, {});
 
-    // If core business details are missing in settings, fallback to tenant profile
-    if (!settings.storeName || !settings.companyName || !settings.phone) {
-      const tenant = await this.db.selectFrom('tenants').selectAll().where('id', '=', scope.tenantId).executeTakeFirst();
-      if (tenant) {
-        if (!settings.storeName && tenant.business_name) settings.storeName = tenant.business_name;
-        if (!settings.companyName && tenant.business_name) settings.companyName = tenant.business_name;
-        if (!settings.phone && tenant.owner_phone) settings.phone = tenant.owner_phone;
-        if (!settings.ownerName && tenant.owner_name) settings.ownerName = tenant.owner_name;
-        if (!settings.email && tenant.owner_email) settings.email = tenant.owner_email;
-        if (!settings.activityType && tenant.activity_type) settings.activityType = tenant.activity_type;
-      }
+    // Ensure core business details and activity profile are strictly synced with tenant
+    const tenant = await this.db.selectFrom('tenants').selectAll().where('id', '=', scope.tenantId).executeTakeFirst();
+    if (tenant) {
+      if (!settings.storeName && tenant.business_name) settings.storeName = tenant.business_name;
+      if (!settings.companyName && tenant.business_name) settings.companyName = tenant.business_name;
+      if (!settings.phone && tenant.owner_phone) settings.phone = tenant.owner_phone;
+      if (!settings.ownerName && tenant.owner_name) settings.ownerName = tenant.owner_name;
+      if (!settings.email && tenant.owner_email) settings.email = tenant.owner_email;
+
+      const effectiveType = tenant.activity_type || (settings.activityType as string) || 'retail_general';
+      const profile = getIndustryProfile(effectiveType);
+      settings.activityType = profile.key;
+      settings.pillar = profile.pillar;
+      settings.industryProfile = profile;
+    } else {
+      const profile = getIndustryProfile((settings.activityType as string) || 'retail_general');
+      settings.activityType = profile.key;
+      settings.pillar = profile.pillar;
+      settings.industryProfile = profile;
     }
 
     this._settingsCache.set(cacheKey, { data: settings, expiresAt: Date.now() + this.CACHE_TTL_MS });
@@ -441,5 +455,50 @@ export class SettingsService {
       }
     }
     return { ok: true, removedLocationId: String(id), ...(await this.listLocations(actor)) };
+  }
+
+  getIndustryProfiles(): IndustryProfile[] {
+    return listSupportedIndustryProfiles();
+  }
+
+  async setActivityProfile(activityType: string, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = this.scope(actor);
+    const normalizedKey = normalizeIndustryProfileKey(activityType);
+    const profile = getIndustryProfile(normalizedKey);
+
+    // 1. Update tenants table
+    await this.db
+      .updateTable('tenants')
+      .set({ activity_type: normalizedKey })
+      .where('id', '=', scope.tenantId)
+      .execute();
+
+    // 2. Also persist in settings table for backwards compatibility
+    const settingsEntries = [
+      ['activityType', normalizedKey],
+      ['businessIndustry', normalizedKey],
+    ];
+    for (const [key, value] of settingsEntries) {
+      await sql`insert into settings (key, value, tenant_id, account_id) values (${key}, ${JSON.stringify(value)}, ${scope.tenantId}, ${scope.accountId}) on conflict (tenant_id, key) do update set value = excluded.value, account_id = excluded.account_id`.execute(this.db);
+    }
+
+    // 3. Invalidate caches
+    this.invalidateSettingsCache(scope.tenantId);
+    this.invalidatePlanFeaturesCache(scope.tenantId);
+    this.authCache.invalidateTenant(scope.tenantId);
+
+    await this.audit.log(
+      'تغيير نمط المنظومة',
+      `تم تغيير نمط ونشاط المنظومة إلى [${profile.labelAr}] (${profile.pillar}) بواسطة ${actor.username}`,
+      actor,
+    );
+
+    return {
+      ok: true,
+      activityType: normalizedKey,
+      pillar: profile.pillar,
+      profile,
+      message: `تم ضبط نمط المنظومة بنجاح إلى: ${profile.labelAr}`,
+    };
   }
 }

@@ -13,6 +13,7 @@ import { requireTenantScope } from '../utils/tenant-boundary';
 import { SUPER_ADMIN_PERMISSIONS } from '../constants/super-admin-permissions';
 import { generatePhoneSearchVariants } from '../../utils/phone-utils';
 import { AuthCacheService } from './auth-cache.service';
+import { getIndustryProfile, resolvePillarScopedFeatures } from '../../tenant/industry-profiles';
 
 function safeJsonArray(value: unknown): string[] {
   if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
@@ -140,7 +141,7 @@ export class SessionService {
 
     const tenant = await this.db
       .selectFrom('tenants')
-      .select(['id', 'slug', 'business_name', 'status', 'trial_ends_at', 'created_at', 'plan_id', 'extra_features'])
+      .select(['id', 'slug', 'business_name', 'status', 'trial_ends_at', 'created_at', 'plan_id', 'extra_features', 'activity_type'])
       .where('id', '=', tenantId)
       .executeTakeFirst();
 
@@ -190,15 +191,20 @@ export class SessionService {
     }
     
     const extraFeatures = Array.isArray(tenant.extra_features) ? tenant.extra_features : typeof tenant.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [];
-    const extraAdd = extraFeatures.filter((f: string) => !f.startsWith('-'));
-    const extraRemove = extraFeatures.filter((f: string) => f.startsWith('-')).map((f: string) => f.substring(1));
-    const activeFeatures = Array.from(new Set([...planFeatures, ...extraAdd])).filter(f => !extraRemove.includes(f));
+    const profile = getIndustryProfile(tenant.activity_type);
+    const activeFeatures = resolvePillarScopedFeatures(
+      tenant.activity_type,
+      planFeatures,
+      extraFeatures,
+    );
 
     const payload = {
       id: tenant.id,
       accountId,
       slug: tenant.slug || tenant.id,
       businessName: tenant.business_name || '',
+      activityType: profile.key,
+      pillar: profile.pillar,
       status: tenant.status || 'active',
       isTrial: tenant.status === 'trial',
       trialEndsAt: trialEndsAt ? trialEndsAt.toISOString() : null,
@@ -226,7 +232,7 @@ export class SessionService {
       .selectFrom('sessions as s')
       .innerJoin('users as u', 'u.id', 's.user_id')
       .leftJoin('tenants as t', 't.id', 's.tenant_id')
-      .select(['s.id as session_id', 's.user_id as session_user_id', 's.tenant_id as session_tenant_id', 's.account_id as session_account_id', 's.expires_at', 'u.id as user_id', 'u.username', 'u.role', 'u.permissions_json', 'u.is_active', 'u.locked_until', 'u.tenant_id', 'u.account_id', 't.plan_id', 't.extra_features'])
+      .select(['s.id as session_id', 's.user_id as session_user_id', 's.tenant_id as session_tenant_id', 's.account_id as session_account_id', 's.expires_at', 'u.id as user_id', 'u.username', 'u.role', 'u.permissions_json', 'u.is_active', 'u.locked_until', 'u.tenant_id', 'u.account_id', 't.plan_id', 't.extra_features', 't.activity_type'])
       .where('s.id', '=', sessionId)
       .executeTakeFirst();
     if (!row) return null;
@@ -241,7 +247,19 @@ export class SessionService {
     const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(String(tenantContext.tenantId || '').trim());
     const effectiveRole = (row.role === 'super_admin' && !isPlatformTenant) ? 'admin' : row.role;
     const permissions = effectiveRole === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(row.permissions_json)])) : safeJsonArray(row.permissions_json);
-    const auth: AuthContext = { userId: row.user_id, sessionId: row.session_id, username: row.username, role: effectiveRole, permissions, planId: row.plan_id || undefined, extraFeatures: safeJsonArray(row.extra_features), ...tenantContext };
+    const profile = getIndustryProfile(row.activity_type);
+    const auth: AuthContext = {
+      userId: row.user_id,
+      sessionId: row.session_id,
+      username: row.username,
+      role: effectiveRole,
+      permissions,
+      planId: row.plan_id || undefined,
+      extraFeatures: safeJsonArray(row.extra_features),
+      activityType: profile.key,
+      pillar: profile.pillar,
+      ...tenantContext,
+    };
 
     // Cache the resolved auth context!
     this.authCache.setSession(sessionId, auth);

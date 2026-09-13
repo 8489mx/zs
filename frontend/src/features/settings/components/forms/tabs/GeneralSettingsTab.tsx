@@ -5,304 +5,8 @@ import type { Branch, Location } from '@/types/domain';
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { readFileAsDataUrl, RequiredField, comboListStyle, comboRowStyle, comboCreateStyle } from '@/features/settings/components/forms/settings-forms.shared';
-import { CustomSelect } from '@/shared/ui/custom-select';
-import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
-import { AppIcons } from '@/shared/components/icons/AppIcons';
-import { useAuthStore } from '@/stores/auth-store';
 import { applyAccentColorToDocument } from '@/lib/theme';
-
-function LockIcon({ size = 12 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle', marginInlineEnd: '3px' }}>
-      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-
-const INDUSTRY_OPTIONS = [
-  { value: 'general', label: 'تجارة عامة ومؤسسات (افتراضي)', icon: <ProductIcon name="box-package" size={16} /> },
-  { value: 'contracting', label: 'شركات المقاولات وإدارة المشاريع (ERP)', icon: <AppIcons.Building size={16} /> },
-  { value: 'maritime', label: 'الشحن والخدمات اللوجستية والموانئ (ERP)', icon: <AppIcons.Ship size={16} /> },
-  { value: 'ecommerce', label: 'المتاجر الرقمية والتجارة الإلكترونية', icon: <ProductIcon name="cart-shopping" size={16} /> },
-  { value: 'import_export', label: 'الاستيراد والتصدير والرسائل الجمركية', icon: <ProductIcon name="box-package" size={16} /> },
-  { value: 'supermarket', label: 'سوبر ماركت وبقالة ومواد غذائية', icon: <ProductIcon name="cart-shopping" size={16} /> },
-  { value: 'spices', label: 'عطارة وبقوليات ومحامص ومطاحن', icon: <ProductIcon name="herb-leaf" size={16} /> },
-  { value: 'appliances_installments', label: 'أجهزة كهربائية ومنزلية ومبيعات تقسيط', icon: <ProductIcon name="box-package" size={16} /> },
-  { value: 'fashion', label: 'ملابس وأحذية ومقاسات وألوان', icon: <ProductIcon name="tshirt" size={16} /> },
-  { value: 'perfumes', label: 'عطور ومستحضرات تجميل وتركيبات', icon: <ProductIcon name="perfume-spray" size={16} /> },
-  { value: 'pharmacy', label: 'صيدلية ومستلزمات طبية ورقابة FEFO', icon: <ProductIcon name="pill-capsule" size={16} /> },
-  { value: 'electronics', label: 'موبايلات وإلكترونيات وصيانة وسيريال', icon: <ProductIcon name="smartphone" size={16} /> },
-  { value: 'cafe', label: 'كافيهات ومطاعم وطاولات ومطبخ KDS', icon: <ProductIcon name="coffee-cup" size={16} /> },
-  { value: 'services', label: 'شركات ومكاتب خدمية واستشارية', icon: <ProductIcon name="box-package" size={16} /> },
-  { value: 'wholesale', label: 'تجارة جملة وتوزيع وموزعون', icon: <ProductIcon name="box-package" size={16} /> },
-  { value: 'manufacturing', label: 'تصنيع خفيف ومعامل وورش BOM', icon: <ProductIcon name="box-package" size={16} /> },
-];
-
-function applyIndustryAutomation(
-  industry: string,
-  setValue: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>['setValue']
-) {
-  setValue('businessIndustry', industry as any, { shouldDirty: true, shouldValidate: true });
-
-  switch (industry) {
-    case 'contracting':
-      setValue('contractingModuleEnabled', true, { shouldDirty: true });
-      setValue('enableEnterpriseFeatures', true, { shouldDirty: true });
-      setValue('purchasesModuleEnabled', true, { shouldDirty: true });
-      setValue('inventoryModuleEnabled', true, { shouldDirty: true });
-      setValue('hrModuleEnabled', true, { shouldDirty: true });
-      setValue('fixedAssetsModuleEnabled', true, { shouldDirty: true });
-      setValue('taxDeclarationModuleEnabled', true, { shouldDirty: true });
-      setValue('posModuleEnabled', false, { shouldDirty: true });
-      setValue('requireCashierShiftForSales', false, { shouldDirty: true });
-      setValue('weightedBarcodeEnabled', false, { shouldDirty: true });
-      setValue('clothingModuleEnabled', false, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
-      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      setValue('storefrontModuleEnabled', false, { shouldDirty: true });
-      setValue('deliveryFleetModuleEnabled', false, { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      break;
-
-    case 'maritime':
-      setValue('maritimeFreightModuleEnabled', true, { shouldDirty: true });
-      setValue('enableEnterpriseFeatures', true, { shouldDirty: true });
-      setValue('purchasesModuleEnabled', true, { shouldDirty: true });
-      setValue('hrModuleEnabled', true, { shouldDirty: true });
-      setValue('taxDeclarationModuleEnabled', true, { shouldDirty: true });
-      setValue('posModuleEnabled', false, { shouldDirty: true });
-      setValue('requireCashierShiftForSales', false, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('weightedBarcodeEnabled', false, { shouldDirty: true });
-      setValue('clothingModuleEnabled', false, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
-      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('storefrontModuleEnabled', false, { shouldDirty: true });
-      setValue('deliveryFleetModuleEnabled', false, { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      break;
-
-    case 'spices':
-      setValue('clothingModuleEnabled', true, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', true, { shouldDirty: true });
-      setValue('weightedBarcodeEnabled', true, { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('servicesModuleEnabled', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      break;
-
-    case 'supermarket':
-      setValue('weightedBarcodeEnabled', true, { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      setValue('clothingModuleEnabled', false, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
-      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('servicesModuleEnabled', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      break;
-
-    case 'fashion':
-      setValue('clothingModuleEnabled', true, { shouldDirty: true });
-      setValue('defaultProductKind', 'fashion', { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('weightedBarcodeEnabled', false, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
-      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('servicesModuleEnabled', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      break;
-
-    case 'perfumes':
-      setValue('clothingModuleEnabled', true, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', true, { shouldDirty: true });
-      setValue('defaultProductKind', 'fashion', { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('weightedBarcodeEnabled', false, { shouldDirty: true });
-      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('servicesModuleEnabled', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      break;
-
-    case 'pharmacy':
-      setValue('enablePharmacyModule', true, { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      setValue('clothingModuleEnabled', false, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
-      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
-      setValue('servicesModuleEnabled', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      break;
-
-    case 'electronics':
-      setValue('enableMobileStoreFeatures', true, { shouldDirty: true });
-      setValue('servicesModuleEnabled', true, { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      setValue('clothingModuleEnabled', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      break;
-
-    case 'cafe':
-      setValue('restaurantModuleEnabled', true, { shouldDirty: true });
-      setValue('posKitchenPrinterEnabled', true, { shouldDirty: true });
-      setValue('defaultPosMode', 'touch', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      setValue('clothingModuleEnabled', false, { shouldDirty: true });
-      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('servicesModuleEnabled', false, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      break;
-
-    case 'ecommerce':
-      setValue('storefrontModuleEnabled', true, { shouldDirty: true });
-      setValue('deliveryFleetModuleEnabled', true, { shouldDirty: true });
-      setValue('enableEnterpriseFeatures', true, { shouldDirty: true });
-      setValue('posModuleEnabled', false, { shouldDirty: true });
-      setValue('requireCashierShiftForSales', false, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      setValue('clothingModuleEnabled', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('servicesModuleEnabled', false, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      break;
-
-    case 'import_export':
-      setValue('enableEnterpriseFeatures', true, { shouldDirty: true });
-      setValue('purchasesModuleEnabled', true, { shouldDirty: true });
-      setValue('inventoryModuleEnabled', true, { shouldDirty: true });
-      setValue('taxDeclarationModuleEnabled', true, { shouldDirty: true });
-      setValue('installmentsModuleEnabled', true, { shouldDirty: true });
-      setValue('posModuleEnabled', false, { shouldDirty: true });
-      setValue('requireCashierShiftForSales', false, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      setValue('clothingModuleEnabled', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('servicesModuleEnabled', false, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
-      setValue('weightedBarcodeEnabled', false, { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      break;
-
-    case 'appliances_installments':
-      setValue('installmentsModuleEnabled', true, { shouldDirty: true });
-      setValue('enableEnterpriseFeatures', true, { shouldDirty: true });
-      setValue('deliveryFleetModuleEnabled', true, { shouldDirty: true });
-      setValue('posModuleEnabled', true, { shouldDirty: true });
-      setValue('requireCashierShiftForSales', true, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('servicesModuleEnabled', false, { shouldDirty: true });
-      setValue('clothingModuleEnabled', false, { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      break;
-
-    case 'services':
-      setValue('servicesModuleEnabled', true, { shouldDirty: true });
-      setValue('enableEnterpriseFeatures', true, { shouldDirty: true });
-      setValue('posModuleEnabled', false, { shouldDirty: true });
-      setValue('requireCashierShiftForSales', false, { shouldDirty: true });
-      setValue('inventoryModuleEnabled', false, { shouldDirty: true });
-      setValue('weightedBarcodeEnabled', false, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      setValue('clothingModuleEnabled', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      break;
-
-    case 'wholesale':
-      setValue('enableEnterpriseFeatures', true, { shouldDirty: true });
-      setValue('deliveryFleetModuleEnabled', true, { shouldDirty: true });
-      setValue('installmentsModuleEnabled', true, { shouldDirty: true });
-      setValue('purchasesModuleEnabled', true, { shouldDirty: true });
-      setValue('inventoryModuleEnabled', true, { shouldDirty: true });
-      setValue('taxDeclarationModuleEnabled', true, { shouldDirty: true });
-      setValue('posModuleEnabled', true, { shouldDirty: true });
-      setValue('requireCashierShiftForSales', true, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      setValue('clothingModuleEnabled', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('servicesModuleEnabled', false, { shouldDirty: true });
-      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      break;
-
-    case 'manufacturing':
-      setValue('manufacturingModuleEnabled', true, { shouldDirty: true });
-      setValue('enableEnterpriseFeatures', true, { shouldDirty: true });
-      setValue('purchasesModuleEnabled', true, { shouldDirty: true });
-      setValue('inventoryModuleEnabled', true, { shouldDirty: true });
-      setValue('taxDeclarationModuleEnabled', true, { shouldDirty: true });
-      setValue('posModuleEnabled', false, { shouldDirty: true });
-      setValue('requireCashierShiftForSales', false, { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      setValue('clothingModuleEnabled', false, { shouldDirty: true });
-      setValue('enablePharmacyModule', false, { shouldDirty: true });
-      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
-      setValue('servicesModuleEnabled', false, { shouldDirty: true });
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      break;
-
-    case 'general':
-    default:
-      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
-      setValue('defaultProductKind', 'standard', { shouldDirty: true });
-      setValue('contractingModuleEnabled', false, { shouldDirty: true });
-      setValue('maritimeFreightModuleEnabled', false, { shouldDirty: true });
-      break;
-  }
-}
+import { IndustryModeSelectorCard } from '@/features/settings/components/workspace-sections/IndustryModeSelectorCard';
 
 function getIndustrySummary(industry: string): string {
   switch (industry) {
@@ -416,9 +120,6 @@ export function GeneralSettingsTab({
   const brandName = form.watch('brandName');
   const accentColor = form.watch('accentColor') || '#170c5c';
   const logoData = form.watch('logoData');
-  const user = useAuthStore((s) => s.user);
-  const isSuperAdmin = user?.role === 'super_admin';
-
   useEffect(() => {
     if (accentColor) {
       applyAccentColorToDocument(accentColor);
@@ -427,6 +128,9 @@ export function GeneralSettingsTab({
 
   return (
     <div style={{ display: activeTab === 'general' ? 'flex' : 'none', flexDirection: 'column', gap: '16px' }}>
+      {/* بطاقة نمط المنظومة وعزل الأنشطة (3 Core Pillars & 5 Sub-Verticals) */}
+      <IndustryModeSelectorCard settings={form.getValues() as any} canManageSettings={canManageSettings} />
+
       {/* Top 2-Column Balanced Dashboard */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px' }}>
         
@@ -559,29 +263,14 @@ export function GeneralSettingsTab({
 
             <div className="field">
               <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>نوع النشاط التجاري الرئيسي للمنشأة</span>
-                {!isSuperAdmin ? (
-                  <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                    <LockIcon size={11} /> خاص بإدارة المنصة
-                  </span>
-                ) : (
-                  <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>يضبط الموديولات والأدوات تلقائياً</span>
-                )}
+                <span>نشاط المنشأة والقطاع الفعال</span>
+                <span style={{ fontSize: '0.7rem', background: '#eef2ff', color: '#170e5e', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                  محدد بواسطة نمط المنظومة
+                </span>
               </label>
-              <CustomSelect
-                value={form.watch('businessIndustry') || 'general'}
-                onChange={(val) => applyIndustryAutomation(val, form.setValue)}
-                options={INDUSTRY_OPTIONS}
-                disabled={disabled || !isSuperAdmin}
-                placeholder="اختر نوع النشاط..."
-              />
-              <div style={{ marginTop: '5px', fontSize: '0.74rem', color: '#475569', background: '#f8fafc', padding: '5px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                {getIndustrySummary(form.watch('businessIndustry') || 'general')}
-                {!isSuperAdmin && (
-                  <div style={{ marginTop: '4px', fontSize: '0.7rem', color: '#92400e', fontWeight: 600 }}>
-                    ملاحظة: لتغيير نوع النشاط التجاري للمنشأة، يرجى التواصل مع إدارة المنصة (Super Admin).
-                  </div>
-                )}
+              <div style={{ padding: '8px 12px', borderRadius: '6px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                <span>{getIndustrySummary(form.watch('businessIndustry') || 'general')}</span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>يمكنك تغييره مباشرة من بطاقة الأنماط أعلاه</span>
               </div>
             </div>
 

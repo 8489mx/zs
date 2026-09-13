@@ -2,6 +2,9 @@ import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, Req, Use
 import { MaritimeFreightService } from './maritime-freight.service';
 import { MaritimeMailService, MaritimeMailConfig } from './maritime-mail.service';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
+import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
+import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
+import { AllowAuthenticated } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { CreateMaritimeInquiryDto } from './dto/create-inquiry.dto';
 import { CreateMaritimeRfqDto } from './dto/create-rfq.dto';
@@ -12,7 +15,9 @@ import { UpdateMaritimeContainerDto } from './dto/update-container.dto';
 import { DcsaMilestoneKey } from './maritime-freight.types';
 
 @Controller(['maritime-freight', 'api/maritime-freight'])
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireFeature('maritime_freight')
+@AllowAuthenticated()
 export class MaritimeFreightController {
   constructor(
     private readonly freightService: MaritimeFreightService,

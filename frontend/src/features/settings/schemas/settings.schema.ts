@@ -48,6 +48,8 @@ export const settingsFormSchema = z.object({
     'supermarket',
     'cafe',
   ]).optional().default('general'),
+  activityType: z.string().optional(),
+  pillar: z.string().optional(),
   currentBranchId: z.string().optional(),
   currentLocationId: z.string().optional(),
   onboardingCompleted: z.boolean().optional().default(false),

@@ -1,6 +1,9 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ContractingService } from './contracting.service';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
+import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
+import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
+import { AllowAuthenticated } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import {
   CreateProjectDto,
@@ -46,7 +49,9 @@ import {
 
 
 @Controller(['contracting', 'api/contracting'])
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireFeature('contracting')
+@AllowAuthenticated()
 export class ContractingController {
   constructor(private readonly contractingService: ContractingService) {}
 

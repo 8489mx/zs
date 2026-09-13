@@ -875,6 +875,7 @@ export function buildSettingsFromIndustry(industryId: IndustryPresetId): Record<
   const preset = INDUSTRY_PRESETS[industryId] || INDUSTRY_PRESETS.retail;
   const patch: Record<string, any> = {
     businessIndustry: industryId,
+    activityType: industryId,
     onboardingCompleted: true,
   };
 

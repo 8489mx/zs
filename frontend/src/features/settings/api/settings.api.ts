@@ -116,6 +116,15 @@ function sanitizeUserPayload(payload: ManagedUserRecord) {
 
 export const settingsApi = {
   settings: async () => unwrapByKey<AppSettings>(await http<AppSettings | { settings: AppSettings }>('/api/settings'), 'settings', {} as AppSettings),
+  industryProfiles: () =>
+    http<{ profiles: Array<{ key: string; pillar: string; labelAr: string; labelEn: string; descriptionAr: string; defaultRoute: string }> }>(
+      '/api/settings/industry-profiles',
+    ),
+  setActivityProfile: (activityType: string) =>
+    http<{ ok: boolean; activityType: string; pillar: string; message: string }>('/api/settings/activity-profile', {
+      method: 'PUT',
+      body: JSON.stringify({ activityType }),
+    }),
   branches: async () => unwrapArray<Branch>(await http<Branch[] | { branches: Branch[] }>('/api/branches'), 'branches'),
   locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/settings/locations'), 'locations'),
   update: async (payload: unknown) => unwrapByKey<AppSettings>(await http<AppSettings | { settings: AppSettings }>('/api/settings', { method: 'PUT', body: JSON.stringify(payload) }), 'settings', {} as AppSettings),

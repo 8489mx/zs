@@ -19,6 +19,8 @@ export interface AuthTenant {
   accountId: string;
   slug: string;
   businessName: string;
+  activityType?: string;
+  pillar?: string;
   status: 'trial' | 'active' | 'suspended' | 'expired' | string;
   isTrial: boolean;
   trialEndsAt: string | null;

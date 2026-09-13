@@ -8,4 +8,6 @@ export interface AuthContext {
   accountId?: string;
   planId?: string;
   extraFeatures?: string[];
+  activityType?: string;
+  pillar?: string;
 }

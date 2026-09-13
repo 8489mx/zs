@@ -6,6 +6,7 @@ import { SettingsBackupService } from './services/settings-backup.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { BranchPayloadDto } from './dto/branch-payload.dto';
 import { LocationPayloadDto } from './dto/location-payload.dto';
+import { UpdateActivityProfileDto } from './dto/activity-profile.dto';
 
 @Controller('api')
 @UseGuards(SessionAuthGuard)
@@ -82,5 +83,19 @@ export class SettingsController {
   deleteLocation(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
     return this.settingsService.deleteLocation(id, req.authContext!);
+  }
+
+  @Get('settings/industry-profiles')
+  getIndustryProfiles(): Record<string, unknown> {
+    return { profiles: this.settingsService.getIndustryProfiles() };
+  }
+
+  @Put('settings/activity-profile')
+  setActivityProfile(
+    @Body() payload: UpdateActivityProfileDto,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    this.assertSettingsPermission(req);
+    return this.settingsService.setActivityProfile(payload.activityType, req.authContext!);
   }
 }

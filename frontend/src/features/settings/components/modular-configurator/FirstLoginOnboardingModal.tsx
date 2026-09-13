@@ -9,6 +9,7 @@ import {
 import { useSettingsUpdateMutation } from '@/features/settings/hooks/useSettingsMutations';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { CheckIcon } from '@/shared/components/icons/AppIcons';
+import { settingsApi } from '@/features/settings/api/settings.api';
 
 interface FirstLoginOnboardingModalProps {
   open: boolean;
@@ -146,6 +147,7 @@ export function FirstLoginOnboardingModal({
     try {
       const patch = buildSettingsFromIndustry(selectedIndustry);
       await updateSettingsMutation.mutateAsync(patch as any);
+      await settingsApi.setActivityProfile(selectedIndustry).catch(() => undefined);
     } catch {
       // Handled by mutation error toast
     } finally {

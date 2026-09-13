@@ -23,6 +23,7 @@ import { IdempotencyService } from '../../../core/idempotency/idempotency.servic
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 import { WhatsAppGatewayService } from '../../settings/services/whatsapp-gateway.service';
 import { CashierFraudRadarService } from './cashier-fraud-radar.service';
+import { PlanFeatureService } from '../../../core/auth/services/plan-feature.service';
 
 @Injectable()
 export class SalesWriteService {
@@ -37,6 +38,7 @@ export class SalesWriteService {
     private readonly query: SalesQueryService,
     private readonly accountingPosting: AccountingPostingService,
     private readonly idempotency: IdempotencyService,
+    private readonly planFeatureService: PlanFeatureService,
     @Optional() private readonly whatsappService?: WhatsAppGatewayService,
     @Optional() private readonly fraudRadarService?: CashierFraudRadarService,
   ) {}
@@ -235,6 +237,10 @@ export class SalesWriteService {
   ) {
     if (depth > 6) {
       throw new AppError('تجاوز الحد الأقصى لعمق شجرة التركيبات التصنيعية المتداخلة', 'BOM_RECURSION_LIMIT', 400);
+    }
+
+    if (!this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'manufacturing')) {
+      return;
     }
 
     for (const item of items) {
@@ -1137,9 +1143,11 @@ export class SalesWriteService {
           }).execute();
         }
 
-        await this.deductPharmacyBatchesFefo(trx, item.productId, item.requiredQty, scope, allowNegativeStockSales);
+        if (this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'pharmacy')) {
+          await this.deductPharmacyBatchesFefo(trx, item.productId, item.requiredQty, scope, allowNegativeStockSales);
+        }
 
-        if (item.modifiers && Array.isArray(item.modifiers)) {
+        if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {
             if (mod.productId) {
               const modifierQty = Number(mod.qty || 1) * Number(item.qty || 1);
@@ -1925,9 +1933,11 @@ export class SalesWriteService {
           }).execute();
         }
 
-        await this.deductPharmacyBatchesFefo(trx, item.productId, item.requiredQty, scope, allowNegativeStockSales);
+        if (this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'pharmacy')) {
+          await this.deductPharmacyBatchesFefo(trx, item.productId, item.requiredQty, scope, allowNegativeStockSales);
+        }
 
-        if (item.modifiers && Array.isArray(item.modifiers)) {
+        if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {
             if (mod.productId) {
               const modifierQty = Number(mod.qty || 1) * Number(item.qty || 1);

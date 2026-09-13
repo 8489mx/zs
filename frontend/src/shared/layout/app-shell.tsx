@@ -330,15 +330,16 @@ export function AppShell({ children }: PropsWithChildren) {
   };
 
   const visibleNavigationItems = useMemo(() => {
-    const industry = String(settings?.businessIndustry || 'general').toLowerCase();
-    const isContractingVertical = industry === 'contracting';
-    const isMaritimeVertical = industry === 'maritime';
-    const isRetailOrMarketVertical = ['retail', 'supermarket', 'spices', 'perfumes', 'fashion'].includes(industry);
-    const isRestaurantVertical = ['restaurant', 'cafe'].includes(industry);
-    const isPharmacyVertical = industry === 'pharmacy';
-    const isElectronicsVertical = industry === 'electronics';
-    const isImportVertical = industry === 'import_export';
-    const isServicesVertical = industry === 'services';
+    const rawActivity = String(tenant?.activityType || tenant?.pillar || settings?.activityType || settings?.businessIndustry || 'retail_general').trim().toLowerCase();
+    const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
+    const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+    const isRestaurantVertical = rawActivity === 'restaurant' || rawActivity === 'cafe' || rawActivity === 'مطعم' || rawActivity === 'كافيه';
+    const isPharmacyVertical = rawActivity === 'pharmacy' || rawActivity === 'صيدلية' || rawActivity === 'صيدليات';
+    const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
+    const isElectronicsVertical = rawActivity === 'electronics' || rawActivity === 'maintenance' || rawActivity === 'repair' || rawActivity === 'صيانة';
+    const isImportVertical = rawActivity === 'import_export' || rawActivity === 'import';
+    const isServicesVertical = rawActivity === 'services';
+    const isRetailOrMarketVertical = !isContractingVertical && !isMaritimeVertical && !isRestaurantVertical && !isPharmacyVertical && !isManufacturingVertical && !isElectronicsVertical && !isImportVertical && !isServicesVertical;
 
     const contractingOrder = [
       'dashboard',
@@ -771,6 +772,10 @@ export function AppShell({ children }: PropsWithChildren) {
 
         if (isElectronicsVertical) {
           if ((item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) || (item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key === 'kds' || item.key === 'displays' || item.key === 'signage' || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
+        }
+
+        if (isManufacturingVertical) {
+          if ((item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) || (item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key === 'kds' || item.key === 'displays' || item.key === 'signage' || item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history' || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
         }
 
         if (isImportVertical) {

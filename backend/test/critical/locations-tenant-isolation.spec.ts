@@ -34,9 +34,15 @@ const mockAudit: any = {
   log: async () => {},
 };
 
+const mockAuthCache: any = {
+  invalidateTenant: () => {},
+  getTenantPayload: () => null,
+  setTenantPayload: () => {},
+};
+
 async function runTenantIsolationTest() {
   console.log('Running SettingsService Locations Tenant Isolation Test...');
-  const settingsService = new SettingsService(mockDb, mockAudit);
+  const settingsService = new SettingsService(mockDb, mockAudit, mockAuthCache);
 
   const actor: AuthContext = {
     userId: 99,

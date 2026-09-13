@@ -1,5 +1,8 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
+import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
+import { RequireFeature } from '../../../core/auth/decorators/feature.decorator';
+import { AllowAuthenticated } from '../../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import {
   KdsService,
@@ -9,7 +12,9 @@ import {
 } from '../services/kds.service';
 
 @Controller('api/sales/kds')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireFeature('restaurant')
+@AllowAuthenticated()
 export class KdsController {
   constructor(private readonly kdsService: KdsService) {}
 

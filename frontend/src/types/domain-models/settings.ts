@@ -19,6 +19,8 @@ export interface AppSettings {
   accentColor?: string;
   logoData?: string;
   businessIndustry?: string;
+  activityType?: string;
+  pillar?: string;
   currentBranchId?: string;
   currentLocationId?: string;
   printShowDocumentType?: boolean;

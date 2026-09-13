@@ -3508,3 +3508,35 @@
   4. **عزل التذييل وضمان تناسق الأزرار (StandardDialogFooter Integration):**
      - توحيد تمرير أزرار الحفظ والإلغاء عبر خاصية `footerActions` بمكون `StandardDialog` لضمان ثبات التذييل ومنع أي تكرار أو ازدواجية في الحشو والحدود السفلية.
 
+---
+
+## 112. معمارية العزل القطاعي الصارم وأنماط الأنشطة التشغيلية (3 Core Pillars & 5 Sub-Verticals Isolation Architecture)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومعتمد ومفعل عبر بيئتي الساس السحابي (Cloud SaaS) والديسكتوب (Electron) بنفس الكود والمنطق الموحد.
+* **مسارات وملفات التنفيذ الأساسية:**
+  - `backend/src/core/tenant/industry-profiles.ts`: سجل الأنماط القطاعية المعياري وحساب الصلاحيات الموجهة قطاعياً (`resolvePillarScopedFeatures`).
+  - `backend/src/core/auth/services/session.service.ts`: ربط سياق الجلسة بـ `activityType` و `pillar` وإبطال الكاش اللحظي للمستأجرين.
+  - `backend/src/database/migrations/2040000000090_register_contracting_and_pillar_features.ts`: تسجيل ميزة `feat_contracting` في باقات النظام وملء بيانات المستأجرين بنمط التجزئة الافتراضي.
+  - `backend/src/modules/contracting/contracting.controller.ts`: حراسة مسارات المقاولات بواسطة `@RequireFeature('contracting')` و `@AllowAuthenticated()`.
+  - `backend/src/modules/maritime-freight/maritime-freight.controller.ts`: حراسة مسارات الشحن البحري بواسطة `@RequireFeature('maritime_freight')` و `@AllowAuthenticated()`.
+  - `backend/src/modules/sales/controllers/kds.controller.ts`: حراسة مسار شاشة المطبخ KDS بواسطة `@RequireFeature('restaurant')`.
+  - `backend/src/modules/sales/services/sales-write.service.ts`: فك الاشتباك بين حركات البيع والمخزون وحصر خصم خامات المطاعم وتواريخ الصلاحية FEFO وتصنيع العجز الآلي على الأنشطة المعنية فقط.
+  - `backend/src/modules/settings/settings.service.ts`: دوال `getIndustryProfiles` و `setActivityProfile` لمزامنة النمط في جدول `tenants` وجدول `settings` ومسح كاش التينانت لحظياً.
+  - `backend/src/modules/settings/settings.controller.ts`: مسارات `GET /api/settings/industry-profiles` و `PUT /api/settings/activity-profile`.
+  - `frontend/src/features/settings/components/workspace-sections/IndustryModeSelectorCard.tsx`: مكون بطاقة اختيار نمط المنظومة المؤسسي مع دعم الركائز الثلاث والتخصصات الفرعية وتأكيد التبديل عبر `systemConfirm`.
+  - `frontend/src/features/settings/components/forms/tabs/GeneralSettingsTab.tsx`: دمج بطاقة الأنماط في أعلى الإعدادات العامة وتنظيف حقول النشاط الموروثة.
+  - `frontend/src/shared/layout/app-shell.tsx`: العزل التام لعناصر القائمة الجانبية وإعادة ترتيب الشاشات الحصري لكل قطاع.
+  - `frontend/src/features/dashboard/pages/DashboardPage.tsx`: التوجيه الذكي التلقائي للشاشات الرئيسية المخصصة (المقاولات إلى `/contracting` والشحن إلى `/maritime-freight`).
+* **المعايير والخصائص الهندسية المنفذة:**
+  1. **الركائز الثلاث الأساسية (3 Core Pillars):**
+     - **قطاع المقاولات وإدارة المشاريع (`contracting`):** بيئة عمل مهيأة للمقايسات (BOQ)، المستخلصات، الأوامر التغييرية، عقود مقاولي الباطن، واليوميات الميدانية مع إخفاء تام لنقاط البيع السريعة وسلات التجزئة.
+     - **قطاع الشحن البحري واللوجستيات (`maritime_freight`):** بيئة عمل الخطوط الملاحية والموانئ، مقارنة أسعار النولون (RFQ)، عروض أسعار العملاء، أوامر تشغيل الشحنات، وتتبع الحاويات وفترات السماح مع عزل مخازن التجزئة والكاشير.
+     - **قطاع التجارة وإدارة الأعمال (`commerce`):** منظومة التجارة المتكاملة لنقاط البيع السريعة والمستودعات والمشتريات والفوترة، وتتفرع تحتها 5 تخصصات دقيقة:
+       1. التجزئة والتجارة العامة (`retail_general`): النمط التجاري القياسي العام.
+       2. الصيدليات والمستلزمات الطبية (`pharmacy`): تفعيل الرقابة الصارمة على الباتشات وتواريخ الصلاحية بنظام FEFO.
+       3. المطاعم والكافيهات (`restaurant`): تفعيل شاشات المطبخ KDS وخيارات وإضافات المأكولات.
+       4. التصنيع وخطوط الإنتاج الخفيف (`manufacturing`): تفعيل قوائم المكونات (BOM) وشجرة المنتجات.
+       5. مراكز الصيانة والخدمة (`maintenance`): تفعيل كروت الصيانة والضمان وتتبع أرقام السيريال (IMEI).
+  2. **الحراسة الأمنية التامة والتبديل بدون فقدان بيانات (Safe Zero-Data-Loss Architecture):**
+     - تغيير النمط يعيد تشكيل مسارات السايدبار والصلاحيات دون المساس أو حذف أي قيد أو فاتورة أو مشروع مسجل سابقاً.
+     - المزامنة الفورية مع `useAuthStore` و `useQueryClient` تتيح تبديل النمط وانعكاسه لحظياً بدون الحاجة لتسجيل الخروج أو وميض الصفحة.
+

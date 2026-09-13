@@ -26,7 +26,18 @@ import {
 
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user);
+  const tenant = useAuthStore((s) => s.tenant);
   const isPlatformAdminUser = isPlatformAdmin(user);
+
+  // Smart Pillar Redirects: Direct Contracting & Maritime tenants to their domain dashboards
+  if (tenant?.activityType === 'contracting' || tenant?.pillar === 'contracting') {
+    return <Navigate to="/contracting" replace />;
+  }
+
+  if (tenant?.activityType === 'maritime_freight' || tenant?.pillar === 'maritime_freight') {
+    return <Navigate to="/maritime-freight" replace />;
+  }
+
   const hasReportsFeature = useHasFeature('reports') || isPlatformAdminUser;
 
   if (!hasReportsFeature) {

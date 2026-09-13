@@ -7,6 +7,7 @@ import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { DEFAULT_TRIAL_DAYS } from './trial.constants';
 import { formatBranchStockLocationName } from '../../common/utils/branch-stock.util';
 import { SUPER_ADMIN_PERMISSIONS } from '../../core/auth/constants/super-admin-permissions';
+import { normalizeIndustryProfileKey } from '../../core/tenant/industry-profiles';
 
 export type TrialTenantProvisioningInput = {
   slug?: string;
@@ -296,7 +297,7 @@ export class TrialTenantProvisioningService {
     const ownerName = this.normalizeRequired(payload.ownerName, 'اسم المالك مطلوب.');
     const ownerPhone = this.normalizeRequired(this.normalizePhoneDigits(payload.ownerPhone), 'رقم الهاتف مطلوب.');
     const ownerEmail = this.normalizeOptional(payload.ownerEmail);
-    const activityType = this.normalizeOptional(payload.activityType);
+    const activityType = normalizeIndustryProfileKey(payload.activityType || payload.businessIndustry);
     const businessIndustry = this.normalizeOptional(payload.businessIndustry) || 'general';
     const days = Number.isFinite(Number(payload.days)) ? Math.max(1, Math.min(365, Number(payload.days))) : DEFAULT_TRIAL_DAYS;
     const providedSlug = this.normalizeOptional(payload.slug);
