@@ -359,7 +359,7 @@ function CloudBackupSettingsCard({ canManage }: { canManage: boolean }) {
 function DemoDataSandboxCard() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const isSuperAdmin = isPlatformAdmin(user) || isDesktopOfflineApp() || user?.role === 'super_admin' || user?.username?.trim().toLowerCase() === 'zs';
+  const isSuperAdmin = isPlatformAdmin(user);
   const [modalMode, setModalMode] = useState<'seed' | 'wipe' | null>(null);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -400,7 +400,7 @@ function DemoDataSandboxCard() {
     },
   });
 
-  if (!isSuperAdmin && !isEmpty) return null;
+  if (!isSuperAdmin) return null;
 
   return (
     <>
@@ -834,7 +834,6 @@ export function SettingsBackupImportSection({
   const isPlatformSuperAdmin = isPlatformAdmin(user);
   const isDesktopOffline = isDesktopOfflineApp();
   const canRestore = isPlatformSuperAdmin || isDesktopOffline || user?.role === 'super_admin' || (user?.role === 'admin' && canManageBackups) || user?.username?.trim().toLowerCase() === 'zs';
-  const isSuperAdmin = isPlatformSuperAdmin || isDesktopOffline || user?.role === 'super_admin' || user?.username?.trim().toLowerCase() === 'zs';
   const [isSnapshotsOpen, setIsSnapshotsOpen] = useState(false);
   const summaryPairs = formatSummaryPairs(backupResult);
   const resolvedFolder = backupFolderPathDraft || backupConfigQuery.data?.folderPath || backupConfigQuery.data?.defaultFolderPath || 'D:\\ZS Backups';
@@ -868,15 +867,17 @@ export function SettingsBackupImportSection({
                 تنزيل نسخة احتياطية
               </Button>
 
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => void saveBackupFileToFolderNow()}
-                disabled={backupBusy || !canManageBackups}
-                style={{ fontSize: '0.80rem', padding: '7px 12px', flex: '1 1 auto' }}
-              >
-                حفظ نسخة بالمجلد
-              </Button>
+              {(isDesktopOffline || isPlatformSuperAdmin) && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void saveBackupFileToFolderNow()}
+                  disabled={backupBusy || !canManageBackups}
+                  style={{ fontSize: '0.80rem', padding: '7px 12px', flex: '1 1 auto' }}
+                >
+                  حفظ نسخة بالمجلد
+                </Button>
+              )}
 
               <Button
                 type="button"
@@ -889,9 +890,11 @@ export function SettingsBackupImportSection({
               </Button>
             </div>
 
-            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-              المسار الافتراضي: <strong style={{ color: '#0f172a' }}>{resolvedFolder}</strong>
-            </span>
+            {(isDesktopOffline || isPlatformSuperAdmin) && (
+              <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                المسار الافتراضي: <strong style={{ color: '#0f172a' }}>{resolvedFolder}</strong>
+              </span>
+            )}
           </div>
 
           {/* 2-Column Balanced Controls */}
@@ -899,62 +902,68 @@ export function SettingsBackupImportSection({
             {/* Column 1: Automated Backups & Folder Config */}
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <strong style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 800 }}>
-                إعدادات النسخ التلقائي ومجلد الحفظ
+                {isDesktopOffline || isPlatformSuperAdmin ? 'إعدادات النسخ التلقائي ومجلد الحفظ' : 'النسخ الاحتياطي التلقائي'}
               </strong>
 
               {/* Folder Path Row */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  مسار مجلد النسخ الاحتياطية على السيرفر
-                </label>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <input
-                    value={backupFolderPathDraft}
-                    placeholder="مثال: D:\ZS Backups"
-                    onChange={(event) => setBackupFolderPathDraft(event.target.value)}
-                    disabled={backupBusy || !canManageBackups}
-                    style={{ flex: 1, padding: '7px 12px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', outline: 'none' }}
-                  />
-                  <Button type="button" variant="secondary" onClick={() => void testBackupFolder()} disabled={backupBusy || !canManageBackups} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
-                    اختبار
-                  </Button>
-                  <Button type="button" variant="secondary" onClick={() => void saveBackupConfig()} disabled={backupBusy || !canManageBackups} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
-                    حفظ
-                  </Button>
-                </div>
+              {(isDesktopOffline || isPlatformSuperAdmin) ? (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                    مسار مجلد النسخ الاحتياطية على السيرفر
+                  </label>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <input
+                      value={backupFolderPathDraft}
+                      placeholder="مثال: D:\ZS Backups"
+                      onChange={(event) => setBackupFolderPathDraft(event.target.value)}
+                      disabled={backupBusy || !canManageBackups}
+                      style={{ flex: 1, padding: '7px 12px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', outline: 'none' }}
+                    />
+                    <Button type="button" variant="secondary" onClick={() => void testBackupFolder()} disabled={backupBusy || !canManageBackups} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
+                      اختبار
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => void saveBackupConfig()} disabled={backupBusy || !canManageBackups} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
+                      حفظ
+                    </Button>
+                  </div>
 
-                {/* Cloud & Drive Quick Presets */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>سحابة / اختصارات سريعة:</span>
-                  {[
-                    { label: 'Google Drive', path: 'C:\\Users\\Public\\Google Drive\\ZS Backups' },
-                    { label: 'OneDrive', path: 'C:\\Users\\Public\\OneDrive\\ZS Backups' },
-                    { label: 'Dropbox', path: 'C:\\Users\\Public\\Dropbox\\ZS Backups' },
-                    { label: 'قرص D:', path: 'D:\\ZS Backups' },
-                  ].map((p) => (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => setBackupFolderPathDraft(p.path)}
-                      style={{
-                        background: backupFolderPathDraft === p.path ? '#e0f2fe' : '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: backupFolderPathDraft === p.path ? '#0369a1' : '#334155',
-                        borderRadius: '4px',
-                        padding: '2px 7px',
-                        fontSize: '0.70rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
+                  {/* Cloud & Drive Quick Presets */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>سحابة / اختصارات سريعة:</span>
+                    {[
+                      { label: 'Google Drive', path: 'C:\\Users\\Public\\Google Drive\\ZS Backups' },
+                      { label: 'OneDrive', path: 'C:\\Users\\Public\\OneDrive\\ZS Backups' },
+                      { label: 'Dropbox', path: 'C:\\Users\\Public\\Dropbox\\ZS Backups' },
+                      { label: 'قرص D:', path: 'D:\\ZS Backups' },
+                    ].map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => setBackupFolderPathDraft(p.path)}
+                        style={{
+                          background: backupFolderPathDraft === p.path ? '#e0f2fe' : '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          color: backupFolderPathDraft === p.path ? '#0369a1' : '#334155',
+                          borderRadius: '4px',
+                          padding: '2px 7px',
+                          fontSize: '0.70rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
+                    ملاحظة: عند اختيار مجلد مزامنة سحابية لـ (Google Drive أو OneDrive أو Dropbox)، تُرفع النسخ للسحابة تلقائياً لحظة إنشائها لحماية بياناتك من أي عطل بالهارد ديسك.
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
-                  ملاحظة: عند اختيار مجلد مزامنة سحابية لـ (Google Drive أو OneDrive أو Dropbox)، تُرفع النسخ للسحابة تلقائياً لحظة إنشائها لحماية بياناتك من أي عطل بالهارد ديسك.
+              ) : (
+                <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.6, background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
+                  يتم حفظ وتأمين نسخ احتياطية دورية لقاعدة بيانات المنشأة تلقائياً على خوادم السحابة المشفرة لضمان استمرارية الأعمال وحماية البيانات.
                 </div>
-              </div>
+              )}
 
               {/* Automation Schedule Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: backupFrequencyDraft === 'weekly' ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: '8px' }}>
@@ -1114,14 +1123,14 @@ export function SettingsBackupImportSection({
         </div>
       </QueryCard>
 
-      {/* Cloud S3 Backup Card */}
-      <CloudBackupSettingsCard canManage={canManageBackups} />
+      {/* Cloud S3 Backup Card (Super Admin only) */}
+      {isPlatformSuperAdmin && <CloudBackupSettingsCard canManage={isPlatformSuperAdmin} />}
 
-      {/* Demo Data Engine & Factory Reset Card */}
-      <DemoDataSandboxCard />
+      {/* Demo Data Engine & Factory Reset Card (Super Admin only) */}
+      {isPlatformSuperAdmin && <DemoDataSandboxCard />}
 
-      {/* Database Maintenance Strip */}
-      {(isSuperAdmin || canManageBackups) && <DatabaseOptimizationCard canManage={canManageBackups} />}
+      {/* Database Maintenance Strip (Super Admin only) */}
+      {isPlatformSuperAdmin && <DatabaseOptimizationCard canManage={isPlatformSuperAdmin} />}
 
       {/* Import / Export Workbench 2x2 Grid */}
       <QueryCard

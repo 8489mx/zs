@@ -113,16 +113,21 @@ export class ContractingService {
     // 1. Generate code if not supplied
     let projectCode = dto.code ? dto.code.trim().toUpperCase() : '';
     if (!projectCode) {
-      const year = new Date().getFullYear();
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const prefix = `PRJ-${yy}${mm}${dd}-`;
       let count = ((await this.db
         .selectFrom('contracting_projects')
         .select(sql<number>`count(*)::int`.as('count'))
         .where('tenant_id', '=', tenantId)
+        .where('code', 'like', `${prefix}%`)
         .executeTakeFirst())?.count || 0) + 1;
-      let candidate = `PRJ-${year}-${String(count).padStart(3, '0')}`;
+      let candidate = `${prefix}${String(count).padStart(3, '0')}`;
       while (await this.db.selectFrom('contracting_projects').select('id').where('tenant_id', '=', tenantId).where('code', '=', candidate).executeTakeFirst()) {
         count++;
-        candidate = `PRJ-${year}-${String(count).padStart(3, '0')}`;
+        candidate = `${prefix}${String(count).padStart(3, '0')}`;
       }
       projectCode = candidate;
     }
@@ -1391,14 +1396,31 @@ export class ContractingService {
 
     let reqNumber = dto.requisitionNumber?.trim().toUpperCase();
     if (!reqNumber) {
-      const year = new Date().getFullYear();
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const prefix = `MR-${yy}${mm}${dd}-`;
       const countRes = await this.db
         .selectFrom('contracting_material_requisitions')
         .select(sql<number>`count(*)::int`.as('count'))
         .where('tenant_id', '=', tenantId)
+        .where('requisition_number', 'like', `${prefix}%`)
         .executeTakeFirst();
-      const count = (countRes?.count || 0) + 1;
-      reqNumber = `MR-${year}-${String(count).padStart(4, '0')}`;
+      let count = (countRes?.count || 0) + 1;
+      let candidate = `${prefix}${String(count).padStart(4, '0')}`;
+      while (
+        await this.db
+          .selectFrom('contracting_material_requisitions')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('requisition_number', '=', candidate)
+          .executeTakeFirst()
+      ) {
+        count++;
+        candidate = `${prefix}${String(count).padStart(4, '0')}`;
+      }
+      reqNumber = candidate;
     }
 
     const qty = Number(dto.quantity || 0);
@@ -2202,14 +2224,31 @@ export class ContractingService {
     const { tenantId } = requireTenantScope(auth);
     let returnNumber = dto.returnNumber;
     if (!returnNumber) {
-      const year = new Date().getFullYear();
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const prefix = `RTN-${yy}${mm}${dd}-`;
       const countRes = await (this.db as any)
         .selectFrom('contracting_supplier_returns')
         .select(sql<number>`count(*)::int`.as('count'))
         .where('tenant_id', '=', tenantId)
+        .where('return_number', 'like', `${prefix}%`)
         .executeTakeFirst();
-      const count = (countRes?.count || 0) + 1;
-      returnNumber = `RTN-${year}-${String(count).padStart(3, '0')}`;
+      let count = (countRes?.count || 0) + 1;
+      let candidate = `${prefix}${String(count).padStart(3, '0')}`;
+      while (
+        await (this.db as any)
+          .selectFrom('contracting_supplier_returns')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('return_number', '=', candidate)
+          .executeTakeFirst()
+      ) {
+        count++;
+        candidate = `${prefix}${String(count).padStart(3, '0')}`;
+      }
+      returnNumber = candidate;
     }
 
     const totalAmount = dto.items.reduce((sum: number, it: any) => sum + Number(it.totalAmount || Number(it.quantity) * Number(it.unitCost)), 0);
@@ -2360,14 +2399,31 @@ export class ContractingService {
 
     let disbNum = dto.disbursementNumber;
     if (!disbNum) {
-      const year = new Date().getFullYear();
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const prefix = `CSH-${yy}${mm}${dd}-`;
       const countRes = await (this.db as any)
         .selectFrom('contracting_petty_cash')
         .select(sql<number>`count(*)::int`.as('count'))
         .where('tenant_id', '=', tenantId)
+        .where('disbursement_number', 'like', `${prefix}%`)
         .executeTakeFirst();
-      const count = (countRes?.count || 0) + 1;
-      disbNum = `CSH-${year}-${String(count).padStart(3, '0')}`;
+      let count = (countRes?.count || 0) + 1;
+      let candidate = `${prefix}${String(count).padStart(3, '0')}`;
+      while (
+        await (this.db as any)
+          .selectFrom('contracting_petty_cash')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('disbursement_number', '=', candidate)
+          .executeTakeFirst()
+      ) {
+        count++;
+        candidate = `${prefix}${String(count).padStart(3, '0')}`;
+      }
+      disbNum = candidate;
     }
 
     const [inserted] = await (this.db as any)

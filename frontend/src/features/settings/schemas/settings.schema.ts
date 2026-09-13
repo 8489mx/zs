@@ -57,6 +57,7 @@ export const settingsFormSchema = z.object({
   purchasesModuleEnabled: z.boolean().default(true),
   inventoryModuleEnabled: z.boolean().default(true),
   hrModuleEnabled: z.boolean().default(false),
+  crmModuleEnabled: z.boolean().optional().default(false),
   manufacturingModuleEnabled: z.boolean().default(false),
   importModuleEnabled: z.boolean().default(false),
   maritimeFreightModuleEnabled: z.boolean().default(false),

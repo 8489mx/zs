@@ -453,9 +453,16 @@ export class MaritimeFreightService {
   // --------------------------------------------------------------------------
   // 2.5 Maritime Client Inquiries Engine (Customer Freight Requests)
   // --------------------------------------------------------------------------
+  private getDailyPrefix(type: string): string {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${type}-${yy}${mm}${dd}-`;
+  }
+
   private async generateNextInquiryNumber(tenantId: string): Promise<string> {
-    const year = new Date().getFullYear();
-    const prefix = `INQ-${year}-`;
+    const prefix = this.getDailyPrefix('INQ');
     const countResult = await this.db
       .selectFrom('maritime_inquiries')
       .select((eb) => eb.fn.count('id').as('count'))
@@ -463,8 +470,20 @@ export class MaritimeFreightService {
       .where('inquiry_number', 'like', `${prefix}%`)
       .executeTakeFirst();
 
-    const nextSeq = Number(countResult?.count || 0) + 1;
-    return `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    let nextSeq = Number(countResult?.count || 0) + 1;
+    let candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    while (
+      await this.db
+        .selectFrom('maritime_inquiries')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('inquiry_number', '=', candidate)
+        .executeTakeFirst()
+    ) {
+      nextSeq++;
+      candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    }
+    return candidate;
   }
 
   async createInquiry(auth: AuthContext, dto: CreateMaritimeInquiryDto) {
@@ -592,8 +611,7 @@ export class MaritimeFreightService {
   // 3. Maritime RFQs Engine
   // --------------------------------------------------------------------------
   private async generateNextRfqNumber(tenantId: string): Promise<string> {
-    const year = new Date().getFullYear();
-    const prefix = `RFQ-${year}-`;
+    const prefix = this.getDailyPrefix('RFQ');
     const countResult = await this.db
       .selectFrom('maritime_rfqs')
       .select((eb) => eb.fn.count('id').as('count'))
@@ -601,8 +619,20 @@ export class MaritimeFreightService {
       .where('rfq_number', 'like', `${prefix}%`)
       .executeTakeFirst();
 
-    const nextSeq = Number(countResult?.count || 0) + 1;
-    return `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    let nextSeq = Number(countResult?.count || 0) + 1;
+    let candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    while (
+      await this.db
+        .selectFrom('maritime_rfqs')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('rfq_number', '=', candidate)
+        .executeTakeFirst()
+    ) {
+      nextSeq++;
+      candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    }
+    return candidate;
   }
 
   async createRfq(auth: AuthContext, dto: CreateMaritimeRfqDto) {
@@ -1150,8 +1180,7 @@ export class MaritimeFreightService {
   // 5. Client Quotations Engine
   // --------------------------------------------------------------------------
   private async generateNextQuotationNumber(tenantId: string): Promise<string> {
-    const year = new Date().getFullYear();
-    const prefix = `QUO-${year}-`;
+    const prefix = this.getDailyPrefix('QUO');
     const countResult = await this.db
       .selectFrom('maritime_quotations')
       .select((eb) => eb.fn.count('id').as('count'))
@@ -1159,8 +1188,20 @@ export class MaritimeFreightService {
       .where('quotation_number', 'like', `${prefix}%`)
       .executeTakeFirst();
 
-    const nextSeq = Number(countResult?.count || 0) + 1;
-    return `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    let nextSeq = Number(countResult?.count || 0) + 1;
+    let candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    while (
+      await this.db
+        .selectFrom('maritime_quotations')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('quotation_number', '=', candidate)
+        .executeTakeFirst()
+    ) {
+      nextSeq++;
+      candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    }
+    return candidate;
   }
 
   async createQuotation(auth: AuthContext, dto: CreateMaritimeQuotationDto) {
@@ -1264,8 +1305,7 @@ export class MaritimeFreightService {
   // 6. Shipment Jobs Engine (Operations & Cost Centers)
   // --------------------------------------------------------------------------
   private async generateNextJobNumber(tenantId: string): Promise<string> {
-    const year = new Date().getFullYear();
-    const prefix = `JOB-${year}-`;
+    const prefix = this.getDailyPrefix('JOB');
     const countResult = await this.db
       .selectFrom('maritime_jobs')
       .select((eb) => eb.fn.count('id').as('count'))
@@ -1273,8 +1313,20 @@ export class MaritimeFreightService {
       .where('job_number', 'like', `${prefix}%`)
       .executeTakeFirst();
 
-    const nextSeq = Number(countResult?.count || 0) + 1;
-    return `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    let nextSeq = Number(countResult?.count || 0) + 1;
+    let candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    while (
+      await this.db
+        .selectFrom('maritime_jobs')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('job_number', '=', candidate)
+        .executeTakeFirst()
+    ) {
+      nextSeq++;
+      candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
+    }
+    return candidate;
   }
 
   async createJob(auth: AuthContext, dto: CreateMaritimeJobDto) {

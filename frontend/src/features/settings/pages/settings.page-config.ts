@@ -34,9 +34,9 @@ const allSections: SettingsSectionDefinition[] = [
     requiredModule: (s) => s?.storefrontModuleEnabled === true,
   },
   { key: 'whatsapp', label: 'بوابة الواتساب والتقارير الذكية', adminOnly: true },
-  { key: 'backup', label: 'النسخ والبيانات والصيانة' },
+  { key: 'backup', label: 'النسخ والبيانات والصيانة', adminOnly: true },
   { key: 'subscription', label: 'الاشتراك والفوترة', adminOnly: true },
-  { key: 'demo-data', label: 'بيانات تجريبية حسب النشاط', hiddenInTabs: true },
+  { key: 'demo-data', label: 'بيانات تجريبية حسب النشاط', hiddenInTabs: true, superAdminOnly: true },
   {
     key: 'marketplaces',
     label: 'الربط مع منصات أمازون ونون',

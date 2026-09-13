@@ -668,7 +668,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
 
       form.clearErrors('root.serverError');
 
-      const rawActivity = String(tenant?.activityType || tenant?.pillar || values.businessIndustry || settings?.activityType || 'retail_general').trim().toLowerCase();
+      const rawActivity = String(values.businessIndustry || tenant?.activityType || tenant?.pillar || settings?.activityType || 'retail_general').trim().toLowerCase();
       const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
       const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
 
@@ -692,7 +692,12 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         values.contractingModuleEnabled = false;
         values.inventoryModuleEnabled = false;
         values.posModuleEnabled = false;
+      } else {
+        values.contractingModuleEnabled = false;
+        values.maritimeFreightModuleEnabled = false;
       }
+
+      values.activityType = values.businessIndustry;
 
       mutation.mutate(values);
     },
@@ -970,7 +975,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           {[
             { id: 'general', label: 'عام' },
             { id: 'sales_inventory', label: 'البيع وقواعد المخزون' },
-            { id: 'modules', label: 'متجر التطبيقات والموديولات' },
+            { id: 'modules', label: 'تخصيص المنظومة والنشاط' },
             { id: 'printing', label: 'الطباعة والإيصالات' },
           ].map(tab => (
             <button

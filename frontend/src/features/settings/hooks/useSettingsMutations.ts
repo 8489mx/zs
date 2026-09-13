@@ -5,6 +5,7 @@ import { settingsApi } from '@/features/settings/api/settings.api';
 import { useAuthStore } from '@/stores/auth-store';
 import { buildBranchPayload, buildLocationPayload, buildSettingsUpdatePayload } from '@/features/settings/contracts';
 import { setGlobalSystemCurrency } from '@/lib/currencies';
+import { authApi } from '@/shared/api/auth';
 import type { AppSettings } from '@/types/domain';
 import type { BranchFormOutput, LocationFormOutput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 
@@ -18,10 +19,29 @@ export function useSettingsUpdateMutation(currentSettings?: AppSettings, onSucce
   return useMutation({
     mutationFn: (values: SettingsFormValues) => settingsApi.update(buildSettingsUpdatePayload(currentSettings, values)),
     onSuccess: async (updatedSettings) => {
+      const currentTenant = useAuthStore.getState().tenant;
+      const newActivity = (updatedSettings as any)?.activityType;
+      const newPillar = (updatedSettings as any)?.pillar;
+      const nextTenant = currentTenant && (newActivity || newPillar)
+        ? {
+            ...currentTenant,
+            ...(newActivity ? { activityType: newActivity } : {}),
+            ...(newPillar ? { pillar: newPillar } : {}),
+          }
+        : undefined;
+
       updateSessionMeta({
         storeName: typeof updatedSettings?.storeName === 'string' ? updatedSettings.storeName : undefined,
         theme: typeof updatedSettings?.theme === 'string' ? updatedSettings.theme : undefined,
+        ...(nextTenant ? { tenant: nextTenant } : {}),
       });
+
+      authApi.me().then((meRes) => {
+        if (meRes?.tenant) {
+          useAuthStore.getState().updateSessionMeta({ tenant: meRes.tenant });
+        }
+      }).catch(() => undefined);
+
       queryClient.setQueryData(queryKeys.settings, updatedSettings);
       queryClient.setQueryData(queryKeys.posSettings, updatedSettings);
       if (updatedSettings?.currency) {
@@ -31,6 +51,7 @@ export function useSettingsUpdateMutation(currentSettings?: AppSettings, onSucce
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.settings }),
         queryClient.invalidateQueries({ queryKey: queryKeys.posSettings }),
+        queryClient.invalidateQueries({ queryKey: ['auth'] }),
         invalidateAuditLogs(queryClient),
       ]);
       onSuccessCallback?.();

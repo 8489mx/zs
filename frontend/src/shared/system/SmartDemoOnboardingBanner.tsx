@@ -5,6 +5,8 @@ import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
 import { XIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { useAuthStore } from '@/stores/auth-store';
+import { isPlatformAdmin } from '@/app/router/access';
 
 function getIndustryLabelAndActivity(industry?: string): { activity: string; label: string } {
   switch (industry) {
@@ -33,6 +35,8 @@ function getIndustryLabelAndActivity(industry?: string): { activity: string; lab
 export function SmartDemoOnboardingBanner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+  const isPlatform = isPlatformAdmin(user);
   const { data: settings } = useSettingsQuery();
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -69,7 +73,7 @@ export function SmartDemoOnboardingBanner() {
     },
   });
 
-  if (isDismissed || statusQuery.isLoading || !statusQuery.data?.isEmpty) {
+  if (!isPlatform || isDismissed || statusQuery.isLoading || !statusQuery.data?.isEmpty) {
     return null;
   }
 

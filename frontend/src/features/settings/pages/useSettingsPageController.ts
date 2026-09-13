@@ -10,6 +10,7 @@ import { settingsSections, type SettingsSectionKey } from '@/features/settings/p
 import { useSettingsReferenceFilters } from '@/features/settings/hooks/useSettingsReferenceFilters';
 import { activationApi } from '@/shared/api/activation';
 import { getPostLoginRoute } from '@/app/router/post-login-route';
+import { isPlatformAdmin } from '@/app/router/access';
 import {
   type SettingsConfirmAction,
   buildSettingsGuidanceCards,
@@ -49,7 +50,11 @@ export function useSettingsPageController(section: SettingsSectionKey) {
 
   const handleSetupAdvance = async () => {
     if (searchParams.get('setup') === 'quickstart') {
-      navigate('/settings/demo-data?setup=quickstart', { replace: true });
+      if (isPlatformAdmin(currentUser)) {
+        navigate('/settings/demo-data?setup=quickstart', { replace: true });
+      } else {
+        navigate('/settings/core', { replace: true });
+      }
       return;
     }
 

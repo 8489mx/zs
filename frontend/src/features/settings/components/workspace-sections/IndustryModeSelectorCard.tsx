@@ -14,6 +14,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { settingsApi } from '@/features/settings/api/settings.api';
+import { authApi } from '@/shared/api/auth';
 import { useAuthStore } from '@/stores/auth-store';
 import type { AppSettings } from '@/types/domain';
 
@@ -22,7 +23,7 @@ interface IndustryModeSelectorCardProps {
   canManageSettings: boolean;
 }
 
-type PillarKey = 'contracting' | 'maritime_freight' | 'commerce';
+type PillarKey = 'contracting' | 'maritime_freight' | 'manufacturing' | 'commerce';
 type CommerceSubVertical = 'retail_general' | 'pharmacy' | 'restaurant' | 'manufacturing' | 'maintenance';
 
 interface PillarConfig {
@@ -57,8 +58,19 @@ const PILLARS: PillarConfig[] = [
     icon: ShipIcon,
     color: '#0d9488',
     accentBg: '#f0fdfa',
-    landingRoute: '/maritime-freight',
+    landingRoute: '/maritime',
     featuresSummary: 'استفسارات الشحن • تسعير النولون • أوامر التشغيل • الحاويات والغرامات • الشجرة المحاسبية',
+  },
+  {
+    key: 'manufacturing',
+    labelAr: 'قطاع التصنيع والإنتاج الصناعي',
+    badge: 'Industrial Production',
+    descriptionAr: 'منظومة المصانع وإدارة خطوط الإنتاج، أوامر التشغيل، قوائم المكونات (BOM)، تكاليف الإنتاج ومخازن المواد الخام والمنتج التام.',
+    icon: LayersIcon,
+    color: '#4338ca',
+    accentBg: '#e0e7ff',
+    landingRoute: '/manufacturing/work-orders',
+    featuresSummary: 'أوامر الإنتاج • قوائم المكونات BOM • مخازن المواد الخام • مراكز التكلفة • مشتريات التوريد • CRM',
   },
   {
     key: 'commerce',
@@ -137,6 +149,8 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
       ? 'contracting'
       : currentActivityType === 'maritime_freight' || currentActivityType === 'maritime'
       ? 'maritime_freight'
+      : currentActivityType === 'manufacturing' || currentActivityType === 'production'
+      ? 'manufacturing'
       : 'commerce';
 
   const currentSubVertical: CommerceSubVertical =
@@ -186,6 +200,12 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
               },
             });
           }
+
+          authApi.me().then((meRes) => {
+            if (meRes?.tenant) {
+              updateSessionMeta({ tenant: meRes.tenant });
+            }
+          }).catch(() => undefined);
 
           // Immediately patch settings in React Query cache so the entire app updates with 0ms lag
           queryClient.setQueriesData({ queryKey: ['settings'] }, (old: any) => {
@@ -283,14 +303,25 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
         </div>
       </div>
 
-      {/* 3 Core Pillars Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '14px',
-        }}
-      >
+      {/* 4 Core Pillars Grid */}
+      <style>{`
+        .industry-pillars-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+        @media (max-width: 960px) {
+          .industry-pillars-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 540px) {
+          .industry-pillars-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+      <div className="industry-pillars-grid">
         {PILLARS.map((pillar) => {
           const isPillarActive = currentPillar === pillar.key;
           const Icon = pillar.icon;
@@ -301,7 +332,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
               key={pillar.key}
               onClick={() => {
                 if (pillar.key === 'commerce') {
-                  // If switching from contracting/maritime to commerce, default to current subVertical or retail_general
+                  // If switching from contracting/maritime/manufacturing to commerce, default to current subVertical or retail_general
                   if (!isPillarActive) {
                     handleSelectMode(currentSubVertical, `قطاع التجارة - ${COMMERCE_SUB_VERTICALS.find(s => s.key === currentSubVertical)?.labelAr}`);
                   }
@@ -311,7 +342,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
               }}
               style={{
                 position: 'relative',
-                padding: '16px 18px',
+                padding: '14px 14px',
                 borderRadius: '12px',
                 border: isPillarActive ? `2px solid ${pillar.color}` : '1px solid #e2e8f0',
                 background: isPillarActive ? pillar.accentBg : '#ffffff',
@@ -319,33 +350,35 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '10px',
+                gap: '8px',
+                minHeight: '210px',
                 boxShadow: isPillarActive ? `0 4px 12px ${pillar.color}15` : 'none',
               }}
             >
               {/* Pillar Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   <div
                     style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: '10px',
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '8px',
                       background: isPillarActive ? pillar.color : '#f1f5f9',
                       color: isPillarActive ? '#ffffff' : '#334155',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       transition: 'all 0.2s ease',
+                      flexShrink: 0,
                     }}
                   >
-                    <Icon size={20} />
+                    <Icon size={18} />
                   </div>
-                  <div>
-                    <strong style={{ fontSize: '0.92rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={{ fontSize: '0.86rem', color: '#0f172a', fontWeight: 800, display: 'block', lineHeight: 1.25 }}>
                       {pillar.labelAr}
                     </strong>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{pillar.badge}</span>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>{pillar.badge}</span>
                   </div>
                 </div>
 
@@ -356,15 +389,16 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                       alignItems: 'center',
                       gap: '4px',
                       color: pillar.color,
-                      fontSize: '0.72rem',
+                      fontSize: '0.7rem',
                       fontWeight: 800,
                       background: '#ffffff',
-                      padding: '2px 8px',
+                      padding: '2px 7px',
                       borderRadius: '6px',
                       border: `1px solid ${pillar.color}40`,
+                      flexShrink: 0,
                     }}
                   >
-                    <CheckCircleIcon size={13} color={pillar.color} />
+                    <CheckCircleIcon size={12} color={pillar.color} />
                     مفعل
                   </span>
                 )}
@@ -373,7 +407,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
               {/* Description */}
               <p
                 style={{
-                  fontSize: '0.78rem',
+                  fontSize: '0.75rem',
                   color: '#475569',
                   margin: 0,
                   lineHeight: 1.5,
@@ -390,9 +424,10 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                   marginTop: 'auto',
                   paddingTop: '8px',
                   borderTop: '1px dashed #cbd5e1',
-                  fontSize: '0.71rem',
+                  fontSize: '0.69rem',
                   color: '#64748b',
                   fontWeight: 600,
+                  lineHeight: 1.4,
                 }}
               >
                 {pillar.featuresSummary}

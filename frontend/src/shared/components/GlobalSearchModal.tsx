@@ -81,7 +81,7 @@ export function GlobalSearchModal() {
         if (item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) return false;
 
         if (isContractingVertical) {
-          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'pricing-center', 'products', 'product-categories', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales', 'returns', 'sales-orders', 'price-lists', 'crm'].includes(item.key)) return false;
+          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'pricing-center', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales', 'returns', 'sales-orders', 'price-lists'].includes(item.key)) return false;
           if (item.key?.startsWith('maritime-') || item.key === 'maritime' || item.key === 'maritime-freight' || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
         }
         if (isMaritimeVertical) {
@@ -101,7 +101,7 @@ export function GlobalSearchModal() {
   const { data: productsData, isLoading: isLoadingProducts } = useQuery({
     queryKey: ['products-search', debouncedQuery],
     queryFn: () => productsApi.listPage({ q: debouncedQuery, page: 1, pageSize: 5 }),
-    enabled: hasQuery && isGlobalSearchOpen && !isMaritimeVertical && !isContractingVertical && settings?.inventoryModuleEnabled !== false,
+    enabled: hasQuery && isGlobalSearchOpen && !isMaritimeVertical && settings?.inventoryModuleEnabled !== false,
   });
 
   const { data: salesData, isLoading: isLoadingSales } = useQuery({

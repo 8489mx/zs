@@ -36,7 +36,7 @@ vi.mock('@/lib/browser', () => ({
 
 vi.mock('@/stores/auth-store', () => ({
   useAuthStore: vi.fn((selector) => {
-    return selector({ user: { username: 'testuser' }, storeName: 'teststore' });
+    return selector({ user: { username: 'testuser', role: 'admin' }, storeName: 'teststore' });
   })
 }));
 

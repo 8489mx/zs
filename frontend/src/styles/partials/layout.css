@@ -902,9 +902,9 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
 }
 
 .sidebar-link-chevron-spacer {
-  width: 24px;
-  height: 24px;
-  flex: 0 0 24px;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
 }
 .sidebar-label {
   flex: 1;

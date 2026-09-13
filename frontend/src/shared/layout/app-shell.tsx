@@ -351,12 +351,16 @@ export function AppShell({ children }: PropsWithChildren) {
       'contracting-subcontracts',
       'contracting-daily-logs',
       'contracting-rfis',
+      'crm',
+      'customers',
       'purchases-orders',
       'purchases-rfqs',
       'purchases',
       'purchases-reorder',
       'purchase-returns',
       'suppliers',
+      'products',
+      'product-categories',
       'inventory-warehouses',
       'inventory-bins',
       'inventory-issue-orders',
@@ -428,6 +432,60 @@ export function AppShell({ children }: PropsWithChildren) {
       'reports-overview',
       'reports-sales',
       'reports-purchases',
+      'reports-treasury',
+      'reports-balances',
+      'reports-employees',
+      'hr',
+      'hr-settlements',
+      'audit',
+      'apps',
+      'settings',
+      'saas-admin-tenants',
+      'saas-admin-plans',
+    ];
+
+    const manufacturingOrder = [
+      'dashboard',
+      'manufacturing-work-orders',
+      'manufacturing-boms',
+      'manufacturing-components',
+      'manufacturing-settings',
+      'crm',
+      'customers',
+      'purchases-orders',
+      'purchases-rfqs',
+      'purchases',
+      'purchases-reorder',
+      'purchase-returns',
+      'suppliers',
+      'products',
+      'product-categories',
+      'inventory-warehouses',
+      'inventory-bins',
+      'inventory-tree',
+      'inventory-issue-orders',
+      'inventory-issue-order-new',
+      'inventory',
+      'treasury',
+      'expenses',
+      'accounts',
+      'accounting-payment-allocation',
+      'accounting-bank-reconciliation',
+      'accounting-cheques',
+      'accounting-withholding-tax',
+      'accounting-balance-sheet',
+      'accounting-cash-flow',
+      'accounting-aged-debts',
+      'accounting-fixed-assets',
+      'vat-declaration',
+      'accounting-journal-entries',
+      'accounting-accounts',
+      'accounting-cost-centers',
+      'accounting-settings',
+      'reports-overview',
+      'reports-purchases',
+      'reports-inventory',
+      'reports-sales',
       'reports-treasury',
       'reports-balances',
       'reports-employees',
@@ -642,6 +700,8 @@ export function AppShell({ children }: PropsWithChildren) {
       ? contractingOrder
       : isMaritimeVertical
       ? maritimeOrder
+      : isManufacturingVertical
+      ? manufacturingOrder
       : isImportVertical
       ? importOrder
       : isServicesVertical
@@ -664,40 +724,40 @@ export function AppShell({ children }: PropsWithChildren) {
       'delivery-reps': 'إدارة المناديب',
       'tax-dispatcher': 'الفاتورة الإلكترونية',
       installments: 'مبيعات التقسيط',
-      'vat-declaration': 'الإقرار الضريبي (ن10 و ZATCA)',
-      kds: 'شاشة المطبخ (KDS)',
-      signage: 'شاشات العروض والأسعار',
-      'purchases-orders': 'أوامر الشراء (PO)',
-      'purchases-rfqs': 'طلبات عروض الأسعار (RFQ)',
-      'purchases-reorder': 'مقترح إعادة الطلب الذكي',
-      purchases: 'سجل فواتير المشتريات',
+      'vat-declaration': 'الإقرار الضريبي',
+      kds: 'شاشات المطبخ',
+      signage: 'شاشات العروض',
+      'purchases-orders': 'أوامر الشراء',
+      'purchases-rfqs': 'عروض الأسعار (RFQ)',
+      'purchases-reorder': 'مقترح إعادة الطلب',
+      purchases: 'فواتير المشتريات',
       'purchase-returns': 'مرتجعات المشتريات',
       suppliers: t('sidebar.suppliers', 'الموردين'),
       products: 'قائمة الأصناف',
       'product-categories': 'أقسام الأصناف',
-      'product-modifiers': 'خيارات ومعدلات الأصناف',
+      'product-modifiers': 'خيارات الأصناف',
       'pricing-center': 'مركز التسعير',
-      'inventory-warehouses': 'أماكن التخزين والمستودعات',
-      'inventory-bins': 'أماكن التخزين والأرفف',
-      'inventory-tree': 'الهيكل الشجري للمخازن',
-      inventory: 'جرد وحركات المخزون',
-      'inventory-issue-orders': 'سجل أذونات الصرف والتحويل',
+      'inventory-warehouses': 'المستودعات والمخازن',
+      'inventory-bins': 'الأرفف والتخزين',
+      'inventory-tree': 'شجرة المخازن',
+      inventory: 'جرد المخزون',
+      'inventory-issue-orders': 'أذونات الصرف والتحويل',
       'inventory-issue-order-new': 'إذن صرف جديد',
       services: 'الخدمات',
       treasury: 'الخزينة والبنوك',
       expenses: 'المصروفات',
-      accounts: 'أرصدة وذمم الحسابات',
+      accounts: 'أرصدة الحسابات',
       'accounting-accounts': 'شجرة الحسابات',
       'accounting-cost-centers': 'مراكز التكلفة',
       'accounting-journal-entries': 'القيود اليومية',
-      'accounting-payment-allocation': 'تسوية وتخصيص المدفوعات',
+      'accounting-payment-allocation': 'تسوية المدفوعات',
       'accounting-bank-reconciliation': 'التسويات البنكية',
-      'accounting-cheques': 'حافظة الشيكات (PDC)',
-      'accounting-withholding-tax': 'الخصم والإضافة (ن41)',
+      'accounting-cheques': 'حافظة الشيكات',
+      'accounting-withholding-tax': 'الخصم والإضافة',
       'accounting-balance-sheet': 'الميزانية العمومية',
-      'accounting-cash-flow': 'قائمة التدفقات النقدية',
+      'accounting-cash-flow': 'التدفقات النقدية',
       'accounting-aged-debts': 'أعمار الديون',
-      'accounting-fixed-assets': 'الأصول الثابتة والإهلاك',
+      'accounting-fixed-assets': 'الأصول والإهلاك',
       'accounting-settings': 'إعدادات الحسابات',
       maintenance: 'تذاكر الصيانة',
       'trade-in': 'شراء واستبدال الأجهزة',
@@ -709,36 +769,40 @@ export function AppShell({ children }: PropsWithChildren) {
       'pharmacy-batches': 'الصلاحيات والمرتجعات',
       'pharmacy-clinical': 'الفحوصات والخدمات',
       'import-shipments': 'إدارة الشحنات',
-      'import-supplier-credit': 'مديونية الصين (المورد)',
-      'import-profit-pool': 'أرباح الشركاء (نهاية المدة)',
+      'import-supplier-credit': 'مديونية الموردين',
+      'import-profit-pool': 'أرباح الشركاء',
       'manufacturing-components': 'مكونات التصنيع',
       'manufacturing-work-orders': 'أوامر الإنتاج',
       'manufacturing-boms': 'قوائم المكونات',
       'manufacturing-settings': 'إعدادات التصنيع',
-      'maritime-inquiries': 'استفسارات شحن العملاء',
-      'maritime-rfqs': 'عروض تسعير الخطوط (RFQ)',
+      'maritime-inquiries': 'استفسارات الشحن',
+      'maritime-rfqs': 'عروض تسعير الخطوط',
       'maritime-matrix': 'مقارنة عروض الخطوط',
       'maritime-quotations': 'عروض أسعار العملاء',
       'maritime-jobs': 'أوامر تشغيل الشحنات',
-      'maritime-containers': 'تتبع الحاويات وفترات السماح',
+      'maritime-containers': 'تتبع الحاويات',
       'maritime-lines': 'دليل الخطوط والموانئ',
-      'maritime-settings': 'أتمتة المراسلات والبريد',
+      'maritime-settings': 'أتمتة المراسلات',
       'contracting-projects': 'سجل المشاريع',
-      'contracting-boq': 'جداول الكميات (BOQ)',
+      'contracting-boq': 'جداول الكميات',
       'contracting-change-orders': 'الأوامر التغييرية',
-      'contracting-invoices': 'المستخلصات (IPC)',
+      'contracting-invoices': 'المستخلصات',
+      'contracting-financials': 'المالية والمستخلصات',
+      'contracting-procurement': 'مقاولو الباطن والتوريد',
+      'contracting-field': 'الميدان والجدول الزمني',
+      'contracting-master-boq': 'بنك بنود المقاولات',
       'contracting-subcontracts': 'عقود مقاولي الباطن',
       'contracting-daily-logs': 'اليوميات الميدانية',
-      'contracting-rfis': 'استفسارات الموقع (RFI)',
-      'reports-overview': 'ملخص الأرباح والأداء',
+      'contracting-rfis': 'استفسارات الموقع',
+      'reports-overview': 'ملخص الأداء',
       'reports-sales': 'تقارير المبيعات',
       'reports-purchases': 'تقارير المشتريات',
       'reports-inventory': 'تقارير المخزون',
       'reports-treasury': 'الخزينة والمصروفات',
-      'reports-balances': 'أرصدة وذمم الحسابات',
+      'reports-balances': 'أرصدة الحسابات',
       'reports-employees': 'تقارير الموظفين',
       hr: 'الموارد البشرية',
-      'hr-settlements': 'مخالصات ونهاية الخدمة',
+      'hr-settlements': 'مخالصات نهاية الخدمة',
       audit: 'سجل النشاط',
       apps: 'متجر التطبيقات',
       settings: 'الإعدادات العامة',
@@ -749,12 +813,16 @@ export function AppShell({ children }: PropsWithChildren) {
     const hasFeature = (feat: string) => {
       if (isPlatformAdminUser) return true;
       if (isContractingVertical) {
-        const contractingSuiteFeatures = ['contracting', 'purchases', 'inventory', 'suppliers', 'customers', 'accounting', 'hr', 'fixed_assets', 'vat_declaration', 'reports', 'approvals', 'treasury'];
+        const contractingSuiteFeatures = ['contracting', 'crm', 'purchases', 'inventory', 'products', 'suppliers', 'customers', 'accounting', 'hr', 'fixed_assets', 'vat_declaration', 'reports', 'approvals', 'treasury'];
         if (contractingSuiteFeatures.includes(feat)) return true;
       }
       if (isMaritimeVertical) {
-        const maritimeSuiteFeatures = ['maritime_freight', 'purchases', 'sales', 'suppliers', 'customers', 'accounting', 'hr', 'vat_declaration', 'reports', 'approvals', 'treasury'];
+        const maritimeSuiteFeatures = ['maritime_freight', 'crm', 'purchases', 'sales', 'suppliers', 'customers', 'accounting', 'hr', 'vat_declaration', 'reports', 'approvals', 'treasury'];
         if (maritimeSuiteFeatures.includes(feat)) return true;
+      }
+      if (isManufacturingVertical) {
+        const manufacturingSuiteFeatures = ['manufacturing', 'crm', 'purchases', 'inventory', 'products', 'suppliers', 'customers', 'sales', 'pricing', 'accounting', 'hr', 'fixed_assets', 'vat_declaration', 'reports', 'approvals', 'treasury'];
+        if (manufacturingSuiteFeatures.includes(feat)) return true;
       }
       return Boolean(tenant?.features?.includes(feat));
     };
@@ -767,7 +835,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
         // Strict bidirectional vertical isolation:
         if (isContractingVertical) {
-          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'pricing-center', 'products', 'product-categories', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales', 'returns', 'sales-orders', 'price-lists', 'crm'].includes(item.key)) return false;
+          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'pricing-center', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales', 'returns', 'sales-orders', 'price-lists'].includes(item.key)) return false;
           if (item.key?.startsWith('maritime-') || item.key === 'maritime' || item.key === 'maritime-freight' || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
         }
 
@@ -793,7 +861,8 @@ export function AppShell({ children }: PropsWithChildren) {
         }
 
         if (isManufacturingVertical) {
-          if ((item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) || (item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key === 'kds' || item.key === 'displays' || item.key === 'signage' || item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history' || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
+          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'clothing'].includes(item.key)) return false;
+          if ((item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) || (item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
         }
 
         if (isImportVertical) {
@@ -814,8 +883,8 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'services' && (settings?.servicesModuleEnabled !== true || (!hasFeature('purchases') && !hasFeature('services')))) return false;
         if (item.key === 'online-orders' && (settings?.storefrontModuleEnabled !== true || !hasFeature('storefront'))) return false;
         if (item.key === 'installments' && (settings?.installmentsModuleEnabled !== true || !hasFeature('installments'))) return false;
-        if (item.key === 'vat-declaration' && !isContractingVertical && !isMaritimeVertical && (settings?.taxDeclarationModuleEnabled !== true || !hasFeature('vat_declaration'))) return false;
-        if (item.key === 'accounting-fixed-assets' && !isContractingVertical && (settings?.fixedAssetsModuleEnabled !== true || !hasFeature('fixed_assets'))) return false;
+        if (item.key === 'vat-declaration' && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && (settings?.taxDeclarationModuleEnabled !== true || !hasFeature('vat_declaration'))) return false;
+        if (item.key === 'accounting-fixed-assets' && !isContractingVertical && !isManufacturingVertical && (settings?.fixedAssetsModuleEnabled !== true || !hasFeature('fixed_assets'))) return false;
         if (item.key === 'delivery-reps' && (settings?.deliveryFleetModuleEnabled !== true || !hasFeature('deliveryReps'))) return false;
         if (item.key === 'kds' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         if (item.key === 'product-modifiers' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
@@ -825,28 +894,29 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'displays' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         // POS & Retail Sales gating:
         if ((item.key === 'pos' || item.key === 'cash-drawer' || item.key === 'sales' || item.key === 'returns') && settings?.posModuleEnabled === false) return false;
-        if (item.key === 'customers' && settings?.posModuleEnabled === false && settings?.enableEnterpriseFeatures !== true && settings?.installmentsModuleEnabled !== true && !isContractingVertical && !isMaritimeVertical) return false;
+        if (item.key === 'customers' && settings?.posModuleEnabled === false && settings?.enableEnterpriseFeatures !== true && settings?.installmentsModuleEnabled !== true && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical) return false;
 
         // Enterprise Sales gating (CRM, Sales Orders, Price Lists, Quotations):
-        if ((item.key === 'crm' || item.key === 'sales-orders' || item.key === 'price-lists' || item.key === 'quotations') && !isMaritimeVertical && settings?.enableEnterpriseFeatures !== true) return false;
+        if (item.key === 'crm' && !isMaritimeVertical && !isContractingVertical && !isImportVertical && !isManufacturingVertical && !isServicesVertical && settings?.enableEnterpriseFeatures !== true && settings?.crmModuleEnabled !== true) return false;
+        if ((item.key === 'sales-orders' || item.key === 'price-lists' || item.key === 'quotations') && !isMaritimeVertical && !isContractingVertical && settings?.enableEnterpriseFeatures !== true) return false;
 
         // Purchases gating:
-        if ((item.key === 'purchases-orders' || item.key === 'purchases-rfqs' || item.key === 'purchases-reorder') && !isContractingVertical && !isMaritimeVertical && (settings?.enableEnterpriseFeatures !== true || settings?.purchasesModuleEnabled === false || !hasFeature('purchases'))) return false;
-        if ((item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'reports-purchases') && !isContractingVertical && !isMaritimeVertical && (settings?.purchasesModuleEnabled === false || (settings?.purchasesModuleEnabled !== true && !hasFeature('purchases')))) return false;
+        if ((item.key === 'purchases-orders' || item.key === 'purchases-rfqs' || item.key === 'purchases-reorder') && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && (settings?.enableEnterpriseFeatures !== true || settings?.purchasesModuleEnabled === false || !hasFeature('purchases'))) return false;
+        if ((item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'reports-purchases') && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && (settings?.purchasesModuleEnabled === false || (settings?.purchasesModuleEnabled !== true && !hasFeature('purchases')))) return false;
 
         // Inventory gating:
-        if ((item.key === 'inventory-bins' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new' || item.key === 'pricing-center') && !isContractingVertical && (settings?.enableEnterpriseFeatures !== true || settings?.inventoryModuleEnabled === false || !hasFeature('inventory'))) return false;
-        if ((item.key === 'products' || item.key === 'product-categories' || item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'reports-inventory') && !isContractingVertical && (settings?.inventoryModuleEnabled === false || (settings?.inventoryModuleEnabled !== true && !hasFeature('inventory')))) return false;
+        if ((item.key === 'inventory-bins' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new' || item.key === 'pricing-center') && !isContractingVertical && !isManufacturingVertical && (settings?.enableEnterpriseFeatures !== true || settings?.inventoryModuleEnabled === false || !hasFeature('inventory'))) return false;
+        if ((item.key === 'products' || item.key === 'product-categories' || item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'reports-inventory') && !isContractingVertical && !isManufacturingVertical && (settings?.inventoryModuleEnabled === false || (settings?.inventoryModuleEnabled !== true && !hasFeature('inventory')))) return false;
 
         // Reports & Dashboard gating:
         if ((item.key?.startsWith('reports-') || item.key === 'audit' || item.key === 'dashboard' || item.key === 'owner-companion' || item.key === 'owner-mobile') && !hasFeature('reports')) return false;
-        if (item.key === 'reports-balances' && !isContractingVertical && !isMaritimeVertical && settings?.enableEnterpriseFeatures !== true) return false;
+        if (item.key === 'reports-balances' && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && settings?.enableEnterpriseFeatures !== true) return false;
 
         // HR gating:
-        if ((item.key === 'hr' || item.key === 'hr-settlements' || item.key === 'reports-employees') && !isContractingVertical && !isMaritimeVertical && (settings?.hrModuleEnabled !== true || !hasFeature('hr'))) return false;
+        if ((item.key === 'hr' || item.key === 'hr-settlements' || item.key === 'reports-employees') && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && (settings?.hrModuleEnabled !== true || !hasFeature('hr'))) return false;
 
         // Accounting tree & journal gating:
-        if ((item.key?.startsWith('accounting-') || item.key === 'accounts') && item.key !== 'accounting-fixed-assets' && !isContractingVertical && !isMaritimeVertical && (settings?.enableEnterpriseFeatures !== true || !hasFeature('accounting'))) return false;
+        if ((item.key?.startsWith('accounting-') || item.key === 'accounts') && item.key !== 'accounting-fixed-assets' && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && (settings?.enableEnterpriseFeatures !== true || !hasFeature('accounting'))) return false;
 
         // Maritime Freight gating:
         if (item.key?.startsWith('maritime-') && !isMaritimeVertical && (settings?.maritimeFreightModuleEnabled !== true || !hasFeature('maritime_freight'))) return false;
@@ -875,6 +945,7 @@ export function AppShell({ children }: PropsWithChildren) {
     const rawActivity = String(tenant?.activityType || tenant?.pillar || settings?.activityType || settings?.businessIndustry || 'retail_general').trim().toLowerCase();
     const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
     const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+    const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
     const isImportVertical = rawActivity === 'import_export' || rawActivity === 'import';
     const isServicesVertical = rawActivity === 'services';
     const isEcommerceVertical = rawActivity === 'ecommerce';
@@ -885,6 +956,10 @@ export function AppShell({ children }: PropsWithChildren) {
 
     if (isMaritimeVertical) {
       return [...dashKeys, 'maritime-jobs', 'maritime-containers', 'maritime-quotations'];
+    }
+
+    if (isManufacturingVertical) {
+      return [...dashKeys, 'manufacturing-work-orders', 'manufacturing-boms'];
     }
 
     if (isImportVertical && !isContractingVertical && !isMaritimeVertical) {
@@ -919,21 +994,22 @@ export function AppShell({ children }: PropsWithChildren) {
     const rawActivity = String(tenant?.activityType || tenant?.pillar || settings?.activityType || settings?.businessIndustry || 'retail_general').trim().toLowerCase();
     const isDedicatedContractingOnly = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
     const isDedicatedMaritimeOnly = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+    const isDedicatedManufacturingOnly = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
     const isDedicatedImportOnly = rawActivity === 'import_export' || rawActivity === 'import';
     const isDedicatedServicesOnly = rawActivity === 'services';
     const isRestaurantVertical = rawActivity === 'restaurant' || rawActivity === 'cafe' || rawActivity === 'مطعم' || rawActivity === 'كافيه';
     const isPharmacyVertical = rawActivity === 'pharmacy' || rawActivity === 'صيدلية' || rawActivity === 'صيدليات';
     const isElectronicsVertical = rawActivity === 'electronics' || rawActivity === 'maintenance' || rawActivity === 'repair' || rawActivity === 'صيانة';
-    const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
-    const isRetailOrMarketVertical = !isDedicatedContractingOnly && !isDedicatedMaritimeOnly && !isRestaurantVertical && !isPharmacyVertical && !isManufacturingVertical && !isElectronicsVertical && !isDedicatedImportOnly && !isDedicatedServicesOnly;
+    const isRetailOrMarketVertical = !isDedicatedContractingOnly && !isDedicatedMaritimeOnly && !isDedicatedManufacturingOnly && !isRestaurantVertical && !isPharmacyVertical && !isElectronicsVertical && !isDedicatedImportOnly && !isDedicatedServicesOnly;
 
-    const hasAccounting = isPlatformAdminUser || isDedicatedContractingOnly || isDedicatedMaritimeOnly || Boolean(tenant?.features?.includes('accounting'));
+    const hasAccounting = isPlatformAdminUser || isDedicatedContractingOnly || isDedicatedMaritimeOnly || isDedicatedManufacturingOnly || Boolean(tenant?.features?.includes('accounting'));
     const hasRestaurant = isPlatformAdminUser || Boolean(tenant?.features?.includes('restaurant'));
     const hasMaritimeFreight = isPlatformAdminUser || isDedicatedMaritimeOnly || Boolean(tenant?.features?.includes('maritime_freight'));
     const hasContracting = isPlatformAdminUser || isDedicatedContractingOnly || Boolean(tenant?.features?.includes('contracting'));
+    const hasManufacturing = isPlatformAdminUser || isDedicatedManufacturingOnly || Boolean(tenant?.features?.includes('manufacturing'));
     const hasImport = isPlatformAdminUser || Boolean(tenant?.features?.includes('import'));
-    const hasInventory = isPlatformAdminUser || isDedicatedContractingOnly || Boolean(tenant?.features?.includes('inventory'));
-    const hasPurchases = isPlatformAdminUser || isDedicatedContractingOnly || isDedicatedMaritimeOnly || Boolean(tenant?.features?.includes('purchases'));
+    const hasInventory = isPlatformAdminUser || isDedicatedContractingOnly || isDedicatedManufacturingOnly || Boolean(tenant?.features?.includes('inventory'));
+    const hasPurchases = isPlatformAdminUser || isDedicatedContractingOnly || isDedicatedMaritimeOnly || isDedicatedManufacturingOnly || Boolean(tenant?.features?.includes('purchases'));
 
     // 1. Dedicated Contracting Enterprise Workspace
     if (isDedicatedContractingOnly) {
@@ -945,32 +1021,38 @@ export function AppShell({ children }: PropsWithChildren) {
           iconKey: 'contracting',
         },
         {
+          key: 'crm-group',
+          label: 'العملاء والصفقات',
+          itemKeys: ['crm', 'customers'],
+          iconKey: 'crm',
+        },
+        {
           key: 'purchases-group',
-          label: 'المشتريات ومقاولو الباطن',
+          label: 'المشتريات والتوريد',
           itemKeys: ['purchases-orders', 'purchases-rfqs', 'purchases-reorder', 'purchases', 'purchase-returns', 'suppliers'],
           iconKey: 'purchases',
         },
         {
           key: 'contracting-inventory-group',
-          label: 'المستودعات ومخازن المواقع',
-          itemKeys: ['inventory-warehouses', 'inventory-bins', 'inventory-issue-orders', 'inventory-issue-order-new', 'inventory'],
+          label: 'المخازن والمستودعات',
+          itemKeys: ['products', 'product-categories', 'inventory-warehouses', 'inventory-bins', 'inventory-issue-orders', 'inventory-issue-order-new', 'inventory'],
           iconKey: 'inventory',
         },
         {
           key: 'accounting-group',
-          label: 'المالية ومحاسبة المشاريع',
+          label: 'المالية والمحاسبة',
           itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-fixed-assets', 'accounting-settings'],
           iconKey: 'treasury',
         },
         {
           key: 'hr-group',
-          label: 'الموارد البشرية والعمالة',
+          label: 'الموارد البشرية',
           itemKeys: ['hr', 'hr-settlements'],
           iconKey: 'users',
         },
         {
           key: 'reports-group',
-          label: 'تقارير المشاريع والأرباح',
+          label: 'تقارير المشاريع',
           itemKeys: ['reports-overview', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'],
           iconKey: 'reports',
         },
@@ -1006,25 +1088,25 @@ export function AppShell({ children }: PropsWithChildren) {
         },
         {
           key: 'purchases-group',
-          label: 'الخطوط الملاحية والموردين',
+          label: 'الخطوط والموردين',
           itemKeys: ['purchases-orders', 'purchases-rfqs', 'purchases', 'suppliers'],
           iconKey: 'purchases',
         },
         {
           key: 'accounting-group',
-          label: 'المالية ومحاسبة الشحن',
+          label: 'المالية والمحاسبة',
           itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-settings'],
           iconKey: 'treasury',
         },
         {
           key: 'hr-group',
-          label: 'الموارد البشرية والموظفين',
+          label: 'الموارد البشرية',
           itemKeys: ['hr', 'hr-settlements'],
           iconKey: 'users',
         },
         {
           key: 'reports-group',
-          label: 'تقارير الشحن والعمليات',
+          label: 'تقارير الشحن',
           itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-treasury', 'reports-balances', 'reports-employees'],
           iconKey: 'reports',
         },
@@ -1043,7 +1125,67 @@ export function AppShell({ children }: PropsWithChildren) {
       ];
     }
 
-    // 3. Dedicated Import & Export Enterprise Workspace
+    // 3. Dedicated Manufacturing & Industrial Production Workspace
+    if (isDedicatedManufacturingOnly) {
+      return [
+        {
+          key: 'manufacturing-group',
+          label: 'التصنيع والإنتاج الصناعي',
+          itemKeys: ['manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-components', 'manufacturing-settings'],
+          iconKey: 'manufacturing',
+        },
+        {
+          key: 'crm-group',
+          label: 'العملاء والصفقات',
+          itemKeys: ['crm', 'customers'],
+          iconKey: 'crm',
+        },
+        {
+          key: 'purchases-group',
+          label: 'المشتريات والتوريد الخام',
+          itemKeys: ['purchases-orders', 'purchases-rfqs', 'purchases-reorder', 'purchases', 'purchase-returns', 'suppliers'],
+          iconKey: 'purchases',
+        },
+        {
+          key: 'manufacturing-inventory-group',
+          label: 'المستودعات والمخازن',
+          itemKeys: ['products', 'product-categories', 'inventory-warehouses', 'inventory-bins', 'inventory-issue-orders', 'inventory-issue-order-new', 'inventory'],
+          iconKey: 'inventory',
+        },
+        {
+          key: 'accounting-group',
+          label: 'المالية ومراكز التكلفة',
+          itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'accounting-fixed-assets', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-settings'],
+          iconKey: 'treasury',
+        },
+        {
+          key: 'hr-group',
+          label: 'الموارد البشرية وفريق العمل',
+          itemKeys: ['hr', 'hr-settlements'],
+          iconKey: 'users',
+        },
+        {
+          key: 'reports-group',
+          label: 'تقارير الإنتاج والمصنع',
+          itemKeys: ['reports-overview', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'],
+          iconKey: 'reports',
+        },
+        ...(isPlatformAdminUser ? [{
+          key: 'saas-group',
+          label: 'إدارة المنصة والساس',
+          itemKeys: ['saas-admin-tenants', 'saas-admin-plans'],
+          iconKey: 'saas-admin-tenants',
+        }] : []),
+        {
+          key: 'admin-group',
+          label: t('sidebar.admin-group', 'الإدارة والنظام'),
+          itemKeys: ['audit', 'settings'],
+          iconKey: 'admin',
+        },
+      ];
+    }
+
+    // 4. Dedicated Import & Export Enterprise Workspace
     if (isDedicatedImportOnly && (settings?.importModuleEnabled || hasImport)) {
       return [
         {
@@ -1102,7 +1244,7 @@ export function AppShell({ children }: PropsWithChildren) {
       return [
         {
           key: 'services-group',
-          label: 'الخدمات والعقود الاستشارية',
+          label: 'الخدمات والعقود',
           itemKeys: ['services', 'crm', 'quotations', 'sales', 'customers'],
           iconKey: 'services',
         },
@@ -1114,13 +1256,13 @@ export function AppShell({ children }: PropsWithChildren) {
         },
         {
           key: 'accounting-group',
-          label: hasAccounting ? 'المالية ومحاسبة الخدمات' : 'الخزينة والمصروفات',
+          label: 'المالية والمحاسبة',
           itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-settings'],
           iconKey: 'treasury',
         },
         {
           key: 'reports-group',
-          label: 'تقارير الإيرادات والأداء',
+          label: 'تقارير الأداء',
           itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-treasury', 'reports-balances', 'reports-employees'],
           iconKey: 'reports',
         },
@@ -1203,7 +1345,7 @@ export function AppShell({ children }: PropsWithChildren) {
         itemKeys: ['pharmacy-dashboard', 'pharmacy-drugs', 'pharmacy-prescriptions', 'pharmacy-shortages', 'pharmacy-batches', 'pharmacy-clinical'],
         iconKey: 'pharmacy',
       }] : []),
-      ...(!isRetailOrMarketVertical && !isRestaurantVertical && !isPharmacyVertical && !isElectronicsVertical && settings?.manufacturingModuleEnabled ? [{
+      ...(settings?.manufacturingModuleEnabled && hasManufacturing ? [{
         key: 'manufacturing-group',
         label: t('sidebar.manufacturing-group', 'التصنيع والإنتاج'),
         itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'],

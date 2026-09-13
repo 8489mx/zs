@@ -126,6 +126,9 @@ export function buildSettingsUpdatePayload(
     deliveryFeeMode,
     storeFleetCommissionRate,
     defaultDeliveryFee,
+    crmModuleEnabled: values.crmModuleEnabled !== undefined
+      ? values.crmModuleEnabled === true
+      : current?.crmModuleEnabled === true,
     manufacturingModuleEnabled: values.manufacturingModuleEnabled !== undefined
       ? values.manufacturingModuleEnabled === true
       : current?.manufacturingModuleEnabled === true,
@@ -163,6 +166,7 @@ export function buildSettingsUpdatePayload(
       ? values.hrModuleEnabled === true
       : current?.hrModuleEnabled === true,
     businessIndustry: values.businessIndustry || current?.businessIndustry || 'general',
+    activityType: values.activityType || values.businessIndustry || current?.activityType || undefined,
     onboardingCompleted: values.onboardingCompleted !== undefined
       ? Boolean(values.onboardingCompleted)
       : (current?.onboardingCompleted ?? true),
@@ -306,12 +310,14 @@ export function buildSettingsUpdatePayload(
       : (current?.invoiceNumberingScheme === 'sequential' ? 'sequential' : 'daily'),
   };
 
-  const rawActivity = String((current as any)?.pillar || (current as any)?.activityType || values.businessIndustry || current?.businessIndustry || 'retail_general').trim().toLowerCase();
+  const rawActivity = String(values.businessIndustry || values.activityType || (current as any)?.activityType || (current as any)?.pillar || current?.businessIndustry || 'retail_general').trim().toLowerCase();
   const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
   const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+  const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
 
   if (isContractingVertical) {
     settings.contractingModuleEnabled = true;
+    settings.crmModuleEnabled = true;
     settings.purchasesModuleEnabled = true;
     settings.inventoryModuleEnabled = true;
     settings.hrModuleEnabled = true;
@@ -320,16 +326,34 @@ export function buildSettingsUpdatePayload(
     settings.taxDeclarationModuleEnabled = true;
     settings.posModuleEnabled = false;
     settings.maritimeFreightModuleEnabled = false;
+    settings.manufacturingModuleEnabled = false;
   } else if (isMaritimeVertical) {
     settings.maritimeFreightModuleEnabled = true;
+    settings.crmModuleEnabled = true;
     settings.purchasesModuleEnabled = true;
     settings.hrModuleEnabled = true;
     settings.enableEnterpriseFeatures = true;
     settings.fixedAssetsModuleEnabled = true;
     settings.taxDeclarationModuleEnabled = true;
     settings.contractingModuleEnabled = false;
+    settings.manufacturingModuleEnabled = false;
     settings.inventoryModuleEnabled = false;
     settings.posModuleEnabled = false;
+  } else if (isManufacturingVertical) {
+    settings.manufacturingModuleEnabled = true;
+    settings.crmModuleEnabled = true;
+    settings.purchasesModuleEnabled = true;
+    settings.inventoryModuleEnabled = true;
+    settings.hrModuleEnabled = true;
+    settings.enableEnterpriseFeatures = true;
+    settings.fixedAssetsModuleEnabled = true;
+    settings.taxDeclarationModuleEnabled = true;
+    settings.contractingModuleEnabled = false;
+    settings.maritimeFreightModuleEnabled = false;
+    settings.posModuleEnabled = false;
+  } else {
+    settings.contractingModuleEnabled = false;
+    settings.maritimeFreightModuleEnabled = false;
   }
 
   return { settings };

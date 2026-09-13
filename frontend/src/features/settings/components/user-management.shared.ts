@@ -2,10 +2,10 @@ import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 
 export const DEFAULT_ADMIN_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canSellWholesale','canViewProfit','canDelete','canEditInvoices','canDirectReturn','canAdjustInventory','canManageBranchStock','cashDrawer','deliveryReps'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','crm','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canSellWholesale','canViewProfit','canDelete','canEditInvoices','canDirectReturn','canAdjustInventory','canManageBranchStock','cashDrawer','deliveryReps'
 ];
 export const DEFAULT_OPERATOR_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','settings','pricingCenterView','pricingCenterManage','cashDrawer','deliveryReps','canPrint','canDiscount','canEditPrice','canSellWholesale','canViewProfit','canEditInvoices','canDirectReturn','canAdjustInventory','canManageBranchStock','canManageSettings'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','crm','accounts','accounting','returns','reports','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','settings','pricingCenterView','pricingCenterManage','cashDrawer','deliveryReps','canPrint','canDiscount','canEditPrice','canSellWholesale','canViewProfit','canEditInvoices','canDirectReturn','canAdjustInventory','canManageBranchStock','canManageSettings'
 ];
 export const DEFAULT_CASHIER_PERMS = [
   'sales', 'cashDrawer', 'customers', 'suppliers', 'accounts', 'purchases', 'products', 'returns', 'deliveryReps', 'hr', 'hrAttendance', 'canPrint', 'services', 'treasury'
@@ -15,6 +15,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
   dashboard: 'الشاشة الرئيسية',
   sales: 'سجل الفواتير',
   customers: 'العملاء',
+  crm: 'إدارة علاقات العملاء والصفقات (CRM)',
   cashDrawer: 'وردية الكاشير',
   products: 'الأصناف',
   inventory: 'المخزون',
@@ -69,6 +70,7 @@ export const PERMISSION_FEATURE_MAP: Record<string, string> = {
 
   // Sales & POS
   sales: 'sales',
+  crm: 'sales',
   returns: 'sales',
   canPrint: 'sales',
   canDiscount: 'sales',
@@ -135,7 +137,7 @@ export interface PermissionGroup {
 }
 
 export const USER_PERMISSION_GROUPS: PermissionGroup[] = [
-  { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'accounting', 'reports', 'pricingCenterView', 'deliveryReps'] },
+  { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'crm', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'accounting', 'reports', 'pricingCenterView', 'deliveryReps'] },
   { title: 'الموارد البشرية', items: ['hr', 'hrEmployees', 'hrAttendance', 'hrContracts', 'hrLoans', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove'] },
   { title: 'تنفيذ العمليات', items: ['canPrint', 'canDiscount', 'canEditPrice', 'canSellWholesale', 'canEditInvoices', 'canDirectReturn', 'canAdjustInventory', 'canManageBranchStock', 'pricingCenterManage'] },
   { title: 'إدارة النظام', items: ['settings', 'canManageSettings', 'canEditUsers', 'canManageUsers', 'canManageBackups'] },

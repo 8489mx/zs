@@ -161,7 +161,20 @@ export class SettingsService {
       settings.fixedAssetsModuleEnabled = true;
       settings.taxDeclarationModuleEnabled = true;
       settings.contractingModuleEnabled = false;
+      settings.manufacturingModuleEnabled = false;
       settings.inventoryModuleEnabled = false;
+      settings.posModuleEnabled = false;
+      settings.requireCashierShiftForSales = false;
+    } else if (settings.pillar === 'manufacturing') {
+      settings.manufacturingModuleEnabled = true;
+      settings.purchasesModuleEnabled = true;
+      settings.inventoryModuleEnabled = true;
+      settings.hrModuleEnabled = true;
+      settings.enableEnterpriseFeatures = true;
+      settings.fixedAssetsModuleEnabled = true;
+      settings.taxDeclarationModuleEnabled = true;
+      settings.contractingModuleEnabled = false;
+      settings.maritimeFreightModuleEnabled = false;
       settings.posModuleEnabled = false;
       settings.requireCashierShiftForSales = false;
     }
@@ -278,11 +291,34 @@ export class SettingsService {
       .select(['activity_type'])
       .where('id', '=', scope.tenantId)
       .executeTakeFirst();
-    const effectiveType = tenantRow?.activity_type || (normalizedPayload.activityType as string) || 'retail_general';
+
+    const rawRequestedActivity = String(
+      normalizedPayload.activityType || normalizedPayload.businessIndustry || '',
+    ).trim().toLowerCase();
+
+    let effectiveType = tenantRow?.activity_type || rawRequestedActivity || 'retail_general';
+
+    // Allow Super Admin to switch the tenant's activity profile via settings save
+    const isSuperAdminActor = actor.role === 'super_admin';
+    if (isSuperAdminActor && rawRequestedActivity && rawRequestedActivity !== tenantRow?.activity_type) {
+      const normalizedKey = normalizeIndustryProfileKey(rawRequestedActivity);
+      await this.db
+        .updateTable('tenants')
+        .set({ activity_type: normalizedKey })
+        .where('id', '=', scope.tenantId)
+        .execute();
+      this.authCache.invalidateTenant(scope.tenantId);
+      this.invalidatePlanFeaturesCache(scope.tenantId);
+      effectiveType = normalizedKey;
+      normalizedPayload.activityType = normalizedKey;
+      normalizedPayload.businessIndustry = normalizedKey;
+    }
+
     const profile = getIndustryProfile(effectiveType);
 
     if (profile.pillar === 'contracting') {
       normalizedPayload.contractingModuleEnabled = true;
+      normalizedPayload.crmModuleEnabled = true;
       normalizedPayload.purchasesModuleEnabled = true;
       normalizedPayload.inventoryModuleEnabled = true;
       normalizedPayload.hrModuleEnabled = true;
@@ -294,15 +330,34 @@ export class SettingsService {
       normalizedPayload.requireCashierShiftForSales = false;
     } else if (profile.pillar === 'maritime_freight') {
       normalizedPayload.maritimeFreightModuleEnabled = true;
+      normalizedPayload.crmModuleEnabled = true;
       normalizedPayload.purchasesModuleEnabled = true;
       normalizedPayload.hrModuleEnabled = true;
       normalizedPayload.enableEnterpriseFeatures = true;
       normalizedPayload.fixedAssetsModuleEnabled = true;
       normalizedPayload.taxDeclarationModuleEnabled = true;
       normalizedPayload.contractingModuleEnabled = false;
+      normalizedPayload.manufacturingModuleEnabled = false;
       normalizedPayload.inventoryModuleEnabled = false;
       normalizedPayload.posModuleEnabled = false;
       normalizedPayload.requireCashierShiftForSales = false;
+    } else if (profile.pillar === 'manufacturing') {
+      normalizedPayload.manufacturingModuleEnabled = true;
+      normalizedPayload.crmModuleEnabled = true;
+      normalizedPayload.purchasesModuleEnabled = true;
+      normalizedPayload.inventoryModuleEnabled = true;
+      normalizedPayload.hrModuleEnabled = true;
+      normalizedPayload.enableEnterpriseFeatures = true;
+      normalizedPayload.fixedAssetsModuleEnabled = true;
+      normalizedPayload.taxDeclarationModuleEnabled = true;
+      normalizedPayload.contractingModuleEnabled = false;
+      normalizedPayload.maritimeFreightModuleEnabled = false;
+      normalizedPayload.posModuleEnabled = false;
+      normalizedPayload.requireCashierShiftForSales = false;
+    } else {
+      normalizedPayload.contractingModuleEnabled = false;
+      normalizedPayload.maritimeFreightModuleEnabled = false;
+      normalizedPayload.posModuleEnabled = true;
     }
 
     for (const [key, value] of Object.entries(normalizedPayload)) {
@@ -533,6 +588,7 @@ export class SettingsService {
     const modulePatch: Record<string, boolean> = {};
     if (profile.pillar === 'contracting') {
       modulePatch.contractingModuleEnabled = true;
+      modulePatch.crmModuleEnabled = true;
       modulePatch.purchasesModuleEnabled = true;
       modulePatch.inventoryModuleEnabled = true;
       modulePatch.hrModuleEnabled = true;
@@ -544,13 +600,28 @@ export class SettingsService {
       modulePatch.requireCashierShiftForSales = false;
     } else if (profile.pillar === 'maritime_freight') {
       modulePatch.maritimeFreightModuleEnabled = true;
+      modulePatch.crmModuleEnabled = true;
       modulePatch.purchasesModuleEnabled = true;
       modulePatch.hrModuleEnabled = true;
       modulePatch.enableEnterpriseFeatures = true;
       modulePatch.fixedAssetsModuleEnabled = true;
       modulePatch.taxDeclarationModuleEnabled = true;
       modulePatch.contractingModuleEnabled = false;
+      modulePatch.manufacturingModuleEnabled = false;
       modulePatch.inventoryModuleEnabled = false;
+      modulePatch.posModuleEnabled = false;
+      modulePatch.requireCashierShiftForSales = false;
+    } else if (profile.pillar === 'manufacturing') {
+      modulePatch.manufacturingModuleEnabled = true;
+      modulePatch.crmModuleEnabled = true;
+      modulePatch.purchasesModuleEnabled = true;
+      modulePatch.inventoryModuleEnabled = true;
+      modulePatch.hrModuleEnabled = true;
+      modulePatch.enableEnterpriseFeatures = true;
+      modulePatch.fixedAssetsModuleEnabled = true;
+      modulePatch.taxDeclarationModuleEnabled = true;
+      modulePatch.contractingModuleEnabled = false;
+      modulePatch.maritimeFreightModuleEnabled = false;
       modulePatch.posModuleEnabled = false;
       modulePatch.requireCashierShiftForSales = false;
     } else {

@@ -22,6 +22,14 @@ export const maritimeFreightRouteModule: FeatureRouteModule = {
       path: 'maritime/*',
       element: MaritimeWorkspaceLazy,
     },
+    {
+      path: 'maritime-freight',
+      element: MaritimeWorkspaceLazy,
+    },
+    {
+      path: 'maritime-freight/*',
+      element: MaritimeWorkspaceLazy,
+    },
   ],
   navigation: [
     { key: 'maritime-inquiries', label: 'استفسارات شحن العملاء', to: '/maritime/inquiries' },

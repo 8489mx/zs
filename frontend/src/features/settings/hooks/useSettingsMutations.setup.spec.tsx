@@ -59,6 +59,7 @@ const baseSettingsMutationValues = {
   purchasesModuleEnabled: true,
   inventoryModuleEnabled: true,
   hrModuleEnabled: true,
+  crmModuleEnabled: false,
   onboardingCompleted: false,
   storefrontModuleEnabled: false,
   installmentsModuleEnabled: false,

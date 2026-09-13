@@ -147,8 +147,8 @@ th {
 }
 
 .sidebar-fixed {
-  width: 268px;
-  padding: 14px 12px 12px;
+  width: 274px;
+  padding: 14px 10px 12px;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .app-layout.sidebar-collapsed .sidebar-fixed {

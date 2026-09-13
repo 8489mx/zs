@@ -22,7 +22,10 @@ function pickOperationalLandingRoute(user: AuthUser, tenant?: AuthTenant | null)
     if (canAccessPath(user, '/contracting')) return '/contracting';
   }
   if (rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن') {
-    if (canAccessPath(user, '/maritime-freight')) return '/maritime-freight';
+    if (canAccessPath(user, '/maritime')) return '/maritime';
+  }
+  if (rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع') {
+    if (canAccessPath(user, '/manufacturing/work-orders')) return '/manufacturing/work-orders';
   }
 
   const preferredRoutes = ROUTE_PREFERENCES[user.role] || ROUTE_PREFERENCES.admin;

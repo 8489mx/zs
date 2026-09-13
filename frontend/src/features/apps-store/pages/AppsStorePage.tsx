@@ -36,13 +36,13 @@ function CargoShipIcon({ size = 20, color }: { size?: number; color?: string }) 
 const CATEGORY_TABS: Array<{ id: AppCategoryKey; label: string }> = [
   { id: 'all', label: 'كافة التطبيقات' },
   { id: 'installed', label: 'المثبتة والنشطة' },
-  { id: 'pos', label: 'المبيعات والكاشير' },
-  { id: 'inventory', label: 'المخازن وسلاسل الإمداد' },
+  { id: 'pos', label: 'المبيعات' },
+  { id: 'inventory', label: 'المخازن' },
   { id: 'finance', label: 'المالية والمحاسبة' },
-  { id: 'contracting', label: 'المقاولات والمشاريع' },
-  { id: 'maritime', label: 'الشحن واللوجستيات' },
-  { id: 'specialized', label: 'العمليات والخدمات' },
-  { id: 'logistics', label: 'اللوجستيات والسحابية' },
+  { id: 'contracting', label: 'المقاولات' },
+  { id: 'maritime', label: 'الشحن' },
+  { id: 'specialized', label: 'الخدمات' },
+  { id: 'logistics', label: 'اللوجستيات' },
 ];
 
 const CONTRACTING_ALLOWED_KEYS = new Set([
@@ -422,15 +422,13 @@ export function AppsStorePage() {
             padding: '14px 18px',
             marginBottom: '22px',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '14px',
+            flexDirection: 'column',
+            gap: '12px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
           {/* Instant Search Bar */}
-          <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
+          <div style={{ position: 'relative', width: '100%' }}>
             <span style={{ position: 'absolute', right: '14px', top: '11px', color: '#94a3b8' }}>
               <SearchIcon size={16} />
             </span>
@@ -459,12 +457,13 @@ export function AppsStorePage() {
           <div
             style={{
               display: 'flex',
-              gap: '4px',
+              flexWrap: 'wrap',
+              gap: '6px',
               backgroundColor: '#f1f5f9',
-              padding: '4px',
+              padding: '6px',
               borderRadius: '10px',
-              overflowX: 'auto',
-              maxWidth: '100%',
+              width: '100%',
+              boxSizing: 'border-box',
             }}
           >
             {availableCategories.map((tab) => {
@@ -487,23 +486,25 @@ export function AppsStorePage() {
                     backgroundColor: isActive ? '#ffffff' : 'transparent',
                     color: isActive ? '#170e5e' : '#64748b',
                     fontWeight: 700,
-                    fontSize: '0.75rem',
+                    fontSize: '0.78rem',
                     cursor: 'pointer',
                     boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                     whiteSpace: 'nowrap',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <span>{tab.label}</span>
                   <span
                     style={{
-                      fontSize: '0.6875rem',
+                      fontSize: '0.7rem',
                       background: isActive ? '#eef2ff' : '#e2e8f0',
                       color: isActive ? '#170e5e' : '#475569',
-                      padding: '1px 6px',
+                      padding: '1px 7px',
                       borderRadius: '10px',
+                      fontWeight: 800,
                     }}
                   >
                     {count}

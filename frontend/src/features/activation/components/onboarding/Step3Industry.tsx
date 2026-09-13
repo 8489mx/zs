@@ -18,7 +18,7 @@ interface Step3Props {
   onBack: () => void;
 }
 
-type PillarKey = 'contracting' | 'maritime_freight' | 'commerce';
+type PillarKey = 'contracting' | 'maritime_freight' | 'manufacturing' | 'commerce';
 type CommerceSubVertical = 'retail_general' | 'pharmacy' | 'restaurant' | 'manufacturing' | 'maintenance';
 
 interface PillarConfig {
@@ -52,6 +52,16 @@ const PILLARS: PillarConfig[] = [
     color: '#0d9488',
     accentBg: '#f0fdfa',
     featuresSummary: 'الخطوط والموانئ • تسعير النولون • أوامر التشغيل • الحاويات والغرامات • الشجرة المحاسبية',
+  },
+  {
+    key: 'manufacturing',
+    labelAr: 'قطاع التصنيع والإنتاج الصناعي',
+    badge: 'جناح مؤسسي شامل',
+    descriptionAr: 'منظومة المصانع وإدارة خطوط الإنتاج، أوامر الشغل، قوائم المكونات (BOM)، تكاليف الإنتاج ومخازن المواد الخام والمنتج التام.',
+    icon: LayersIcon,
+    color: '#4338ca',
+    accentBg: '#e0e7ff',
+    featuresSummary: 'أوامر الإنتاج • قوائم المكونات BOM • مخازن المواد الخام • مراكز التكلفة • مشتريات التوريد • CRM',
   },
   {
     key: 'commerce',
@@ -119,6 +129,8 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
       ? 'contracting'
       : currentVal === 'maritime_freight' || currentVal === 'maritime'
       ? 'maritime_freight'
+      : currentVal === 'manufacturing' || currentVal === 'production'
+      ? 'manufacturing'
       : 'commerce';
 
   const [selectedPillar, setSelectedPillar] = useState<PillarKey>(initialPillar);
@@ -142,6 +154,8 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
       updateExtra('industry', 'contracting');
     } else if (pillar === 'maritime_freight') {
       updateExtra('industry', 'maritime_freight');
+    } else if (pillar === 'manufacturing') {
+      updateExtra('industry', 'manufacturing');
     } else {
       updateExtra('industry', selectedSubVertical);
     }
@@ -164,15 +178,26 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
         </p>
       </div>
 
-      {/* 3 Core Pillars Selection */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '12px',
-          marginBottom: '16px',
-        }}
-      >
+      {/* 4 Core Pillars Selection */}
+      <style>{`
+        .onboarding-pillars-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        @media (max-width: 960px) {
+          .onboarding-pillars-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 540px) {
+          .onboarding-pillars-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+      <div className="onboarding-pillars-grid">
         {PILLARS.map((pillar) => {
           const isPillarActive = selectedPillar === pillar.key;
           const Icon = pillar.icon;

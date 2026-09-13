@@ -35,7 +35,7 @@ export function DashboardPage() {
   }
 
   if (tenant?.activityType === 'maritime_freight' || tenant?.pillar === 'maritime_freight') {
-    return <Navigate to="/maritime-freight" replace />;
+    return <Navigate to="/maritime" replace />;
   }
 
   const hasReportsFeature = useHasFeature('reports') || isPlatformAdminUser;

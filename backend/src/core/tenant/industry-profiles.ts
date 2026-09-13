@@ -1,4 +1,4 @@
-export type IndustryPillar = 'contracting' | 'maritime_freight' | 'commerce';
+export type IndustryPillar = 'contracting' | 'maritime_freight' | 'manufacturing' | 'commerce';
 
 export type CommerceSubVertical =
   | 'retail_general'
@@ -38,6 +38,8 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
       'inventory',
       'suppliers',
       'customers',
+      'crm',
+      'sales',
       'pricing',
       'accounting',
       'hr',
@@ -62,6 +64,8 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
       'purchases',
       'suppliers',
       'customers',
+      'crm',
+      'sales',
       'pricing',
       'accounting',
       'hr',
@@ -161,26 +165,28 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
 
   manufacturing: {
     key: 'manufacturing',
-    pillar: 'commerce',
+    pillar: 'manufacturing',
     subVertical: 'manufacturing',
-    labelAr: 'تصنيع وورش ومعامل إنتاج',
-    labelEn: 'Manufacturing & Assembly',
-    descriptionAr: 'قوائم المكونات (BOM)، مراكز العمل ومسارات الإنتاج، أوامر الشغل، وحساب تكاليف التشغيل.',
-    defaultRoute: '/manufacturing',
+    labelAr: 'قطاع التصنيع والإنتاج الصناعي',
+    labelEn: 'Manufacturing & Industrial Production',
+    descriptionAr: 'منظومة المصانع والمعامل: تخطيط الإنتاج، شجرة المنتج (BOM)، أوامر التشغيل، مستودعات الخامات والمنتج التام، ومحاسبة التكاليف الصناعية.',
+    defaultRoute: '/manufacturing/work-orders',
     defaultFeatures: [
-      'catalog',
-      'sales',
-      'sessions',
-      'cashDrawer',
+      'manufacturing',
       'purchases',
       'inventory',
-      'reports',
-      'manufacturing',
+      'suppliers',
+      'customers',
+      'crm',
+      'sales',
+      'pricing',
       'accounting',
       'hr',
       'fixed_assets',
       'vat_declaration',
       'taxIntegration',
+      'reports',
+      'approvals',
     ],
     allowedExtraFeatures: ['storefront'],
   },
@@ -302,6 +308,19 @@ export function resolvePillarScopedFeatures(
     candidates.delete('maintenance');
     candidates.delete('clothing');
     candidates.delete('inventory');
+  } else if (profile.pillar === 'manufacturing') {
+    candidates.delete('pharmacy');
+    candidates.delete('restaurant');
+    candidates.delete('contracting');
+    candidates.delete('maritime_freight');
+    candidates.delete('storefront');
+    candidates.delete('kds');
+    candidates.delete('displays');
+    candidates.delete('signage');
+    candidates.delete('deliveryReps');
+    candidates.delete('maintenance');
+    candidates.delete('clothing');
+    if (!explicitPlus.includes('pos')) candidates.delete('pos');
   } else {
     // Pillar is commerce: remove isolated vertical modules (contracting & maritime_freight) unless explicitly granted
     if (!explicitPlus.includes('contracting')) candidates.delete('contracting');

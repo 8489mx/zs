@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import { FormSection } from '@/shared/components/form-section';
 import { LightbulbIcon, XIcon, CheckIcon, StarIcon, ChevronDownIcon, MonitorIcon, PackageIcon, ReceiptIcon, UsersIcon } from '@/shared/components/icons/AppIcons';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
+import { settingsApi } from '@/features/settings/api/settings.api';
+import { authApi } from '@/shared/api/auth';
 import { useHasFeature } from '@/shared/hooks/use-permission';
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin } from '@/app/router/access';
@@ -315,39 +319,42 @@ const premiumCheckboxInputStyle = {
 };
 
 export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProps) {
+  const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
+  const updateSessionMeta = useAuthStore((s) => s.updateSessionMeta);
   const isSuperAdmin = isPlatformAdmin(user) || (user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs');
 
   const rawActivity = String(tenant?.activityType || tenant?.pillar || form.watch('businessIndustry') || form.watch('activityType') || 'retail_general').trim().toLowerCase();
   const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
   const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+  const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
 
-  const hasManufacturingFeature = useHasFeature('manufacturing') || isSuperAdmin;
+  const hasManufacturingFeature = useHasFeature('manufacturing') || isManufacturingVertical || isSuperAdmin;
   const hasImportFeature = useHasFeature('import') || isSuperAdmin;
   const hasRestaurantFeature = useHasFeature('restaurant') || isSuperAdmin;
   const hasMaintenanceFeature = useHasFeature('maintenance') || isSuperAdmin;
   const hasPharmacyFeature = useHasFeature('pharmacy') || isSuperAdmin;
-  const hasEnterpriseFeature = useHasFeature('accounting') || isContractingVertical || isMaritimeVertical || isSuperAdmin;
+  const hasEnterpriseFeature = useHasFeature('accounting') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
   const hasStorefrontFeature = useHasFeature('storefront') || isSuperAdmin;
   const hasInstallmentsFeature = useHasFeature('installments') || isSuperAdmin;
-  const hasFixedAssetsFeature = useHasFeature('fixed_assets') || isContractingVertical || isMaritimeVertical || isSuperAdmin;
-  const hasTaxDeclarationFeature = useHasFeature('vat_declaration') || isContractingVertical || isMaritimeVertical || isSuperAdmin;
+  const hasFixedAssetsFeature = useHasFeature('fixed_assets') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
+  const hasTaxDeclarationFeature = useHasFeature('vat_declaration') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
   const hasDeliveryFleetFeature = useHasFeature('deliveryReps') || isSuperAdmin;
-  const hasPurchasesFeature = useHasFeature('purchases') || isContractingVertical || isMaritimeVertical || isSuperAdmin;
-  const hasInventoryFeature = useHasFeature('inventory') || isContractingVertical || isSuperAdmin;
-  const hasHrFeature = useHasFeature('hr') || isContractingVertical || isMaritimeVertical || isSuperAdmin;
+  const hasPurchasesFeature = useHasFeature('purchases') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
+  const hasInventoryFeature = useHasFeature('inventory') || isContractingVertical || isManufacturingVertical || isSuperAdmin;
+  const hasHrFeature = useHasFeature('hr') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
   const hasClothingFeature = useHasFeature('clothing') || isSuperAdmin;
   const hasMaritimeFreightFeature = useHasFeature('maritime_freight') || isMaritimeVertical || isSuperAdmin;
   const hasContractingFeature = useHasFeature('contracting') || isContractingVertical || isSuperAdmin;
   const hasServicesFeature = hasPurchasesFeature || hasInventoryFeature;
   const hasPosMetaFeature = hasRestaurantFeature;
 
-  const isPosActive = isContractingVertical || isMaritimeVertical ? false : Boolean(form.watch('posModuleEnabled'));
-  const isPurchasesActive = isContractingVertical || isMaritimeVertical ? true : (hasPurchasesFeature && Boolean(form.watch('purchasesModuleEnabled')));
-  const isInventoryActive = isContractingVertical ? true : (isMaritimeVertical ? false : (hasInventoryFeature && Boolean(form.watch('inventoryModuleEnabled'))));
-  const isHrActive = isContractingVertical || isMaritimeVertical ? true : (hasHrFeature && Boolean(form.watch('hrModuleEnabled')));
-  const isManufacturingActive = hasManufacturingFeature && Boolean(form.watch('manufacturingModuleEnabled'));
+  const isPosActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? false : Boolean(form.watch('posModuleEnabled'));
+  const isPurchasesActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasPurchasesFeature && Boolean(form.watch('purchasesModuleEnabled')));
+  const isInventoryActive = isContractingVertical || isManufacturingVertical ? true : (isMaritimeVertical ? false : (hasInventoryFeature && Boolean(form.watch('inventoryModuleEnabled'))));
+  const isHrActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasHrFeature && Boolean(form.watch('hrModuleEnabled')));
+  const isManufacturingActive = isManufacturingVertical ? true : (hasManufacturingFeature && Boolean(form.watch('manufacturingModuleEnabled')));
   const isComboActive = hasPurchasesFeature && Boolean(form.watch('comboModuleEnabled'));
   const isImportActive = hasImportFeature && Boolean(form.watch('importModuleEnabled'));
   const isRestaurantActive = hasRestaurantFeature && Boolean(form.watch('restaurantModuleEnabled'));
@@ -360,11 +367,11 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const clothingModuleEnabled = isClothingActive;
   const isWeightedActive = Boolean(form.watch('weightedBarcodeEnabled'));
   const weightedBarcodeEnabled = isWeightedActive;
-  const isEnterpriseActive = isContractingVertical || isMaritimeVertical ? true : (hasEnterpriseFeature && Boolean(form.watch('enableEnterpriseFeatures')));
+  const isEnterpriseActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasEnterpriseFeature && Boolean(form.watch('enableEnterpriseFeatures')));
   const isStorefrontActive = hasStorefrontFeature && Boolean(form.watch('storefrontModuleEnabled'));
   const isInstallmentsActive = hasInstallmentsFeature && Boolean(form.watch('installmentsModuleEnabled'));
-  const isFixedAssetsActive = isContractingVertical || isMaritimeVertical ? true : (hasFixedAssetsFeature && Boolean(form.watch('fixedAssetsModuleEnabled')));
-  const isTaxDeclarationActive = isContractingVertical || isMaritimeVertical ? true : (hasTaxDeclarationFeature && Boolean(form.watch('taxDeclarationModuleEnabled')));
+  const isFixedAssetsActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasFixedAssetsFeature && Boolean(form.watch('fixedAssetsModuleEnabled')));
+  const isTaxDeclarationActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasTaxDeclarationFeature && Boolean(form.watch('taxDeclarationModuleEnabled')));
   const isDeliveryFleetActive = hasDeliveryFleetFeature && Boolean(form.watch('deliveryFleetModuleEnabled'));
   const isMaritimeFreightActive = isMaritimeVertical ? true : (hasMaritimeFreightFeature && Boolean(form.watch('maritimeFreightModuleEnabled')));
   const isContractingActive = isContractingVertical ? true : (hasContractingFeature && Boolean(form.watch('contractingModuleEnabled')));
@@ -374,6 +381,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [configuratorOpen, setConfiguratorOpen] = useState(false);
+  const [showManualSwitches, setShowManualSwitches] = useState(false);
   const [upgradeModalInfo, setUpgradeModalInfo] = useState<{
     open: boolean;
     title: string;
@@ -419,6 +427,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
       form.setValue(key as any, effectiveValue, { shouldDirty: true, shouldValidate: true });
     }
     form.setValue('businessIndustry', config.industry as any, { shouldDirty: true });
+    form.setValue('activityType', config.industry as any, { shouldDirty: true });
     if (config.posMode) {
       form.setValue('defaultPosMode', config.posMode, { shouldDirty: true });
     }
@@ -430,9 +439,59 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
     }
   };
 
-  const handleQuickSelectIndustry = (indId: IndustryPresetId) => {
+  const handleQuickSelectIndustry = async (indId: IndustryPresetId) => {
     const preset = INDUSTRY_PRESETS[indId];
     if (!preset) return;
+
+    const currentAct = String(tenant?.activityType || tenant?.pillar || form.watch('businessIndustry') || 'retail_general').trim().toLowerCase();
+    const isPillarSwitch = indId !== currentAct;
+
+    if (isSuperAdmin && isPillarSwitch) {
+      const confirmed = await systemConfirm({
+        title: 'تأكيد تحويل نشاط المنشأة (سوبر أدمن)',
+        message: `هل تريد تحويل نشاط وهيكل المنظومة إلى [${preset.name}]؟ سيتم تحديث هوية المنشأة في السيرفر وإعادة بناء القائمة الجانبية فوراً بما يطابق هذا النشاط.`,
+        confirmText: 'تحويل النشاط فوراً',
+        cancelText: 'إلغاء',
+        variant: 'primary',
+      });
+      if (!confirmed) return;
+
+      try {
+        const res = await settingsApi.setActivityProfile(indId);
+        if (res.ok) {
+          if (tenant) {
+            updateSessionMeta({
+              tenant: {
+                ...tenant,
+                activityType: res.activityType,
+                pillar: res.pillar,
+              },
+            });
+          }
+          authApi.me().then((meRes) => {
+            if (meRes?.tenant) {
+              updateSessionMeta({ tenant: meRes.tenant });
+            }
+          }).catch(() => undefined);
+
+          queryClient.setQueriesData({ queryKey: ['settings'] }, (old: any) => {
+            if (!old) return old;
+            return {
+              ...old,
+              activityType: res.activityType,
+              businessIndustry: res.activityType,
+              ...(res.settingsPatch || {}),
+            };
+          });
+          await queryClient.invalidateQueries({ queryKey: ['settings'] });
+          await queryClient.invalidateQueries({ queryKey: ['auth'] });
+          toast.success(res.message || `تم تحويل نشاط المنظومة إلى [${preset.name}] بنجاح`);
+        }
+      } catch (err: any) {
+        toast.error(err?.message || 'تعذر تغيير نمط المنظومة');
+        return;
+      }
+    }
 
     const newSelection: Record<string, boolean> = {};
     for (const mod of SYSTEM_MODULES) {
@@ -582,8 +641,36 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
         </div>
       )}
 
+      {/* ===== باقة التصنيع والإنتاج الصناعي الشاملة (All-Inclusive) ===== */}
+      {isManufacturingVertical && (
+        <div style={{
+          padding: '12px 16px',
+          marginBottom: '14px',
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '0.82rem',
+          color: '#166534',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center' }}>
+              <FactoryIcon size={20} />
+            </span>
+            <span>
+              <strong>باقة التصنيع والإنتاج الصناعي الشاملة (All-Inclusive Suite):</strong> تم تفعيل كافة الموديولات التشغيلية للمصانع تلقائياً (أوامر الإنتاج، قوائم المكونات BOM، مشتريات المواد الخام والتوريد، مستودعات المواد والمنتج التام، مراكز التكلفة والمحاسبة، CRM، والموارد البشرية) بكامل صلاحيات المنظومة دون قيود باقات.
+            </span>
+          </div>
+          <span style={{ fontSize: '0.72rem', background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '6px', fontWeight: 800, border: '1px solid #86efac', flexShrink: 0 }}>
+            باقة متكاملة شاملة
+          </span>
+        </div>
+      )}
+
       {/* ===== شريط التخصيص السريع ومعالج الموديولات ===== */}
-      {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+      {(!isContractingVertical && !isMaritimeVertical && !isManufacturingVertical) || isSuperAdmin ? (
         <SmartModularQuickBar
           currentIndustry={form.watch('businessIndustry')}
           onOpenModal={() => setConfiguratorOpen(true)}
@@ -597,40 +684,73 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        background: '#eef2ff',
-        border: '1px solid #c7d2fe',
-        padding: '12px 18px',
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
+        padding: '16px 20px',
         borderRadius: '12px',
         marginBottom: '18px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         flexWrap: 'wrap',
         gap: '12px',
       }}>
         <div>
-          <strong style={{ fontSize: '0.88rem', color: '#1e1b4b', display: 'block', marginBottom: '2px' }}>
-            متجر التطبيقات والموديولات الكامل (Apps Store)
+          <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block', marginBottom: '3px', fontWeight: 800 }}>
+            متجر التطبيقات والموديولات (Apps Store)
           </strong>
-          <span style={{ fontSize: '0.78rem', color: '#4338ca' }}>
-            يمكنك الانتقال لمركز التطبيقات المستقل لاستعراض وإدارة وتثبيت الموديولات بشبكة كروت عصرية وبحث وتصنيفات تفصيلية.
+          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+            الواجهة المعتمدة لإدارة وتثبيت وتفعيل موديولات وتطبيقات النظام بشبكة كروت عصرية وبحث وتصنيفات تفصيلية.
           </span>
         </div>
         <Link
           to="/apps"
           style={{
-            padding: '7px 16px',
+            padding: '8px 18px',
             background: '#170e5e',
             color: '#ffffff',
             borderRadius: '8px',
-            fontSize: '0.78rem',
+            fontSize: '0.82rem',
             fontWeight: 700,
             textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
           }}
         >
           فتح متجر التطبيقات
         </Link>
       </div>
 
-      {/* ===== موديولات النظام ===== */}
-      <FormSection title="متجر التطبيقات والموديولات" description={<>شغّل الأجزاء التي تحتاجها لنشاطك، وسيتم ضبط وتحديث القوائم والشاشات تلقائياً.</>}>
+      {/* ===== خيارات التفعيل اليدوي للموديولات (مخفية افتراضياً لمنع التكرار) ===== */}
+      <div style={{ marginTop: '14px', marginBottom: '20px' }}>
+        <button
+          type="button"
+          onClick={() => setShowManualSwitches((prev) => !prev)}
+          style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '10px 16px',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            color: '#475569',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>خيارات التفعيل اليدوي المتقدمة للموديولات (مخفية لمنع التكرار مع متجر التطبيقات)</span>
+          </span>
+          <span style={{ transform: showManualSwitches ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease', display: 'flex' }}>
+            <ChevronDownIcon size={18} />
+          </span>
+        </button>
+
+        <div style={{ display: showManualSwitches ? 'block' : 'none', marginTop: '14px' }}>
+          <FormSection title="خيارات التفعيل اليدوي للموديولات" description={<>شغّل الأجزاء التي تحتاجها لنشاطك يدوياً إذا رغبت، وسيتم ضبط وتحديث القوائم والشاشات تلقائياً.</>}>
         <div className="document-prototype-grid compact-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '14px' }}>
           
           {/* نقاط البيع السريعة والكاشير */}
@@ -1692,6 +1812,8 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </div>
         ) : null}
       </FormSection>
+        </div>
+      </div>
 
       {/* مودال ترقية الباقة عند محاولة الوصول لموديول مقفول */}
       <DialogShell

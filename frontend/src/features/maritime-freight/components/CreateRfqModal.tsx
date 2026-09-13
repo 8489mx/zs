@@ -114,7 +114,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
       open={open}
       onClose={onClose}
       title="طلب تسعير ملاحي جديد (New Ocean RFQ)"
-      subtitle="إرسال طلب تسعير فوري للخطوط الملاحية والوكلاء مع كود تتبع آلي [RFQ-YYYY-XXXX]"
+      subtitle="إرسال طلب تسعير فوري للخطوط الملاحية والوكلاء مع كود تتبع آلي [RFQ-YYMMDD-XXXX]"
       width="min(980px, 96vw)"
       minHeight="auto"
       footerActions={(

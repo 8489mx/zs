@@ -1175,12 +1175,12 @@ export function MaritimeMasterDataTab({
                 <col style={{ width: '10%' }} />
               </colgroup>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                  <th style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>كود الخط</th>
-                  <th style={{ padding: '12px 14px' }}>اسم الخط الملاحي</th>
-                  <th style={{ padding: '12px 14px' }}>مسارات الإبحار</th>
-                  <th style={{ padding: '12px 14px' }}>إيميل التسعير والحجز</th>
-                  <th style={{ padding: '12px 14px' }}>الهاتف والتواصل</th>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700, textAlign: 'center' }}>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>كود الخط</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>اسم الخط الملاحي</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>مسارات الإبحار</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>إيميل التسعير والحجز</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>الهاتف والتواصل</th>
                   <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
                 </tr>
               </thead>
@@ -1259,9 +1259,17 @@ export function MaritimeMasterDataTab({
                           )}
                         </div>
                       </td>
-                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden', textAlign: 'left', direction: 'ltr' }}>
                         {line.rfq_email ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '6px', minWidth: 0, direction: 'ltr' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyEmail(line.rfq_email!)}
+                              title="نسخ الإيميل"
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px', flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}
+                            >
+                              <AppIcons.Copy size={13} />
+                            </button>
                             <span
                               style={{
                                 fontWeight: 600,
@@ -1277,14 +1285,6 @@ export function MaritimeMasterDataTab({
                             >
                               {line.rfq_email}
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyEmail(line.rfq_email!)}
-                              title="نسخ الإيميل"
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px', flexShrink: 0 }}
-                            >
-                              <AppIcons.Copy size={13} />
-                            </button>
                           </div>
                         ) : (
                           <span style={{ color: '#94a3b8' }}>غير مسجل</span>
@@ -1303,36 +1303,38 @@ export function MaritimeMasterDataTab({
                             }}
                             title={`حجز: ${line.booking_email}`}
                           >
-                            حجز: {line.booking_email}
+                            booking: {line.booking_email}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden', textAlign: 'left', direction: 'ltr' }}>
                         {line.phone ? (
-                          <a
-                            href={`https://wa.me/${line.phone.replace(/[^\d]/g, '')}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{
-                              fontSize: '0.74rem',
-                              color: '#15803d',
-                              fontWeight: 700,
-                              textDecoration: 'none',
-                              direction: 'ltr',
-                              textAlign: 'right',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                            }}
-                            title="فتح محادثة واتساب"
-                          >
-                            <span>{line.phone}</span>
-                          </a>
+                          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                            <a
+                              href={`https://wa.me/${line.phone.replace(/[^\d]/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                fontSize: '0.74rem',
+                                color: '#15803d',
+                                fontWeight: 700,
+                                textDecoration: 'none',
+                                direction: 'ltr',
+                                textAlign: 'left',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                              title="فتح محادثة واتساب"
+                            >
+                              <span>{line.phone}</span>
+                            </a>
+                          </div>
                         ) : (
                           <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>-</div>
                         )}
                         {line.contact_person && (
-                          <div style={{ fontSize: '0.72rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'ltr', textAlign: 'left', marginTop: '2px' }}>
                             {line.contact_person}
                           </div>
                         )}
@@ -1376,12 +1378,12 @@ export function MaritimeMasterDataTab({
                 <col style={{ width: '12%' }} />
               </colgroup>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                  <th style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>كود الوكيل</th>
-                  <th style={{ padding: '12px 14px' }}>اسم الشركة الوكيلة</th>
-                  <th style={{ padding: '12px 14px' }}>الدولة والمدينة</th>
-                  <th style={{ padding: '12px 14px' }}>مسؤول التسعير والتواصل</th>
-                  <th style={{ padding: '12px 14px' }}>البريد الإلكتروني (RFQ)</th>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700, textAlign: 'center' }}>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>كود الوكيل</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>اسم الشركة الوكيلة</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>الدولة والمدينة</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>مسؤول التسعير والتواصل</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>البريد الإلكتروني (RFQ)</th>
                   <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
                 </tr>
               </thead>
@@ -1401,34 +1403,48 @@ export function MaritimeMasterDataTab({
                         </span>
                       </td>
                       <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
-                        <div style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={agent.name_ar}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'rtl', textAlign: 'right' }} title={agent.name_ar}>
                           {agent.name_ar}
                         </div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={agent.name_en || ''}>
-                          {agent.name_en}
-                        </div>
+                        {agent.name_en && (
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'ltr', textAlign: 'left', marginTop: '2px' }} title={agent.name_en}>
+                            {agent.name_en}
+                          </div>
+                        )}
                         {agent.services_offered && (
-                          <div style={{ fontSize: '0.68rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }} title={agent.services_offered}>
+                          <div style={{ fontSize: '0.68rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'ltr', textAlign: 'left', marginTop: '2px' }} title={agent.services_offered}>
                             {agent.services_offered}
                           </div>
                         )}
                       </td>
                       <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
-                        <div style={{ fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'rtl', textAlign: 'right' }}>
                           {agent.country_name || 'غير محدد'}
                         </div>
                         {agent.city_name && (
-                          <div style={{ fontSize: '0.74rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'rtl', textAlign: 'right', marginTop: '2px' }}>
                             مدينة: {agent.city_name}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
-                        <div style={{ color: '#0369a1', fontWeight: 600, fontSize: '0.78rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={agent.contact_person || ''}>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden', textAlign: 'left', direction: 'ltr' }}>
+                        <div
+                          style={{
+                            color: '#0369a1',
+                            fontWeight: 600,
+                            fontSize: '0.78rem',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            direction: 'ltr',
+                            textAlign: 'left',
+                          }}
+                          title={agent.contact_person || ''}
+                        >
                           {agent.contact_person || '-'}
                         </div>
                         {agent.whatsapp && (
-                          <div style={{ marginTop: '2px' }}>
+                          <div style={{ marginTop: '3px', display: 'flex', justifyContent: 'flex-start' }}>
                             <a
                               href={`https://wa.me/${agent.whatsapp.replace(/[^\d]/g, '')}`}
                               target="_blank"
@@ -1446,6 +1462,7 @@ export function MaritimeMasterDataTab({
                                 alignItems: 'center',
                                 gap: '3px',
                                 direction: 'ltr',
+                                textAlign: 'left',
                               }}
                               title="فتح محادثة واتساب فورية"
                             >
@@ -1454,14 +1471,52 @@ export function MaritimeMasterDataTab({
                           </div>
                         )}
                         {agent.wechat && !agent.whatsapp && (
-                          <div style={{ fontSize: '0.72rem', color: '#0284c7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div
+                            style={{
+                              fontSize: '0.72rem',
+                              color: '#0284c7',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              direction: 'ltr',
+                              textAlign: 'left',
+                              marginTop: '2px',
+                            }}
+                          >
                             WeChat: {agent.wechat}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden', textAlign: 'left', direction: 'ltr' }}>
                         {agent.rfq_email ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'flex-start',
+                              gap: '6px',
+                              minWidth: 0,
+                              direction: 'ltr',
+                              textAlign: 'left',
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleCopyEmail(agent.rfq_email!)}
+                              title="نسخ الإيميل"
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: '#64748b',
+                                padding: '2px',
+                                flexShrink: 0,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <AppIcons.Copy size={13} />
+                            </button>
                             <span
                               style={{
                                 fontWeight: 600,
@@ -1477,14 +1532,6 @@ export function MaritimeMasterDataTab({
                             >
                               {agent.rfq_email}
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyEmail(agent.rfq_email!)}
-                              title="نسخ الإيميل"
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px', flexShrink: 0 }}
-                            >
-                              <AppIcons.Copy size={13} />
-                            </button>
                           </div>
                         ) : (
                           <span style={{ color: '#94a3b8' }}>-</span>

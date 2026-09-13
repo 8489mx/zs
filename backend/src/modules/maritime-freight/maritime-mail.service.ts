@@ -736,7 +736,7 @@ export class MaritimeMailService {
     const chunks = buffer.split(/\*\s+\d+\s+FETCH/i).filter((c) => c.trim().length > 0);
 
     for (const chunk of chunks) {
-      const rfqMatch = chunk.match(/(?:\[|\b)(RFQ-\d{4}-\d{4,})(?:\]|\b)/i);
+      const rfqMatch = chunk.match(/(?:\[|\b)(RFQ-\d{4,6}-\d{4,})(?:\]|\b)/i);
       if (!rfqMatch) continue;
       const rfqNumber = rfqMatch[1].trim();
 

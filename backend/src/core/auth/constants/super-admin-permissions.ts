@@ -40,4 +40,5 @@ export const SUPER_ADMIN_PERMISSIONS = [
   'canManageBranchStock',
   'cashDrawer',
   'deliveryReps',
+  'crm',
 ];

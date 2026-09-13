@@ -229,8 +229,33 @@ function CartMetaIcon({ size = 22, color = '#170e5e', style }: { size?: number; 
   );
 }
 
+function CrmIcon({ size = 22, color = '#170e5e', style }: { size?: number; color?: string; style?: CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
 export const APPS_CATALOG: AppItemDefinition[] = [
   // 1. المبيعات ونقاط البيع
+  {
+    key: 'crmModuleEnabled',
+    title: 'إدارة علاقات العملاء والصفقات (CRM)',
+    category: 'pos',
+    categoryLabel: 'المبيعات والعملاء',
+    shortDesc: 'متابعة مسار الصفقات ومراحل التفاوض والأنشطة والاتصالات وقيمة الصفقات المتوقعة.',
+    features: ['مراحل الصفقات كانبان', 'تسجيل المكالمات والاجتماعات', 'حساب احتمالات الإغلاق', 'ربط الصفقات بالعملاء'],
+    requiredPlan: 'plan_pro',
+    icon: CrmIcon,
+    accentColor: '#4f46e5',
+    accentBg: '#eef2ff',
+    routePath: '/crm',
+    featureFlag: 'crm',
+  },
   {
     key: 'posModuleEnabled',
     title: 'نقاط البيع السريعة والكاشير (POS)',

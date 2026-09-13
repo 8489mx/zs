@@ -198,6 +198,7 @@ export interface AppSettings {
   purchasesModuleEnabled?: boolean;
   inventoryModuleEnabled?: boolean;
   hrModuleEnabled?: boolean;
+  crmModuleEnabled?: boolean;
   onboardingCompleted?: boolean;
   manufacturingModuleEnabled?: boolean;
   importModuleEnabled?: boolean;
