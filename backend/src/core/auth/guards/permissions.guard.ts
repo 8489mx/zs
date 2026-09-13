@@ -39,23 +39,24 @@ export class PermissionsGuard implements CanActivate {
       throw new Error(`Endpoint ${context.getClass().name}.${context.getHandler().name} is protected by PermissionsGuard but lacks @RequirePermissions, @RequireAnyPermission, or @AllowAuthenticated marker.`);
     }
 
-    if ((!required || required.length === 0) && (!requiredAny || requiredAny.length === 0)) {
-      return true;
-    }
-
     const request = context.switchToHttp().getRequest<RequestWithAuth>();
     const auth = request.authContext;
 
     // Super Admin has full unrestricted access to all features and permissions across the system
     const isSuperAdmin = auth?.role === 'super_admin';
 
+    // 1. Mandatory Feature Check: MUST RUN FIRST before permission checks to prevent guard bypass
     if (!isSuperAdmin && requiredFeature && auth) {
-      if (!this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, requiredFeature)) {
-        throw new ForbiddenException('هذه الميزة غير متاحة في باقتك الحالية. يرجى الترقية.');
+      if (!this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, requiredFeature, auth.pillar, auth.activityType)) {
+        throw new ForbiddenException('هذه الميزة غير متاحة في باقتك الحالية أو نشاط منشأتك. يرجى مراجعة إدارة المنظومة.');
       }
     }
 
     if (isSuperAdmin) {
+      return true;
+    }
+
+    if ((!required || required.length === 0) && (!requiredAny || requiredAny.length === 0)) {
       return true;
     }
 

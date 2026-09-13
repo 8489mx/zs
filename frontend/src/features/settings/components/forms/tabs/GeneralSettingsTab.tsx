@@ -6,43 +6,115 @@ import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { readFileAsDataUrl, RequiredField, comboListStyle, comboRowStyle, comboCreateStyle } from '@/features/settings/components/forms/settings-forms.shared';
 import { applyAccentColorToDocument } from '@/lib/theme';
-import { IndustryModeSelectorCard } from '@/features/settings/components/workspace-sections/IndustryModeSelectorCard';
+import { ShieldCheckIcon } from '@/shared/components/icons/AppIcons';
+import { useAuthStore } from '@/stores/auth-store';
 
-function getIndustrySummary(industry: string): string {
-  switch (industry) {
+function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null) {
+  const norm = String(rawActivity || pillar || 'retail_general').trim().toLowerCase();
+  if (norm === 'contracting' || norm === 'construction' || norm === 'مقاولات') {
+    return {
+      title: 'قطاع المقاولات وإدارة المشاريع الإنشائية',
+      badge: 'جناح مؤسسي شامل (Full Enterprise Suite)',
+      desc: 'بيئة عمل متكاملة للمشاريع والمقايسات (BOQ) والمستخلصات وعقود مقاولي الباطن والمشتريات والمخازن والحسابات.',
+      color: '#0284c7',
+      bg: '#f0f9ff',
+      borderColor: '#bae6fd',
+    };
+  }
+  if (norm === 'maritime_freight' || norm === 'maritime' || norm === 'freight' || norm === 'shipping' || norm === 'شحن') {
+    return {
+      title: 'قطاع الشحن البحري واللوجستيات',
+      badge: 'جناح مؤسسي شامل (Full Enterprise Suite)',
+      desc: 'بيئة عمل متكاملة للخطوط الملاحية، الموانئ، مقارنة أسعار النولون (RFQ)، أوامر التشغيل وتتبع الحاويات.',
+      color: '#0d9488',
+      bg: '#f0fdfa',
+      borderColor: '#99f6e4',
+    };
+  }
+  if (norm === 'pharmacy' || norm === 'صيدلية') {
+    return {
+      title: 'قطاع التجارة: صيدليات ومستلزمات طبية',
+      badge: 'نظام رقابي FEFO',
+      desc: 'إدارة متكاملة للأدوية والبدائل، تتبع التشغيلات وتواريخ انتهاء الصلاحية، والروشتات.',
+      color: '#16a34a',
+      bg: '#f0fdf4',
+      borderColor: '#bbf7d0',
+    };
+  }
+  if (norm === 'restaurant' || norm === 'cafe' || norm === 'مطعم') {
+    return {
+      title: 'قطاع التجارة: مطاعم وكافيهات وضيافة',
+      badge: 'KDS وشاشات المطبخ',
+      desc: 'إدارة متكاملة لشاشات المطبخ، خيارات الوجبات والإضافات، والصالات ونقاط البيع.',
+      color: '#ea580c',
+      bg: '#fff7ed',
+      borderColor: '#fed7aa',
+    };
+  }
+  if (norm === 'manufacturing' || norm === 'تصنيع') {
+    return {
+      title: 'قطاع التجارة: تصنيع وخطوط إنتاج خفيف',
+      badge: 'BOM وشجرة المنتج',
+      desc: 'إدارة متكاملة لقوائم المكونات (BOM)، أوامر التشغيل والإنتاج، وحساب التكاليف الصناعية.',
+      color: '#7c3aed',
+      bg: '#f5f3ff',
+      borderColor: '#ddd6fe',
+    };
+  }
+  if (norm === 'maintenance' || norm === 'electronics' || norm === 'صيانة') {
+    return {
+      title: 'قطاع التجارة: مراكز صيانة وخدمة أجهزة',
+      badge: 'كروت الصيانة و IMEI',
+      desc: 'إدارة متكاملة لكروت فحص واستلام الأجهزة، قطع الغيار المستهلكة، وتتبع أرقام السيريال.',
+      color: '#2563eb',
+      bg: '#eff6ff',
+      borderColor: '#bfdbfe',
+    };
+  }
+  return {
+    title: 'قطاع التجارة وإدارة الأعمال العامة',
+    badge: 'تجزئة ومستودعات قياسية',
+    desc: 'إدارة متكاملة لنقاط البيع السريعة، المخازن والمستودعات، المشتريات، والحسابات المالية.',
+    color: '#170e5e',
+    bg: '#eef2ff',
+    borderColor: '#c7d2fe',
+  };
+}
+
+function getIndustrySummary(ind?: string) {
+  const norm = String(ind || 'general').trim().toLowerCase();
+  switch (norm) {
     case 'contracting':
-      return 'تخصيص كامل لشركات المقاولات: إدارة المشاريع، جداول الكميات (BOQ)، مستخلصات المالك والاستشاري (IPC)، مقاولو الباطن مع إخفاء الكاشير والورديات.';
+    case 'construction':
+    case 'مقاولات':
+      return 'قطاع المقاولات وإدارة المشاريع الإنشائية';
+    case 'maritime_freight':
     case 'maritime':
-      return 'تخصيص كامل للشحن واللوجستيات: أوامر التشغيل، الحاويات، غرامات التأخير (Demurrage)، ومصفوفة عروض الخطوط الملاحية مع إخفاء الكاشير والورديات.';
-    case 'ecommerce':
-      return 'تم تفعيل المتجر الإلكتروني + إدارة الشحن والمناديب + بوابات الدفع الإلكتروني مع إخفاء الكاشير والورديات.';
-    case 'import_export':
-      return 'تم تفعيل إدارة الاستيراد والتصدير + الرسائل الجمركية + تكلفة البضاعة المشتراة (Landed Cost) مع إخفاء الكاشير والورديات.';
-    case 'appliances_installments':
-      return 'تم تفعيل موديول البيع بالتقسيط وإدارة الأقساط والأجهزة مع تتبع السيريال والضمان وأسطول التوصيل.';
-    case 'services':
-      return 'تخصيص كامل للمكاتب والشركات الخدمية: عقود الخدمات، الاشتراكات، الفواتير المهنية مع إخفاء المخازن والكاشير.';
-    case 'wholesale':
-      return 'تم تفعيل تجارة الجملة والتوزيع + إدارة أسطول المناديب والطلبيات + البيع الآجل والأقساط.';
-    case 'manufacturing':
-      return 'تم تفعيل موديول التصنيع والإنتاج + خطوط التشغيل + فواتير المواد الخام (BOM) مع إخفاء الكاشير.';
-    case 'spices':
-      return 'تم تفعيل خلطات وتصنيع التوابل + موديول المتغيرات والأوزان + باركود الميزان الإلكتروني.';
-    case 'supermarket':
-      return 'تم تفعيل باركود الميزان الإلكتروني + وضع الكاشير السريع (Scanner).';
+    case 'freight':
+    case 'shipping':
+    case 'شحن':
+      return 'قطاع الشحن البحري واللوجستيات';
     case 'fashion':
-      return 'تم تفعيل موديول الملابس والمقاسات + مصفوفة الأصناف المتغيرة تلقائياً.';
+      return 'موديول الملابس والمقاسات ومصفوفة الأصناف';
     case 'perfumes':
-      return 'تم تفعيل موديول تركيبات العطور + متغيرات الأحجام والعبوات تلقائياً.';
+      return 'موديول تركيبات العطور والعبوات';
     case 'pharmacy':
-      return 'تم تفعيل موديول الصيدلية والأدوية وتتبع تواريخ الصلاحية.';
+    case 'صيدلية':
+      return 'موديول الصيدلية والأدوية وتواريخ الصلاحية (FEFO)';
     case 'electronics':
-      return 'تم تفعيل موديول صيانة الموبايل وتتبع أرقام السيريال والـ IMEI.';
+    case 'maintenance':
+    case 'صيانة':
+      return 'موديول كروت الصيانة والأجهزة والسيريال والـ IMEI';
     case 'cafe':
-      return 'تم تفعيل موديول المطاعم والكافيهات + طابعة المطبخ + شاشة اللمس.';
+    case 'restaurant':
+    case 'مطعم':
+      return 'موديول المطاعم والكافيهات وشاشات المطبخ (KDS)';
+    case 'manufacturing':
+    case 'تصنيع':
+      return 'موديول التصنيع وقوائم المكونات (BOM)';
     case 'general':
     default:
-      return 'الوضع القياسي المتوازن لكافة الأنشطة التجارية المتنوعة.';
+      return 'النشاط التجاري القياسي وإدارة الأعمال العامة';
   }
 }
 
@@ -120,17 +192,20 @@ export function GeneralSettingsTab({
   const brandName = form.watch('brandName');
   const accentColor = form.watch('accentColor') || '#170c5c';
   const logoData = form.watch('logoData');
+  const tenant = useAuthStore((s) => s.tenant);
+  const businessIndustry = form.watch('businessIndustry');
+
   useEffect(() => {
     if (accentColor) {
       applyAccentColorToDocument(accentColor);
     }
   }, [accentColor]);
 
+  const rawAct = String(tenant?.activityType || tenant?.pillar || businessIndustry || 'retail_general').trim().toLowerCase();
+  const info = getPillarBadgeInfo(rawAct, tenant?.pillar);
+
   return (
     <div style={{ display: activeTab === 'general' ? 'flex' : 'none', flexDirection: 'column', gap: '16px' }}>
-      {/* بطاقة نمط المنظومة وعزل الأنشطة (3 Core Pillars & 5 Sub-Verticals) */}
-      <IndustryModeSelectorCard settings={form.getValues() as any} canManageSettings={canManageSettings} />
-
       {/* Top 2-Column Balanced Dashboard */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px' }}>
         
@@ -145,6 +220,47 @@ export function GeneralSettingsTab({
           gap: '14px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         }}>
+          {/* Locked Activity Profile Header Banner */}
+          <div
+            style={{
+              background: info.bg,
+              border: `1px solid ${info.borderColor}`,
+              borderRadius: '10px',
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                  <ShieldCheckIcon size={20} color={info.color} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <strong style={{ fontSize: '0.84rem', color: '#0f172a', fontWeight: 800 }}>
+                        {info.title}
+                      </strong>
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          background: '#ffffff',
+                          color: info.color,
+                          border: `1px solid ${info.borderColor}`,
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {info.badge}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: '2px' }}>
+                      تم اعتماد وتثبيت هذا النمط عند تهيئة المنشأة الأولى لحماية سلامة القيود والمعاملات المحاسبية.
+                    </span>
+                  </div>
+                </div>
+              </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <strong style={{ fontSize: '0.95rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
@@ -264,13 +380,13 @@ export function GeneralSettingsTab({
             <div className="field">
               <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>نشاط المنشأة والقطاع الفعال</span>
-                <span style={{ fontSize: '0.7rem', background: '#eef2ff', color: '#170e5e', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                  محدد بواسطة نمط المنظومة
+                <span style={{ fontSize: '0.7rem', background: info.bg, color: info.color, border: `1px solid ${info.borderColor}`, padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                  {info.badge}
                 </span>
               </label>
               <div style={{ padding: '8px 12px', borderRadius: '6px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                <span>{getIndustrySummary(form.watch('businessIndustry') || 'general')}</span>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>يمكنك تغييره مباشرة من بطاقة الأنماط أعلاه</span>
+                <span>{getIndustrySummary(form.watch('businessIndustry') || rawAct)}</span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>نمط معتمد ومثبت للمنشأة</span>
               </div>
             </div>
 

@@ -142,6 +142,30 @@ export class SettingsService {
       settings.industryProfile = profile;
     }
 
+    if (settings.pillar === 'contracting') {
+      settings.contractingModuleEnabled = true;
+      settings.purchasesModuleEnabled = true;
+      settings.inventoryModuleEnabled = true;
+      settings.hrModuleEnabled = true;
+      settings.enableEnterpriseFeatures = true;
+      settings.fixedAssetsModuleEnabled = true;
+      settings.taxDeclarationModuleEnabled = true;
+      settings.maritimeFreightModuleEnabled = false;
+      settings.posModuleEnabled = false;
+      settings.requireCashierShiftForSales = false;
+    } else if (settings.pillar === 'maritime_freight') {
+      settings.maritimeFreightModuleEnabled = true;
+      settings.purchasesModuleEnabled = true;
+      settings.hrModuleEnabled = true;
+      settings.enableEnterpriseFeatures = true;
+      settings.fixedAssetsModuleEnabled = true;
+      settings.taxDeclarationModuleEnabled = true;
+      settings.contractingModuleEnabled = false;
+      settings.inventoryModuleEnabled = false;
+      settings.posModuleEnabled = false;
+      settings.requireCashierShiftForSales = false;
+    }
+
     this._settingsCache.set(cacheKey, { data: settings, expiresAt: Date.now() + this.CACHE_TTL_MS });
     return { ...settings, scope };
   }
@@ -247,6 +271,38 @@ export class SettingsService {
     }
     if ('defaultBranchIssueMode' in normalizedPayload) {
       normalizedPayload.defaultBranchIssueMode = normalizedPayload.defaultBranchIssueMode === 'transfer_to_branch_stock' ? 'transfer_to_branch_stock' : 'final_issue';
+    }
+
+    const tenantRow = await this.db
+      .selectFrom('tenants')
+      .select(['activity_type'])
+      .where('id', '=', scope.tenantId)
+      .executeTakeFirst();
+    const effectiveType = tenantRow?.activity_type || (normalizedPayload.activityType as string) || 'retail_general';
+    const profile = getIndustryProfile(effectiveType);
+
+    if (profile.pillar === 'contracting') {
+      normalizedPayload.contractingModuleEnabled = true;
+      normalizedPayload.purchasesModuleEnabled = true;
+      normalizedPayload.inventoryModuleEnabled = true;
+      normalizedPayload.hrModuleEnabled = true;
+      normalizedPayload.enableEnterpriseFeatures = true;
+      normalizedPayload.fixedAssetsModuleEnabled = true;
+      normalizedPayload.taxDeclarationModuleEnabled = true;
+      normalizedPayload.maritimeFreightModuleEnabled = false;
+      normalizedPayload.posModuleEnabled = false;
+      normalizedPayload.requireCashierShiftForSales = false;
+    } else if (profile.pillar === 'maritime_freight') {
+      normalizedPayload.maritimeFreightModuleEnabled = true;
+      normalizedPayload.purchasesModuleEnabled = true;
+      normalizedPayload.hrModuleEnabled = true;
+      normalizedPayload.enableEnterpriseFeatures = true;
+      normalizedPayload.fixedAssetsModuleEnabled = true;
+      normalizedPayload.taxDeclarationModuleEnabled = true;
+      normalizedPayload.contractingModuleEnabled = false;
+      normalizedPayload.inventoryModuleEnabled = false;
+      normalizedPayload.posModuleEnabled = false;
+      normalizedPayload.requireCashierShiftForSales = false;
     }
 
     for (const [key, value] of Object.entries(normalizedPayload)) {
@@ -477,12 +533,24 @@ export class SettingsService {
     const modulePatch: Record<string, boolean> = {};
     if (profile.pillar === 'contracting') {
       modulePatch.contractingModuleEnabled = true;
+      modulePatch.purchasesModuleEnabled = true;
+      modulePatch.inventoryModuleEnabled = true;
+      modulePatch.hrModuleEnabled = true;
+      modulePatch.enableEnterpriseFeatures = true;
+      modulePatch.fixedAssetsModuleEnabled = true;
+      modulePatch.taxDeclarationModuleEnabled = true;
       modulePatch.maritimeFreightModuleEnabled = false;
       modulePatch.posModuleEnabled = false;
       modulePatch.requireCashierShiftForSales = false;
     } else if (profile.pillar === 'maritime_freight') {
       modulePatch.maritimeFreightModuleEnabled = true;
+      modulePatch.purchasesModuleEnabled = true;
+      modulePatch.hrModuleEnabled = true;
+      modulePatch.enableEnterpriseFeatures = true;
+      modulePatch.fixedAssetsModuleEnabled = true;
+      modulePatch.taxDeclarationModuleEnabled = true;
       modulePatch.contractingModuleEnabled = false;
+      modulePatch.inventoryModuleEnabled = false;
       modulePatch.posModuleEnabled = false;
       modulePatch.requireCashierShiftForSales = false;
     } else {

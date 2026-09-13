@@ -14,6 +14,7 @@ import { normalizeText, type SettingsMainFormProps } from '@/features/settings/c
 import { useLocalePreference } from '@/shared/locale/LocaleProvider';
 import { useSettingsUpdateMutation } from '@/features/settings/hooks/useSettingsMutations';
 import { DraftStateNotice } from '@/shared/components/draft-state-notice';
+import { useAuthStore } from '@/stores/auth-store';
 
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab';
 import { SalesInventorySettingsTab } from './tabs/SalesInventorySettingsTab';
@@ -270,6 +271,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
     },
   });
 
+  const tenant = useAuthStore((s) => s.tenant);
   const mutation = useSettingsUpdateMutation(settings, setupMode ? onSetupAdvance : undefined);
   const [showBranchQuickAdd, setShowBranchQuickAdd] = useState(false);
   const [branchQuery, setBranchQuery] = useState('');
@@ -361,6 +363,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   useEffect(() => {
     if (!settings) return;
     const clothingEnabled = settings.clothingModuleEnabled === true;
+    const rawActivity = String(tenant?.activityType || tenant?.pillar || settings.activityType || (settings as any)?.businessIndustry || 'retail_general').trim().toLowerCase();
+    const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
+    const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+
     form.reset({
       storeName: settings.storeName || 'Z Systems',
       brandName: settings.brandName || settings.storeName || 'Z Systems',
@@ -385,7 +391,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       enablePharmacyModule: settings.enablePharmacyModule === true,
       servicesModuleEnabled: settings.servicesModuleEnabled === true,
       maintenanceProfile: settings.maintenanceProfile || 'mobile',
-      enableEnterpriseFeatures: settings.enableEnterpriseFeatures === true,
+      enableEnterpriseFeatures: isContractingVertical || isMaritimeVertical ? true : (settings.enableEnterpriseFeatures === true),
       technicianCommissionRate: Number(settings.technicianCommissionRate ?? 30),
       defaultProductKind: clothingEnabled && settings.defaultProductKind === 'fashion' ? 'fashion' : 'standard',
       defaultPosMode: settings.defaultPosMode === 'touch' ? 'touch' : 'scanner',
@@ -394,20 +400,20 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       defaultDeliveryFee: Number(settings.defaultDeliveryFee ?? 0),
       manufacturingModuleEnabled: settings.manufacturingModuleEnabled === true,
       importModuleEnabled: settings.importModuleEnabled === true,
-      maritimeFreightModuleEnabled: settings.maritimeFreightModuleEnabled === true,
-      contractingModuleEnabled: settings.contractingModuleEnabled === true,
+      maritimeFreightModuleEnabled: isMaritimeVertical ? true : (settings.maritimeFreightModuleEnabled === true),
+      contractingModuleEnabled: isContractingVertical ? true : (settings.contractingModuleEnabled === true),
       comboModuleEnabled: settings.comboModuleEnabled === true,
       restaurantModuleEnabled: settings.restaurantModuleEnabled === true,
       posShowCartMeta: settings.posShowCartMeta === true,
       printDeliveryRepOnReceipt: settings.printDeliveryRepOnReceipt === true,
-      posModuleEnabled: settings.posModuleEnabled !== false,
-      purchasesModuleEnabled: settings.purchasesModuleEnabled !== false,
-      inventoryModuleEnabled: settings.inventoryModuleEnabled !== false,
-      hrModuleEnabled: settings.hrModuleEnabled === true,
+      posModuleEnabled: isContractingVertical || isMaritimeVertical ? false : (settings.posModuleEnabled !== false),
+      purchasesModuleEnabled: isContractingVertical || isMaritimeVertical ? true : (settings.purchasesModuleEnabled !== false),
+      inventoryModuleEnabled: isContractingVertical ? true : (isMaritimeVertical ? false : (settings.inventoryModuleEnabled !== false)),
+      hrModuleEnabled: isContractingVertical || isMaritimeVertical ? true : (settings.hrModuleEnabled === true),
       storefrontModuleEnabled: settings.storefrontModuleEnabled === true,
       installmentsModuleEnabled: settings.installmentsModuleEnabled === true,
-      fixedAssetsModuleEnabled: settings.fixedAssetsModuleEnabled === true,
-      taxDeclarationModuleEnabled: settings.taxDeclarationModuleEnabled === true,
+      fixedAssetsModuleEnabled: isContractingVertical || isMaritimeVertical ? true : (settings.fixedAssetsModuleEnabled === true),
+      taxDeclarationModuleEnabled: isContractingVertical || isMaritimeVertical ? true : (settings.taxDeclarationModuleEnabled === true),
       deliveryFleetModuleEnabled: settings.deliveryFleetModuleEnabled === true,
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
       allowZeroPurchaseCost: settings.allowZeroPurchaseCost === true,
@@ -661,6 +667,33 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       }
 
       form.clearErrors('root.serverError');
+
+      const rawActivity = String(tenant?.activityType || tenant?.pillar || values.businessIndustry || settings?.activityType || 'retail_general').trim().toLowerCase();
+      const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
+      const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+
+      if (isContractingVertical) {
+        values.contractingModuleEnabled = true;
+        values.purchasesModuleEnabled = true;
+        values.inventoryModuleEnabled = true;
+        values.hrModuleEnabled = true;
+        values.enableEnterpriseFeatures = true;
+        values.fixedAssetsModuleEnabled = true;
+        values.taxDeclarationModuleEnabled = true;
+        values.posModuleEnabled = false;
+        values.maritimeFreightModuleEnabled = false;
+      } else if (isMaritimeVertical) {
+        values.maritimeFreightModuleEnabled = true;
+        values.purchasesModuleEnabled = true;
+        values.hrModuleEnabled = true;
+        values.enableEnterpriseFeatures = true;
+        values.fixedAssetsModuleEnabled = true;
+        values.taxDeclarationModuleEnabled = true;
+        values.contractingModuleEnabled = false;
+        values.inventoryModuleEnabled = false;
+        values.posModuleEnabled = false;
+      }
+
       mutation.mutate(values);
     },
     (errors) => {

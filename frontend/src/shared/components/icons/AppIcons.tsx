@@ -670,6 +670,7 @@ export function CheckIcon({ size = 18, color = 'currentColor', strokeWidth = 2, 
   );
 }
 
+
 export function XIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
@@ -732,6 +733,7 @@ export function ShieldAlertIcon({ size = 18, color = 'currentColor', strokeWidth
     </svg>
   );
 }
+
 
 
 export function FilterIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {

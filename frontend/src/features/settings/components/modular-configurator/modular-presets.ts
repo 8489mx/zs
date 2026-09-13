@@ -393,10 +393,12 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
       'purchasesModuleEnabled',
       'enableEnterpriseFeatures',
       'hrModuleEnabled',
+      'fixedAssetsModuleEnabled',
       'taxDeclarationModuleEnabled',
     ],
     disabledModules: [
       'posModuleEnabled',
+      'inventoryModuleEnabled',
       'contractingModuleEnabled',
       'weightedBarcodeEnabled',
       'comboModuleEnabled',

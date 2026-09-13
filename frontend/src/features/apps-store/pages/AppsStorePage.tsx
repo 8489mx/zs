@@ -14,6 +14,25 @@ import { AppsKpiHeader } from '../components/AppsKpiHeader';
 import { AppUpgradeModal } from '../components/AppUpgradeModal';
 import type { AppCategoryKey, AppItemDefinition } from '../types/apps-store.types';
 
+function ContractingBuildingIcon({ size = 20, color }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h6M9 13h6M9 17h6" />
+    </svg>
+  );
+}
+
+function CargoShipIcon({ size = 20, color }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.5 0 2.5 2 5 2 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+      <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.26.94 4.3 2.45 5.82" />
+      <path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" />
+      <path d="M12 2v4" />
+    </svg>
+  );
+}
+
 const CATEGORY_TABS: Array<{ id: AppCategoryKey; label: string }> = [
   { id: 'all', label: 'كافة التطبيقات' },
   { id: 'installed', label: 'المثبتة والنشطة' },
@@ -25,6 +44,25 @@ const CATEGORY_TABS: Array<{ id: AppCategoryKey; label: string }> = [
   { id: 'specialized', label: 'العمليات والخدمات' },
   { id: 'logistics', label: 'اللوجستيات والسحابية' },
 ];
+
+const CONTRACTING_ALLOWED_KEYS = new Set([
+  'contractingModuleEnabled',
+  'purchasesModuleEnabled',
+  'inventoryModuleEnabled',
+  'hrModuleEnabled',
+  'enableEnterpriseFeatures',
+  'fixedAssetsModuleEnabled',
+  'taxDeclarationModuleEnabled',
+]);
+
+const MARITIME_ALLOWED_KEYS = new Set([
+  'maritimeFreightModuleEnabled',
+  'purchasesModuleEnabled',
+  'hrModuleEnabled',
+  'enableEnterpriseFeatures',
+  'fixedAssetsModuleEnabled',
+  'taxDeclarationModuleEnabled',
+]);
 
 export function AppsStorePage() {
   const queryClient = useQueryClient();
@@ -42,6 +80,46 @@ export function AppsStorePage() {
     queryFn: () => settingsApi.settings(),
     staleTime: 60_000,
   });
+
+  const rawActivity = String(tenant?.activityType || tenant?.pillar || (settings as any)?.businessIndustry || (settings as any)?.activityType || '').trim().toLowerCase();
+  const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
+  const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+
+  // Scoped visible catalog based on business vertical
+  const visibleCatalog = useMemo(() => {
+    if (isSuperAdmin) return APPS_CATALOG;
+
+    if (isContractingVertical) {
+      return APPS_CATALOG.filter((app) => CONTRACTING_ALLOWED_KEYS.has(app.key));
+    }
+
+    if (isMaritimeVertical) {
+      return APPS_CATALOG.filter((app) => MARITIME_ALLOWED_KEYS.has(app.key));
+    }
+
+    // Commerce mode: hide dedicated vertical suites unless tenant has specific feature
+    return APPS_CATALOG.filter((app) => {
+      if (app.key === 'contractingModuleEnabled' && !tenant?.features?.includes('contracting')) {
+        return false;
+      }
+      if (app.key === 'maritimeFreightModuleEnabled' && !tenant?.features?.includes('maritime_freight')) {
+        return false;
+      }
+      return true;
+    });
+  }, [isSuperAdmin, isContractingVertical, isMaritimeVertical, tenant]);
+
+  const availableCategories = useMemo(() => {
+    const presentCategories = new Set<AppCategoryKey>();
+    for (const app of visibleCatalog) {
+      presentCategories.add(app.category);
+    }
+    return CATEGORY_TABS.filter((tab) => {
+      if (tab.id === 'all') return true;
+      if (tab.id === 'installed') return true;
+      return presentCategories.has(tab.id);
+    });
+  }, [visibleCatalog]);
 
   // Settings update mutation
   const updateMutation = useMutation({
@@ -72,6 +150,8 @@ export function AppsStorePage() {
   // Helper to check if tenant plan/features allow this app
   const isAppAllowedByPlan = (app: AppItemDefinition): boolean => {
     if (isSuperAdmin) return true;
+    if (isContractingVertical && CONTRACTING_ALLOWED_KEYS.has(app.key)) return true;
+    if (isMaritimeVertical && MARITIME_ALLOWED_KEYS.has(app.key)) return true;
     if (app.featureFlag) {
       const tenantFeatures = tenant?.features || [];
       if (!tenantFeatures.includes(app.featureFlag)) {
@@ -103,6 +183,17 @@ export function AppsStorePage() {
     if (updateMutation.isPending) return;
 
     if (currentStatus) {
+      if (!isSuperAdmin) {
+        if (isContractingVertical && CONTRACTING_ALLOWED_KEYS.has(app.key)) {
+          toast.warning(`تطبيق [${app.title}] جزء أساسي من باقة المقاولات الشاملة ولا يمكن إيقافه.`);
+          return;
+        }
+        if (isMaritimeVertical && MARITIME_ALLOWED_KEYS.has(app.key)) {
+          toast.warning(`تطبيق [${app.title}] جزء أساسي من باقة الشحن الشاملة ولا يمكن إيقافه.`);
+          return;
+        }
+      }
+
       // Confirm uninstallation to prevent accidental disabling of critical modules
       const confirmed = await systemConfirm({
         title: `إلغاء تفعيل [${app.title}]`,
@@ -144,7 +235,7 @@ export function AppsStorePage() {
 
   // Filtered Apps
   const filteredApps = useMemo(() => {
-    return APPS_CATALOG.filter((app) => {
+    return visibleCatalog.filter((app) => {
       const active = isAppActive(app.key);
 
       // Category filter
@@ -165,18 +256,20 @@ export function AppsStorePage() {
 
       return true;
     });
-  }, [selectedCategory, search, settings]);
+  }, [visibleCatalog, selectedCategory, search, settings]);
 
   // Statistics
   const activeAppsCount = useMemo(() => {
-    return APPS_CATALOG.filter((a) => isAppActive(a.key)).length;
-  }, [settings]);
+    return visibleCatalog.filter((a) => isAppActive(a.key)).length;
+  }, [visibleCatalog, settings]);
 
   const availableToInstallCount = useMemo(() => {
-    return APPS_CATALOG.filter((a) => !isAppActive(a.key) && isAppAllowedByPlan(a)).length;
-  }, [settings, tenant, isSuperAdmin]);
+    return visibleCatalog.filter((a) => !isAppActive(a.key) && isAppAllowedByPlan(a)).length;
+  }, [visibleCatalog, settings, tenant, isSuperAdmin, isContractingVertical, isMaritimeVertical]);
 
   const currentPlanName = useMemo(() => {
+    if (isContractingVertical) return 'باقة المقاولات الشاملة (All-Inclusive)';
+    if (isMaritimeVertical) return 'باقة الشحن واللوجستيات (All-Inclusive)';
     const raw = String(tenant?.plan || tenant?.planId || 'pro').toLowerCase();
     const map: Record<string, string> = {
       basic: PLAN_TIERS.plan_basic.name,
@@ -185,7 +278,7 @@ export function AppsStorePage() {
       omnichannel: PLAN_TIERS.plan_omnichannel.name,
     };
     return map[raw] || PLAN_TIERS.plan_ultimate.name;
-  }, [tenant]);
+  }, [tenant, isContractingVertical, isMaritimeVertical]);
 
   return (
     <div className="page-stack page-shell apps-store-page" dir="rtl">
@@ -201,12 +294,119 @@ export function AppsStorePage() {
         <PageHeader
           title="متجر التطبيقات والموديولات (Apps Store)"
           description="مركز تطبيقات وإضافات المنظومة الشامل: قم بتثبيت وتفعيل التطبيقات التخصصية لنشاطك، وتخصيص بيئة العمل بمرونة تامة بضغطة زر واحدة."
-          badge={<span className="nav-pill">{activeAppsCount} من أصل {APPS_CATALOG.length} تطبيقاً نشطاً</span>}
+          badge={<span className="nav-pill">{activeAppsCount} من أصل {visibleCatalog.length} تطبيقاً نشطاً</span>}
         />
+
+        {/* All-Inclusive Suite Banners for Vertical Modes */}
+        {isContractingVertical && !isSuperAdmin && (
+          <div
+            style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '14px',
+              padding: '14px 18px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}
+          >
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: '#dcfce7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#15803d',
+                flexShrink: 0,
+              }}
+            >
+              <ContractingBuildingIcon size={22} color="#15803d" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#166534', marginBottom: '2px' }}>
+                باقة المقاولات الشاملة (All-Inclusive Suite)
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#15803d', lineHeight: 1.5 }}>
+                تم ضبط المتجر تلقائياً لقطاع المقاولات والهندسة الإنشائية؛ كافة الموديولات الداعمة (المشاريع، المستخلصات، مقاولو الباطن، مستودعات المواقع، الأصول، والمحاسبة) مدمجة بالكامل ومفعلة ضمن باقتك الموحدة دون الحاجة لاشتراكات إضافية.
+              </div>
+            </div>
+            <span
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: '#166534',
+                background: '#dcfce7',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              باقة قطاعية مدمجة
+            </span>
+          </div>
+        )}
+
+        {isMaritimeVertical && !isSuperAdmin && (
+          <div
+            style={{
+              background: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: '14px',
+              padding: '14px 18px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}
+          >
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: '#e0f2fe',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#0284c7',
+                flexShrink: 0,
+              }}
+            >
+              <CargoShipIcon size={22} color="#0284c7" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0369a1', marginBottom: '2px' }}>
+                باقة الشحن واللوجستيات الملاحية (All-Inclusive Suite)
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#0284c7', lineHeight: 1.5 }}>
+                تم ضبط المتجر تلقائياً لقطاع التوكيلات الملاحية والشحن الدولي؛ كافة الموديولات المتخصصة (الشحن، خطوط الملاحة، المشتريات، المحاسبة ومراكز التكلفة، وشؤون الموظفين) مدمجة بالكامل ومحمية ضمن الباقة الشاملة.
+              </div>
+            </div>
+            <span
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: '#0369a1',
+                background: '#e0f2fe',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              باقة قطاعية مدمجة
+            </span>
+          </div>
+        )}
 
         {/* Top KPI Summary Header */}
         <AppsKpiHeader
-          totalApps={APPS_CATALOG.length}
+          totalApps={visibleCatalog.length}
           activeAppsCount={activeAppsCount}
           availableToInstallCount={availableToInstallCount}
           currentPlanName={currentPlanName}
@@ -267,13 +467,13 @@ export function AppsStorePage() {
               maxWidth: '100%',
             }}
           >
-            {CATEGORY_TABS.map((tab) => {
+            {availableCategories.map((tab) => {
               const isActive = selectedCategory === tab.id;
               // Count for this tab
               let count = 0;
-              if (tab.id === 'all') count = APPS_CATALOG.length;
+              if (tab.id === 'all') count = visibleCatalog.length;
               else if (tab.id === 'installed') count = activeAppsCount;
-              else count = APPS_CATALOG.filter((a) => a.category === tab.id).length;
+              else count = visibleCatalog.filter((a) => a.category === tab.id).length;
 
               return (
                 <button
@@ -387,6 +587,11 @@ export function AppsStorePage() {
                 isActive={isAppActive(app.key)}
                 isAllowedByPlan={isAppAllowedByPlan(app)}
                 isPending={updateMutation.isPending}
+                isCoreSuiteApp={
+                  !isSuperAdmin &&
+                  ((isContractingVertical && CONTRACTING_ALLOWED_KEYS.has(app.key)) ||
+                    (isMaritimeVertical && MARITIME_ALLOWED_KEYS.has(app.key)))
+                }
                 onToggle={handleToggle}
                 onOpenUpgradeModal={(a) => setUpgradeModalApp(a)}
               />

@@ -270,8 +270,20 @@ export class ActivationService {
         if (dto.theme?.trim()) await this.setSetting('theme', dto.theme.trim(), trx);
 
         if (dto.businessIndustry?.trim()) {
-          await this.setSetting('businessIndustry', JSON.stringify(dto.businessIndustry.trim()), trx);
+          const normalizedIndustry = dto.businessIndustry.trim();
+          await this.setSetting('businessIndustry', JSON.stringify(normalizedIndustry), trx);
+          await this.setSetting('activityType', JSON.stringify(normalizedIndustry), trx);
           await this.setSetting('onboardingCompleted', JSON.stringify(true), trx);
+
+          const tenantsHasActivity = await this.columnExists('tenants', 'activity_type', trx);
+          if (tenantsHasActivity) {
+            await trx
+              .updateTable('tenants' as any)
+              .set({ activity_type: normalizedIndustry } as any)
+              .where('id' as any, '=', scope.tenantId as any)
+              .execute()
+              .catch(() => undefined);
+          }
         }
 
         if (dto.initialSettings && typeof dto.initialSettings === 'object') {

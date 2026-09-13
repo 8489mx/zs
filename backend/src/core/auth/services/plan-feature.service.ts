@@ -3,6 +3,8 @@ import { Kysely } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 
+import { getIndustryProfile } from '../../tenant/industry-profiles';
+
 @Injectable()
 export class PlanFeatureService implements OnModuleInit {
   private planFeatures = new Map<string, Set<string>>();
@@ -33,18 +35,46 @@ export class PlanFeatureService implements OnModuleInit {
     }
   }
 
-  hasFeature(planId: string | undefined, extraFeatures: string[] | undefined, requiredFeature: string): boolean {
+  hasFeature(
+    planId: string | undefined,
+    extraFeatures: string[] | undefined,
+    requiredFeature: string,
+    pillar?: string,
+    activityType?: string,
+  ): boolean {
     if (extraFeatures && extraFeatures.includes(`-${requiredFeature}`)) {
       return false;
     }
     if (extraFeatures && extraFeatures.includes(requiredFeature)) {
       return true;
     }
+
+    // 1. Full Vertical Suite Invariant: Contracting & Maritime Freight get their full operational suite automatically
+    if (pillar === 'contracting' || activityType === 'contracting') {
+      const profile = getIndustryProfile('contracting');
+      if (profile.defaultFeatures.includes(requiredFeature)) {
+        return true;
+      }
+      if (['pharmacy', 'restaurant', 'maritime_freight', 'storefront', 'kds'].includes(requiredFeature)) {
+        return false;
+      }
+    }
+
+    if (pillar === 'maritime_freight' || activityType === 'maritime_freight') {
+      const profile = getIndustryProfile('maritime_freight');
+      if (profile.defaultFeatures.includes(requiredFeature)) {
+        return true;
+      }
+      if (['pharmacy', 'restaurant', 'contracting', 'manufacturing', 'storefront', 'pos', 'kds'].includes(requiredFeature)) {
+        return false;
+      }
+    }
+
     if (!planId) {
       return true; // If no plan is assigned, assume backward compatibility
     }
     
-    // Explicit tier checks
+    // Explicit tier checks for commerce pillar
     if (planId === 'plan_omnichannel') return true;
     if (planId === 'plan_ultimate' && requiredFeature === 'storefront') return false;
 

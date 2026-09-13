@@ -15,7 +15,16 @@ function normalizeValue(value: unknown) {
   return String(value || '').trim();
 }
 
-function pickOperationalLandingRoute(user: AuthUser) {
+function pickOperationalLandingRoute(user: AuthUser, tenant?: AuthTenant | null) {
+  // Direct Pillar Landing: Direct Contracting & Maritime tenants immediately to their domain suites
+  const rawActivity = String(tenant?.activityType || tenant?.pillar || '').trim().toLowerCase();
+  if (rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات') {
+    if (canAccessPath(user, '/contracting')) return '/contracting';
+  }
+  if (rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن') {
+    if (canAccessPath(user, '/maritime-freight')) return '/maritime-freight';
+  }
+
   const preferredRoutes = ROUTE_PREFERENCES[user.role] || ROUTE_PREFERENCES.admin;
   return preferredRoutes.find((route) => canAccessPath(user, route)) || '/';
 }
@@ -45,5 +54,5 @@ export function getPostLoginRoute(user: AuthUser | null | undefined, storeName: 
   if (!isPlatformAdmin(user) && (user.role === 'admin' || user.role === 'super_admin') && context?.onboardingCompleted === false) {
     return ONBOARDING_ROUTE;
   }
-  return pickOperationalLandingRoute(user);
+  return pickOperationalLandingRoute(user, context?.tenant);
 }

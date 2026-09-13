@@ -1,8 +1,15 @@
+import { useState } from 'react';
 import {
-  INDUSTRY_PRESETS,
-  PLAN_TIERS,
-  type IndustryPresetId,
-} from '@/features/settings/components/modular-configurator/modular-presets';
+  BuildingIcon,
+  ShipIcon,
+  ShoppingBagIcon,
+  PackageIcon,
+  ShieldCheckIcon,
+  ReceiptIcon,
+  LayersIcon,
+  ToolIcon,
+  CheckCircleIcon,
+} from '@/shared/components/icons/AppIcons';
 
 interface Step3Props {
   extraData: any;
@@ -11,225 +18,346 @@ interface Step3Props {
   onBack: () => void;
 }
 
-// Clean Enterprise SVG Line Icons (Ultra-expressive, 0 emojis)
-function PresetVectorIcon({ id, size = 20 }: { id: IndustryPresetId; size?: number }) {
-  // 1. تجارة التجزئة والسوبرماركت - عربة تسوق سوبرماركت
-  if (id === 'retail') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="8" cy="21" r="1" />
-        <circle cx="19" cy="21" r="1" />
-        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-      </svg>
-    );
-  }
-  // 2. مبيعات الجملة والتوزيع - شاحنة توزيع ولوجستيات
-  if (id === 'wholesale') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
-        <path d="M15 18H9" />
-        <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14v10Z" />
-        <circle cx="17" cy="18.5" r="2.5" />
-        <circle cx="7" cy="18.5" r="2.5" />
-      </svg>
-    );
-  }
-  // 3. المطاعم والكافيهات والأغذية - شوكة وسكين ضيافة
-  if (id === 'restaurant') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2" />
-        <path d="M15 2v20" />
-        <path d="M5 2v20" />
-        <path d="M5 2h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5" />
-      </svg>
-    );
-  }
-  // 4. الملابس والأزياء والأحذية - قميص وأزياء
-  if (id === 'fashion') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
-      </svg>
-    );
-  }
-  // 5. الإلكترونيات والموبايل والصيانة - هاتف ذكي وأجهزة
-  if (id === 'electronics') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect width="13" height="19" x="5.5" y="2.5" rx="2.5" />
-        <path d="M10.5 5.5h3" />
-        <circle cx="12" cy="17.5" r="0.75" />
-      </svg>
-    );
-  }
-  // 6. الصيدليات والمستلزمات الطبية - كبسولة دواء علاجية
-  if (id === 'pharmacy') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
-        <path d="m8.5 8.5 7 7" />
-      </svg>
-    );
-  }
-  // 7. التصنيع الخفيف، المعامل والورش - مصنع وخطوط إنتاج
-  if (id === 'manufacturing') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
-        <path d="M17 18h1" />
-        <path d="M12 18h1" />
-        <path d="M7 18h1" />
-      </svg>
-    );
-  }
-  // 8. الشركات الخدمية والمقاولات والصيانة - مفتاح صيانة وأدوات
-  if (id === 'services') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-      </svg>
-    );
-  }
-  // 9. المتاجر الإلكترونية والتجارة الرقمية - حقيبة تسوق رقمية أونلاين
-  if (id === 'ecommerce') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-        <path d="M3 6h18" />
-        <path d="M16 10a4 4 0 0 1-8 0" />
-      </svg>
-    );
-  }
-  // 10. أنشطة أخرى / تخصيص حر متقدم - لوحة منزلقات تحكم وموديلات
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="4" x2="4" y1="21" y2="14" />
-      <line x1="4" x2="4" y1="10" y2="3" />
-      <line x1="12" x2="12" y1="21" y2="12" />
-      <line x1="12" x2="12" y1="8" y2="3" />
-      <line x1="20" x2="20" y1="21" y2="16" />
-      <line x1="20" x2="20" y1="12" y2="3" />
-      <line x1="1" x2="7" y1="14" y2="14" />
-      <line x1="9" x2="15" y1="8" y2="8" />
-      <line x1="17" x2="23" y1="16" y2="16" />
-    </svg>
-  );
+type PillarKey = 'contracting' | 'maritime_freight' | 'commerce';
+type CommerceSubVertical = 'retail_general' | 'pharmacy' | 'restaurant' | 'manufacturing' | 'maintenance';
+
+interface PillarConfig {
+  key: PillarKey;
+  labelAr: string;
+  badge: string;
+  descriptionAr: string;
+  icon: typeof BuildingIcon;
+  color: string;
+  accentBg: string;
+  featuresSummary: string;
 }
 
+const PILLARS: PillarConfig[] = [
+  {
+    key: 'contracting',
+    labelAr: 'قطاع المقاولات وإدارة المشاريع',
+    badge: 'جناح مؤسسي شامل',
+    descriptionAr: 'إدارة متكاملة للمشاريع والمقايسات (BOQ)، الأوامر التغييرية، المستخلصات (IPC)، عقود مقاولي الباطن، المشتريات ومخازن الموقع.',
+    icon: BuildingIcon,
+    color: '#0284c7',
+    accentBg: '#f0f9ff',
+    featuresSummary: 'المشاريع • المقايسات • المستخلصات • مقاولو الباطن • المشتريات • الحسابات والأصول',
+  },
+  {
+    key: 'maritime_freight',
+    labelAr: 'قطاع الشحن البحري واللوجستيات',
+    badge: 'جناح مؤسسي شامل',
+    descriptionAr: 'منظومة الخطوط الملاحية، الموانئ، مقارنة أسعار النولون (RFQ)، عروض العملاء، أوامر التشغيل، وتتبع الحاويات وفترات السماح.',
+    icon: ShipIcon,
+    color: '#0d9488',
+    accentBg: '#f0fdfa',
+    featuresSummary: 'الخطوط والموانئ • تسعير النولون • أوامر التشغيل • الحاويات والغرامات • الشجرة المحاسبية',
+  },
+  {
+    key: 'commerce',
+    labelAr: 'قطاع التجارة وإدارة الأعمال',
+    badge: 'نقاط البيع والمخازن',
+    descriptionAr: 'منظومة التجارة المتكاملة لنقاط البيع السريعة، المخازن والمستودعات، المشتريات والموردين، مع تخصيصات فرعية دقيقة للنشاط.',
+    icon: ShoppingBagIcon,
+    color: '#170e5e',
+    accentBg: '#eef2ff',
+    featuresSummary: 'نقاط البيع • المخازن والباركود • المشتريات • الحسابات • الفاتورة الإلكترونية',
+  },
+];
+
+interface SubVerticalConfig {
+  key: CommerceSubVertical;
+  labelAr: string;
+  tag: string;
+  descriptionAr: string;
+  icon: typeof PackageIcon;
+}
+
+const COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
+  {
+    key: 'retail_general',
+    labelAr: 'التجزئة والتجارة العامة والسوبرماركت',
+    tag: 'عام وافتراضي',
+    descriptionAr: 'محلات التجزئة، الجملة، السوبرماركت، والأنشطة التجارية المتنوعة بمخزون وباركود قياسي.',
+    icon: PackageIcon,
+  },
+  {
+    key: 'pharmacy',
+    labelAr: 'الصيدليات والمستلزمات الطبية',
+    tag: 'FEFO الرقابي',
+    descriptionAr: 'تتبع التشغيلات وتواريخ انتهاء الصلاحية، دليل الأدوية والبدائل، الروشتات، وكشكول النواقص.',
+    icon: ShieldCheckIcon,
+  },
+  {
+    key: 'restaurant',
+    labelAr: 'المطاعم والكافيهات والأغذية',
+    tag: 'KDS والمطبخ',
+    descriptionAr: 'شاشة المطبخ KDS، الطاولات والصالات، خيارات وإضافات الأصناف، والطلبات السريعة.',
+    icon: ReceiptIcon,
+  },
+  {
+    key: 'manufacturing',
+    labelAr: 'التصنيع وخطوط الإنتاج الخفيف والورش',
+    tag: 'BOM وشجرة المنتج',
+    descriptionAr: 'قوائم مكونات الإنتاج (BOM)، أوامر التشغيل، استهلاك المواد الخام، وحساب التكلفة الصناعية.',
+    icon: LayersIcon,
+  },
+  {
+    key: 'maintenance',
+    labelAr: 'مراكز الصيانة وخدمة الأجهزة',
+    tag: 'كروت الصيانة و IMEI',
+    descriptionAr: 'استلام الأجهزة، كروت الصيانة والضمان، تتبع أرقام السيريال IMEI، وفحص واستبدال المستعمل.',
+    icon: ToolIcon,
+  },
+];
+
 export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3Props) {
-  const selectedId = (extraData.industry as IndustryPresetId) || 'retail';
+  const currentVal = String(extraData.industry || 'retail_general').trim().toLowerCase();
+
+  const initialPillar: PillarKey =
+    currentVal === 'contracting' || currentVal === 'construction'
+      ? 'contracting'
+      : currentVal === 'maritime_freight' || currentVal === 'maritime'
+      ? 'maritime_freight'
+      : 'commerce';
+
+  const [selectedPillar, setSelectedPillar] = useState<PillarKey>(initialPillar);
+
+  const initialSubVertical: CommerceSubVertical =
+    currentVal === 'pharmacy'
+      ? 'pharmacy'
+      : currentVal === 'restaurant'
+      ? 'restaurant'
+      : currentVal === 'manufacturing'
+      ? 'manufacturing'
+      : currentVal === 'maintenance' || currentVal === 'electronics'
+      ? 'maintenance'
+      : 'retail_general';
+
+  const [selectedSubVertical, setSelectedSubVertical] = useState<CommerceSubVertical>(initialSubVertical);
+
+  const handlePillarChange = (pillar: PillarKey) => {
+    setSelectedPillar(pillar);
+    if (pillar === 'contracting') {
+      updateExtra('industry', 'contracting');
+    } else if (pillar === 'maritime_freight') {
+      updateExtra('industry', 'maritime_freight');
+    } else {
+      updateExtra('industry', selectedSubVertical);
+    }
+  };
+
+  const handleSubVerticalChange = (subKey: CommerceSubVertical) => {
+    setSelectedSubVertical(subKey);
+    setSelectedPillar('commerce');
+    updateExtra('industry', subKey);
+  };
 
   return (
     <div className="wizard-step-content" dir="rtl">
-      <div className="wizard-header" style={{ marginBottom: '20px' }}>
+      <div className="wizard-header" style={{ marginBottom: '18px' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
-          اختر طبيعة نشاطك التجاري
+          اختر قطاع وطبيعة نشاط المنشأة
         </h2>
         <p style={{ fontSize: '0.84rem', color: '#64748b', margin: 0 }}>
-          يساعدنا ذلك في تهيئة وتخصيص موديولات وشاشات النظام لتناسب عملك وتجهيز تجربة سريعة وخفيفة من البداية.
+          يتم تجهيز المنظومة بكامل موديولاتها وشاشاتها الملائمة لنشاطك فورياً لضمان سلامة العمليات المحاسبية.
         </p>
       </div>
 
+      {/* 3 Core Pillars Selection */}
       <div
-        className="wizard-industry-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: '12px',
-          maxHeight: '430px',
-          overflowY: 'auto',
-          padding: '6px 8px',
+          marginBottom: '16px',
         }}
       >
-        {(Object.keys(INDUSTRY_PRESETS) as IndustryPresetId[]).map((indKey) => {
-          const item = INDUSTRY_PRESETS[indKey];
-          const isSelected = selectedId === indKey;
+        {PILLARS.map((pillar) => {
+          const isPillarActive = selectedPillar === pillar.key;
+          const Icon = pillar.icon;
 
           return (
             <div
-              key={indKey}
-              onClick={() => updateExtra('industry', indKey)}
+              key={pillar.key}
+              onClick={() => handlePillarChange(pillar.key)}
               style={{
-                padding: '14px 16px',
-                borderRadius: '10px',
-                background: isSelected ? '#f8fafc' : '#ffffff',
-                border: isSelected ? '2px solid #170e5e' : '1px solid #e2e8f0',
+                border: isPillarActive ? `2px solid ${pillar.color}` : '1px solid #e2e8f0',
+                background: isPillarActive ? pillar.accentBg : '#ffffff',
+                borderRadius: '12px',
+                padding: '16px 18px',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
                 gap: '10px',
+                position: 'relative',
+                boxShadow: isPillarActive ? `0 4px 14px ${pillar.color}18` : '0 1px 3px rgba(0,0,0,0.02)',
                 transition: 'all 0.15s ease',
-                boxShadow: isSelected ? '0 3px 12px rgba(23, 14, 94, 0.1)' : '0 1px 3px rgba(0, 0, 0, 0.02)',
               }}
             >
+              {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '8px',
-                    background: isSelected ? '#170e5e' : '#f1f5f9',
-                    color: isSelected ? '#ffffff' : '#334155',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <PresetVectorIcon id={indKey} size={18} />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {isSelected && (
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        background: '#170e5e',
-                        color: '#ffffff',
-                      }}
-                    >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '8px',
+                      background: isPillarActive ? pillar.color : '#f1f5f9',
+                      color: isPillarActive ? '#ffffff' : '#475569',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <Icon size={20} />
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: '0.94rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
+                      {pillar.labelAr}
+                    </strong>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                      {pillar.badge}
                     </span>
-                  )}
-                  <span style={{ fontSize: '0.72rem', color: isSelected ? '#170e5e' : '#64748b', background: isSelected ? '#ede9fe' : '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                    {item.badge}
-                  </span>
+                  </div>
                 </div>
+
+                {isPillarActive && (
+                  <div style={{ color: pillar.color }}>
+                    <CheckCircleIcon size={18} color={pillar.color} />
+                  </div>
+                )}
               </div>
 
-              <div>
-                <strong style={{ display: 'block', fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
-                  {item.name}
-                </strong>
-                <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginTop: '3px', lineHeight: 1.35 }}>
-                  {item.subtitle}
-                </span>
-              </div>
+              {/* Description */}
+              <p
+                style={{
+                  fontSize: '0.76rem',
+                  color: '#475569',
+                  lineHeight: '1.45',
+                  margin: 0,
+                  textAlign: 'justify',
+                }}
+              >
+                {pillar.descriptionAr}
+              </p>
 
-              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '8px', fontSize: '0.72rem', color: '#170e5e', fontWeight: 800 }}>
-                {PLAN_TIERS[item.recommendedPlan].name}
+              {/* Features hint */}
+              <div
+                style={{
+                  fontSize: '0.7rem',
+                  color: isPillarActive ? pillar.color : '#64748b',
+                  borderTop: '1px solid rgba(0,0,0,0.06)',
+                  paddingTop: '8px',
+                  fontWeight: 700,
+                }}
+              >
+                {pillar.featuresSummary}
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="wizard-footer" style={{ marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+      {/* Sub-verticals selection for Commerce Pillar */}
+      {selectedPillar === 'commerce' && (
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '14px 16px',
+            marginBottom: '16px',
+          }}
+        >
+          <div style={{ marginBottom: '10px' }}>
+            <strong style={{ fontSize: '0.86rem', color: '#0f172a', fontWeight: 800 }}>
+              اختر تخصص نشاط التجارة الدقيق:
+            </strong>
+            <span style={{ fontSize: '0.74rem', color: '#64748b', marginRight: '8px' }}>
+              لتفعيل الخصائص الموجهة لنوعية بضاعتك
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '8px',
+            }}
+          >
+            {COMMERCE_SUB_VERTICALS.map((sub) => {
+              const isSubActive = selectedSubVertical === sub.key;
+              const SubIcon = sub.icon;
+
+              return (
+                <div
+                  key={sub.key}
+                  onClick={() => handleSubVerticalChange(sub.key)}
+                  style={{
+                    border: isSubActive ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                    background: isSubActive ? '#eef2ff' : '#f8fafc',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    transition: 'all 0.12s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '6px',
+                      background: isSubActive ? '#170e5e' : '#ffffff',
+                      color: isSubActive ? '#ffffff' : '#64748b',
+                      border: '1px solid #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <SubIcon size={16} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong style={{ fontSize: '0.8rem', color: isSubActive ? '#170e5e' : '#0f172a', fontWeight: 800 }}>
+                        {sub.labelAr}
+                      </strong>
+                      {isSubActive && <CheckCircleIcon size={13} color="#170e5e" />}
+                    </div>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginTop: '1px' }}>
+                      {sub.tag}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Footer Navigation Buttons */}
+      <div
+        className="wizard-footer"
+        style={{
+          marginTop: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+        }}
+      >
         <button
           type="button"
           className="btn-wizard-back"
           onClick={onBack}
           style={{
-            padding: '11px 24px',
+            padding: '10px 22px',
             borderRadius: '8px',
             background: '#ffffff',
             border: '1px solid #cbd5e1',
@@ -240,17 +368,17 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            transition: 'background 0.15s ease',
           }}
         >
           <span>&rarr;</span>
           <span>رجوع</span>
         </button>
+
         <button
           type="button"
           onClick={onNext}
           style={{
-            padding: '12px 32px',
+            padding: '11px 30px',
             borderRadius: '8px',
             background: '#170e5e',
             color: '#ffffff',
@@ -258,11 +386,10 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
             fontWeight: 800,
             border: 'none',
             cursor: 'pointer',
-            boxShadow: '0 2px 10px rgba(23, 14, 94, 0.28)',
-            transition: 'opacity 0.15s ease',
+            boxShadow: '0 2px 8px rgba(23, 14, 94, 0.25)',
           }}
         >
-          تأكيد الإعداد وبدء العمل
+          تأكيد واكتمال التهيئة
         </button>
       </div>
     </div>

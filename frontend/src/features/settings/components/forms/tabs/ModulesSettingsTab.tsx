@@ -316,32 +316,37 @@ const premiumCheckboxInputStyle = {
 
 export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProps) {
   const user = useAuthStore((s) => s.user);
+  const tenant = useAuthStore((s) => s.tenant);
   const isSuperAdmin = isPlatformAdmin(user) || (user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs');
+
+  const rawActivity = String(tenant?.activityType || tenant?.pillar || form.watch('businessIndustry') || form.watch('activityType') || 'retail_general').trim().toLowerCase();
+  const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
+  const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
 
   const hasManufacturingFeature = useHasFeature('manufacturing') || isSuperAdmin;
   const hasImportFeature = useHasFeature('import') || isSuperAdmin;
   const hasRestaurantFeature = useHasFeature('restaurant') || isSuperAdmin;
   const hasMaintenanceFeature = useHasFeature('maintenance') || isSuperAdmin;
   const hasPharmacyFeature = useHasFeature('pharmacy') || isSuperAdmin;
-  const hasEnterpriseFeature = useHasFeature('accounting') || isSuperAdmin;
+  const hasEnterpriseFeature = useHasFeature('accounting') || isContractingVertical || isMaritimeVertical || isSuperAdmin;
   const hasStorefrontFeature = useHasFeature('storefront') || isSuperAdmin;
   const hasInstallmentsFeature = useHasFeature('installments') || isSuperAdmin;
-  const hasFixedAssetsFeature = useHasFeature('fixed_assets') || isSuperAdmin;
-  const hasTaxDeclarationFeature = useHasFeature('vat_declaration') || isSuperAdmin;
+  const hasFixedAssetsFeature = useHasFeature('fixed_assets') || isContractingVertical || isMaritimeVertical || isSuperAdmin;
+  const hasTaxDeclarationFeature = useHasFeature('vat_declaration') || isContractingVertical || isMaritimeVertical || isSuperAdmin;
   const hasDeliveryFleetFeature = useHasFeature('deliveryReps') || isSuperAdmin;
-  const hasPurchasesFeature = useHasFeature('purchases') || isSuperAdmin;
-  const hasInventoryFeature = useHasFeature('inventory') || isSuperAdmin;
-  const hasHrFeature = useHasFeature('hr') || isSuperAdmin;
+  const hasPurchasesFeature = useHasFeature('purchases') || isContractingVertical || isMaritimeVertical || isSuperAdmin;
+  const hasInventoryFeature = useHasFeature('inventory') || isContractingVertical || isSuperAdmin;
+  const hasHrFeature = useHasFeature('hr') || isContractingVertical || isMaritimeVertical || isSuperAdmin;
   const hasClothingFeature = useHasFeature('clothing') || isSuperAdmin;
-  const hasMaritimeFreightFeature = useHasFeature('maritime_freight') || isSuperAdmin;
-  const hasContractingFeature = useHasFeature('contracting') || isSuperAdmin;
+  const hasMaritimeFreightFeature = useHasFeature('maritime_freight') || isMaritimeVertical || isSuperAdmin;
+  const hasContractingFeature = useHasFeature('contracting') || isContractingVertical || isSuperAdmin;
   const hasServicesFeature = hasPurchasesFeature || hasInventoryFeature;
   const hasPosMetaFeature = hasRestaurantFeature;
 
-  const isPosActive = Boolean(form.watch('posModuleEnabled'));
-  const isPurchasesActive = hasPurchasesFeature && Boolean(form.watch('purchasesModuleEnabled'));
-  const isInventoryActive = hasInventoryFeature && Boolean(form.watch('inventoryModuleEnabled'));
-  const isHrActive = hasHrFeature && Boolean(form.watch('hrModuleEnabled'));
+  const isPosActive = isContractingVertical || isMaritimeVertical ? false : Boolean(form.watch('posModuleEnabled'));
+  const isPurchasesActive = isContractingVertical || isMaritimeVertical ? true : (hasPurchasesFeature && Boolean(form.watch('purchasesModuleEnabled')));
+  const isInventoryActive = isContractingVertical ? true : (isMaritimeVertical ? false : (hasInventoryFeature && Boolean(form.watch('inventoryModuleEnabled'))));
+  const isHrActive = isContractingVertical || isMaritimeVertical ? true : (hasHrFeature && Boolean(form.watch('hrModuleEnabled')));
   const isManufacturingActive = hasManufacturingFeature && Boolean(form.watch('manufacturingModuleEnabled'));
   const isComboActive = hasPurchasesFeature && Boolean(form.watch('comboModuleEnabled'));
   const isImportActive = hasImportFeature && Boolean(form.watch('importModuleEnabled'));
@@ -355,14 +360,14 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const clothingModuleEnabled = isClothingActive;
   const isWeightedActive = Boolean(form.watch('weightedBarcodeEnabled'));
   const weightedBarcodeEnabled = isWeightedActive;
-  const isEnterpriseActive = hasEnterpriseFeature && Boolean(form.watch('enableEnterpriseFeatures'));
+  const isEnterpriseActive = isContractingVertical || isMaritimeVertical ? true : (hasEnterpriseFeature && Boolean(form.watch('enableEnterpriseFeatures')));
   const isStorefrontActive = hasStorefrontFeature && Boolean(form.watch('storefrontModuleEnabled'));
   const isInstallmentsActive = hasInstallmentsFeature && Boolean(form.watch('installmentsModuleEnabled'));
-  const isFixedAssetsActive = hasFixedAssetsFeature && Boolean(form.watch('fixedAssetsModuleEnabled'));
-  const isTaxDeclarationActive = hasTaxDeclarationFeature && Boolean(form.watch('taxDeclarationModuleEnabled'));
+  const isFixedAssetsActive = isContractingVertical || isMaritimeVertical ? true : (hasFixedAssetsFeature && Boolean(form.watch('fixedAssetsModuleEnabled')));
+  const isTaxDeclarationActive = isContractingVertical || isMaritimeVertical ? true : (hasTaxDeclarationFeature && Boolean(form.watch('taxDeclarationModuleEnabled')));
   const isDeliveryFleetActive = hasDeliveryFleetFeature && Boolean(form.watch('deliveryFleetModuleEnabled'));
-  const isMaritimeFreightActive = hasMaritimeFreightFeature && Boolean(form.watch('maritimeFreightModuleEnabled'));
-  const isContractingActive = hasContractingFeature && Boolean(form.watch('contractingModuleEnabled'));
+  const isMaritimeFreightActive = isMaritimeVertical ? true : (hasMaritimeFreightFeature && Boolean(form.watch('maritimeFreightModuleEnabled')));
+  const isContractingActive = isContractingVertical ? true : (hasContractingFeature && Boolean(form.watch('contractingModuleEnabled')));
 
   const currentProfileKey = form.watch('maintenanceProfile') || 'mobile';
   const currentProfile = getMaintenanceProfile(currentProfileKey);
@@ -521,13 +526,71 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
         </div>
       )}
 
+      {/* ===== باقة المقاولات الشاملة (All-Inclusive) ===== */}
+      {isContractingVertical && (
+        <div style={{
+          padding: '12px 16px',
+          marginBottom: '14px',
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '0.82rem',
+          color: '#166534',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center' }}>
+              <ContractingBuildingIcon size={20} />
+            </span>
+            <span>
+              <strong>باقة المقاولات الشاملة (All-Inclusive Suite):</strong> تم تفعيل كافة الموديولات التشغيلية للمقاولات تلقائياً (المشاريع والمقايسات، مشتريات ومقاولو الباطن، مستودعات المواقع، مراكز التكلفة والمحاسبة، والموارد البشرية) بكامل صلاحيات المنظومة دون قيود باقات.
+            </span>
+          </div>
+          <span style={{ fontSize: '0.72rem', background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '6px', fontWeight: 800, border: '1px solid #86efac', flexShrink: 0 }}>
+            باقة متكاملة شاملة
+          </span>
+        </div>
+      )}
+
+      {/* ===== باقة الشحن واللوجستيات الشاملة (All-Inclusive) ===== */}
+      {isMaritimeVertical && (
+        <div style={{
+          padding: '12px 16px',
+          marginBottom: '14px',
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '0.82rem',
+          color: '#166534',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center' }}>
+              <CargoShipIcon size={20} />
+            </span>
+            <span>
+              <strong>باقة الشحن واللوجستيات الشاملة (All-Inclusive Suite):</strong> تم تفعيل كافة الموديولات التشغيلية للشحن تلقائياً (أوامر تشغيل الشحنات، تتبع الحاويات، الخطوط الملاحية والموردين، عروض الأسعار والعملاء، محاسبة الشحن، والموارد البشرية) بكامل صلاحيات المنظومة دون قيود باقات.
+            </span>
+          </div>
+          <span style={{ fontSize: '0.72rem', background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '6px', fontWeight: 800, border: '1px solid #86efac', flexShrink: 0 }}>
+            باقة متكاملة شاملة
+          </span>
+        </div>
+      )}
+
       {/* ===== شريط التخصيص السريع ومعالج الموديولات ===== */}
-      <SmartModularQuickBar
-        currentIndustry={form.watch('businessIndustry')}
-        onOpenModal={() => setConfiguratorOpen(true)}
-        onQuickSelect={handleQuickSelectIndustry}
-        disabled={disabled}
-      />
+      {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+        <SmartModularQuickBar
+          currentIndustry={form.watch('businessIndustry')}
+          onOpenModal={() => setConfiguratorOpen(true)}
+          onQuickSelect={handleQuickSelectIndustry}
+          disabled={disabled}
+        />
+      ) : null}
 
       {/* ===== متجر التطبيقات المستقل ===== */}
       <div style={{
@@ -571,58 +634,81 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
         <div className="document-prototype-grid compact-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '14px' }}>
           
           {/* نقاط البيع السريعة والكاشير */}
-          <label style={getCardStyle(Boolean(isPosActive), true)}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isPosActive))}>
-                <MonitorIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نقاط البيع السريعة والكاشير (POS)</strong>
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label style={getCardStyle(Boolean(isPosActive), !isContractingVertical && !isMaritimeVertical)}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isPosActive))}>
+                  <MonitorIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>شاشات البيع السريع بالباركود والورديات (يمكن إيقافها لشركات الجملة والخدمات)</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نقاط البيع السريعة والكاشير (POS)</strong>
+                    {isContractingVertical ? (
+                      <span style={{ fontSize: '0.7rem', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                        معطل تلقائياً (غير مخصص للمقاولات)
+                      </span>
+                    ) : isMaritimeVertical ? (
+                      <span style={{ fontSize: '0.7rem', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                        معطل تلقائياً (غير مخصص للشحن)
+                      </span>
+                    ) : null}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>شاشات البيع السريع بالباركود والورديات (يمكن إيقافها لشركات الجملة والخدمات والمشاريع)</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posModuleEnabled')} checked={Boolean(isPosActive)} disabled={disabled} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posModuleEnabled')} checked={Boolean(isPosActive)} disabled={disabled || isContractingVertical || isMaritimeVertical} />
+            </label>
+          ) : null}
 
           {/* المخازن والمستودعات المتقدمة */}
-          <label 
-            style={getCardStyle(Boolean(isInventoryActive), hasInventoryFeature)}
-            onClick={(e) => {
-              if (!hasInventoryFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'المخازن والمستودعات المتقدمة',
-                  'باقة النمو (الاحترافية)',
-                  'يتيح لك هذا الموديول إدارة المستودعات المتعددة، التحويلات المخزنية، أذون الإضافة والصرف، ومحاضر الجرد الدوري.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isInventoryActive))}>
-                <PackageIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المخازن والمستودعات المتقدمة</strong>
-                  {!hasInventoryFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> باقة النمو
-                    </span>
-                  )}
+          {!isMaritimeVertical || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isInventoryActive), hasInventoryFeature || isContractingVertical)}
+              onClick={(e) => {
+                if (isContractingVertical || isMaritimeVertical) return;
+                if (!hasInventoryFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'المخازن والمستودعات المتقدمة',
+                    'باقة النمو (الاحترافية)',
+                    'يتيح لك هذا الموديول إدارة المستودعات المتعددة، التحويلات المخزنية، أذون الإضافة والصرف، ومحاضر الجرد الدوري.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isInventoryActive))}>
+                  <PackageIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>التحويلات بين المخازن، أذون الصرف، والجرد (يمكن إيقافه للأنشطة الخدمية)</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المخازن والمستودعات المتقدمة</strong>
+                    {isContractingVertical ? (
+                      <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        مفعل تلقائياً لمستودعات ومخازن المواقع
+                      </span>
+                    ) : isMaritimeVertical ? (
+                      <span style={{ fontSize: '0.7rem', background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                        غير مخصص للشحن (يعتمد على الحاويات)
+                      </span>
+                    ) : !hasInventoryFeature ? (
+                      <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> باقة النمو
+                      </span>
+                    ) : null}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>التحويلات بين المخازن، أذون الصرف، والجرد (يمكن إيقافه للأنشطة الخدمية)</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('inventoryModuleEnabled')} checked={Boolean(isInventoryActive)} disabled={disabled || !hasInventoryFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('inventoryModuleEnabled')} checked={Boolean(isInventoryActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasInventoryFeature} />
+            </label>
+          ) : null}
 
           {/* المشتريات وإدارة الموردين */}
           <label 
-            style={getCardStyle(Boolean(isPurchasesActive), hasPurchasesFeature)}
+            style={getCardStyle(Boolean(isPurchasesActive), hasPurchasesFeature || isContractingVertical || isMaritimeVertical)}
             onClick={(e) => {
+              if (isContractingVertical || isMaritimeVertical) return;
               if (!hasPurchasesFeature) {
                 e.preventDefault();
                 handleLockedCardClick(
@@ -640,22 +726,31 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المشتريات وإدارة الموردين</strong>
-                  {!hasPurchasesFeature && (
+                  {isContractingVertical ? (
+                    <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                      مفعل تلقائياً لمشتريات ومقاولي الباطن
+                    </span>
+                  ) : isMaritimeVertical ? (
+                    <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                      مفعل تلقائياً للخطوط الملاحية ومصاريف الشحن
+                    </span>
+                  ) : !hasPurchasesFeature ? (
                     <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
                       <LockIcon size={11} /> باقة النمو
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>فواتير الشراء، مرتجعات المشتريات، وحسابات الموردين وسندات الصرف</small>
               </div>
             </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('purchasesModuleEnabled')} checked={Boolean(isPurchasesActive)} disabled={disabled || !hasPurchasesFeature} />
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('purchasesModuleEnabled')} checked={Boolean(isPurchasesActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasPurchasesFeature} />
           </label>
 
           {/* الموارد البشرية والرواتب */}
           <label 
-            style={getCardStyle(Boolean(isHrActive), hasHrFeature)}
+            style={getCardStyle(Boolean(isHrActive), hasHrFeature || isContractingVertical || isMaritimeVertical)}
             onClick={(e) => {
+              if (isContractingVertical || isMaritimeVertical) return;
               if (!hasHrFeature) {
                 e.preventDefault();
                 handleLockedCardClick(
@@ -673,395 +768,438 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الموارد البشرية والرواتب (HR)</strong>
-                  {!hasHrFeature && (
+                  {isContractingVertical ? (
+                    <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                      مفعل تلقائياً لعمالة ومهندسي المشاريع
+                    </span>
+                  ) : isMaritimeVertical ? (
+                    <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                      مفعل تلقائياً لموظفي وعمليات الشحن
+                    </span>
+                  ) : !hasHrFeature ? (
                     <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
                       <LockIcon size={11} /> الباقة المتكاملة
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>مسير الرواتب، تسجيل الحضور، السلف، وملفات الموظفين (يمكن إيقافه للمتاجر الفردية)</small>
               </div>
             </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('hrModuleEnabled')} checked={Boolean(isHrActive)} disabled={disabled || !hasHrFeature} />
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('hrModuleEnabled')} checked={Boolean(isHrActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasHrFeature} />
           </label>
 
           {/* التصنيع والإنتاج */}
-          <label 
-            style={getCardStyle(Boolean(isManufacturingActive), hasManufacturingFeature)}
-            onClick={(e) => {
-              if (!hasManufacturingFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'التصنيع والإنتاج',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول تعريف شجرة وقوائم المكونات (BOM)، أوامر الإنتاج، ومراكز العمل وحساب التكاليف.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isManufacturingActive))}>
-                <FactoryIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>التصنيع والإنتاج</strong>
-                  {!hasManufacturingFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
-                    </span>
-                  )}
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isManufacturingActive), hasManufacturingFeature)}
+              onClick={(e) => {
+                if (!hasManufacturingFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'التصنيع والإنتاج',
+                    'الباقة المتكاملة (Ultimate ERP)',
+                    'يتيح لك هذا الموديول تعريف شجرة وقوائم المكونات (BOM)، أوامر الإنتاج، ومراكز العمل وحساب التكاليف.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isManufacturingActive))}>
+                  <FactoryIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يضيف خيارات المكونات، وصفات الإنتاج، وأوامر التصنيع</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>التصنيع والإنتاج</strong>
+                    {!hasManufacturingFeature && (
+                      <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> الباقة المتكاملة
+                      </span>
+                    )}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يضيف خيارات المكونات، وصفات الإنتاج، وأوامر التصنيع</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('manufacturingModuleEnabled')} checked={Boolean(isManufacturingActive)} disabled={disabled || !hasManufacturingFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('manufacturingModuleEnabled')} checked={Boolean(isManufacturingActive)} disabled={disabled || !hasManufacturingFeature} />
+            </label>
+          ) : null}
 
           {/* العروض المجمعة والوجبات */}
-          <label style={getCardStyle(Boolean(isComboActive), true)}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isComboActive))}>
-                <ComboPackageIcon size={20} />
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label style={getCardStyle(Boolean(isComboActive), true)}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isComboActive))}>
+                  <ComboPackageIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>العروض المجمعة والوجبات</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل العروض المكوّنة من عدة أصناف (Combo)</small>
+                </div>
               </div>
-              <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>العروض المجمعة والوجبات</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل العروض المكوّنة من عدة أصناف (Combo)</small>
-              </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('comboModuleEnabled')} checked={Boolean(isComboActive)} disabled={disabled} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('comboModuleEnabled')} checked={Boolean(isComboActive)} disabled={disabled} />
+            </label>
+          ) : null}
 
           {/* موديول الاستيراد والشراكة */}
-          <label 
-            style={getCardStyle(Boolean(isImportActive), hasImportFeature)}
-            onClick={(e) => {
-              if (!hasImportFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'موديول الاستيراد والشراكة',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول إدارة ومتابعة الحاويات والشحنات الدولية، وتوزيع أرباح وتكاليف الشركاء.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isImportActive))}>
-                <CargoShipIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الاستيراد والشراكة</strong>
-                  {!hasImportFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
-                    </span>
-                  )}
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isImportActive), hasImportFeature)}
+              onClick={(e) => {
+                if (!hasImportFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'موديول الاستيراد والشراكة',
+                    'الباقة المتكاملة (Ultimate ERP)',
+                    'يتيح لك هذا الموديول إدارة ومتابعة الحاويات والشحنات الدولية، وتوزيع أرباح وتكاليف الشركاء.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isImportActive))}>
+                  <CargoShipIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة الحاويات، مسير الشحن، وتوزيع الأرباح</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الاستيراد والشراكة</strong>
+                    {!hasImportFeature && (
+                      <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> الباقة المتكاملة
+                      </span>
+                    )}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة الحاويات، مسير الشحن، وتوزيع الأرباح</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('importModuleEnabled')} checked={Boolean(isImportActive)} disabled={disabled || !hasImportFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('importModuleEnabled')} checked={Boolean(isImportActive)} disabled={disabled || !hasImportFeature} />
+            </label>
+          ) : null}
 
           {/* موديول الشحن واللوجستيات */}
-          <label 
-            style={getCardStyle(Boolean(isMaritimeFreightActive), hasMaritimeFreightFeature)}
-            onClick={(e) => {
-              if (!hasMaritimeFreightFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'موديول الشحن واللوجستيات',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول إدارة طلبات تسعير الشحن، مقارنة عروض الأسعار، إصدار عروض أسعار العملاء، أوامر الشحن والعمليات، وتتبع الحاويات.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isMaritimeFreightActive))}>
-                <CargoShipIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الشحن واللوجستيات</strong>
-                  {!hasMaritimeFreightFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
-                    </span>
-                  )}
+          {isMaritimeVertical || (!isContractingVertical && (hasMaritimeFreightFeature || isSuperAdmin)) ? (
+            <label 
+              style={getCardStyle(Boolean(isMaritimeFreightActive), hasMaritimeFreightFeature || isMaritimeVertical)}
+              onClick={(e) => {
+                if (isMaritimeVertical) return;
+                if (!hasMaritimeFreightFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'موديول الشحن واللوجستيات',
+                    'الباقة المتكاملة (Ultimate ERP)',
+                    'يتيح لك هذا الموديول إدارة طلبات تسعير الشحن، مقارنة عروض الأسعار، إصدار عروض أسعار العملاء، أوامر الشحن والعمليات، وتتبع الحاويات.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isMaritimeFreightActive))}>
+                  <CargoShipIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة طلبات التسعير، عروض الأسعار، أوامر الشحن والعمليات، وتتبع الحاويات</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الشحن واللوجستيات</strong>
+                    {isMaritimeVertical ? (
+                      <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        الموديول السيادي الأساسي للنشاط
+                      </span>
+                    ) : !hasMaritimeFreightFeature ? (
+                      <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> الباقة المتكاملة
+                      </span>
+                    ) : null}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة طلبات التسعير، عروض الأسعار، أوامر الشحن والعمليات، وتتبع الحاويات</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('maritimeFreightModuleEnabled')} checked={Boolean(isMaritimeFreightActive)} disabled={disabled || !hasMaritimeFreightFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('maritimeFreightModuleEnabled')} checked={Boolean(isMaritimeFreightActive)} disabled={disabled || isMaritimeVertical || !hasMaritimeFreightFeature} />
+            </label>
+          ) : null}
 
           {/* موديول المقاولات والمشاريع */}
-          <label 
-            style={getCardStyle(Boolean(isContractingActive), hasContractingFeature)}
-            onClick={(e) => {
-              if (!hasContractingFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'موديول المقاولات والمشاريع',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول إدارة مشاريع المقاولات، جداول الكميات SOV/BOQ، الأوامر التغييرية، مستخلصات الدفع الدورية AIA G702/G703، ومقاولي الباطن واليوميات الميدانية.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isContractingActive))}>
-                <ContractingBuildingIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المقاولات والمشاريع</strong>
-                  {!hasContractingFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
-                    </span>
-                  )}
+          {isContractingVertical || (!isMaritimeVertical && (hasContractingFeature || isSuperAdmin)) ? (
+            <label 
+              style={getCardStyle(Boolean(isContractingActive), hasContractingFeature || isContractingVertical)}
+              onClick={(e) => {
+                if (isContractingVertical) return;
+                if (!hasContractingFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'موديول المقاولات والمشاريع',
+                    'الباقة المتكاملة (Ultimate ERP)',
+                    'يتيح لك هذا الموديول إدارة مشاريع المقاولات، جداول الكميات SOV/BOQ، الأوامر التغييرية، مستخلصات الدفع الدورية AIA G702/G703، ومقاولي الباطن واليوميات الميدانية.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isContractingActive))}>
+                  <ContractingBuildingIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إدارة المشاريع، جداول الكميات، الأوامر التغييرية، المستخلصات الجارية، ومقاولو الباطن</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المقاولات والمشاريع</strong>
+                    {isContractingVertical ? (
+                      <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        الموديول السيادي الأساسي للنشاط
+                      </span>
+                    ) : !hasContractingFeature ? (
+                      <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> الباقة المتكاملة
+                      </span>
+                    ) : null}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إدارة المشاريع، جداول الكميات، الأوامر التغييرية، المستخلصات الجارية، ومقاولو الباطن</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('contractingModuleEnabled')} checked={Boolean(isContractingActive)} disabled={disabled || !hasContractingFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('contractingModuleEnabled')} checked={Boolean(isContractingActive)} disabled={disabled || isContractingVertical || !hasContractingFeature} />
+            </label>
+          ) : null}
 
           {/* موديول المطاعم والكافيهات */}
-          <label 
-            style={getCardStyle(Boolean(isRestaurantActive), hasRestaurantFeature)}
-            onClick={(e) => {
-              if (!hasRestaurantFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'موديول المطاعم والكافيهات',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول إدارة الطاولات، شاشات المطبخ KDS، إضافات الوجبات، وتوزيع طلبات الصالة والدليفري.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isRestaurantActive))}>
-                <UtensilsIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المطاعم والكافيهات</strong>
-                  {!hasRestaurantFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
-                    </span>
-                  )}
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isRestaurantActive), hasRestaurantFeature)}
+              onClick={(e) => {
+                if (!hasRestaurantFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'موديول المطاعم والكافيهات',
+                    'الباقة المتكاملة (Ultimate ERP)',
+                    'يتيح لك هذا الموديول إدارة الطاولات، شاشات المطبخ KDS، إضافات الوجبات، وتوزيع طلبات الصالة والدليفري.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isRestaurantActive))}>
+                  <UtensilsIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل نظام الطاولات والمطبخ وأنواع الطلبات</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المطاعم والكافيهات</strong>
+                    {!hasRestaurantFeature && (
+                      <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> الباقة المتكاملة
+                      </span>
+                    )}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل نظام الطاولات والمطبخ وأنواع الطلبات</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('restaurantModuleEnabled')} checked={Boolean(isRestaurantActive)} disabled={disabled || !hasRestaurantFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('restaurantModuleEnabled')} checked={Boolean(isRestaurantActive)} disabled={disabled || !hasRestaurantFeature} />
+            </label>
+          ) : null}
 
           {/* اختيار الطاولة والعميل بالكاشير */}
-          <label 
-            style={getCardStyle(Boolean(isPosMetaActive), hasPosMetaFeature)}
-            onClick={(e) => {
-              if (!hasPosMetaFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'اختيار الطاولة والعميل بالكاشير',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الخيار إظهار حقول العميل ورقم الطاولة أعلى السلة مباشرة لتسريع الفوترة وتوزيع الطلبات والخدمة السريعة.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isPosMetaActive))}>
-                <TableCustomerIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>اختيار الطاولة والعميل بالكاشير</strong>
-                  {!hasPosMetaFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
-                    </span>
-                  )}
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isPosMetaActive), hasPosMetaFeature)}
+              onClick={(e) => {
+                if (!hasPosMetaFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'اختيار الطاولة والعميل بالكاشير',
+                    'الباقة المتكاملة (Ultimate ERP)',
+                    'يتيح لك هذا الخيار إظهار حقول العميل ورقم الطاولة أعلى السلة مباشرة لتسريع الفوترة وتوزيع الطلبات والخدمة السريعة.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isPosMetaActive))}>
+                  <TableCustomerIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يظهر حقول العميل والطاولة أعلى السلة لتسهيل الاختيار قبل الدفع</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>اختيار الطاولة والعميل بالكاشير</strong>
+                    {!hasPosMetaFeature && (
+                      <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> الباقة المتكاملة
+                      </span>
+                    )}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يظهر حقول العميل والطاولة أعلى السلة لتسهيل الاختيار قبل الدفع</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posShowCartMeta')} checked={Boolean(isPosMetaActive)} disabled={disabled || !hasPosMetaFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posShowCartMeta')} checked={Boolean(isPosMetaActive)} disabled={disabled || !hasPosMetaFeature} />
+            </label>
+          ) : null}
 
           {/* ===== موديول إدارة الصيانة الشامل مع محدد الأنشطة ===== */}
-          <label 
-            style={getCardStyle(Boolean(isMaintenanceActive), hasMaintenanceFeature)}
-            onClick={(e) => {
-              if (!hasMaintenanceFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'موديول إدارة الصيانة والأجهزة',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول إدارة كروت الصيانة، تتبع السيريال IMEI، فحص الضمان، وحساب أجور الفنيين.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isMaintenanceActive))}>
-                <MaintenanceWrenchIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول إدارة الصيانة والأجهزة</strong>
-                  {!hasMaintenanceFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
-                    </span>
-                  )}
-                </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل تتبع السيريال، استلام الأجهزة، فحص الضمان، وحساب المصنعية</small>
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              style={premiumCheckboxInputStyle}
-              {...form.register('enableMobileStoreFeatures', {
-                onChange: (e) => {
-                  if (e.target.checked) {
-                    if (!form.getValues('maintenanceProfile')) {
-                      form.setValue('maintenanceProfile', 'mobile', { shouldDirty: true });
-                    }
-                    setProfileModalOpen(true);
-                  }
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isMaintenanceActive), hasMaintenanceFeature)}
+              onClick={(e) => {
+                if (!hasMaintenanceFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'موديول إدارة الصيانة والأجهزة',
+                    'الباقة المتكاملة (Ultimate ERP)',
+                    'يتيح لك هذا الموديول إدارة كروت الصيانة، تتبع السيريال IMEI، فحص الضمان، وحساب أجور الفنيين.'
+                  );
                 }
-              })}
-              checked={Boolean(isMaintenanceActive)}
-              disabled={disabled || !hasMaintenanceFeature}
-            />
-          </label>
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isMaintenanceActive))}>
+                  <MaintenanceWrenchIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول إدارة الصيانة والأجهزة</strong>
+                    {!hasMaintenanceFeature && (
+                      <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> الباقة المتكاملة
+                      </span>
+                    )}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل تتبع السيريال، استلام الأجهزة، فحص الضمان، وحساب المصنعية</small>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                style={premiumCheckboxInputStyle}
+                {...form.register('enableMobileStoreFeatures', {
+                  onChange: (e) => {
+                    if (e.target.checked) {
+                      if (!form.getValues('maintenanceProfile')) {
+                        form.setValue('maintenanceProfile', 'mobile', { shouldDirty: true });
+                      }
+                      setProfileModalOpen(true);
+                    }
+                  }
+                })}
+                checked={Boolean(isMaintenanceActive)}
+                disabled={disabled || !hasMaintenanceFeature}
+              />
+            </label>
+          ) : null}
 
           {/* موديول الصيدليات والأدوية */}
-          <label 
-            style={getCardStyle(Boolean(isPharmacyActive), hasPharmacyFeature)}
-            onClick={(e) => {
-              if (!hasPharmacyFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'موديول الصيدليات والأدوية',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول إدارة دليل الأدوية والمواد الفعالة، تتبع التشغيلات والصلاحيات، وإدارة النواقص.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isPharmacyActive))}>
-                <PharmacyCrossIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الصيدليات والأدوية</strong>
-                  {!hasPharmacyFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
-                    </span>
-                  )}
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isPharmacyActive), hasPharmacyFeature)}
+              onClick={(e) => {
+                if (!hasPharmacyFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'موديول الصيدليات والأدوية',
+                    'الباقة المتكاملة (Ultimate ERP)',
+                    'يتيح لك هذا الموديول إدارة دليل الأدوية والمواد الفعالة، تتبع التشغيلات والصلاحيات، وإدارة النواقص.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isPharmacyActive))}>
+                  <PharmacyCrossIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>دليل الأدوية، المواد الفعالة والمثائل، الروشتات والتأمين، الصلاحيات ونواقص الأدوية</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الصيدليات والأدوية</strong>
+                    {!hasPharmacyFeature && (
+                      <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> الباقة المتكاملة
+                      </span>
+                    )}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>دليل الأدوية، المواد الفعالة والمثائل، الروشتات والتأمين، الصلاحيات ونواقص الأدوية</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enablePharmacyModule')} checked={Boolean(isPharmacyActive)} disabled={disabled || !hasPharmacyFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enablePharmacyModule')} checked={Boolean(isPharmacyActive)} disabled={disabled || !hasPharmacyFeature} />
+            </label>
+          ) : null}
 
           {/* موديول المتغيرات والأصناف المتعددة */}
-          <label 
-            style={getCardStyle(Boolean(isClothingActive), hasClothingFeature)}
-            onClick={(e) => {
-              if (!hasClothingFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'موديول المتغيرات والأصناف المتعددة',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول إدارة مصفوفة المقاسات والألوان وطباعة باركودات الأصناف المتعددة.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isClothingActive))}>
-                <VariantsLayersIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المتغيرات والأصناف المتعددة</strong>
-                  {!hasClothingFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
-                    </span>
-                  )}
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isClothingActive), hasClothingFeature)}
+              onClick={(e) => {
+                if (!hasClothingFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'موديول المتغيرات والأصناف المتعددة',
+                    'الباقة المتكاملة (Ultimate ERP)',
+                    'يتيح لك هذا الموديول إدارة مصفوفة المقاسات والألوان وطباعة باركودات الأصناف المتعددة.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isClothingActive))}>
+                  <VariantsLayersIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة الأصناف ذات الخصائص المتعددة (مقاسات، ألوان، نكهات، أحجام، روائح...)</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المتغيرات والأصناف المتعددة</strong>
+                    {!hasClothingFeature && (
+                      <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> الباقة المتكاملة
+                      </span>
+                    )}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة الأصناف ذات الخصائص المتعددة (مقاسات، ألوان، نكهات، أحجام، روائح...)</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('clothingModuleEnabled')} checked={Boolean(isClothingActive)} disabled={disabled || !hasClothingFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('clothingModuleEnabled')} checked={Boolean(isClothingActive)} disabled={disabled || !hasClothingFeature} />
+            </label>
+          ) : null}
 
           {/* موديول الخدمات والمصنعيات */}
-          <label 
-            style={getCardStyle(Boolean(isServicesActive), hasServicesFeature)}
-            onClick={(e) => {
-              if (!hasServicesFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'الخدمات والمصنعيات',
-                  'باقة النمو (الاحترافية)',
-                  'يتيح لك هذا الموديول إدارة الخدمات السريعة، مصنعيات الصيانة البسيطة، وإصدار فواتير الخدمات غير المخزنية وعمولات الفنيين.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isServicesActive))}>
-                <WrenchServiceIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الخدمات والمصنعيات</strong>
-                  {!hasServicesFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> باقة النمو
-                    </span>
-                  )}
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isServicesActive), hasServicesFeature)}
+              onClick={(e) => {
+                if (!hasServicesFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'الخدمات والمصنعيات',
+                    'باقة النمو (الاحترافية)',
+                    'يتيح لك هذا الموديول إدارة الخدمات السريعة، مصنعيات الصيانة البسيطة، وإصدار فواتير الخدمات غير المخزنية وعمولات الفنيين.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isServicesActive))}>
+                  <WrenchServiceIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل تابة إدارة الخدمات السريعة، المصنعيات، والخدمات غير المخزنية</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الخدمات والمصنعيات</strong>
+                    {!hasServicesFeature && (
+                      <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> باقة النمو
+                      </span>
+                    )}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل تابة إدارة الخدمات السريعة، المصنعيات، والخدمات غير المخزنية</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('servicesModuleEnabled')} checked={Boolean(isServicesActive)} disabled={disabled || !hasServicesFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('servicesModuleEnabled')} checked={Boolean(isServicesActive)} disabled={disabled || !hasServicesFeature} />
+            </label>
+          ) : null}
 
           {/* باركود الميزان */}
-          <label style={getCardStyle(Boolean(isWeightedActive), true)}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isWeightedActive))}>
-                <ScaleIcon size={20} />
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label style={getCardStyle(Boolean(isWeightedActive), true)}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isWeightedActive))}>
+                  <ScaleIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>باركود الميزان</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>باركود مضمّن فيه الوزن أو السعر مباشرةً للأوزان</small>
+                </div>
               </div>
-              <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>باركود الميزان</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>باركود مضمّن فيه الوزن أو السعر مباشرةً للأوزان</small>
-              </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('weightedBarcodeEnabled')} checked={Boolean(isWeightedActive)} disabled={disabled} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('weightedBarcodeEnabled')} checked={Boolean(isWeightedActive)} disabled={disabled} />
+            </label>
+          ) : null}
 
           {/* موديول الشركات والمحاسبة المتقدمة */}
           <label 
-            style={getCardStyle(Boolean(isEnterpriseActive), hasEnterpriseFeature)}
+            style={getCardStyle(Boolean(isEnterpriseActive), hasEnterpriseFeature || isContractingVertical || isMaritimeVertical)}
             onClick={(e) => {
+              if (isContractingVertical || isMaritimeVertical) return;
               if (!hasEnterpriseFeature) {
                 e.preventDefault();
                 handleLockedCardClick(
@@ -1079,88 +1217,101 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الشركات والمحاسبة المتقدمة</strong>
-                  {!hasEnterpriseFeature && (
+                  {isContractingVertical ? (
+                    <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                      مفعل تلقائياً لمراكز تكلفة المشاريع
+                    </span>
+                  ) : isMaritimeVertical ? (
+                    <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                      مفعل تلقائياً لمحاسبة الشحن ومراكز التكلفة
+                    </span>
+                  ) : !hasEnterpriseFeature ? (
                     <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
                       <LockIcon size={11} /> الباقة المتكاملة
                     </span>
-                  )}
+                  ) : null}
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل مراكز التكلفة، ربط الفواتير بالمشاريع، وشروط التعاقد</small>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل مراكز التكلفة، ربط الفواتير بالمشاريع أو الشحنات، وشروط التعاقد</small>
               </div>
             </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enableEnterpriseFeatures')} checked={Boolean(isEnterpriseActive)} disabled={disabled || !hasEnterpriseFeature} />
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enableEnterpriseFeatures')} checked={Boolean(isEnterpriseActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasEnterpriseFeature} />
           </label>
 
           {/* المتجر الإلكتروني وطلبات الأونلاين */}
-          <label 
-            style={getCardStyle(Boolean(isStorefrontActive), hasStorefrontFeature)}
-            onClick={(e) => {
-              if (!hasStorefrontFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'المتجر الإلكتروني وطلبات الأونلاين',
-                  'باقة التجارة الشاملة (Omnichannel Enterprise)',
-                  'يتيح لك هذا الموديول ربط متجرك بمتجر إلكتروني متكامل للعملاء، واستقبال الطلبات أونلاين وتأكيد السداد ببوابات الدفع الإلكتروني وتتبع المناديب.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isStorefrontActive))}>
-                <OnlineStorefrontIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المتجر الإلكتروني وطلبات الأونلاين</strong>
-                  {!hasStorefrontFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> باقة التجارة الشاملة
-                    </span>
-                  )}
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isStorefrontActive), hasStorefrontFeature)}
+              onClick={(e) => {
+                if (!hasStorefrontFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'المتجر الإلكتروني وطلبات الأونلاين',
+                    'باقة التجارة الشاملة (Omnichannel Enterprise)',
+                    'يتيح لك هذا الموديول ربط متجرك بمتجر إلكتروني متكامل للعملاء، واستقبال الطلبات أونلاين وتأكيد السداد ببوابات الدفع الإلكتروني وتتبع المناديب.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isStorefrontActive))}>
+                  <OnlineStorefrontIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل المتجر الإلكتروني، بوابات الدفع بالبطاقات (Paymob)، واستقبال ومتابعة طلبات الأونلاين</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المتجر الإلكتروني وطلبات الأونلاين</strong>
+                    {!hasStorefrontFeature && (
+                      <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> باقة التجارة الشاملة
+                      </span>
+                    )}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل المتجر الإلكتروني، بوابات الدفع بالبطاقات (Paymob)، واستقبال ومتابعة طلبات الأونلاين</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('storefrontModuleEnabled')} checked={Boolean(isStorefrontActive)} disabled={disabled || !hasStorefrontFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('storefrontModuleEnabled')} checked={Boolean(isStorefrontActive)} disabled={disabled || !hasStorefrontFeature} />
+            </label>
+          ) : null}
 
           {/* مبيعات وجدولة التقسيط */}
-          <label 
-            style={getCardStyle(Boolean(isInstallmentsActive), hasInstallmentsFeature)}
-            onClick={(e) => {
-              if (!hasInstallmentsFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'مبيعات وجدولة التقسيط',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول إدارة عقود وأقساط العملاء، احتساب نسب الفوائد، وجدولة وتنبيهات الأقساط المستحقة والمتأخرة.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isInstallmentsActive))}>
-                <InstallmentsIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>مبيعات وجدولة التقسيط</strong>
-                  {!hasInstallmentsFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
-                    </span>
-                  )}
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isInstallmentsActive), hasInstallmentsFeature)}
+              onClick={(e) => {
+                if (!hasInstallmentsFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'مبيعات وجدولة التقسيط',
+                    'الباقة المتكاملة (Ultimate ERP)',
+                    'يتيح لك هذا الموديول إدارة عقود وأقساط العملاء، احتساب نسب الفوائد، وجدولة وتنبيهات الأقساط المستحقة والمتأخرة.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isInstallmentsActive))}>
+                  <InstallmentsIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إدارة خطط التقسيط، عقود الأقساط، تتبع الأقساط المسددة والمتأخرة، وإشعارات الاستحقاق</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>مبيعات وجدولة التقسيط</strong>
+                    {!hasInstallmentsFeature && (
+                      <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> الباقة المتكاملة
+                      </span>
+                    )}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إدارة خطط التقسيط، عقود الأقساط، تتبع الأقساط المسددة والمتأخرة، وإشعارات الاستحقاق</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('installmentsModuleEnabled')} checked={Boolean(isInstallmentsActive)} disabled={disabled || !hasInstallmentsFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('installmentsModuleEnabled')} checked={Boolean(isInstallmentsActive)} disabled={disabled || !hasInstallmentsFeature} />
+            </label>
+          ) : null}
 
           {/* إدارة وإهلاك الأصول الثابتة */}
           <label 
-            style={getCardStyle(Boolean(isFixedAssetsActive), hasFixedAssetsFeature)}
+            style={getCardStyle(Boolean(isFixedAssetsActive), hasFixedAssetsFeature || isContractingVertical || isMaritimeVertical)}
             onClick={(e) => {
+              if (isContractingVertical || isMaritimeVertical) return;
               if (!hasFixedAssetsFeature) {
                 e.preventDefault();
                 handleLockedCardClick(
@@ -1178,22 +1329,31 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إدارة وإهلاك الأصول الثابتة</strong>
-                  {!hasFixedAssetsFeature && (
+                  {isContractingVertical ? (
+                    <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                      مفعل تلقائياً لمعدات وأصول المقاولات
+                    </span>
+                  ) : isMaritimeVertical ? (
+                    <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                      مفعل تلقائياً لأصول وتجهيزات الشحن
+                    </span>
+                  ) : !hasFixedAssetsFeature ? (
                     <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
                       <LockIcon size={11} /> الباقة المتكاملة
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>سجل الأصول، احتساب الإهلاك المحاسبي، والقيمة التخريدية والدفترية ومواقع الأصول</small>
               </div>
             </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('fixedAssetsModuleEnabled')} checked={Boolean(isFixedAssetsActive)} disabled={disabled || !hasFixedAssetsFeature} />
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('fixedAssetsModuleEnabled')} checked={Boolean(isFixedAssetsActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasFixedAssetsFeature} />
           </label>
 
           {/* الإقرار الضريبي والربط الإلكتروني */}
           <label 
-            style={getCardStyle(Boolean(isTaxDeclarationActive), hasTaxDeclarationFeature)}
+            style={getCardStyle(Boolean(isTaxDeclarationActive), hasTaxDeclarationFeature || isContractingVertical || isMaritimeVertical)}
             onClick={(e) => {
+              if (isContractingVertical || isMaritimeVertical) return;
               if (!hasTaxDeclarationFeature) {
                 e.preventDefault();
                 handleLockedCardClick(
@@ -1211,53 +1371,59 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الإقرار الضريبي والربط الإلكتروني</strong>
-                  {!hasTaxDeclarationFeature && (
+                  {isContractingVertical || isMaritimeVertical ? (
+                    <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                      مفعل تلقائياً للإقرار الضريبي
+                    </span>
+                  ) : !hasTaxDeclarationFeature ? (
                     <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
                       <LockIcon size={11} /> الباقة المتكاملة
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>توليد نموذج الإقرار الضريبي (ن10)، إقرارات هيئة الزكاة (ZATCA)، وتقارير ضريبة المخرجات والمدخلات</small>
               </div>
             </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('taxDeclarationModuleEnabled')} checked={Boolean(isTaxDeclarationActive)} disabled={disabled || !hasTaxDeclarationFeature} />
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('taxDeclarationModuleEnabled')} checked={Boolean(isTaxDeclarationActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasTaxDeclarationFeature} />
           </label>
 
           {/* أسطول وتتبع المناديب */}
-          <label 
-            style={getCardStyle(Boolean(isDeliveryFleetActive), hasDeliveryFleetFeature)}
-            onClick={(e) => {
-              if (!hasDeliveryFleetFeature) {
-                e.preventDefault();
-                handleLockedCardClick(
-                  'أسطول وتتبع المناديب',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول إدارة مناديب التوصيل، توزيع خطوط السير، تسوية العهد النقدية، وتتبع المناديب مباشرة.'
-                );
-              }
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={getIconBadgeStyle(Boolean(isDeliveryFleetActive))}>
-                <DeliveryFleetIcon size={20} />
-              </div>
-              <div style={premiumCardTextStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>أسطول وتتبع المناديب</strong>
-                  {!hasDeliveryFleetFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
-                    </span>
-                  )}
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isDeliveryFleetActive), hasDeliveryFleetFeature)}
+              onClick={(e) => {
+                if (!hasDeliveryFleetFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    'أسطول وتتبع المناديب',
+                    'الباقة المتكاملة (Ultimate ERP)',
+                    'يتيح لك هذا الموديول إدارة مناديب التوصيل، توزيع خطوط السير، تسوية العهد النقدية، وتتبع المناديب مباشرة.'
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isDeliveryFleetActive))}>
+                  <DeliveryFleetIcon size={20} />
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إسناد الطلبات للمناديب، تتبع تسليم الشحنات، وعمولات مناديب التوصيل</small>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>أسطول وتتبع المناديب</strong>
+                    {!hasDeliveryFleetFeature && (
+                      <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> الباقة المتكاملة
+                      </span>
+                    )}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إسناد الطلبات للمناديب، تتبع تسليم الشحنات، وعمولات مناديب التوصيل</small>
+                </div>
               </div>
-            </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('deliveryFleetModuleEnabled')} checked={Boolean(isDeliveryFleetActive)} disabled={disabled || !hasDeliveryFleetFeature} />
-          </label>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('deliveryFleetModuleEnabled')} checked={Boolean(isDeliveryFleetActive)} disabled={disabled || !hasDeliveryFleetFeature} />
+            </label>
+          ) : null}
         </div>
 
-        {enableMaintenance ? (
+        {enableMaintenance && ((!isContractingVertical && !isMaritimeVertical) || isSuperAdmin) ? (
           <div style={{ background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px 20px', marginTop: 18, boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1493,7 +1659,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </div>
         </DialogShell>
 
-        {clothingModuleEnabled ? (
+        {clothingModuleEnabled && ((!isContractingVertical && !isMaritimeVertical) || isSuperAdmin) ? (
           <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
             <div className="field">
               <label>النمط الافتراضي عند إضافة صنف</label>
@@ -1505,7 +1671,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </div>
         ) : null}
 
-        {weightedBarcodeEnabled ? (
+        {weightedBarcodeEnabled && ((!isContractingVertical && !isMaritimeVertical) || isSuperAdmin) ? (
           <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
             <div className="field">
               <label>بداية باركود الميزان</label>

@@ -306,6 +306,32 @@ export function buildSettingsUpdatePayload(
       : (current?.invoiceNumberingScheme === 'sequential' ? 'sequential' : 'daily'),
   };
 
+  const rawActivity = String((current as any)?.pillar || (current as any)?.activityType || values.businessIndustry || current?.businessIndustry || 'retail_general').trim().toLowerCase();
+  const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
+  const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+
+  if (isContractingVertical) {
+    settings.contractingModuleEnabled = true;
+    settings.purchasesModuleEnabled = true;
+    settings.inventoryModuleEnabled = true;
+    settings.hrModuleEnabled = true;
+    settings.enableEnterpriseFeatures = true;
+    settings.fixedAssetsModuleEnabled = true;
+    settings.taxDeclarationModuleEnabled = true;
+    settings.posModuleEnabled = false;
+    settings.maritimeFreightModuleEnabled = false;
+  } else if (isMaritimeVertical) {
+    settings.maritimeFreightModuleEnabled = true;
+    settings.purchasesModuleEnabled = true;
+    settings.hrModuleEnabled = true;
+    settings.enableEnterpriseFeatures = true;
+    settings.fixedAssetsModuleEnabled = true;
+    settings.taxDeclarationModuleEnabled = true;
+    settings.contractingModuleEnabled = false;
+    settings.inventoryModuleEnabled = false;
+    settings.posModuleEnabled = false;
+  }
+
   return { settings };
 }
 

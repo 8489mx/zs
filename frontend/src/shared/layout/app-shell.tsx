@@ -746,7 +746,18 @@ export function AppShell({ children }: PropsWithChildren) {
       'saas-admin-plans': 'باقات الاشتراكات',
     };
     const isPlatformAdminUser = isPlatformAdmin(user);
-    const hasFeature = (feat: string) => isPlatformAdminUser || Boolean(tenant?.features?.includes(feat));
+    const hasFeature = (feat: string) => {
+      if (isPlatformAdminUser) return true;
+      if (isContractingVertical) {
+        const contractingSuiteFeatures = ['contracting', 'purchases', 'inventory', 'suppliers', 'customers', 'accounting', 'hr', 'fixed_assets', 'vat_declaration', 'reports', 'approvals', 'treasury'];
+        if (contractingSuiteFeatures.includes(feat)) return true;
+      }
+      if (isMaritimeVertical) {
+        const maritimeSuiteFeatures = ['maritime_freight', 'purchases', 'sales', 'suppliers', 'customers', 'accounting', 'hr', 'vat_declaration', 'reports', 'approvals', 'treasury'];
+        if (maritimeSuiteFeatures.includes(feat)) return true;
+      }
+      return Boolean(tenant?.features?.includes(feat));
+    };
 
     return navigationItems
       .filter((item) => {
@@ -803,8 +814,8 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'services' && (settings?.servicesModuleEnabled !== true || (!hasFeature('purchases') && !hasFeature('services')))) return false;
         if (item.key === 'online-orders' && (settings?.storefrontModuleEnabled !== true || !hasFeature('storefront'))) return false;
         if (item.key === 'installments' && (settings?.installmentsModuleEnabled !== true || !hasFeature('installments'))) return false;
-        if (item.key === 'vat-declaration' && (settings?.taxDeclarationModuleEnabled !== true || !hasFeature('vat_declaration'))) return false;
-        if (item.key === 'accounting-fixed-assets' && (settings?.fixedAssetsModuleEnabled !== true || !hasFeature('fixed_assets'))) return false;
+        if (item.key === 'vat-declaration' && !isContractingVertical && !isMaritimeVertical && (settings?.taxDeclarationModuleEnabled !== true || !hasFeature('vat_declaration'))) return false;
+        if (item.key === 'accounting-fixed-assets' && !isContractingVertical && (settings?.fixedAssetsModuleEnabled !== true || !hasFeature('fixed_assets'))) return false;
         if (item.key === 'delivery-reps' && (settings?.deliveryFleetModuleEnabled !== true || !hasFeature('deliveryReps'))) return false;
         if (item.key === 'kds' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         if (item.key === 'product-modifiers' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
@@ -814,34 +825,34 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'displays' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         // POS & Retail Sales gating:
         if ((item.key === 'pos' || item.key === 'cash-drawer' || item.key === 'sales' || item.key === 'returns') && settings?.posModuleEnabled === false) return false;
-        if (item.key === 'customers' && settings?.posModuleEnabled === false && settings?.enableEnterpriseFeatures !== true && settings?.installmentsModuleEnabled !== true) return false;
+        if (item.key === 'customers' && settings?.posModuleEnabled === false && settings?.enableEnterpriseFeatures !== true && settings?.installmentsModuleEnabled !== true && !isContractingVertical && !isMaritimeVertical) return false;
 
         // Enterprise Sales gating (CRM, Sales Orders, Price Lists, Quotations):
-        if ((item.key === 'crm' || item.key === 'sales-orders' || item.key === 'price-lists' || item.key === 'quotations') && settings?.enableEnterpriseFeatures !== true) return false;
+        if ((item.key === 'crm' || item.key === 'sales-orders' || item.key === 'price-lists' || item.key === 'quotations') && !isMaritimeVertical && settings?.enableEnterpriseFeatures !== true) return false;
 
         // Purchases gating:
-        if ((item.key === 'purchases-orders' || item.key === 'purchases-rfqs' || item.key === 'purchases-reorder') && (settings?.enableEnterpriseFeatures !== true || settings?.purchasesModuleEnabled === false || !hasFeature('purchases'))) return false;
-        if ((item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'reports-purchases') && (settings?.purchasesModuleEnabled === false || (settings?.purchasesModuleEnabled !== true && !hasFeature('purchases')))) return false;
+        if ((item.key === 'purchases-orders' || item.key === 'purchases-rfqs' || item.key === 'purchases-reorder') && !isContractingVertical && !isMaritimeVertical && (settings?.enableEnterpriseFeatures !== true || settings?.purchasesModuleEnabled === false || !hasFeature('purchases'))) return false;
+        if ((item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'reports-purchases') && !isContractingVertical && !isMaritimeVertical && (settings?.purchasesModuleEnabled === false || (settings?.purchasesModuleEnabled !== true && !hasFeature('purchases')))) return false;
 
         // Inventory gating:
-        if ((item.key === 'inventory-bins' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new' || item.key === 'pricing-center') && (settings?.enableEnterpriseFeatures !== true || settings?.inventoryModuleEnabled === false || !hasFeature('inventory'))) return false;
-        if ((item.key === 'products' || item.key === 'product-categories' || item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'reports-inventory') && (settings?.inventoryModuleEnabled === false || (settings?.inventoryModuleEnabled !== true && !hasFeature('inventory')))) return false;
+        if ((item.key === 'inventory-bins' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new' || item.key === 'pricing-center') && !isContractingVertical && (settings?.enableEnterpriseFeatures !== true || settings?.inventoryModuleEnabled === false || !hasFeature('inventory'))) return false;
+        if ((item.key === 'products' || item.key === 'product-categories' || item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'reports-inventory') && !isContractingVertical && (settings?.inventoryModuleEnabled === false || (settings?.inventoryModuleEnabled !== true && !hasFeature('inventory')))) return false;
 
         // Reports & Dashboard gating:
         if ((item.key?.startsWith('reports-') || item.key === 'audit' || item.key === 'dashboard' || item.key === 'owner-companion' || item.key === 'owner-mobile') && !hasFeature('reports')) return false;
-        if (item.key === 'reports-balances' && settings?.enableEnterpriseFeatures !== true) return false;
+        if (item.key === 'reports-balances' && !isContractingVertical && !isMaritimeVertical && settings?.enableEnterpriseFeatures !== true) return false;
 
         // HR gating:
-        if ((item.key === 'hr' || item.key === 'hr-settlements' || item.key === 'reports-employees') && (settings?.hrModuleEnabled !== true || !hasFeature('hr'))) return false;
+        if ((item.key === 'hr' || item.key === 'hr-settlements' || item.key === 'reports-employees') && !isContractingVertical && !isMaritimeVertical && (settings?.hrModuleEnabled !== true || !hasFeature('hr'))) return false;
 
         // Accounting tree & journal gating:
-        if ((item.key?.startsWith('accounting-') || item.key === 'accounts') && item.key !== 'accounting-fixed-assets' && (settings?.enableEnterpriseFeatures !== true || !hasFeature('accounting'))) return false;
+        if ((item.key?.startsWith('accounting-') || item.key === 'accounts') && item.key !== 'accounting-fixed-assets' && !isContractingVertical && !isMaritimeVertical && (settings?.enableEnterpriseFeatures !== true || !hasFeature('accounting'))) return false;
 
         // Maritime Freight gating:
-        if (item.key?.startsWith('maritime-') && (settings?.maritimeFreightModuleEnabled !== true || !hasFeature('maritime_freight'))) return false;
+        if (item.key?.startsWith('maritime-') && !isMaritimeVertical && (settings?.maritimeFreightModuleEnabled !== true || !hasFeature('maritime_freight'))) return false;
 
         // Contracting & Construction gating:
-        if (item.key?.startsWith('contracting-') && (settings?.contractingModuleEnabled !== true || !hasFeature('contracting'))) return false;
+        if (item.key?.startsWith('contracting-') && !isContractingVertical && (settings?.contractingModuleEnabled !== true || !hasFeature('contracting'))) return false;
 
         return true;
       })
@@ -904,13 +915,6 @@ export function AppShell({ children }: PropsWithChildren) {
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => {
     const isPlatformAdminUser = isPlatformAdmin(user);
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
-    const hasAccounting = isPlatformAdminUser || Boolean(tenant?.features?.includes('accounting'));
-    const hasRestaurant = isPlatformAdminUser || Boolean(tenant?.features?.includes('restaurant'));
-    const hasMaritimeFreight = isPlatformAdminUser || Boolean(tenant?.features?.includes('maritime_freight'));
-    const hasContracting = isPlatformAdminUser || Boolean(tenant?.features?.includes('contracting'));
-    const hasImport = isPlatformAdminUser || Boolean(tenant?.features?.includes('import'));
-    const hasInventory = isPlatformAdminUser || Boolean(tenant?.features?.includes('inventory'));
-    const hasPurchases = isPlatformAdminUser || Boolean(tenant?.features?.includes('purchases'));
 
     const rawActivity = String(tenant?.activityType || tenant?.pillar || settings?.activityType || settings?.businessIndustry || 'retail_general').trim().toLowerCase();
     const isDedicatedContractingOnly = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
@@ -922,6 +926,14 @@ export function AppShell({ children }: PropsWithChildren) {
     const isElectronicsVertical = rawActivity === 'electronics' || rawActivity === 'maintenance' || rawActivity === 'repair' || rawActivity === 'صيانة';
     const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
     const isRetailOrMarketVertical = !isDedicatedContractingOnly && !isDedicatedMaritimeOnly && !isRestaurantVertical && !isPharmacyVertical && !isManufacturingVertical && !isElectronicsVertical && !isDedicatedImportOnly && !isDedicatedServicesOnly;
+
+    const hasAccounting = isPlatformAdminUser || isDedicatedContractingOnly || isDedicatedMaritimeOnly || Boolean(tenant?.features?.includes('accounting'));
+    const hasRestaurant = isPlatformAdminUser || Boolean(tenant?.features?.includes('restaurant'));
+    const hasMaritimeFreight = isPlatformAdminUser || isDedicatedMaritimeOnly || Boolean(tenant?.features?.includes('maritime_freight'));
+    const hasContracting = isPlatformAdminUser || isDedicatedContractingOnly || Boolean(tenant?.features?.includes('contracting'));
+    const hasImport = isPlatformAdminUser || Boolean(tenant?.features?.includes('import'));
+    const hasInventory = isPlatformAdminUser || isDedicatedContractingOnly || Boolean(tenant?.features?.includes('inventory'));
+    const hasPurchases = isPlatformAdminUser || isDedicatedContractingOnly || isDedicatedMaritimeOnly || Boolean(tenant?.features?.includes('purchases'));
 
     // 1. Dedicated Contracting Enterprise Workspace
     if (isDedicatedContractingOnly) {
@@ -946,9 +958,15 @@ export function AppShell({ children }: PropsWithChildren) {
         },
         {
           key: 'accounting-group',
-          label: hasAccounting ? 'المالية ومحاسبة المشاريع' : 'الخزينة والمصروفات',
+          label: 'المالية ومحاسبة المشاريع',
           itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-fixed-assets', 'accounting-settings'],
           iconKey: 'treasury',
+        },
+        {
+          key: 'hr-group',
+          label: 'الموارد البشرية والعمالة',
+          itemKeys: ['hr', 'hr-settlements'],
+          iconKey: 'users',
         },
         {
           key: 'reports-group',
@@ -965,7 +983,7 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'admin-group',
           label: t('sidebar.admin-group', 'الإدارة والنظام'),
-          itemKeys: ['hr', 'hr-settlements', 'audit', 'settings'],
+          itemKeys: ['audit', 'settings'],
           iconKey: 'admin',
         },
       ];
@@ -994,9 +1012,15 @@ export function AppShell({ children }: PropsWithChildren) {
         },
         {
           key: 'accounting-group',
-          label: hasAccounting ? 'المالية ومحاسبة الشحن' : 'الخزينة والمصروفات',
+          label: 'المالية ومحاسبة الشحن',
           itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-settings'],
           iconKey: 'treasury',
+        },
+        {
+          key: 'hr-group',
+          label: 'الموارد البشرية والموظفين',
+          itemKeys: ['hr', 'hr-settlements'],
+          iconKey: 'users',
         },
         {
           key: 'reports-group',
@@ -1013,7 +1037,7 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'admin-group',
           label: t('sidebar.admin-group', 'الإدارة والنظام'),
-          itemKeys: ['hr', 'hr-settlements', 'audit', 'settings'],
+          itemKeys: ['audit', 'settings'],
           iconKey: 'admin',
         },
       ];

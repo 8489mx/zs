@@ -8,6 +8,7 @@ interface AppCardProps {
   isActive: boolean;
   isAllowedByPlan: boolean;
   isPending: boolean;
+  isCoreSuiteApp?: boolean;
   onToggle: (app: AppItemDefinition, currentStatus: boolean) => void;
   onOpenUpgradeModal: (app: AppItemDefinition) => void;
 }
@@ -26,6 +27,7 @@ export function AppCard({
   isActive,
   isAllowedByPlan,
   isPending,
+  isCoreSuiteApp = false,
   onToggle,
   onOpenUpgradeModal,
 }: AppCardProps) {
@@ -212,7 +214,25 @@ export function AppCard({
 
         {/* Main Action Buttons */}
         <div>
-          {isActive ? (
+          {isCoreSuiteApp ? (
+            <span
+              style={{
+                fontSize: '0.74rem',
+                color: '#166534',
+                fontWeight: 700,
+                background: '#f0fdf4',
+                padding: '5px 12px',
+                borderRadius: '8px',
+                border: '1px solid #bbf7d0',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <CheckIcon size={12} color="#166534" />
+              <span>أساسي في الباقة الشاملة</span>
+            </span>
+          ) : isActive ? (
             <button
               type="button"
               disabled={isPending}

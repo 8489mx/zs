@@ -18,6 +18,8 @@ import { IndustryPresetsGrid } from '../components/onboarding/IndustryPresetsGri
 import { ModulesConfiguratorGrid } from '../components/onboarding/ModulesConfiguratorGrid';
 import type { ModuleCategoryFilter } from '../components/onboarding/types';
 
+import { settingsApi } from '@/features/settings/api/settings.api';
+
 export function SaaSOnboardingPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -121,10 +123,18 @@ export function SaaSOnboardingPage() {
 
   const handleApplyIndustry = async () => {
     setIsSubmitting(true);
+    const normalizedActivity = selectedIndustry === 'maritime' ? 'maritime_freight' : selectedIndustry;
     try {
+      try {
+        await settingsApi.setActivityProfile(normalizedActivity);
+      } catch {
+        // Fallback to direct settings mutation if needed
+      }
+
       const { resolvedKeys } = resolveModuleDependencies(activeModuleKeys);
       const patch: Record<string, any> = {
-        businessIndustry: selectedIndustry,
+        businessIndustry: normalizedActivity,
+        activityType: normalizedActivity,
         onboardingCompleted: true,
         defaultPosMode: currentPreset.defaultPosMode || 'scanner',
         defaultProductKind: currentPreset.defaultProductKind || 'standard',
@@ -136,7 +146,14 @@ export function SaaSOnboardingPage() {
       }
 
       await updateSettingsMutation.mutateAsync(patch as any);
-      navigate('/', { replace: true });
+
+      if (normalizedActivity === 'contracting') {
+        navigate('/contracting', { replace: true });
+      } else if (normalizedActivity === 'maritime_freight') {
+        navigate('/maritime-freight', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     } catch {
       // Handled by mutation error toast
     } finally {

@@ -30,18 +30,24 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
     pillar: 'contracting',
     labelAr: 'قطاع المقاولات وإدارة المشاريع',
     labelEn: 'Contracting & Construction Projects',
-    descriptionAr: 'إدارة متكاملة للمشاريع والمقايسات (BOQ) والمستخلصات وعقود مقاولي الباطن ودفاتر يوميات الموقع.',
+    descriptionAr: 'إدارة متكاملة للمشاريع والمقايسات (BOQ) والمستخلصات وعقود مقاولي الباطن والمشتريات والمخازن.',
     defaultRoute: '/contracting',
     defaultFeatures: [
       'contracting',
+      'purchases',
+      'inventory',
+      'suppliers',
+      'customers',
+      'pricing',
       'accounting',
       'hr',
-      'pricing',
       'fixed_assets',
       'vat_declaration',
+      'taxIntegration',
       'reports',
+      'approvals',
     ],
-    allowedExtraFeatures: ['inventory', 'purchases'],
+    allowedExtraFeatures: [],
   },
 
   maritime_freight: {
@@ -49,17 +55,23 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
     pillar: 'maritime_freight',
     labelAr: 'قطاع الشحن البحري واللوجستيات',
     labelEn: 'Maritime Freight & Logistics',
-    descriptionAr: 'إدارة الخطوط الملاحية، الموانئ، عروض النولون، أوامر تشغيل الشحنات، وتتبع الحاويات.',
+    descriptionAr: 'إدارة الخطوط الملاحية، الموانئ، عروض النولون، أوامر تشغيل الشحنات، والمصروفات وتتبع الحاويات.',
     defaultRoute: '/maritime-freight',
     defaultFeatures: [
       'maritime_freight',
+      'purchases',
+      'suppliers',
+      'customers',
+      'pricing',
       'accounting',
       'hr',
       'fixed_assets',
       'vat_declaration',
+      'taxIntegration',
       'reports',
+      'approvals',
     ],
-    allowedExtraFeatures: ['purchases'],
+    allowedExtraFeatures: [],
   },
 
   retail_general: {
@@ -269,6 +281,12 @@ export function resolvePillarScopedFeatures(
     candidates.delete('restaurant');
     candidates.delete('maritime_freight');
     candidates.delete('storefront');
+    candidates.delete('kds');
+    candidates.delete('displays');
+    candidates.delete('signage');
+    candidates.delete('deliveryReps');
+    candidates.delete('maintenance');
+    candidates.delete('clothing');
     if (!explicitPlus.includes('pos')) candidates.delete('pos');
   } else if (profile.pillar === 'maritime_freight') {
     candidates.delete('pharmacy');
@@ -277,6 +295,13 @@ export function resolvePillarScopedFeatures(
     candidates.delete('manufacturing');
     candidates.delete('storefront');
     candidates.delete('pos');
+    candidates.delete('kds');
+    candidates.delete('displays');
+    candidates.delete('signage');
+    candidates.delete('deliveryReps');
+    candidates.delete('maintenance');
+    candidates.delete('clothing');
+    candidates.delete('inventory');
   } else {
     // Pillar is commerce: remove isolated vertical modules (contracting & maritime_freight) unless explicitly granted
     if (!explicitPlus.includes('contracting')) candidates.delete('contracting');
