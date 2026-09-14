@@ -493,6 +493,78 @@ export const contractingApi = {
   // 7. Item-Level Direct Profitability Ledger
   getItemProfitabilityLedger: (projectId: string) =>
     http<import('../contracting.types').ContractingItemProfitabilitySummary>(`/api/contracting/projects/${projectId}/item-profitability`),
+
+  // 8. Comprehensive 5-Stream Project Cost Breakdown
+  getProjectCostBreakdown: (projectId: string) =>
+    http<import('../contracting.types').ContractingProjectCostBreakdown>(`/api/contracting/projects/${projectId}/cost-breakdown`),
+
+  // 9. Work Inspection Requests (WIR / طلبات استلام الأعمال)
+  getInspectionRequests: (projectId: string, params?: { status?: string }) =>
+    http<import('../contracting.types').ContractingInspectionRequest[]>(
+      `/api/contracting/projects/${projectId}/inspection-requests${toQueryString(params)}`,
+    ),
+
+  createInspectionRequest: (projectId: string, data: Partial<import('../contracting.types').ContractingInspectionRequest>) =>
+    http<import('../contracting.types').ContractingInspectionRequest>(
+      `/api/contracting/projects/${projectId}/inspection-requests`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+
+  updateInspectionRequestStatus: (
+    id: string,
+    data: { status: string; consultantName?: string; consultantNotes?: string; consultantDecisionDate?: string },
+  ) =>
+    http<import('../contracting.types').ContractingInspectionRequest>(`/api/contracting/inspection-requests/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteInspectionRequest: (id: string) =>
+    http<{ success: boolean }>(`/api/contracting/inspection-requests/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // 10. Punch List / Snag Items (قائمة العيوب والملاحظات)
+  getSnagItems: (projectId: string, params?: { status?: string; severity?: string }) =>
+    http<import('../contracting.types').ContractingSnagItem[]>(
+      `/api/contracting/projects/${projectId}/snag-items${toQueryString(params)}`,
+    ),
+
+  createSnagItem: (projectId: string, data: Partial<import('../contracting.types').ContractingSnagItem>) =>
+    http<import('../contracting.types').ContractingSnagItem>(`/api/contracting/projects/${projectId}/snag-items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateSnagItemStatus: (id: string, data: { status: string; rectificationNotes?: string; closedDate?: string }) =>
+    http<import('../contracting.types').ContractingSnagItem>(`/api/contracting/snag-items/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteSnagItem: (id: string) =>
+    http<{ success: boolean }>(`/api/contracting/snag-items/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // 11. Project Handovers (الاستلام الابتدائي والنهائي)
+  getProjectHandovers: (projectId: string) =>
+    http<import('../contracting.types').ContractingProjectHandover[]>(`/api/contracting/projects/${projectId}/handovers`),
+
+  createProjectHandover: (projectId: string, data: Partial<import('../contracting.types').ContractingProjectHandover>) =>
+    http<import('../contracting.types').ContractingProjectHandover>(`/api/contracting/projects/${projectId}/handovers`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  approveProjectHandover: (id: string, data: { approvedBy: string; notes?: string }) =>
+    http<import('../contracting.types').ContractingProjectHandover>(`/api/contracting/handovers/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 

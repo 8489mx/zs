@@ -97,6 +97,7 @@ export interface ContractingInvoice {
   projectId: string;
   ipcNumber: string;
   ipcType: IpcType;
+  subcontractId?: string | null;
   subcontractorId?: number | null;
   subcontractorName?: string;
   sequenceOrder: number;
@@ -124,6 +125,7 @@ export interface ContractingSubcontract {
   id: string;
   projectId: string;
   subcontractorId: number;
+  subcontractorName?: string;
   contractNumber: string;
   scopeOfWork: string;
   totalAmount: number;
@@ -133,6 +135,9 @@ export interface ContractingSubcontract {
   status: SubcontractStatus;
   notes?: string | null;
   createdAt: string;
+  totalInvoiced?: number;
+  totalRetentionHeld?: number;
+  remainingCommitment?: number;
 }
 
 export interface ContractingSiteDailyLog {
@@ -754,4 +759,97 @@ export interface ContractingItemProfitabilitySummary {
   overallMarginPercent: number;
   items: ContractingItemProfitabilityItem[];
 }
+
+// 8. Comprehensive 5-Stream Cost Breakdown
+export interface ContractingCostStream {
+  key: string;
+  name: string;
+  amount: number;
+  count: number;
+  percentOfTotal: number;
+}
+
+export interface ContractingProjectCostBreakdown {
+  projectId: string;
+  contractValue: number;
+  costBaseline: number;
+  totalActualCost: number;
+  varianceVsBaseline: number;
+  profitMarginPercent: number;
+  streams: ContractingCostStream[];
+}
+
+// 9. Work Inspection Requests (WIR)
+export type InspectionStatus = 'submitted' | 'approved' | 'approved_with_notes' | 'rejected';
+
+export interface ContractingInspectionRequest {
+  id: string;
+  projectId: string;
+  requestNumber: string;
+  title: string;
+  discipline: string;
+  locationDetails: string;
+  inspectionDate: string;
+  status: InspectionStatus;
+  consultantName?: string | null;
+  consultantDecisionDate?: string | null;
+  consultantNotes?: string | null;
+  boqItemId?: string | null;
+  boqItemDescription?: string | null;
+  subcontractId?: string | null;
+  subcontractorName?: string | null;
+  attachments?: string | null;
+  requestedBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 10. Punch List / Snag Items
+export type SnagSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type SnagStatus = 'open' | 'in_progress' | 'rectified' | 'verified_closed';
+
+export interface ContractingSnagItem {
+  id: string;
+  projectId: string;
+  itemNumber: string;
+  description: string;
+  location: string;
+  severity: SnagSeverity;
+  status: SnagStatus;
+  identifiedBy: string;
+  assignedTo?: string | null;
+  targetDate?: string | null;
+  closedDate?: string | null;
+  rectificationNotes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 11. Project Handovers (Preliminary & Final)
+export type HandoverType = 'preliminary' | 'final';
+export type HandoverStatus = 'draft' | 'under_review' | 'approved' | 'rejected';
+
+export interface ContractingProjectHandover {
+  id: string;
+  projectId: string;
+  handoverType: HandoverType;
+  handoverNumber: string;
+  handoverDate: string;
+  consultantRepresentative?: string | null;
+  clientRepresentative?: string | null;
+  contractorRepresentative?: string | null;
+  committeeReport?: string | null;
+  outstandingSnagCount: number;
+  warrantyStartDate?: string | null;
+  warrantyEndDate?: string | null;
+  retentionReleasePercent: number;
+  retentionReleaseAmount: number;
+  status: HandoverStatus;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 

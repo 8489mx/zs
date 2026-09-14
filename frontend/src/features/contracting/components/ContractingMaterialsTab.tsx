@@ -4,6 +4,7 @@ import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { contractingApi } from '../api/contracting.api';
 import { SupplierReturnsModal } from './SupplierReturnsModal';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 
 interface ContractingMaterialsTabProps {
   requisitions: ContractingMaterialRequisition[];
@@ -28,12 +29,19 @@ export function ContractingMaterialsTab({
   const totalItemsCount = requisitions.length;
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('هل أنت متأكد من إلغاء إذن صرف المواد هذا؟')) return;
+    const confirmed = await systemConfirm({
+      title: 'إلغاء إذن صرف المواد',
+      message: 'هل أنت متأكد من إلغاء إذن صرف المواد هذا؟',
+      confirmText: 'نعم، قم بالإلغاء',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await contractingApi.deleteMaterialRequisition(id);
+      toast.success('تم إلغاء إذن صرف المواد بنجاح');
       onRequisitionDeleted();
-    } catch (err) {
-      console.error('Failed to delete requisition:', err);
+    } catch (err: any) {
+      toast.error(err?.message || 'فشل إلغاء إذن صرف المواد');
     }
   };
 

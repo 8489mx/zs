@@ -7,6 +7,7 @@ import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { CreateMasterBoqItemModal } from '../components/CreateMasterBoqItemModal';
 import { downloadExcelFile } from '@/lib/browser';
 import { getTextDirection } from '@/lib/arabic-normalization';
+import { systemConfirm } from '@/shared/components/system-alert';
 
 export function ContractingMasterBoqPage() {
   useAppToolbar([
@@ -61,7 +62,13 @@ export function ContractingMasterBoqPage() {
   }, [loadItems]);
 
   const handleDeleteItem = async (id: string, name: string) => {
-    if (!window.confirm(`هل أنت متأكد من حذف البند المرجعي "${name}"؟`)) return;
+    const confirmed = await systemConfirm({
+      title: 'حذف البند المرجعي',
+      message: `هل أنت متأكد من حذف البند المرجعي "${name}"؟`,
+      confirmText: 'نعم، احذف البند',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     setDeletingId(id);
     try {
       await contractingApi.deleteMasterBoqItem(id);

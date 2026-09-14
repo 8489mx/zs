@@ -1,15 +1,19 @@
 import { useState } from 'react';
-import { ContractingSubcontract } from '../contracting.types';
+import { ContractingProject, ContractingSubcontract } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { RetentionLedgerModal } from './RetentionLedgerModal';
 import { PaymentHoldsModal } from './PaymentHoldsModal';
+import { CreateIpcInvoiceModal } from './CreateIpcInvoiceModal';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface ContractingSubcontractsTabProps {
   subcontracts: ContractingSubcontract[];
   loading: boolean;
   projectId?: string;
   projectName?: string;
+  project?: ContractingProject | null;
   onNewSubcontract: () => void;
+  onRefresh?: () => void;
 }
 
 export function ContractingSubcontractsTab({
@@ -17,10 +21,14 @@ export function ContractingSubcontractsTab({
   loading,
   projectId,
   projectName,
+  project,
   onNewSubcontract,
+  onRefresh,
 }: ContractingSubcontractsTabProps) {
+  const { currencySymbol } = useSystemCurrency();
   const [isRetentionModalOpen, setIsRetentionModalOpen] = useState(false);
   const [isPaymentHoldsOpen, setIsPaymentHoldsOpen] = useState(false);
+  const [selectedSubcontractForIpc, setSelectedSubcontractForIpc] = useState<ContractingSubcontract | null>(null);
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -35,6 +43,16 @@ export function ContractingSubcontractsTab({
   };
 
   const totalCommitted = subcontracts.reduce((sum, sc) => sum + Number(sc.totalAmount || 0), 0);
+  const totalInvoiced = subcontracts.reduce((sum, sc) => sum + Number(sc.totalInvoiced || 0), 0);
+  const totalRetention = subcontracts.reduce((sum, sc) => sum + Number(sc.totalRetentionHeld || 0), 0);
+  const totalRemaining = subcontracts.reduce(
+    (sum, sc) =>
+      sum +
+      (sc.remainingCommitment !== undefined
+        ? Number(sc.remainingCommitment)
+        : Math.max(0, Number(sc.totalAmount || 0) - Number(sc.totalInvoiced || 0))),
+    0,
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
@@ -69,7 +87,7 @@ export function ContractingSubcontractsTab({
             }}
           >
             <AppIcons.ShieldCheck size={15} />
-            <span>ضمان الأعمال المحتجز (Retentions)</span>
+            <span>ضمان الأعمال المحتجز ({totalRetention.toLocaleString('ar-EG')} {currencySymbol})</span>
           </button>
 
           {/* حجز الدفعات للملاحظات الفنية */}
@@ -120,8 +138,8 @@ export function ContractingSubcontractsTab({
         </div>
       </div>
 
-      {/* بطاقة إجمالي الالتزامات */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+      {/* بطاقة إجمالي الالتزامات والمؤشرات المالية */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي عقود مقاولي الباطن</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
@@ -129,9 +147,21 @@ export function ContractingSubcontractsTab({
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي قيمة التزامات مقاولي الباطن (Commitments)</div>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي الالتزامات التعاقدية</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
-            {totalCommitted.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {totalCommitted.toLocaleString('ar-EG')} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currencySymbol}</span>
+          </div>
+        </div>
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>المستخلص المنفذ للمقاولين</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>
+            {totalInvoiced.toLocaleString('ar-EG')} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currencySymbol}</span>
+          </div>
+        </div>
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>المتبقي من الالتزامات</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
+            {totalRemaining.toLocaleString('ar-EG')} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currencySymbol}</span>
           </div>
         </div>
       </div>
@@ -177,42 +207,90 @@ export function ContractingSubcontractsTab({
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>رقم أمر التكليف</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>رقم العقد ومقاول الباطن</th>
                   <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>نطاق الأعمال المسندة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>القيمة الإجمالية</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>نسبة ضمان حسن التنفيذ</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>مدة التنفيذ</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>القيمة التعاقدية</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>المستخلص حتى الآن</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>المتبقي من الالتزام</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>ضمان الأعمال</th>
                   <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الحالة</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>إجراءات</th>
                 </tr>
               </thead>
               <tbody>
-                {subcontracts.map((sc) => (
-                  <tr key={sc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
-                      {sc.contractNumber}
-                    </td>
-                    <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', maxWidth: '340px' }}>
-                      <div style={{ fontWeight: 600, color: '#0f172a' }}>{sc.scopeOfWork}</div>
-                      {sc.notes && (
-                        <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px' }}>
-                          {sc.notes}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
-                      {Number(sc.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#475569' }}>
-                      {sc.retentionPercent}%
-                    </td>
-                    <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#475569' }}>
-                      {sc.startDate ? `${sc.startDate} ~ ${sc.endDate || 'مستمر'}` : '—'}
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>
-                      {getStatusBadge(sc.status)}
-                    </td>
-                  </tr>
-                ))}
+                {subcontracts.map((sc) => {
+                  const remaining =
+                    sc.remainingCommitment !== undefined
+                      ? Number(sc.remainingCommitment)
+                      : Math.max(0, Number(sc.totalAmount || 0) - Number(sc.totalInvoiced || 0));
+                  return (
+                    <tr key={sc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
+                        <div>{sc.contractNumber}</div>
+                        {sc.subcontractorName && (
+                          <div style={{ fontSize: 'var(--font-micro)', color: '#2563eb', fontWeight: 600 }}>
+                            {sc.subcontractorName}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', maxWidth: '280px' }}>
+                        <div style={{ fontWeight: 600, color: '#0f172a' }}>{sc.scopeOfWork}</div>
+                        {sc.notes && (
+                          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px' }}>
+                            {sc.notes}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
+                        {Number(sc.totalAmount).toLocaleString('ar-EG')} {currencySymbol}
+                      </td>
+                      <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#2563eb' }}>
+                        {Number(sc.totalInvoiced || 0).toLocaleString('ar-EG')} {currencySymbol}
+                      </td>
+                      <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 700, color: remaining > 0 ? '#15803d' : '#64748b' }}>
+                        {remaining.toLocaleString('ar-EG')} {currencySymbol}
+                      </td>
+                      <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#a16207', fontWeight: 600 }}>
+                        {sc.retentionPercent}%
+                        {Number(sc.totalRetentionHeld || 0) > 0 && (
+                          <div style={{ fontSize: 'var(--font-micro)', color: '#b45309' }}>
+                            ({Number(sc.totalRetentionHeld).toLocaleString('ar-EG')})
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px' }}>
+                        {getStatusBadge(sc.status)}
+                      </td>
+                      <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                        {project ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedSubcontractForIpc(sc)}
+                            style={{
+                              height: '28px',
+                              padding: '0 10px',
+                              borderRadius: '6px',
+                              fontSize: 'var(--font-badge)',
+                              fontWeight: 600,
+                              background: '#170e5e',
+                              color: '#ffffff',
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <AppIcons.Receipt size={13} />
+                            <span>مستخلص باطن</span>
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 'var(--font-micro)', color: '#94a3b8' }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -236,6 +314,21 @@ export function ContractingSubcontractsTab({
           onClose={() => setIsPaymentHoldsOpen(false)}
           projectId={projectId}
           projectName={projectName}
+        />
+      )}
+
+      {/* مودال إصدار مستخلص لمقاول الباطن */}
+      {selectedSubcontractForIpc && project && (
+        <CreateIpcInvoiceModal
+          open={Boolean(selectedSubcontractForIpc)}
+          project={project}
+          initialIpcType="subcontractor"
+          initialSubcontractId={selectedSubcontractForIpc.id}
+          onClose={() => setSelectedSubcontractForIpc(null)}
+          onCreated={() => {
+            setSelectedSubcontractForIpc(null);
+            onRefresh?.();
+          }}
         />
       )}
     </div>

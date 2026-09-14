@@ -1012,6 +1012,7 @@ export const AppIcons = {
   Coins: DollarSignIcon,
   Truck: TruckIcon,
   HelpCircle: HelpCircleIcon,
+  BarChart: BarChartIcon,
 };
 
 export default AppIcons;

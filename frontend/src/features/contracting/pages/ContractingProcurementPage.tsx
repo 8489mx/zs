@@ -178,7 +178,9 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
             loading={subcontractsLoading}
             projectId={effectiveProjectId || undefined}
             projectName={effectiveProject?.name}
+            project={effectiveProject}
             onNewSubcontract={handleOpenNewSubcontract}
+            onRefresh={loadSubcontracts}
           />
 
           {effectiveProjectId && (

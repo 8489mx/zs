@@ -485,3 +485,96 @@ export interface ContractingItemProfitability {
   isProfitable: boolean;
 }
 
+// 8. Work Inspection Requests (WIR)
+export interface ContractingInspectionRequest {
+  id: string;
+  projectId: string;
+  wirNumber: string;
+  boqItemId?: string | null;
+  boqItemCode?: string | null;
+  boqItemDescription?: string | null;
+  subcontractId?: string | null;
+  subcontractNumber?: string | null;
+  locationGrid: string;
+  tradeCategory: string;
+  inspectionType: string;
+  scheduledDate: string;
+  status: 'submitted' | 'approved' | 'approved_with_notes' | 'rejected';
+  consultantName?: string | null;
+  consultantNotes?: string | null;
+  inspectedAt?: string | null;
+  attachments?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 9. Snag Items & Punch List
+export interface ContractingSnagItem {
+  id: string;
+  projectId: string;
+  boqItemId?: string | null;
+  boqItemCode?: string | null;
+  itemTitle: string;
+  locationDesc: string;
+  severity: 'minor' | 'major' | 'critical';
+  responsibleParty: 'internal' | 'subcontractor';
+  subcontractorId?: number | null;
+  subcontractorName?: string | null;
+  subcontractId?: string | null;
+  assignedTo?: string | null;
+  dueDate?: string | null;
+  status: 'open' | 'rectified' | 'verified_closed';
+  rectifiedDate?: string | null;
+  verifiedBy?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 10. Project Handovers & Guarantee Releases
+export interface ContractingProjectHandover {
+  id: string;
+  projectId: string;
+  handoverType: 'preliminary' | 'final';
+  handoverDate: string;
+  committeeMembers: string;
+  warrantyStartDate?: string | null;
+  warrantyEndDate?: string | null;
+  retentionReleaseAmount: number;
+  status: 'draft' | 'approved';
+  certificateRef?: string | null;
+  notes?: string | null;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 11. Comprehensive Actual Cost Breakdown
+export interface ContractingProjectCostBreakdown {
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  contractValue: number;
+  revisedContractValue: number;
+  costBaseline: number;
+  totalBilledClient: number;
+  materialsCost: number;
+  laborCost: number;
+  subcontractsCost: number;
+  mobilizationCost: number;
+  pettyCashCost: number;
+  totalActualCost: number;
+  costVariance: number;
+  actualGrossProfit: number;
+  actualProfitMarginPercent: number;
+  costDistribution: {
+    materialsPercent: number;
+    laborPercent: number;
+    subcontractsPercent: number;
+    mobilizationPercent: number;
+    pettyCashPercent: number;
+  };
+}
+
+

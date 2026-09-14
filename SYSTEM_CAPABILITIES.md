@@ -3886,3 +3886,41 @@
      - استخراج تواريخ الإبحار والوصول والـ Cut-Off وتحويلها إلى التنسيق القياسي (ISO)، واستخراج أرقام الحاويات ISO 6346 وإدراجها كحاويات مخصصة للشحنة مباشرة.
   3. **الحوكمة البشرية والمراجعة السريعة (Human-in-the-Loop):**
      - معاينة بصرية للمعلومات المستخرجة قبل الاعتماد النهائي لمنع أي التباس وضمان دقة السجلات الملاحية.
+
+---
+
+### 119. إغلاق الثغرات التشغيلية والمالية لموديول المقاولات وإدارة المشاريع (Construction Lifecycle Loophole Closure & Real-world Workflows)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% (Production Ready) ومطابق لمعايير Z-Systems البصرية و 0 Emojis وحظر النوافذ والتنبيهات البدائية.
+* **مسارات وملفات التنفيذ الأساسية:**
+  - `backend/src/database/migrations/2040000000087_contracting_wir_and_handover_workflows.ts`: إنشاء جداول ضبط الجودة والفحص `contracting_inspection_requests`، قائمة الملاحظات والتسليمات `contracting_snag_items`، ومحاضر الاستلام `contracting_project_handovers`، وتوسيع جدول الفواتير `contracting_invoices` بحقل `subcontract_id`.
+  - `backend/src/database/database.types.ts`: إضافة الواجهات الصارمة لجداول الفحص والملاحظات والاستلام وتوسيع جدول مستخلصات وفواتير المقاولات.
+  - `backend/src/modules/contracting/contracting.types.ts`: تعريف النماذج البرمجية لـ `ContractingInspectionRequest`, `ContractingSnagItem`, `ContractingProjectHandover`, و `ContractingProjectCostBreakdown`.
+  - `backend/src/modules/contracting/dto/contracting.dto.ts`: إضافة الـ DTOs للتحقق من طلبات الفحص وتحديث حالتها، قائمة الملاحظات وإغلاق العيوب، ومحاضر الاستلام الابتدائي والنهائي، وتحديث `CreateIpcInvoiceDto` لدعم عقود مقاولي الباطن.
+  - `backend/src/modules/contracting/contracting.service.ts`:
+    - إضافة وتوجيه القيود المحاسبية المزدوجة لمستخلصات مقاولي الباطن (Subcontractor IPCs) لتسجيل الالتزام بحساب الموردين/المقاولين (AP) وخصم تأمين الأعمال المحتجز (Retention Payable) بدلاً من توجيه الإيراد.
+    - دعم حصر ومتابعة التزامات عقود الباطن، المفوتر منها، والمتبقي بدقة متناهية.
+    - إضافة محرك التحليل الخماسي للتكاليف الفعلية للمشروع (`getProjectCostBreakdown`) شاملاً: المواد والخامات، العمالة الذاتية، مقاولي الباطن، المعدات والتجهيز، والعهد والمصروفات النثرية ومقارنتها بالميزانية التقديرية وانحرافات التكلفة.
+    - إدارة دورة طلبات استلام الأعمال WIR (تقديم الطلب، المراجعة الاستشارية، المعاينة، الملاحظات والاعتماد).
+    - إدارة دورة عيوب وملاحظات التسليم Punch List (تسجيل العيب، الأولوية، تحديد المسؤول، الإصلاح، وإغلاق الملاحظة).
+    - إدارة محاضر الاستلام الابتدائي والنهائي وإطلاق نسب محجوز الضمان (Release 50% / 100% Retention).
+  - `backend/src/modules/contracting/contracting.controller.ts`: إضافة نقاط النهاية السحابية لـ WIR (نقطة 30)، Punch List (نقطة 31)، محاضر الاستلام (نقطة 32)، والتحليل الخماسي للتكاليف (نقطة 29).
+  - `frontend/src/features/contracting/contracting.types.ts` & `contracting.api.ts`: مواءمة واجهات البيانات ودوال استدعاء الـ API الكاملة.
+  - `frontend/src/features/contracting/components/CreateIpcInvoiceModal.tsx`: دعم مستخلص مقاول الباطن التفاعلي، واختيار عقد الباطن، وعرض بطاقة الموقف المالي للعقد وقيمة المتبقي ونسبة وتأمين الأعمال تلقائياً.
+  - `frontend/src/features/contracting/components/ContractingSubcontractsTab.tsx`: بطاقات KPI مالية لإجمالي التزامات الباطن والمنجز والمتبقي، وزر إصدار مستخلص باطن مباشر لكل عقد بنقرة واحدة.
+  - `frontend/src/features/contracting/components/WorkInspectionModal.tsx`: نافذة موحدة `StandardDialog` لطلبات فحص واستلام الأعمال WIR ومتابعة توقيعات الاستشاري قبل صب الخرسانات أو اعتماد البنود.
+  - `frontend/src/features/contracting/components/SnagListModal.tsx`: نافذة موحدة لإدارة قائمة الملاحظات وعيوب المصنعية وتتبع المعالجة الميدانية.
+  - `frontend/src/features/contracting/components/ProjectHandoverModal.tsx`: نافذة محاضر الاستلام الابتدائي والنهائي وإطلاق محجوز الضمان وفترة الضمان العشري/التشغيلي.
+  - `frontend/src/features/contracting/components/ProjectCostBreakdownModal.tsx`: نافذة تفصيلية للتحليل الخماسي للتكاليف التشغيلية للمشروع ومؤشرات أداء التكلفة الفورية.
+  - `frontend/src/features/contracting/pages/ContractingFieldPage.tsx` & `ContractingFinancialsPage.tsx`: دمج أزرار الإجراءات السريعة ومودالات العمل الميداني والمالي في شريط الأدوات الرئيسي.
+  - تطهير موديول المقاولات بالكامل من النوافذ البدائية (`window.alert`, `window.confirm`) واستبدالها حصرياً بـ `toast` و `systemConfirm` القياسية.
+* **القدرات التشغيلية المعتمدة:**
+  1. **إغلاق حلقة مقاولي الباطن (Subcontractor IPC Lifecycle):**
+     - تمكين مقاولي الباطن من تقديم مستخلصات دورية، مع احتجاز نسب تأمين الأعمال آلياً، والترحيل المحاسبي الدقيق لحسابات الدائنين والتزامات العقود دون أي تداخل مع إيرادات العميل.
+  2. **حوكمة الاستلامات الهندسية وضبط الجودة (WIR QA/QC Protocol):**
+     - رقمنة طلبات استلام الأعمال لمهندس الموقع والاستشاري وفق المعايير الإنشائية المعتمدة قبل السماح بالمراحل التالية (مثل استلام حديد التسليح قبل الصب).
+  3. **إدارة عيوب المصنعية والتسليم (Snag / Punch List Management):**
+     - رصد وحصر الملاحظات المعمارية والإنشائية، وتصنيف درجة خطورتها، وتوجيهها للمقاول أو الفرقة المسؤولة مع توثيق تاريخ الإصلاح وإغلاق الملاحظة قبل التسليم.
+  4. **بروتوكول الاستلام الابتدائي والنهائي وإطلاق الضمانات (Handover Protocol & Retention Release):**
+     - توثيق محاضر لجان الاستلام الابتدائي وبدء فترة الصيانة التعاقدية، وتسهيل إجراءات الاستلام النهائي والإفراج التدريجي عن محجوز الضمان (Release Retention).
+  5. **التحليل الخماسي المباشر للتكاليف (5-Stream Cost Breakdown vs Baseline):**
+     - لوحة رقابية مالية تجمع التكاليف الفعلية المقيدة من 5 مصادر تشغيلية (الخامات والمشتريات + العمالة والمصنعيات + مقاولي الباطن + المعدات وتكاليف الموقع + العهد النثرية) ومقارنتها بالقيمة التعاقدية للمشروع لبيان هامش الربح والانحرافات بدقة.

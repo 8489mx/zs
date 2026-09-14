@@ -3395,6 +3395,7 @@ export interface ContractingInvoiceTable {
   project_id: string;
   ipc_number: string;
   ipc_type: ColumnType<'client' | 'subcontractor', string | undefined, string | undefined>;
+  subcontract_id: string | null;
   subcontractor_id: number | null;
   subcontractor_name: string;
   sequence_order: number;

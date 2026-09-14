@@ -18,6 +18,7 @@ import { ClientMilestonesModal } from './ClientMilestonesModal';
 import { EquipmentTrackingModal } from './EquipmentTrackingModal';
 import { SuppliersDirectoryModal } from './SuppliersDirectoryModal';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
+import { systemConfirm } from '@/shared/components/system-alert';
 
 interface ContractingBoqTabProps {
   items: ContractingBoqItem[];
@@ -111,7 +112,13 @@ export function ContractingBoqTab({
   const overallProgress = totalContractValue > 0 ? (executedValue / totalContractValue) * 100 : 0;
 
   const handleDeleteItem = async (id: string, code: string, desc: string) => {
-    if (!confirm(`هل أنت متأكد من حذف البند [${code}] "${desc.slice(0, 35)}..." نهائياً من المقايسة؟`)) {
+    const confirmed = await systemConfirm({
+      title: 'حذف بند المقايسة',
+      message: `هل أنت متأكد من حذف البند [${code}] "${desc.slice(0, 35)}..." نهائياً من المقايسة؟`,
+      confirmText: 'نعم، احذف البند',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
     setDeletingId(id);

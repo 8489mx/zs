@@ -273,6 +273,10 @@ export class CreateIpcInvoiceDto {
   @IsOptional()
   subcontractorName?: string;
 
+  @IsString()
+  @IsOptional()
+  subcontractId?: string;
+
   @IsInt()
   @Min(1)
   @IsOptional()
@@ -1308,4 +1312,171 @@ export class RecordSupplierPriceMemoryDto {
   @IsOptional()
   notes?: string;
 }
+
+// 7. Work Inspection Requests (WIR) DTOs
+export class CreateInspectionRequestDto {
+  @IsString()
+  @IsOptional()
+  wirNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  boqItemId?: string;
+
+  @IsString()
+  @IsOptional()
+  subcontractId?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  locationGrid!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  tradeCategory!: string;
+
+  @IsString()
+  @IsOptional()
+  inspectionType?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  scheduledDate!: string;
+
+  @IsString()
+  @IsOptional()
+  consultantName?: string;
+
+  @IsString()
+  @IsOptional()
+  consultantNotes?: string;
+
+  @IsString()
+  @IsOptional()
+  attachments?: string;
+}
+
+export class UpdateInspectionRequestStatusDto {
+  @IsString()
+  @IsIn(['submitted', 'approved', 'approved_with_notes', 'rejected'])
+  status!: 'submitted' | 'approved' | 'approved_with_notes' | 'rejected';
+
+  @IsString()
+  @IsOptional()
+  consultantName?: string;
+
+  @IsString()
+  @IsOptional()
+  consultantNotes?: string;
+}
+
+// 8. Snag Items & Punch List DTOs
+export class CreateSnagItemDto {
+  @IsString()
+  @IsOptional()
+  boqItemId?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  itemTitle!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  locationDesc!: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['minor', 'major', 'critical'])
+  severity?: 'minor' | 'major' | 'critical';
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['internal', 'subcontractor'])
+  responsibleParty?: 'internal' | 'subcontractor';
+
+  @IsNumber()
+  @IsOptional()
+  subcontractorId?: number;
+
+  @IsString()
+  @IsOptional()
+  subcontractId?: string;
+
+  @IsString()
+  @IsOptional()
+  assignedTo?: string;
+
+  @IsString()
+  @IsOptional()
+  dueDate?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class UpdateSnagItemStatusDto {
+  @IsString()
+  @IsIn(['open', 'rectified', 'verified_closed'])
+  status!: 'open' | 'rectified' | 'verified_closed';
+
+  @IsString()
+  @IsOptional()
+  rectifiedDate?: string;
+
+  @IsString()
+  @IsOptional()
+  verifiedBy?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+// 9. Project Handover DTOs
+export class CreateProjectHandoverDto {
+  @IsString()
+  @IsIn(['preliminary', 'final'])
+  handoverType!: 'preliminary' | 'final';
+
+  @IsString()
+  @IsNotEmpty()
+  handoverDate!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  committeeMembers!: string;
+
+  @IsString()
+  @IsOptional()
+  warrantyStartDate?: string;
+
+  @IsString()
+  @IsOptional()
+  warrantyEndDate?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  retentionReleaseAmount?: number;
+
+  @IsString()
+  @IsOptional()
+  certificateRef?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class ApproveProjectHandoverDto {
+  @IsString()
+  @IsOptional()
+  approvedBy?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
 

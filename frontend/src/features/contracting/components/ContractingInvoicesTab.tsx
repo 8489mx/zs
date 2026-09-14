@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ContractingInvoice, ContractingProject } from '../contracting.types';
 import { contractingApi } from '../api/contracting.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 
 interface ContractingInvoicesTabProps {
   invoices: ContractingInvoice[];
@@ -28,26 +29,40 @@ export function ContractingInvoicesTab({
   const [postingJournalId, setPostingJournalId] = useState<string | null>(null);
 
   const handleApprove = async (id: string) => {
-    if (!confirm('هل أنت متأكد من رغبتك في اعتماد هذا المستخلص رسمياً؟')) return;
+    const confirmed = await systemConfirm({
+      title: 'اعتماد المستخلص الجاري',
+      message: 'هل أنت متأكد من رغبتك في اعتماد هذا المستخلص رسمياً؟ سيتم تثبيت الأرقام وإتاحة ترحيل القيد.',
+      confirmText: 'نعم، اعتمد المستخلص',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
     setApprovingId(id);
     try {
       await contractingApi.approveInvoice(id);
+      toast.success('تم اعتماد المستخلص رسمياً بنجاح');
       onRefresh();
     } catch (err: any) {
-      alert(err?.message || 'فشل اعتماد المستخلص');
+      toast.error(err?.message || 'فشل اعتماد المستخلص');
     } finally {
       setApprovingId(null);
     }
   };
 
   const handlePostJournal = async (id: string) => {
+    const confirmed = await systemConfirm({
+      title: 'ترحيل القيد المحاسبي',
+      message: 'هل أنت متأكد من ترحيل القيد المحاسبي للمستخلص إلى دفتر الأستاذ العام؟',
+      confirmText: 'ترحيل القيد المحاسبي',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
     setPostingJournalId(id);
     try {
       const res = await contractingApi.postInvoiceJournal(id);
-      alert(res.message || 'تم ترحيل القيد المحاسبي لدفتر الأستاذ العام بنجاح');
+      toast.success(res.message || 'تم ترحيل القيد المحاسبي لدفتر الأستاذ العام بنجاح');
       onRefresh();
     } catch (err: any) {
-      alert(err?.message || 'فشل ترحيل القيد المحاسبي');
+      toast.error(err?.message || 'فشل ترحيل القيد المحاسبي');
     } finally {
       setPostingJournalId(null);
     }
@@ -253,6 +268,11 @@ export function ContractingInvoicesTab({
                   <tr key={inv.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
                       {inv.ipcNumber}
+                      {inv.ipcType === 'subcontractor' && inv.subcontractorName && (
+                        <span style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#2563eb', fontWeight: 600 }}>
+                          مقاول: {inv.subcontractorName}
+                        </span>
+                      )}
                       {inv.notes?.includes('ختامي') && (
                         <span style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#b91c1c' }}>
                           مستخلص ختامي

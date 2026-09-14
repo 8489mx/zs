@@ -44,8 +44,20 @@ import {
   CreateEquipmentAssetDto,
   TransferEquipmentAssetDto,
   RecordSupplierPriceMemoryDto,
+  CreateInspectionRequestDto,
+  UpdateInspectionRequestStatusDto,
+  CreateSnagItemDto,
+  UpdateSnagItemStatusDto,
+  CreateProjectHandoverDto,
+  ApproveProjectHandoverDto,
 } from './dto/contracting.dto';
-import { ContractingProjectSummary } from './contracting.types';
+import {
+  ContractingProjectSummary,
+  ContractingInspectionRequest,
+  ContractingSnagItem,
+  ContractingProjectHandover,
+  ContractingProjectCostBreakdown,
+} from './contracting.types';
 
 @Injectable()
 export class ContractingService {
@@ -743,6 +755,34 @@ export class ContractingService {
 
     const netPayable = Math.max(0, workThisPeriod - advanceRecoveryAmount - retentionHeldAmount - otherDeductions);
 
+    let subId = dto.subcontractorId ? Number(dto.subcontractorId) : null;
+    let subName = dto.subcontractorName || '';
+    const subcontractId = dto.subcontractId ? Number(dto.subcontractId) : null;
+
+    if (subcontractId && !subId) {
+      const subc = await this.db
+        .selectFrom('contracting_subcontracts')
+        .select(['subcontractor_id'])
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', subcontractId as any)
+        .executeTakeFirst();
+      if (subc) {
+        subId = Number(subc.subcontractor_id);
+      }
+    }
+
+    if (subId && !subName) {
+      const sup = await (this.db as any)
+        .selectFrom('suppliers')
+        .select('name')
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', subId)
+        .executeTakeFirst();
+      if (sup) {
+        subName = sup.name;
+      }
+    }
+
     // Insert Invoice Header
     const [invoice] = await this.db
       .insertInto('contracting_invoices')
@@ -751,8 +791,9 @@ export class ContractingService {
         project_id: projectId as any,
         ipc_number: ipcNumber,
         ipc_type: ipcType,
-        subcontractor_id: dto.subcontractorId ? Number(dto.subcontractorId) : null,
-        subcontractor_name: dto.subcontractorName || '',
+        subcontractor_id: subId,
+        subcontractor_name: subName,
+        subcontract_id: subcontractId as any,
         sequence_order: seq,
         period_start: dto.periodStart || null,
         period_end: dto.periodEnd || null,
@@ -920,73 +961,144 @@ export class ContractingService {
       throw new BadRequestException('لا يمكن إنشاء قيد محاسبي لمستخلص بقيمة صفرية');
     }
 
-    // Resolve accounts
-    // 1. Accounts Receivable (Clients)
-    let arAccount = await (this.db as any)
-      .selectFrom('accounting_accounts')
-      .select('id')
-      .where('tenant_id', '=', tenantId)
-      .where('code', '=', '1130')
-      .where('is_active', '=', true)
-      .executeTakeFirst();
-    if (!arAccount) {
-      arAccount = await (this.db as any)
+    const isSubcontractor = invoice.ipc_type === 'subcontractor';
+
+    // Resolve accounts based on invoice type
+    let primaryAccountId: number | null = null;
+    let contraAccountId: number | null = null;
+    let advanceAccountId: number | null = null;
+    let retentionAccountId: number | null = null;
+
+    if (isSubcontractor) {
+      // 1. Subcontracting Cost / Work in Progress (Expense)
+      let expAccount = await (this.db as any)
         .selectFrom('accounting_accounts')
         .select('id')
         .where('tenant_id', '=', tenantId)
-        .where('account_type', '=', 'asset')
-        .where('is_receivable', '=', true)
+        .where('code', 'in', ['5100', '5200', '5000', '5120'])
         .where('is_active', '=', true)
+        .orderBy('code', 'asc')
         .executeTakeFirst();
-    }
+      if (!expAccount) {
+        expAccount = await (this.db as any)
+          .selectFrom('accounting_accounts')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('account_type', '=', 'expense')
+          .where('is_active', '=', true)
+          .executeTakeFirst();
+      }
 
-    // 2. Contracting Revenue
-    let revAccount = await (this.db as any)
-      .selectFrom('accounting_accounts')
-      .select('id')
-      .where('tenant_id', '=', tenantId)
-      .where('code', 'in', ['4200', '4100', '4000'])
-      .where('is_active', '=', true)
-      .orderBy('code', 'asc')
-      .executeTakeFirst();
-
-    // 3. Advances from customers
-    let advanceAccount = await (this.db as any)
-      .selectFrom('accounting_accounts')
-      .select('id')
-      .where('tenant_id', '=', tenantId)
-      .where('code', '=', '2150')
-      .where('is_active', '=', true)
-      .executeTakeFirst();
-    if (!advanceAccount) {
-      advanceAccount = await (this.db as any)
+      // 2. Accounts Payable (Suppliers / Subcontractors)
+      let apAccount = await (this.db as any)
         .selectFrom('accounting_accounts')
         .select('id')
         .where('tenant_id', '=', tenantId)
-        .where('code', '=', '2100')
+        .where('code', '=', '2110')
         .where('is_active', '=', true)
         .executeTakeFirst();
-    }
+      if (!apAccount) {
+        apAccount = await (this.db as any)
+          .selectFrom('accounting_accounts')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('account_type', '=', 'liability')
+          .where('is_payable', '=', true)
+          .where('is_active', '=', true)
+          .executeTakeFirst();
+      }
 
-    // 4. Retentions Receivable
-    let retentionAccount = await (this.db as any)
-      .selectFrom('accounting_accounts')
-      .select('id')
-      .where('tenant_id', '=', tenantId)
-      .where('code', 'in', ['1135', '1180', '1160'])
-      .where('is_active', '=', true)
-      .executeTakeFirst();
-    if (!retentionAccount) {
-      retentionAccount = arAccount; // fallback to main receivable
-    }
+      // 3. Subcontractor Retentions Payable (Liability)
+      let subRetAccount = await (this.db as any)
+        .selectFrom('accounting_accounts')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('code', 'in', ['2160', '2180', '2135'])
+        .where('is_active', '=', true)
+        .executeTakeFirst();
 
-    const arAccountId = arAccount?.id ? Number(arAccount.id) : null;
-    const revAccountId = revAccount?.id ? Number(revAccount.id) : null;
-    const advAccountId = advanceAccount?.id ? Number(advanceAccount.id) : arAccountId;
-    const retAccountId = retentionAccount?.id ? Number(retentionAccount.id) : arAccountId;
+      // 4. Advances to Subcontractors (Asset Recovery)
+      let subAdvAccount = await (this.db as any)
+        .selectFrom('accounting_accounts')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('code', 'in', ['1150', '1140', '1180'])
+        .where('is_active', '=', true)
+        .executeTakeFirst();
 
-    if (!arAccountId || !revAccountId) {
-      throw new BadRequestException('تعذر تحديد الحسابات المحاسبية الأساسية (العملاء أو الإيرادات) في شجرة الحسابات');
+      primaryAccountId = expAccount?.id ? Number(expAccount.id) : null;
+      contraAccountId = apAccount?.id ? Number(apAccount.id) : null;
+      retentionAccountId = subRetAccount?.id ? Number(subRetAccount.id) : contraAccountId;
+      advanceAccountId = subAdvAccount?.id ? Number(subAdvAccount.id) : contraAccountId;
+
+      if (!primaryAccountId || !contraAccountId) {
+        throw new BadRequestException('تعذر تحديد حسابات المصروفات أو مقاولي الباطن في شجرة الحسابات');
+      }
+    } else {
+      // 1. Accounts Receivable (Clients)
+      let arAccount = await (this.db as any)
+        .selectFrom('accounting_accounts')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('code', '=', '1130')
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+      if (!arAccount) {
+        arAccount = await (this.db as any)
+          .selectFrom('accounting_accounts')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('account_type', '=', 'asset')
+          .where('is_receivable', '=', true)
+          .where('is_active', '=', true)
+          .executeTakeFirst();
+      }
+
+      // 2. Contracting Revenue
+      let revAccount = await (this.db as any)
+        .selectFrom('accounting_accounts')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('code', 'in', ['4200', '4100', '4000'])
+        .where('is_active', '=', true)
+        .orderBy('code', 'asc')
+        .executeTakeFirst();
+
+      // 3. Advances from customers
+      let advanceAccount = await (this.db as any)
+        .selectFrom('accounting_accounts')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('code', '=', '2150')
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+      if (!advanceAccount) {
+        advanceAccount = await (this.db as any)
+          .selectFrom('accounting_accounts')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('code', '=', '2100')
+          .where('is_active', '=', true)
+          .executeTakeFirst();
+      }
+
+      // 4. Retentions Receivable
+      let retentionAccount = await (this.db as any)
+        .selectFrom('accounting_accounts')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('code', 'in', ['1135', '1180', '1160'])
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+
+      primaryAccountId = revAccount?.id ? Number(revAccount.id) : null;
+      contraAccountId = arAccount?.id ? Number(arAccount.id) : null;
+      advanceAccountId = advanceAccount?.id ? Number(advanceAccount.id) : contraAccountId;
+      retentionAccountId = retentionAccount?.id ? Number(retentionAccount.id) : contraAccountId;
+
+      if (!primaryAccountId || !contraAccountId) {
+        throw new BadRequestException('تعذر تحديد الحسابات المحاسبية الأساسية (العملاء أو الإيرادات) في شجرة الحسابات');
+      }
     }
 
     // Sequence & entry number
@@ -996,9 +1108,14 @@ export class ContractingService {
       .where('tenant_id', '=', tenantId)
       .executeTakeFirst();
     const sequence = Number(seqRow?.count || 0) + 1;
-    const entryNo = `JE-IPC-${String(sequence).padStart(5, '0')}`;
+    const prefix = isSubcontractor ? 'JE-SUB' : 'JE-IPC';
+    const entryNo = `${prefix}-${String(sequence).padStart(5, '0')}`;
 
     const inserted = await this.db.transaction().execute(async (trx: any) => {
+      const description = isSubcontractor
+        ? `إثبات مستخلص مقاول باطن رقم ${invoice.ipc_number} - ${invoice.subcontractor_name || 'مقاول باطن'} - مشروع ${project.name}`
+        : `إثبات استحقاق مستخلص أعمال رقم ${invoice.ipc_number} - مشروع ${project.name}`;
+
       // 1. Create header
       const [entry] = await trx
         .insertInto('journal_entries')
@@ -1007,8 +1124,8 @@ export class ContractingService {
           tenant_id: tenantId,
           account_id: accountId,
           entry_date: invoice.period_end || new Date(),
-          description: `إثبات استحقاق مستخلص أعمال رقم ${invoice.ipc_number} - مشروع ${project.name}`,
-          source_type: 'contracting_ipc',
+          description,
+          source_type: isSubcontractor ? 'contracting_subcontract_ipc' : 'contracting_ipc',
           source_id: Number(invoice.id),
           status: 'posted',
           created_by: auth.userId,
@@ -1018,77 +1135,182 @@ export class ContractingService {
 
       const lines: any[] = [];
 
-      // Line 1: Credit Contracting Revenue
-      lines.push({
-        journal_entry_id: Number(entry.id),
-        tenant_id: tenantId,
-        account_id: revAccountId,
-        cost_center_id: project.cost_center_id || null,
-        description: `إيرادات أعمال وتشوينات مستخلص ${invoice.ipc_number}`,
-        debit: 0,
-        credit: currentWorkAndStored,
-        partner_type: 'customer',
-        partner_id: project.client_id || null,
-      });
-
-      // Line 2: Debit Customer Advances (Recovery)
-      if (advanceRecovery > 0) {
+      if (isSubcontractor) {
+        // Subcontractor Journal Entry:
+        // Line 1: Debit Subcontracting Expense (WIP)
         lines.push({
           journal_entry_id: Number(entry.id),
           tenant_id: tenantId,
-          account_id: advAccountId,
+          account_id: primaryAccountId,
           cost_center_id: project.cost_center_id || null,
-          description: `استرداد دفعة مقدمة مستخلص ${invoice.ipc_number}`,
-          debit: advanceRecovery,
+          description: `أعمال وتشوينات مستخلص مقاول باطن ${invoice.ipc_number}`,
+          debit: currentWorkAndStored,
           credit: 0,
-          partner_type: 'customer',
-          partner_id: project.client_id || null,
+          partner_type: 'supplier',
+          partner_id: invoice.subcontractor_id || null,
         });
-      }
 
-      // Line 3: Debit Retentions Held (Asset)
-      if (retentionHeld > 0) {
+        // Line 2: Credit Advance Recovery
+        if (advanceRecovery > 0) {
+          lines.push({
+            journal_entry_id: Number(entry.id),
+            tenant_id: tenantId,
+            account_id: advanceAccountId,
+            cost_center_id: project.cost_center_id || null,
+            description: `استرداد دفعة مقدمة مقاول باطن ${invoice.ipc_number}`,
+            debit: 0,
+            credit: advanceRecovery,
+            partner_type: 'supplier',
+            partner_id: invoice.subcontractor_id || null,
+          });
+        }
+
+        // Line 3: Credit Retention Held (Liability to subcontractor)
+        if (retentionHeld > 0) {
+          lines.push({
+            journal_entry_id: Number(entry.id),
+            tenant_id: tenantId,
+            account_id: retentionAccountId,
+            cost_center_id: project.cost_center_id || null,
+            description: `تأمين أعمال محتجز (حسن تنفيذ) لمقاول الباطن ${invoice.ipc_number}`,
+            debit: 0,
+            credit: retentionHeld,
+            partner_type: 'supplier',
+            partner_id: invoice.subcontractor_id || null,
+          });
+
+          // Auto-insert into retention ledger
+          await trx.insertInto('contracting_retention_records').values({
+            tenant_id: tenantId,
+            project_id: invoice.project_id,
+            guarantee_type: 'subcontractor',
+            party_name: invoice.subcontractor_name || 'مقاول باطن',
+            reference_number: invoice.ipc_number,
+            held_amount: retentionHeld,
+            released_amount: 0,
+            due_date: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
+            status: 'held',
+            notes: `استقطاع ضمان حسن تنفيذ لمقاول الباطن من مستخلص ${invoice.ipc_number}`,
+          }).execute();
+        }
+
+        // Line 4: Credit Other Deductions
+        if (otherDeductions > 0) {
+          lines.push({
+            journal_entry_id: Number(entry.id),
+            tenant_id: tenantId,
+            account_id: primaryAccountId,
+            cost_center_id: project.cost_center_id || null,
+            description: `استقطاعات وجزاءات مستخلص مقاول باطن ${invoice.ipc_number}`,
+            debit: 0,
+            credit: otherDeductions,
+            partner_type: 'supplier',
+            partner_id: invoice.subcontractor_id || null,
+          });
+        }
+
+        // Line 5: Credit Accounts Payable (Net Payable to Subcontractor)
+        if (netPayable > 0) {
+          lines.push({
+            journal_entry_id: Number(entry.id),
+            tenant_id: tenantId,
+            account_id: contraAccountId,
+            cost_center_id: project.cost_center_id || null,
+            description: `صافي المستحق لمقاول الباطن مستخلص ${invoice.ipc_number}`,
+            debit: 0,
+            credit: netPayable,
+            partner_type: 'supplier',
+            partner_id: invoice.subcontractor_id || null,
+          });
+        }
+      } else {
+        // Client Journal Entry:
+        // Line 1: Credit Contracting Revenue
         lines.push({
           journal_entry_id: Number(entry.id),
           tenant_id: tenantId,
-          account_id: retAccountId,
+          account_id: primaryAccountId,
           cost_center_id: project.cost_center_id || null,
-          description: `تأمين أعمال محتجز (حسن تنفيذ) مستخلص ${invoice.ipc_number}`,
-          debit: retentionHeld,
-          credit: 0,
+          description: `إيرادات أعمال وتشوينات مستخلص ${invoice.ipc_number}`,
+          debit: 0,
+          credit: currentWorkAndStored,
           partner_type: 'customer',
           partner_id: project.client_id || null,
         });
-      }
 
-      // Line 4: Debit Other Deductions
-      if (otherDeductions > 0) {
-        lines.push({
-          journal_entry_id: Number(entry.id),
-          tenant_id: tenantId,
-          account_id: arAccountId,
-          cost_center_id: project.cost_center_id || null,
-          description: `استقطاعات وجزاءات مستخلص ${invoice.ipc_number}`,
-          debit: otherDeductions,
-          credit: 0,
-          partner_type: 'customer',
-          partner_id: project.client_id || null,
-        });
-      }
+        // Line 2: Debit Customer Advances (Recovery)
+        if (advanceRecovery > 0) {
+          lines.push({
+            journal_entry_id: Number(entry.id),
+            tenant_id: tenantId,
+            account_id: advanceAccountId,
+            cost_center_id: project.cost_center_id || null,
+            description: `استرداد دفعة مقدمة مستخلص ${invoice.ipc_number}`,
+            debit: advanceRecovery,
+            credit: 0,
+            partner_type: 'customer',
+            partner_id: project.client_id || null,
+          });
+        }
 
-      // Line 5: Debit Accounts Receivable (Net Payable)
-      if (netPayable > 0) {
-        lines.push({
-          journal_entry_id: Number(entry.id),
-          tenant_id: tenantId,
-          account_id: arAccountId,
-          cost_center_id: project.cost_center_id || null,
-          description: `صافي المستحق على العميل مستخلص ${invoice.ipc_number}`,
-          debit: netPayable,
-          credit: 0,
-          partner_type: 'customer',
-          partner_id: project.client_id || null,
-        });
+        // Line 3: Debit Retentions Held (Asset)
+        if (retentionHeld > 0) {
+          lines.push({
+            journal_entry_id: Number(entry.id),
+            tenant_id: tenantId,
+            account_id: retentionAccountId,
+            cost_center_id: project.cost_center_id || null,
+            description: `تأمين أعمال محتجز (حسن تنفيذ) مستخلص ${invoice.ipc_number}`,
+            debit: retentionHeld,
+            credit: 0,
+            partner_type: 'customer',
+            partner_id: project.client_id || null,
+          });
+
+          // Auto-insert into retention ledger for client
+          await trx.insertInto('contracting_retention_records').values({
+            tenant_id: tenantId,
+            project_id: invoice.project_id,
+            guarantee_type: 'client',
+            party_name: project.client_name || 'المالك',
+            reference_number: invoice.ipc_number,
+            held_amount: retentionHeld,
+            released_amount: 0,
+            due_date: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
+            status: 'held',
+            notes: `استقطاع ضمان حسن تنفيذ على المالك من مستخلص ${invoice.ipc_number}`,
+          }).execute();
+        }
+
+        // Line 4: Debit Other Deductions
+        if (otherDeductions > 0) {
+          lines.push({
+            journal_entry_id: Number(entry.id),
+            tenant_id: tenantId,
+            account_id: contraAccountId,
+            cost_center_id: project.cost_center_id || null,
+            description: `استقطاعات وجزاءات مستخلص ${invoice.ipc_number}`,
+            debit: otherDeductions,
+            credit: 0,
+            partner_type: 'customer',
+            partner_id: project.client_id || null,
+          });
+        }
+
+        // Line 5: Debit Accounts Receivable (Net Payable)
+        if (netPayable > 0) {
+          lines.push({
+            journal_entry_id: Number(entry.id),
+            tenant_id: tenantId,
+            account_id: contraAccountId,
+            cost_center_id: project.cost_center_id || null,
+            description: `صافي المستحق على العميل مستخلص ${invoice.ipc_number}`,
+            debit: netPayable,
+            credit: 0,
+            partner_type: 'customer',
+            partner_id: project.client_id || null,
+          });
+        }
       }
 
       if (lines.length > 0) {
@@ -1126,13 +1348,73 @@ export class ContractingService {
 
   async getSubcontracts(auth: AuthContext, projectId: string) {
     const { tenantId } = requireTenantScope(auth);
-    return await this.db
+    const subcontracts = await this.db
       .selectFrom('contracting_subcontracts')
       .selectAll()
       .where('tenant_id', '=', tenantId)
       .where('project_id', '=', projectId as any)
       .orderBy('created_at', 'desc')
       .execute();
+
+    return Promise.all(
+      subcontracts.map(async (sc) => {
+        let subcontractorName = '';
+        if (sc.subcontractor_id) {
+          const sup = await (this.db as any)
+            .selectFrom('suppliers')
+            .select('name')
+            .where('tenant_id', '=', tenantId)
+            .where('id', '=', sc.subcontractor_id)
+            .executeTakeFirst();
+          subcontractorName = sup?.name || '';
+        }
+
+        const invTotals = await this.db
+          .selectFrom('contracting_invoices')
+          .select([
+            sql<number>`COALESCE(SUM(net_payable), 0)`.as('total_invoiced'),
+            sql<number>`COALESCE(SUM(retention_held_amount), 0)`.as('total_retention_held'),
+          ])
+          .where('tenant_id', '=', tenantId)
+          .where('project_id', '=', projectId as any)
+          .where((eb) =>
+            eb.or([
+              eb('subcontract_id', '=', sc.id as any),
+              eb.and([
+                eb('ipc_type', '=', 'subcontractor'),
+                eb('subcontractor_id', '=', sc.subcontractor_id as any),
+              ]),
+            ])
+          )
+          .where('status', 'in', ['approved', 'paid'])
+          .executeTakeFirst();
+
+        const totalInvoiced = Number(invTotals?.total_invoiced || 0);
+        const totalRetentionHeld = Number(invTotals?.total_retention_held || 0);
+        const totalAmount = Number(sc.total_amount || 0);
+        const remainingCommitment = Math.max(0, totalAmount - totalInvoiced);
+
+        return {
+          id: String(sc.id),
+          projectId: String(sc.project_id),
+          subcontractorId: Number(sc.subcontractor_id),
+          subcontractorName,
+          contractNumber: sc.contract_number,
+          scopeOfWork: sc.scope_of_work,
+          totalAmount,
+          retentionPercent: Number(sc.retention_percent || 0),
+          startDate: sc.start_date ? String(sc.start_date) : null,
+          endDate: sc.end_date ? String(sc.end_date) : null,
+          status: sc.status,
+          notes: sc.notes,
+          totalInvoiced,
+          totalRetentionHeld,
+          remainingCommitment,
+          createdAt: String(sc.created_at),
+          updatedAt: String(sc.updated_at),
+        };
+      })
+    );
   }
 
   async createSubcontract(auth: AuthContext, projectId: string, dto: CreateSubcontractDto) {
@@ -3937,6 +4219,515 @@ export class ContractingService {
       overallMarginPercent: overallMargin,
       items: analyzedItems,
     };
+  }
+
+  // ==========================================================================
+  // 32. Comprehensive Project Actual Cost Breakdown (تحليل التكاليف الفعلية ومقارنة الميزانية)
+  // ==========================================================================
+
+  async getProjectCostBreakdown(auth: AuthContext, projectId: string): Promise<ContractingProjectCostBreakdown> {
+    const { tenantId } = requireTenantScope(auth);
+    const project = await this.db
+      .selectFrom('contracting_projects')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', projectId as any)
+      .executeTakeFirst();
+
+    if (!project) {
+      throw new NotFoundException(`المشروع برقم ${projectId} غير موجود`);
+    }
+
+    // 1. Latest Cost Baseline
+    const latestSnapshot = await (this.db as any)
+      .selectFrom('contracting_cost_snapshots')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .orderBy('created_at', 'desc')
+      .executeTakeFirst();
+    const costBaseline = Number(latestSnapshot?.total_budget_cost || project.contract_value || 0);
+
+    // 2. Total Billed Client (Approved client invoices)
+    const billedClientRes = await this.db
+      .selectFrom('contracting_invoices')
+      .select(sql<number>`COALESCE(SUM(current_amount + stored_materials_amount), 0)`.as('sum'))
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .where('ipc_type', '=', 'client')
+      .where('status', 'in', ['approved', 'paid'])
+      .executeTakeFirst();
+    const totalBilledClient = Number(billedClientRes?.sum || 0);
+
+    // 3. Materials Cost from Requisitions
+    const materialsCostRes = await this.db
+      .selectFrom('contracting_material_requisitions')
+      .select(sql<number>`COALESCE(SUM(total_cost), 0)`.as('sum'))
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .executeTakeFirst();
+    const materialsCost = Number(materialsCostRes?.sum || 0);
+
+    // 4. Labor Cost from Attendance Records
+    const laborCostRes = await (this.db as any)
+      .selectFrom('contracting_labor_attendance_records')
+      .select(sql<number>`COALESCE(SUM(total_payable), 0)`.as('sum'))
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .executeTakeFirst();
+    const laborCost = Number(laborCostRes?.sum || 0);
+
+    // 5. Subcontracts Cost from Subcontractor Invoices (or committed subcontracts)
+    const subcontractsCostRes = await this.db
+      .selectFrom('contracting_invoices')
+      .select(sql<number>`COALESCE(SUM(current_amount + stored_materials_amount), 0)`.as('sum'))
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .where('ipc_type', '=', 'subcontractor')
+      .where('status', 'in', ['approved', 'paid'])
+      .executeTakeFirst();
+    let subcontractsCost = Number(subcontractsCostRes?.sum || 0);
+    if (subcontractsCost === 0) {
+      const subCommitments = await this.db
+        .selectFrom('contracting_subcontracts')
+        .select(sql<number>`COALESCE(SUM(total_amount), 0)`.as('sum'))
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId as any)
+        .where('status', '=', 'active')
+        .executeTakeFirst();
+      subcontractsCost = Number(subCommitments?.sum || 0);
+    }
+
+    // 6. Mobilization & Setup Expenses
+    const mobilizationCostRes = await (this.db as any)
+      .selectFrom('contracting_site_mobilization_expenses')
+      .select(sql<number>`COALESCE(SUM(amount), 0)`.as('sum'))
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .executeTakeFirst();
+    const mobilizationCost = Number(mobilizationCostRes?.sum || 0);
+
+    // 7. Petty Cash Settled Expenses
+    const pettyCashRes = await (this.db as any)
+      .selectFrom('contracting_petty_cash')
+      .select(sql<number>`COALESCE(SUM(spent_amount), 0)`.as('sum'))
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .where('status', '=', 'settled')
+      .executeTakeFirst();
+    const pettyCashCost = Number(pettyCashRes?.sum || 0);
+
+    const totalActualCost = Math.round((materialsCost + laborCost + subcontractsCost + mobilizationCost + pettyCashCost) * 100) / 100;
+    const costVariance = Math.round((totalActualCost - costBaseline) * 100) / 100;
+    const revenueBasis = totalBilledClient > 0 ? totalBilledClient : Number(project.contract_value);
+    const actualGrossProfit = Math.round((revenueBasis - totalActualCost) * 100) / 100;
+    const actualProfitMarginPercent = revenueBasis > 0 ? Math.round((actualGrossProfit / revenueBasis) * 100) : 0;
+
+    const safeTotal = totalActualCost > 0 ? totalActualCost : 1;
+    const costDistribution = {
+      materialsPercent: Math.round((materialsCost / safeTotal) * 100),
+      laborPercent: Math.round((laborCost / safeTotal) * 100),
+      subcontractsPercent: Math.round((subcontractsCost / safeTotal) * 100),
+      mobilizationPercent: Math.round((mobilizationCost / safeTotal) * 100),
+      pettyCashPercent: Math.round((pettyCashCost / safeTotal) * 100),
+    };
+
+    return {
+      projectId: String(project.id),
+      projectCode: project.code,
+      projectName: project.name,
+      contractValue: Number(project.contract_value),
+      revisedContractValue: Number(project.revised_contract_value),
+      costBaseline,
+      totalBilledClient,
+      materialsCost,
+      laborCost,
+      subcontractsCost,
+      mobilizationCost,
+      pettyCashCost,
+      totalActualCost,
+      costVariance,
+      actualGrossProfit,
+      actualProfitMarginPercent,
+      costDistribution,
+    };
+  }
+
+  // ==========================================================================
+  // 33. Work Inspection Requests (WIR - طلبات فحص واستلام الأعمال الإنشائية)
+  // ==========================================================================
+
+  async getInspectionRequests(auth: AuthContext, projectId: string, status?: string): Promise<ContractingInspectionRequest[]> {
+    const { tenantId } = requireTenantScope(auth);
+    let q = (this.db as any)
+      .selectFrom('contracting_inspection_requests as w')
+      .leftJoin('contracting_boq_items as b', 'b.id', 'w.boq_item_id')
+      .leftJoin('contracting_subcontracts as s', 's.id', 'w.subcontract_id')
+      .select([
+        'w.id',
+        'w.project_id',
+        'w.wir_number',
+        'w.boq_item_id',
+        'b.item_code as boq_item_code',
+        'b.description as boq_item_description',
+        'w.subcontract_id',
+        's.contract_number as subcontract_number',
+        'w.location_grid',
+        'w.trade_category',
+        'w.inspection_type',
+        'w.scheduled_date',
+        'w.status',
+        'w.consultant_name',
+        'w.consultant_notes',
+        'w.inspected_at',
+        'w.attachments',
+        'w.created_at',
+        'w.updated_at',
+      ])
+      .where('w.tenant_id', '=', tenantId)
+      .where('w.project_id', '=', projectId as any);
+
+    if (status && status !== 'all') {
+      q = q.where('w.status', '=', status);
+    }
+
+    const rows = await q.orderBy('w.scheduled_date', 'desc').orderBy('w.created_at', 'desc').execute();
+    return rows.map((r: any) => ({
+      id: String(r.id),
+      projectId: String(r.project_id),
+      wirNumber: r.wir_number,
+      boqItemId: r.boq_item_id ? String(r.boq_item_id) : null,
+      boqItemCode: r.boq_item_code || null,
+      boqItemDescription: r.boq_item_description || null,
+      subcontractId: r.subcontract_id ? String(r.subcontract_id) : null,
+      subcontractNumber: r.subcontract_number || null,
+      locationGrid: r.location_grid,
+      tradeCategory: r.trade_category,
+      inspectionType: r.inspection_type,
+      scheduledDate: r.scheduled_date,
+      status: r.status,
+      consultantName: r.consultant_name,
+      consultantNotes: r.consultant_notes,
+      inspectedAt: r.inspected_at,
+      attachments: r.attachments,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+  }
+
+  async createInspectionRequest(auth: AuthContext, projectId: string, dto: CreateInspectionRequestDto): Promise<ContractingInspectionRequest> {
+    const { tenantId } = requireTenantScope(auth);
+    let wirNumber = dto.wirNumber?.trim().toUpperCase();
+    if (!wirNumber) {
+      const countRes = await (this.db as any)
+        .selectFrom('contracting_inspection_requests')
+        .select(sql<number>`count(*)::int`.as('count'))
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId as any)
+        .executeTakeFirst();
+      const count = (countRes?.count || 0) + 1;
+      wirNumber = `WIR-${projectId.slice(-4).toUpperCase()}-${String(count).padStart(3, '0')}`;
+    }
+
+    const [row] = await (this.db as any)
+      .insertInto('contracting_inspection_requests')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectId as any,
+        wir_number: wirNumber,
+        boq_item_id: dto.boqItemId ? Number(dto.boqItemId) : null,
+        subcontract_id: dto.subcontractId ? Number(dto.subcontractId) : null,
+        location_grid: dto.locationGrid.trim(),
+        trade_category: dto.tradeCategory,
+        inspection_type: dto.inspectionType || 'work_inspection',
+        scheduled_date: dto.scheduledDate,
+        status: 'submitted',
+        consultant_name: dto.consultantName || null,
+        consultant_notes: dto.consultantNotes || null,
+        attachments: dto.attachments || null,
+      })
+      .returningAll()
+      .execute();
+
+    const list = await this.getInspectionRequests(auth, projectId);
+    return list.find((i) => i.id === String(row.id)) || (row as any);
+  }
+
+  async updateInspectionRequestStatus(auth: AuthContext, id: string, dto: UpdateInspectionRequestStatusDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const [updated] = await (this.db as any)
+      .updateTable('contracting_inspection_requests')
+      .set({
+        status: dto.status,
+        consultant_name: dto.consultantName || undefined,
+        consultant_notes: dto.consultantNotes || undefined,
+        inspected_at: dto.status !== 'submitted' ? new Date() : null,
+        updated_at: new Date(),
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    if (!updated) {
+      throw new NotFoundException(`طلب الفحص برقم ${id} غير موجود`);
+    }
+
+    return updated;
+  }
+
+  async deleteInspectionRequest(auth: AuthContext, id: string) {
+    const { tenantId } = requireTenantScope(auth);
+    await (this.db as any)
+      .deleteFrom('contracting_inspection_requests')
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .execute();
+    return { success: true };
+  }
+
+  // ==========================================================================
+  // 34. Snag Items & Punch List (قائمة الملاحظات وعيوب المصنعية والتسليم)
+  // ==========================================================================
+
+  async getSnagItems(auth: AuthContext, projectId: string, status?: string, severity?: string): Promise<ContractingSnagItem[]> {
+    const { tenantId } = requireTenantScope(auth);
+    let q = (this.db as any)
+      .selectFrom('contracting_snag_items as s')
+      .leftJoin('contracting_boq_items as b', 'b.id', 's.boq_item_id')
+      .leftJoin('suppliers as sup', 'sup.id', 's.subcontractor_id')
+      .select([
+        's.id',
+        's.project_id',
+        's.boq_item_id',
+        'b.item_code as boq_item_code',
+        's.item_title',
+        's.location_desc',
+        's.severity',
+        's.responsible_party',
+        's.subcontractor_id',
+        'sup.name as subcontractor_name',
+        's.subcontract_id',
+        's.assigned_to',
+        's.due_date',
+        's.status',
+        's.rectified_date',
+        's.verified_by',
+        's.notes',
+        's.created_at',
+        's.updated_at',
+      ])
+      .where('s.tenant_id', '=', tenantId)
+      .where('s.project_id', '=', projectId as any);
+
+    if (status && status !== 'all') {
+      q = q.where('s.status', '=', status);
+    }
+    if (severity && severity !== 'all') {
+      q = q.where('s.severity', '=', severity);
+    }
+
+    const rows = await q.orderBy('s.created_at', 'desc').execute();
+    return rows.map((r: any) => ({
+      id: String(r.id),
+      projectId: String(r.project_id),
+      boqItemId: r.boq_item_id ? String(r.boq_item_id) : null,
+      boqItemCode: r.boq_item_code || null,
+      itemTitle: r.item_title,
+      locationDesc: r.location_desc,
+      severity: r.severity,
+      responsibleParty: r.responsible_party,
+      subcontractorId: r.subcontractor_id ? Number(r.subcontractor_id) : null,
+      subcontractorName: r.subcontractor_name || null,
+      subcontractId: r.subcontract_id ? String(r.subcontract_id) : null,
+      assignedTo: r.assigned_to,
+      dueDate: r.due_date,
+      status: r.status,
+      rectifiedDate: r.rectified_date,
+      verifiedBy: r.verified_by,
+      notes: r.notes,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+  }
+
+  async createSnagItem(auth: AuthContext, projectId: string, dto: CreateSnagItemDto): Promise<ContractingSnagItem> {
+    const { tenantId } = requireTenantScope(auth);
+    const [row] = await (this.db as any)
+      .insertInto('contracting_snag_items')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectId as any,
+        boq_item_id: dto.boqItemId ? Number(dto.boqItemId) : null,
+        item_title: dto.itemTitle.trim(),
+        location_desc: dto.locationDesc.trim(),
+        severity: dto.severity || 'minor',
+        responsible_party: dto.responsibleParty || 'subcontractor',
+        subcontractor_id: dto.subcontractorId ? Number(dto.subcontractorId) : null,
+        subcontract_id: dto.subcontractId ? Number(dto.subcontractId) : null,
+        assigned_to: dto.assignedTo || null,
+        due_date: dto.dueDate || null,
+        status: 'open',
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .execute();
+
+    const list = await this.getSnagItems(auth, projectId);
+    return list.find((s) => s.id === String(row.id)) || (row as any);
+  }
+
+  async updateSnagItemStatus(auth: AuthContext, id: string, dto: UpdateSnagItemStatusDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const [updated] = await (this.db as any)
+      .updateTable('contracting_snag_items')
+      .set({
+        status: dto.status,
+        rectified_date: dto.status !== 'open' ? (dto.rectifiedDate || new Date().toISOString().split('T')[0]) : null,
+        verified_by: dto.status === 'verified_closed' ? (dto.verifiedBy || auth.username || 'المهندس المشرف') : null,
+        notes: dto.notes || undefined,
+        updated_at: new Date(),
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    if (!updated) {
+      throw new NotFoundException(`الملاحظة برقم ${id} غير موجودة`);
+    }
+
+    return updated;
+  }
+
+  async deleteSnagItem(auth: AuthContext, id: string) {
+    const { tenantId } = requireTenantScope(auth);
+    await (this.db as any)
+      .deleteFrom('contracting_snag_items')
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .execute();
+    return { success: true };
+  }
+
+  // ==========================================================================
+  // 35. Project Handovers & Releases (محاضر التسليم الابتدائي والنهائي)
+  // ==========================================================================
+
+  async getProjectHandovers(auth: AuthContext, projectId: string): Promise<ContractingProjectHandover[]> {
+    const { tenantId } = requireTenantScope(auth);
+    const rows = await (this.db as any)
+      .selectFrom('contracting_project_handovers')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .orderBy('handover_date', 'desc')
+      .execute();
+
+    return rows.map((r: any) => ({
+      id: String(r.id),
+      projectId: String(r.project_id),
+      handoverType: r.handover_type,
+      handoverDate: r.handover_date,
+      committeeMembers: r.committee_members,
+      warrantyStartDate: r.warranty_start_date,
+      warrantyEndDate: r.warranty_end_date,
+      retentionReleaseAmount: Number(r.retention_release_amount || 0),
+      status: r.status,
+      certificateRef: r.certificate_ref,
+      notes: r.notes,
+      approvedBy: r.approved_by,
+      approvedAt: r.approved_at,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+  }
+
+  async createProjectHandover(auth: AuthContext, projectId: string, dto: CreateProjectHandoverDto): Promise<ContractingProjectHandover> {
+    const { tenantId } = requireTenantScope(auth);
+    const warrantyStart = dto.warrantyStartDate || dto.handoverDate;
+    const d = new Date(warrantyStart);
+    d.setFullYear(d.getFullYear() + 1);
+    const warrantyEnd = dto.warrantyEndDate || d.toISOString().split('T')[0];
+
+    const [row] = await (this.db as any)
+      .insertInto('contracting_project_handovers')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectId as any,
+        handover_type: dto.handoverType,
+        handover_date: dto.handoverDate,
+        committee_members: dto.committeeMembers.trim(),
+        warranty_start_date: warrantyStart,
+        warranty_end_date: warrantyEnd,
+        retention_release_amount: Number(dto.retentionReleaseAmount || 0),
+        status: 'draft',
+        certificate_ref: dto.certificateRef || null,
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .execute();
+
+    return {
+      id: String(row.id),
+      projectId: String(row.project_id),
+      handoverType: row.handover_type,
+      handoverDate: row.handover_date,
+      committeeMembers: row.committee_members,
+      warrantyStartDate: row.warranty_start_date,
+      warrantyEndDate: row.warranty_end_date,
+      retentionReleaseAmount: Number(row.retention_release_amount || 0),
+      status: row.status,
+      certificateRef: row.certificate_ref,
+      notes: row.notes,
+      approvedBy: row.approved_by,
+      approvedAt: row.approved_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  async approveProjectHandover(auth: AuthContext, id: string, dto: ApproveProjectHandoverDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const handover = await (this.db as any)
+      .selectFrom('contracting_project_handovers')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .executeTakeFirst();
+
+    if (!handover) {
+      throw new NotFoundException(`محضر التسليم برقم ${id} غير موجود`);
+    }
+
+    const [approved] = await (this.db as any)
+      .updateTable('contracting_project_handovers')
+      .set({
+        status: 'approved',
+        approved_by: dto.approvedBy || auth.username || 'الإدارة العليا',
+        approved_at: new Date(),
+        notes: dto.notes ? `${handover.notes || ''}\n${dto.notes}`.trim() : handover.notes,
+        updated_at: new Date(),
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    if (handover.handover_type === 'preliminary') {
+      await this.db
+        .updateTable('contracting_projects')
+        .set({
+          status: 'handed_over',
+          actual_end_date: handover.handover_date,
+          updated_at: new Date(),
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', handover.project_id)
+        .execute();
+    }
+
+    return approved;
   }
 }
 

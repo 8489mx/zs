@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ContractingChangeOrder } from '../contracting.types';
 import { contractingApi } from '../api/contracting.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
 
 interface ContractingChangeOrdersTabProps {
   changeOrders: ContractingChangeOrder[];
@@ -24,9 +25,10 @@ export function ContractingChangeOrdersTab({
     setUpdatingId(id);
     try {
       await contractingApi.updateChangeOrderStatus(id, { status });
+      toast.success('تم تحديث حالة الأمر التغييري بنجاح');
       onRefresh();
     } catch (err: any) {
-      alert(err?.message || 'فشل تحديث حالة الأمر التغييري');
+      toast.error(err?.message || 'فشل تحديث حالة الأمر التغييري');
     } finally {
       setUpdatingId(null);
     }

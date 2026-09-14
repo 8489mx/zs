@@ -2,14 +2,18 @@ import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
 import { contractingApi } from '../api/contracting.api';
-import { ContractingBoqItem, ContractingProject } from '../contracting.types';
+import { ContractingBoqItem, ContractingProject, ContractingSubcontract } from '../contracting.types';
 import { getTextDirection } from '@/lib/arabic-normalization';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { toast } from '@/shared/components/system-alert';
 
 interface CreateIpcInvoiceModalProps {
   open: boolean;
   project: ContractingProject;
+  initialIpcType?: 'client' | 'subcontractor';
+  initialSubcontractId?: string;
   onClose: () => void;
   onCreated?: () => void;
   onSuccess?: () => void;
@@ -27,8 +31,19 @@ interface WorkingItem {
   storedMaterialsQty: number;
 }
 
-export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: CreateIpcInvoiceModalProps) {
+export function CreateIpcInvoiceModal({
+  open,
+  project,
+  initialIpcType = 'client',
+  initialSubcontractId,
+  onClose,
+  onCreated,
+  onSuccess,
+}: CreateIpcInvoiceModalProps) {
   const { currencySymbol } = useSystemCurrency();
+  const [ipcType, setIpcType] = useState<'client' | 'subcontractor'>(initialIpcType);
+  const [subcontracts, setSubcontracts] = useState<ContractingSubcontract[]>([]);
+  const [selectedSubcontractId, setSelectedSubcontractId] = useState<string>(initialSubcontractId || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [items, setItems] = useState<WorkingItem[]>([]);
@@ -40,8 +55,13 @@ export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: Cre
   const [otherDeductions, setOtherDeductions] = useState('0');
   const [notes, setNotes] = useState('');
 
+  // Load BOQ items and subcontracts on open
   useEffect(() => {
     if (open) {
+      setIpcType(initialIpcType);
+      if (initialSubcontractId) {
+        setSelectedSubcontractId(initialSubcontractId);
+      }
       contractingApi.getBoqItems(project.id).then((boqs: ContractingBoqItem[]) => {
         const working = boqs.map((b: ContractingBoqItem) => ({
           boqItemId: b.id,
@@ -56,8 +76,23 @@ export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: Cre
         }));
         setItems(working);
       }).catch(() => {});
+
+      contractingApi.getSubcontracts(project.id).then((subs) => {
+        setSubcontracts(subs || []);
+      }).catch(() => {});
     }
-  }, [open, project.id]);
+  }, [open, project.id, initialIpcType, initialSubcontractId]);
+
+  // When a subcontract is selected, adjust retention percent if available
+  const handleSubcontractSelect = (subId: string) => {
+    setSelectedSubcontractId(subId);
+    const found = subcontracts.find((s) => s.id === subId);
+    if (found && found.retentionPercent !== undefined) {
+      setRetentionPercent(String(found.retentionPercent));
+    }
+  };
+
+  const selectedSubcontract = subcontracts.find((s) => s.id === selectedSubcontractId);
 
   const handleQtyChange = (index: number, field: 'currentQty' | 'storedMaterialsQty', val: string) => {
     const num = Math.max(0, Number(val || 0));
@@ -88,6 +123,10 @@ export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: Cre
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (ipcType === 'subcontractor' && !selectedSubcontractId) {
+      setErrorMsg('يرجى اختيار عقد مقاولة الباطن التابع لهذا المستخلص');
+      return;
+    }
     if (periodGrossTotal <= 0) {
       setErrorMsg('يرجى إدخال كميات منفذة أو تشوينات في البنود لإصدار المستخلص');
       return;
@@ -97,7 +136,9 @@ export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: Cre
     setErrorMsg(null);
     try {
       await contractingApi.createInvoice(project.id, {
-        ipcType: 'client',
+        ipcType,
+        subcontractId: ipcType === 'subcontractor' ? selectedSubcontractId : undefined,
+        subcontractorId: ipcType === 'subcontractor' ? selectedSubcontract?.subcontractorId : undefined,
         periodStart: periodStart || undefined,
         periodEnd: periodEnd || undefined,
         advanceRecoveryPercent: Number(advRecoveryPercent || 0),
@@ -116,7 +157,13 @@ export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: Cre
             storedMaterialsQty: it.storedMaterialsQty,
           })),
       });
+      toast.success(
+        ipcType === 'subcontractor'
+          ? 'تم إصدار مستخلص مقاول الباطن بنجاح'
+          : 'تم إصدار مستخلص العميل بنجاح',
+      );
       onCreated?.();
+      onSuccess?.();
       onClose();
     } catch (err: any) {
       setErrorMsg(err?.message || 'حدث خطأ أثناء إنشاء المستخلص');
@@ -177,6 +224,85 @@ export function CreateIpcInvoiceModal({ open, project, onClose, onCreated }: Cre
         {errorMsg && (
           <div style={{ padding: '8px 12px', backgroundColor: '#fef2f2', borderRadius: '8px', color: '#dc2626', fontSize: '0.8rem', fontWeight: 600 }}>
             {errorMsg}
+          </div>
+        )}
+
+        {/* نوع المستخلص (عميل مقابل مقاول باطن) */}
+        <div style={{ background: '#f1f5f9', padding: '6px', borderRadius: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setIpcType('client')}
+            style={{
+              flex: 1,
+              padding: '7px 12px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              background: ipcType === 'client' ? '#170e5e' : 'transparent',
+              color: ipcType === 'client' ? '#ffffff' : '#64748b',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            مستخلص المالك / العميل (إيراد معتمد)
+          </button>
+          <button
+            type="button"
+            onClick={() => setIpcType('subcontractor')}
+            style={{
+              flex: 1,
+              padding: '7px 12px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              background: ipcType === 'subcontractor' ? '#170e5e' : 'transparent',
+              color: ipcType === 'subcontractor' ? '#ffffff' : '#64748b',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            مستخلص مقاول باطن (تكلفة ومستحق مورد)
+          </button>
+        </div>
+
+        {/* تفاصيل مقاول الباطن عند اختيار مستخلص مقاول باطن */}
+        {ipcType === 'subcontractor' && (
+          <div style={{ background: '#f0f9ff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#0369a1', fontWeight: 700, fontSize: '0.84rem' }}>
+              <AppIcons.Building size={15} />
+              <span>تحديد عقد مقاول الباطن التابع للمشروع</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', alignItems: 'end' }}>
+              <Field label="عقد مقاول الباطن *">
+                <CustomSelect
+                  value={selectedSubcontractId}
+                  onChange={handleSubcontractSelect}
+                  placeholder="اختر عقد مقاولة الباطن..."
+                  options={subcontracts.map((sub) => ({
+                    value: sub.id,
+                    label: `${sub.contractNumber} - ${sub.subcontractorName || 'مقاول باطن'} (${sub.scopeOfWork.slice(0, 30)}...)`,
+                  }))}
+                />
+              </Field>
+
+              <div style={{ background: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>قيمة العقد الإجمالية:</span>
+                <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>
+                  {selectedSubcontract ? Number(selectedSubcontract.totalAmount || 0).toLocaleString('ar-EG') : '—'} {currencySymbol}
+                </strong>
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>المتبقي من الالتزام:</span>
+                <strong style={{ fontSize: '0.82rem', color: '#15803d' }}>
+                  {selectedSubcontract && selectedSubcontract.remainingCommitment !== undefined
+                    ? Number(selectedSubcontract.remainingCommitment).toLocaleString('ar-EG')
+                    : '—'} {currencySymbol}
+                </strong>
+              </div>
+            </div>
           </div>
         )}
 

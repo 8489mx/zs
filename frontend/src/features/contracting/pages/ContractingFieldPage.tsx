@@ -16,6 +16,10 @@ import { CreateScheduleTaskModal } from '../components/CreateScheduleTaskModal';
 import { CreateDailyLogModal } from '../components/CreateDailyLogModal';
 import { CreateRfiModal } from '../components/CreateRfiModal';
 import { AnswerRfiModal } from '../components/AnswerRfiModal';
+import { WorkInspectionModal } from '../components/WorkInspectionModal';
+import { SnagListModal } from '../components/SnagListModal';
+import { EquipmentTrackingModal } from '../components/EquipmentTrackingModal';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface ContractingFieldPageProps {
   initialSubTab?: 'gantt' | 'daily-logs' | 'rfis';
@@ -50,6 +54,11 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
   const [rfisLoading, setRfisLoading] = useState(false);
   const [isCreateRfiOpen, setIsCreateRfiOpen] = useState(false);
   const [selectedRfiForAnswer, setSelectedRfiForAnswer] = useState<ContractingRfi | null>(null);
+
+  // Field Tools Modals
+  const [isWirModalOpen, setIsWirModalOpen] = useState(false);
+  const [isSnagModalOpen, setIsSnagModalOpen] = useState(false);
+  const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
 
   const handleSubTabChange = (tab: 'gantt' | 'daily-logs' | 'rfis') => {
     setActiveSubTab(tab);
@@ -162,75 +171,153 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} dir="rtl">
-      {/* شريط التبديل الفرعي */}
+      {/* شريط التبديل الفرعي وأدوات الجودة والميدان */}
       <div
         style={{
           display: 'flex',
-          gap: '6px',
-          background: '#f1f5f9',
-          padding: '4px',
-          borderRadius: '10px',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '16px',
-          width: 'fit-content',
-          border: '1px solid #e2e8f0',
+          flexWrap: 'wrap',
+          gap: '10px',
         }}
       >
-        <button
-          type="button"
-          onClick={() => handleSubTabChange('gantt')}
+        <div
           style={{
-            padding: '7px 18px',
-            borderRadius: '8px',
-            fontSize: 'var(--font-body)',
-            fontWeight: 700,
-            border: 'none',
-            cursor: 'pointer',
-            background: activeSubTab === 'gantt' ? '#ffffff' : 'transparent',
-            color: activeSubTab === 'gantt' ? '#170e5e' : '#64748b',
-            boxShadow: activeSubTab === 'gantt' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-            transition: 'all 0.15s ease',
+            display: 'flex',
+            gap: '6px',
+            background: '#f1f5f9',
+            padding: '4px',
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0',
           }}
         >
-          الجدول الزمني ومخطط جانت (CPM)
-        </button>
+          <button
+            type="button"
+            onClick={() => handleSubTabChange('gantt')}
+            style={{
+              padding: '7px 18px',
+              borderRadius: '8px',
+              fontSize: 'var(--font-body)',
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+              background: activeSubTab === 'gantt' ? '#ffffff' : 'transparent',
+              color: activeSubTab === 'gantt' ? '#170e5e' : '#64748b',
+              boxShadow: activeSubTab === 'gantt' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            الجدول الزمني ومخطط جانت (CPM)
+          </button>
 
-        <button
-          type="button"
-          onClick={() => handleSubTabChange('daily-logs')}
-          style={{
-            padding: '7px 18px',
-            borderRadius: '8px',
-            fontSize: 'var(--font-body)',
-            fontWeight: 700,
-            border: 'none',
-            cursor: 'pointer',
-            background: activeSubTab === 'daily-logs' ? '#ffffff' : 'transparent',
-            color: activeSubTab === 'daily-logs' ? '#170e5e' : '#64748b',
-            boxShadow: activeSubTab === 'daily-logs' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          يوميات الموقع وتقارير التنفيذ
-        </button>
+          <button
+            type="button"
+            onClick={() => handleSubTabChange('daily-logs')}
+            style={{
+              padding: '7px 18px',
+              borderRadius: '8px',
+              fontSize: 'var(--font-body)',
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+              background: activeSubTab === 'daily-logs' ? '#ffffff' : 'transparent',
+              color: activeSubTab === 'daily-logs' ? '#170e5e' : '#64748b',
+              boxShadow: activeSubTab === 'daily-logs' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            يوميات الموقع وتقارير التنفيذ
+          </button>
 
-        <button
-          type="button"
-          onClick={() => handleSubTabChange('rfis')}
-          style={{
-            padding: '7px 18px',
-            borderRadius: '8px',
-            fontSize: 'var(--font-body)',
-            fontWeight: 700,
-            border: 'none',
-            cursor: 'pointer',
-            background: activeSubTab === 'rfis' ? '#ffffff' : 'transparent',
-            color: activeSubTab === 'rfis' ? '#170e5e' : '#64748b',
-            boxShadow: activeSubTab === 'rfis' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          الاستفسارات الهندسية (RFI)
-        </button>
+          <button
+            type="button"
+            onClick={() => handleSubTabChange('rfis')}
+            style={{
+              padding: '7px 18px',
+              borderRadius: '8px',
+              fontSize: 'var(--font-body)',
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+              background: activeSubTab === 'rfis' ? '#ffffff' : 'transparent',
+              color: activeSubTab === 'rfis' ? '#170e5e' : '#64748b',
+              boxShadow: activeSubTab === 'rfis' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            الاستفسارات الهندسية (RFI)
+          </button>
+        </div>
+
+        {/* أزرار ضبط الجودة والمعدات بالموقع */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setIsWirModalOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#f8fafc',
+              color: '#170e5e',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.CheckCircle size={15} />
+            <span>استلام الأعمال (WIR)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsSnagModalOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#f8fafc',
+              color: '#c2410c',
+              border: '1px solid #fed7aa',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.AlertTriangle size={15} />
+            <span>قائمة العيوب (Punch List)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsEquipmentModalOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#f8fafc',
+              color: '#475569',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+            }}
+          >
+            <AppIcons.Truck size={15} />
+            <span>المعدات والآليات</span>
+          </button>
+        </div>
       </div>
 
       {/* محتوى التبويب النشط */}
@@ -310,6 +397,36 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
             />
           )}
         </>
+      )}
+
+      {/* مودال طلبات استلام الأعمال وضبط الجودة (WIR) */}
+      {isWirModalOpen && effectiveProjectId && (
+        <WorkInspectionModal
+          open={isWirModalOpen}
+          onClose={() => setIsWirModalOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+        />
+      )}
+
+      {/* مودال قائمة العيوب والملاحظات (Punch List) */}
+      {isSnagModalOpen && effectiveProjectId && (
+        <SnagListModal
+          open={isSnagModalOpen}
+          onClose={() => setIsSnagModalOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+        />
+      )}
+
+      {/* مودال تتبع المعدات والآليات الميدانية */}
+      {isEquipmentModalOpen && (
+        <EquipmentTrackingModal
+          open={isEquipmentModalOpen}
+          onClose={() => setIsEquipmentModalOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+        />
       )}
     </div>
   );
