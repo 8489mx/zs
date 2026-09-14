@@ -7,7 +7,6 @@ import {
   RefreshCwIcon,
   DownloadIcon,
   PrinterIcon,
-  SparklesIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
   withholdingTaxApi,
@@ -222,7 +221,7 @@ export function WithholdingTaxPage() {
                   variant="secondary"
                   style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#065f46', borderColor: '#a7f3d0' }}
                 >
-                  <SparklesIcon size={15} />
+                  <RefreshCwIcon size={15} />
                   <span>استيراد آلي من المشتريات</span>
                 </Button>
               )}

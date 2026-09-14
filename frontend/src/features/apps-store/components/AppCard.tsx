@@ -38,14 +38,14 @@ export function AppCard({
     <div
       style={{
         background: '#ffffff',
-        border: isActive ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+        border: isActive ? '1.5px solid #10b981' : '1px solid #e2e8f0',
         borderRadius: '16px',
         padding: '20px',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         transition: 'all 0.2s ease',
-        boxShadow: isActive ? '0 4px 12px rgba(23, 14, 94, 0.06)' : '0 1px 3px rgba(0,0,0,0.02)',
+        boxShadow: isActive ? '0 4px 14px rgba(16, 185, 129, 0.07)' : '0 1px 3px rgba(0,0,0,0.02)',
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -55,17 +55,18 @@ export function AppCard({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
           <div
             style={{
-              width: '52px',
-              height: '52px',
+              width: '48px',
+              height: '48px',
               borderRadius: '12px',
-              background: app.accentBg,
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <AppIcon size={26} color={app.accentColor} />
+            <AppIcon size={24} color="#170e5e" />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
@@ -84,7 +85,7 @@ export function AppCard({
                   gap: '4px',
                 }}
               >
-                <CheckIcon size={12} />
+                <CheckIcon size={12} color="#047857" />
                 <span>مُثبت ونشط</span>
               </span>
             ) : isAllowedByPlan ? (
@@ -92,7 +93,7 @@ export function AppCard({
                 style={{
                   fontSize: '0.72rem',
                   fontWeight: 700,
-                  background: '#f1f5f9',
+                  background: '#f8fafc',
                   color: '#475569',
                   border: '1px solid #e2e8f0',
                   padding: '3px 9px',
@@ -106,8 +107,8 @@ export function AppCard({
                 style={{
                   fontSize: '0.72rem',
                   fontWeight: 700,
-                  background: planInfo.badgeBg,
-                  color: planInfo.badgeColor,
+                  background: '#f8fafc',
+                  color: '#475569',
                   border: '1px solid #e2e8f0',
                   padding: '3px 9px',
                   borderRadius: '6px',
@@ -116,7 +117,7 @@ export function AppCard({
                   gap: '4px',
                 }}
               >
-                <LockIcon size={11} />
+                <LockIcon size={11} color="#64748b" />
                 <span>{planInfo.name}</span>
               </span>
             )}
@@ -199,10 +200,20 @@ export function AppCard({
               textDecoration: 'none',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
-              padding: '6px 10px',
-              borderRadius: '6px',
-              background: '#eef2ff',
+              gap: '5px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#eef2ff';
+              e.currentTarget.style.borderColor = '#c7d2fe';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.borderColor = '#e2e8f0';
             }}
           >
             <span>فتح التطبيق</span>
@@ -218,18 +229,18 @@ export function AppCard({
             <span
               style={{
                 fontSize: '0.74rem',
-                color: '#166534',
+                color: '#047857',
                 fontWeight: 700,
-                background: '#f0fdf4',
+                background: '#ecfdf5',
                 padding: '5px 12px',
                 borderRadius: '8px',
-                border: '1px solid #bbf7d0',
+                border: '1px solid #a7f3d0',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
               }}
             >
-              <CheckIcon size={12} color="#166534" />
+              <CheckIcon size={12} color="#047857" />
               <span>أساسي في الباقة الشاملة</span>
             </span>
           ) : isActive ? (
@@ -275,7 +286,14 @@ export function AppCard({
                 fontSize: '0.78rem',
                 fontWeight: 700,
                 cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(23, 14, 94, 0.2)',
+                boxShadow: '0 2px 6px rgba(23, 14, 94, 0.18)',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#110a47';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#170e5e';
               }}
             >
               تثبيت وتفعيل
@@ -285,20 +303,29 @@ export function AppCard({
               type="button"
               onClick={() => onOpenUpgradeModal(app)}
               style={{
-                padding: '7px 14px',
+                padding: '6px 14px',
                 borderRadius: '8px',
-                border: '1px solid #fde68a',
-                background: '#fffbeb',
-                color: '#b45309',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#334155',
                 fontSize: '0.78rem',
                 fontWeight: 700,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f8fafc';
+                e.currentTarget.style.borderColor = '#94a3b8';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#ffffff';
+                e.currentTarget.style.borderColor = '#cbd5e1';
               }}
             >
-              <LockIcon size={12} />
+              <LockIcon size={12} color="#64748b" />
               <span>ترقية الباقة</span>
             </button>
           )}

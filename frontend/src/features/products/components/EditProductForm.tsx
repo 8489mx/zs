@@ -431,7 +431,7 @@ export function EditProductForm({
                   <span className="hidden md:inline">كود الصنف الأساسي / الموديل</span>
                   <span className="md:hidden">كود الموديل</span>
                 </label>
-                <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="101" />
+                <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="1001" />
               </div>
             ) : (
               <Field label="الباركود">

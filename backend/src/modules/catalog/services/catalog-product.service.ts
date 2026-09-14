@@ -175,7 +175,7 @@ export class CatalogProductService {
       .where(this.tenantPredicate(actor))
       .execute();
       
-    let maxNumeric = 100;
+    let maxNumeric = 1000;
     for (const row of result) {
       if (!row.style_code) continue;
       const parsed = parseInt(row.style_code.trim(), 10);
@@ -208,7 +208,7 @@ export class CatalogProductService {
           .where(this.tenantPredicate(actor))
           .execute();
           
-        let maxNumeric = 100;
+        let maxNumeric = 1000;
         for (const row of maxResult) {
           if (!row.style_code) continue;
           const parsed = parseInt(row.style_code.trim(), 10);
@@ -239,7 +239,10 @@ export class CatalogProductService {
           .executeTakeFirst();
       }
 
-      const allocated = counter!.next_value;
+      let allocated = counter!.next_value;
+      if (allocated <= 1000) {
+        allocated = 1001;
+      }
       
       await trx
         .updateTable('style_code_counters')

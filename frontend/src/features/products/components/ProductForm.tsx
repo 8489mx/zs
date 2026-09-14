@@ -365,7 +365,7 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
         {usesVariantBuilder ? (
           <Field label="كود الصنف الأساسي / الموديل">
             <div className="inline-create-row">
-              <input {...form.register('styleCode')} disabled={mutation.isPending || isGeneratingStyleCode} inputMode="numeric" placeholder="101" />
+              <input {...form.register('styleCode')} disabled={mutation.isPending || isGeneratingStyleCode} inputMode="numeric" placeholder="1001" />
               <button type="button" className="btn btn-secondary" onClick={() => { void handleGenerateStyleCode(); }} disabled={mutation.isPending || isGeneratingStyleCode}>{isGeneratingStyleCode ? 'جارٍ التوليد...' : 'توليد كود'}</button>
             </div>
           </Field>

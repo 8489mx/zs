@@ -371,17 +371,6 @@ html[dir="rtl"] .login-input-pro.has-toggle, [dir="rtl"] .login-input-pro.has-to
   position: relative;
   overflow: hidden;
 }
-.demo-sparkles {
-  position: absolute;
-  top: 4px;
-  right: 4px; /* visually left in LTR, let's keep it simple */
-  color: #f59e0b;
-  opacity: 0.2;
-}
-html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
-  right: auto;
-  left: 4px;
-}
 
 .demo-widget-content {
   display: flex;

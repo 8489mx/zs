@@ -46,21 +46,22 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
             width: '54px',
             height: '54px',
             borderRadius: '12px',
-            background: app.accentBg,
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
           }}>
-            <AppIcon size={28} color={app.accentColor} />
+            <AppIcon size={28} color="#170e5e" />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
               <strong style={{ fontSize: '1rem', color: '#0f172a', fontWeight: 800 }}>{app.title}</strong>
               <span style={{
                 fontSize: '0.72rem',
-                background: planInfo.badgeBg,
-                color: planInfo.badgeColor,
+                background: '#f8fafc',
+                color: '#475569',
                 padding: '2px 8px',
                 borderRadius: '6px',
                 fontWeight: 700,
@@ -69,7 +70,7 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
                 alignItems: 'center',
                 gap: '4px',
               }}>
-                <LockIcon size={11} /> {planInfo.name}
+                <LockIcon size={11} color="#64748b" /> {planInfo.name}
               </span>
             </div>
             <p style={{ margin: 0, fontSize: '0.8125rem', color: '#64748b', lineHeight: 1.5 }}>
@@ -82,8 +83,8 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
         <div style={{
           padding: '16px',
           borderRadius: '12px',
-          background: '#eff6ff',
-          border: '1px solid #bfdbfe',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -91,21 +92,21 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
           gap: '12px',
         }}>
           <div>
-            <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e3a8a', marginBottom: '2px' }}>
+            <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e', marginBottom: '2px' }}>
               متاح ضمن: {planInfo.name}
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#3b82f6' }}>
+            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
               {planInfo.summary}
             </div>
           </div>
           <div style={{
             fontSize: '0.84rem',
             fontWeight: 800,
-            color: '#1d4ed8',
+            color: '#170e5e',
             background: '#ffffff',
             padding: '6px 12px',
             borderRadius: '8px',
-            border: '1px solid #93c5fd',
+            border: '1px solid #cbd5e1',
           }}>
             {planInfo.priceLabel}
           </div>

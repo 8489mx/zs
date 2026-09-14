@@ -540,7 +540,7 @@ export function NewProductForm({
                   <span className="md:hidden">كود الموديل</span>
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <input className="purchase-prototype-field-input" {...form.register('styleCode')} disabled={isFormDisabled || isGeneratingStyleCode} inputMode="numeric" placeholder="101" style={{ flex: 1 }} />
+                  <input className="purchase-prototype-field-input" {...form.register('styleCode')} disabled={isFormDisabled || isGeneratingStyleCode} inputMode="numeric" placeholder="1001" style={{ flex: 1 }} />
                   <Button type="button" variant="secondary" onClick={() => void handleGenerateStyleCode()} disabled={isFormDisabled || isGeneratingStyleCode}>{isGeneratingStyleCode ? '...' : 'توليد كود'}</Button>
                 </div>
               </div>

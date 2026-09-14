@@ -28,6 +28,7 @@
 - Arabic RTL layout by default (`dir="rtl"`).
 - All chat responses wrapped in `<div dir="rtl">...</div>`.
 - 0 Emojis policy across all UI screens (use `@/shared/components/icons/AppIcons`).
+- Strict Ban on AI Sparkles / Magic Stars Icons: NEVER use the 4-pointed sparkle / magic star icon (`SparklesIcon` / `WandMagicIcon` or `m12 3-1.912...` SVG) anywhere in the ERP system. Always use real operational business icons (`DownloadIcon`, `RefreshCwIcon`, `SlidersIcon`, `PlusCircleIcon`, `CheckShieldIcon`, etc.).
 - Standard modal framework (`StandardDialog` / `DialogShell`).
 - Centralized combobox system (`CustomSelect`).
 

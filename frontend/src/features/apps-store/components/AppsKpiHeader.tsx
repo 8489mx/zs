@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { LockIcon } from '@/shared/components/icons/AppIcons';
 
@@ -9,8 +10,8 @@ interface AppsKpiHeaderProps {
   isSuperAdmin: boolean;
 }
 
-// Institutional Metric Icons (0 Emojis)
-function LayersIcon({ size = 20 }: { size?: number }) {
+// Institutional Metric Icons (0 Emojis, 0 Sparkles)
+function LayersIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="12 2 2 7 12 12 22 7 12 2" />
@@ -20,7 +21,7 @@ function LayersIcon({ size = 20 }: { size?: number }) {
   );
 }
 
-function CheckShieldIcon({ size = 20 }: { size?: number }) {
+function CheckShieldIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -29,16 +30,17 @@ function CheckShieldIcon({ size = 20 }: { size?: number }) {
   );
 }
 
-function SparklesIcon({ size = 20 }: { size?: number }) {
+function PlusCircleIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-      <path d="M5 3v4M3 5h4M19 17v4M17 19h4" />
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="16" />
+      <line x1="8" y1="12" x2="16" y2="12" />
     </svg>
   );
 }
 
-function CrownIcon({ size = 20 }: { size?: number }) {
+function CrownIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5v-2z" />
@@ -53,14 +55,35 @@ export function AppsKpiHeader({
   currentPlanName,
   isSuperAdmin,
 }: AppsKpiHeaderProps) {
+  // Balanced plan name display (prevents awkward line wrapping)
+  const planDisplay = useMemo(() => {
+    if (isSuperAdmin) {
+      return { title: 'إدارة مركزية', tier: 'Super Admin', note: 'كامل التطبيقات مفتوحة' };
+    }
+    if (currentPlanName.includes('المقاولات')) {
+      return { title: 'باقة المقاولات', tier: 'All-Inclusive', note: 'الموديولات الهندسية مدمجة' };
+    }
+    if (currentPlanName.includes('الشحن')) {
+      return { title: 'باقة الشحن الدولي', tier: 'All-Inclusive', note: 'موديولات الملاحة مدمجة' };
+    }
+    if (currentPlanName.includes('Ultimate') || currentPlanName.includes('المتكاملة')) {
+      return { title: 'الباقة المتكاملة', tier: 'Ultimate ERP', note: 'شاملة كافة الوحدات المتقدمة' };
+    }
+    if (currentPlanName.includes('Pro') || currentPlanName.includes('المتقدمة')) {
+      return { title: 'الباقة المتقدمة', tier: 'Pro ERP', note: 'إدارة الأعمال الشاملة' };
+    }
+    return { title: currentPlanName, tier: 'الاشتراك النشط', note: 'يمكنك الترقية لفتح المزيد' };
+  }, [currentPlanName, isSuperAdmin]);
+
   return (
     <div
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
         gap: '16px',
-        marginBottom: '24px',
+        marginBottom: '22px',
       }}
+      dir="rtl"
     >
       {/* 1. إجمالي التطبيقات المتاحة */}
       <div
@@ -68,166 +91,254 @@ export function AppsKpiHeader({
           background: '#ffffff',
           border: '1px solid #e2e8f0',
           borderRadius: '14px',
-          padding: '16px 20px',
+          padding: '16px 18px',
           display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-        }}
-      >
-        <div
-          style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '10px',
-            background: '#eff6ff',
-            color: '#1d4ed8',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <LayersIcon size={22} />
-        </div>
-        <div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>إجمالي التطبيقات</div>
-          <div style={{ fontSize: '1.35rem', color: '#0f172a', fontWeight: 800 }}>{totalApps} تطبيقاً</div>
-          <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>كتالوج النظام الشامل</div>
-        </div>
-      </div>
-
-      {/* 2. التطبيقات المفعلة والنشطة */}
-      <div
-        style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '14px',
-          padding: '16px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-        }}
-      >
-        <div
-          style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '10px',
-            background: '#ecfdf5',
-            color: '#059669',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <CheckShieldIcon size={22} />
-        </div>
-        <div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>التطبيقات المثبتة والنشطة</div>
-          <div style={{ fontSize: '1.35rem', color: '#059669', fontWeight: 800 }}>{activeAppsCount} نشط</div>
-          <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>تظهر في القائمة والشاشات</div>
-        </div>
-      </div>
-
-      {/* 3. متاح للتفعيل الفوري */}
-      <div
-        style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '14px',
-          padding: '16px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-        }}
-      >
-        <div
-          style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '10px',
-            background: '#f5f3ff',
-            color: '#7c3aed',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <SparklesIcon size={22} />
-        </div>
-        <div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>متاح للتثبيت الفوري</div>
-          <div style={{ fontSize: '1.35rem', color: '#7c3aed', fontWeight: 800 }}>{availableToInstallCount} متاح</div>
-          <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ضمن باقتك الحالية مباشرة</div>
-        </div>
-      </div>
-
-      {/* 4. الباقة الحالية والاشتراك */}
-      <div
-        style={{
-          background: isSuperAdmin ? '#fefce8' : '#ffffff',
-          border: isSuperAdmin ? '1px solid #fef08a' : '1px solid #e2e8f0',
-          borderRadius: '14px',
-          padding: '16px 20px',
-          display: 'flex',
-          alignItems: 'center',
+          flexDirection: 'column',
           justifyContent: 'space-between',
-          gap: '12px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          minHeight: '118px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>إجمالي التطبيقات</span>
           <div
             style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '10px',
-              background: isSuperAdmin ? '#fef3c7' : '#eff6ff',
-              color: isSuperAdmin ? '#d97706' : '#170e5e',
+              width: '36px',
+              height: '36px',
+              borderRadius: '9px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              color: '#170e5e',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            {isSuperAdmin ? <CrownIcon size={22} /> : <LockIcon size={20} />}
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
-              {isSuperAdmin ? 'رتبة الحساب' : 'باقتك الحالية'}
-            </div>
-            <div style={{ fontSize: '1.05rem', color: '#0f172a', fontWeight: 800 }}>
-              {isSuperAdmin ? 'تحكم مركزي غير محدود' : currentPlanName}
-            </div>
-            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-              {isSuperAdmin ? 'كامل التطبيقات مفتوحة' : 'يمكنك الترقية لفتح المزيد'}
-            </div>
+            <LayersIcon size={19} />
           </div>
         </div>
 
-        {!isSuperAdmin && (
-          <Link
-            to="/settings/subscription"
+        <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, margin: '2px 0 6px 0' }}>
+          {totalApps} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>تطبيقاً</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>كتالوج المنظومة الشامل</span>
+          <span
             style={{
-              fontSize: '0.75rem',
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              color: '#475569',
+              background: '#f8fafc',
+              padding: '2px 7px',
+              borderRadius: '6px',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            الكتالوج العام
+          </span>
+        </div>
+      </div>
+
+      {/* 2. التطبيقات المفعلة والنشطة (الأخضر البريميوم الحصري) */}
+      <div
+        style={{
+          background: '#ffffff',
+          border: '1px solid #a7f3d0',
+          borderRadius: '14px',
+          padding: '16px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: '118px',
+          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <span style={{ fontSize: '0.76rem', color: '#065f46', fontWeight: 700 }}>المثبتة والنشطة</span>
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '9px',
+              background: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              color: '#059669',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <CheckShieldIcon size={19} />
+          </div>
+        </div>
+
+        <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#059669', lineHeight: 1.2, margin: '2px 0 6px 0' }}>
+          {activeAppsCount} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#047857' }}>نشط</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+          <span style={{ fontSize: '0.7rem', color: '#059669' }}>تظهر في القائمة والشاشات</span>
+          <span
+            style={{
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              color: '#047857',
+              background: '#ecfdf5',
+              padding: '2px 7px',
+              borderRadius: '6px',
+              border: '1px solid #a7f3d0',
+            }}
+          >
+            جاهز للعمل
+          </span>
+        </div>
+      </div>
+
+      {/* 3. متاح للتفعيل الفوري (بدون أيقونة الذكاء الاصطناعي/الشرارة) */}
+      <div
+        style={{
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '14px',
+          padding: '16px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: '118px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>متاح للتثبيت الفوري</span>
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '9px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              color: '#170e5e',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <PlusCircleIcon size={19} />
+          </div>
+        </div>
+
+        <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, margin: '2px 0 6px 0' }}>
+          {availableToInstallCount} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>متاح</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ضمن باقتك الحالية مباشرة</span>
+          <span
+            style={{
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              color: '#475569',
+              background: '#f8fafc',
+              padding: '2px 7px',
+              borderRadius: '6px',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            تثبيت فوري
+          </span>
+        </div>
+      </div>
+
+      {/* 4. الباقة الحالية والاشتراك */}
+      <div
+        style={{
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '14px',
+          padding: '16px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: '118px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>
+            {isSuperAdmin ? 'رتبة الحساب' : 'باقتك الحالية'}
+          </span>
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '9px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              color: '#170e5e',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {isSuperAdmin ? <CrownIcon size={19} /> : <LockIcon size={17} />}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', margin: '2px 0 6px 0' }}>
+          <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+            {planDisplay.title}
+          </span>
+          <span
+            style={{
+              fontSize: '0.68rem',
               fontWeight: 700,
               color: '#170e5e',
               background: '#f1f5f9',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              textDecoration: 'none',
+              padding: '2px 7px',
+              borderRadius: '6px',
+              border: '1px solid #e2e8f0',
               whiteSpace: 'nowrap',
-              border: '1px solid #cbd5e1',
             }}
           >
-            ترقية الباقة
-          </Link>
-        )}
+            {planDisplay.tier}
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{planDisplay.note}</span>
+          {!isSuperAdmin && (
+            <Link
+              to="/settings/subscription"
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: '#170e5e',
+                background: '#f8fafc',
+                padding: '3px 10px',
+                borderRadius: '6px',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+                border: '1px solid #cbd5e1',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#eef2ff';
+                e.currentTarget.style.borderColor = '#c7d2fe';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#f8fafc';
+                e.currentTarget.style.borderColor = '#cbd5e1';
+              }}
+            >
+              ترقية الباقة
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );

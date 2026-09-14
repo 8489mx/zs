@@ -297,7 +297,7 @@ export function printDeliveryOrder(job: MaritimeJob, containers: MaritimeContain
 
         <div class="stamp-area">
           <div class="stamp-box">
-            <div style="font-weight: 700; color: #475569;">توقيع وخاتم التوكيل / المشحن</div>
+            <div style="font-weight: 700; color: #475569;">توقيع وخاتم التوكيل الملاحي / وكيل الشحن</div>
             <div style="margin-top: 35px; font-weight: 800; color: #170e5e;">${companyName}</div>
           </div>
           <div class="stamp-box">

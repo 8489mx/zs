@@ -1,7 +1,7 @@
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
-import { SparklesIcon, CalendarIcon } from '@/shared/components/icons/AppIcons';
+import { RefreshCwIcon, CalendarIcon } from '@/shared/components/icons/AppIcons';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 interface ExtractWhtModalProps {
@@ -32,21 +32,19 @@ export function ExtractWhtModal({
   onSubmit,
   isPending,
 }: ExtractWhtModalProps) {
-  if (!isOpen) return null;
-
   return (
     <StandardDialog
-      open={isOpen}
+      isOpen={isOpen}
       onClose={onClose}
-      title="استيراد آلي من فواتير المشتريات المسجلة"
-      subtitle={`فحص الفواتير التي تجاوزت 300 ${getGlobalCurrencySymbol()} واستخراج بيانات الموردين`}
-      size="md"
+      title="استيراد آلي لخصم ضريبة الأرباح التجارية من المشتريات"
+      subtitle="فحص وتجميع الفواتير المستحقة لنموذج 41"
+      maxWidth="560px"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{
           backgroundColor: '#ecfdf5',
-          borderRadius: '10px',
-          padding: '12px 16px',
+          borderRadius: '8px',
+          padding: '12px 14px',
           border: '1px solid #a7f3d0',
           color: '#065f46',
           fontSize: '12px',
@@ -55,7 +53,7 @@ export function ExtractWhtModal({
           gap: '8px',
           alignItems: 'flex-start',
         }}>
-          <SparklesIcon size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#059669' }} />
+          <RefreshCwIcon size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#059669' }} />
           <span>
             يقوم هذا المعالج بفحص جميع فواتير الشراء غير الملغاة التي تجاوزت 300 {getGlobalCurrencySymbol()} في الفترة المحددة، ويستخرج بيانات المورد والرقم الضريبي والوعاء تلقائياً لتضمينها في نموذج 41 دون تكرار.
           </span>

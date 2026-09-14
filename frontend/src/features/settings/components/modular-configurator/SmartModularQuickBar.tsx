@@ -10,13 +10,18 @@ interface SmartModularQuickBarProps {
   disabled?: boolean;
 }
 
-function WandMagicIcon({ size = 18 }: { size?: number }) {
+function SlidersIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m15 4-1-3-1 3-3 1 3 1 1 3 1-3 3-1-3-1z" />
-      <path d="m19 16-1-2-1 2-2 1 2 1 1 2 1-2 2-1-2-1z" />
-      <path d="M2 22 12 12" />
-      <path d="M7 11 11 7" />
+      <line x1="4" y1="21" x2="4" y2="14" />
+      <line x1="4" y1="10" x2="4" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12" y2="3" />
+      <line x1="20" y1="21" x2="20" y2="16" />
+      <line x1="20" y1="12" x2="20" y2="3" />
+      <line x1="1" y1="14" x2="7" y2="14" />
+      <line x1="9" y1="8" x2="15" y2="8" />
+      <line x1="17" y1="16" x2="23" y2="16" />
     </svg>
   );
 }
@@ -83,7 +88,7 @@ export function SmartModularQuickBar({
               flexShrink: 0,
             }}
           >
-            <WandMagicIcon size={22} />
+            <SlidersIcon size={22} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
@@ -130,7 +135,7 @@ export function SmartModularQuickBar({
             transition: 'background 0.15s ease',
           }}
         >
-          <WandMagicIcon size={16} />
+          <SlidersIcon size={16} />
           <span>فتح معالج التخصيص والمنيو</span>
         </button>
       </div>

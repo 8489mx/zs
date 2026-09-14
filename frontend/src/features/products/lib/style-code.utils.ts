@@ -1,6 +1,6 @@
 import type { Product } from '@/types/domain';
 
-const STYLE_CODE_START = 101;
+const STYLE_CODE_START = 1001;
 
 function normalizeNumericStyleCode(value: unknown): number | null {
   const text = String(value || '').trim();

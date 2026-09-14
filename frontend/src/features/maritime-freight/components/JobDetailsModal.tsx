@@ -497,7 +497,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         title="ملف العملية الملاحية"
         subtitle="جاري جلب تفاصيل وبيانات العملية..."
         width="min(1180px, 95vw)"
-        height="min(780px, 90vh)"
+        height="min(680px, 88vh)"
         loading={true}
         loadingText="جاري تحميل ملف العملية الملاحية..."
       >
@@ -676,12 +676,61 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', paddingInlineEnd: '4px' }}>
             {/* Tab 1: نظرة عامة وبيانات الحجز */}
             {activeTab === 'overview' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {/* شريط الإجراءات لمودال التعديل */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#170e5e' }}>
-                    تفاصيل بوالص الشحن والرحلة البحرية
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* 1. شريط الإجراءات والموقف المالي الموحد */}
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '10px',
+                    padding: '10px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <div
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        background: job.payment_status === 'paid' ? '#dcfce7' : job.payment_status === 'partially_paid' ? '#fef3c7' : '#f1f5f9',
+                        color: job.payment_status === 'paid' ? '#15803d' : job.payment_status === 'partially_paid' ? '#b45309' : '#64748b',
+                      }}
+                    >
+                      {job.payment_status === 'paid' ? 'مسددة بالكامل' : job.payment_status === 'partially_paid' ? 'مسددة جزئياً' : 'غير مسددة'}
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+                      المفوتر: <strong style={{ color: '#170e5e', fontSize: '0.9rem' }}>{currencySymbol} {Number(job.client_invoiced_total || 0).toLocaleString()}</strong>
+                      {' | '}
+                      المسدد: <strong style={{ color: '#15803d', fontSize: '0.9rem' }}>{currencySymbol} {Number(job.client_paid_total || 0).toLocaleString()}</strong>
+                    </div>
+
+                    {Number(job.customerAvailableCredit || 0) > 0 && job.payment_status !== 'paid' && (
+                      <button
+                        type="button"
+                        onClick={handleSettleFromBalance}
+                        disabled={isSettlingFromBalance}
+                        style={{
+                          padding: '4px 12px',
+                          background: '#166534',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          cursor: isSettlingFromBalance ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {isSettlingFromBalance ? 'جاري السداد...' : `سداد من الرصيد (${currencySymbol} ${Number(job.customerAvailableCredit || 0).toLocaleString()})`}
+                      </button>
+                    )}
                   </div>
+
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       type="button"
@@ -695,13 +744,16 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         background: '#047857',
                         color: '#ffffff',
                         border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
                         fontWeight: 700,
                         cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
                       }}
                     >
-                      استخراج ذكي من إيميل الحجز
+                      <span>استخراج ذكي من إيميل الحجز</span>
                     </button>
                     <button
                       type="button"
@@ -711,8 +763,8 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         background: '#170e5e',
                         color: '#ffffff',
                         border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
                         fontWeight: 700,
                         cursor: 'pointer',
                       }}
@@ -722,7 +774,114 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                   </div>
                 </div>
 
-                {/* بطاقة الموقف المالي وحالة السداد */}
+                {/* 2. شبكة البطاقات الأساسية الأربع بتوزيع متزن وحجم مريح */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                  {/* كارت 1: الخط الملاحي ورقم الحجز */}
+                  <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>الخط الملاحي ورقم الحجز</div>
+                    <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#170e5e', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={job.shipping_line_name || ''}>
+                      {job.shipping_line_name || 'غير محدد'}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#334155', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      رقم الحجز: <strong style={{ color: '#0f172a' }}>{job.booking_number || 'غير مسجل'}</strong>
+                    </div>
+                  </div>
+
+                  {/* كارت 2: السفينة ورقم الرحلة */}
+                  <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>السفينة ورقم الرحلة (Vessel / Voyage)</div>
+                    <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#170e5e', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={job.vessel_name || ''}>
+                      {job.vessel_name || 'لم تسجل السفينة'}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#334155', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      الرحلة: <strong>{job.voyage_number || '-'}</strong> | سداد: {job.payment_term || 'prepaid'}
+                    </div>
+                  </div>
+
+                  {/* كارت 3: مواعيد الإبحار والوصول */}
+                  <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>مواعيد الإبحار والوصول (ETD / ETA)</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 700, marginTop: '4px', direction: 'ltr', textAlign: 'right' }}>
+                      <span style={{ color: '#0369a1' }}>ETD: {job.etd ? job.etd.split('T')[0] : 'قيد الجدولة'}</span>
+                      {' → '}
+                      <span style={{ color: '#15803d' }}>ETA: {job.eta ? job.eta.split('T')[0] : 'قيد الجدولة'}</span>
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: job.port_cut_off ? '#b91c1c' : '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {job.port_cut_off ? `إغلاق الميناء: ${job.port_cut_off.split('T')[0]}` : 'الميناء مفتوح للتسليم'}
+                    </div>
+                  </div>
+
+                  {/* كارت 4: بوالص الشحن */}
+                  <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>بوالص الشحن (B/L Details)</div>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#170e5e', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      Master B/L: {job.mbl_number || 'قيد الإصدار'}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      House B/L: {job.hbl_number || 'قيد الإصدار'} ({job.bl_type || 'sea_waybill'})
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. صف بيانات الشاحن والمستلم */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', minHeight: '65px' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>بيانات الشاحن (Shipper Details)</div>
+                    <div style={{ fontSize: '0.82rem', color: '#0f172a', marginTop: '3px', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                      {job.shipper_details || 'غير مسجل'}
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', minHeight: '65px' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>بيانات المستلم (Consignee Details)</div>
+                    <div style={{ fontSize: '0.82rem', color: '#0f172a', marginTop: '3px', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                      {job.consignee_details || 'غير مسجل'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. رابط تتبع العميل السحابي المباشر */}
+                <div
+                  style={{
+                    background: '#eff6ff',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid #bfdbfe',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#1e40af' }}>
+                      رابط التتبع المباشر للعميل (Client Live Tracking Link):
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: '#475569', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'ltr', textAlign: 'right' }}>
+                      {trackingUrl || 'جاري توليد الرابط...'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyTrackingLink}
+                    style={{
+                      padding: '5px 14px',
+                      background: copiedLink ? '#16a34a' : '#170e5e',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {copiedLink ? 'تم النسخ!' : 'نسخ الرابط'}
+                  </button>
+                </div>
+
+                {/* 5. رادار القمر الصناعي الحي (AIS) وتتبع السفينة */}
                 <div
                   style={{
                     background: '#ffffff',
@@ -730,221 +889,81 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     borderRadius: '10px',
                     padding: '12px 16px',
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '12px',
-                    flexWrap: 'wrap',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        background: job.payment_status === 'paid' ? '#dcfce7' : job.payment_status === 'partially_paid' ? '#fef3c7' : '#f1f5f9',
-                        color: job.payment_status === 'paid' ? '#15803d' : job.payment_status === 'partially_paid' ? '#b45309' : '#64748b',
-                      }}
-                    >
-                      {job.payment_status === 'paid' ? 'مسددة بالكامل' : job.payment_status === 'partially_paid' ? 'مسددة جزئياً' : 'غير مسددة'}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', fontWeight: 800, color: '#170e5e' }}>
+                      <AppIcons.Ship size={17} />
+                      <span>رادار القمر الصناعي لتتبع حركة السفينة الحية (Live Satellite AIS Tracker)</span>
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#475569' }}>
-                      المفوتر: <strong style={{ color: '#170e5e' }}>{currencySymbol} {Number(job.client_invoiced_total || 0).toLocaleString()}</strong>
-                      {' | '}
-                      المسدد: <strong style={{ color: '#15803d' }}>{currencySymbol} {Number(job.client_paid_total || 0).toLocaleString()}</strong>
-                    </div>
-                  </div>
-
-                  {Number(job.customerAvailableCredit || 0) > 0 && job.payment_status !== 'paid' && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 700 }}>
-                        رصيد العميل المتاح: {currencySymbol} {Number(job.customerAvailableCredit || 0).toLocaleString()}
+                    {job.vessel_name && (
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                        متصل AIS
                       </span>
-                      <button
-                        type="button"
-                        onClick={handleSettleFromBalance}
-                        disabled={isSettlingFromBalance}
-                        style={{
-                          padding: '5px 12px',
-                          background: '#166534',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '0.76rem',
-                          fontWeight: 700,
-                          cursor: isSettlingFromBalance ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        {isSettlingFromBalance ? 'جاري السداد...' : 'سداد الشحنة من الرصيد المتاح'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
-                  <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>الخط الملاحي ورقم الحجز</div>
-                    <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#170e5e', marginTop: '4px' }}>
-                      {job.shipping_line_name}
-                    </div>
-                    <div style={{ fontSize: '0.82rem', color: '#334155', marginTop: '2px' }}>
-                      رقم الحجز (Booking No): <strong>{job.booking_number || 'غير محدد'}</strong>
-                    </div>
-                  </div>
-
-                  <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>السفينة ورقم الرحلة (Vessel / Voyage)</div>
-                    <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#170e5e', marginTop: '4px' }}>
-                      {job.vessel_name || 'لم تسجل السفينة'}
-                    </div>
-                    <div style={{ fontSize: '0.82rem', color: '#334155', marginTop: '2px' }}>
-                      الرحلة: {job.voyage_number || '-'} | طريقة السداد: {job.payment_term}
-                    </div>
-                  </div>
-
-                  <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>مواعيد الإبحار والوصول (ETD / ETA)</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#170e5e', marginTop: '4px' }}>
-                      الإبحار: {job.etd || 'قيد الجدولة'} ← الوصول: {job.eta || 'قيد الجدولة'}
-                    </div>
-                    {job.port_cut_off && (
-                      <div style={{ fontSize: '0.75rem', color: '#b91c1c', marginTop: '2px' }}>
-                        إغلاق الميناء Cut-off: {job.port_cut_off}
-                      </div>
                     )}
                   </div>
 
-                  <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>بوالص الشحن (B/L Details)</div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#170e5e', marginTop: '4px' }}>
-                      Master B/L: {job.mbl_number || 'قيد الإصدار'}
-                    </div>
-                    <div style={{ fontSize: '0.82rem', color: '#475569' }}>
-                      House B/L: {job.hbl_number || 'قيد الإصدار'} ({job.bl_type})
-                    </div>
-                  </div>
-
-                  {/* الشاحن والمستلم */}
-                  {(job.shipper_details || job.consignee_details) && (
-                    <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div style={{ background: '#ffffff', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>بيانات الشاحن (Shipper Details)</div>
-                        <div style={{ fontSize: '0.82rem', color: '#0f172a', marginTop: '4px', whiteSpace: 'pre-wrap' }}>
-                          {job.shipper_details || 'غير مسجل'}
-                        </div>
-                      </div>
-                      <div style={{ background: '#ffffff', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>بيانات المستلم (Consignee Details)</div>
-                        <div style={{ fontSize: '0.82rem', color: '#0f172a', marginTop: '4px', whiteSpace: 'pre-wrap' }}>
-                          {job.consignee_details || 'غير مسجل'}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* رابط تتبع العميل السحابي المباشر */}
-                  <div style={{ gridColumn: '1 / -1', background: '#eff6ff', padding: '14px 16px', borderRadius: '10px', border: '1px solid #bfdbfe', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                     <div>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e40af' }}>
-                        رابط التتبع المباشر للعميل (Client Live Tracking Link):
+                      <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
+                        {job.vessel_name || 'لم يتم تسجيل اسم السفينة بعد'}
                       </div>
-                      <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '2px', wordBreak: 'break-all' }}>
-                        {trackingUrl || 'جاري توليد الرابط...'}
+                      <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
+                        المسار البحري: <strong>{job.pol_name}</strong> ← <strong>{job.pod_name}</strong> {job.voyage_number ? `| رحلة رقم: ${job.voyage_number}` : ''}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleCopyTrackingLink}
-                      style={{
-                        padding: '6px 14px',
-                        background: copiedLink ? '#22c55e' : '#170e5e',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {copiedLink ? 'تم النسخ!' : 'نسخ الرابط'}
-                    </button>
-                  </div>
 
-                  {/* رادار القمر الصناعي الحي (AIS) وتتبع السفينة */}
-                  <div style={{ gridColumn: '1 / -1', background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>
-                        <AppIcons.Ship size={18} />
-                        <span>رادار القمر الصناعي لتتبع حركة السفينة الحية (Live Satellite AIS Tracker)</span>
+                    {job.vessel_name ? (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <a
+                          href={`https://www.marinetraffic.com/en/ais/details/ships/shipid:0/vessel:${encodeURIComponent(job.vessel_name)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: '6px 12px',
+                            background: '#1d4ed8',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <span>MarineTraffic AIS</span>
+                          <AppIcons.Globe size={13} />
+                        </a>
+                        <a
+                          href={`https://www.vesselfinder.com/vessels?name=${encodeURIComponent(job.vessel_name)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: '6px 12px',
+                            background: '#047857',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <span>VesselFinder AIS</span>
+                          <AppIcons.Globe size={13} />
+                        </a>
                       </div>
-                      {job.vessel_name && (
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
-                          رادار AIS متصل
-                        </span>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                      <div>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
-                          {job.vessel_name || 'لم يتم تسجيل اسم السفينة بعد'}
-                        </div>
-                        <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
-                          المسار البحري: <strong>{job.pol_name}</strong> ← <strong>{job.pod_name}</strong> {job.voyage_number ? `| رحلة رقم: ${job.voyage_number}` : ''}
-                        </div>
+                    ) : (
+                      <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
+                        قم بإدخال اسم السفينة لتفعيل رادار التتبع
                       </div>
-
-                      {job.vessel_name ? (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <a
-                            href={`https://www.marinetraffic.com/en/ais/details/ships/shipid:0/vessel:${encodeURIComponent(job.vessel_name)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              padding: '6px 12px',
-                              background: '#1d4ed8',
-                              color: '#ffffff',
-                              borderRadius: '6px',
-                              fontSize: '0.76rem',
-                              fontWeight: 700,
-                              textDecoration: 'none',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                            }}
-                          >
-                            <span>MarineTraffic AIS</span>
-                            <AppIcons.Globe size={14} />
-                          </a>
-                          <a
-                            href={`https://www.vesselfinder.com/vessels?name=${encodeURIComponent(job.vessel_name)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              padding: '6px 12px',
-                              background: '#047857',
-                              color: '#ffffff',
-                              borderRadius: '6px',
-                              fontSize: '0.76rem',
-                              fontWeight: 700,
-                              textDecoration: 'none',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                            }}
-                          >
-                            <span>VesselFinder AIS</span>
-                            <AppIcons.Globe size={14} />
-                          </a>
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-                          قم بإدخال اسم السفينة في بيانات الرحلة لتفعيل الرادار الملاحي
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1930,7 +1949,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     placeholder="مثال: BKG-994821"
                   />
                 </Field>
-                <Field label="نوع البوليسة (B/L Type)">
+                <Field label="نوع البوليصة (B/L Type)">
                   <CustomSelect
                     value={voyageForm.blType}
                     onChange={(val) => setVoyageForm({ ...voyageForm, blType: val as any })}
