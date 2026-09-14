@@ -82,6 +82,15 @@ export class CreateDealDto {
   @IsNumber()
   assignedUserId?: number | null;
 
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  customerId?: number | null;
+
+  @IsOptional()
+  @IsString()
+  lostReason?: string;
+
   @IsOptional()
   @IsString()
   notes?: string;
@@ -145,6 +154,11 @@ export class UpdateDealDto {
   @IsOptional()
   @IsNumber()
   assignedUserId?: number | null;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  customerId?: number | null;
 
   @IsOptional()
   @IsString()

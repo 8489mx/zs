@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
-import { XIcon, AlertTriangleIcon, AlertCircleIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
+import { AlertTriangleIcon, AlertCircleIcon } from '@/shared/components/icons/AppIcons';
 import { fiscalYearsApi } from '../../api/fiscal-years.api';
 import type { FiscalYearRecord } from '../../types/fiscal-years.types';
 
@@ -54,114 +54,113 @@ export function ReopenFiscalYearModal({
   };
 
   return (
-    <DialogShell isOpen={open} onClose={onClose} size="md">
-      <div className="standard-dialog-header">
-        <div>
-          <h2 className="standard-dialog-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <RefreshCwIcon size={20} color="#e11d48" />
-            <span>إعادة فتح السنة المالية: {fiscalYear.name}</span>
-          </h2>
-          <p className="standard-dialog-subtitle">
-            إلغاء قيد الإقفال السنوي وإعادة تفعيل الفترة المحاسبية لإجراء التسويات
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="standard-dialog-close-btn"
-          aria-label="إغلاق"
-        >
-          <XIcon size={18} />
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit}>
-        <div className="standard-dialog-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {errorMessage && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#b91c1c',
-                fontSize: '13px',
-              }}
-            >
-              <AlertCircleIcon size={18} color="#b91c1c" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title={`إعادة فتح السنة المالية: ${fiscalYear.name}`}
+      subtitle="إلغاء قيد الإقفال السنوي وإعادة تفعيل الفترة المحاسبية لإجراء التسويات"
+      size="md"
+    >
+      <form id="reopen-fiscal-year-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {errorMessage && (
           <div
             style={{
-              padding: '14px',
-              borderRadius: '8px',
-              backgroundColor: '#fffbeb',
-              border: '1px solid #fef3c7',
-              color: '#92400e',
-              fontSize: '13px',
-              lineHeight: 1.6,
               display: 'flex',
-              gap: '10px',
-              alignItems: 'flex-start',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#b91c1c',
+              fontSize: '13px',
             }}
           >
-            <AlertTriangleIcon size={22} color="#b45309" style={{ flexShrink: 0, marginTop: '2px' }} />
-            <div>
-              <strong style={{ display: 'block', marginBottom: '4px', color: '#78350f' }}>
-                تنبيه هام ومسؤولية محاسبية:
-              </strong>
-              إعادة فتح السنة المالية سيؤدي إلى:
-              <ul style={{ margin: '6px 0 0 0', paddingInlineStart: '20px' }}>
-                <li>إلغاء وحذف قيد الإقفال السنوي رقم {fiscalYear.closing_entry_id ? `#${fiscalYear.closing_entry_id}` : '—'} بشكل كامل.</li>
-                <li>إعادة أرصدة الإيرادات والمصروفات إلى حالتها الأصلية قبل التصفير.</li>
-                <li>تعديل تاريخ القفل المحاسبي (Lock Date) للسماح بتعديل وإدخال قيود خلال هذه الفترة.</li>
-              </ul>
-            </div>
+            <AlertCircleIcon size={18} color="#b91c1c" />
+            <span>{errorMessage}</span>
           </div>
+        )}
 
+        <div
+          style={{
+            padding: '14px',
+            borderRadius: '10px',
+            backgroundColor: '#fffbeb',
+            border: '1px solid #fef3c7',
+            color: '#92400e',
+            fontSize: '13px',
+            lineHeight: 1.6,
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'flex-start',
+          }}
+        >
+          <AlertTriangleIcon size={22} color="#b45309" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              سبب إعادة الفتح والمبرر الإداري <span style={{ color: '#e11d48' }}>*</span>
-            </label>
-            <textarea
-              rows={3}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="اكتب المبرر الرقابي لإعادة فتح السنة المالية (مثال: إجراء قيود تسوية جردية لمصروفات استحقاق)..."
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                fontSize: '13px',
-                color: '#1e293b',
-                boxSizing: 'border-box',
-                resize: 'vertical',
-              }}
-            />
+            <strong style={{ display: 'block', marginBottom: '4px', color: '#78350f' }}>
+              تنبيه هام ومسؤولية محاسبية:
+            </strong>
+            إعادة فتح السنة المالية سيؤدي إلى:
+            <ul style={{ margin: '6px 0 0 0', paddingInlineStart: '20px' }}>
+              <li>إلغاء وحذف قيد الإقفال السنوي رقم {fiscalYear.closing_entry_id ? `#${fiscalYear.closing_entry_id}` : '—'} بشكل كامل.</li>
+              <li>إعادة أرصدة الإيرادات والمصروفات إلى حالتها الأصلية قبل التصفير.</li>
+              <li>تعديل تاريخ القفل المحاسبي (Lock Date) للسماح بتعديل وإدخال قيود خلال هذه الفترة.</li>
+            </ul>
           </div>
         </div>
 
-        <div className="standard-dialog-footer">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={reopenMutation.isPending}>
-            إلغاء
-          </Button>
-          <Button
-            type="submit"
-            variant="danger"
-            disabled={reopenMutation.isPending}
-            style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
-          >
-            {reopenMutation.isPending ? 'جاري إعادة الفتح...' : 'تأكيد إعادة فتح السنة المالية'}
-          </Button>
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '10px',
+          padding: '14px 16px',
+          border: '1px solid #e2e8f0',
+        }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+            سبب إعادة الفتح والمبرر الإداري <span style={{ color: '#e11d48' }}>*</span>
+          </label>
+          <textarea
+            rows={3}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="اكتب المبرر الرقابي لإعادة فتح السنة المالية (مثال: إجراء قيود تسوية جردية لمصروفات استحقاق)..."
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#ffffff',
+              fontSize: '13px',
+              color: '#1e293b',
+              boxSizing: 'border-box',
+              resize: 'none',
+            }}
+          />
         </div>
       </form>
-    </DialogShell>
+
+      <StandardDialogFooter>
+        <Button type="button" variant="secondary" onClick={onClose} disabled={reopenMutation.isPending} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
+          إلغاء
+        </Button>
+        <Button
+          type="submit"
+          form="reopen-fiscal-year-form"
+          disabled={reopenMutation.isPending}
+          style={{
+            backgroundColor: '#dc2626',
+            color: '#ffffff',
+            padding: '8px 22px',
+            fontSize: '13px',
+            fontWeight: 700,
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: reopenMutation.isPending ? 0.6 : 1,
+          }}
+        >
+          {reopenMutation.isPending ? 'جاري إعادة الفتح...' : 'تأكيد إعادة فتح السنة المالية'}
+        </Button>
+      </StandardDialogFooter>
+    </StandardDialog>
   );
 }

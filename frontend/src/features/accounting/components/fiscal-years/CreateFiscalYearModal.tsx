@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
-import { XIcon, CalendarIcon, AlertCircleIcon } from '@/shared/components/icons/AppIcons';
+import { CalendarIcon, AlertCircleIcon, FileTextIcon } from '@/shared/components/icons/AppIcons';
 import { fiscalYearsApi } from '../../api/fiscal-years.api';
 import type { CreateFiscalYearPayload } from '../../types/fiscal-years.types';
 
@@ -72,49 +72,49 @@ export function CreateFiscalYearModal({ open, onClose, onCreated }: CreateFiscal
   if (!open) return null;
 
   return (
-    <DialogShell isOpen={open} onClose={onClose} size="md">
-      <div className="standard-dialog-header">
-        <div>
-          <h2 className="standard-dialog-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CalendarIcon size={20} color="#170e5e" />
-            <span>إضافة سنة مالية جديدة</span>
-          </h2>
-          <p className="standard-dialog-subtitle">
-            تحديد النطاق الزمني والبيانات التعريفية للدورة المحاسبية السنوية
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="standard-dialog-close-btn"
-          aria-label="إغلاق"
-        >
-          <XIcon size={18} />
-        </button>
-      </div>
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title="إضافة سنة مالية جديدة"
+      subtitle="تحديد النطاق الزمني والبيانات التعريفية للدورة المحاسبية السنوية"
+      size="md"
+    >
+      <form id="create-fiscal-year-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {errorMessage && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#b91c1c',
+              fontSize: '13px',
+            }}
+          >
+            <AlertCircleIcon size={18} color="#b91c1c" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit}>
-        <div className="standard-dialog-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {errorMessage && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#b91c1c',
-                fontSize: '13px',
-              }}
-            >
-              <AlertCircleIcon size={18} color="#b91c1c" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
+        {/* Card 1: Definition */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '10px',
+          padding: '14px 16px',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
+            <FileTextIcon size={15} style={{ color: '#170e5e' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>البيانات التعريفية</span>
+          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
                 اسم السنة المالية <span style={{ color: '#e11d48' }}>*</span>
@@ -160,8 +160,24 @@ export function CreateFiscalYearModal({ open, onClose, onCreated }: CreateFiscal
               />
             </div>
           </div>
+        </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+        {/* Card 2: Date Range */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '10px',
+          padding: '14px 16px',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
+            <CalendarIcon size={15} style={{ color: '#170e5e' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>النطاق الزمني للدورة</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
                 تاريخ بداية السنة <span style={{ color: '#e11d48' }}>*</span>
@@ -209,9 +225,9 @@ export function CreateFiscalYearModal({ open, onClose, onCreated }: CreateFiscal
             style={{
               padding: '10px 14px',
               borderRadius: '8px',
-              backgroundColor: '#f8fafc',
+              backgroundColor: '#ffffff',
               border: '1px solid #e2e8f0',
-              fontSize: '12px',
+              fontSize: '11.5px',
               color: '#64748b',
               lineHeight: 1.6,
             }}
@@ -219,21 +235,31 @@ export function CreateFiscalYearModal({ open, onClose, onCreated }: CreateFiscal
             تنبيه: يجب ألا تتداخل التواريخ المحددة مع أي سنة مالية أخرى مسجلة لنفس المنشأة. ستكون حالة السنة المالية تلقائياً «مفتوحة» لاستقبال القيود والعمليات حتى يحين موعد إقفالها.
           </div>
         </div>
-
-        <div className="standard-dialog-footer">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={createMutation.isPending}>
-            إلغاء
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={createMutation.isPending}
-            style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
-          >
-            {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ السنة المالية'}
-          </Button>
-        </div>
       </form>
-    </DialogShell>
+
+      <StandardDialogFooter>
+        <Button type="button" variant="secondary" onClick={onClose} disabled={createMutation.isPending} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
+          إلغاء
+        </Button>
+        <Button
+          type="submit"
+          form="create-fiscal-year-form"
+          disabled={createMutation.isPending}
+          style={{
+            backgroundColor: '#170e5e',
+            color: '#ffffff',
+            padding: '8px 22px',
+            fontSize: '13px',
+            fontWeight: 700,
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: createMutation.isPending ? 0.6 : 1,
+          }}
+        >
+          {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ السنة المالية'}
+        </Button>
+      </StandardDialogFooter>
+    </StandardDialog>
   );
 }

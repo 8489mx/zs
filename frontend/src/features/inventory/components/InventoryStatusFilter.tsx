@@ -1,4 +1,12 @@
 import type { InventoryStatusFilter } from '@/features/inventory/utils/inventory-mappers';
+import { CustomSelect } from '@/shared/ui/custom-select';
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'الكل' },
+  { value: 'out', label: 'نافد' },
+  { value: 'low', label: 'منخفض' },
+  { value: 'healthy', label: 'سليم' },
+];
 
 export function InventoryStatusFilterField({
   value,
@@ -8,14 +16,14 @@ export function InventoryStatusFilterField({
   onChange: (value: InventoryStatusFilter) => void;
 }) {
   return (
-    <div className="field">
-      <span>الحالة</span>
-      <select value={value} onChange={(event) => onChange(event.target.value as InventoryStatusFilter)}>
-        <option value="all">الكل</option>
-        <option value="out">نافد</option>
-        <option value="low">منخفض</option>
-        <option value="healthy">سليم</option>
-      </select>
+    <div className="field" style={{ minWidth: '130px' }}>
+      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>الحالة</span>
+      <CustomSelect
+        value={value}
+        onChange={(val) => onChange(val as InventoryStatusFilter)}
+        options={STATUS_FILTER_OPTIONS}
+        placeholder="اختر الحالة"
+      />
     </div>
   );
 }

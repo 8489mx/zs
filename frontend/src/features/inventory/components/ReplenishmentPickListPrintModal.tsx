@@ -1,7 +1,5 @@
 import React, { useRef } from 'react';
-import { Button } from '@/shared/ui/button';
-import { PrinterIcon } from '@/shared/components/icons/AppIcons';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 
 export interface PickListItem {
   productId: number;
@@ -227,92 +225,25 @@ export const ReplenishmentPickListPrintModal: React.FC<ReplenishmentPickListPrin
   const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <DialogShell
+    <StandardDialog
       open={isOpen}
       onClose={onClose}
-      ariaLabel="أمر تحميل وصرف بضاعة للمستودع"
-      width="min(860px, 96vw)"
-      zIndex={10001}
+      title="أمر تحميل وصرف بضاعة للمستودع"
+      subtitle={`إذن معتمد رسمي رقم #${docNo}`}
+      size="lg"
+      footerActions={
+        <StandardDialogFooter
+          onCancel={onClose}
+          cancelLabel="إغلاق"
+          primaryLabel="طباعة فورية للعامل"
+          onPrimary={handlePrint}
+        />
+      }
     >
-      <div
-        dir="rtl"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: '88vh',
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Header Modal Bar */}
+      <div style={{ backgroundColor: '#f1f5f9', padding: '16px', borderRadius: '8px' }}>
         <div
+          ref={printAreaRef}
           style={{
-            padding: '16px 20px',
-            backgroundColor: '#f8fafc',
-            borderBottom: '1px solid #e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '8px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <PrinterIcon size={20} color="#170e5e" />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontWeight: 800, fontSize: '16px', color: '#0f172a' }}>
-                أمر تحميل وصرف بضاعة للمستودع
-              </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
-                إذن معتمد رسمي رقم #{docNo}
-              </p>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Button
-              variant="primary"
-              onClick={handlePrint}
-              style={{
-                backgroundColor: '#170e5e',
-                color: '#ffffff',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '0 16px',
-                height: '36px',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <PrinterIcon size={16} color="#ffffff" />
-              <span>طباعة فورية للعامل</span>
-            </Button>
-            <Button variant="secondary" onClick={onClose} style={{ padding: '0 14px', height: '36px' }}>
-              إغلاق
-            </Button>
-          </div>
-        </div>
-
-        {/* Printable Paper Content */}
-        <div style={{ padding: '20px', overflowY: 'auto', flex: 1, backgroundColor: '#f1f5f9' }}>
-          <div
-            ref={printAreaRef}
-            style={{
               backgroundColor: '#ffffff',
               padding: '24px',
               borderRadius: '12px',
@@ -416,7 +347,7 @@ export const ReplenishmentPickListPrintModal: React.FC<ReplenishmentPickListPrin
             </div>
           </div>
         </div>
-      </div>
-    </DialogShell>
+      </StandardDialog>
   );
 };
+

@@ -1,4 +1,4 @@
-import { StandardDialog } from '@/shared/components/StandardDialog';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { PlusIcon } from '@/shared/components/icons/AppIcons';
 import type { PurchaseRfq } from '../../api/purchase-rfqs.api';
@@ -33,11 +33,17 @@ export function RfqComparisonMatrixModal({
 
   return (
     <StandardDialog
-      isOpen={true}
+      open={isOpen}
       onClose={onClose}
       title={`مصفوفة المقارنة والمفاضلة: ${activeRfq.title} (${activeRfq.rfq_number})`}
       subtitle="المقارنة التفصيلية لأسعار وشروط الموردين واختيار العرض الفائز"
-      width="min(1200px, 95vw)"
+      maxWidth="1200px"
+      footerActions={
+        <StandardDialogFooter
+          onCancel={onClose}
+          cancelLabel="إغلاق"
+        />
+      }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* Header summary and add bid button */}
@@ -214,12 +220,6 @@ export function RfqComparisonMatrixModal({
             </table>
           </div>
         )}
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-          <Button variant="secondary" onClick={onClose}>
-            إغلاق
-          </Button>
-        </div>
       </div>
     </StandardDialog>
   );

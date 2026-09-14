@@ -1,4 +1,4 @@
-import { StandardDialog } from '@/shared/components/StandardDialog';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { PlusIcon, TrashIcon } from '@/shared/components/icons/AppIcons';
 import type { CreateRfqPayload } from '../../api/purchase-rfqs.api';
@@ -38,11 +38,21 @@ export function CreateRfqModal({
 
   return (
     <StandardDialog
-      isOpen={true}
+      open={isOpen}
       onClose={onClose}
       title="إنشاء طلب عرض سعر استدراج جديد (RFQ)"
       subtitle="إدخال بيانات المناقصة أو الاستدراج وقائمة الأصناف والمواصفات المستهدفة"
-      width="min(800px, 95vw)"
+      maxWidth="800px"
+      footerActions={
+        <StandardDialogFooter
+          onCancel={onClose}
+          cancelLabel="إلغاء"
+          submitLabel={submitting ? 'جاري الإنشاء...' : 'حفظ ونشر طلب عرض السعر'}
+          isSubmitting={submitting}
+          submitDisabled={submitting || newRfq.items.length === 0}
+          onSubmit={onSubmit}
+        />
+      }
     >
       <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
@@ -193,20 +203,6 @@ export function CreateRfqModal({
               </tbody>
             </table>
           )}
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            إلغاء
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={submitting || newRfq.items.length === 0}
-            style={{ backgroundColor: '#170e5e', borderColor: '#170e5e' }}
-          >
-            {submitting ? 'جاري الإنشاء...' : 'حفظ ونشر طلب عرض السعر'}
-          </Button>
         </div>
       </form>
     </StandardDialog>

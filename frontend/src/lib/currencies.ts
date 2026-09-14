@@ -13,7 +13,7 @@ export const SUPPORTED_CURRENCIES = [
 export type CurrencyCode = typeof SUPPORTED_CURRENCIES[number]['code'];
 
 const STORAGE_KEY = 'zs_system_currency';
-let activeSystemCurrency: string = 'SAR';
+let activeSystemCurrency: string = 'EGP';
 const subscribers = new Set<(currency: string) => void>();
 
 /**
@@ -46,7 +46,7 @@ export function getGlobalSystemCurrency(): string {
       }
     } catch {}
   }
-  return activeSystemCurrency || 'SAR';
+  return activeSystemCurrency || 'EGP';
 }
 
 /**

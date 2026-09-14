@@ -1,7 +1,9 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
+import { Controller } from 'react-hook-form';
 import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
@@ -14,6 +16,11 @@ import { PurchaseItemsList } from '@/features/purchases/components/purchase-comp
 import { PurchaseTotals } from '@/features/purchases/components/purchase-composer/PurchaseTotals';
 import { MarginProtectionModal } from '@/features/purchases/components/MarginProtectionModal';
 import { PurchaseQuickCreateDialog } from '@/features/purchases/components/purchase-composer/PurchaseQuickCreateDialog';
+
+const PAYMENT_OPTIONS = [
+  { value: 'cash', label: 'نقدي' },
+  { value: 'credit', label: 'آجل' },
+];
 
 interface PurchaseComposerProps {
   products: Product[];
@@ -33,6 +40,21 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
   const idempotencyKeyRef = useRef<string | null>(null);
   const controller = usePurchaseComposerController({ products, suppliers, categories, branches, locations, settings });
   const { headerForm, items, lineDraft, mutation, repricingInsights, hasDraftChanges, totals, quickCreate, actions } = controller;
+
+  const supplierOptions = useMemo(() => [
+    { value: '', label: 'اختر المورد' },
+    ...suppliers.map((s) => ({ value: s.id, label: s.name })),
+  ], [suppliers]);
+
+  const branchOptions = useMemo(() => [
+    { value: '', label: 'الفرع الافتراضي' },
+    ...branches.map((b) => ({ value: b.id, label: b.name })),
+  ], [branches]);
+
+  const locationOptions = useMemo(() => [
+    { value: '', label: 'الموقع الافتراضي' },
+    ...locations.map((l) => ({ value: l.id, label: l.name })),
+  ], [locations]);
 
   return (
     <FormSection title="إنشاء فاتورة شراء" actions={<span className="nav-pill">إنشاء مباشر</span>} className="purchase-composer-card">
@@ -54,16 +76,34 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
           mutation.mutate({ values, items, taxRate: totals.taxRate, pricesIncludeTax: totals.pricesIncludeTax, idempotencyKey: idempotencyKeyRef.current });
         })}>          <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="فاتورة الشراء الحالية تحتوي على مسودة غير محفوظة" hint="احفظ الفاتورة أو أعد ضبطها قبل مغادرة الصفحة حتى لا تفقد البنود أو بيانات التوريد." />
           <Field label="المورد" error={headerForm.formState.errors.supplierId?.message}>
-            <select {...headerForm.register('supplierId')} disabled={mutation.isPending}>
-              <option value="">اختر المورد</option>
-              {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
-            </select>
+            <Controller
+              name="supplierId"
+              control={headerForm.control}
+              render={({ field }) => (
+                <CustomSelect
+                  value={field.value || ''}
+                  onChange={(val) => field.onChange(val)}
+                  options={supplierOptions}
+                  disabled={mutation.isPending}
+                  searchable
+                />
+              )}
+            />
           </Field>
           <Field label="نوع السداد">
-            <select {...headerForm.register('paymentType')} disabled={mutation.isPending}>
-              <option value="cash">نقدي</option>
-              <option value="credit">آجل</option>
-            </select>
+            <Controller
+              name="paymentType"
+              control={headerForm.control}
+              render={({ field }) => (
+                <CustomSelect
+                  value={field.value || 'cash'}
+                  onChange={(val) => field.onChange(val)}
+                  options={PAYMENT_OPTIONS}
+                  disabled={mutation.isPending}
+                  searchable={false}
+                />
+              )}
+            />
           </Field>
           {SINGLE_STORE_MODE ? (
             <Field label="المخزن المستلم">
@@ -72,16 +112,34 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
           ) : (
             <>
               <Field label="الفرع">
-                <select {...headerForm.register('branchId')} disabled={mutation.isPending}>
-                  <option value="">الفرع الافتراضي</option>
-                  {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-                </select>
+                <Controller
+                  name="branchId"
+                  control={headerForm.control}
+                  render={({ field }) => (
+                    <CustomSelect
+                      value={field.value || ''}
+                      onChange={(val) => field.onChange(val)}
+                      options={branchOptions}
+                      disabled={mutation.isPending}
+                      searchable
+                    />
+                  )}
+                />
               </Field>
               <Field label="الموقع">
-                <select {...headerForm.register('locationId')} disabled={mutation.isPending}>
-                  <option value="">الموقع الافتراضي</option>
-                  {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-                </select>
+                <Controller
+                  name="locationId"
+                  control={headerForm.control}
+                  render={({ field }) => (
+                    <CustomSelect
+                      value={field.value || ''}
+                      onChange={(val) => field.onChange(val)}
+                      options={locationOptions}
+                      disabled={mutation.isPending}
+                      searchable
+                    />
+                  )}
+                />
               </Field>
             </>
           )}

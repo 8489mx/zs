@@ -1,5 +1,5 @@
 import React from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import {
@@ -7,8 +7,8 @@ import {
   PackageIcon,
   PrinterIcon,
   Trash2Icon,
-  XIcon,
 } from '@/shared/components/icons/AppIcons';
+import { systemConfirm } from '@/shared/components/system-alert';
 import { PurchaseOrderRecord } from '../api/purchase-orders.api';
 import { getPurchaseOrderStatusBadge } from './PurchaseOrdersTable';
 
@@ -43,29 +43,48 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
 }) => {
   if (!open || !order) return null;
 
+  const handleCancel = async () => {
+    const confirmed = await systemConfirm({
+      title: 'إلغاء أمر الشراء',
+      message: 'هل أنت متأكد من رغبتك في إلغاء أمر الشراء هذا؟',
+      confirmText: 'نعم، إلغاء الأمر',
+      cancelText: 'تراجع',
+      variant: 'danger',
+    });
+    if (confirmed) {
+      onCancel(order.id);
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmed = await systemConfirm({
+      title: 'حذف أمر الشراء نهائياً',
+      message: 'هل أنت متأكد من حذف أمر الشراء هذا نهائياً من النظام؟ لا يمكن التراجع عن هذا الإجراء.',
+      confirmText: 'نعم، حذف نهائي',
+      cancelText: 'تراجع',
+      variant: 'danger',
+    });
+    if (confirmed) {
+      onDelete(order.id);
+    }
+  };
+
   return (
-    <DialogShell
-      open={true}
+    <StandardDialog
+      open={open}
       onClose={onClose}
-      ariaLabel={`تفاصيل أمر الشراء #${order.order_number || ''}`}
+      title={`تفاصيل أمر الشراء #${order.order_number || ''}`}
+      subtitle="متابعة حالة الاعتماد، استلام الشحنات بالمخازن، وترحيل الفواتير"
       width="min(980px, 96vw)"
+      minHeight="auto"
+      footerActions={(
+        <StandardDialogFooter
+          onCancel={onClose}
+          cancelText="إغلاق"
+        />
+      )}
     >
       <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
-        <div className="standard-dialog-header">
-          <div className="standard-dialog-header-info">
-            <h3 className="standard-dialog-title">تفاصيل أمر الشراء #{order.order_number || ''}</h3>
-            <p className="standard-dialog-subtitle">متابعة حالة الاعتماد، استلام الشحنات بالمخازن، وترحيل الفواتير</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="standard-dialog-close-btn"
-            aria-label="إغلاق"
-          >
-            <XIcon size={18} />
-          </button>
-        </div>
-
         {isDetailsLoading ? (
           <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>جاري تحميل بيانات أمر الشراء...</div>
         ) : (
@@ -82,41 +101,35 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                 {order.status === 'draft' && (
                   <Button
+                    variant="primary"
                     onClick={() => onConfirm(order.id)}
                     disabled={isConfirmPending}
-                    style={{ backgroundColor: '#2563eb', color: '#ffffff', fontSize: '12px', height: '32px' }}
+                    style={{ fontSize: '12px', height: '32px', backgroundColor: '#170e5e' }}
                   >
-                    <CheckCircleIcon className="w-3.5 h-3.5 ml-1" />
-                    اعتماد وإرسال للمورد
+                    <CheckCircleIcon size={14} style={{ marginInlineEnd: '4px' }} />
+                    {isConfirmPending ? 'جاري الاعتماد...' : 'اعتماد أمر الشراء'}
                   </Button>
                 )}
 
                 {(order.status === 'confirmed' || order.status === 'partially_received') && (
-                  <>
-                    <Button
-                      onClick={() => onOpenReceive(order)}
-                      style={{ backgroundColor: '#059669', color: '#ffffff', fontSize: '12px', height: '32px' }}
-                    >
-                      <PackageIcon className="w-3.5 h-3.5 ml-1" />
-                      استلام بضاعة بالمخزن
-                    </Button>
-                    <Button
-                      onClick={() => onConvert(order.id)}
-                      disabled={isConvertPending}
-                      style={{ backgroundColor: '#7c3aed', color: '#ffffff', fontSize: '12px', height: '32px' }}
-                    >
-                      تحويل لفاتورة مشتريات رسمية
-                    </Button>
-                  </>
+                  <Button
+                    variant="primary"
+                    onClick={() => onOpenReceive(order)}
+                    style={{ fontSize: '12px', height: '32px', backgroundColor: '#059669' }}
+                  >
+                    <PackageIcon size={14} style={{ marginInlineEnd: '4px' }} />
+                    استلام بضاعة بالمخزن
+                  </Button>
                 )}
 
-                {order.status === 'received' && (
+                {(order.status === 'confirmed' || order.status === 'partially_received' || order.status === 'received' || (order.status as string) === 'fully_received') && (
                   <Button
+                    variant="secondary"
                     onClick={() => onConvert(order.id)}
                     disabled={isConvertPending}
-                    style={{ backgroundColor: '#7c3aed', color: '#ffffff', fontSize: '12px', height: '32px' }}
+                    style={{ fontSize: '12px', height: '32px', color: '#170e5e', borderColor: '#cbd5e1' }}
                   >
-                    تحرير فاتورة المشتريات
+                    {isConvertPending ? 'جاري التحويل...' : 'تحويل إلى فاتورة مشتريات'}
                   </Button>
                 )}
 
@@ -125,18 +138,14 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
                   onClick={() => window.print()}
                   style={{ fontSize: '12px', height: '32px' }}
                 >
-                  <PrinterIcon className="w-3.5 h-3.5 ml-1" />
+                  <PrinterIcon size={14} style={{ marginInlineEnd: '4px' }} />
                   طباعة A4
                 </Button>
 
                 {order.status !== 'converted_to_bill' && order.status !== 'cancelled' && (
                   <Button
                     variant="secondary"
-                    onClick={() => {
-                      if (confirm('هل أنت متأكد من إلغاء أمر الشراء هذا؟')) {
-                        onCancel(order.id);
-                      }
-                    }}
+                    onClick={handleCancel}
                     style={{ fontSize: '12px', height: '32px', color: '#be123c', borderColor: '#fecdd3' }}
                   >
                     إلغاء الأمر
@@ -146,14 +155,10 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
                 {(order.status === 'draft' || order.status === 'cancelled') && (
                   <Button
                     variant="secondary"
-                    onClick={() => {
-                      if (confirm('هل أنت متأكد من حذف هذا الأمر نهائياً؟')) {
-                        onDelete(order.id);
-                      }
-                    }}
+                    onClick={handleDelete}
                     style={{ fontSize: '12px', height: '32px', color: '#be123c', borderColor: '#fecdd3' }}
                   >
-                    <Trash2Icon className="w-3.5 h-3.5 ml-1" />
+                    <Trash2Icon size={14} style={{ marginInlineEnd: '4px' }} />
                     حذف
                   </Button>
                 )}
@@ -241,6 +246,6 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
           </div>
         )}
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 };

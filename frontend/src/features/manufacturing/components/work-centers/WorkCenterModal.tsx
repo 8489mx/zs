@@ -1,8 +1,8 @@
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
-import { Button } from '@/shared/ui/button';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 
 interface WorkCenterModalProps {
   open: boolean;
@@ -26,6 +26,12 @@ interface WorkCenterModalProps {
   isSubmitting: boolean;
 }
 
+const statusOptions = [
+  { value: 'active', label: 'جاهز ونشط للتشغيل' },
+  { value: 'maintenance', label: 'تحت الصيانة الدورية' },
+  { value: 'inactive', label: 'معطل وموقوف عن العمل' },
+];
+
 export function WorkCenterModal({
   open,
   onClose,
@@ -47,22 +53,49 @@ export function WorkCenterModal({
   onSubmit,
   isSubmitting,
 }: WorkCenterModalProps) {
-  return (
-    <DialogShell
-      open={open}
-      onClose={onClose}
-      width="min(560px, 95vw)"
-      ariaLabel={editingId ? 'تعديل مركز العمل' : 'إضافة مركز عمل / ماكينة جديدة'}
-      showCloseButton={true}
-    >
-      <div className="dialog-card" style={{ padding: '24px', direction: 'rtl' }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
-          {editingId ? 'تعديل مركز العمل' : 'إضافة مركز عمل / ماكينة جديدة'}
-        </h3>
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    onSubmit(e as any);
+  };
 
-        <form onSubmit={onSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-            <Field label="رمز المركز (الكود)">
+  return (
+    <StandardDialog
+      isOpen={open}
+      onClose={onClose}
+      title={editingId ? 'تعديل مركز العمل' : 'إضافة مركز عمل / ماكينة جديدة'}
+      subtitle="تحديد تكلفة التشغيل بالساعة والطاقة الإنتاجية ومؤشرات الكفاءة"
+      maxWidth="620px"
+      footer={
+        <StandardDialogFooter
+          onClose={onClose}
+          closeLabel="إلغاء"
+          primaryButton={{
+            label: isSubmitting ? 'جاري الحفظ...' : editingId ? 'حفظ التعديلات' : 'إضافة مركز العمل',
+            onClick: () => handleSubmit(),
+            disabled: isSubmitting,
+          }}
+        />
+      }
+    >
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Card 1: الهوية والحالة */}
+        <div
+          style={{
+            padding: 16,
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#170e5e', borderBottom: '1px solid #e2e8f0', paddingBottom: 6 }}>
+            بيانات وهوية مركز العمل
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+            <Field label="رمز المركز (الكود) *">
               <input
                 type="text"
                 required
@@ -73,13 +106,14 @@ export function WorkCenterModal({
                   width: '100%',
                   padding: '8px 12px',
                   borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  fontSize: '14px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  boxSizing: 'border-box',
                 }}
               />
             </Field>
 
-            <Field label="اسم مركز العمل / الماكينة">
+            <Field label="اسم مركز العمل / الماكينة *">
               <input
                 type="text"
                 required
@@ -90,15 +124,43 @@ export function WorkCenterModal({
                   width: '100%',
                   padding: '8px 12px',
                   borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  fontSize: '14px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  boxSizing: 'border-box',
                 }}
               />
             </Field>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-            <Field label={`تكلفة تشغيل الساعة (${getGlobalCurrencySymbol()}/ساعة)`}>
+          <div>
+            <Field label="الحالة التشغيلية *">
+              <CustomSelect
+                value={formStatus}
+                onChange={(val) => setFormStatus(val as any)}
+                options={statusOptions}
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* Card 2: المعايير الاقتصادية والتشغيلية */}
+        <div
+          style={{
+            padding: 16,
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#170e5e', borderBottom: '1px solid #e2e8f0', paddingBottom: 6 }}>
+            المعايير المالية ومؤشرات الطاقة
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+            <Field label={`تكلفة الساعة (${getGlobalCurrencySymbol()})`}>
               <input
                 type="number"
                 min="0"
@@ -110,13 +172,15 @@ export function WorkCenterModal({
                   width: '100%',
                   padding: '8px 12px',
                   borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  fontSize: '14px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  textAlign: 'center',
+                  boxSizing: 'border-box',
                 }}
               />
             </Field>
 
-            <Field label="طاقة الإنتاج بالساعة">
+            <Field label="طاقة الإنتاج/ساعة">
               <input
                 type="number"
                 min="0.1"
@@ -128,15 +192,15 @@ export function WorkCenterModal({
                   width: '100%',
                   padding: '8px 12px',
                   borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  fontSize: '14px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  textAlign: 'center',
+                  boxSizing: 'border-box',
                 }}
               />
             </Field>
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-            <Field label="كفاءة التشغيل القياسية (%)">
+            <Field label="كفاءة التشغيل (%)">
               <input
                 type="number"
                 min="10"
@@ -148,71 +212,36 @@ export function WorkCenterModal({
                   width: '100%',
                   padding: '8px 12px',
                   borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  fontSize: '14px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  textAlign: 'center',
+                  boxSizing: 'border-box',
                 }}
               />
             </Field>
-
-            <Field label="الحالة التشغيلية">
-              <select
-                value={formStatus}
-                onChange={(e) => setFormStatus(e.target.value as any)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  fontSize: '14px',
-                  backgroundColor: '#ffffff',
-                }}
-              >
-                <option value="active">جاهز ونشط</option>
-                <option value="maintenance">تحت الصيانة</option>
-                <option value="inactive">معطل وموقوف</option>
-              </select>
-            </Field>
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
+          <div>
             <Field label="ملاحظات أو مواصفات فنية">
               <textarea
-                rows={3}
+                rows={2}
                 value={formNotes}
                 onChange={(e) => setFormNotes(e.target.value)}
-                placeholder="مواصفات الماكينة أو أي تعليمات تشغيل..."
+                placeholder="مواصفات الماكينة أو أي تعليمات تشغيل وتبريد..."
                 style={{
                   width: '100%',
                   padding: '8px 12px',
                   borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  fontSize: '14px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '12.5px',
                   resize: 'vertical',
+                  boxSizing: 'border-box',
                 }}
               />
             </Field>
           </div>
-
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              إلغاء
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isSubmitting}
-              style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 600 }}
-            >
-              {isSubmitting ? 'جاري الحفظ...' : editingId ? 'حفظ التعديلات' : 'إضافة مركز العمل'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </DialogShell>
+        </div>
+      </form>
+    </StandardDialog>
   );
 }

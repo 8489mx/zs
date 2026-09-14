@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { DraftStateNotice } from '@/shared/components/draft-state-notice';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { formatCurrency } from '@/lib/format';
 import { useAuthStore, isAdminUser } from '@/stores/auth-store';
 import type { Purchase } from '@/types/domain';
+
+const PAYMENT_TYPE_OPTIONS = [
+  { value: 'cash', label: 'نقدي' },
+  { value: 'credit', label: 'آجل' },
+];
 
 interface PurchaseEditDialogProps {
   open: boolean;
@@ -117,18 +122,73 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
     setLocalError('');
   }
 
+  const handleSaveClick = async () => {
+    if (!normalizedItems.length) {
+      setLocalError('يجب أن تحتوي الفاتورة على صنف واحد على الأقل');
+      return;
+    }
+    if (normalizedItems.some((item) => item.qty <= 0 || item.cost < 0)) {
+      setLocalError('راجع الكميات والتكلفة داخل الفاتورة');
+      return;
+    }
+    if (discount < 0) {
+      setLocalError('الخصم لا يمكن أن يكون سالبًا');
+      return;
+    }
+    if (String(editReason || '').trim().length < 8) {
+      setLocalError('سبب التعديل يجب أن يكون واضحًا');
+      return;
+    }
+    if (!isAdmin && !String(managerPin || '').trim()) {
+      setLocalError('أدخل رمز اعتماد المدير قبل حفظ التعديل');
+      return;
+    }
+    setLocalError('');
+    await onSave({
+      paymentType,
+      discount: Number(discount || 0),
+      note,
+      editReason: String(editReason || '').trim(),
+      managerPin: String(managerPin || '').trim(),
+      items: normalizedItems
+    });
+  };
+
   if (!open || !purchase) return null;
 
   return (
-    <DialogShell open={open} onClose={handleCancel} width="min(980px, 100%)" zIndex={70}>
-      <FormSection title={`تعديل ${purchase.docNo || purchase.id}`} actions={<span className="nav-pill">تعديل</span>} className="dialog-card dialog-card-wide">
+    <>
+      <StandardDialog
+        open={open}
+        onClose={handleCancel}
+        title={`تعديل فاتورة مشتريات ${purchase.docNo || purchase.id}`}
+        subtitle="تعديل بيانات وأصناف فاتورة الشراء مع توثيق سبب التعديل"
+        maxWidth="980px"
+        footerActions={
+          <StandardDialogFooter
+            onCancel={handleCancel}
+            cancelLabel="إغلاق"
+            onSubmit={handleSaveClick}
+            submitLabel={isBusy ? 'جارٍ حفظ التعديل...' : 'حفظ التعديل'}
+            isSubmitting={isBusy}
+            extraActions={
+              <Button variant="secondary" onClick={handleReset} disabled={isBusy || !isDirty}>
+                إعادة القيم
+              </Button>
+            }
+          />
+        }
+      >
         <DraftStateNotice visible={isDirty && !isBusy} title="تعديلات فاتورة الشراء الحالية غير محفوظة" hint="أعد القيم الأصلية أو احفظ التعديلات قبل إغلاق نافذة التعديل." />
-        <div className="form-grid">
+        <div className="form-grid" style={{ marginTop: 12 }}>
           <Field label="نوع السداد">
-            <select value={paymentType} onChange={(e) => setPaymentType(e.target.value)} disabled={isBusy}>
-              <option value="cash">نقدي</option>
-              <option value="credit">آجل</option>
-            </select>
+            <CustomSelect
+              value={paymentType}
+              onChange={(val) => setPaymentType(String(val))}
+              options={PAYMENT_TYPE_OPTIONS}
+              searchable={false}
+              disabled={isBusy}
+            />
           </Field>
           <Field label="خصم الفاتورة"><input type="number" min="0" step="0.01" value={discount} onChange={(e) => setDiscount(Number(e.target.value || 0))} disabled={isBusy} /></Field>
           <div style={{ gridColumn: '1 / -1' }}><Field label="ملاحظات"><textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} disabled={isBusy} /></Field></div>
@@ -162,42 +222,7 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
         </div>
 
         {(localError || errorMessage) ? <div className="error-box" style={{ marginTop: 12 }}>{localError || errorMessage}</div> : null}
-        <div className="actions dialog-actions sticky-form-actions" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
-          <Button variant="secondary" onClick={handleCancel} disabled={isBusy}>إغلاق</Button>
-          <Button variant="secondary" onClick={handleReset} disabled={isBusy || !isDirty}>إعادة القيم</Button>
-          <Button variant="primary" disabled={isBusy} onClick={async () => {
-            if (!normalizedItems.length) {
-              setLocalError('يجب أن تحتوي الفاتورة على صنف واحد على الأقل');
-              return;
-            }
-            if (normalizedItems.some((item) => item.qty <= 0 || item.cost < 0)) {
-              setLocalError('راجع الكميات والتكلفة داخل الفاتورة');
-              return;
-            }
-            if (discount < 0) {
-              setLocalError('الخصم لا يمكن أن يكون سالبًا');
-              return;
-            }
-            if (String(editReason || '').trim().length < 8) {
-              setLocalError('سبب التعديل يجب أن يكون واضحًا');
-              return;
-            }
-            if (!isAdmin && !String(managerPin || '').trim()) {
-              setLocalError('أدخل رمز اعتماد المدير قبل حفظ التعديل');
-              return;
-            }
-            setLocalError('');
-            await onSave({
-              paymentType,
-              discount: Number(discount || 0),
-              note,
-              editReason: String(editReason || '').trim(),
-              managerPin: String(managerPin || '').trim(),
-              items: normalizedItems
-            });
-          }}>{isBusy ? 'جارٍ حفظ التعديل...' : 'حفظ التعديل'}</Button>
-        </div>
-      </FormSection>
+      </StandardDialog>
 
       <ActionConfirmDialog
         open={showDiscardConfirm}
@@ -211,7 +236,7 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
         }}
         onCancel={() => setShowDiscardConfirm(false)}
       />
-    </DialogShell>
+    </>
   );
 }
 

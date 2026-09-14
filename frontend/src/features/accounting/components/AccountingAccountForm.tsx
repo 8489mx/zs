@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
-import { SubmitButton } from '@/shared/components/submit-button';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { FileTextIcon, LayersIcon } from '@/shared/components/icons/AppIcons';
 import { accountingApi, type AccountingAccount } from '../api/accounting.api';
 
 interface AccountingAccountFormProps {
@@ -22,6 +24,21 @@ type FormValues = {
   isActive: boolean;
 };
 
+const ACCOUNT_TYPE_OPTIONS = [
+  { value: 'asset', label: 'أصل (Assets)' },
+  { value: 'liability', label: 'خصم / التزام (Liabilities)' },
+  { value: 'equity', label: 'حقوق ملكية (Equity)' },
+  { value: 'revenue', label: 'إيراد (Revenue)' },
+  { value: 'expense', label: 'مصروف (Expenses)' },
+  { value: 'contra_asset', label: 'أصل عكسي (Contra Asset)' },
+  { value: 'contra_revenue', label: 'إيراد عكسي (Contra Revenue)' },
+];
+
+const NORMAL_BALANCE_OPTIONS = [
+  { value: 'debit', label: 'مدين (Debit)' },
+  { value: 'credit', label: 'دائن (Credit)' },
+];
+
 export function AccountingAccountForm({
   open,
   onClose,
@@ -31,7 +48,7 @@ export function AccountingAccountForm({
 }: AccountingAccountFormProps) {
   const queryClient = useQueryClient();
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
       code: '',
       nameAr: '',
@@ -112,108 +129,174 @@ export function AccountingAccountForm({
   const isPending = createMutation.isPending || updateMutation.isPending;
   const error = createMutation.error || updateMutation.error;
 
+  const dialogTitle = mode === 'create'
+    ? (parentAccount ? `إضافة حساب فرعي تحت (${parentAccount.nameAr})` : 'إضافة حساب رئيسي جديد')
+    : `تعديل الحساب: ${editAccount?.nameAr || ''}`;
+
   return (
-    <DialogShell open={open} onClose={onClose} width="min(600px, 100%)" ariaLabel="نموذج الحساب">
-      <div className="dialog-card" style={{ background: '#ffffff', borderRadius: 8, padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <div className="section-title" style={{ margin: 0, paddingBottom: 16, borderBottom: '1px solid #e2e8f0' }}>
-          <div className="section-heading-copy">
-            <h3 style={{ margin: 0 }}>
-              {mode === 'create' ? (parentAccount ? `إضافة حساب فرعي تحت (${parentAccount.nameAr})` : 'إضافة حساب جديد') : 'تعديل الحساب'}
-            </h3>
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title={dialogTitle}
+      subtitle="تحديد الكود المحاسبي والاسم والتصنيف في الدليل المحاسبي"
+      size="md"
+    >
+      <form id="accounting-account-form" onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {error && (
+          <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '12.5px' }}>
+            {error instanceof Error ? error.message : 'حدث خطأ غير متوقع.'}
+          </div>
+        )}
+
+        {/* Card 1: Account Identification */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '10px',
+          padding: '14px 16px',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
+            <FileTextIcon size={15} style={{ color: '#170e5e' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>بيانات الحساب والرمز</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                كود الحساب <span style={{ color: '#e11d48' }}>*</span>
+              </label>
+              <input
+                type="text"
+                {...register('code', { required: 'مطلوب' })}
+                dir="ltr"
+                disabled={mode === 'edit' && editAccount?.isControlAccount}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontFamily: 'monospace', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+              />
+              {errors.code && <div style={{ color: '#dc2626', fontSize: '11px', marginTop: '2px' }}>{errors.code.message}</div>}
+              {generateCodeQuery.isFetching && <div style={{ color: '#64748b', fontSize: '11px', marginTop: '2px' }}>جاري توليد الكود...</div>}
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                اسم الحساب (عربي) <span style={{ color: '#e11d48' }}>*</span>
+              </label>
+              <input
+                type="text"
+                {...register('nameAr', { required: 'مطلوب' })}
+                placeholder="مثال: البنك الأهلي المصري، مصروفات الصيانة..."
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+              />
+              {errors.nameAr && <div style={{ color: '#dc2626', fontSize: '11px', marginTop: '2px' }}>{errors.nameAr.message}</div>}
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              الاسم (إنجليزي) - اختياري
+            </label>
+            <input
+              type="text"
+              {...register('nameEn')}
+              dir="ltr"
+              placeholder="e.g. Cash in Bank"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+            />
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {error && (
-            <div className="alert alert-danger" style={{ padding: '12px 16px', background: '#fee2e2', color: '#991b1b', borderRadius: 8, fontSize: '0.9rem' }}>
-              {error instanceof Error ? error.message : 'حدث خطأ غير متوقع.'}
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-            <div className="field">
-              <label>
-                <span>كود الحساب</span>
-                <input
-                  type="text"
-                  {...register('code', { required: 'مطلوب' })}
-                  dir="ltr"
-                  data-autofocus
-                  disabled={mode === 'edit' && editAccount?.isControlAccount}
-                />
-              </label>
-              {errors.code && <div className="muted small" style={{ color: '#dc2626' }}>{errors.code.message}</div>}
-              {generateCodeQuery.isFetching && <div className="muted small">جاري توليد الكود...</div>}
-            </div>
-
-            <div className="field">
-              <label>
-                <span>الاسم (عربي)</span>
-                <input
-                  type="text"
-                  {...register('nameAr', { required: 'مطلوب' })}
-                />
-              </label>
-              {errors.nameAr && <div className="muted small" style={{ color: '#dc2626' }}>{errors.nameAr.message}</div>}
-            </div>
-          </div>
-
-          <div className="field">
-            <label>
-              <span>الاسم (إنجليزي) - اختياري</span>
-              <input
-                type="text"
-                {...register('nameEn')}
-                dir="ltr"
-              />
-            </label>
+        {/* Card 2: Accounting Type & Classification */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '10px',
+          padding: '14px 16px',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
+            <LayersIcon size={15} style={{ color: '#170e5e' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>التصنيف المحاسبي والرصيد</span>
           </div>
 
           {mode === 'create' && !parentAccount && (
-            <div style={{ display: 'grid', gap: 20, gridTemplateColumns: '1fr 1fr' }}>
-              <div className="field">
-                <label>
-                  <span>النوع</span>
-                  <select {...register('accountType', { required: 'مطلوب' })}>
-                    <option value="asset">أصل</option>
-                    <option value="liability">خصم</option>
-                    <option value="equity">حقوق ملكية</option>
-                    <option value="revenue">إيراد</option>
-                    <option value="expense">مصروف</option>
-                    <option value="contra_asset">أصل عكسي</option>
-                    <option value="contra_revenue">إيراد عكسي</option>
-                  </select>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  نوع الحساب
                 </label>
+                <Controller
+                  name="accountType"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={ACCOUNT_TYPE_OPTIONS}
+                    />
+                  )}
+                />
               </div>
 
-              <div className="field">
-                <label>
-                  <span>الرصيد الطبيعي</span>
-                  <select {...register('normalBalance', { required: 'مطلوب' })}>
-                    <option value="debit">مدين</option>
-                    <option value="credit">دائن</option>
-                  </select>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  الرصيد الطبيعي
                 </label>
+                <Controller
+                  name="normalBalance"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={NORMAL_BALANCE_OPTIONS}
+                    />
+                  )}
+                />
               </div>
             </div>
           )}
 
-          <div className="field" style={{ marginTop: 8 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', userSelect: 'none' }}>
-              <input type="checkbox" {...register('isActive')} style={{ width: 18, height: 18, margin: 0 }} />
-              <span style={{ margin: 0, fontWeight: 500 }}>حساب نشط</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', backgroundColor: '#ffffff', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+            <input
+              type="checkbox"
+              id="accountIsActive"
+              {...register('isActive')}
+              style={{ width: '16px', height: '16px', accentColor: '#170e5e' }}
+            />
+            <label htmlFor="accountIsActive" style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
+              حساب نشط ومتاح لإدراج القيود
             </label>
-            <div className="muted small" style={{ marginInlineStart: 30 }}>قم بإلغاء تنشيط الحساب بدلاً من حذفه إذا كان يحتوي على حركات سابقة.</div>
           </div>
+        </div>
+      </form>
 
-          <div className="actions" style={{ marginTop: 12, justifyContent: 'flex-end', paddingTop: 16, borderTop: '1px solid #e2e8f0' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isPending}>
-              إلغاء
-            </button>
-            <SubmitButton idleText="حفظ الحساب" pendingText="جاري الحفظ..." isPending={isPending} />
-          </div>
-        </form>
-      </div>
-    </DialogShell>
+      <StandardDialogFooter>
+        <Button type="button" variant="secondary" onClick={onClose} disabled={isPending} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
+          إلغاء
+        </Button>
+        <Button
+          type="submit"
+          form="accounting-account-form"
+          disabled={isPending}
+          style={{
+            backgroundColor: '#170e5e',
+            color: '#ffffff',
+            padding: '8px 22px',
+            fontSize: '13px',
+            fontWeight: 700,
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: isPending ? 0.6 : 1,
+          }}
+        >
+          {isPending ? 'جاري الحفظ...' : 'حفظ الحساب'}
+        </Button>
+      </StandardDialogFooter>
+    </StandardDialog>
   );
 }

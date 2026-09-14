@@ -8,9 +8,9 @@ import {
   ReplenishmentSuggestionItem,
 } from '@/features/inventory/api/inventory-replenishment.api';
 import { ReplenishmentPickListPrintModal, PickListItem } from './ReplenishmentPickListPrintModal';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import {
-  XIcon,
   CheckCircleIcon,
   AlertTriangleIcon,
   LightbulbIcon,
@@ -34,6 +34,11 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
 }) => {
   const { locationsQuery } = useInventoryActionCatalog();
   const locations = locationsQuery.data || [];
+
+  const locationOptions = locations.map((loc: any) => ({
+    value: String(loc.id),
+    label: `${loc.name}${loc.code ? ` (${loc.code})` : ''}`,
+  }));
 
   const [fromLocationId, setFromLocationId] = useState<number | ''>('');
   const [toLocationId, setToLocationId] = useState<number | ''>('');
@@ -209,87 +214,71 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
 
   return (
     <>
-      <DialogShell
+      <StandardDialog
         open={isOpen}
         onClose={onClose}
-        ariaLabel="محرك إمداد الأرفف الذكي"
-        width="min(1120px, 96vw)"
-        zIndex={10000}
-      >
-        <div
-          dir="rtl"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            minHeight: '380px',
-            maxHeight: '88vh',
-            backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Header */}
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid #e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: '#ffffff',
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                  محرك إمداد الأرفف الذكي وتتبع المخازن
-                </h2>
-                <span
-                  style={{
-                    backgroundColor: '#eff6ff',
-                    color: '#1e40af',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '6px',
-                    border: '1px solid #dbeafe',
-                  }}
-                >
-                  تغطية {coverDays * 24} ساعة
-                </span>
-              </div>
-              <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>
-                فحص آلي لأرصدة كافة المخازن وتوجيه الصرف للحاجات المتوفرة فعلياً مع تنبيهات بمواعيد الشراء المطلوبة
-              </p>
+        title="محرك إمداد الأرفف الذكي وتتبع المخازن"
+        subtitle={`فحص آلي لأرصدة كافة المخازن وتوجيه الصرف للحاجات المتوفرة فعلياً (تغطية ${coverDays * 24} ساعة)`}
+        size="xl"
+        footerActions={
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px' }}>
+            <div style={{ flex: 1, minWidth: '240px' }}>
+              <input
+                type="text"
+                placeholder="ملاحظات إذن الصرف (اختياري)..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  padding: '0 12px',
+                  fontSize: '12.5px',
+                  color: '#0f172a',
+                  outline: 'none',
+                }}
+              />
             </div>
 
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                border: 'none',
-                background: '#f1f5f9',
-                borderRadius: '8px',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#64748b',
-              }}
-              aria-label="إغلاق"
-            >
-              <XIcon size={16} />
-            </button>
-          </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {statusMessage && (
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: statusMessage.type === 'error' ? '#fef2f2' : '#f0fdf4',
+                    color: statusMessage.type === 'error' ? '#dc2626' : '#16a34a',
+                    border: `1px solid ${statusMessage.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
+                  }}
+                >
+                  {statusMessage.text}
+                </span>
+              )}
 
+              <StandardDialogFooter
+                onCancel={onClose}
+                cancelLabel="إلغاء"
+                primaryLabel={isSubmitting ? 'جاري الاعتماد والترحيل...' : 'اعتماد إذن الصرف وطباعة أمر التحميل'}
+                onPrimary={handleApproveAndPrint}
+                isPrimaryLoading={isSubmitting}
+                isPrimaryDisabled={isSubmitting || activeValidItems.length === 0 || isSameLocation}
+              />
+            </div>
+          </div>
+        }
+      >
+        <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Location & Coverage Controls Bar */}
           <div
             style={{
-              padding: '14px 20px',
+              padding: '14px 16px',
               backgroundColor: '#f8fafc',
-              borderBottom: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
               gap: '14px',
@@ -300,56 +289,24 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
               <label style={{ display: 'block', fontWeight: 700, fontSize: '12px', color: '#334155', marginBottom: '6px' }}>
                 المستودع المصدر للصرف:
               </label>
-              <select
-                value={fromLocationId}
-                onChange={(e) => setFromLocationId(Number(e.target.value))}
-                style={{
-                  width: '100%',
-                  height: '38px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: '#ffffff',
-                  padding: '0 12px',
-                  fontWeight: 600,
-                  fontSize: '13px',
-                  color: '#0f172a',
-                  outline: 'none',
-                }}
-              >
-                {locations.map((loc: any) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name} {loc.code ? `(${loc.code})` : ''}
-                  </option>
-                ))}
-              </select>
+              <CustomSelect
+                value={fromLocationId ? String(fromLocationId) : ''}
+                onChange={(val) => setFromLocationId(val ? Number(val) : '')}
+                options={locationOptions}
+                placeholder="اختر المستودع المصدر"
+              />
             </div>
 
             <div>
               <label style={{ display: 'block', fontWeight: 700, fontSize: '12px', color: '#334155', marginBottom: '6px' }}>
                 موقع الوجهة (صالة عرض المحل):
               </label>
-              <select
-                value={toLocationId}
-                onChange={(e) => setToLocationId(Number(e.target.value))}
-                style={{
-                  width: '100%',
-                  height: '38px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: '#ffffff',
-                  padding: '0 12px',
-                  fontWeight: 600,
-                  fontSize: '13px',
-                  color: '#0f172a',
-                  outline: 'none',
-                }}
-              >
-                {locations.map((loc: any) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name} {loc.code ? `(${loc.code})` : ''}
-                  </option>
-                ))}
-              </select>
+              <CustomSelect
+                value={toLocationId ? String(toLocationId) : ''}
+                onChange={(val) => setToLocationId(val ? Number(val) : '')}
+                options={locationOptions}
+                placeholder="اختر موقع الوجهة"
+              />
             </div>
 
             <div>
@@ -704,84 +661,8 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
               </div>
             )}
           </div>
-
-          {/* Footer */}
-          <div
-            style={{
-              padding: '14px 20px',
-              backgroundColor: '#ffffff',
-              borderTop: '1px solid #e2e8f0',
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-            }}
-          >
-            <div style={{ flex: 1, minWidth: '240px' }}>
-              <input
-                type="text"
-                placeholder="ملاحظات إذن الصرف (اختياري)..."
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: '38px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: '#ffffff',
-                  padding: '0 12px',
-                  fontSize: '12.5px',
-                  color: '#0f172a',
-                  outline: 'none',
-                }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {statusMessage && (
-                <span
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    backgroundColor: statusMessage.type === 'error' ? '#fef2f2' : '#f0fdf4',
-                    color: statusMessage.type === 'error' ? '#dc2626' : '#16a34a',
-                    border: `1px solid ${statusMessage.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
-                  }}
-                >
-                  {statusMessage.text}
-                </span>
-              )}
-
-              <Button variant="secondary" onClick={onClose} disabled={isSubmitting} style={{ padding: '0 16px', height: '38px' }}>
-                إلغاء
-              </Button>
-
-              <Button
-                variant="primary"
-                onClick={handleApproveAndPrint}
-                disabled={isSubmitting || activeValidItems.length === 0 || isSameLocation}
-                style={{
-                  backgroundColor: '#170e5e',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '13px',
-                  height: '38px',
-                  padding: '0 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: activeValidItems.length > 0 && !isSameLocation ? 'pointer' : 'not-allowed',
-                  opacity: activeValidItems.length > 0 && !isSameLocation ? 1 : 0.6,
-                }}
-              >
-                {isSubmitting ? 'جاري الاعتماد والترحيل...' : 'اعتماد إذن الصرف وطباعة أمر التحميل'}
-              </Button>
-            </div>
-          </div>
         </div>
-      </DialogShell>
+      </StandardDialog>
 
       {/* Printable Dialog */}
       {printedTransfer && (

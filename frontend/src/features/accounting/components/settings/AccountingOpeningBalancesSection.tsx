@@ -1,5 +1,5 @@
 import { FormSection } from '@/shared/components/form-section';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { OpeningBalancesPreviewResponse } from '@/features/accounting/api/accounting.api';
@@ -155,27 +155,41 @@ export function AccountingOpeningBalancesSection({
         </div>
       </FormSection>
 
-      <DialogShell
-        open={showPostConfirm}
+      <StandardDialog
+        isOpen={showPostConfirm}
         onClose={() => setShowPostConfirm(false)}
-        width="min(520px, 100%)"
-        ariaLabel="تأكيد ترحيل الأرصدة الافتتاحية"
+        title="تأكيد ترحيل الأرصدة الافتتاحية"
+        subtitle="إنشاء القيد الافتتاحي واعتماد الأرصدة التأسيسية للمنشأة"
+        maxWidth="520px"
+        footer={
+          <StandardDialogFooter
+            onClose={() => setShowPostConfirm(false)}
+            closeLabel="إلغاء"
+            primaryButton={{
+              label: postMutation.isPending ? 'جاري الترحيل...' : 'تأكيد الترحيل النهائي',
+              onClick: () => postMutation.mutate(),
+              disabled: !canPost || postMutation.isPending,
+              variant: 'danger',
+            }}
+          />
+        }
       >
-        <div className="page-stack">
-          <div><strong>تأكيد ترحيل الأرصدة الافتتاحية</strong></div>
-          <p>
-            سيتم إنشاء قيد افتتاحي مرحّل ولا يمكن ترحيل الأرصدة الافتتاحية مرة أخرى لنفس المنشأة. هل تريد المتابعة؟
-          </p>
-          <div className="actions">
-            <Button type="button" variant="primary" onClick={() => postMutation.mutate()} disabled={!canPost || postMutation.isPending}>
-              تأكيد الترحيل
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => setShowPostConfirm(false)} disabled={postMutation.isPending}>
-              إلغاء
-            </Button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div
+            style={{
+              padding: 16,
+              background: '#fffbeb',
+              border: '1px solid #fde68a',
+              borderRadius: 10,
+              fontSize: '0.85rem',
+              color: '#92400e',
+              lineHeight: 1.6,
+            }}
+          >
+            <strong>تنبيه مالي رقابي:</strong> سيتم إنشاء قيد افتتاحي محاسبي مرحّل تلقائياً، ولا يمكن ترحيل الأرصدة الافتتاحية مرة أخرى لنفس المنشأة بعد الاعتماد. هل أنت متأكد من رغبتك في المتابعة؟
           </div>
         </div>
-      </DialogShell>
+      </StandardDialog>
     </>
   );
 }

@@ -1,10 +1,8 @@
-import { useCallback } from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
-import { FormSection } from '@/shared/components/form-section';
+import { useCallback, useMemo } from 'react';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { Field } from '@/shared/ui/field';
-import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
-import { SubmitButton } from '@/shared/components/submit-button';
 import type { Category, Supplier } from '@/types/domain';
 
 export interface PurchaseQuickCreateDraft {
@@ -47,107 +45,127 @@ export function PurchaseQuickCreateDialog({
     onClose();
   }, [isPending, onClose]);
 
+  const categoryOptions = useMemo(() => [
+    { value: '', label: 'بدون مجموعة' },
+    ...categories.map((c) => ({ value: c.id, label: c.name })),
+  ], [categories]);
+
+  const supplierOptions = useMemo(() => [
+    { value: '', label: 'بدون مورد' },
+    ...suppliers.map((s) => ({ value: s.id, label: s.name })),
+  ], [suppliers]);
+
   return (
-    <DialogShell open={open} onClose={handleClose} width="min(760px, 100%)" zIndex={95} ariaLabel="إضافة صنف جديد من صفحة المشتريات">
-      <FormSection
-        title="إضافة صنف جديد"
-        description="أضف الحد الأدنى من بيانات الصنف ثم ارجعه مباشرة إلى فاتورة الشراء الحالية."
-        className="dialog-card"
+    <StandardDialog
+      open={open}
+      onClose={handleClose}
+      title="إضافة صنف جديد"
+      subtitle="أضف الحد الأدنى من بيانات الصنف ثم ارجعه مباشرة إلى فاتورة الشراء الحالية"
+      maxWidth="760px"
+      footerActions={
+        <StandardDialogFooter
+          onCancel={handleClose}
+          cancelLabel="إغلاق"
+          submitLabel={isPending ? 'جارٍ إنشاء الصنف...' : 'حفظ الصنف وإضافته'}
+          isSubmitting={isPending}
+          onSubmit={onSubmit}
+        />
+      }
+    >
+      <form
+        className="page-stack"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSubmit();
+        }}
       >
-        <form
-          className="page-stack"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSubmit();
-          }}
-        >
-          <div className="form-grid">
-            <Field label="اسم الصنف">
-              <input
-                value={draft.name}
-                onChange={(event) => onDraftChange({ ...draft, name: event.target.value })}
-                disabled={isPending}
-                data-autofocus
-              />
-            </Field>
-            <Field label="الكود / الباركود">
-              <input
-                value={draft.barcode}
-                onChange={(event) => onDraftChange({ ...draft, barcode: event.target.value })}
-                disabled={isPending}
-                placeholder="اختياري"
-              />
-            </Field>
-            <Field label="المجموعة">
-              <select value={draft.categoryId} onChange={(event) => onDraftChange({ ...draft, categoryId: event.target.value })} disabled={isPending}>
-                <option value="">بدون مجموعة</option>
-                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-              </select>
-            </Field>
-            <Field label="المورد">
-              <select value={draft.supplierId} onChange={(event) => onDraftChange({ ...draft, supplierId: event.target.value })} disabled={isPending}>
-                <option value="">بدون مورد</option>
-                {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
-              </select>
-            </Field>
-            <Field label="الوحدة الأساسية">
-              <input
-                value={draft.unitName}
-                onChange={(event) => onDraftChange({ ...draft, unitName: event.target.value })}
-                disabled={isPending}
-                placeholder="قطعة"
-              />
-            </Field>
-            <Field label="سعر الشراء">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={draft.costPrice}
-                onChange={(event) => onDraftChange({ ...draft, costPrice: Number(event.target.value || 0) })}
-                disabled={isPending}
-              />
-            </Field>
-            <Field label="سعر البيع">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={draft.retailPrice}
-                onChange={(event) => onDraftChange({ ...draft, retailPrice: Number(event.target.value || 0) })}
-                disabled={isPending}
-              />
-            </Field>
-            <Field label="سعر الجملة">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={draft.wholesalePrice}
-                onChange={(event) => onDraftChange({ ...draft, wholesalePrice: Number(event.target.value || 0) })}
-                disabled={isPending}
-              />
-            </Field>
-            <Field label="الحد الأدنى">
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={draft.minStock}
-                onChange={(event) => onDraftChange({ ...draft, minStock: Number(event.target.value || 0) })}
-                disabled={isPending}
-              />
-            </Field>
-          </div>
+        <div className="form-grid">
+          <Field label="اسم الصنف">
+            <input
+              value={draft.name}
+              onChange={(event) => onDraftChange({ ...draft, name: event.target.value })}
+              disabled={isPending}
+              data-autofocus
+            />
+          </Field>
+          <Field label="الكود / الباركود">
+            <input
+              value={draft.barcode}
+              onChange={(event) => onDraftChange({ ...draft, barcode: event.target.value })}
+              disabled={isPending}
+              placeholder="اختياري"
+            />
+          </Field>
+          <Field label="المجموعة">
+            <CustomSelect
+              value={draft.categoryId}
+              onChange={(val) => onDraftChange({ ...draft, categoryId: String(val) })}
+              options={categoryOptions}
+              disabled={isPending}
+              searchable
+            />
+          </Field>
+          <Field label="المورد">
+            <CustomSelect
+              value={draft.supplierId}
+              onChange={(val) => onDraftChange({ ...draft, supplierId: String(val) })}
+              options={supplierOptions}
+              disabled={isPending}
+              searchable
+            />
+          </Field>
+          <Field label="الوحدة الأساسية">
+            <input
+              value={draft.unitName}
+              onChange={(event) => onDraftChange({ ...draft, unitName: event.target.value })}
+              disabled={isPending}
+              placeholder="قطعة"
+            />
+          </Field>
+          <Field label="سعر الشراء">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={draft.costPrice}
+              onChange={(event) => onDraftChange({ ...draft, costPrice: Number(event.target.value || 0) })}
+              disabled={isPending}
+            />
+          </Field>
+          <Field label="سعر البيع">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={draft.retailPrice}
+              onChange={(event) => onDraftChange({ ...draft, retailPrice: Number(event.target.value || 0) })}
+              disabled={isPending}
+            />
+          </Field>
+          <Field label="سعر الجملة">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={draft.wholesalePrice}
+              onChange={(event) => onDraftChange({ ...draft, wholesalePrice: Number(event.target.value || 0) })}
+              disabled={isPending}
+            />
+          </Field>
+          <Field label="الحد الأدنى">
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={draft.minStock}
+              onChange={(event) => onDraftChange({ ...draft, minStock: Number(event.target.value || 0) })}
+              disabled={isPending}
+            />
+          </Field>
+        </div>
 
-          <MutationFeedback isError={Boolean(error)} error={error} errorFallback="تعذر إنشاء الصنف الجديد من صفحة المشتريات." />
-
-          <div className="actions sticky-form-actions">
-            <SubmitButton type="submit" isPending={isPending} idleText="حفظ الصنف وإضافته" pendingText="جارٍ إنشاء الصنف..." />
-            <Button type="button" variant="secondary" onClick={handleClose} disabled={isPending}>إغلاق</Button>
-          </div>
-        </form>
-      </FormSection>
-    </DialogShell>
+        <MutationFeedback isError={Boolean(error)} error={error} errorFallback="تعذر إنشاء الصنف الجديد من صفحة المشتريات." />
+      </form>
+    </StandardDialog>
   );
 }

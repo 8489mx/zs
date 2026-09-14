@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { productsApi } from '@/features/products/api/products.api';
 import { bomsApi } from '@/shared/api/boms.api';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
@@ -631,7 +631,19 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
   if (!open) return null;
 
   return (
-    <DialogShell open={open} onClose={onClose} width="min(1080px, 95vw)" zIndex={80} ariaLabel="إدارة عروض الصنف">
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title="إدارة العروض والخصومات والوجبات التجميعية"
+      subtitle={activeProduct ? `الصنف: ${activeProduct.name} · السعر الأساسي: ${formatCurrency(retailPrice)}` : 'إدارة العروض والخصومات والوجبات الكومبو المجمعة'}
+      maxWidth="1140px"
+      footerActions={
+        <StandardDialogFooter
+          cancelText="إغلاق"
+          onCancel={onClose}
+        />
+      }
+    >
       <div className="page-stack" style={{ gap: 16 }}>
         
         {/* Header */}
@@ -942,6 +954,6 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
           />
         )}
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }

@@ -75,6 +75,8 @@ export interface CreateDealPayload {
   source?: string;
   priority?: string;
   assignedUserId?: number | null;
+  customerId?: number | null;
+  lostReason?: string;
   notes?: string;
 }
 
@@ -92,6 +94,7 @@ export interface UpdateDealPayload {
   source?: string;
   priority?: string;
   assignedUserId?: number | null;
+  customerId?: number | null;
   lostReason?: string;
   notes?: string;
 }

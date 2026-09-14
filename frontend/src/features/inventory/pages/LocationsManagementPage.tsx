@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/components/data-table/DataTable';
@@ -8,7 +8,15 @@ import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInvento
 import { useCreateLocationMutation, useUpdateLocationMutation, useDeleteLocationMutation } from '@/shared/hooks/use-location-mutations';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { systemConfirm } from '@/shared/components/system-alert';
+import { EditIcon, TrashIcon, PlusIcon } from '@/shared/components/icons/AppIcons';
+
+const LOCATION_TYPE_OPTIONS = [
+  { value: 'internal_warehouse', label: 'مخزن داخلي (لا يظهر كأرصدة فروع)' },
+  { value: 'branch_stock', label: 'رصيد فرع (متاح للبيع)' },
+];
 
 export function LocationsManagementPage() {
   const { locationsQuery, branchesQuery } = useInventoryActionCatalog();
@@ -21,6 +29,11 @@ export function LocationsManagementPage() {
   const [code, setCode] = useState('');
   const [branchId, setBranchId] = useState('');
   const [locationType, setLocationType] = useState<'internal_warehouse' | 'branch_stock'>('internal_warehouse');
+
+  const branchOptions = useMemo(() => [
+    { value: '', label: 'بدون ربط (فرع رئيسي)' },
+    ...(branchesQuery.data || []).map((b) => ({ value: String(b.id), label: b.name })),
+  ], [branchesQuery.data]);
 
   const createMutation = useCreateLocationMutation(() => setModalOpen(false));
   const updateMutation = useUpdateLocationMutation(() => setModalOpen(false));
@@ -47,7 +60,14 @@ export function LocationsManagementPage() {
   };
 
   const handleDelete = async (location: Location) => {
-    if (!window.confirm(`هل أنت متأكد من حذف المخزن "${location.name}"؟`)) return;
+    const confirmed = await systemConfirm({
+      title: 'حذف المخزن',
+      message: `هل أنت متأكد من حذف المخزن "${location.name}"؟`,
+      confirmText: 'نعم، حذف',
+      cancelText: 'إلغاء',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     deleteMutation.mutate(String(location.id));
   };
 
@@ -70,12 +90,12 @@ export function LocationsManagementPage() {
       key: 'actions',
       header: '',
       cell: (row) => (
-        <div className="actions" style={{ flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
+        <div className="actions" style={{ flexWrap: 'nowrap', justifyContent: 'flex-end', display: 'flex', gap: '6px' }}>
           <Button variant="secondary" onClick={() => handleEdit(row)} title="تعديل" style={{ padding: '4px 8px', height: '32px' }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+            <EditIcon size={14} />
           </Button>
           <Button variant="secondary" onClick={() => handleDelete(row)} title="حذف" style={{ padding: '4px 8px', height: '32px', color: 'var(--text-danger)' }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <TrashIcon size={14} />
           </Button>
         </div>
       ),
@@ -90,7 +110,7 @@ export function LocationsManagementPage() {
         description="إضافة، تعديل، وحذف أماكن المخزون في النظام"
         actions={(
           <Button variant="primary" onClick={handleCreate}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 8 }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <PlusIcon size={16} style={{ marginLeft: 8 }} />
             إضافة مخزن
           </Button>
         )}
@@ -105,47 +125,53 @@ export function LocationsManagementPage() {
         />
       </FormSection>
 
-      {modalOpen && (
-        <DialogShell 
-          open={true} 
-          onClose={() => setModalOpen(false)}
-          width="500px"
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{editingLocation ? 'تعديل المخزن' : 'إضافة مخزن جديد'}</h3>
-          </div>
-          <div style={{ padding: '24px' }}>
-            <form onSubmit={onSave} className="form-grid single-col" id="location-form">
-              <Field label="اسم المخزن">
-                <input required value={name} onChange={(e) => setName(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="مثال: المخزن الرئيسي" />
-              </Field>
-              <Field label="كود المخزن">
-                <input value={code} onChange={(e) => setCode(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="اختياري" />
-              </Field>
-              <Field label="الفرع">
-                <select value={branchId} onChange={(e) => setBranchId(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending}>
-                  <option value="">بدون ربط (فرع رئيسي)</option>
-                  {(branchesQuery.data || []).map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="نوع المخزن">
-                <select value={locationType} onChange={(e) => setLocationType(e.target.value as 'internal_warehouse' | 'branch_stock')} disabled={createMutation.isPending || updateMutation.isPending}>
-                  <option value="internal_warehouse">مخزن داخلي (لا يظهر كأرصدة فروع)</option>
-                  <option value="branch_stock">رصيد فرع (متاح للبيع)</option>
-                </select>
-              </Field>
-            </form>
-          </div>
-          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '8px', backgroundColor: 'var(--bg-muted)' }}>
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
-            <Button variant="primary" type="submit" form="location-form" disabled={createMutation.isPending || updateMutation.isPending}>
-              {editingLocation ? 'حفظ التعديلات' : 'إضافة المخزن'}
-            </Button>
-          </div>
-        </DialogShell>
-      )}
+      <StandardDialog
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingLocation ? 'تعديل المخزن' : 'إضافة مخزن جديد'}
+        subtitle="تحديد خصائص المخزن والفرع المرتبط ونوعه التشغيلي"
+        size="md"
+        footerActions={
+          <StandardDialogFooter
+            onCancel={() => setModalOpen(false)}
+            cancelLabel="إلغاء"
+            primaryLabel={editingLocation ? 'حفظ التعديلات' : 'إضافة المخزن'}
+            onPrimary={() => {
+              const form = document.getElementById('location-form') as HTMLFormElement | null;
+              if (form) form.requestSubmit();
+            }}
+            isPrimaryLoading={createMutation.isPending || updateMutation.isPending}
+            isPrimaryDisabled={createMutation.isPending || updateMutation.isPending || !name.trim()}
+          />
+        }
+      >
+        <form onSubmit={onSave} className="form-grid single-col" id="location-form" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <Field label="اسم المخزن">
+            <input required value={name} onChange={(e) => setName(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="مثال: المخزن الرئيسي" />
+          </Field>
+          <Field label="كود المخزن">
+            <input value={code} onChange={(e) => setCode(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="اختياري" />
+          </Field>
+          <Field label="الفرع">
+            <CustomSelect
+              value={branchId}
+              onChange={(val) => setBranchId(val)}
+              options={branchOptions}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              placeholder="اختر الفرع المرتبط"
+            />
+          </Field>
+          <Field label="نوع المخزن">
+            <CustomSelect
+              value={locationType}
+              onChange={(val) => setLocationType(val as 'internal_warehouse' | 'branch_stock')}
+              options={LOCATION_TYPE_OPTIONS}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              placeholder="اختر نوع المخزن"
+            />
+          </Field>
+        </form>
+      </StandardDialog>
       </main>
     </div>
   );

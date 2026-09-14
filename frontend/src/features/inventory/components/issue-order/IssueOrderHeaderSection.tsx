@@ -1,6 +1,12 @@
 import React from 'react';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
+
+const ISSUE_MODE_OPTIONS = [
+  { value: 'final_issue', label: 'صرف نهائي (يتم خصم الرصيد فوراً)' },
+  { value: 'transfer_to_branch_stock', label: 'تحويل إلى رصيد فرع (يبقى في الطريق حتى يتم استلامه)' },
+];
 
 interface IssueOrderHeaderSectionProps {
   fromLocationQuery: string;
@@ -76,14 +82,12 @@ export const IssueOrderHeaderSection: React.FC<IssueOrderHeaderSectionProps> = (
           />
 
           <Field label="وضع الصرف">
-            <select
-              className="purchase-prototype-field-input"
+            <CustomSelect
               value={issueMode}
-              onChange={(e) => setIssueMode(e.target.value as any)}
-            >
-              <option value="final_issue">صرف نهائي (يتم خصم الرصيد فوراً)</option>
-              <option value="transfer_to_branch_stock">تحويل إلى رصيد فرع (يبقى في الطريق حتى يتم استلامه)</option>
-            </select>
+              onChange={(val) => setIssueMode(val as any)}
+              options={ISSUE_MODE_OPTIONS}
+              placeholder="اختر وضع الصرف"
+            />
           </Field>
         </div>
 

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { WarehouseBin } from '../../api/warehouse-bins.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { CustomSelect } from '@/shared/ui/custom-select';
 
 interface BinsDirectoryTableProps {
   bins: WarehouseBin[];
@@ -27,6 +28,11 @@ export const BinsDirectoryTable: React.FC<BinsDirectoryTableProps> = ({
   onEditBin,
   onDeleteBin,
 }) => {
+  const locationOptions = useMemo(() => [
+    { value: '', label: '-- كل المستودعات والفروع --' },
+    ...locations.map((loc) => ({ value: String(loc.id), label: loc.name })),
+  ], [locations]);
+
   return (
     <div
       style={{
@@ -40,26 +46,12 @@ export const BinsDirectoryTable: React.FC<BinsDirectoryTableProps> = ({
       {/* Filters */}
       <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', alignItems: 'center' }}>
         <div style={{ width: '260px' }}>
-          <select
-            value={selectedLocationId}
-            onChange={(e) => onSelectLocationId(e.target.value ? Number(e.target.value) : '')}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              fontSize: '13px',
-              outline: 'none',
-              backgroundColor: '#ffffff',
-            }}
-          >
-            <option value="">-- كل المستودعات والفروع --</option>
-            {locations.map((loc) => (
-              <option key={loc.id} value={loc.id}>
-                {loc.name}
-              </option>
-            ))}
-          </select>
+          <CustomSelect
+            value={selectedLocationId ? String(selectedLocationId) : ''}
+            onChange={(val) => onSelectLocationId(val ? Number(val) : '')}
+            options={locationOptions}
+            placeholder="-- كل المستودعات والفروع --"
+          />
         </div>
 
         <div style={{ flex: 1 }}>

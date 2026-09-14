@@ -1,3 +1,5 @@
+import { CustomSelect } from '@/shared/ui/custom-select';
+
 interface SmartReorderFiltersProps {
   daysAnalysis: number;
   setDaysAnalysis: (v: number) => void;
@@ -10,6 +12,36 @@ interface SmartReorderFiltersProps {
   search: string;
   setSearch: (v: string) => void;
 }
+
+const DAYS_ANALYSIS_OPTIONS = [
+  { value: 14, label: 'آخر 14 يوماً' },
+  { value: 30, label: 'آخر 30 يوماً (موصى به)' },
+  { value: 60, label: 'آخر 60 يوماً' },
+  { value: 90, label: 'آخر 90 يوماً' },
+];
+
+const TARGET_COVERAGE_OPTIONS = [
+  { value: 14, label: '14 يوماً' },
+  { value: 30, label: '30 يوماً (شهر كامل)' },
+  { value: 45, label: '45 يوماً' },
+  { value: 60, label: '60 يوماً' },
+];
+
+const LEAD_TIME_OPTIONS = [
+  { value: 2, label: '2 أيام' },
+  { value: 3, label: '3 أيام (افتراضي)' },
+  { value: 5, label: '5 أيام' },
+  { value: 7, label: '7 أيام' },
+  { value: 14, label: '14 يوماً' },
+];
+
+const URGENCY_OPTIONS = [
+  { value: 'needs_reorder', label: 'يحتاج إعادة طلب فقط' },
+  { value: 'out_of_stock', label: 'نافد المخزون فقط' },
+  { value: 'critical', label: 'حرج ووشيك النفاد' },
+  { value: 'warning', label: 'تحذيري فقط' },
+  { value: 'all', label: 'جميع الأصناف' },
+];
 
 export function SmartReorderFilters({
   daysAnalysis,
@@ -37,90 +69,44 @@ export function SmartReorderFilters({
     >
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '160px' }}>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>فترة تحليل المبيعات:</label>
-            <select
+            <CustomSelect
               value={daysAnalysis}
-              onChange={(e) => setDaysAnalysis(Number(e.target.value))}
-              style={{
-                padding: '8px 28px 8px 10px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '13px',
-                backgroundColor: '#ffffff',
-                minWidth: '130px',
-              }}
-            >
-              <option value={14}>آخر 14 يوماً</option>
-              <option value={30}>آخر 30 يوماً ★</option>
-              <option value={60}>آخر 60 يوماً</option>
-              <option value={90}>آخر 90 يوماً</option>
-            </select>
+              onChange={(val) => setDaysAnalysis(Number(val))}
+              options={DAYS_ANALYSIS_OPTIONS}
+              searchable={false}
+            />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '160px' }}>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>أيام التغطية المستهدفة:</label>
-            <select
+            <CustomSelect
               value={targetCoverageDays}
-              onChange={(e) => setTargetCoverageDays(Number(e.target.value))}
-              style={{
-                padding: '8px 28px 8px 10px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '13px',
-                backgroundColor: '#ffffff',
-                minWidth: '130px',
-              }}
-            >
-              <option value={14}>14 يوماً</option>
-              <option value={30}>30 يوماً (شهر كامل)</option>
-              <option value={45}>45 يوماً</option>
-              <option value={60}>60 يوماً</option>
-            </select>
+              onChange={(val) => setTargetCoverageDays(Number(val))}
+              options={TARGET_COVERAGE_OPTIONS}
+              searchable={false}
+            />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '150px' }}>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>فترة التوريد الافتراضية:</label>
-            <select
+            <CustomSelect
               value={defaultLeadTimeDays}
-              onChange={(e) => setDefaultLeadTimeDays(Number(e.target.value))}
-              style={{
-                padding: '8px 28px 8px 10px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '13px',
-                backgroundColor: '#ffffff',
-                minWidth: '120px',
-              }}
-            >
-              <option value={2}>2 أيام</option>
-              <option value={3}>3 أيام (افتراضي)</option>
-              <option value={5}>5 أيام</option>
-              <option value={7}>7 أيام</option>
-              <option value={14}>14 يوماً</option>
-            </select>
+              onChange={(val) => setDefaultLeadTimeDays(Number(val))}
+              options={LEAD_TIME_OPTIONS}
+              searchable={false}
+            />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '180px' }}>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>مستوى الإلحاح:</label>
-            <select
+            <CustomSelect
               value={urgencyFilter}
-              onChange={(e) => setUrgencyFilter(e.target.value as any)}
-              style={{
-                padding: '8px 28px 8px 10px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '13px',
-                backgroundColor: '#ffffff',
-                minWidth: '160px',
-              }}
-            >
-              <option value="needs_reorder">يحتاج إعادة طلب فقط ★</option>
-              <option value="out_of_stock">نافد المخزون فقط</option>
-              <option value="critical">حرج ووشيك النفاد</option>
-              <option value="warning">تحذيري فقط</option>
-              <option value="all">جميع الأصناف</option>
-            </select>
+              onChange={(val) => setUrgencyFilter(val as any)}
+              options={URGENCY_OPTIONS}
+              searchable={false}
+            />
           </div>
         </div>
 

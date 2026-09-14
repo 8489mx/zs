@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
-import { XIcon } from '@/shared/components/icons/AppIcons';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { FileTextIcon, DollarSignIcon } from '@/shared/components/icons/AppIcons';
 import { pdcChequesApi, type ChequeType, type CreatePdcChequePayload } from '../api/accounting.api';
 
 export interface PdcChequeCreateModalProps {
@@ -25,6 +26,15 @@ const getInitialState = (type: ChequeType): CreatePdcChequePayload => ({
   dueDate: '',
   notes: '',
 });
+
+const CURRENCY_OPTIONS = [
+  { value: 'EGP', label: 'جنيه مصري (EGP)' },
+  { value: 'SAR', label: 'ريال سعودي (SAR)' },
+  { value: 'USD', label: 'دولار أمريكي (USD)' },
+  { value: 'EUR', label: 'يورو (EUR)' },
+  { value: 'AED', label: 'درهم إماراتي (AED)' },
+  { value: 'KWD', label: 'دينار كويتي (KWD)' },
+];
 
 export function PdcChequeCreateModal({
   open,
@@ -53,263 +63,268 @@ export function PdcChequeCreateModal({
 
   if (!open) return null;
 
+  const isReceivable = chequeType === 'receivable';
+
   return (
-    <DialogShell
-      isOpen={open}
+    <StandardDialog
+      open={open}
       onClose={onClose}
+      title={isReceivable ? 'تسجيل ورقة قبض جديدة (شيك عميل)' : 'تحرير ورقة دفع جديدة (شيك مورد)'}
+      subtitle="إدخال بيانات الشيك البنكي وتفاصيل الساحب والمبلغ وتاريخ الاستحقاق بالحافظة"
       size="lg"
     >
-      <div className="standard-dialog-header">
-        <div>
-          <h2 className="standard-dialog-title">
-            {chequeType === 'receivable'
-              ? 'تسجيل ورقة قبض جديدة (شيك عميل)'
-              : 'تحرير ورقة دفع جديدة (شيك مورد)'}
-          </h2>
-          <p className="standard-dialog-subtitle">
-            إدخال بيانات الشيك البنكي وتفاصيل الساحب والمبلغ وتاريخ الاستحقاق
-          </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        {/* Card 1: Bank & Partner Info */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '12px',
+          padding: '16px',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+            <FileTextIcon size={16} style={{ color: '#170e5e' }} />
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+              بيانات الشيك والطرف المستفيد
+            </h4>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              رقم الشيك <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={newCheque.chequeNumber}
+              onChange={(e) => setNewCheque({ ...newCheque, chequeNumber: e.target.value })}
+              placeholder="مثال: 00482910"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              {isReceivable ? 'اسم العميل / الطرف' : 'اسم المورد المستفيد'}{' '}
+              <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={newCheque.partnerName}
+              onChange={(e) => setNewCheque({ ...newCheque, partnerName: e.target.value })}
+              placeholder="الاسم الثلاثي أو اسم المنشأة"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              البنك المسحوب عليه <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={newCheque.bankName}
+              onChange={(e) => setNewCheque({ ...newCheque, bankName: e.target.value })}
+              placeholder="مثال: البنك الأهلي المصري / بنك الراجحي"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              فرع البنك
+            </label>
+            <input
+              type="text"
+              value={newCheque.branchName || ''}
+              onChange={(e) => setNewCheque({ ...newCheque, branchName: e.target.value })}
+              placeholder="مثال: فرع التجمع الخامس"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              اسم الساحب الفعلي (إن وجد)
+            </label>
+            <input
+              type="text"
+              value={newCheque.drawerName || ''}
+              onChange={(e) => setNewCheque({ ...newCheque, drawerName: e.target.value })}
+              placeholder="اسم صاحب الحساب البنكي الموقع"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="standard-dialog-close-btn"
-          aria-label="إغلاق"
-        >
-          <XIcon size={18} />
-        </button>
+
+        {/* Card 2: Financial & Dates Info */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '12px',
+          padding: '16px',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+            <DollarSignIcon size={16} style={{ color: '#170e5e' }} />
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+              البيانات المالية وتواريخ الاستحقاق
+            </h4>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '10px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                المبلغ <span style={{ color: '#e11d48' }}>*</span>
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={newCheque.amount || ''}
+                onChange={(e) => setNewCheque({ ...newCheque, amount: Number(e.target.value) })}
+                placeholder="0.00"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                العملة
+              </label>
+              <CustomSelect
+                value={newCheque.currency}
+                onChange={(val) => setNewCheque({ ...newCheque, currency: val })}
+                options={CURRENCY_OPTIONS}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              تاريخ التحرير / الاستلام <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="date"
+              value={newCheque.issueDate}
+              onChange={(e) => setNewCheque({ ...newCheque, issueDate: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              تاريخ الاستحقاق (الصرف) <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="date"
+              value={newCheque.dueDate}
+              onChange={(e) => setNewCheque({ ...newCheque, dueDate: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              ملاحظات إضافية
+            </label>
+            <textarea
+              rows={3}
+              value={newCheque.notes || ''}
+              onChange={(e) => setNewCheque({ ...newCheque, notes: e.target.value })}
+              placeholder="رقم الفاتورة أو العقد المرتبط بالشيك..."
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+                resize: 'none',
+              }}
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="standard-dialog-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            رقم الشيك <span style={{ color: '#e11d48' }}>*</span>
-          </label>
-          <input
-            type="text"
-            value={newCheque.chequeNumber}
-            onChange={(e) => setNewCheque({ ...newCheque, chequeNumber: e.target.value })}
-            placeholder="مثال: 00482910"
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12px',
-              color: '#1e293b',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            {chequeType === 'receivable' ? 'اسم العميل / المستفيد' : 'اسم المورد المستفيد'}{' '}
-            <span style={{ color: '#e11d48' }}>*</span>
-          </label>
-          <input
-            type="text"
-            value={newCheque.partnerName}
-            onChange={(e) => setNewCheque({ ...newCheque, partnerName: e.target.value })}
-            placeholder="الاسم الثلاثي أو اسم المنشأة"
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12px',
-              color: '#1e293b',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            البنك المسحوب عليه <span style={{ color: '#e11d48' }}>*</span>
-          </label>
-          <input
-            type="text"
-            value={newCheque.bankName}
-            onChange={(e) => setNewCheque({ ...newCheque, bankName: e.target.value })}
-            placeholder="مثال: البنك الأهلي المصري / بنك الراجحي"
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12px',
-              color: '#1e293b',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            فرع البنك
-          </label>
-          <input
-            type="text"
-            value={newCheque.branchName || ''}
-            onChange={(e) => setNewCheque({ ...newCheque, branchName: e.target.value })}
-            placeholder="مثال: فرع التجمع الخامس"
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12px',
-              color: '#1e293b',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            المبلغ <span style={{ color: '#e11d48' }}>*</span>
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            value={newCheque.amount || ''}
-            onChange={(e) => setNewCheque({ ...newCheque, amount: Number(e.target.value) })}
-            placeholder="0.00"
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12px',
-              fontWeight: 700,
-              color: '#0f172a',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            العملة
-          </label>
-          <select
-            value={newCheque.currency}
-            onChange={(e) => setNewCheque({ ...newCheque, currency: e.target.value })}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12px',
-              color: '#1e293b',
-              boxSizing: 'border-box',
-            }}
-          >
-            <option value="EGP">جنيه مصري (EGP)</option>
-            <option value="SAR">ريال سعودي (SAR)</option>
-            <option value="USD">دولار أمريكي (USD)</option>
-            <option value="EUR">يورو (EUR)</option>
-            <option value="AED">درهم إماراتي (AED)</option>
-            <option value="KWD">دينار كويتي (KWD)</option>
-          </select>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            تاريخ التحرير / الاستلام <span style={{ color: '#e11d48' }}>*</span>
-          </label>
-          <input
-            type="date"
-            value={newCheque.issueDate}
-            onChange={(e) => setNewCheque({ ...newCheque, issueDate: e.target.value })}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12px',
-              color: '#1e293b',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            تاريخ الاستحقاق (الصرف) <span style={{ color: '#e11d48' }}>*</span>
-          </label>
-          <input
-            type="date"
-            value={newCheque.dueDate}
-            onChange={(e) => setNewCheque({ ...newCheque, dueDate: e.target.value })}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12px',
-              color: '#1e293b',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            اسم الساحب الفعلي (إن وجد)
-          </label>
-          <input
-            type="text"
-            value={newCheque.drawerName || ''}
-            onChange={(e) => setNewCheque({ ...newCheque, drawerName: e.target.value })}
-            placeholder="اسم صاحب الحساب البنكي الموقع"
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12px',
-              color: '#1e293b',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            ملاحظات إضافية
-          </label>
-          <textarea
-            rows={2}
-            value={newCheque.notes || ''}
-            onChange={(e) => setNewCheque({ ...newCheque, notes: e.target.value })}
-            placeholder="رقم الفاتورة أو العقد المرتبط بالشيك..."
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12px',
-              color: '#1e293b',
-              boxSizing: 'border-box',
-              resize: 'vertical',
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="standard-dialog-footer">
+      <StandardDialogFooter>
         <Button
           type="button"
           variant="secondary"
@@ -343,7 +358,7 @@ export function PdcChequeCreateModal({
         >
           {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ الشيك بالحافظة'}
         </Button>
-      </div>
-    </DialogShell>
+      </StandardDialogFooter>
+    </StandardDialog>
   );
 }

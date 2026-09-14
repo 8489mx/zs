@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { getDailyDocumentPrefix } from '../../common/utils/document-number.util';
 import {
   CreateProjectDto,
   UpdateProjectDto,
@@ -125,21 +126,17 @@ export class ContractingService {
     // 1. Generate code if not supplied
     let projectCode = dto.code ? dto.code.trim().toUpperCase() : '';
     if (!projectCode) {
-      const now = new Date();
-      const yy = String(now.getFullYear()).slice(-2);
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const prefix = `PRJ-${yy}${mm}${dd}-`;
+      const prefix = getDailyDocumentPrefix('PRJ');
       let count = ((await this.db
         .selectFrom('contracting_projects')
         .select(sql<number>`count(*)::int`.as('count'))
         .where('tenant_id', '=', tenantId)
         .where('code', 'like', `${prefix}%`)
         .executeTakeFirst())?.count || 0) + 1;
-      let candidate = `${prefix}${String(count).padStart(3, '0')}`;
+      let candidate = `${prefix}${String(count).padStart(4, '0')}`;
       while (await this.db.selectFrom('contracting_projects').select('id').where('tenant_id', '=', tenantId).where('code', '=', candidate).executeTakeFirst()) {
         count++;
-        candidate = `${prefix}${String(count).padStart(3, '0')}`;
+        candidate = `${prefix}${String(count).padStart(4, '0')}`;
       }
       projectCode = candidate;
     }
@@ -532,14 +529,15 @@ export class ContractingService {
 
   async createChangeOrder(auth: AuthContext, projectId: string, dto: CreateChangeOrderDto) {
     const { tenantId } = requireTenantScope(auth);
+    const prefix = getDailyDocumentPrefix('CO');
     const countRes = await this.db
       .selectFrom('contracting_change_orders')
       .select(sql<number>`count(*)::int`.as('count'))
       .where('tenant_id', '=', tenantId)
-      .where('project_id', '=', projectId as any)
+      .where('change_order_number', 'like', `${prefix}%`)
       .executeTakeFirst();
     const count = (countRes?.count || 0) + 1;
-    const coNum = `CO-${projectId.slice(-4).toUpperCase()}-${String(count).padStart(3, '0')}`;
+    const coNum = `${prefix}${String(count).padStart(4, '0')}`;
 
     const [co] = await this.db
       .insertInto('contracting_change_orders')
@@ -1421,14 +1419,15 @@ export class ContractingService {
     const { tenantId } = requireTenantScope(auth);
     let contractNumber = dto.contractNumber ? dto.contractNumber.trim() : '';
     if (!contractNumber) {
+      const prefix = getDailyDocumentPrefix('SC');
       const countRes = await this.db
         .selectFrom('contracting_subcontracts')
         .select(sql<number>`count(*)::int`.as('count'))
         .where('tenant_id', '=', tenantId)
-        .where('project_id', '=', projectId as any)
+        .where('contract_number', 'like', `${prefix}%`)
         .executeTakeFirst();
       const count = (countRes?.count || 0) + 1;
-      contractNumber = `SC-${projectId.slice(-4).toUpperCase()}-${String(count).padStart(3, '0')}`;
+      contractNumber = `${prefix}${String(count).padStart(4, '0')}`;
     }
 
     const [sub] = await this.db
@@ -1507,14 +1506,15 @@ export class ContractingService {
 
   async createRfi(auth: AuthContext, projectId: string, dto: CreateRfiDto) {
     const { tenantId } = requireTenantScope(auth);
+    const prefix = getDailyDocumentPrefix('RFI');
     const countRes = await this.db
       .selectFrom('contracting_rfis')
       .select(sql<number>`count(*)::int`.as('count'))
       .where('tenant_id', '=', tenantId)
-      .where('project_id', '=', projectId as any)
+      .where('rfi_number', 'like', `${prefix}%`)
       .executeTakeFirst();
     const count = (countRes?.count || 0) + 1;
-    const rfiNum = `RFI-${projectId.slice(-4).toUpperCase()}-${String(count).padStart(3, '0')}`;
+    const rfiNum = `${prefix}${String(count).padStart(4, '0')}`;
 
     const [rfi] = await this.db
       .insertInto('contracting_rfis')
@@ -2506,11 +2506,7 @@ export class ContractingService {
     const { tenantId } = requireTenantScope(auth);
     let returnNumber = dto.returnNumber;
     if (!returnNumber) {
-      const now = new Date();
-      const yy = String(now.getFullYear()).slice(-2);
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const prefix = `RTN-${yy}${mm}${dd}-`;
+      const prefix = getDailyDocumentPrefix('RTN');
       const countRes = await (this.db as any)
         .selectFrom('contracting_supplier_returns')
         .select(sql<number>`count(*)::int`.as('count'))
@@ -2518,7 +2514,7 @@ export class ContractingService {
         .where('return_number', 'like', `${prefix}%`)
         .executeTakeFirst();
       let count = (countRes?.count || 0) + 1;
-      let candidate = `${prefix}${String(count).padStart(3, '0')}`;
+      let candidate = `${prefix}${String(count).padStart(4, '0')}`;
       while (
         await (this.db as any)
           .selectFrom('contracting_supplier_returns')
@@ -2528,7 +2524,7 @@ export class ContractingService {
           .executeTakeFirst()
       ) {
         count++;
-        candidate = `${prefix}${String(count).padStart(3, '0')}`;
+        candidate = `${prefix}${String(count).padStart(4, '0')}`;
       }
       returnNumber = candidate;
     }
@@ -2681,11 +2677,7 @@ export class ContractingService {
 
     let disbNum = dto.disbursementNumber;
     if (!disbNum) {
-      const now = new Date();
-      const yy = String(now.getFullYear()).slice(-2);
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const prefix = `CSH-${yy}${mm}${dd}-`;
+      const prefix = getDailyDocumentPrefix('CSH');
       const countRes = await (this.db as any)
         .selectFrom('contracting_petty_cash')
         .select(sql<number>`count(*)::int`.as('count'))
@@ -2693,7 +2685,7 @@ export class ContractingService {
         .where('disbursement_number', 'like', `${prefix}%`)
         .executeTakeFirst();
       let count = (countRes?.count || 0) + 1;
-      let candidate = `${prefix}${String(count).padStart(3, '0')}`;
+      let candidate = `${prefix}${String(count).padStart(4, '0')}`;
       while (
         await (this.db as any)
           .selectFrom('contracting_petty_cash')
@@ -2703,7 +2695,7 @@ export class ContractingService {
           .executeTakeFirst()
       ) {
         count++;
-        candidate = `${prefix}${String(count).padStart(3, '0')}`;
+        candidate = `${prefix}${String(count).padStart(4, '0')}`;
       }
       disbNum = candidate;
     }
@@ -4419,14 +4411,15 @@ export class ContractingService {
     const { tenantId } = requireTenantScope(auth);
     let wirNumber = dto.wirNumber?.trim().toUpperCase();
     if (!wirNumber) {
+      const prefix = getDailyDocumentPrefix('WIR');
       const countRes = await (this.db as any)
         .selectFrom('contracting_inspection_requests')
         .select(sql<number>`count(*)::int`.as('count'))
         .where('tenant_id', '=', tenantId)
-        .where('project_id', '=', projectId as any)
+        .where('wir_number', 'like', `${prefix}%`)
         .executeTakeFirst();
       const count = (countRes?.count || 0) + 1;
-      wirNumber = `WIR-${projectId.slice(-4).toUpperCase()}-${String(count).padStart(3, '0')}`;
+      wirNumber = `${prefix}${String(count).padStart(4, '0')}`;
     }
 
     const [row] = await (this.db as any)

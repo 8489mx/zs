@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPortal } from 'react-dom';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { catalogApi } from '@/shared/api/catalog';
-
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { systemAlert } from '@/shared/components/system-alert';
 
 interface AssignProductsModalProps {
@@ -148,28 +148,28 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
   const stocksData = stocksQuery.data || [];
   const categoriesData = categoriesQuery.data || [];
 
-  const modalContent = (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
-    }} onClick={onClose}>
-      <div 
-        style={{
-          background: '#fff', borderRadius: '12px', padding: '24px',
-          width: '90%', maxWidth: '900px', height: '90vh', // Fixed height to prevent jerks
-          display: 'flex', flexDirection: 'column', gap: '16px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          overflow: 'hidden'
-        }}
-        onClick={(e) => e.stopPropagation()}
-        dir="rtl"
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>ربط أصناف ونقل أرصدة لمخزن {locationName ? `(${locationName})` : ''}</h2>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>&times;</button>
+  return (
+    <StandardDialog
+      open={true}
+      onClose={onClose}
+      title={`ربط أصناف ونقل أرصدة لمخزن ${locationName ? `(${locationName})` : ''}`}
+      subtitle="إضافة أصناف جديدة للمخزن ونقل أرصدة من مخازن أخرى"
+      size="lg"
+      footerActions={
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+          <span style={{ fontWeight: 600, fontSize: '13px' }}>تم تحديد: {selectedProductIds.size} صنف</span>
+          <StandardDialogFooter
+            onCancel={onClose}
+            cancelLabel="إلغاء"
+            primaryLabel={assignMutation.isPending ? 'جاري الحفظ ونقل الأرصدة...' : 'حفظ وإضافة'}
+            onPrimary={() => assignMutation.mutate(Array.from(selectedProductIds))}
+            isPrimaryLoading={assignMutation.isPending}
+            isPrimaryDisabled={selectedProductIds.size === 0 || assignMutation.isPending}
+          />
         </div>
-
+      }
+    >
+      <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {isLoading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>جاري التحميل...</div>
         ) : (
@@ -239,21 +239,23 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
                                 <div style={{ background: '#fff', borderRadius: '8px', padding: '12px', border: '1px solid var(--border-color)' }}>
                                   <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>خيارات النقل الداخلي المباشر (اختياري)</div>
                                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <select 
-                                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', minWidth: '200px' }}
-                                      value={transferSelections[Number(p.id)]?.fromLocationId || ''}
-                                      onChange={(e) => updateTransfer(Number(p.id), Number(e.target.value), transferSelections[Number(p.id)]?.qty || 0)}
-                                    >
-                                      <option value="">-- اختر المخزن لسحب الرصيد --</option>
-                                      {productStocks.map(s => {
-                                        const loc = locationsData.find(l => String(l.id) === String(s.locationId));
-                                        return (
-                                          <option key={s.locationId} value={s.locationId}>
-                                            {loc?.name || `مخزن ${s.locationId}`} (متاح: {s.qty})
-                                          </option>
-                                        );
-                                      })}
-                                    </select>
+                                    <div style={{ minWidth: '220px' }}>
+                                      <CustomSelect
+                                        value={transferSelections[Number(p.id)]?.fromLocationId ? String(transferSelections[Number(p.id)]?.fromLocationId) : ''}
+                                        onChange={(val) => updateTransfer(Number(p.id), val ? Number(val) : 0, transferSelections[Number(p.id)]?.qty || 0)}
+                                        options={[
+                                          { value: '', label: '-- اختر المخزن لسحب الرصيد --' },
+                                          ...productStocks.map((s) => {
+                                            const loc = locationsData.find((l) => String(l.id) === String(s.locationId));
+                                            return {
+                                              value: String(s.locationId),
+                                              label: `${loc?.name || `مخزن ${s.locationId}`} (متاح: ${s.qty})`,
+                                            };
+                                          }),
+                                        ]}
+                                        placeholder="-- اختر المخزن لسحب الرصيد --"
+                                      />
+                                    </div>
                                     
                                     <div style={{ 
                                       display: 'flex', alignItems: 'center', gap: '8px',
@@ -292,26 +294,9 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
                 </table>
               )}
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
-              <span style={{ fontWeight: 600 }}>تم تحديد: {selectedProductIds.size} صنف</span>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" className="secondary-button" onClick={onClose}>إلغاء</button>
-                <button 
-                  type="button" 
-                  className="primary-button" 
-                  disabled={selectedProductIds.size === 0 || assignMutation.isPending}
-                  onClick={() => assignMutation.mutate(Array.from(selectedProductIds))}
-                >
-                  {assignMutation.isPending ? 'جاري الحفظ ونقل الأرصدة...' : 'حفظ وإضافة'}
-                </button>
-              </div>
-            </div>
           </>
         )}
       </div>
-    </div>
+    </StandardDialog>
   );
-
-  return createPortal(modalContent, document.body);
 }

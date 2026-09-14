@@ -1,6 +1,7 @@
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
-import { XIcon, SparklesIcon } from '@/shared/components/icons/AppIcons';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { SparklesIcon, CalendarIcon } from '@/shared/components/icons/AppIcons';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 interface ExtractWhtModalProps {
@@ -17,6 +18,12 @@ interface ExtractWhtModalProps {
   isPending: boolean;
 }
 
+const DEFAULT_RATE_OPTIONS = [
+  { value: '1', label: '1% (توريدات ومشتريات سلع وبضائع)' },
+  { value: '3', label: '3% (خدمات ومقاولات ومصنعيات)' },
+  { value: '5', label: '5% (مهن حرة واستشارات)' },
+];
+
 export function ExtractWhtModal({
   isOpen,
   onClose,
@@ -28,91 +35,114 @@ export function ExtractWhtModal({
   if (!isOpen) return null;
 
   return (
-    <DialogShell
-      open={true}
+    <StandardDialog
+      open={isOpen}
       onClose={onClose}
-      width="min(540px, 95vw)"
-      ariaLabel="استيراد آلي من فواتير المشتريات المسجلة"
+      title="استيراد آلي من فواتير المشتريات المسجلة"
+      subtitle={`فحص الفواتير التي تجاوزت 300 ${getGlobalCurrencySymbol()} واستخراج بيانات الموردين`}
+      size="md"
     >
-      <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
-        <div className="standard-dialog-header">
-          <div className="standard-dialog-header-info">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#065f46' }}>
-              <SparklesIcon size={18} />
-              <h3 className="standard-dialog-title" style={{ color: '#065f46' }}>استيراد آلي من فواتير المشتريات المسجلة</h3>
-            </div>
-            <p className="standard-dialog-subtitle">فحص الفواتير التي تجاوزت 300 {getGlobalCurrencySymbol()} واستخراج بيانات الموردين</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="standard-dialog-close-btn"
-            aria-label="إغلاق"
-          >
-            <XIcon size={18} />
-          </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{
+          backgroundColor: '#ecfdf5',
+          borderRadius: '10px',
+          padding: '12px 16px',
+          border: '1px solid #a7f3d0',
+          color: '#065f46',
+          fontSize: '12px',
+          lineHeight: 1.6,
+          display: 'flex',
+          gap: '8px',
+          alignItems: 'flex-start',
+        }}>
+          <SparklesIcon size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#059669' }} />
+          <span>
+            يقوم هذا المعالج بفحص جميع فواتير الشراء غير الملغاة التي تجاوزت 300 {getGlobalCurrencySymbol()} في الفترة المحددة، ويستخرج بيانات المورد والرقم الضريبي والوعاء تلقائياً لتضمينها في نموذج 41 دون تكرار.
+          </span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <p style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.6, margin: 0 }}>
-            يقوم هذا المعالج بفحص جميع فواتير الشراء غير الملغاة التي تجاوزت 300 {getGlobalCurrencySymbol()} في الفترة المحددة، ويستخرج بيانات المورد والرقم الضريبي والوعاء تلقائياً لتضمينها في نموذج 41 دون تكرار.
-          </p>
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '10px',
+          padding: '14px 16px',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
+            <CalendarIcon size={15} style={{ color: '#170e5e' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>فترة الفحص ونسبة الخصم المطبقة</span>
+          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>من تاريخ</label>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                من تاريخ <span style={{ color: '#e11d48' }}>*</span>
+              </label>
               <input
                 type="date"
                 value={extractDates.fromDate}
                 onChange={(e) => onChange({ ...extractDates, fromDate: e.target.value })}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>إلى تاريخ</label>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                إلى تاريخ <span style={{ color: '#e11d48' }}>*</span>
+              </label>
               <input
                 type="date"
                 value={extractDates.toDate}
                 onChange={(e) => onChange({ ...extractDates, toDate: e.target.value })}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
-            </div>
-
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>نسبة الخصم الافتراضية</label>
-              <select
-                value={extractDates.defaultWhtRate}
-                onChange={(e) =>
-                  onChange({
-                    ...extractDates,
-                    defaultWhtRate: Number(e.target.value),
-                    defaultWhtType: Number(e.target.value) === 1 ? 'goods' : Number(e.target.value) === 5 ? 'professional' : 'services',
-                  })
-                }
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
-              >
-                <option value={1}>1% (توريدات ومشتريات سلع وبضائع)</option>
-                <option value={3}>3% (خدمات ومقاولات ومصنعيات)</option>
-                <option value={5}>5% (مهن حرة واستشارات)</option>
-              </select>
             </div>
           </div>
 
-          <div className="standard-dialog-footer">
-            <Button variant="secondary" onClick={onClose}>
-              إلغاء
-            </Button>
-            <Button
-              onClick={onSubmit}
-              disabled={isPending}
-              style={{ backgroundColor: '#059669', color: '#ffffff' }}
-            >
-              {isPending ? 'جاري الفحص والاستيراد...' : 'بدء الاستيراد الآلي'}
-            </Button>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+              نسبة الخصم الافتراضية
+            </label>
+            <CustomSelect
+              value={String(extractDates.defaultWhtRate)}
+              onChange={(val) => {
+                const rateNum = Number(val);
+                onChange({
+                  ...extractDates,
+                  defaultWhtRate: rateNum,
+                  defaultWhtType: rateNum === 1 ? 'goods' : rateNum === 5 ? 'professional' : 'services',
+                });
+              }}
+              options={DEFAULT_RATE_OPTIONS}
+            />
           </div>
         </div>
       </div>
-    </DialogShell>
+
+      <StandardDialogFooter>
+        <Button variant="secondary" onClick={onClose} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
+          إلغاء
+        </Button>
+        <Button
+          onClick={onSubmit}
+          disabled={isPending}
+          style={{
+            backgroundColor: '#059669',
+            color: '#ffffff',
+            padding: '8px 22px',
+            fontSize: '13px',
+            fontWeight: 700,
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: isPending ? 0.6 : 1,
+          }}
+        >
+          {isPending ? 'جاري الفحص والاستيراد...' : 'بدء الاستيراد الآلي'}
+        </Button>
+      </StandardDialogFooter>
+    </StandardDialog>
   );
 }

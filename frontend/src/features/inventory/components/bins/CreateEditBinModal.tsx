@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { WarehouseBin } from '../../api/warehouse-bins.api';
 
 interface CreateEditBinModalProps {
@@ -53,6 +54,10 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
   modalFeedback,
   onSave,
 }) => {
+  const locationOptions = useMemo(() => [
+    ...locations.map((loc) => ({ value: String(loc.id), label: loc.name })),
+  ], [locations]);
+
   return (
     <StandardDialog
       isOpen={isOpen}
@@ -62,7 +67,7 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
       title={editingBin ? 'تعديل مكان التخزين (Edit Bin)' : 'إضافة مكان تخزين جديد (New Bin)'}
       subtitle="تحديد المستودع، رمز المكان، الممر، الحامل، والباركود لسهولة التوجيه والجرد"
       width="560px"
-      footer={
+      footerActions={
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
           <button
             type="button"
@@ -70,12 +75,13 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
             disabled={saving}
             style={{
               padding: '8px 16px',
-              borderRadius: '6px',
+              borderRadius: '8px',
               border: '1px solid #cbd5e1',
               backgroundColor: '#ffffff',
               color: '#475569',
-              cursor: 'pointer',
+              fontSize: '13px',
               fontWeight: 600,
+              cursor: saving ? 'not-allowed' : 'pointer',
             }}
           >
             إلغاء
@@ -83,29 +89,31 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
           <button
             type="button"
             onClick={onSave}
-            disabled={saving || !formCode.trim()}
+            disabled={saving}
             style={{
-              padding: '8px 22px',
-              borderRadius: '6px',
+              padding: '8px 20px',
+              borderRadius: '8px',
               border: 'none',
               backgroundColor: '#170e5e',
               color: '#ffffff',
-              cursor: 'pointer',
+              fontSize: '13px',
               fontWeight: 700,
+              cursor: saving ? 'not-allowed' : 'pointer',
             }}
           >
-            {saving ? 'جاري الحفظ...' : 'حفظ مكان التخزين'}
+            {saving ? 'جاري الحفظ...' : editingBin ? 'تحديث البيانات' : 'حفظ المكان'}
           </button>
         </div>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '8px 0' }} dir="rtl">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '8px 0' }}>
         {modalFeedback && (
           <div
             style={{
               padding: '10px 14px',
               borderRadius: '8px',
               fontSize: '13px',
+              fontWeight: 600,
               backgroundColor: modalFeedback.error ? '#fef2f2' : '#f0fdf4',
               color: modalFeedback.error ? '#991b1b' : '#166534',
               border: `1px solid ${modalFeedback.error ? '#fecaca' : '#bbf7d0'}`,
@@ -119,26 +127,13 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
             المستودع / مكان التخزين الرئيسي <span style={{ color: '#dc2626' }}>*</span>
           </label>
-          <select
-            value={formLocationId}
-            onChange={(e) => setFormLocationId(Number(e.target.value))}
+          <CustomSelect
+            value={formLocationId ? String(formLocationId) : ''}
+            onChange={(val) => setFormLocationId(val ? Number(val) : '')}
+            options={locationOptions}
             disabled={Boolean(editingBin)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              fontSize: '13px',
-              outline: 'none',
-              backgroundColor: editingBin ? '#f1f5f9' : '#ffffff',
-            }}
-          >
-            {locations.map((loc) => (
-              <option key={loc.id} value={loc.id}>
-                {loc.name}
-              </option>
-            ))}
-          </select>
+            placeholder="اختر المستودع"
+          />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

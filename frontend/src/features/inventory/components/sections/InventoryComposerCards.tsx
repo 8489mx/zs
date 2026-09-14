@@ -3,6 +3,7 @@ import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { InventoryProductPicker } from '@/features/inventory/components/InventoryProductPicker';
@@ -53,20 +54,32 @@ export function StockTransferComposerCard({
   onSubmit
 }: StockTransferComposerCardProps) {
   const warehouseList = warehouses || locations || [];
+  const warehouseOptions = useMemo(
+    () => [
+      { value: '', label: 'اختر المخزن' },
+      ...warehouseList.map((location) => ({ value: String(location.id), label: location.name })),
+    ],
+    [warehouseList],
+  );
+
   return (
     <FormSection title="إذن صرف / نقل مخزون" description="تجميع الأصناف أولًا ثم اعتماد إذن الصرف مع إبقاء المراجعة السريعة للعناصر قبل الإرسال." actions={<span className="nav-pill">أذونات الصرف</span>}>
       <div className="form-grid">
         <Field label="من مخزن">
-          <select value={form.fromLocationId} onChange={(e) => onFormChange({ fromLocationId: e.target.value })}>
-            <option value="">اختر المصدر</option>
-            {warehouseList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-          </select>
+          <CustomSelect
+            value={form.fromLocationId}
+            onChange={(val) => onFormChange({ fromLocationId: val })}
+            options={warehouseOptions}
+            placeholder="اختر المصدر"
+          />
         </Field>
         <Field label="إلى مخزن / فرع">
-          <select value={form.toLocationId} onChange={(e) => onFormChange({ toLocationId: e.target.value })}>
-            <option value="">اختر الوجهة</option>
-            {warehouseList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-          </select>
+          <CustomSelect
+            value={form.toLocationId}
+            onChange={(val) => onFormChange({ toLocationId: val })}
+            options={warehouseOptions}
+            placeholder="اختر الوجهة"
+          />
         </Field>
         <Field label="مستلم البضاعة / السائق">
           <input type="text" placeholder="اسم المستلم (اختياري)" value={form.recipientName || ''} onChange={(e) => onFormChange({ recipientName: e.target.value })} />
@@ -194,6 +207,38 @@ export function StockCountComposerCard({
     });
     return Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label, 'ar'));
   }, [products, suppliers]);
+
+  const branchOptions = useMemo(
+    () => [
+      { value: '', label: 'بدون فرع' },
+      ...branches.map((branch) => ({ value: String(branch.id), label: branch.name })),
+    ],
+    [branches],
+  );
+
+  const stockCountWarehouseOptions = useMemo(
+    () => [
+      { value: '', label: 'اختر المخزن' },
+      ...warehouseList.map((location) => ({ value: String(location.id), label: location.name })),
+    ],
+    [warehouseList],
+  );
+
+  const categorySelectOptions = useMemo(
+    () => [
+      { value: '', label: 'اختر القسم' },
+      ...categoryOptions.map((category) => ({ value: String(category.id), label: `${category.label} (${category.count})` })),
+    ],
+    [categoryOptions],
+  );
+
+  const supplierSelectOptions = useMemo(
+    () => [
+      { value: '', label: 'اختر المورد' },
+      ...supplierOptions.map((supplier) => ({ value: String(supplier.id), label: `${supplier.label} (${supplier.count} صنف)` })),
+    ],
+    [supplierOptions],
+  );
 
   const countTypeOptions: Array<{ key: StockCountType; label: string; description: string }> = useMemo(() => ([
     { key: 'quick', label: 'جرد سريع', description: 'عد صنف أو مجموعة بسيطة بسرعة بدون تجهيز قائمة كاملة.' },
@@ -513,32 +558,46 @@ export function StockCountComposerCard({
             <div className="stock-count-inline-form">
               {!SINGLE_STORE_MODE ? (
                 <Field label="الفرع">
-                  <select value={form.branchId} onChange={(e) => onFormChange({ branchId: e.target.value })}>
-                    <option value="">بدون فرع</option>
-                    {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={form.branchId}
+                    onChange={(val) => onFormChange({ branchId: val })}
+                    options={branchOptions}
+                    placeholder="بدون فرع"
+                  />
                 </Field>
               ) : null}
               <Field label="المخزن (إجباري)">
-                <select value={form.locationId} onChange={(e) => onFormChange({ locationId: e.target.value })}>
-                  <option value="">اختر المخزن</option>
-                  {warehouseList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-                </select>
+                <CustomSelect
+                  value={form.locationId}
+                  onChange={(val) => onFormChange({ locationId: val })}
+                  options={stockCountWarehouseOptions}
+                  placeholder="اختر المخزن"
+                />
               </Field>
               {countType === 'category' ? (
                 <Field label="القسم / التصنيف">
-                  <select value={selectedCategoryId} onChange={(e) => { setSelectedCategoryId(e.target.value); onItemsChange(() => []); }}>
-                    <option value="">اختر القسم</option>
-                    {categoryOptions.map((category) => <option key={category.id} value={category.id}>{category.label} ({category.count})</option>)}
-                  </select>
+                  <CustomSelect
+                    value={selectedCategoryId}
+                    onChange={(val) => {
+                      setSelectedCategoryId(val);
+                      onItemsChange(() => []);
+                    }}
+                    options={categorySelectOptions}
+                    placeholder="اختر القسم"
+                  />
                 </Field>
               ) : null}
               {countType === 'supplier' ? (
                 <Field label="المورد / الشركة">
-                  <select value={selectedSupplierId} onChange={(e) => { setSelectedSupplierId(e.target.value); onItemsChange(() => []); }}>
-                    <option value="">اختر المورد</option>
-                    {supplierOptions.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.label} ({supplier.count} صنف)</option>)}
-                  </select>
+                  <CustomSelect
+                    value={selectedSupplierId}
+                    onChange={(val) => {
+                      setSelectedSupplierId(val);
+                      onItemsChange(() => []);
+                    }}
+                    options={supplierSelectOptions}
+                    placeholder="اختر المورد"
+                  />
                 </Field>
               ) : null}
               <Field label="ملاحظة الجلسة">

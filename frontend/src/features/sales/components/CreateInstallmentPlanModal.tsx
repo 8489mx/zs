@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
-import { Button } from '@/shared/ui/button';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { formatCurrency } from '@/lib/format';
-import { XIcon } from '@/shared/components/icons/AppIcons';
 
 interface CreateInstallmentPlanModalProps {
   open: boolean;
@@ -62,8 +61,8 @@ export const CreateInstallmentPlanModal: React.FC<CreateInstallmentPlanModalProp
 
   if (!open) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!newPlan.customerId || !Number(newPlan.totalAmount)) return;
     onSubmit({
       customerId: Number(newPlan.customerId),
@@ -77,47 +76,63 @@ export const CreateInstallmentPlanModal: React.FC<CreateInstallmentPlanModalProp
     });
   };
 
+  const customerOptions = customers.map((c: any) => ({
+    value: String(c.id),
+    label: c.name,
+    hint: c.phone || undefined,
+  }));
+
   return (
-    <DialogShell
-      open={true}
+    <StandardDialog
+      isOpen={open}
       onClose={onClose}
-      width="min(650px, 95vw)"
-      ariaLabel="إنشاء خطة تقسيط جديدة"
+      title="إنشاء خطة تقسيط جديدة"
+      subtitle="جدولة عقد بيع بالتقسيط واحتساب نسب الفائدة والأقساط الشهرية"
+      maxWidth="680px"
+      footer={
+        <StandardDialogFooter
+          onClose={onClose}
+          closeLabel="إلغاء"
+          primaryButton={{
+            label: isPending ? 'جاري الحفظ والجدولة...' : 'حفظ وتوليد جدول الأقساط',
+            onClick: () => handleSubmit(),
+            disabled: !newPlan.customerId || !Number(newPlan.totalAmount) || isPending,
+          }}
+        />
+      }
     >
-      <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
-        <div className="standard-dialog-header">
-          <div className="standard-dialog-header-info">
-            <h3 className="standard-dialog-title">إنشاء خطة تقسيط جديدة</h3>
-            <p className="standard-dialog-subtitle">جدولة عقد بيع بالتقسيط واحتساب نسب الفائدة والأقساط الشهرية</p>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Card 1: العميل والتمويل */}
+        <div
+          style={{
+            padding: 16,
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#170e5e', borderBottom: '1px solid #e2e8f0', paddingBottom: 6 }}>
+            بيانات العميل وقيمة التمويل
           </div>
-          <button type="button" onClick={onClose} className="standard-dialog-close-btn" aria-label="إغلاق">
-            <XIcon size={18} />
-          </button>
-        </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
-              اختر العميل *
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+              اختر العميل المسجل *
             </label>
-            <select
+            <CustomSelect
               value={newPlan.customerId}
-              onChange={(e) => setNewPlan({ ...newPlan, customerId: e.target.value })}
-              required
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
-            >
-              <option value="">-- اختر عميلاً مسجلاً --</option>
-              {customers.map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.phone ? `(${c.phone})` : ''}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setNewPlan({ ...newPlan, customerId: val })}
+              options={customerOptions}
+              placeholder="-- ابحث أو اختر العميل --"
+            />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
                 إجمالي قيمة البضاعة / الفاتورة *
               </label>
               <input
@@ -126,12 +141,12 @@ export const CreateInstallmentPlanModal: React.FC<CreateInstallmentPlanModalProp
                 value={newPlan.totalAmount}
                 onChange={(e) => setNewPlan({ ...newPlan, totalAmount: e.target.value })}
                 required
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
                 المقدم المدفوع نقداً
               </label>
               <input
@@ -139,14 +154,12 @@ export const CreateInstallmentPlanModal: React.FC<CreateInstallmentPlanModalProp
                 placeholder="0"
                 value={newPlan.downPayment}
                 onChange={(e) => setNewPlan({ ...newPlan, downPayment: e.target.value })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }}
               />
             </div>
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
                 نسبة الفائدة الإجمالية (%)
               </label>
               <input
@@ -155,12 +168,31 @@ export const CreateInstallmentPlanModal: React.FC<CreateInstallmentPlanModalProp
                 placeholder="0"
                 value={newPlan.interestRatePercent}
                 onChange={(e) => setNewPlan({ ...newPlan, interestRatePercent: e.target.value })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }}
               />
             </div>
+          </div>
+        </div>
 
+        {/* Card 2: الجدولة والملاحظات */}
+        <div
+          style={{
+            padding: 16,
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#170e5e', borderBottom: '1px solid #e2e8f0', paddingBottom: 6 }}>
+            جدولة الأقساط والشروط
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
                 عدد شهور التقسيط *
               </label>
               <input
@@ -169,12 +201,12 @@ export const CreateInstallmentPlanModal: React.FC<CreateInstallmentPlanModalProp
                 max="60"
                 value={newPlan.installmentCount}
                 onChange={(e) => setNewPlan({ ...newPlan, installmentCount: e.target.value })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
                 تاريخ استحقاق أول قسط *
               </label>
               <input
@@ -182,72 +214,58 @@ export const CreateInstallmentPlanModal: React.FC<CreateInstallmentPlanModalProp
                 value={newPlan.startDate}
                 onChange={(e) => setNewPlan({ ...newPlan, startDate: e.target.value })}
                 required
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
-              ملاحظات أو شروط العقد
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+              ملاحظات أو شروط العقد والضمانات
             </label>
             <input
               type="text"
-              placeholder="مثلاً: بضمان شيكات، إيصال أمانة، كفيل غارم"
+              placeholder="مثلاً: بضمان شيكات بنكية، إيصال أمانة، كفيل غارم..."
               value={newPlan.notes}
               onChange={(e) => setNewPlan({ ...newPlan, notes: e.target.value })}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }}
             />
           </div>
+        </div>
 
-          {/* Calculator Preview Box */}
-          <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>
-              معاينة حاسبة التقسيط الفورية:
+        {/* Calculator Preview Box */}
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}>
+            معاينة حاسبة التقسيط الفورية:
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', textAlign: 'center' }}>
+            <div style={{ padding: 8, background: '#f8fafc', borderRadius: 8 }}>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>المبلغ الممول</div>
+              <div style={{ fontSize: '13.5px', fontWeight: 'bold', color: '#0f172a', marginTop: 2 }}>
+                {formatCurrency(planPreview.financed)}
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', textAlign: 'center' }}>
-              <div>
-                <div style={{ fontSize: '11px', color: '#64748b' }}>المبلغ الممول</div>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#0f172a' }}>
-                  {formatCurrency(planPreview.financed)}
-                </div>
+            <div style={{ padding: 8, background: '#f8fafc', borderRadius: 8 }}>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>قيمة الفوائد</div>
+              <div style={{ fontSize: '13.5px', fontWeight: 'bold', color: '#d97706', marginTop: 2 }}>
+                {formatCurrency(planPreview.interest)}
               </div>
-              <div>
-                <div style={{ fontSize: '11px', color: '#64748b' }}>قيمة الفوائد</div>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#d97706' }}>
-                  {formatCurrency(planPreview.interest)}
-                </div>
+            </div>
+            <div style={{ padding: 8, background: '#f8fafc', borderRadius: 8 }}>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>إجمالي الدين بالفوائد</div>
+              <div style={{ fontSize: '13.5px', fontWeight: 'bold', color: '#0f172a', marginTop: 2 }}>
+                {formatCurrency(planPreview.totalWithInterest)}
               </div>
-              <div>
-                <div style={{ fontSize: '11px', color: '#64748b' }}>إجمالي الدين بالفوائد</div>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#0f172a' }}>
-                  {formatCurrency(planPreview.totalWithInterest)}
-                </div>
-              </div>
-              <div style={{ backgroundColor: '#ecfdf5', borderRadius: '8px', padding: '6px' }}>
-                <div style={{ fontSize: '11px', color: '#047857' }}>القسط الشهري</div>
-                <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#065f46' }}>
-                  {formatCurrency(planPreview.monthly)}
-                </div>
+            </div>
+            <div style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#047857', fontWeight: 600 }}>القسط الشهري</div>
+              <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#065f46', marginTop: 2 }}>
+                {formatCurrency(planPreview.monthly)}
               </div>
             </div>
           </div>
-
-          <div className="standard-dialog-footer">
-            <Button variant="secondary" onClick={onClose}>
-              إلغاء
-            </Button>
-            <Button
-              variant="primary"
-              type="submit"
-              disabled={!newPlan.customerId || !Number(newPlan.totalAmount) || isPending}
-              style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
-            >
-              {isPending ? 'جاري الحفظ والجدولة...' : 'حفظ وتوليد جدول الأقساط'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </DialogShell>
+        </div>
+      </form>
+    </StandardDialog>
   );
 };

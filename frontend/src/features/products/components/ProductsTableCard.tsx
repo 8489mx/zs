@@ -2,7 +2,8 @@ import { Fragment, useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { FileTextIcon, SearchIcon, XIcon } from '@/shared/components/icons/AppIcons';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { systemConfirm } from '@/shared/components/system-alert';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
 import { formatCurrency } from '@/lib/format';
@@ -664,8 +665,15 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           <Button
                             variant="secondary"
                             type="button"
-                            onClick={() => {
-                              if (window.confirm(`هل أنت متأكد من حذف الموديل "${baseName}" وجميع أصنافه الفرعية بالكامل (${group.children.length} صنف فرعي)؟`)) {
+                            onClick={async () => {
+                              const confirmed = await systemConfirm({
+                                title: 'تأكيد حذف الموديل',
+                                message: `هل أنت متأكد من حذف الموديل "${baseName}" وجميع أصنافه الفرعية بالكامل (${group.children.length} صنف فرعي)؟`,
+                                confirmText: 'حذف الكل',
+                                cancelText: 'إلغاء',
+                                variant: 'danger',
+                              });
+                              if (confirmed) {
                                 for (const child of group.children) {
                                   props.onDeleteProduct(child);
                                 }
@@ -782,43 +790,23 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
 
         {/* Product Note Modal */}
         {activeNoteModal && (
-          <DialogShell
+          <StandardDialog
             open={Boolean(activeNoteModal)}
             onClose={() => setActiveNoteModal(null)}
-            width="min(480px, 92vw)"
-            ariaLabel="ملاحظات الصنف"
+            title="ملاحظات الصنف"
+            subtitle={activeNoteModal.productName}
+            maxWidth="480px"
+            footerActions={
+              <StandardDialogFooter
+                cancelText="إغلاق"
+                onCancel={() => setActiveNoteModal(null)}
+              />
+            }
           >
-            <div style={{ padding: '20px 24px' }} dir="rtl">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileTextIcon size={18} color="#2563eb" />
-                  </div>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>ملاحظات الصنف</h3>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>{activeNoteModal.productName}</div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveNoteModal(null)}
-                  style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
-                >
-                  <XIcon size={14} />
-                </button>
-              </div>
-
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 16px', fontSize: '0.9rem', lineHeight: 1.7, color: '#1e293b', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                {activeNoteModal.note}
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                <Button variant="secondary" onClick={() => setActiveNoteModal(null)}>
-                  إغلاق
-                </Button>
-              </div>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 16px', fontSize: '0.9rem', lineHeight: 1.7, color: '#1e293b', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {activeNoteModal.note}
             </div>
-          </DialogShell>
+          </StandardDialog>
         )}
 
         <ProductIconStudioModal

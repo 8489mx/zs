@@ -6,6 +6,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { CreateSalesOrderDto, UpdateSalesOrderDto } from '../dto/sales-order.dto';
 import { SalesWriteService } from './sales-write.service';
+import { getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
 
 @Injectable()
 export class SalesOrdersService {
@@ -119,9 +120,15 @@ export class SalesOrdersService {
 
   async createOrder(dto: CreateSalesOrderDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    const dateStr = new Date().toISOString().slice(0, 7).replace('-', '');
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const orderNumber = `SO-${dateStr}-${randomSuffix}`;
+    const prefix = getDailyDocumentPrefix('SO');
+    const countResult = await this.db
+      .selectFrom('sales_orders')
+      .select([sql<number>`count(*)::int`.as('count')])
+      .where('tenant_id', '=', scope.tenantId)
+      .where('order_number', 'like', `${prefix}%`)
+      .executeTakeFirst();
+    const seq = (countResult?.count || 0) + 1;
+    const orderNumber = `${prefix}${String(seq).padStart(4, '0')}`;
     const now = new Date();
     const shouldReserve = dto.autoReserve !== false;
     const initialStatus = shouldReserve ? 'confirmed' : 'draft';

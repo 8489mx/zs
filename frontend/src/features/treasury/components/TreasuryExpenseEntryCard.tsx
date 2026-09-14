@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { CameraCaptureUpload } from '@/shared/components/CameraCaptureUpload';
+import { ReceiptIcon, BuildingIcon, FileTextIcon } from '@/shared/components/icons/AppIcons';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import type { Location } from '@/types/domain';
@@ -73,141 +74,210 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
   };
 
   const allPresets = [...EXPENSE_PRESETS, ...customPresets];
-
   const presetOptions = allPresets.map(preset => ({ id: preset, label: preset }));
 
+  const branchOptions = [
+    { value: '', label: 'بدون فرع' },
+    ...branches.map((b) => ({ value: String(b.id), label: b.name })),
+  ];
+
+  const locationOptions = [
+    { value: '', label: 'بدون مخزن' },
+    ...availableLocations.map((l) => ({ value: String(l.id), label: l.name })),
+  ];
+
+  const costCenterOptions = [
+    { value: '', label: 'بدون مركز تكلفة' },
+    ...costCenters
+      .filter((c) => c.isActive)
+      .map((center) => ({
+        value: String(center.id),
+        label: `${center.code} - ${center.name}`,
+      })),
+  ];
+
   return (
-    <FormSection title="تسجيل مصروف جديد">
-      <div className="form-grid expense-form-grid">
-        <SearchableCombobox
-          label="نوع / اسم المصروف"
-          placeholder="اختر من القائمة أو اكتب مصروف جديد..."
-          value={expenseForm.title}
-          onChange={(val) => setExpenseForm(current => ({ ...current, title: val }))}
-          options={presetOptions}
-          search={(option, query) => normalizeArabicSearchKey(option.label).includes(normalizeArabicSearchKey(query))}
-          getLabel={(option) => option.label}
-          onSelect={(option) => setExpenseForm(current => ({ ...current, title: option.label }))}
-          onCreate={(query) => setExpenseForm(current => ({ ...current, title: query }))}
-          createLabel={(query) => `إضافة وتسجيل "${query}"`}
-          emptyLabel="لا يوجد مصروف بهذا الاسم"
-          showDropdownOnEmpty={true}
-        />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '4px' }}>
+      {/* البطاقة الرمادية 1: بيانات المصروف الأساسية */}
+      <div
+        style={{
+          backgroundColor: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '10px',
+          padding: '14px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+          <ReceiptIcon size={16} color="#170e5e" />
+          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>بيانات المصروف الأساسية</span>
+        </div>
 
-        <Field label="المبلغ">
-          <input
-            type="number"
-            min="0.01"
-            step="0.01"
-            value={expenseForm.amount}
-            onChange={(e) => setExpenseForm((current) => ({ ...current, amount: e.target.value }))}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '12px' }}>
+          <SearchableCombobox
+            label="نوع / اسم المصروف"
+            placeholder="اختر من القائمة أو اكتب مصروف جديد..."
+            value={expenseForm.title}
+            onChange={(val) => setExpenseForm(current => ({ ...current, title: val }))}
+            options={presetOptions}
+            search={(option, query) => normalizeArabicSearchKey(option.label).includes(normalizeArabicSearchKey(query))}
+            getLabel={(option) => option.label}
+            onSelect={(option) => setExpenseForm(current => ({ ...current, title: option.label }))}
+            onCreate={(query) => setExpenseForm(current => ({ ...current, title: query }))}
+            createLabel={(query) => `إضافة وتسجيل "${query}"`}
+            emptyLabel="لا يوجد مصروف بهذا الاسم"
+            showDropdownOnEmpty={true}
           />
-        </Field>
 
-        {!SINGLE_STORE_MODE ? (
-          <Field label="الفرع">
-            <select
-              value={expenseForm.branchId}
-              onChange={(e) => {
-                const nextBranchId = e.target.value;
-                setExpenseForm((current) => {
-                  const currentLocation = warehouseList.find((location) => location.id === current.locationId);
-                  const shouldClearLocation = Boolean(currentLocation && nextBranchId && currentLocation.branchId && String(currentLocation.branchId) !== String(nextBranchId));
-                  return {
-                    ...current,
-                    branchId: nextBranchId,
-                    locationId: shouldClearLocation ? '' : current.locationId,
-                  };
-                });
-              }}
-            >
-              <option value="">بدون فرع</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>{branch.name}</option>
-              ))}
-            </select>
+          <Field label="المبلغ">
+            <input
+              type="number"
+              min="0.01"
+              step="0.01"
+              placeholder="0.00"
+              value={expenseForm.amount}
+              onChange={(e) => setExpenseForm((current) => ({ ...current, amount: e.target.value }))}
+            />
           </Field>
-        ) : null}
+        </div>
 
-        {SINGLE_STORE_MODE ? (
-          <Field label="المخزن الحالي">
-            <input value={warehouseList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly />
-          </Field>
-        ) : (
-          <Field label="المخزن">
-            <select
-              value={expenseForm.locationId}
-              onChange={(e) => setExpenseForm((current) => ({ ...current, locationId: e.target.value }))}
-            >
-              <option value="">بدون مخزن</option>
-              {availableLocations.map((location) => (
-                <option key={location.id} value={location.id}>{location.name}</option>
-              ))}
-            </select>
-          </Field>
-        )}
-
-        <Field label="مركز التكلفة (اختياري)">
-          <select
-            value={expenseForm.costCenterId || ''}
-            onChange={(e) => setExpenseForm((current) => ({ ...current, costCenterId: e.target.value }))}
-          >
-            <option value="">بدون مركز تكلفة</option>
-            {costCenters.filter((c) => c.isActive).map((center) => (
-              <option key={center.id} value={center.id}>
-                {center.code} - {center.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label="التاريخ" className="field-full-span">
+        <Field label="التاريخ والوقت">
           <input
             type="datetime-local"
             value={expenseForm.date}
             onChange={(e) => setExpenseForm((current) => ({ ...current, date: e.target.value }))}
           />
         </Field>
+      </div>
 
-        <Field label="ملاحظات" className="field-full-span">
+      {/* البطاقة الرمادية 2: التوجيه الإداري والمالي */}
+      <div
+        style={{
+          backgroundColor: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '10px',
+          padding: '14px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+          <BuildingIcon size={16} color="#170e5e" />
+          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>التوجيه الإداري والمالي والمخزني</span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {!SINGLE_STORE_MODE && (
+            <Field label="الفرع">
+              <CustomSelect
+                options={branchOptions}
+                value={expenseForm.branchId}
+                onChange={(val) => {
+                  const nextBranchId = val;
+                  setExpenseForm((current) => {
+                    const currentLocation = warehouseList.find((location) => String(location.id) === String(current.locationId));
+                    const shouldClearLocation = Boolean(currentLocation && nextBranchId && currentLocation.branchId && String(currentLocation.branchId) !== String(nextBranchId));
+                    return {
+                      ...current,
+                      branchId: nextBranchId,
+                      locationId: shouldClearLocation ? '' : current.locationId,
+                    };
+                  });
+                }}
+                placeholder="اختر الفرع..."
+                searchable
+              />
+            </Field>
+          )}
+
+          {SINGLE_STORE_MODE ? (
+            <Field label="المخزن الأساسي">
+              <input value={warehouseList[0]?.name || 'المخزن الرئيسي'} disabled readOnly />
+            </Field>
+          ) : (
+            <Field label="المخزن / الخزينة">
+              <CustomSelect
+                options={locationOptions}
+                value={expenseForm.locationId}
+                onChange={(val) => setExpenseForm((current) => ({ ...current, locationId: val }))}
+                placeholder="اختر المخزن..."
+                searchable
+              />
+            </Field>
+          )}
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <Field label="مركز التكلفة (اختياري)">
+              <CustomSelect
+                options={costCenterOptions}
+                value={expenseForm.costCenterId || ''}
+                onChange={(val) => setExpenseForm((current) => ({ ...current, costCenterId: val }))}
+                placeholder="بدون مركز تكلفة..."
+                searchable
+              />
+            </Field>
+          </div>
+        </div>
+      </div>
+
+      {/* البطاقة الرمادية 3: الملاحظات ومرفق الفاتورة */}
+      <div
+        style={{
+          backgroundColor: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '10px',
+          padding: '14px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+          <FileTextIcon size={16} color="#170e5e" />
+          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>البيان والمستندات المرفقة</span>
+        </div>
+
+        <Field label="ملاحظات وبيان المصروف">
           <textarea
             rows={2}
             value={expenseForm.note}
+            placeholder="تفاصيل إضافية عن سبب المصروف..."
             onChange={(e) => setExpenseForm((current) => ({ ...current, note: e.target.value }))}
           />
         </Field>
 
-        <div className="field-full-span">
-          <CameraCaptureUpload
-            label="إرفاق صورة إيصال / فاتورة المصروف"
-            previewUrl={receiptImage}
-            onFileSelect={(_file, preview) => {
-              setReceiptImage(preview || null);
-            }}
-            onRemove={() => setReceiptImage(null)}
-          />
-        </div>
-
-        <MutationFeedback
-          isError={expenseMutation.isError}
-          isSuccess={expenseMutation.isSuccess}
-          error={expenseMutation.error}
-          errorFallback="تعذر تسجيل المصروف"
-          successText="تم تسجيل المصروف وتحديث الخزينة بنجاح."
+        <CameraCaptureUpload
+          label="إرفاق صورة إيصال / فاتورة المصروف"
+          previewUrl={receiptImage}
+          onFileSelect={(_file, preview) => {
+            setReceiptImage(preview || null);
+          }}
+          onRemove={() => setReceiptImage(null)}
         />
-
-        <div className="actions section-actions">
-          <Button type="button" variant="secondary" onClick={onReset}>تفريغ</Button>
-          <SubmitButton
-            type="button"
-            onClick={handleSave}
-            isPending={expenseMutation.isPending}
-            disabled={expenseValidationErrors.length > 0}
-            idleText="حفظ المصروف"
-            pendingText="جارٍ الحفظ..."
-          />
-        </div>
       </div>
-    </FormSection>
+
+      <MutationFeedback
+        isError={expenseMutation.isError}
+        isSuccess={expenseMutation.isSuccess}
+        error={expenseMutation.error}
+        errorFallback="تعذر تسجيل المصروف"
+        successText="تم تسجيل المصروف وتحديث الخزينة بنجاح."
+      />
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+        <Button type="button" variant="secondary" onClick={onReset}>تفريغ</Button>
+        <SubmitButton
+          type="button"
+          onClick={handleSave}
+          isPending={expenseMutation.isPending}
+          disabled={expenseValidationErrors.length > 0}
+          idleText="حفظ وتسجيل المصروف"
+          pendingText="جارٍ الحفظ..."
+        />
+      </div>
+    </div>
   );
 }

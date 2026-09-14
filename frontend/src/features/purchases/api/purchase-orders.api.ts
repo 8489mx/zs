@@ -3,7 +3,7 @@ import { http } from '@/lib/http';
 export interface PurchaseOrderItem {
   id?: number;
   purchase_order_id?: number;
-  productId: number;
+  productId?: number;
   productName: string;
   product_name?: string;
   unitName?: string;
@@ -58,7 +58,7 @@ export interface CreatePurchaseOrderPayload {
   notes?: string;
   termsConditions?: string;
   items: Array<{
-    productId: number;
+    productId?: number;
     productName: string;
     unitName?: string;
     quantity: number;

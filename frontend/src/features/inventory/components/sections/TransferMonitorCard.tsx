@@ -5,7 +5,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { DataTable } from '@/shared/ui/data-table';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { formatDate } from '@/lib/format';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { useIsMobile } from '@/shared/hooks/use-is-mobile';
 import type { StockTransfer } from '@/types/domain';
 
@@ -411,15 +411,21 @@ export function TransferMonitorCard({
         </div>
 
         {/* Mobile Details Modal */}
-        {isMobile && selectedTransfer && isMobileModalOpen && (
-          <DialogShell
+        {isMobile && (
+          <StandardDialog
             open={Boolean(isMobileModalOpen && selectedTransfer)}
             onClose={() => setIsMobileModalOpen(false)}
-            width="min(560px, 95vw)"
-            ariaLabel={`تفاصيل تحويل ${selectedTransfer.docNo || selectedTransfer.id}`}
-            showCloseButton={false}
+            title={`تفاصيل تحويل ${selectedTransfer?.docNo || selectedTransfer?.id || ''}`}
+            subtitle="مراجعة بنود التحويل وحالته التشغيلية"
+            size="md"
+            footerActions={
+              <StandardDialogFooter
+                cancelLabel="إغلاق"
+                onCancel={() => setIsMobileModalOpen(false)}
+              />
+            }
           >
-            <div className="dialog-card" style={{ padding: '16px', maxHeight: '85vh', overflowY: 'auto' }}>
+            {selectedTransfer && (
               <TransferDetailContent
                 selectedTransfer={selectedTransfer}
                 selectedTransferTotals={selectedTransferTotals}
@@ -430,8 +436,8 @@ export function TransferMonitorCard({
                 onClose={() => setIsMobileModalOpen(false)}
                 isMobileModal={true}
               />
-            </div>
-          </DialogShell>
+            )}
+          </StandardDialog>
         )}
       </QueryFeedback>
     </FormSection>

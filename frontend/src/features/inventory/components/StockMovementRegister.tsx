@@ -9,7 +9,8 @@ import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser'
 import { formatDate } from '@/lib/format';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { useIsMobile } from '@/shared/hooks/use-is-mobile';
 
 const movementLabels: Record<string, string> = {
@@ -35,6 +36,11 @@ const movementToneMap: Record<string, string> = {
   add: 'positive',
   transfer_receive: 'positive'
 };
+
+const MOVEMENT_FILTER_OPTIONS = [
+  { value: 'all', label: 'كل الحركات' },
+  ...Object.entries(movementLabels).map(([type, label]) => ({ value: type, label })),
+];
 
 function getMovementLabel(type: string) {
   return movementLabels[type] || type || 'movement';
@@ -118,13 +124,15 @@ export function StockMovementRegister() {
         <div className="stat-card compact-stat-card"><span>إجمالي الخصومات</span><strong>{totals.negative.toFixed(3)}</strong></div>
       </div>
       <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث بالصنف أو السبب أو المخزن' : 'ابحث بالصنف أو السبب أو المخزن'}>
-        <label className="field">
-          <span>نوع الحركة</span>
-          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
-            <option value="all">كل الحركات</option>
-            {Object.keys(movementLabels).map((type) => <option key={type} value={type}>{getMovementLabel(type)}</option>)}
-          </select>
-        </label>
+        <div className="field" style={{ minWidth: '180px' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>نوع الحركة</span>
+          <CustomSelect
+            value={typeFilter}
+            onChange={(val) => setTypeFilter(val)}
+            options={MOVEMENT_FILTER_OPTIONS}
+            placeholder="اختر نوع الحركة"
+          />
+        </div>
         <div className="actions compact-actions align-end-inline">
           <Button type="button" variant="secondary" onClick={() => { setSearch(''); setTypeFilter('all'); }}>إعادة الضبط</Button>
           <Button type="button" variant="secondary" onClick={() => void exportCsv()} disabled={!pagination?.totalItems}>تصدير Excel</Button>
@@ -197,90 +205,68 @@ export function StockMovementRegister() {
         />
 
         {/* Mobile Details Modal */}
-        {selectedMovement && (
-          <DialogShell
-            open={Boolean(selectedMovement)}
-            onClose={() => setSelectedMovement(null)}
-            width="min(500px, 95vw)"
-            ariaLabel={`تفاصيل حركة مخزون ${selectedMovement.productName || ''}`}
-            showCloseButton={false}
-          >
-            <div className="dialog-card" dir="rtl" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '85vh', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-                  تفاصيل حركة المخزون
-                </h3>
+        {/* Mobile Details Modal */}
+        <StandardDialog
+          open={Boolean(selectedMovement)}
+          onClose={() => setSelectedMovement(null)}
+          title="تفاصيل حركة المخزون"
+          subtitle={selectedMovement ? (selectedMovement.productName || 'صنف غير معروف') : ''}
+          size="sm"
+          footerActions={
+            <StandardDialogFooter
+              cancelLabel="إغلاق"
+              onCancel={() => setSelectedMovement(null)}
+            />
+          }
+        >
+          {selectedMovement && (
+            <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <span style={{ color: '#64748b', fontSize: '0.8rem' }}>نوع الحركة:</span>
                 <MovementPill type={selectedMovement.type} />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.88rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>قبل الحركة</span>
+                  <strong style={{ fontSize: '0.92rem', color: '#334155' }}>{selectedMovement.beforeQty}</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>مقدار التغير</span>
+                  <strong style={{ fontSize: '0.95rem', color: selectedMovement.qty >= 0 ? '#16a34a' : '#dc2626' }}>
+                    {selectedMovement.qty >= 0 ? '+' : ''}{selectedMovement.qty}
+                  </strong>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>بعد الحركة</span>
+                  <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>{selectedMovement.afterQty}</strong>
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b' }}>المخزن:</span>
+                  <strong style={{ color: '#1e293b' }}>{selectedMovement.locationName || selectedMovement.branchName || (SINGLE_STORE_MODE ? 'المخزن الأساسي' : 'بدون مخزن')}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b' }}>المستخدم المسئول:</span>
+                  <strong style={{ color: '#1e293b' }}>{selectedMovement.createdBy || 'مستخدم غير محدد'}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b' }}>التاريخ والوقت:</span>
+                  <strong style={{ color: '#334155' }}>{formatDate(selectedMovement.date || '')}</strong>
+                </div>
+              </div>
+
+              {(selectedMovement.reason || selectedMovement.note) && (
                 <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ color: '#64748b', fontSize: '0.78rem', display: 'block', marginBottom: '2px' }}>اسم الصنف</span>
-                  <strong style={{ fontSize: '0.98rem', color: '#0f172a' }}>{selectedMovement.productName || 'صنف غير معروف'}</strong>
+                  <span style={{ color: '#64748b', fontSize: '0.78rem', display: 'block', marginBottom: '4px' }}>السبب / الملاحظات:</span>
+                  <span style={{ color: '#1e293b', fontWeight: 500 }}>{selectedMovement.reason || selectedMovement.note}</span>
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                  <div>
-                    <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>قبل الحركة</span>
-                    <strong style={{ fontSize: '0.92rem', color: '#334155' }}>{selectedMovement.beforeQty}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>مقدار التغير</span>
-                    <strong style={{ fontSize: '0.95rem', color: selectedMovement.qty >= 0 ? '#16a34a' : '#dc2626' }}>
-                      {selectedMovement.qty >= 0 ? '+' : ''}{selectedMovement.qty}
-                    </strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>بعد الحركة</span>
-                    <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>{selectedMovement.afterQty}</strong>
-                  </div>
-                </div>
-
-                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>المخزن:</span>
-                    <strong style={{ color: '#1e293b' }}>{selectedMovement.locationName || selectedMovement.branchName || (SINGLE_STORE_MODE ? 'المخزن الأساسي' : 'بدون مخزن')}</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>المستخدم المسئول:</span>
-                    <strong style={{ color: '#1e293b' }}>{selectedMovement.createdBy || 'مستخدم غير محدد'}</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>التاريخ والوقت:</span>
-                    <strong style={{ color: '#334155' }}>{formatDate(selectedMovement.date || '')}</strong>
-                  </div>
-                </div>
-
-                {(selectedMovement.reason || selectedMovement.note) && (
-                  <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <span style={{ color: '#64748b', fontSize: '0.78rem', display: 'block', marginBottom: '4px' }}>السبب / الملاحظات:</span>
-                    <span style={{ color: '#1e293b', fontWeight: 500 }}>{selectedMovement.reason || selectedMovement.note}</span>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedMovement(null)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 16px',
-                    borderRadius: '8px',
-                    background: '#0f172a',
-                    color: '#ffffff',
-                    border: 'none',
-                    fontWeight: 700,
-                    fontSize: '0.88rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  إغلاق
-                </button>
-              </div>
+              )}
             </div>
-          </DialogShell>
-        )}
+          )}
+        </StandardDialog>
       </QueryFeedback>
     </div>
   );

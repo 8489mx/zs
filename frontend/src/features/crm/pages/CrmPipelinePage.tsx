@@ -13,13 +13,14 @@ import {
 import {
   PlusIcon,
   SearchIcon,
-  XIcon,
 } from '@/shared/components/icons/AppIcons';
 import { STAGES } from '../components/CrmConstants';
 import { CrmStageRow } from '../components/CrmStageRow';
 import { CrmDealCreateModal } from '../components/CrmDealCreateModal';
 import { CrmDealDetailModal } from '../components/CrmDealDetailModal';
 import { CrmDealTable } from '../components/CrmDealTable';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { toast } from '@/shared/components/system-alert';
 
 export function CrmPipelinePage() {
   const queryClient = useQueryClient();
@@ -38,7 +39,6 @@ export function CrmPipelinePage() {
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedDealId, setSelectedDealId] = useState<number | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Queries
   const { data: deals = [] } = useQuery({
@@ -64,8 +64,11 @@ export function CrmPipelinePage() {
   });
 
   function showFeedback(type: 'success' | 'error', text: string) {
-    setFeedbackMessage({ type, text });
-    setTimeout(() => setFeedbackMessage(null), 4000);
+    if (type === 'success') {
+      toast.success(text);
+    } else {
+      toast.error(text);
+    }
   }
 
   function handleStageChange(deal: CrmDeal, nextStage: DealStage) {
@@ -118,33 +121,6 @@ export function CrmPipelinePage() {
             </div>
           }
         />
-
-        {/* Feedback Alert */}
-        {feedbackMessage && (
-          <div
-            style={{
-              margin: '16px 0',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              background: feedbackMessage.type === 'success' ? '#ecfdf5' : '#fef2f2',
-              border: `1px solid ${feedbackMessage.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
-              color: feedbackMessage.type === 'success' ? '#065f46' : '#991b1b',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: '14px',
-              fontWeight: 600,
-            }}
-          >
-            <span>{feedbackMessage.text}</span>
-            <button
-              onClick={() => setFeedbackMessage(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
-            >
-              <XIcon size={16} />
-            </button>
-          </div>
-        )}
 
         {/* KPI Cards Grid */}
         <div style={{ marginBottom: '16px' }}>
@@ -217,47 +193,35 @@ export function CrmPipelinePage() {
           </div>
 
           {/* Priority Filter */}
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              fontSize: '13px',
-              background: '#ffffff',
-              color: '#334155',
-            }}
-          >
-            <option value="all">كافة الأولويات</option>
-            <option value="urgent">عاجلة جداً</option>
-            <option value="high">مرتفعة</option>
-            <option value="medium">متوسطة</option>
-            <option value="low">منخفضة</option>
-          </select>
+          <div style={{ width: '150px' }}>
+            <CustomSelect
+              value={priorityFilter}
+              onChange={(val) => setPriorityFilter(val)}
+              options={[
+                { value: 'all', label: 'كافة الأولويات' },
+                { value: 'urgent', label: 'عاجلة جداً' },
+                { value: 'high', label: 'مرتفعة' },
+                { value: 'medium', label: 'متوسطة' },
+                { value: 'low', label: 'منخفضة' },
+              ]}
+              placeholder="الأولوية..."
+            />
+          </div>
 
           {/* Stage Filter (for table view) */}
           {viewMode === 'table' && (
-            <select
-              value={stageFilter}
-              onChange={(e) => setStageFilter(e.target.value)}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '13px',
-                background: '#ffffff',
-                color: '#334155',
-              }}
-            >
-              <option value="all">كافة المراحل</option>
-              {STAGES.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label}
-                </option>
-              ))}
-              <option value="lost">صفقة خاسرة</option>
-            </select>
+            <div style={{ width: '170px' }}>
+              <CustomSelect
+                value={stageFilter}
+                onChange={(val) => setStageFilter(val)}
+                options={[
+                  { value: 'all', label: 'كافة المراحل' },
+                  ...STAGES.map((s) => ({ value: s.key, label: s.label })),
+                  { value: 'lost', label: 'صفقة خاسرة' },
+                ]}
+                placeholder="المرحلة..."
+              />
+            </div>
           )}
         </div>
 

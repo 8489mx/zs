@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, type SyntheticEvent } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
@@ -21,6 +22,12 @@ import {
   type InventoryAdjustmentInput,
   type InventoryAdjustmentOutput
 } from '@/features/inventory/schemas/inventory.schema';
+
+const ACTION_TYPE_OPTIONS = [
+  { value: 'adjust', label: 'تسوية إلى كمية نهائية' },
+  { value: 'add', label: 'إضافة كمية' },
+  { value: 'deduct', label: 'خصم كمية' },
+];
 
 interface InventoryActionsPanelProps {
   products: Product[];
@@ -161,6 +168,22 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
     if (SINGLE_STORE_MODE) return locationList[0]?.name || '—';
     return locationById.get(String(selectedLocationId)) || '—';
   }, [locationById, locationList, selectedLocationId]);
+  const branchOptions = useMemo(
+    () => [
+      { value: '', label: 'بدون فرع محدد' },
+      ...branchList.map((branch) => ({ value: String(branch.id), label: branch.name })),
+    ],
+    [branchList],
+  );
+
+  const locationOptions = useMemo(
+    () => [
+      { value: '', label: 'بدون مخزن محدد' },
+      ...locationList.map((location) => ({ value: String(location.id), label: location.name })),
+    ],
+    [locationList],
+  );
+
   const remainingAfterDamage = useMemo(
     () => Math.max(0, Number(selectedDamagedProduct?.stock || 0) - damagedQty),
     [damagedQty, selectedDamagedProduct?.stock],
@@ -249,39 +272,63 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                 {selectedAdjustmentProduct ? <div className="muted small">تم تجهيز الصنف المحدد من جدول المتابعة لعمل تسوية أو إضافة/خصم سريع مباشرة.</div> : null}
               </Field>
               <Field label="نوع الحركة">
-                <select 
-                  {...adjustmentForm.register('actionType')} 
-                  disabled={adjustmentMutation.isPending || !canManageInventory}
-                  onChange={(e) => {
-                    adjustmentForm.register('actionType').onChange(e);
-                    if (e.target.value === 'adjust') {
-                      adjustmentForm.setValue('qty', Number(selectedAdjustmentProduct?.stock || 0));
-                    } else {
-                      adjustmentForm.setValue('qty', 0);
-                    }
-                  }}
-                >
-                  <option value="adjust">تسوية إلى كمية نهائية</option>
-                  <option value="add">إضافة كمية</option>
-                  <option value="deduct">خصم كمية</option>
-                </select>
+                <Controller
+                  control={adjustmentForm.control}
+                  name="actionType"
+                  render={({ field }) => (
+                    <CustomSelect
+                      value={field.value}
+                      onChange={(val) => {
+                        field.onChange(val);
+                        if (val === 'adjust') {
+                          adjustmentForm.setValue('qty', Number(selectedAdjustmentProduct?.stock || 0));
+                        } else {
+                          adjustmentForm.setValue('qty', 0);
+                        }
+                      }}
+                      options={ACTION_TYPE_OPTIONS}
+                      disabled={adjustmentMutation.isPending || !canManageInventory}
+                      placeholder="اختر نوع الحركة"
+                    />
+                  )}
+                />
               </Field>
               <Field label="الكمية" error={adjustmentForm.formState.errors.qty?.message}><input type="number" min="0" step="0.001" {...adjustmentForm.register('qty')} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
               <Field label="السبب" error={adjustmentForm.formState.errors.reason?.message}><input {...adjustmentForm.register('reason')} disabled={adjustmentMutation.isPending || !canManageInventory} placeholder="مثال: جرد مخزني / توريد إضافي" /></Field>
-              {!SINGLE_STORE_MODE ? <Field label="الفرع">
-                <select {...adjustmentForm.register('branchId')} disabled={adjustmentMutation.isPending || !canManageInventory}>
-                  <option value="">بدون فرع محدد</option>
-                  {branchList.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-                </select>
-              </Field> : null}
+              {!SINGLE_STORE_MODE ? (
+                <Field label="الفرع">
+                  <Controller
+                    control={adjustmentForm.control}
+                    name="branchId"
+                    render={({ field }) => (
+                      <CustomSelect
+                        value={field.value || ''}
+                        onChange={(val) => field.onChange(val)}
+                        options={branchOptions}
+                        disabled={adjustmentMutation.isPending || !canManageInventory}
+                        placeholder="بدون فرع محدد"
+                      />
+                    )}
+                  />
+                </Field>
+              ) : null}
               {SINGLE_STORE_MODE ? (
                 <Field label="المخزن الأساسي"><input value={locationList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly /></Field>
               ) : (
                 <Field label="المخزن">
-                  <select {...adjustmentForm.register('locationId')} disabled={adjustmentMutation.isPending || !canManageInventory}>
-                    <option value="">بدون مخزن محدد</option>
-                    {locationList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-                  </select>
+                  <Controller
+                    control={adjustmentForm.control}
+                    name="locationId"
+                    render={({ field }) => (
+                      <CustomSelect
+                        value={field.value || ''}
+                        onChange={(val) => field.onChange(val)}
+                        options={locationOptions}
+                        disabled={adjustmentMutation.isPending || !canManageInventory}
+                        placeholder="بدون مخزن محدد"
+                      />
+                    )}
+                  />
                   <small className="muted" style={{ display: 'block', marginTop: 4 }}>
                     * هذا الحقل يحدد مكان العملية فقط ولا يقوم بنقل أرصدة من مخازن أخرى.
                   </small>
@@ -335,20 +382,40 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
               </Field>
               <Field label="الكمية" error={damagedForm.formState.errors.qty?.message}><input type="number" min="0.001" step="0.001" {...damagedForm.register('qty')} disabled={damagedMutation.isPending || !canManageInventory} /></Field>
               <Field label="السبب" error={damagedForm.formState.errors.reason?.message}><input {...damagedForm.register('reason')} disabled={damagedMutation.isPending || !canManageInventory} placeholder="مثال: كسر أثناء النقل / تلف صلاحية" /></Field>
-              {!SINGLE_STORE_MODE ? <Field label="الفرع">
-                <select {...damagedForm.register('branchId')} disabled={damagedMutation.isPending || !canManageInventory}>
-                  <option value="">بدون فرع محدد</option>
-                  {branchList.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-                </select>
-              </Field> : null}
+              {!SINGLE_STORE_MODE ? (
+                <Field label="الفرع">
+                  <Controller
+                    control={damagedForm.control}
+                    name="branchId"
+                    render={({ field }) => (
+                      <CustomSelect
+                        value={field.value || ''}
+                        onChange={(val) => field.onChange(val)}
+                        options={branchOptions}
+                        disabled={damagedMutation.isPending || !canManageInventory}
+                        placeholder="بدون فرع محدد"
+                      />
+                    )}
+                  />
+                </Field>
+              ) : null}
               {SINGLE_STORE_MODE ? (
                 <Field label="المخزن الأساسي"><input value={locationList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly /></Field>
               ) : (
                 <Field label="المخزن">
-                  <select {...damagedForm.register('locationId')} disabled={damagedMutation.isPending || !canManageInventory}>
-                    <option value="">بدون مخزن محدد</option>
-                    {locationList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-                  </select>
+                  <Controller
+                    control={damagedForm.control}
+                    name="locationId"
+                    render={({ field }) => (
+                      <CustomSelect
+                        value={field.value || ''}
+                        onChange={(val) => field.onChange(val)}
+                        options={locationOptions}
+                        disabled={damagedMutation.isPending || !canManageInventory}
+                        placeholder="بدون مخزن محدد"
+                      />
+                    )}
+                  />
                   <small className="muted" style={{ display: 'block', marginTop: 4 }}>
                     * هذا الحقل يحدد مكان العملية فقط ولا يقوم بنقل أرصدة من مخازن أخرى.
                   </small>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { FormSection } from '@/shared/components/form-section';
 import { formatCurrency } from '@/lib/format';
@@ -145,17 +145,28 @@ export function PurchaseRepricingDialog({ open, insights, onClose }: PurchaseRep
   const matchedRuleSummary = summarizeRule(matchedRule);
 
   return (
-    <DialogShell open={open} onClose={onClose} width="min(1180px, 100%)" zIndex={90} ariaLabel="مراجعة إعادة التسعير بعد الشراء">
-      <div className="dialog-shell-header">
-        <div>
-          <h2 style={{ margin: 0 }}>مراجعة إعادة التسعير بعد الشراء</h2>
-          <p className="muted" style={{ marginTop: 8 }}>
-            تم رصد تغيّر في تكلفة {insights?.affectedCount || 0} صنف من المورد {insights?.supplierName || '—'}.
-            النافذة الآن تحاول مطابقة قاعدة التسعير المناسبة، وتجهيز معاينة جاهزة، مع إمكانية تنفيذ الموجة مباشرة من هنا.
-          </p>
-        </div>
-      </div>
-
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title="مراجعة وإعادة التسعير بعد الشراء"
+      subtitle={`تم رصد تغيّر في تكلفة ${insights?.affectedCount || 0} صنف من المورد ${insights?.supplierName || '—'}. مطابقة قواعد التسعير والتنفيذ المباشر.`}
+      maxWidth="1180px"
+      footerActions={
+        <StandardDialogFooter
+          onCancel={onClose}
+          cancelLabel="إغلاق"
+          onSubmit={applyDirectly}
+          submitLabel={applyMutation.isPending ? 'جارٍ التنفيذ...' : 'تنفيذ الموجة الآن'}
+          isSubmitting={applyMutation.isPending}
+          submitDisabled={!canEditPrice || !preparedPayload || !previewSummary?.affectedCount || applyMutation.isPending}
+          extraActions={
+            <Button type="button" variant="secondary" onClick={openPricingCenter}>
+              فتح مركز التسعير
+            </Button>
+          }
+        />
+      }
+    >
       <div className="stats-grid" style={{ marginBottom: 16 }}>
         <article className="stat-card"><span>أصناف متأثرة</span><strong>{insights?.affectedCount || 0}</strong></article>
         <article className="stat-card"><span>تكلفة زادت</span><strong>{insights?.increasedCount || 0}</strong></article>
@@ -222,21 +233,6 @@ export function PurchaseRepricingDialog({ open, insights, onClose }: PurchaseRep
 
       {totalRows > limitedRows.length ? <p className="muted small" style={{ marginTop: 10 }}>يتم عرض أول {limitedRows.length} صنف فقط داخل النافذة. افتح مركز التسعير لرؤية كل الأصناف المتأثرة.</p> : null}
       {statusMessage ? <p className="muted" style={{ marginTop: 12 }}>{statusMessage}</p> : null}
-
-      <div className="actions" style={{ justifyContent: 'space-between', marginTop: 18 }}>
-        <div className="muted small">
-          {matchedRule
-            ? 'القاعدة المطابقة جاهزة. يمكنك تنفيذ موجة التسعير مباشرة من هنا أو فتح مركز التسعير لمراجعة أوسع.'
-            : 'لا توجد قاعدة مطابقة حاليًا. افتح مركز التسعير لحفظ قاعدة جديدة أو نفّذ يدويًا من هناك.'}
-        </div>
-        <div className="actions compact-actions">
-          <Button variant="secondary" type="button" onClick={onClose}>إغلاق</Button>
-          <Button type="button" onClick={openPricingCenter}>فتح مركز التسعير</Button>
-          <Button type="button" onClick={applyDirectly} disabled={!canEditPrice || !preparedPayload || !previewSummary?.affectedCount || applyMutation.isPending}>
-            {applyMutation.isPending ? 'جارٍ التنفيذ...' : 'تنفيذ الموجة الآن'}
-          </Button>
-        </div>
-      </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }

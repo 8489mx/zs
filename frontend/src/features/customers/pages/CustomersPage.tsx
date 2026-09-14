@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog } from '@/shared/components/StandardDialog';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
 import { CustomerForm } from '@/features/customers/components/CustomerForm';
@@ -53,68 +53,51 @@ export function CustomersPage() {
         <CustomersRegisterCard {...controller} onOpenCreate={() => setIsCreateOpen(true)} onOpenLoyalty={(c) => setLoyaltyCustomer(c)} />
 
         {/* Modal for Creating Customer */}
-        <DialogShell
+        <StandardDialog
           open={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
+          title={profile.modalAddTitle}
+          subtitle={profile.modalAddSubtitle}
           width="min(680px, 95vw)"
-          ariaLabel={profile.modalAddTitle}
+          minHeight="auto"
         >
-          <div className="dialog-card">
-            <div className="mb-4 border-b pb-3">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{profile.modalAddTitle}</h3>
-              <p className="text-xs text-muted-foreground mt-1">{profile.modalAddSubtitle}</p>
-            </div>
+          <div dir="rtl">
             <CustomerForm onSuccess={() => setIsCreateOpen(false)} />
           </div>
-        </DialogShell>
+        </StandardDialog>
 
         {/* Modal for Editing Customer */}
-        <DialogShell
+        <StandardDialog
           open={Boolean(controller.selectedCustomer)}
           onClose={() => controller.setSelectedCustomer(null)}
+          title={controller.selectedCustomer ? `تعديل: ${controller.selectedCustomer.name}` : ''}
+          subtitle={profile.modalEditSubtitle}
           width="min(680px, 95vw)"
-          ariaLabel={profile.id === 'maritime' ? 'تعديل بيانات الشاحن' : profile.id === 'contracting' ? 'تعديل بيانات جهة الإسناد' : 'تعديل العميل'}
+          minHeight="auto"
         >
-          <div className="dialog-card" dir="rtl">
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-              marginBottom: '16px',
-              paddingBottom: '12px',
-              borderBottom: '1px solid #e2e8f0',
-            }}>
-              <div style={{ minWidth: 0 }}>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                  تعديل: {controller.selectedCustomer?.name}
-                </h3>
-                <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-                  {profile.modalEditSubtitle}
-                </p>
-              </div>
-              {controller.selectedCustomer && (
+          <div dir="rtl">
+            {controller.selectedCustomer && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
                 <Button
                   variant="danger"
                   onClick={() => controller.setCustomerToDelete(controller.selectedCustomer)}
                   disabled={!controller.canDelete}
                   style={{
-                    fontSize: '0.82rem',
-                    padding: '6px 14px',
-                    flexShrink: 0,
+                    fontSize: '0.8rem',
+                    padding: '4px 12px',
                     fontWeight: 700,
                   }}
                 >
                   {profile.id === 'maritime' ? 'حذف الشاحن' : profile.id === 'contracting' ? 'حذف جهة الإسناد' : 'حذف العميل'}
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
             <CustomerEditorCard
               customer={controller.selectedCustomer || undefined}
               onSaved={() => controller.setSelectedCustomer(null)}
             />
           </div>
-        </DialogShell>
+        </StandardDialog>
 
         <ActionConfirmDialog
           open={Boolean(controller.customerToDelete)}

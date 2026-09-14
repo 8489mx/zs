@@ -121,6 +121,10 @@ export class SettingsService {
       return acc;
     }, {});
 
+    if (!settings.currency) {
+      settings.currency = 'EGP';
+    }
+
     // Ensure core business details and activity profile are strictly synced with tenant
     const tenant = await this.db.selectFrom('tenants').selectAll().where('id', '=', scope.tenantId).executeTakeFirst();
     if (tenant) {
@@ -177,6 +181,14 @@ export class SettingsService {
       settings.maritimeFreightModuleEnabled = false;
       settings.posModuleEnabled = false;
       settings.requireCashierShiftForSales = false;
+    } else {
+      if (settings.inventoryModuleEnabled === undefined) settings.inventoryModuleEnabled = true;
+      if (settings.posModuleEnabled === undefined) settings.posModuleEnabled = true;
+      if (settings.purchasesModuleEnabled === undefined) settings.purchasesModuleEnabled = true;
+      if (settings.crmModuleEnabled === undefined) settings.crmModuleEnabled = true;
+      if (settings.restaurantModuleEnabled === undefined) {
+        settings.restaurantModuleEnabled = (settings.industryProfile as any)?.subVertical === 'restaurant';
+      }
     }
 
     this._settingsCache.set(cacheKey, { data: settings, expiresAt: Date.now() + this.CACHE_TTL_MS });
@@ -628,7 +640,14 @@ export class SettingsService {
       // commerce pillar
       modulePatch.contractingModuleEnabled = false;
       modulePatch.maritimeFreightModuleEnabled = false;
+      modulePatch.manufacturingModuleEnabled = false;
       modulePatch.posModuleEnabled = true;
+      modulePatch.inventoryModuleEnabled = true;
+      modulePatch.purchasesModuleEnabled = true;
+      modulePatch.crmModuleEnabled = true;
+      modulePatch.enableEnterpriseFeatures = true;
+      modulePatch.fixedAssetsModuleEnabled = true;
+      modulePatch.taxDeclarationModuleEnabled = true;
       if (normalizedKey === 'pharmacy') {
         modulePatch.enablePharmacyModule = true;
       } else if (normalizedKey === 'restaurant') {

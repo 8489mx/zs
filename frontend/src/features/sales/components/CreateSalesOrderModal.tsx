@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
-import { Button } from '@/shared/ui/button';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { formatCurrency } from '@/lib/format';
+import { toast } from '@/shared/components/system-alert';
 import {
   PlusIcon,
   Trash2Icon,
-  XIcon,
   LockIcon,
   PackageIcon,
 } from '@/shared/components/icons/AppIcons';
@@ -156,16 +155,16 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
   const totalDiscount = items.reduce((sum, it) => sum + Number(it.discount || 0), 0);
   const totalAmount = Math.max(0, subtotal - totalDiscount);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!customerName.trim()) {
-      alert('يرجى كتابة اسم العميل');
+      toast.error('يرجى كتابة اسم العميل');
       return;
     }
 
     const validItems = items.filter((it) => it.productName.trim() && Number(it.quantity) > 0);
     if (validItems.length === 0) {
-      alert('يرجى إضافة صنف واحد على الأقل باسم وكمية صحيحة');
+      toast.error('يرجى إضافة صنف واحد على الأقل باسم وكمية صحيحة');
       return;
     }
 
@@ -198,36 +197,25 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
   if (!open) return null;
 
   return (
-    <DialogShell
-      open={true}
+    <StandardDialog
+      isOpen={open}
       onClose={onClose}
-      width="min(920px, 96vw)"
-      ariaLabel="إنشاء أمر بيع جديد"
+      title="إنشاء أمر بيع جديد (Sales Order)"
+      subtitle="حجز المخزون وتثبيت الأسعار والكميات المعتمدة للعميل"
+      maxWidth="940px"
+      footer={
+        <StandardDialogFooter
+          onClose={onClose}
+          closeLabel="إلغاء"
+          primaryButton={{
+            label: isPending ? 'جاري الحفظ...' : 'حفظ أمر البيع وحجز المخزون',
+            onClick: () => handleSubmit(),
+            disabled: isPending,
+          }}
+        />
+      }
     >
-      <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
-        <div className="standard-dialog-header">
-          <div className="standard-dialog-header-info">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eef2ff', border: '1px solid #c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <PackageIcon size={18} color="#170e5e" />
-              </div>
-              <div>
-                <h3 className="standard-dialog-title">إنشاء أمر بيع جديد (Sales Order)</h3>
-                <p className="standard-dialog-subtitle">حجز المخزون وتثبيت الأسعار والكميات للعميل</p>
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="standard-dialog-close-btn"
-            aria-label="إغلاق"
-          >
-            <XIcon size={18} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <DraftRestoredBanner
             show={isDraftRestored}
             onClear={resetForm}
@@ -478,22 +466,7 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="standard-dialog-footer">
-            <Button variant="secondary" onClick={onClose}>
-              إلغاء
-            </Button>
-            <Button
-              variant="primary"
-              type="submit"
-              disabled={isPending}
-              style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
-            >
-              {isPending ? 'جاري الحفظ...' : 'حفظ أمر البيع وحجز المخزون'}
-            </Button>
-          </div>
         </form>
-      </div>
-    </DialogShell>
+    </StandardDialog>
   );
 };

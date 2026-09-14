@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { WarehouseIcon, AlertTriangleIcon, SearchIcon } from '@/shared/components/icons/AppIcons';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { catalogApi } from '@/shared/api/catalog';
@@ -17,6 +18,12 @@ import {
 } from '../components/inventory-tree/InventoryTreeModals';
 import { BulkActionBar } from '../components/inventory-tree/BulkActionBar';
 import { CategorySection } from '../components/inventory-tree/CategorySection';
+
+const SORT_OPTIONS = [
+  { value: 'default', label: 'ترتيب افتراضي' },
+  { value: 'qtyDesc', label: 'الأعلى رصيداً أولاً' },
+  { value: 'qtyAsc', label: 'الأقل رصيداً أولاً' },
+];
 
 export function InventoryTreePage() {
   const navigate = useNavigate();
@@ -51,6 +58,11 @@ export function InventoryTreePage() {
   const allLocations = useMemo(() => locationsQuery.data || [], [locationsQuery.data]);
   const stocks = useMemo(() => stocksQuery.data || [], [stocksQuery.data]);
   const categories = useMemo(() => categoriesQuery.data || [], [categoriesQuery.data]);
+
+  const locationOptions = useMemo(() => [
+    { value: '', label: 'كل المخازن' },
+    ...locations.map((l: any) => ({ value: String(l.id), label: l.name })),
+  ], [locations]);
   const rawProducts = useMemo(() => productsQuery.data || [], [productsQuery.data]);
 
   const productRows = useMemo((): ProductRow[] => {
@@ -260,37 +272,22 @@ export function InventoryTreePage() {
             }}
           />
         </div>
-        <select
-          value={filterLocationId}
-          onChange={(e) => { setFilterLocationId(e.target.value); setShowUnassigned(false); }}
-          style={{
-            padding: '8px 12px',
-            borderRadius: '8px',
-            border: '1px solid var(--border, #cbd5e1)',
-            fontSize: '13px',
-            flex: '1 1 150px',
-            background: '#ffffff',
-          }}
-        >
-          <option value="">كل المخازن</option>
-          {locations.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
-        </select>
-        <select
-          value={sortMode}
-          onChange={(e) => setSortMode(e.target.value as SortMode)}
-          style={{
-            padding: '8px 12px',
-            borderRadius: '8px',
-            border: '1px solid var(--border, #cbd5e1)',
-            fontSize: '13px',
-            flex: '1 1 150px',
-            background: '#ffffff',
-          }}
-        >
-          <option value="default">ترتيب افتراضي</option>
-          <option value="qtyDesc">الأعلى رصيداً أولاً</option>
-          <option value="qtyAsc">الأقل رصيداً أولاً</option>
-        </select>
+        <div style={{ flex: '1 1 170px', minWidth: '150px' }}>
+          <CustomSelect
+            value={filterLocationId}
+            onChange={(val) => { setFilterLocationId(val); setShowUnassigned(false); }}
+            options={locationOptions}
+            placeholder="كل المخازن"
+          />
+        </div>
+        <div style={{ flex: '1 1 170px', minWidth: '150px' }}>
+          <CustomSelect
+            value={sortMode}
+            onChange={(val) => setSortMode(val as SortMode)}
+            options={SORT_OPTIONS}
+            placeholder="ترتيب افتراضي"
+          />
+        </div>
         <div className="inventory-tree-checkboxes-row" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap', userSelect: 'none', color: '#334155' }}>
             <input

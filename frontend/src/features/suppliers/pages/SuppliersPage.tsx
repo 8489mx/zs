@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog } from '@/shared/components/StandardDialog';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
 import { SupplierForm } from '@/features/suppliers/components/SupplierForm';
@@ -43,54 +43,51 @@ export function SuppliersPage() {
         <SuppliersRegisterCard {...controller} onOpenCreate={() => setIsCreateOpen(true)} />
 
         {/* Modal for Creating Supplier */}
-        <DialogShell
+        <StandardDialog
           open={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
+          title="إضافة مورد جديد"
+          subtitle="تسجيل بيانات المورد وتفاصيل الحساب والرصيد الافتتاحي في النظام"
           width="min(680px, 95vw)"
-          ariaLabel="إضافة مورد جديد"
-          showCloseButton={true}
+          minHeight="auto"
         >
-          <div className="dialog-card">
-            <div className="mb-4 border-b pb-3">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">إضافة مورد جديد</h3>
-              <p className="text-xs text-muted-foreground mt-1">تسجيل بيانات المورد وتفاصيل الحساب والرصيد الافتتاحي في النظام.</p>
-            </div>
+          <div dir="rtl">
             <SupplierForm onSuccess={() => setIsCreateOpen(false)} />
           </div>
-        </DialogShell>
+        </StandardDialog>
 
         {/* Modal for Editing Supplier */}
-        <DialogShell
+        <StandardDialog
           open={Boolean(controller.selectedSupplier)}
           onClose={() => controller.setSelectedSupplier(null)}
+          title={controller.selectedSupplier ? `تعديل: ${controller.selectedSupplier.name}` : ''}
+          subtitle="تحديث بيانات المورد أو ضبط الرصيد الافتتاحي والملاحظات"
           width="min(680px, 95vw)"
-          ariaLabel="تعديل المورد"
-          showCloseButton={true}
+          minHeight="auto"
         >
-          <div className="dialog-card">
-            <div className="flex items-center justify-between mb-4 border-b pb-3">
-              <div>
-                <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">
-                  تعديل: {controller.selectedSupplier?.name}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1">تحديث بيانات المورد أو ضبط الرصيد الافتتاحي والملاحظات.</p>
-              </div>
-              {controller.selectedSupplier && (
+          <div dir="rtl">
+            {controller.selectedSupplier && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
                 <Button
                   variant="danger"
                   onClick={() => controller.setSupplierToDelete(controller.selectedSupplier)}
                   disabled={!controller.canDelete}
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '4px 12px',
+                    fontWeight: 700,
+                  }}
                 >
                   حذف المورد
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
             <SupplierEditorCard
               supplier={controller.selectedSupplier || undefined}
               onSaved={() => controller.setSelectedSupplier(null)}
             />
           </div>
-        </DialogShell>
+        </StandardDialog>
 
         <ActionConfirmDialog
           open={Boolean(controller.supplierToDelete)}

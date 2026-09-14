@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { contractingApi } from '../api/contracting.api';
 import { ContractingRetentionRecord } from '../contracting.types';
@@ -202,14 +203,15 @@ export function RetentionLedgerModal({
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
                   نوع الطرف
                 </label>
-                <select
+                <CustomSelect
                   value={entityType}
-                  onChange={(e) => setEntityType(e.target.value as any)}
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)' }}
-                >
-                  <option value="subcontractor">مقاول باطن (محتجز عليه)</option>
-                  <option value="client">العميل / المالك (محتجز لصالحنا)</option>
-                </select>
+                  onChange={(val) => setEntityType(val as any)}
+                  options={[
+                    { value: 'subcontractor', label: 'مقاول باطن (محتجز عليه)' },
+                    { value: 'client', label: 'العميل / المالك (محتجز لصالحنا)' },
+                  ]}
+                  placeholder="اختر نوع الطرف..."
+                />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>

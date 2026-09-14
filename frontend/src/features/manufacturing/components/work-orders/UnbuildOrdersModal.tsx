@@ -1,9 +1,9 @@
 import React from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
-import { XIcon } from '@/shared/components/icons/AppIcons';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { workOrdersApi } from '@/features/manufacturing/api/work-orders.api';
-import { systemAlert } from '@/shared/components/system-alert';
+import { toast } from '@/shared/components/system-alert';
 
 interface UnbuildOrdersModalProps {
   isOpen: boolean;
@@ -30,7 +30,7 @@ export function UnbuildOrdersModal({
   const handleCreateUnbuild = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBomId || unbuildQty <= 0) {
-      systemAlert('يرجى اختيار شجرة المنتج وتحديد كمية صالحة للتفكيك');
+      toast.error('يرجى اختيار شجرة المنتج وتحديد كمية صالحة للتفكيك');
       return;
     }
     setIsSubmitting(true);
@@ -46,54 +46,67 @@ export function UnbuildOrdersModal({
       setUnbuildQty(1);
       setUnbuildNotes('');
       onReloadUnbuild();
-      systemAlert('تم إنشاء وتأكيد أمر التفكيك واسترجاع المواد الخام للمخزن بنجاح!');
+      toast.success('تم إنشاء وتأكيد أمر التفكيك واسترجاع المواد الخام للمخزن بنجاح!');
     } catch (err: any) {
-      systemAlert(err?.message || 'فشل تنفيذ أمر التفكيك');
+      toast.error(err?.message || 'فشل تنفيذ أمر التفكيك');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <DialogShell open={true} onClose={onClose} width="min(800px, 96vw)" ariaLabel="أوامر التفكيك">
-      <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
-        <div className="standard-dialog-header">
-          <div className="standard-dialog-header-info">
-            <h3 className="standard-dialog-title">أوامر التفكيك وإرجاع المواد الخام (Unbuild Orders)</h3>
-            <p className="standard-dialog-subtitle">تفكيك المنتجات التامة واسترجاع مكوناتها الأصلية إلى أرصدة المخزون</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="standard-dialog-close-btn"
-            aria-label="إغلاق"
-          >
-            <XIcon size={18} />
-          </button>
-        </div>
+  const bomOptions = boms.map((b) => ({
+    value: String(b.id),
+    label: b.product_name,
+    hint: b.name || b.code || undefined,
+  }));
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Create Unbuild Form */}
-          <form onSubmit={handleCreateUnbuild} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', display: 'grid', gridTemplateColumns: '2fr 1fr 2fr auto', gap: '10px', alignItems: 'flex-end' }}>
+  return (
+    <StandardDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title="أوامر التفكيك واسترجاع الخامات (Unbuild Orders)"
+      subtitle="تفكيك المنتجات التامة واسترجاع مكوناتها الأصلية إلى أرصدة المخزون"
+      maxWidth="840px"
+      footer={
+        <StandardDialogFooter
+          onClose={onClose}
+          closeLabel="إغلاق"
+        />
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Create Unbuild Form Card */}
+        <form
+          onSubmit={handleCreateUnbuild}
+          style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#170e5e', borderBottom: '1px solid #e2e8f0', paddingBottom: 6 }}>
+            إنشاء أمر تفكيك فوري
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 2fr) 110px minmax(180px, 2fr) auto', gap: '10px', alignItems: 'flex-end' }}>
             <div>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                شجرة المنتج التام المراد تفكيكه (BOM) *
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                شجرة المنتج التام (BOM) *
               </label>
-              <select
-                required
-                value={selectedBomId}
-                onChange={(e) => setSelectedBomId(Number(e.target.value))}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
-              >
-                <option value={0}>-- اختر شجرة المنتج --</option>
-                {boms.map((b) => (
-                  <option key={b.id} value={b.id}>{b.product_name} ({b.name || b.code})</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={selectedBomId ? String(selectedBomId) : ''}
+                onChange={(val) => setSelectedBomId(Number(val))}
+                options={bomOptions}
+                placeholder="-- اختر شجرة المنتج --"
+              />
             </div>
 
             <div>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
                 الكمية للتفكيك *
               </label>
               <input
@@ -103,71 +116,78 @@ export function UnbuildOrdersModal({
                 required
                 value={unbuildQty}
                 onChange={(e) => setUnbuildQty(Number(e.target.value))}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', textAlign: 'center', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
                 ملاحظات أو سبب التفكيك
               </label>
               <input
                 type="text"
-                placeholder="تالف، إعادة استخدام..."
+                placeholder="تالف، مرتجع، إعادة تدوير..."
                 value={unbuildNotes}
                 onChange={(e) => setUnbuildNotes(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
-              <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '12px', padding: '8px 16px' }}>
+              <Button
+                type="submit"
+                disabled={isSubmitting || !selectedBomId}
+                style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '12px', padding: '9px 18px' }}
+              >
                 {isSubmitting ? 'جاري...' : 'تنفيذ التفكيك'}
               </Button>
             </div>
-          </form>
+          </div>
+        </form>
 
-          {/* List of past unbuild orders */}
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '8px 12px' }}>رقم الأمر</th>
-                  <th style={{ padding: '8px 12px' }}>المنتج المفكك</th>
-                  <th style={{ padding: '8px 12px' }}>الكمية</th>
-                  <th style={{ padding: '8px 12px' }}>التاريخ</th>
-                  <th style={{ padding: '8px 12px' }}>الحالة</th>
+        {/* List of past unbuild orders */}
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+          <div style={{ padding: '10px 14px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontWeight: 700, fontSize: '12.5px', color: '#334155' }}>
+            سجل أوامر التفكيك المنفذة
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
+                <th style={{ padding: '10px 14px' }}>رقم الأمر</th>
+                <th style={{ padding: '10px 14px' }}>المنتج المفكك</th>
+                <th style={{ padding: '10px 14px', textAlign: 'center' }}>الكمية</th>
+                <th style={{ padding: '10px 14px' }}>التاريخ</th>
+                <th style={{ padding: '10px 14px' }}>الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {unbuildOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
+                    لا توجد أوامر تفكيك مسجلة حتى الآن.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {unbuildOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                      لا توجد أوامر تفكيك مسجلة.
+              ) : (
+                unbuildOrders.map((u, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700 }}>{u.doc_no || `#${u.id}`}</td>
+                    <td style={{ padding: '10px 14px', fontWeight: 600 }}>{u.product_name}</td>
+                    <td style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{u.quantity}</td>
+                    <td style={{ padding: '10px 14px', color: '#64748b' }}>
+                      {u.created_at ? new Date(u.created_at).toLocaleDateString('ar-EG') : '—'}
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#ecfdf5', color: '#059669', fontWeight: 700, border: '1px solid #a7f3d0', fontSize: '11px' }}>
+                        مكتمل ومفكك
+                      </span>
                     </td>
                   </tr>
-                ) : (
-                  unbuildOrders.map((u, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontWeight: 700 }}>{u.doc_no || `#${u.id}`}</td>
-                      <td style={{ padding: '8px 12px', fontWeight: 600 }}>{u.product_name}</td>
-                      <td style={{ padding: '8px 12px', fontWeight: 700 }}>{u.quantity}</td>
-                      <td style={{ padding: '8px 12px', color: '#64748b' }}>{u.created_at ? new Date(u.created_at).toLocaleDateString('ar-EG') : '-'}</td>
-                      <td style={{ padding: '8px 12px', color: '#059669', fontWeight: 700 }}>مكتمل ومفكك</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="standard-dialog-footer">
-            <Button variant="secondary" onClick={onClose}>
-              إغلاق
-            </Button>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }

@@ -3,6 +3,8 @@ import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { AppIcons, PlusIcon } from '@/shared/components/icons/AppIcons';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 import {
   purchaseRfqsApi,
   PurchaseRfq,
@@ -166,28 +168,43 @@ export const PurchaseRfqsPage: FC = () => {
 
   const handleSelectWinner = async (supplierId: number) => {
     if (!activeRfq) return;
-    if (!window.confirm('هل أنت متأكد من اعتماد هذا المورد وتحويل العرض تلقائياً لأمر شراء رسمي (PO)؟')) return;
+    const confirmed = await systemConfirm({
+      title: 'اعتماد المورد الفائز وتوليد أمر شراء',
+      message: 'هل أنت متأكد من اعتماد هذا المورد وتحويل العرض تلقائياً لأمر شراء رسمي (PO)؟',
+      confirmText: 'نعم، اعتماد وتحويل',
+      cancelText: 'إلغاء',
+    });
+    if (!confirmed) return;
 
     try {
       setSubmitting(true);
       const res = await purchaseRfqsApi.selectWinner(activeRfq.id, supplierId);
-      alert(`تم بنجاح اعتماد العرض وتوليد أمر الشراء رقم: ${res.orderNumber}`);
+      toast.success(`تم بنجاح اعتماد العرض وتوليد أمر الشراء رقم: ${res.orderNumber}`);
       setIsMatrixOpen(false);
       await loadData();
-    } catch (err) {
-      console.error('Failed to select winner', err);
+    } catch (err: any) {
+      toast.error(err?.message || 'فشل اعتماد المورد الفائز');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('هل أنت متأكد من حذف طلب عرض السعر؟')) return;
+    const confirmed = await systemConfirm({
+      title: 'تأكيد حذف طلب عرض السعر',
+      message: 'هل أنت متأكد من حذف طلب عرض السعر هذا نهائياً؟',
+      confirmText: 'نعم، حذف',
+      cancelText: 'إلغاء',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
     try {
       await purchaseRfqsApi.delete(id);
+      toast.success('تم حذف طلب عرض السعر بنجاح.');
       await loadData();
-    } catch (err) {
-      console.error('Failed to delete RFQ', err);
+    } catch (err: any) {
+      toast.error(err?.message || 'فشل حذف طلب عرض السعر');
     }
   };
 
@@ -257,25 +274,19 @@ export const PurchaseRfqsPage: FC = () => {
                 </span>
               </div>
 
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                style={{
-                  padding: '7px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: '#ffffff',
-                  fontSize: 'var(--font-table-head)',
-                  fontWeight: 600,
-                  color: '#334155',
-                  outline: 'none',
-                }}
-              >
-                <option value="all">كافة الحالات</option>
-                <option value="draft">مسودة</option>
-                <option value="bids_received">تم استلام عروض</option>
-                <option value="converted_to_po">تم التحويل لأمر شراء (PO)</option>
-              </select>
+              <div style={{ width: '200px' }}>
+                <CustomSelect
+                  value={statusFilter}
+                  onChange={(val) => setStatusFilter(val)}
+                  options={[
+                    { value: 'all', label: 'كافة الحالات' },
+                    { value: 'draft', label: 'مسودة' },
+                    { value: 'bids_received', label: 'تم استلام عروض' },
+                    { value: 'converted_to_po', label: 'تم التحويل لأمر شراء (PO)' },
+                  ]}
+                  placeholder="تصفية حسب الحالة..."
+                />
+              </div>
             </div>
           </div>
 

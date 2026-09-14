@@ -20,6 +20,11 @@ export const inventoryRouteModule: FeatureRouteModule = {
     { path: 'inventory/batches', element: inventoryBatchesPage },
     { path: 'inventory/issue-order/new', element: newIssueOrderPage },
     { path: 'inventory/tree', element: inventoryTreePage },
+    { path: 'inventory-tree', element: <Navigate to="/inventory/tree" replace /> },
+    { path: 'inventory-bins', element: <Navigate to="/inventory/bins" replace /> },
+    { path: 'inventory-warehouses', element: <Navigate to="/inventory/warehouses" replace /> },
+    { path: 'inventory/transfers', element: inventoryPage },
+    { path: 'inventory/issue-orders', element: inventoryPage },
     { path: 'inventory/:section', element: inventoryPage }
   ],
   navigation: [

@@ -6,12 +6,19 @@ import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
 import { NetworkIcon, PackageIcon, WarehouseIcon, EditIcon, TrashIcon, ArrowLeftIcon } from '@/shared/components/icons/AppIcons';
 import { Field } from '@/shared/ui/field';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { systemConfirm } from '@/shared/components/system-alert';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { useCreateLocationMutation, useUpdateLocationMutation, useDeleteLocationMutation } from '@/shared/hooks/use-location-mutations';
 import { formatCurrency } from '@/lib/format';
 import type { Location } from '@/types/domain';
+
+const LOCATION_TYPE_OPTIONS = [
+  { value: 'internal_warehouse', label: 'مخزن داخلي (لا يظهر كأرصدة فروع)' },
+  { value: 'branch_stock', label: 'رصيد فرع (متاح للبيع)' },
+];
 
 function formatLocationType(type?: string) {
   if (!type) return 'مخزن نشط';
@@ -41,6 +48,11 @@ export function WarehousesGridPage() {
   const [code, setCode] = useState('');
   const [branchId, setBranchId] = useState('');
   const [locationType, setLocationType] = useState<'internal_warehouse' | 'branch_stock'>('internal_warehouse');
+
+  const branchOptions = useMemo(() => [
+    { value: '', label: 'بدون ربط (فرع رئيسي)' },
+    ...(branchesQuery.data || []).map((b) => ({ value: String(b.id), label: b.name })),
+  ], [branchesQuery.data]);
 
   const createMutation = useCreateLocationMutation(() => {
     setModalOpen(false);
@@ -91,7 +103,14 @@ export function WarehousesGridPage() {
 
   const handleDelete = async (loc: Location, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm(`هل أنت متأكد من حذف المخزن "${loc.name}"؟`)) return;
+    const confirmed = await systemConfirm({
+      title: 'حذف المخزن',
+      message: `هل أنت متأكد من حذف المخزن "${loc.name}"؟`,
+      confirmText: 'نعم، حذف',
+      cancelText: 'إلغاء',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     deleteMutation.mutate(String(loc.id));
   };
 
@@ -253,47 +272,53 @@ export function WarehousesGridPage() {
       </section>
 
       {/* Dialog for Create/Edit Location */}
-      {modalOpen && (
-        <DialogShell 
-          open={true} 
-          onClose={() => setModalOpen(false)}
-          width="min(520px, 95vw)"
-        >
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{editingLocation ? 'تعديل بيانات المخزن' : 'إضافة مخزن جديد'}</h3>
-          </div>
-          <div style={{ padding: '20px' }}>
-            <form onSubmit={onSave} className="form-grid single-col" id="location-form">
-              <Field label="اسم المخزن">
-                <input required value={name} onChange={(e) => setName(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="مثال: المخزن الرئيسي" />
-              </Field>
-              <Field label="كود المخزن">
-                <input value={code} onChange={(e) => setCode(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="اختياري" />
-              </Field>
-              <Field label="الفرع المرتبط">
-                <select value={branchId} onChange={(e) => setBranchId(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending}>
-                  <option value="">بدون ربط (فرع رئيسي)</option>
-                  {(branchesQuery.data || []).map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="نوع المخزن">
-                <select value={locationType} onChange={(e) => setLocationType(e.target.value as 'internal_warehouse' | 'branch_stock')} disabled={createMutation.isPending || updateMutation.isPending}>
-                  <option value="internal_warehouse">مخزن داخلي (لا يظهر كأرصدة فروع)</option>
-                  <option value="branch_stock">رصيد فرع (متاح للبيع)</option>
-                </select>
-              </Field>
-            </form>
-          </div>
-          <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '8px', backgroundColor: 'var(--bg-muted)' }}>
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
-            <Button variant="primary" type="submit" form="location-form" disabled={createMutation.isPending || updateMutation.isPending}>
-              {editingLocation ? 'حفظ التعديلات' : 'إضافة المخزن'}
-            </Button>
-          </div>
-        </DialogShell>
-      )}
+      <StandardDialog
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingLocation ? 'تعديل بيانات المخزن' : 'إضافة مخزن جديد'}
+        subtitle="إدارة بيانات وتصنيف المخزن والفرع التابع له"
+        size="md"
+        footerActions={
+          <StandardDialogFooter
+            onCancel={() => setModalOpen(false)}
+            cancelLabel="إلغاء"
+            primaryLabel={editingLocation ? 'حفظ التعديلات' : 'إضافة المخزن'}
+            onPrimary={() => {
+              const form = document.getElementById('location-form') as HTMLFormElement | null;
+              if (form) form.requestSubmit();
+            }}
+            isPrimaryLoading={createMutation.isPending || updateMutation.isPending}
+            isPrimaryDisabled={createMutation.isPending || updateMutation.isPending || !name.trim()}
+          />
+        }
+      >
+        <form onSubmit={onSave} className="form-grid single-col" id="location-form" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <Field label="اسم المخزن">
+            <input required value={name} onChange={(e) => setName(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="مثال: المخزن الرئيسي" />
+          </Field>
+          <Field label="كود المخزن">
+            <input value={code} onChange={(e) => setCode(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="اختياري" />
+          </Field>
+          <Field label="الفرع المرتبط">
+            <CustomSelect
+              value={branchId}
+              onChange={(val) => setBranchId(val)}
+              options={branchOptions}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              placeholder="اختر الفرع المرتبط"
+            />
+          </Field>
+          <Field label="نوع المخزن">
+            <CustomSelect
+              value={locationType}
+              onChange={(val) => setLocationType(val as 'internal_warehouse' | 'branch_stock')}
+              options={LOCATION_TYPE_OPTIONS}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              placeholder="اختر نوع المخزن"
+            />
+          </Field>
+        </form>
+      </StandardDialog>
     </main>
   );
 }

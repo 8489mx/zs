@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import {
-  XIcon,
   CheckCircleIcon,
   AlertTriangleIcon,
   AlertCircleIcon,
@@ -100,37 +99,24 @@ export function FiscalYearCloseWizardModal({
   };
 
   return (
-    <DialogShell isOpen={open} onClose={onClose} size="xl">
-      {/* Header */}
-      <div className="standard-dialog-header">
-        <div>
-          <h2 className="standard-dialog-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ScaleIcon size={22} color="#170e5e" />
-            <span>معالج إقفال السنة المالية وترحيل الأرباح: {fiscalYear.name}</span>
-          </h2>
-          <p className="standard-dialog-subtitle">
-            الفترة من {fiscalYear.start_date} إلى {fiscalYear.end_date}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="standard-dialog-close-btn"
-          aria-label="إغلاق"
-        >
-          <XIcon size={18} />
-        </button>
-      </div>
-
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title={`معالج إقفال السنة المالية وترحيل الأرباح: ${fiscalYear.name}`}
+      subtitle={`الفترة من ${fiscalYear.start_date} إلى ${fiscalYear.end_date}`}
+      size="xl"
+    >
       {/* Step Indicator Bar */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr 1fr',
           gap: '8px',
-          padding: '12px 20px',
+          padding: '12px 16px',
           backgroundColor: '#f8fafc',
-          borderBottom: '1px solid #e2e8f0',
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0',
+          marginBottom: '16px',
         }}
       >
         <div
@@ -586,7 +572,7 @@ export function FiscalYearCloseWizardModal({
       </div>
 
       {/* Footer Controls */}
-      <div className="standard-dialog-footer" style={{ justifyContent: 'space-between' }}>
+      <StandardDialogFooter style={{ justifyContent: 'space-between' }}>
         <div>
           {step > 1 && (
             <Button
@@ -644,7 +630,7 @@ export function FiscalYearCloseWizardModal({
             </Button>
           )}
         </div>
-      </div>
-    </DialogShell>
+      </StandardDialogFooter>
+    </StandardDialog>
   );
 }

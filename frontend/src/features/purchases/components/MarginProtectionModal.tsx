@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { formatCurrency } from '@/lib/format';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
-import { TrendingUpIcon, XIcon, CheckIcon, TagIcon, MessageSquareIcon } from '@/shared/components/icons/AppIcons';
+import { CheckIcon, TagIcon, MessageSquareIcon } from '@/shared/components/icons/AppIcons';
 import {
   marginProtectionApi,
   type MarginProtectionAnalysisResponse,
@@ -158,69 +159,76 @@ export function MarginProtectionModal({
   if (!open) return null;
 
   return (
-    <div
-      dir="rtl"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title="محرك حماية هامش الربح وتحديث الأسعار التلقائي"
+      subtitle={`فاتورة رقم #${analysis?.docNo || purchaseId} | المورد: ${analysis?.supplierName || '—'}`}
+      maxWidth="1100px"
+      footerActions={
+        <StandardDialogFooter
+          onCancel={onClose}
+          cancelLabel="إغلاق"
+          onSubmit={handleApply}
+          submitLabel={applying ? 'جاري التحديث...' : `تحديث أسعار ${selectedProductIds.size} صنفاً في الكاشير`}
+          isSubmitting={applying}
+          submitDisabled={applying || !selectedProductIds.size}
+          extraActions={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#334155' }}>
+                <input
+                  type="checkbox"
+                  checked={notifyOwner}
+                  onChange={(e) => setNotifyOwner(e.target.checked)}
+                  style={{ accentColor: '#170e5e' }}
+                />
+                <MessageSquareIcon size={14} color="#16a34a" />
+                <span>إرسال تقرير بالأسعار المحدثة على واتساب المالك</span>
+              </label>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handlePrintShelfLabels}
+                disabled={!selectedProductIds.size}
+                style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <TagIcon size={14} />
+                <span>طباعة ملصقات الأسعار للأرفف</span>
+              </Button>
+            </div>
+          }
+        />
+      }
     >
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-5xl overflow-hidden my-6 flex flex-col max-h-[92vh]">
-        {/* Header */}
-        <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-100 text-amber-700 rounded-xl">
-              <TrendingUpIcon size={22} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-bold text-slate-900 text-lg">
-                  محرك حماية هامش الربح وتحديث الأسعار التلقائي
-                </h2>
-                <span className="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-bold">
-                  ذكي وآلي
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                فاتورة رقم #{analysis?.docNo || purchaseId} | المورد: {analysis?.supplierName || '—'}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition flex items-center justify-center"
-            aria-label="إغلاق"
-          >
-            <XIcon size={16} />
-          </button>
-        </div>
-
+      <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Target Margin Controls & Overview Banner */}
-        <div className="p-4 bg-white border-b border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-3 items-center text-xs">
-          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <span className="text-slate-500 block">أصناف الفاتورة:</span>
-            <span className="text-base font-bold text-slate-800">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', alignItems: 'center', fontSize: '12px' }}>
+          <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <span style={{ color: '#64748b', display: 'block', marginBottom: '4px' }}>أصناف الفاتورة:</span>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b' }}>
               {analysis?.totalAffectedItems || 0} أصناف
             </span>
           </div>
 
-          <div className="bg-red-50 p-3 rounded-xl border border-red-200">
-            <span className="text-red-600 block font-semibold">أصناف تحقق خسارة:</span>
-            <span className="text-base font-bold text-red-700">
+          <div style={{ background: '#fef2f2', padding: '12px', borderRadius: '10px', border: '1px solid #fecaca' }}>
+            <span style={{ color: '#dc2626', display: 'block', fontWeight: 700, marginBottom: '4px' }}>أصناف تحقق خسارة:</span>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#b91c1c' }}>
               {analysis?.lossMakingCount || 0} صنف (سعر البيع دون التكلفة!)
             </span>
           </div>
 
-          <div className="bg-amber-50 p-3 rounded-xl border border-amber-200">
-            <span className="text-amber-700 block font-semibold">أصناف انخفض هامشها:</span>
-            <span className="text-base font-bold text-amber-800">
+          <div style={{ background: '#fffbeb', padding: '12px', borderRadius: '10px', border: '1px solid #fde68a' }}>
+            <span style={{ color: '#b45309', display: 'block', fontWeight: 700, marginBottom: '4px' }}>أصناف انخفض هامشها:</span>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#92400e' }}>
               {analysis?.marginCompressedCount || 0} صنف (دون 15%)
             </span>
           </div>
 
-          <div className="bg-blue-50/60 p-3 rounded-xl border border-blue-200 flex flex-col justify-center">
-            <label className="text-blue-900 block font-bold mb-1">
-              هامش الربح المستهدف: <span className="text-blue-700 font-extrabold text-sm">{targetMargin}%</span>
+          <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '10px', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <label style={{ color: '#1e3a8a', display: 'block', fontWeight: 800, marginBottom: '4px' }}>
+              هامش الربح المستهدف: <span style={{ color: '#1d4ed8', fontWeight: 900, fontSize: '14px' }}>{targetMargin}%</span>
             </label>
-            <div className="flex items-center gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <input
                 type="range"
                 min="10"
@@ -228,9 +236,9 @@ export function MarginProtectionModal({
                 step="1"
                 value={targetMargin}
                 onChange={(e) => setTargetMargin(Number(e.target.value))}
-                className="w-full accent-[#170e5e] cursor-pointer"
+                style={{ width: '100%', accentColor: '#170e5e', cursor: 'pointer' }}
               />
-              <span className="text-[11px] font-bold text-blue-900 bg-white px-2 py-0.5 rounded border border-blue-300">
+              <span style={{ fontSize: '11px', fontWeight: 800, color: '#1e3a8a', background: '#ffffff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #93c5fd' }}>
                 {targetMargin}%
               </span>
             </div>
@@ -238,41 +246,41 @@ export function MarginProtectionModal({
         </div>
 
         {/* Content Table */}
-        <div className="p-4 overflow-y-auto flex-1">
+        <div style={{ overflowY: 'auto' }}>
           {loading ? (
-            <div className="p-12 text-center text-slate-500 text-sm font-semibold">
+            <div style={{ padding: '48px', textAlign: 'center', color: '#64748b', fontSize: '13px', fontWeight: 700 }}>
               جاري فحص تغيرات التكلفة واحتساب هوامش الربح المقترحة...
             </div>
           ) : errorMessage ? (
-            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-semibold mb-3">
+            <div style={{ padding: '12px 16px', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>
               {errorMessage}
             </div>
           ) : displayItems.length === 0 ? (
-            <div className="p-12 text-center text-slate-500 text-sm">
+            <div style={{ padding: '48px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
               لم يتم العثور على أصناف تتطلب إعادة تسعير في هذه الفاتورة.
             </div>
           ) : (
-            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                    <th style={{ padding: '10px 14px', width: '40px', textAlign: 'center', fontWeight: 600, fontSize: '12.5px' }}>
+                    <th style={{ padding: '10px 14px', width: '40px', textAlign: 'center', fontWeight: 700 }}>
                       <input
                         type="checkbox"
                         checked={selectedProductIds.size === displayItems.length}
                         onChange={toggleSelectAll}
-                        className="rounded border-slate-300 accent-[#170e5e]"
+                        style={{ accentColor: '#170e5e' }}
                       />
                     </th>
-                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>اسم الصنف والباركود</th>
-                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>التكلفة (السابقة ← الجديدة)</th>
-                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>سعر البيع الحالي</th>
-                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الهامش الحالي</th>
-                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center', backgroundColor: '#f0f9ff' }}>السعر المقترح للكاشير</th>
-                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الهامش بعد التعديل</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 700 }}>اسم الصنف والباركود</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center' }}>التكلفة (السابقة ← الجديدة)</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center' }}>سعر البيع الحالي</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center' }}>الهامش الحالي</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center', backgroundColor: '#f0f9ff' }}>السعر المقترح للكاشير</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center' }}>الهامش بعد التعديل</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {displayItems.map((item) => {
                     const isSelected = selectedProductIds.has(item.productId);
                     const isCostIncreased = item.costChangePercent > 0;
@@ -280,67 +288,82 @@ export function MarginProtectionModal({
                     return (
                       <tr
                         key={item.productId}
-                        className={`hover:bg-slate-50/80 transition ${
-                          isSelected ? 'bg-blue-50/20' : ''
-                        }`}
+                        style={{
+                          borderBottom: '1px solid #f1f5f9',
+                          backgroundColor: isSelected ? 'rgba(239, 246, 255, 0.5)' : '#ffffff',
+                        }}
                       >
-                        <td className="p-3 text-center">
+                        <td style={{ padding: '10px', textAlign: 'center' }}>
                           <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleSelect(item.productId)}
-                            className="rounded border-slate-300 accent-[#170e5e]"
+                            style={{ accentColor: '#170e5e' }}
                           />
                         </td>
-                        <td className="p-3">
-                          <div className="font-bold text-slate-800">{item.productName}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">{item.barcode}</div>
+                        <td style={{ padding: '10px 16px' }}>
+                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.productName}</div>
+                          <div style={{ fontSize: '10.5px', color: '#94a3b8', fontFamily: 'monospace' }}>{item.barcode}</div>
                         </td>
-                        <td className="p-3 text-center font-mono">
-                          <span className="text-slate-400 line-through text-[11px]">
+                        <td style={{ padding: '10px 16px', textAlign: 'center', fontFamily: 'monospace' }}>
+                          <span style={{ color: '#94a3b8', textDecoration: 'line-through', fontSize: '11px' }}>
                             {formatCurrency(item.previousCost)}
                           </span>
-                          <span className="mx-1.5 text-slate-400">←</span>
-                          <span className="font-bold text-slate-800">
+                          <span style={{ margin: '0 6px', color: '#94a3b8' }}>←</span>
+                          <span style={{ fontWeight: 800, color: '#0f172a' }}>
                             {formatCurrency(item.newCost)}
                           </span>
                           {isCostIncreased && (
-                            <span className="block text-[10px] font-bold text-red-600">
+                            <span style={{ display: 'block', fontSize: '10px', fontWeight: 800, color: '#dc2626' }}>
                               +{item.costChangePercent}%
                             </span>
                           )}
                         </td>
-                        <td className="p-3 text-center font-mono font-semibold text-slate-700">
+                        <td style={{ padding: '10px 16px', textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, color: '#334155' }}>
                           {formatCurrency(item.currentRetailPrice)}
                         </td>
-                        <td className="p-3 text-center">
+                        <td style={{ padding: '10px 16px', textAlign: 'center' }}>
                           <span
-                            className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${
-                              item.isLossMaking
-                                ? 'bg-red-100 text-red-800 border border-red-200'
-                                : item.isMarginCompressed
-                                ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              backgroundColor: item.isLossMaking ? '#fee2e2' : item.isMarginCompressed ? '#fef3c7' : '#f1f5f9',
+                              color: item.isLossMaking ? '#991b1b' : item.isMarginCompressed ? '#92400e' : '#334155',
+                              border: item.isLossMaking ? '1px solid #fca5a5' : item.isMarginCompressed ? '1px solid #fcd34d' : '1px solid #e2e8f0',
+                            }}
                           >
                             {item.isLossMaking ? 'خسارة! ' : ''}
                             {item.currentMarginPercent}%
                           </span>
                         </td>
-                        <td className="p-3 text-center bg-blue-50/30">
-                          <div className="inline-flex items-center gap-1">
+                        <td style={{ padding: '10px 16px', textAlign: 'center', backgroundColor: '#f0f9ff' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                             <input
                               type="number"
                               step="0.5"
                               value={item.effectivePrice}
                               onChange={(e) => handlePriceChange(item.productId, Number(e.target.value))}
-                              className="w-24 h-8 px-2 text-center font-bold text-slate-800 bg-white border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#170e5e]/20"
+                              style={{
+                                width: '90px',
+                                height: '32px',
+                                padding: '0 6px',
+                                textAlign: 'center',
+                                fontWeight: 800,
+                                color: '#0f172a',
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #93c5fd',
+                                borderRadius: '6px',
+                                outline: 'none',
+                              }}
                             />
-                            <span className="text-[10px] text-slate-500 font-bold">{currencySymbol}</span>
+                            <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>{currencySymbol}</span>
                           </div>
                         </td>
-                        <td className="p-3 text-center">
-                          <span className="inline-block px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[11px]">
+                        <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                          <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', fontWeight: 700, fontSize: '11px' }}>
                             {item.marginAfter}% (+{formatCurrency(item.profitAfter)})
                           </span>
                         </td>
@@ -353,7 +376,7 @@ export function MarginProtectionModal({
           )}
 
           {successMessage && (
-            <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between">
+            <div style={{ marginTop: '16px', padding: '12px 16px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span>{successMessage}</span>
               <CheckIcon size={16} color="#16a34a" />
             </div>
@@ -361,69 +384,25 @@ export function MarginProtectionModal({
         </div>
 
         {/* Printable Shelf Labels Container for @media print */}
-        <div className="hidden print:block p-4 bg-white">
-          <div className="text-center font-bold text-base mb-3 border-b pb-2">
+        <div className="hidden print:block" style={{ padding: '16px', background: '#ffffff' }}>
+          <div style={{ textAlign: 'center', fontWeight: 800, fontSize: '16px', marginBottom: '12px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
             بطاقات الأسعار وملصقات الأرفف المحدثة
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
             {displayItems
               .filter((it) => selectedProductIds.has(it.productId))
               .map((it) => (
-                <div key={it.productId} className="border border-slate-400 p-3 rounded text-center">
-                  <div className="font-bold text-sm">{it.productName}</div>
-                  <div className="text-xs font-mono my-1">{it.barcode}</div>
-                  <div className="text-lg font-black text-black">
+                <div key={it.productId} style={{ border: '1px solid #94a3b8', padding: '12px', borderRadius: '6px', textAlign: 'center' }}>
+                  <div style={{ fontWeight: 800, fontSize: '14px' }}>{it.productName}</div>
+                  <div style={{ fontSize: '12px', fontFamily: 'monospace', margin: '4px 0' }}>{it.barcode}</div>
+                  <div style={{ fontSize: '18px', fontWeight: 900, color: '#000000' }}>
                     {formatCurrency(it.effectivePrice)}
                   </div>
                 </div>
               ))}
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
-          <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
-            <input
-              type="checkbox"
-              checked={notifyOwner}
-              onChange={(e) => setNotifyOwner(e.target.checked)}
-              className="rounded border-slate-300 accent-[#170e5e]"
-            />
-            <MessageSquareIcon size={14} color="#16a34a" />
-            <span>إرسال تقرير بالأسعار المحدثة على واتساب المالك</span>
-          </label>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              onClick={handlePrintShelfLabels}
-              disabled={!selectedProductIds.size}
-              className="font-bold text-xs flex items-center gap-1.5 px-4 h-9"
-            >
-              <TagIcon size={14} />
-              <span>طباعة ملصقات الأسعار للأرفف</span>
-            </Button>
-
-            <Button
-              variant="secondary"
-              onClick={onClose}
-              disabled={applying}
-              className="px-4 h-9 text-xs font-semibold"
-            >
-              إغلاق
-            </Button>
-
-            <Button
-              variant="primary"
-              onClick={handleApply}
-              disabled={applying || !selectedProductIds.size}
-              className="bg-[#170e5e] hover:bg-[#120b4c] text-white font-bold text-xs px-6 h-9 flex items-center justify-center shadow-sm"
-            >
-              <span>{applying ? 'جاري التحديث...' : `تحديث أسعار ${selectedProductIds.size} صنفاً في الكاشير`}</span>
-            </Button>
-          </div>
-        </div>
       </div>
-    </div>
+    </StandardDialog>
   );
 }

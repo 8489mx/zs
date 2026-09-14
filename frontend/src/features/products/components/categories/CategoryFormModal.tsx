@@ -1,6 +1,6 @@
 import React from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
-import { Button } from '@/shared/ui/button';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { FolderIcon } from '@/shared/components/icons/AppIcons';
 import { Field } from '@/shared/ui/field';
 
 interface CategoryFormModalProps {
@@ -29,31 +29,73 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <DialogShell open={isOpen} onClose={onClose} width="440px">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '18px 24px', borderBottom: '1px solid var(--border, #e2e8f0)' }}>
-        <div style={{ width: 4, height: 18, backgroundColor: 'var(--primary, #170c5c)', borderRadius: 2 }} />
-        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>{title}</h3>
-      </div>
-      <div className="form-grid single-col" style={{ padding: '24px' }}>
-        <Field label="اسم القسم">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="أدخل اسم القسم"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') onSubmit();
+    <StandardDialog
+      open={isOpen}
+      onClose={onClose}
+      title={title}
+      subtitle="إدارة وتعديل بيانات الأقسام والتصنيفات في المنظومة"
+      maxWidth="480px"
+      footerActions={
+        <StandardDialogFooter
+          onClose={onClose}
+          onSubmit={onSubmit}
+          submitLabel={submitLabel}
+          loadingText="جاري الحفظ..."
+          isPending={isPending}
+          disabled={!name.trim()}
+        />
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px' }}>
+        {/* البطاقة الرمادية 1: بيانات القسم الأساسية */}
+        <div
+          style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+            <FolderIcon size={16} color="#170e5e" />
+            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>بيانات القسم الأساسية</span>
+          </div>
+
+          <Field label="اسم القسم أو التصنيف">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="مثال: مشروبات ساخنة، أدوات مكتبية..."
+              autoFocus
+              className="purchase-prototype-field-input"
+              style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && name.trim()) onSubmit();
+              }}
+            />
+          </Field>
+        </div>
+
+        {error && (
+          <div
+            style={{
+              padding: '10px 14px',
+              backgroundColor: '#fef2f2',
+              color: '#991b1b',
+              borderRadius: '8px',
+              border: '1px solid #fee2e2',
+              fontSize: '12px',
+              fontWeight: 600,
             }}
-          />
-        </Field>
-        {error && <div className="error-box">{error}</div>}
+          >
+            {error}
+          </div>
+        )}
       </div>
-      <div className="actions compact-actions" style={{ padding: '16px 24px', borderTop: '1px solid var(--border, #e2e8f0)', display: 'flex', justifyContent: 'flex-end', gap: '8px', backgroundColor: '#f8fafc' }}>
-        <Button variant="secondary" onClick={onClose}>إلغاء</Button>
-        <Button onClick={onSubmit} disabled={isPending}>
-          {isPending ? 'جاري الحفظ...' : submitLabel}
-        </Button>
-      </div>
-    </DialogShell>
+    </StandardDialog>
   );
 };

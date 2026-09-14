@@ -62,26 +62,26 @@ export function PurchaseOrdersPage() {
   const createMutation = useMutation({
     mutationFn: (payload: CreatePurchaseOrderPayload) => purchaseOrdersApi.create(payload),
     onSuccess: (res) => {
-      alert(res.message);
+      toast.success(res.message);
       queryClient.invalidateQueries({ queryKey: ['purchase-orders-list'] });
       setIsCreateModalOpen(false);
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل حفظ أمر الشراء');
+      toast.error(err?.message || 'فشل حفظ أمر الشراء');
     },
   });
 
   const confirmMutation = useMutation({
     mutationFn: (id: number) => purchaseOrdersApi.confirm(id),
     onSuccess: (res) => {
-      alert(res.message);
+      toast.success(res.message);
       queryClient.invalidateQueries({ queryKey: ['purchase-orders-list'] });
       if (selectedOrder?.id) {
         queryClient.invalidateQueries({ queryKey: ['purchase-order-details', selectedOrder.id] });
       }
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل اعتماد أمر الشراء');
+      toast.error(err?.message || 'فشل اعتماد أمر الشراء');
     },
   });
 
@@ -89,7 +89,7 @@ export function PurchaseOrdersPage() {
     mutationFn: ({ id, payload }: { id: number; payload: ReceivePurchaseOrderPayload }) =>
       purchaseOrdersApi.receive(id, payload),
     onSuccess: (res) => {
-      alert(res.message);
+      toast.success(res.message);
       queryClient.invalidateQueries({ queryKey: ['purchase-orders-list'] });
       if (selectedOrder?.id) {
         queryClient.invalidateQueries({ queryKey: ['purchase-order-details', selectedOrder.id] });
@@ -97,45 +97,45 @@ export function PurchaseOrdersPage() {
       setIsReceiveModalOpen(false);
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل استلام البضاعة');
+      toast.error(err?.message || 'فشل استلام البضاعة');
     },
   });
 
   const convertMutation = useMutation({
     mutationFn: (id: number) => purchaseOrdersApi.convertToBill(id),
     onSuccess: (res) => {
-      alert(res.message);
+      toast.success(res.message);
       queryClient.invalidateQueries({ queryKey: ['purchase-orders-list'] });
       setIsDetailsModalOpen(false);
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل تحويل أمر الشراء إلى فاتورة مشتريات');
+      toast.error(err?.message || 'فشل تحويل أمر الشراء إلى فاتورة مشتريات');
     },
   });
 
   const cancelMutation = useMutation({
     mutationFn: (id: number) => purchaseOrdersApi.cancel(id),
     onSuccess: (res) => {
-      alert(res.message);
+      toast.success(res.message);
       queryClient.invalidateQueries({ queryKey: ['purchase-orders-list'] });
       if (selectedOrder?.id) {
         queryClient.invalidateQueries({ queryKey: ['purchase-order-details', selectedOrder.id] });
       }
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل إلغاء أمر الشراء');
+      toast.error(err?.message || 'فشل إلغاء أمر الشراء');
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => purchaseOrdersApi.delete(id),
     onSuccess: (res) => {
-      alert(res.message);
+      toast.success(res.message);
       queryClient.invalidateQueries({ queryKey: ['purchase-orders-list'] });
       setIsDetailsModalOpen(false);
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل حذف أمر الشراء');
+      toast.error(err?.message || 'فشل حذف أمر الشراء');
     },
   });
 
@@ -166,7 +166,7 @@ export function PurchaseOrdersPage() {
       }));
 
     if (!toSubmit.length) {
-      alert('يرجى تحديد كميات مستلمة أكبر من الصفر');
+      toast.warning('يرجى تحديد كميات مستلمة أكبر من الصفر');
       return;
     }
 

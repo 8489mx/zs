@@ -12,6 +12,20 @@ export function useFeatureGate(featureCode: string): boolean {
     return true;
   }
 
+  const rawActivity = String(tenant?.activityType || tenant?.pillar || '').trim().toLowerCase();
+  if ((rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات') && ['contracting', 'purchases', 'inventory', 'catalog', 'products', 'suppliers', 'customers', 'crm', 'accounting', 'hr'].includes(featureCode)) {
+    return true;
+  }
+  if ((rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن') && ['maritime_freight', 'purchases', 'suppliers', 'customers', 'crm', 'sales', 'accounting', 'hr'].includes(featureCode)) {
+    return true;
+  }
+  if ((rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع') && ['manufacturing', 'purchases', 'inventory', 'catalog', 'products', 'suppliers', 'customers', 'crm', 'sales', 'pricing', 'accounting', 'hr'].includes(featureCode)) {
+    return true;
+  }
+  if (['retail_general', 'commerce', 'pharmacy', 'restaurant', 'maintenance'].includes(rawActivity) && ['catalog', 'products', 'sales', 'purchases', 'inventory', 'accounting', 'hr', 'crm', 'pricing', 'suppliers', 'customers'].includes(featureCode)) {
+    return true;
+  }
+
   if (!tenant?.features || !Array.isArray(tenant.features)) {
     return false;
   }

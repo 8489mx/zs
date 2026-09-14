@@ -27,6 +27,8 @@ export interface CreateDealInput {
   source?: string;
   priority?: string;
   assignedUserId?: number | null;
+  customerId?: number | null;
+  lostReason?: string;
   notes?: string;
 }
 
@@ -44,6 +46,7 @@ export interface UpdateDealInput {
   source?: string;
   priority?: string;
   assignedUserId?: number | null;
+  customerId?: number | null;
   lostReason?: string;
   notes?: string;
 }
@@ -213,6 +216,8 @@ export class CrmService {
         source: input.source || 'direct',
         priority: input.priority || 'medium',
         assigned_user_id: input.assignedUserId ? Number(input.assignedUserId) : null,
+        customer_id: input.customerId ? Number(input.customerId) : null,
+        lost_reason: input.lostReason ? String(input.lostReason).trim() : null,
         notes: input.notes ? String(input.notes).trim() : null,
         created_by: auth.userId ? Number(auth.userId) : null,
       } as any)
@@ -273,6 +278,7 @@ export class CrmService {
     if (input.source !== undefined) updates.source = String(input.source).trim();
     if (input.priority !== undefined) updates.priority = String(input.priority).trim();
     if (input.assignedUserId !== undefined) updates.assigned_user_id = input.assignedUserId ? Number(input.assignedUserId) : null;
+    if (input.customerId !== undefined) updates.customer_id = input.customerId ? Number(input.customerId) : null;
     if (input.lostReason !== undefined) updates.lost_reason = input.lostReason ? String(input.lostReason).trim() : null;
     if (input.notes !== undefined) updates.notes = input.notes ? String(input.notes).trim() : null;
 

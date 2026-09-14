@@ -1,7 +1,8 @@
 import React from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
-import { Button } from '@/shared/ui/button';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { Field } from '@/shared/ui/field';
+import { WarehouseIcon, InfoIcon } from '@/shared/components/icons/AppIcons';
 
 interface CategoryTransferWarehouseModalProps {
   category: { id: string | number; name: string } | null;
@@ -30,63 +31,125 @@ export const CategoryTransferWarehouseModal: React.FC<CategoryTransferWarehouseM
 }) => {
   if (!category) return null;
 
+  const locationOptions = (locations || []).map((l) => ({
+    value: String(l.id),
+    label: l.name,
+  }));
+
+  const isSubmitDisabled =
+    !fromLocationId || !toLocationId || fromLocationId === toLocationId || isPending;
+
   return (
-    <DialogShell
+    <StandardDialog
       open={true}
       onClose={onClose}
-      width="520px"
+      title={`نقل أرصدة القسم: ${category.name}`}
+      subtitle="تحويل ونقل كافة أرصدة منتجات هذا القسم من مخزن إلى مخزن آخر"
+      maxWidth="520px"
+      footerActions={
+        <StandardDialogFooter
+          onClose={onClose}
+          onSubmit={onSubmit}
+          submitLabel="تأكيد النقل المخزني"
+          loadingText="جاري النقل..."
+          isPending={isPending}
+          disabled={isSubmitDisabled}
+        />
+      }
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '18px 24px', borderBottom: '1px solid var(--border, #e2e8f0)' }}>
-        <div style={{ width: 4, height: 18, backgroundColor: 'var(--primary, #170c5c)', borderRadius: 2 }} />
-        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>نقل أرصدة القسم: {category.name}</h3>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
-        <div style={{ padding: '14px 16px', backgroundColor: '#eff6ff', color: '#1e40af', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #dbeafe' }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5.072 10.5 5c1.333-.2 2.667-.2 4 0l.5.072m-4 13.856L10.5 19c1.333.2 2.667.2 4 0l.5-.072m-9.5-4.428L5 14c-.2-1.333-.2-2.667 0-4l.072-.5m13.856 4.5L19 14c.2-1.333.2-2.667 0-4l-.072-.5m-3.5 1.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px' }}>
+        {/* البطاقة الرمادية 1: معلومات العملية */}
+        <div
+          style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '8px',
+              backgroundColor: '#eff6ff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <InfoIcon size={20} color="#1e40af" />
+          </div>
           <div>
-            <strong style={{ display: 'block', marginBottom: '2px', fontSize: '13.5px' }}>نقل أرصدة قسم لمخزن آخر</strong>
-            <span className="small" style={{ fontSize: '12px', color: '#3b82f6' }}>سيتم إنشاء مناقلة لكافة أرصدة منتجات هذا القسم إلى المخزن الوجهة.</span>
+            <strong style={{ display: 'block', marginBottom: '2px', fontSize: '13px', color: '#0f172a' }}>
+              مناقلة مجمعة لأرصدة القسم
+            </strong>
+            <span style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>
+              سيتم إنشاء إذن تحويل مخزني لكافة أرصدة منتجات قسم &ldquo;{category.name}&rdquo; من المخزن المصدر إلى المخزن الوجهة.
+            </span>
           </div>
         </div>
-        <Field label="من المخزن">
-          <select
-            value={fromLocationId}
-            onChange={(e) => setFromLocationId(e.target.value)}
-            className="purchase-prototype-field-input"
-            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-          >
-            <option value="">اختر المخزن المحول منه...</option>
-            {locations?.map(l => (
-              <option key={l.id} value={l.id}>{l.name}</option>
-            ))}
-          </select>
-        </Field>
-        <Field label="إلى المخزن">
-          <select
-            value={toLocationId}
-            onChange={(e) => setToLocationId(e.target.value)}
-            className="purchase-prototype-field-input"
-            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-          >
-            <option value="">اختر المخزن المحول إليه...</option>
-            {locations?.map(l => (
-              <option key={l.id} value={l.id}>{l.name}</option>
-            ))}
-          </select>
-        </Field>
 
-        {error && <div className="error-message" style={{ color: 'var(--text-danger)', padding: '10px 14px', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fee2e2' }}>{error}</div>}
-      </div>
-      <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border, #e2e8f0)', display: 'flex', justifyContent: 'flex-end', gap: '8px', backgroundColor: '#f8fafc' }}>
-        <Button variant="secondary" onClick={onClose}>إلغاء</Button>
-        <Button 
-          variant="primary" 
-          disabled={!fromLocationId || !toLocationId || fromLocationId === toLocationId || isPending}
-          onClick={onSubmit}
+        {/* البطاقة الرمادية 2: تحديد المخازن المصدر والوجهة */}
+        <div
+          style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
         >
-          {isPending ? 'جاري النقل...' : 'تأكيد النقل'}
-        </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+            <WarehouseIcon size={16} color="#170e5e" />
+            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>تحديد المخزن المصدر والوجهة</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Field label="من مخزن (المصدر)">
+              <CustomSelect
+                options={locationOptions}
+                value={fromLocationId}
+                onChange={(val) => setFromLocationId(val)}
+                placeholder="اختر المخزن المحول منه..."
+                searchable
+              />
+            </Field>
+
+            <Field label="إلى مخزن (الوجهة)">
+              <CustomSelect
+                options={locationOptions.filter((opt) => opt.value !== fromLocationId)}
+                value={toLocationId}
+                onChange={(val) => setToLocationId(val)}
+                placeholder="اختر المخزن المحول إليه..."
+                searchable
+              />
+            </Field>
+          </div>
+        </div>
+
+        {error && (
+          <div
+            style={{
+              padding: '10px 14px',
+              backgroundColor: '#fef2f2',
+              color: '#991b1b',
+              borderRadius: '8px',
+              border: '1px solid #fee2e2',
+              fontSize: '12px',
+              fontWeight: 600,
+            }}
+          >
+            {error}
+          </div>
+        )}
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 };

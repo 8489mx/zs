@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { contractingApi } from '../api/contracting.api';
 import { ContractingEngineeringConstant, AutoPriceBoqResult, ContractingBoqItem } from '../contracting.types';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
@@ -199,37 +200,26 @@ export function AutoPricingModal({
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#0369a1', marginBottom: '4px' }}>
                   البند المستهدف في المقايسة للتسعير والاعتماد:
                 </label>
-                <select
+                <CustomSelect
                   value={targetItemId}
-                  onChange={(e) => {
-                    const newId = e.target.value;
-                    setTargetItemId(newId);
-                    const found = boqItems.find((i) => String(i.id) === newId);
+                  onChange={(val) => {
+                    setTargetItemId(val);
+                    const found = boqItems.find((i) => String(i.id) === val);
                     if (found) {
                       setQuantity(found.contractQty || 1);
                     }
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #0284c7',
-                    fontSize: 'var(--font-body)',
-                    fontWeight: 600,
-                    backgroundColor: '#ffffff',
-                    color: '#0c4a6e',
-                  }}
-                >
-              {boqItems
-                .filter((i) => !i.isSectionHeader)
-                .map((item) => (
-                  <option key={item.id} value={item.id}>
-                    [{item.itemCode || `بند ${item.id}`}] {item.description.slice(0, 60)} ({item.contractQty} {item.unit}) - السعر الحالي: {item.unitPrice || 0} {currSymbol}
-                  </option>
-                ))}
-            </select>
-          </div>
-        )}
+                  options={boqItems
+                    .filter((i) => !i.isSectionHeader)
+                    .map((item) => ({
+                      value: String(item.id),
+                      label: `[${item.itemCode || `بند ${item.id}`}] ${item.description.slice(0, 60)} (${item.contractQty} ${item.unit})`,
+                      hint: `السعر الحالي: ${item.unitPrice || 0} ${currSymbol}`,
+                    }))}
+                  placeholder="اختر البند المستهدف..."
+                />
+              </div>
+            )}
 
         {/* اختيارات المعادلة والكمية */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
@@ -237,32 +227,23 @@ export function AutoPricingModal({
             <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
               المعادلة الهندسية المرجعية
             </label>
-            <select
+            <CustomSelect
               value={selectedConstantCode}
-              onChange={(e) => {
-                setSelectedConstantCode(e.target.value);
-                const match = constants.find((c) => c.itemCode === e.target.value);
+              onChange={(val) => {
+                setSelectedConstantCode(val);
+                const match = constants.find((c) => c.itemCode === val);
                 if (match) {
                   setWastePercent(Number(match.wastePercent || 5));
                   setOverheadPercent(Number(match.overheadPercent || 7));
                   setMarkupPercent(Number(match.profitMarkupPercent || 15));
                 }
               }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: 'var(--font-body)',
-                backgroundColor: '#ffffff',
-              }}
-            >
-              {constants.map((c) => (
-                <option key={c.id} value={c.itemCode}>
-                  [{c.itemCode}] {c.itemName} ({c.unit})
-                </option>
-              ))}
-            </select>
+              options={constants.map((c) => ({
+                value: c.itemCode,
+                label: `[${c.itemCode}] ${c.itemName} (${c.unit})`,
+              }))}
+              placeholder="اختر المعادلة الهندسية المرجعية..."
+            />
           </div>
 
           <div>

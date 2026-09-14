@@ -12,6 +12,7 @@ import { applyStockDelta } from '../../common/utils/location-stock-ledger';
 import { UpsertMaintenanceTicketDto } from './dto/upsert-maintenance-ticket.dto';
 import { UpdateTicketStatusDto, AddTicketPartDto } from './dto/update-ticket-status.dto';
 import { normalizeArabicSearch } from '../../common/utils/arabic-search.util';
+import { getDailyDocumentPrefix } from '../../common/utils/document-number.util';
 
 @Injectable()
 export class MaintenanceService {
@@ -172,13 +173,15 @@ export class MaintenanceService {
   async createTicket(payload: UpsertMaintenanceTicketDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
     const result = await this.tx.runInTransaction(this.db, async (trx) => {
+      const prefix = getDailyDocumentPrefix('ZM');
       const countRes = await trx
         .selectFrom('maintenance_tickets')
         .select((eb) => eb.fn.count('id').as('count'))
         .where('tenant_id', '=', scope.tenantId)
+        .where('ticket_no', 'like', `${prefix}%`)
         .executeTakeFirst();
       const nextNum = Number(countRes?.count || 0) + 1;
-      const ticketNo = `ZM-${String(nextNum).padStart(4, '0')}`;
+      const ticketNo = `${prefix}${String(nextNum).padStart(4, '0')}`;
 
       const inserted = await trx
         .insertInto('maintenance_tickets')

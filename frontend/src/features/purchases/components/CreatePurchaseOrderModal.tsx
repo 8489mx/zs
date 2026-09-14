@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { PlusIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
 import { useFormDraft } from '@/shared/hooks/use-form-draft';
 import { DraftRestoredBanner } from '@/shared/components/DraftRestoredBanner';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
@@ -29,12 +30,13 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
   const [selectedSupplierId, setSelectedSupplierId] = useState<number | null>(null);
   const [supplierName, setSupplierName] = useState('');
   const [supplierPhone, setSupplierPhone] = useState('');
-  const [warehouseName, setWarehouseName] = useState('المخزن الرئيسي');
+  const [warehouseName, setWarehouseName] = useState('المستودع الرئيسي');
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
-  const termsConditions = 'يتم فحص ومطابقة البضاعة الموردة مع أمر الشراء قبل الاستلام النهائي.';
-  const [items, setItems] = useState<Array<PurchaseOrderItem & { productId: number; productName: string }>>([
-    { productId: 0, productName: '', unitName: 'قطعة', quantity: 1, unitCost: 0, taxRate: 0, discount: 0, total: 0 },
+  const [termsConditions] = useState('');
+
+  const [items, setItems] = useState<PurchaseOrderItem[]>([
+    { productId: undefined, productName: '', unitName: 'قطعة', quantity: 1, unitCost: 0, total: 0, discount: 0 },
   ]);
 
   const productOptions = useMemo(() => {
@@ -153,16 +155,16 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
 
   if (!open) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!supplierName.trim()) {
-      alert('يرجى تحديد المورد');
+      toast.warning('يرجى تحديد المورد');
       return;
     }
 
     const validItems = items.filter((it) => it.productName.trim() && Number(it.quantity) > 0);
     if (!validItems.length) {
-      alert('يرجى إضافة صنف واحد على الأقل مع تحديد الكمية');
+      toast.warning('يرجى إضافة صنف واحد على الأقل مع تحديد الكمية');
       return;
     }
 
@@ -192,28 +194,24 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
   };
 
   return (
-    <DialogShell
-      open={true}
+    <StandardDialog
+      open={open}
       onClose={onClose}
-      ariaLabel="إنشاء أمر شراء جديد للمورد"
+      title="إنشاء أمر شراء جديد (Purchase Order)"
+      subtitle="إصدار أمر الشراء للمورد وحجز الكميات بانتظار استلام البضاعة"
       width="min(940px, 96vw)"
+      minHeight="auto"
+      footerActions={(
+        <StandardDialogFooter
+          onCancel={onClose}
+          onSubmit={() => handleSubmit()}
+          isSubmitting={isPending}
+          submitText={isPending ? 'جاري الحفظ...' : 'حفظ أمر الشراء كمسودة'}
+          cancelText="إلغاء"
+        />
+      )}
     >
       <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
-        <div className="standard-dialog-header">
-          <div className="standard-dialog-header-info">
-            <h3 className="standard-dialog-title">إنشاء أمر شراء جديد (Purchase Order)</h3>
-            <p className="standard-dialog-subtitle">إصدار أمر الشراء للمورد وحجز الكميات بانتظار استلام البضاعة</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="standard-dialog-close-btn"
-            aria-label="إغلاق"
-          >
-            <XIcon size={18} />
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <DraftRestoredBanner
             show={isDraftRestored}
@@ -406,20 +404,8 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
             </div>
           </div>
 
-          <div className="standard-dialog-footer">
-            <Button type="button" variant="secondary" onClick={onClose}>
-              إلغاء
-            </Button>
-            <Button
-              type="submit"
-              disabled={isPending}
-              style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
-            >
-              {isPending ? 'جاري الحفظ...' : 'حفظ أمر الشراء كمسودة'}
-            </Button>
-          </div>
         </form>
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 };

@@ -12,6 +12,7 @@ import { BinKpiCards } from '../components/bins/BinKpiCards';
 import { BinsDirectoryTable } from '../components/bins/BinsDirectoryTable';
 import { BinBarcodeAuditPanel } from '../components/bins/BinBarcodeAuditPanel';
 import { CreateEditBinModal } from '../components/bins/CreateEditBinModal';
+import { systemConfirm, toast } from '@/shared/components/system-alert';
 
 export const WarehouseBinsPage: FC = () => {
   const [bins, setBins] = useState<WarehouseBin[]>([]);
@@ -151,12 +152,21 @@ export const WarehouseBinsPage: FC = () => {
   };
 
   const handleDeleteBin = async (id: number) => {
-    if (!window.confirm('هل أنت متأكد من حذف مكان التخزين؟ لا يمكن الحذف إذا كانت هناك أصناف مخزنة به.')) return;
+    const confirmed = await systemConfirm({
+      title: 'حذف مكان التخزين',
+      message: 'هل أنت متأكد من حذف مكان التخزين؟ لا يمكن الحذف إذا كانت هناك أصناف مخزنة به.',
+      confirmText: 'نعم، حذف',
+      cancelText: 'إلغاء',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
     try {
       await warehouseBinsApi.remove(id);
+      toast.success('تم حذف مكان التخزين بنجاح');
       loadBins();
     } catch (err: any) {
-      alert(err?.message || 'تعذر حذف مكان التخزين');
+      toast.error(err?.message || 'تعذر حذف مكان التخزين');
     }
   };
 

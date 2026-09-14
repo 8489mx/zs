@@ -201,7 +201,7 @@ export function CreateSubcontractModal({
                 type="text"
                 value={formData.contractNumber}
                 onChange={(e) => setFormData({ ...formData, contractNumber: e.target.value })}
-                placeholder="مثال: SUB-2026-001"
+                placeholder="مثال: SUB-260914-0001"
                 required
               />
             </Field>

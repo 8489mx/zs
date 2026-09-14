@@ -9,6 +9,7 @@ import {
 } from '@/shared/api/addons.api';
 import { ModifierGroupCard } from '@/features/products/components/modifiers/ModifierGroupCard';
 import { ModifierGroupModal } from '@/features/products/components/modifiers/ModifierGroupModal';
+import { systemConfirm, toast } from '@/shared/components/system-alert';
 
 export const ProductModifiersPage: FC = () => {
   const [groups, setGroups] = useState<ModifierGroup[]>([]);
@@ -134,12 +135,20 @@ export const ProductModifiersPage: FC = () => {
   };
 
   const handleDeleteGroup = async (id: number) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذه المجموعة وكافة خياراتها؟')) return;
+    const confirmed = await systemConfirm({
+      title: 'تأكيد الحذف',
+      message: 'هل أنت متأكد من حذف هذه المجموعة وكافة خياراتها؟',
+      confirmText: 'حذف',
+      cancelText: 'إلغاء',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await addonsApi.deleteModifierGroup(id);
+      toast.success('تم حذف مجموعة الخيارات بنجاح');
       loadGroups();
     } catch (err: any) {
-      alert(err?.message || 'تعذر حذف المجموعة');
+      toast.error(err?.message || 'تعذر حذف المجموعة');
     }
   };
 

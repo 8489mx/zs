@@ -30,9 +30,12 @@ export class SettingsController {
   }
 
   @Put('settings')
-  updateSettings(@Body() payload: UpdateSettingsDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+  updateSettings(@Body() rawPayload: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
-    return this.settingsService.saveSettings(payload.settings, req.authContext!);
+    const settings = (rawPayload && typeof rawPayload === 'object' && 'settings' in rawPayload && rawPayload.settings && typeof rawPayload.settings === 'object')
+      ? (rawPayload.settings as Record<string, unknown>)
+      : rawPayload;
+    return this.settingsService.saveSettings(settings, req.authContext!);
   }
 
   @Get('branches')

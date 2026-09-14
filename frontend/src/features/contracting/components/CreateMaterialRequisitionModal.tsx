@@ -188,7 +188,7 @@ export function CreateMaterialRequisitionModal({
                 type="text"
                 value={formData.requisitionNumber}
                 onChange={(e) => setFormData({ ...formData, requisitionNumber: e.target.value })}
-                placeholder="تلقائي: MR-2026-..."
+                placeholder="تلقائي: MR-260914-0001"
                 style={{ fontFamily: 'monospace', fontWeight: 600 }}
               />
             </Field>

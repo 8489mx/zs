@@ -1,15 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { DataTable } from '@/shared/ui/data-table';
 import { downloadExcelFile, triggerDownload } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { productsApi } from '@/features/products/api/products.api';
 import { getWeightedBarcodeConfig } from '@/features/pos/lib/weighted-barcode';
-import { ScaleIcon, XIcon, LinkIcon, LightbulbIcon, DownloadIcon } from '@/shared/components/icons/AppIcons';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 import type { Product } from '@/types/domain';
 
 export type ScalePreset = 'rongta' | 'cas' | 'dibal' | 'general';
@@ -22,6 +23,13 @@ interface ScalePluExportModalProps {
   selectedIds?: string[];
   categoryNames?: Record<string | number, string>;
 }
+
+const PRESET_OPTIONS = [
+  { value: 'rongta', label: 'Rongta (RLS1000 / RLink) - الأكثر شيوعاً' },
+  { value: 'cas', label: 'CAS (CL5000 / CL-Works)' },
+  { value: 'dibal', label: 'Dibal (Series 500 / Wind)' },
+  { value: 'general', label: 'ملف موازين عام (Universal Format)' },
+];
 
 function isWeightedProduct(product: Product): boolean {
   if ((product as any).is_weighted || (product as any).isWeighted) return true;
@@ -72,12 +80,12 @@ function downloadCsv(filename: string, headers: string[], rows: Array<Array<stri
 export function ScalePluExportModal({
   open,
   onClose,
-  products,
+  products: passedProducts,
   selectedIds = [],
   categoryNames = {},
 }: ScalePluExportModalProps) {
-  const settingsQuery = useSettingsQuery();
-  const scaleConfig = useMemo(() => getWeightedBarcodeConfig(settingsQuery.data), [settingsQuery.data]);
+  const { data: settings } = useSettingsQuery();
+  const scaleConfig = useMemo(() => getWeightedBarcodeConfig(settings), [settings]);
 
   const [preset, setPreset] = useState<ScalePreset>('rongta');
   const [scope, setScope] = useState<ScaleScope>('weighted_only');
@@ -85,59 +93,58 @@ export function ScalePluExportModal({
   const [departmentId, setDepartmentId] = useState<number>(1);
   const [padItemCode, setPadItemCode] = useState<boolean>(true);
 
-  const { data: allProducts } = useQuery({
-    queryKey: ['scale-export-all-products'],
-    queryFn: productsApi.list,
-    enabled: open,
-    staleTime: 60_000,
+  const { data: fetchedProducts = [] } = useQuery<Product[]>({
+    queryKey: ['products-for-scale-export'],
+    queryFn: async () => {
+      const res = await productsApi.list();
+      return Array.isArray(res) ? res : [];
+    },
+    enabled: open && (!passedProducts || passedProducts.length === 0),
   });
 
   const availableProducts = useMemo(() => {
-    if (allProducts && allProducts.length > 0) return allProducts;
-    return products || [];
-  }, [allProducts, products]);
+    return (passedProducts && passedProducts.length > 0) ? passedProducts : fetchedProducts;
+  }, [passedProducts, fetchedProducts]);
+
+  const scopeOptions = useMemo(() => [
+    { value: 'weighted_only', label: `الأصناف الموزونة فقط (${availableProducts.filter(isWeightedProduct).length} صنف)` },
+    { value: 'all', label: `جميع الأصناف النشطة (${availableProducts.length} صنف)` },
+    ...(selectedIds.length > 0 ? [{ value: 'selected', label: `الأصناف المحددة حالياً (${selectedIds.length} صنف)` }] : []),
+  ], [availableProducts, selectedIds]);
 
   // Filter products based on selected scope
   const targetProducts = useMemo(() => {
     if (scope === 'selected' && selectedIds.length > 0) {
-      const idSet = new Set(selectedIds.map(String));
-      return availableProducts.filter((p) => idSet.has(String(p.id)));
+      const set = new Set(selectedIds.map(String));
+      return availableProducts.filter((p) => set.has(String(p.id)));
     }
     if (scope === 'weighted_only') {
-      const filtered = availableProducts.filter(isWeightedProduct);
-      return filtered.length > 0 ? filtered : availableProducts;
+      return availableProducts.filter(isWeightedProduct);
     }
     return availableProducts;
   }, [availableProducts, scope, selectedIds]);
 
   // Transform products into PLU items
   const pluRows = useMemo(() => {
-    return targetProducts.map((p, index) => {
+    return targetProducts.map((prod, index) => {
       const plu = pluStart + index;
-      const rawDigits = cleanDigits(p.barcode || p.sku || p.id, String(plu));
-      const codeLength = scaleConfig.productCodeLength;
-      let itemCode = rawDigits;
-
-      if (padItemCode) {
-        if (itemCode.length > codeLength) {
-          itemCode = itemCode.slice(-codeLength);
-        } else {
-          itemCode = itemCode.padStart(codeLength, '0');
-        }
+      const rawBarcode = cleanDigits(prod.barcode, String(prod.id));
+      let itemCode = rawBarcode;
+      if (padItemCode && scaleConfig.productCodeLength > 0) {
+        itemCode = rawBarcode.slice(-scaleConfig.productCodeLength).padStart(scaleConfig.productCodeLength, '0');
       }
 
-      const price = Number((p as any).retail_price ?? (p as any).retailPrice ?? (p as any).price ?? 0);
-      const catId = (p as any).category_id || p.categoryId;
-      const category = (catId && categoryNames[catId]) || 'عام';
+      const price = Number((prod as any).retailPrice || (prod as any).price || (prod as any).retail_price || 0);
+      const catName = categoryNames[String(prod.categoryId)] || (prod as any).categoryName || 'عام';
       const sampleWeightBarcode = `${scaleConfig.prefix}${itemCode}012500`; // sample 1.250 kg
 
       return {
+        product: prod,
         plu,
         itemCode,
-        id: p.id,
-        name: p.name,
+        name: prod.name,
         price,
-        category,
+        category: catName,
         sampleWeightBarcode,
       };
     });
@@ -193,143 +200,126 @@ export function ScalePluExportModal({
   };
 
   return (
-    <DialogShell
+    <StandardDialog
       open={open}
       onClose={onClose}
-      width="min(880px, 96vw)"
-      ariaLabel="تصدير ملف موازين الباركود"
-    >
-      <div className="page-stack" style={{ padding: '8px' }} dir="rtl">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ScaleIcon size={20} color="#170e5e" />
-              <span>تصدير ملف موازين الباركود الإلكترونية (PLU Export)</span>
-            </h2>
-            <p className="muted small" style={{ margin: '4px 0 0 0' }}>
-              توليد ملفات الأصناف والأسعار المتوافقة مع برامج موازين الباركود (Rongta, CAS, Dibal) لبرمجتها بضغطة زر.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            aria-label="إغلاق"
-          >
-            <XIcon size={16} />
-          </button>
-        </div>
-
-        {/* Integration Note with POS */}
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', fontSize: '0.85em', color: '#334155' }}>
-          <div style={{ fontWeight: 'bold', color: '#170e5e', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <LinkIcon size={14} color="#170e5e" />
-            <span>الربط مع نقاط البيع (POS):</span>
-          </div>
-          النظام مهيأ لاستقبال الباركود الموزون الذي يبدأ بـ <strong>{scaleConfig.prefix}</strong>، مع كود صنف بطول <strong>{scaleConfig.productCodeLength}</strong> أرقام، و <strong>{scaleConfig.weightDigits}</strong> خانات للوزن. عند قراءة باركود الملصق المطبوع من الميزان سيتعرف الكاشير فوراً على الصنف ويحسب الوزن والسعر تلقائياً.
-        </div>
-
-        {/* Controls Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-          <Field label="نوع الميزان / البرنامج">
-            <select value={preset} onChange={(e) => setPreset(e.target.value as ScalePreset)}>
-              <option value="rongta">Rongta (RLS1000 / RLink) - الأكثر شيوعاً</option>
-              <option value="cas">CAS (CL5000 / CL-Works)</option>
-              <option value="dibal">Dibal (Series 500 / Wind)</option>
-              <option value="general">ملف موازين عام (Universal Format)</option>
-            </select>
-          </Field>
-
-          <Field label="نطاق الأصناف">
-            <select value={scope} onChange={(e) => setScope(e.target.value as ScaleScope)}>
-              <option value="weighted_only">الأصناف الموزونة فقط ({availableProducts.filter(isWeightedProduct).length} صنف)</option>
-              <option value="all">جميع الأصناف النشطة ({availableProducts.length} صنف)</option>
-              {selectedIds.length > 0 && (
-                <option value="selected">الأصناف المحددة حالياً ({selectedIds.length} صنف)</option>
-              )}
-            </select>
-          </Field>
-
-          <Field label="بداية رقم الـ PLU">
-            <input
-              type="number"
-              min={1}
-              value={pluStart}
-              onChange={(e) => setPluStart(Math.max(1, Number(e.target.value) || 1))}
-            />
-          </Field>
-
-          <Field label="رقم القسم الافتراضي (Dept)">
-            <input
-              type="number"
-              min={1}
-              value={departmentId}
-              onChange={(e) => setDepartmentId(Math.max(1, Number(e.target.value) || 1))}
-            />
-          </Field>
-        </div>
-
-        {/* Padding toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9em', color: '#475569' }}>
-          <input
-            type="checkbox"
-            id="pad-code-checkbox"
-            checked={padItemCode}
-            onChange={(e) => setPadItemCode(e.target.checked)}
-          />
-          <label htmlFor="pad-code-checkbox" style={{ cursor: 'pointer' }}>
-            تنسيق كود الصنف ليطابق طول إعدادات الباركود الموزون ({scaleConfig.productCodeLength} أرقام مع أصفار يسار مثل 00101)
-          </label>
-        </div>
-
-        {/* Live Preview Table */}
-        <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
-          <div style={{ background: '#f8fafc', padding: '10px 14px', fontWeight: 'bold', fontSize: '0.9em', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>معاينة الأصناف الجاهزة للتصدير ({pluRows.length} صنف)</span>
-            <span className="muted small">معروض أول 5 أصناف</span>
-          </div>
-
-          <DataTable
-            ariaLabel="معاينة أصناف الميزان"
-            columns={[
-              { key: 'plu', header: 'PLU', cell: (r) => <strong>{r.plu}</strong> },
-              { key: 'itemCode', header: 'كود الميزان', cell: (r) => <code style={{ color: '#170e5e' }}>{r.itemCode}</code> },
-              { key: 'name', header: 'اسم الصنف', cell: (r) => r.name },
-              { key: 'price', header: 'السعر للكيلو', cell: (r) => formatCurrency(r.price) },
-              { key: 'category', header: 'القسم', cell: (r) => r.category },
-              { key: 'sample', header: 'شكل الباركود الناتج من الميزان', cell: (r) => <span className="nav-pill" style={{ fontFamily: 'monospace' }}>{r.sampleWeightBarcode}</span> },
-            ]}
-            rows={pluRows.slice(0, 5)}
-            empty={<div className="muted small" style={{ padding: '16px', textAlign: 'center' }}>لا توجد أصناف مطابقة للتصدير.</div>}
-          />
-        </div>
-
-        {/* Operational Instructions */}
-        <div style={{ fontSize: '0.8em', color: '#64748b', background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-          <LightbulbIcon size={16} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div>
-            <strong>طريقة التنزيل للميزان:</strong> قم بتحميل ملف الـ CSV ثم افتح برنامج الميزان (مثل RLS1000 Tool أو CL-Works)، اختر <strong>Import PLU</strong> وحدد الملف المحمل، ثم اضغط <strong>Download to Scale</strong> لإرسال جميع الأصناف والأسعار إلى شاشة الميزان وأزرار الاختصار السريع.
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
-          <Button variant="secondary" onClick={onClose}>
-            إلغاء
-          </Button>
-          <Button variant="secondary" onClick={handleExportExcel} disabled={pluRows.length === 0}>
+      title="تصدير ملف موازين الباركود الإلكترونية (PLU Scale Export)"
+      subtitle="توليد ملفات الأصناف والأسعار المتوافقة مع برامج موازين الباركود (Rongta, CAS, Dibal)"
+      maxWidth="920px"
+      footerActions={
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <Button variant="secondary" onClick={handleExportExcel} disabled={pluRows.length === 0} style={{ fontSize: '0.8rem' }}>
+            <AppIcons.FileSpreadsheet size={15} style={{ marginInlineEnd: '6px' }} />
             تصدير ملف Excel (.xlsx)
           </Button>
-          <Button
-            onClick={handleExportCsv}
-            disabled={pluRows.length === 0}
-            style={{ background: '#170e5e', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <DownloadIcon size={15} color="#ffffff" />
-            <span>تحميل ملف CSV للميزان</span>
-          </Button>
+
+          <StandardDialogFooter
+            cancelText="إغلاق"
+            onCancel={onClose}
+            submitText="تحميل ملف CSV للميزان"
+            onSubmit={handleExportCsv}
+            submitDisabled={pluRows.length === 0}
+          />
+        </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
+        {/* 1. إعدادات الميزان وصيغة التصدير */}
+        <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Settings size={15} />
+            <span>1. إعدادات الميزان وصيغة التصدير (Scale Settings & Format)</span>
+          </div>
+
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 12px', fontSize: '0.8rem', color: '#334155', marginBottom: '10px' }}>
+            <strong style={{ color: '#170e5e' }}>الربط بنقاط البيع (POS): </strong>
+            يبدأ الباركود الموزون بـ <strong>{scaleConfig.prefix}</strong>، مع كود صنف بطول <strong>{scaleConfig.productCodeLength}</strong> أرقام، و <strong>{scaleConfig.weightDigits}</strong> خانات للوزن.
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr 1fr', gap: '10px' }}>
+            <Field label="نوع الميزان / البرنامج">
+              <CustomSelect
+                value={preset}
+                options={PRESET_OPTIONS}
+                onChange={(val) => setPreset(val as ScalePreset)}
+              />
+            </Field>
+
+            <Field label="نطاق الأصناف المشمولة">
+              <CustomSelect
+                value={scope}
+                options={scopeOptions}
+                onChange={(val) => setScope(val as ScaleScope)}
+              />
+            </Field>
+
+            <Field label="بداية ترقيم الـ PLU">
+              <input
+                type="number"
+                min={1}
+                value={pluStart}
+                onChange={(e) => setPluStart(Math.max(1, Number(e.target.value) || 1))}
+              />
+            </Field>
+
+            <Field label="رقم القسم (Dept)">
+              <input
+                type="number"
+                min={1}
+                value={departmentId}
+                onChange={(e) => setDepartmentId(Math.max(1, Number(e.target.value) || 1))}
+              />
+            </Field>
+          </div>
+
+          <div style={{ marginTop: '8px' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
+              <input
+                type="checkbox"
+                checked={padItemCode}
+                onChange={(e) => setPadItemCode(e.target.checked)}
+              />
+              <span>تنسيق كود الصنف ليطابق طول إعدادات الباركود الموزون ({scaleConfig.productCodeLength} أرقام مع أصفار يسار مثل 00101)</span>
+            </label>
+          </div>
+        </div>
+
+        {/* 2. جدول معاينة الأصناف الجاهزة للتصدير */}
+        <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+              <AppIcons.Layers size={15} />
+              <span>2. معاينة الأصناف الجاهزة للتصدير ({pluRows.length} صنف)</span>
+            </div>
+            <span className="muted small">معروض أول 5 أصناف للمعاينة السريعة</span>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '6px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            <DataTable
+              ariaLabel="معاينة أصناف الميزان"
+              columns={[
+                { key: 'plu', header: 'PLU', cell: (r) => <strong>{r.plu}</strong> },
+                { key: 'itemCode', header: 'كود الميزان', cell: (r) => <code style={{ color: '#170e5e', fontWeight: 700 }}>{r.itemCode}</code> },
+                { key: 'name', header: 'اسم الصنف', cell: (r) => r.name },
+                { key: 'price', header: 'السعر للكيلو', cell: (r) => formatCurrency(r.price) },
+                { key: 'category', header: 'القسم', cell: (r) => r.category },
+                { key: 'sample', header: 'شكل الباركود الناتج من الميزان', cell: (r) => <span className="nav-pill" style={{ fontFamily: 'monospace' }}>{r.sampleWeightBarcode}</span> },
+              ]}
+              rows={pluRows.slice(0, 5)}
+              empty={<div className="muted small" style={{ padding: '16px', textAlign: 'center' }}>لا توجد أصناف مطابقة للتصدير.</div>}
+            />
+          </div>
+        </div>
+
+        {/* 3. إرشادات التنزيل للميزان */}
+        <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.78rem', color: '#64748b' }}>
+          <AppIcons.HelpCircle size={15} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <strong style={{ color: '#0f172a' }}>طريقة التنزيل للميزان: </strong>
+            قم بتحميل ملف الـ CSV ثم افتح برنامج الميزان (مثل RLS1000 Tool أو CL-Works)، اختر <strong>Import PLU</strong> وحدد الملف المحمل، ثم اضغط <strong>Download to Scale</strong> لإرسال جميع الأصناف والأسعار إلى شاشة الميزان وأزرار الاختصار السريع.
+          </div>
         </div>
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }

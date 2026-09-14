@@ -59,4 +59,9 @@
 - The new migration file MUST be numbered strictly as `(Highest + 1)`.
 - Kysely sorts migrations alphabetically; never duplicate a prefix or insert a migration alphabetically before an already executed one.
 
-
+## 10. Strict Universal Document Numbering Standard (دستور الترقيم الموحد للوثائق والأذونات)
+- **Universal Formula:** All generated document numbers, vouchers, requisitions, invoices, orders, and tickets across all modules MUST follow the unified format:
+  `PREFIX-YYMMDD-XXXX` (e.g. `JOB-260914-0001`, `RFQ-260914-0001`, `MR-260914-0001`, `STMT-260914-0001`, `ZM-260914-0001`).
+- **Strict 6-Digit Date (`YYMMDD`):** NEVER use 4-digit years like `2026` or static numbers. Always embed the 2-digit year, 2-digit month, and 2-digit day (`YYMMDD` such as `260914`).
+- **Standard Sequence Padding:** Sequence counter must be at least 4 digits (`0001`, `0002`, ...), padded with leading zeros.
+- **Unified Engine:** Use `getDailyDocumentPrefix(prefix)` and `formatDailyDocumentNumber(...)` from `backend/src/common/utils/document-number.util.ts`. All frontend placeholders, examples, and mock formats must mirror this exact format.

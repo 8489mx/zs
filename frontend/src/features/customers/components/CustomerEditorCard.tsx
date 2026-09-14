@@ -116,9 +116,9 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
       </Field>
       
       {importModuleEnabled && (
-        <fieldset className="p-4 border rounded bg-slate-50 dark:bg-slate-800/50 space-y-4 col-span-2">
-          <legend className="px-2 font-semibold text-primary">إعدادات الاستيراد</legend>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <fieldset style={{ padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc', gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <legend style={{ padding: '0 8px', fontWeight: 700, color: '#170e5e', fontSize: '0.82rem' }}>إعدادات الاستيراد</legend>
+          <div>
             <Field label="عملة الحساب">
               <Controller
                 name="metadata.currency"

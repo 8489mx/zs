@@ -208,7 +208,7 @@ export function DistributorInvoiceImportModal({
             <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>رقم الفاتورة الإلكترونية</label>
             <input
               type="text"
-              placeholder="مثال: INV-2026-88192"
+              placeholder="مثال: INV-260914-0001"
               value={invoiceNumber}
               onChange={(e) => setInvoiceNumber(e.target.value)}
               className="purchase-prototype-field-input"

@@ -386,36 +386,35 @@ export function EditProductForm({
             </div>
           </div>
 
-          {/* Row 1: Full-Width Product Name */}
-          <div className="field" style={{ marginBottom: '0.85rem' }}>
-            <label>{watchedItemKind === 'fashion' ? 'اسم الصنف الأساسي' : 'اسم الصنف'}</label>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <ProductIconPicker
-                value={form.watch('icon')}
-                onChange={(iconId) => form.setValue('icon', iconId, { shouldDirty: true })}
-                industry={settingsQuery.data?.businessIndustry}
-                disabled={isFormDisabled}
-              />
-              <input
-                className="purchase-prototype-field-input"
-                {...form.register('name')}
-                onChange={(e) => {
-                  form.setValue('name', e.target.value, { shouldDirty: true, shouldValidate: true });
-                  const guessed = guessProductIcon(e.target.value, undefined, settingsQuery.data?.businessIndustry);
-                  if (guessed) {
-                    form.setValue('icon', guessed, { shouldDirty: true });
-                  }
-                }}
-                disabled={isFormDisabled}
-                style={{ flex: 1, fontWeight: 600 }}
-                placeholder={watchedItemKind === 'fashion' ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : 'اكتب اسم الصنف'}
-              />
+          {/* Row 1: Product Name, Item Type & Barcode (3 balanced columns on one line) */}
+          <div className="product-form-grid-3" style={{ marginBottom: '0.85rem' }}>
+            <div className="field">
+              <label>{watchedItemKind === 'fashion' ? 'اسم الصنف الأساسي' : 'اسم الصنف'}</label>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <ProductIconPicker
+                  value={form.watch('icon')}
+                  onChange={(iconId) => form.setValue('icon', iconId, { shouldDirty: true })}
+                  industry={settingsQuery.data?.businessIndustry}
+                  disabled={isFormDisabled}
+                />
+                <input
+                  className="purchase-prototype-field-input"
+                  {...form.register('name')}
+                  onChange={(e) => {
+                    form.setValue('name', e.target.value, { shouldDirty: true, shouldValidate: true });
+                    const guessed = guessProductIcon(e.target.value, undefined, settingsQuery.data?.businessIndustry);
+                    if (guessed) {
+                      form.setValue('icon', guessed, { shouldDirty: true });
+                    }
+                  }}
+                  disabled={isFormDisabled}
+                  style={{ flex: 1, fontWeight: 600 }}
+                  placeholder={watchedItemKind === 'fashion' ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : 'اكتب اسم الصنف'}
+                />
+              </div>
+              {form.formState.errors.name && <small className="field-error">{form.formState.errors.name.message}</small>}
             </div>
-            {form.formState.errors.name && <small className="field-error">{form.formState.errors.name.message}</small>}
-          </div>
 
-          {/* Row 2: Item Type & Barcode (2 balanced columns) */}
-          <div className="product-form-grid-2" style={{ marginBottom: '0.85rem' }}>
             <Field label="نوع الصنف">
               <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
                 <option value="product">منتج تام للبيع (مخزني)</option>

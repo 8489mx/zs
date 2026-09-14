@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -1842,116 +1843,173 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           onClose={() => setShowEditVoyage(false)}
           title="تعديل بيانات الرحلة والبوالص"
           subtitle={`العملية الملاحية: ${job.job_number}`}
-          width="min(760px, 90vw)"
+          width="min(800px, 92vw)"
+          minHeight="auto"
           footerActions={(
             <StandardDialogFooter
-              onConfirm={handleSaveVoyage}
-              confirmText="حفظ التعديلات"
+              onSubmit={handleSaveVoyage}
+              submitText="حفظ التعديلات"
               onCancel={() => setShowEditVoyage(false)}
               cancelText="إلغاء"
             />
           )}
         >
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }} dir="rtl">
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>اسم السفينة (Vessel Name)</label>
-              <input
-                type="text"
-                value={voyageForm.vesselName}
-                onChange={(e) => setVoyageForm({ ...voyageForm, vesselName: e.target.value })}
-                placeholder="مثال: MSC MAESTRO"
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
+          <style>{`
+            .job-submodal-compact .field {
+              margin-bottom: 0 !important;
+              gap: 3px !important;
+            }
+            .job-submodal-compact .field span {
+              font-size: 0.74rem !important;
+              font-weight: 600 !important;
+              color: #334155 !important;
+              white-space: nowrap !important;
+              overflow: hidden !important;
+              text-overflow: ellipsis !important;
+            }
+            .job-submodal-compact input,
+            .job-submodal-compact textarea {
+              height: 33px !important;
+              font-size: 0.8125rem !important;
+              border-radius: 6px !important;
+              padding: 0 10px !important;
+              border: 1px solid #cbd5e1 !important;
+              background: #ffffff !important;
+              box-sizing: border-box !important;
+              outline: none !important;
+              width: 100% !important;
+            }
+            .job-submodal-compact textarea {
+              height: auto !important;
+              min-height: 48px !important;
+              padding: 6px 10px !important;
+              resize: vertical !important;
+              line-height: 1.4 !important;
+            }
+            .job-submodal-compact input:focus,
+            .job-submodal-compact textarea:focus {
+              border-color: #170e5e !important;
+              box-shadow: 0 0 0 1px #170e5e !important;
+            }
+            .job-submodal-compact .custom-select-trigger {
+              min-height: 33px !important;
+              height: 33px !important;
+              font-size: 0.8125rem !important;
+              border-radius: 6px !important;
+            }
+          `}</style>
+          <div className="job-submodal-compact" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} dir="rtl">
+            {/* Card 1: بيانات السفينة والحجز */}
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.Ship size={15} />
+                <span>1. بيانات السفينة ورقم الحجز (Vessel & Booking)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1.2fr', gap: '10px' }}>
+                <Field label="اسم السفينة (Vessel Name)">
+                  <input
+                    type="text"
+                    value={voyageForm.vesselName}
+                    onChange={(e) => setVoyageForm({ ...voyageForm, vesselName: e.target.value })}
+                    placeholder="مثال: MSC MAESTRO"
+                  />
+                </Field>
+                <Field label="رقم الرحلة (Voyage No)">
+                  <input
+                    type="text"
+                    value={voyageForm.voyageNumber}
+                    onChange={(e) => setVoyageForm({ ...voyageForm, voyageNumber: e.target.value })}
+                    placeholder="مثال: 412W"
+                  />
+                </Field>
+                <Field label="رقم حجز الخط (Booking No)">
+                  <input
+                    type="text"
+                    value={voyageForm.bookingNumber}
+                    onChange={(e) => setVoyageForm({ ...voyageForm, bookingNumber: e.target.value })}
+                    placeholder="مثال: BKG-994821"
+                  />
+                </Field>
+                <Field label="نوع البوليسة (B/L Type)">
+                  <CustomSelect
+                    value={voyageForm.blType}
+                    onChange={(val) => setVoyageForm({ ...voyageForm, blType: val as any })}
+                    options={[
+                      { value: 'original', label: 'Original B/L (أصل ورقي)' },
+                      { value: 'telex_release', label: 'Telex Release (تلكس)' },
+                      { value: 'sea_waybill', label: 'Sea Waybill (إلكترونية)' },
+                    ]}
+                  />
+                </Field>
+              </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>رقم الرحلة (Voyage No)</label>
-              <input
-                type="text"
-                value={voyageForm.voyageNumber}
-                onChange={(e) => setVoyageForm({ ...voyageForm, voyageNumber: e.target.value })}
-                placeholder="مثال: 412W"
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
+
+            {/* Card 2: المواعيد الزمنية للرحلة */}
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.Clock size={15} />
+                <span>2. المواعيد الزمنية للرحلة (Schedule Dates)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <Field label="تاريخ الإبحار المتوقع (ETD)">
+                  <input
+                    type="date"
+                    value={voyageForm.etd}
+                    onChange={(e) => setVoyageForm({ ...voyageForm, etd: e.target.value })}
+                  />
+                </Field>
+                <Field label="تاريخ الوصول المتوقع (ETA)">
+                  <input
+                    type="date"
+                    value={voyageForm.eta}
+                    onChange={(e) => setVoyageForm({ ...voyageForm, eta: e.target.value })}
+                  />
+                </Field>
+              </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>رقم حجز الخط (Booking No)</label>
-              <input
-                type="text"
-                value={voyageForm.bookingNumber}
-                onChange={(e) => setVoyageForm({ ...voyageForm, bookingNumber: e.target.value })}
-                placeholder="مثال: BKG-994821"
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>نوع البوليسة (B/L Release Type)</label>
-              <CustomSelect
-                value={voyageForm.blType}
-                onChange={(val) => setVoyageForm({ ...voyageForm, blType: val as any })}
-                options={[
-                  { value: 'original', label: 'Original B/L (أصل البوليسة الورقية)' },
-                  { value: 'telex_release', label: 'Telex Release (تلكس ريليز بدون أصل)' },
-                  { value: 'sea_waybill', label: 'Express Sea Waybill (بوليصة إلكترونية مباشرة)' },
-                ]}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>تاريخ الإبحار المتوقع (ETD)</label>
-              <input
-                type="date"
-                value={voyageForm.etd}
-                onChange={(e) => setVoyageForm({ ...voyageForm, etd: e.target.value })}
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>تاريخ الوصول المتوقع (ETA)</label>
-              <input
-                type="date"
-                value={voyageForm.eta}
-                onChange={(e) => setVoyageForm({ ...voyageForm, eta: e.target.value })}
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Master B/L No</label>
-              <input
-                type="text"
-                value={voyageForm.mblNumber}
-                onChange={(e) => setVoyageForm({ ...voyageForm, mblNumber: e.target.value })}
-                placeholder="مثال: MSK9823412"
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>House B/L No</label>
-              <input
-                type="text"
-                value={voyageForm.hblNumber}
-                onChange={(e) => setVoyageForm({ ...voyageForm, hblNumber: e.target.value })}
-                placeholder="مثال: HBL-2026-001"
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>بيانات الشاحن (Shipper Details)</label>
-              <textarea
-                value={voyageForm.shipperDetails}
-                onChange={(e) => setVoyageForm({ ...voyageForm, shipperDetails: e.target.value })}
-                rows={2}
-                placeholder="اسم شركة الشحن، العنوان، ورقم التواصل"
-                style={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>بيانات المستلم (Consignee Details)</label>
-              <textarea
-                value={voyageForm.consigneeDetails}
-                onChange={(e) => setVoyageForm({ ...voyageForm, consigneeDetails: e.target.value })}
-                rows={2}
-                placeholder="اسم العميل المستلم، العنوان، ورقم التواصل"
-                style={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 10px', fontSize: '0.82rem' }}
-              />
+
+            {/* Card 3: بوالص الشحن والأطراف التعاقدية */}
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.FileText size={15} />
+                <span>3. بوالص الشحن والأطراف التعاقدية (Bills of Lading & Parties)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
+                <Field label="Master B/L No">
+                  <input
+                    type="text"
+                    value={voyageForm.mblNumber}
+                    onChange={(e) => setVoyageForm({ ...voyageForm, mblNumber: e.target.value })}
+                    placeholder="مثال: MSK9823412"
+                  />
+                </Field>
+                <Field label="House B/L No">
+                  <input
+                    type="text"
+                    value={voyageForm.hblNumber}
+                    onChange={(e) => setVoyageForm({ ...voyageForm, hblNumber: e.target.value })}
+                    placeholder="مثال: HBL-260914-0001"
+                  />
+                </Field>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <Field label="بيانات الشاحن (Shipper Details)">
+                  <textarea
+                    value={voyageForm.shipperDetails}
+                    onChange={(e) => setVoyageForm({ ...voyageForm, shipperDetails: e.target.value })}
+                    rows={2}
+                    placeholder="اسم شركة الشحن، العنوان، ورقم التواصل"
+                  />
+                </Field>
+                <Field label="بيانات المستلم (Consignee Details)">
+                  <textarea
+                    value={voyageForm.consigneeDetails}
+                    onChange={(e) => setVoyageForm({ ...voyageForm, consigneeDetails: e.target.value })}
+                    rows={2}
+                    placeholder="اسم العميل المستلم، العنوان، ورقم التواصل"
+                  />
+                </Field>
+              </div>
             </div>
           </div>
         </StandardDialog>
@@ -1964,85 +2022,95 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           onClose={() => setShowAddContainer(false)}
           title="إضافة حاوية جديدة للشحنة"
           subtitle={`العملية: ${job.job_number} | الخط: ${job.shipping_line_name}`}
-          width="min(680px, 90vw)"
+          width="min(720px, 92vw)"
+          minHeight="auto"
           footerActions={(
             <StandardDialogFooter
-              onConfirm={handleSaveAddContainer}
-              confirmText="إضافة الحاوية"
+              onSubmit={handleSaveAddContainer}
+              submitText="إضافة الحاوية"
               onCancel={() => setShowAddContainer(false)}
               cancelText="إلغاء"
             />
           )}
         >
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }} dir="rtl">
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>رقم الحاوية (Container Number) *</label>
-              <input
-                type="text"
-                value={addContainerForm.containerNumber}
-                onChange={(e) => setAddContainerForm({ ...addContainerForm, containerNumber: e.target.value.toUpperCase() })}
-                placeholder="مثال: MSCU9842104"
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem', fontWeight: 700 }}
-              />
+          <div className="job-submodal-compact" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} dir="rtl">
+            {/* Card 1: مواصفات وهوية الحاوية */}
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.Container size={15} />
+                <span>1. هوية الحاوية والمواصفات الفنية (Container Specs)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.4fr 1fr', gap: '10px' }}>
+                <Field label="رقم الحاوية (Container Number) *">
+                  <input
+                    type="text"
+                    value={addContainerForm.containerNumber}
+                    onChange={(e) => setAddContainerForm({ ...addContainerForm, containerNumber: e.target.value.toUpperCase() })}
+                    placeholder="مثال: MSCU9842104"
+                    style={{ fontWeight: 700 }}
+                  />
+                </Field>
+                <Field label="نوع وحجم الحاوية *">
+                  <CustomSelect
+                    value={addContainerForm.containerType}
+                    onChange={(val) => setAddContainerForm({ ...addContainerForm, containerType: val })}
+                    options={[
+                      { value: "20' GP", label: "20' GP - Standard Dry Container" },
+                      { value: "40' GP", label: "40' GP - Standard Dry Container" },
+                      { value: "40' HC", label: "40' HC - High Cube Container" },
+                      { value: "45' HC", label: "45' HC - High Cube Extra" },
+                      { value: "20' RF", label: "20' RF - Reefer Container" },
+                      { value: "40' RH", label: "40' RH - Reefer High Cube" },
+                      { value: "20' OT", label: "20' OT - Open Top Container" },
+                      { value: "40' OT", label: "40' OT - Open Top Container" },
+                      { value: "20' FR", label: "20' FR - Flat Rack Container" },
+                      { value: "40' FR", label: "40' FR - Flat Rack Container" },
+                    ]}
+                  />
+                </Field>
+                <Field label="رقم الختم (Seal No)">
+                  <input
+                    type="text"
+                    value={addContainerForm.sealNumber}
+                    onChange={(e) => setAddContainerForm({ ...addContainerForm, sealNumber: e.target.value })}
+                    placeholder="مثال: SL-984210"
+                  />
+                </Field>
+              </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>نوع وحجم الحاوية</label>
-              <CustomSelect
-                value={addContainerForm.containerType}
-                onChange={(val) => setAddContainerForm({ ...addContainerForm, containerType: val })}
-                options={[
-                  { value: "20' GP", label: "20' GP - Standard Dry Container" },
-                  { value: "40' GP", label: "40' GP - Standard Dry Container" },
-                  { value: "40' HC", label: "40' HC - High Cube Container" },
-                  { value: "45' HC", label: "45' HC - High Cube Extra" },
-                  { value: "20' RF", label: "20' RF - Reefer Container" },
-                  { value: "40' RH", label: "40' RH - Reefer High Cube" },
-                  { value: "20' OT", label: "20' OT - Open Top Container" },
-                  { value: "40' OT", label: "40' OT - Open Top Container" },
-                  { value: "20' FR", label: "20' FR - Flat Rack Container" },
-                  { value: "40' FR", label: "40' FR - Flat Rack Container" },
-                ]}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>رقم الختم الرصاصي (Seal No)</label>
-              <input
-                type="text"
-                value={addContainerForm.sealNumber}
-                onChange={(e) => setAddContainerForm({ ...addContainerForm, sealNumber: e.target.value })}
-                placeholder="مثال: SL-984210"
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>فترة السماح (Free Days)</label>
-              <input
-                type="number"
-                value={addContainerForm.freeDays}
-                onChange={(e) => setAddContainerForm({ ...addContainerForm, freeDays: e.target.value })}
-                placeholder="14"
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>مبلغ غرامة التأخير اليومية</label>
-              <input
-                type="number"
-                value={addContainerForm.demurrageRatePerDay}
-                onChange={(e) => setAddContainerForm({ ...addContainerForm, demurrageRatePerDay: e.target.value })}
-                placeholder="50"
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>مبلغ التأمين المحتجز للخط</label>
-              <input
-                type="number"
-                value={addContainerForm.depositAmount}
-                onChange={(e) => setAddContainerForm({ ...addContainerForm, depositAmount: e.target.value })}
-                placeholder="0"
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
+
+            {/* Card 2: شروط السماح والغرامات والتأمين */}
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.Clock size={15} />
+                <span>2. شروط السماح والغرامات والتأمين (Free Days & Deposit)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: '10px' }}>
+                <Field label="فترة السماح (أيام) *">
+                  <input
+                    type="number"
+                    value={addContainerForm.freeDays}
+                    onChange={(e) => setAddContainerForm({ ...addContainerForm, freeDays: e.target.value })}
+                    placeholder="14"
+                  />
+                </Field>
+                <Field label="غرامة التأخير اليومية ($)">
+                  <input
+                    type="number"
+                    value={addContainerForm.demurrageRatePerDay}
+                    onChange={(e) => setAddContainerForm({ ...addContainerForm, demurrageRatePerDay: e.target.value })}
+                    placeholder="50"
+                  />
+                </Field>
+                <Field label="مبلغ التأمين المحتجز للخط">
+                  <input
+                    type="number"
+                    value={addContainerForm.depositAmount}
+                    onChange={(e) => setAddContainerForm({ ...addContainerForm, depositAmount: e.target.value })}
+                    placeholder="0"
+                  />
+                </Field>
+              </div>
             </div>
           </div>
         </StandardDialog>
@@ -2055,74 +2123,83 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           onClose={() => setEditingContainer(null)}
           title={`تعديل بيانات الحاوية: ${editingContainer.container_number}`}
           subtitle={`النوع: ${editingContainer.container_type}`}
-          width="min(680px, 90vw)"
+          width="min(720px, 92vw)"
+          minHeight="auto"
           footerActions={(
             <StandardDialogFooter
-              onConfirm={handleSaveEditContainer}
-              confirmText="حفظ التعديلات"
+              onSubmit={handleSaveEditContainer}
+              submitText="حفظ التعديلات"
               onCancel={() => setEditingContainer(null)}
               cancelText="إلغاء"
             />
           )}
         >
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }} dir="rtl">
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>رقم الختم الرصاصي (Seal No)</label>
-              <input
-                type="text"
-                value={editContainerForm.sealNumber}
-                onChange={(e) => setEditContainerForm({ ...editContainerForm, sealNumber: e.target.value })}
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
+          <div className="job-submodal-compact" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} dir="rtl">
+            {/* Card 1: الختم والمواعيد */}
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.Container size={15} />
+                <span>1. بيانات الختم والمواعيد (Seal & Schedule)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <Field label="رقم الختم الرصاصي (Seal No)">
+                  <input
+                    type="text"
+                    value={editContainerForm.sealNumber}
+                    onChange={(e) => setEditContainerForm({ ...editContainerForm, sealNumber: e.target.value })}
+                  />
+                </Field>
+                <Field label="فترة السماح (أيام)">
+                  <input
+                    type="number"
+                    value={editContainerForm.freeDays}
+                    onChange={(e) => setEditContainerForm({ ...editContainerForm, freeDays: e.target.value })}
+                  />
+                </Field>
+                <Field label="آخر موعد للإرجاع (Return Deadline)">
+                  <input
+                    type="date"
+                    value={editContainerForm.returnDeadline}
+                    onChange={(e) => setEditContainerForm({ ...editContainerForm, returnDeadline: e.target.value })}
+                  />
+                </Field>
+              </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>فترة السماح (أيام)</label>
-              <input
-                type="number"
-                value={editContainerForm.freeDays}
-                onChange={(e) => setEditContainerForm({ ...editContainerForm, freeDays: e.target.value })}
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>آخر موعد للإرجاع (Return Deadline)</label>
-              <input
-                type="date"
-                value={editContainerForm.returnDeadline}
-                onChange={(e) => setEditContainerForm({ ...editContainerForm, returnDeadline: e.target.value })}
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>مبلغ غرامة التأخير اليومية</label>
-              <input
-                type="number"
-                value={editContainerForm.demurrageRatePerDay}
-                onChange={(e) => setEditContainerForm({ ...editContainerForm, demurrageRatePerDay: e.target.value })}
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>مبلغ التأمين المحتجز</label>
-              <input
-                type="number"
-                value={editContainerForm.depositAmount}
-                onChange={(e) => setEditContainerForm({ ...editContainerForm, depositAmount: e.target.value })}
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>حالة أمانة التأمين</label>
-              <CustomSelect
-                value={editContainerForm.depositStatus}
-                onChange={(val) => setEditContainerForm({ ...editContainerForm, depositStatus: val as any })}
-                options={[
-                  { value: 'not_required', label: 'غير مطلوبة / بدون تأمين' },
-                  { value: 'held_by_line', label: 'محتجزة لدى التوكيل الملاحي' },
-                  { value: 'pending_return_proof', label: 'بانتظار إثبات إرجاع الفارغ' },
-                  { value: 'refunded_to_treasury', label: 'تم الاسترداد للخزينة' },
-                ]}
-              />
+
+            {/* Card 2: الغرامات وحالة التأمين */}
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.DollarSign size={15} />
+                <span>2. الغرامات وحالة التأمين (Demurrage & Deposit)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.3fr', gap: '10px' }}>
+                <Field label="غرامة التأخير اليومية ($)">
+                  <input
+                    type="number"
+                    value={editContainerForm.demurrageRatePerDay}
+                    onChange={(e) => setEditContainerForm({ ...editContainerForm, demurrageRatePerDay: e.target.value })}
+                  />
+                </Field>
+                <Field label="مبلغ التأمين المحتجز">
+                  <input
+                    type="number"
+                    value={editContainerForm.depositAmount}
+                    onChange={(e) => setEditContainerForm({ ...editContainerForm, depositAmount: e.target.value })}
+                  />
+                </Field>
+                <Field label="حالة أمانة التأمين">
+                  <CustomSelect
+                    value={editContainerForm.depositStatus}
+                    onChange={(val) => setEditContainerForm({ ...editContainerForm, depositStatus: val as any })}
+                    options={[
+                      { value: 'not_required', label: 'غير مطلوبة / بدون تأمين' },
+                      { value: 'held_by_line', label: 'محتجزة لدى التوكيل الملاحي' },
+                      { value: 'pending_return_proof', label: 'بانتظار إثبات إرجاع الفارغ' },
+                      { value: 'refunded_to_treasury', label: 'تم الاسترداد للخزينة' },
+                    ]}
+                  />
+                </Field>
+              </div>
             </div>
           </div>
         </StandardDialog>
@@ -2135,46 +2212,42 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           onClose={() => setShowInvoiceDialog(false)}
           title="إصدار وترحيل فاتورة مبيعات خدمات ملاحية"
           subtitle={`العملية: ${job.job_number} | العميل: ${job.customer_name}`}
-          width="min(560px, 95vw)"
+          width="min(580px, 95vw)"
+          minHeight="auto"
           footerActions={(
             <StandardDialogFooter
-              onConfirm={handleConfirmIssueInvoice}
-              confirmText={isSubmittingInvoice ? 'جاري الترحيل...' : 'ترحيل الفاتورة للدفاتر'}
+              onSubmit={handleConfirmIssueInvoice}
+              submitText={isSubmittingInvoice ? 'جاري الترحيل...' : 'ترحيل الفاتورة للدفاتر'}
               isSubmitting={isSubmittingInvoice}
               onCancel={() => setShowInvoiceDialog(false)}
               cancelText="إلغاء"
             />
           )}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
+          <div className="job-submodal-compact" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} dir="rtl">
             <div style={{ background: '#eff6ff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bfdbfe', fontSize: '0.78rem', color: '#1e40af' }}>
               سيتم إنشاء وترحيل قيد يومية معتمد (مدين: حساب العملاء 1130 / دائن: مبيعات الخدمات 4200) وتوجيهه آلياً لمركز تكلفة العملية <strong>#{job.job_number}</strong>.
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                مبلغ الفاتورة المفوتر للعميل ({currencySymbol}) *
-              </label>
-              <input
-                type="number"
-                value={invoiceAmountInput}
-                onChange={(e) => setInvoiceAmountInput(e.target.value)}
-                placeholder="0.00"
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.9rem', fontWeight: 800, color: '#170e5e' }}
-              />
-            </div>
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <Field label={`مبلغ الفاتورة المفوتر للعميل (${currencySymbol}) *`}>
+                <input
+                  type="number"
+                  value={invoiceAmountInput}
+                  onChange={(e) => setInvoiceAmountInput(e.target.value)}
+                  placeholder="0.00"
+                  style={{ fontWeight: 800, color: '#170e5e' }}
+                />
+              </Field>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                بيان ووصف الفاتورة
-              </label>
-              <input
-                type="text"
-                value={invoiceNotesInput}
-                onChange={(e) => setInvoiceNotesInput(e.target.value)}
-                placeholder="بيان الفاتورة..."
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
+              <Field label="بيان ووصف الفاتورة">
+                <input
+                  type="text"
+                  value={invoiceNotesInput}
+                  onChange={(e) => setInvoiceNotesInput(e.target.value)}
+                  placeholder="بيان الفاتورة..."
+                />
+              </Field>
             </div>
           </div>
         </StandardDialog>
@@ -2187,74 +2260,68 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           onClose={() => setShowExpenseDialog(false)}
           title="تسجيل وترحيل سند مصروفات ملاحية"
           subtitle={`العملية: ${job.job_number} | التوكيل: ${job.shipping_line_name}`}
-          width="min(580px, 95vw)"
+          width="min(620px, 95vw)"
+          minHeight="auto"
           footerActions={(
             <StandardDialogFooter
-              onConfirm={handleConfirmRecordExpense}
-              confirmText={isSubmittingExpense ? 'جاري الترحيل...' : 'ترحيل سند المصروفات'}
+              onSubmit={handleConfirmRecordExpense}
+              submitText={isSubmittingExpense ? 'جاري الترحيل...' : 'ترحيل سند المصروفات'}
               isSubmitting={isSubmittingExpense}
               onCancel={() => setShowExpenseDialog(false)}
               cancelText="إلغاء"
             />
           )}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
+          <div className="job-submodal-compact" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} dir="rtl">
             <div style={{ background: '#fef2f2', padding: '10px 14px', borderRadius: '8px', border: '1px solid #fecaca', fontSize: '0.78rem', color: '#991b1b' }}>
               سيتم إنشاء قيد استحقاق مصروفات (مدين: مصروفات نقل وشحن 6400 بمركز تكلفة العملية / دائن: حساب السداد المحدد) وخصمه من أرباح العملية.
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>نوع المصروف</label>
-                <CustomSelect
-                  value={expenseTypeInput}
-                  onChange={(val) => setExpenseTypeInput(val as any)}
-                  options={[
-                    { value: 'carrier', label: 'نولون وتكاليف الخط الملاحي' },
-                    { value: 'port', label: 'رسوم ومصروفات محطات الميناء THC' },
-                    { value: 'other', label: 'مصروفات تخليص أو خدمات أخرى' },
-                  ]}
-                />
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <Field label="نوع المصروف">
+                  <CustomSelect
+                    value={expenseTypeInput}
+                    onChange={(val) => setExpenseTypeInput(val as any)}
+                    options={[
+                      { value: 'carrier', label: 'نولون وتكاليف الخط الملاحي' },
+                      { value: 'port', label: 'رسوم ومصروفات محطات الميناء THC' },
+                      { value: 'other', label: 'مصروفات تخليص أو خدمات أخرى' },
+                    ]}
+                  />
+                </Field>
+
+                <Field label="طريقة السداد والتسوية">
+                  <CustomSelect
+                    value={expensePaymentMethodInput}
+                    onChange={(val) => setExpensePaymentMethodInput(val as any)}
+                    options={[
+                      { value: 'payable', label: 'استحقاق أجل على حساب المورد (2110)' },
+                      { value: 'cash', label: 'صرف نقدي فوري من الخزينة (1110)' },
+                      { value: 'bank', label: 'تحويل / شيك بنكي (1120)' },
+                    ]}
+                  />
+                </Field>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>طريقة السداد والتسوية</label>
-                <CustomSelect
-                  value={expensePaymentMethodInput}
-                  onChange={(val) => setExpensePaymentMethodInput(val as any)}
-                  options={[
-                    { value: 'payable', label: 'استحقاق أجل على حساب المورد (2110)' },
-                    { value: 'cash', label: 'صرف نقدي فوري من الخزينة (1110)' },
-                    { value: 'bank', label: 'تحويل / شيك بنكي (1120)' },
-                  ]}
+              <Field label={`مبلغ المصروف (${currencySymbol}) *`}>
+                <input
+                  type="number"
+                  value={expenseAmountInput}
+                  onChange={(e) => setExpenseAmountInput(e.target.value)}
+                  placeholder="0.00"
+                  style={{ fontWeight: 800, color: '#b91c1c' }}
                 />
-              </div>
-            </div>
+              </Field>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                مبلغ المصروف ({currencySymbol}) *
-              </label>
-              <input
-                type="number"
-                value={expenseAmountInput}
-                onChange={(e) => setExpenseAmountInput(e.target.value)}
-                placeholder="0.00"
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.9rem', fontWeight: 800, color: '#b91c1c' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                البيان / الوصف
-              </label>
-              <input
-                type="text"
-                value={expenseNotesInput}
-                onChange={(e) => setExpenseNotesInput(e.target.value)}
-                placeholder="بيان سند المصروفات..."
-                style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.82rem' }}
-              />
+              <Field label="البيان / الوصف">
+                <input
+                  type="text"
+                  value={expenseNotesInput}
+                  onChange={(e) => setExpenseNotesInput(e.target.value)}
+                  placeholder="بيان سند المصروفات..."
+                />
+              </Field>
             </div>
           </div>
         </StandardDialog>
@@ -2274,8 +2341,8 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           footerActions={
             parsedBookingData ? (
               <StandardDialogFooter
-                onConfirm={handleApplyParsedBooking}
-                confirmText={isApplyingParsedData ? 'جاري الاعتماد...' : 'اعتماد وملء بيانات الحجز بالشحنة'}
+                onSubmit={handleApplyParsedBooking}
+                submitText={isApplyingParsedData ? 'جاري الاعتماد...' : 'اعتماد وملء بيانات الحجز بالشحنة'}
                 isSubmitting={isApplyingParsedData}
                 onCancel={() => {
                   setShowSmartParseModal(false);

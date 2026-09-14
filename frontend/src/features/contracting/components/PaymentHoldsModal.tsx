@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { contractingApi } from '../api/contracting.api';
 import { ContractingPaymentHold } from '../contracting.types';
@@ -191,15 +192,16 @@ export function PaymentHoldsModal({
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
                   نوع الطرف المحجوز عليه
                 </label>
-                <select
+                <CustomSelect
                   value={targetType}
-                  onChange={(e) => setTargetType(e.target.value as any)}
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
-                >
-                  <option value="subcontractor">مقاول باطن</option>
-                  <option value="supplier">مورد مواد</option>
-                  <option value="boq_item">بند أعمال (BOQ)</option>
-                </select>
+                  onChange={(val) => setTargetType(val as any)}
+                  options={[
+                    { value: 'subcontractor', label: 'مقاول باطن' },
+                    { value: 'supplier', label: 'مورد مواد' },
+                    { value: 'boq_item', label: 'بند أعمال (BOQ)' },
+                  ]}
+                  placeholder="اختر نوع الطرف..."
+                />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>

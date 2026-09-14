@@ -1,6 +1,7 @@
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
-import { XIcon } from '@/shared/components/icons/AppIcons';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { FileTextIcon, DollarSignIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrencyWithSymbol } from '@/lib/format';
 import type { CreateWhtTransactionPayload } from '@/features/accounting/api/accounting.api';
 
@@ -12,6 +13,13 @@ interface CreateWhtModalProps {
   onSubmit: () => void;
   isPending: boolean;
 }
+
+const WHT_TYPE_OPTIONS = [
+  { value: 'goods', label: 'توريدات وسلع (1%)' },
+  { value: 'services', label: 'خدمات ومصنعيات (3%)' },
+  { value: 'professional', label: 'مهن حرة واستشارات (5%)' },
+  { value: 'custom', label: 'نسبة مخصصة أخرى' },
+];
 
 export function CreateWhtModal({
   isOpen,
@@ -36,68 +44,70 @@ export function CreateWhtModal({
   };
 
   return (
-    <DialogShell
-      open={true}
+    <StandardDialog
+      open={isOpen}
       onClose={onClose}
-      width="min(680px, 95vw)"
-      ariaLabel="تسجيل معاملة خصم وتحصيل جديدة"
+      title="تسجيل معاملة خصم وتحصيل جديدة (نموذج 41)"
+      subtitle="إثبات خصم الضريبة من منبع الفاتورة وتوريدها لمصلحة الضرائب"
+      size="lg"
     >
-      <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
-        <div className="standard-dialog-header">
-          <div className="standard-dialog-header-info">
-            <h3 className="standard-dialog-title">تسجيل معاملة خصم وتحصيل جديدة (نموذج 41)</h3>
-            <p className="standard-dialog-subtitle">إثبات خصم الضريبة من منبع الفاتورة وتوريدها لمصلحة الضرائب</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        {/* Card 1: Partner & Invoice Details */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '10px',
+          padding: '16px',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+            <FileTextIcon size={16} style={{ color: '#170e5e' }} />
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', margin: 0 }}>بيانات المورد والفاتورة</h4>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="standard-dialog-close-btn"
-            aria-label="إغلاق"
-          >
-            <XIcon size={18} />
-          </button>
-        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                اسم المورد / الممول <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={newTx.partner_name}
-                onChange={(e) => onChange({ ...newTx, partner_name: e.target.value })}
-                placeholder="اسم الشركة أو التاجر أو المهني"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
-              />
-            </div>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+              اسم المورد / الممول <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={newTx.partner_name}
+              onChange={(e) => onChange({ ...newTx, partner_name: e.target.value })}
+              placeholder="اسم الشركة أو التاجر أو المهني"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+            />
+          </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                رقم الفاتورة <span style={{ color: '#ef4444' }}>*</span>
+                رقم الفاتورة <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="text"
                 value={newTx.invoice_number}
                 onChange={(e) => onChange({ ...newTx, invoice_number: e.target.value })}
-                placeholder="مثال: INV-10492"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                placeholder="INV-10492"
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                تاريخ الفاتورة <span style={{ color: '#ef4444' }}>*</span>
+                تاريخ الفاتورة <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="date"
                 value={newTx.invoice_date}
                 onChange={(e) => onChange({ ...newTx, invoice_date: e.target.value })}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
+          </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
                 الرقم الضريبي (9 أرقام)
@@ -106,8 +116,8 @@ export function CreateWhtModal({
                 type="text"
                 value={newTx.tax_id_number || ''}
                 onChange={(e) => onChange({ ...newTx, tax_id_number: e.target.value })}
-                placeholder="مثال: 100234567"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                placeholder="100234567"
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -119,25 +129,38 @@ export function CreateWhtModal({
                 type="text"
                 value={newTx.tax_office_code || ''}
                 onChange={(e) => onChange({ ...newTx, tax_office_code: e.target.value })}
-                placeholder="مثال: مأمورية قصر النيل"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                placeholder="مأمورية قصر النيل"
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
+          </div>
+        </div>
 
+        {/* Card 2: Calculation & Rates */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '10px',
+          padding: '16px',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+            <DollarSignIcon size={16} style={{ color: '#170e5e' }} />
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', margin: 0 }}>وعاء الخصم والنسبة المحتسبة</h4>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.7fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                نوع التعامل <span style={{ color: '#ef4444' }}>*</span>
+                نوع التعامل <span style={{ color: '#e11d48' }}>*</span>
               </label>
-              <select
+              <CustomSelect
                 value={newTx.wht_type}
-                onChange={(e) => handleWhtTypeChange(e.target.value as any)}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
-              >
-                <option value="goods">توريدات وسلع (1%)</option>
-                <option value="services">خدمات ومصنعيات (3%)</option>
-                <option value="professional">مهن حرة واستشارات (5%)</option>
-                <option value="custom">نسبة مخصصة أخرى</option>
-              </select>
+                onChange={(val) => handleWhtTypeChange(val as any)}
+                options={WHT_TYPE_OPTIONS}
+              />
             </div>
 
             <div>
@@ -149,49 +172,71 @@ export function CreateWhtModal({
                 step="0.1"
                 value={newTx.wht_rate || 0}
                 onChange={(e) => onChange({ ...newTx, wht_rate: Number(e.target.value) })}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
-            </div>
-
-            <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                القيمة الإجمالية للتعامل (وعاء الخصم قبل الضريبة) <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={newTx.base_amount || ''}
-                onChange={(e) => onChange({ ...newTx, base_amount: Number(e.target.value) })}
-                placeholder="0.00"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 700, backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
-              />
-              {newTx.base_amount > 0 && (
-                <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#059669', fontWeight: 700 }}>
-                  قيمة الضريبة المحتسبة: {formatCurrencyWithSymbol(newTx.base_amount * ((newTx.wht_rate || 1) / 100))}
-                </div>
-              )}
             </div>
           </div>
 
-          <div className="standard-dialog-footer">
-            <Button variant="secondary" onClick={onClose}>
-              إلغاء
-            </Button>
-            <Button
-              onClick={onSubmit}
-              disabled={
-                isPending ||
-                !newTx.partner_name ||
-                !newTx.invoice_number ||
-                !newTx.base_amount
-              }
-              style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
-            >
-              {isPending ? 'جاري الحفظ...' : 'حفظ المعاملة'}
-            </Button>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+              القيمة الإجمالية للتعامل (وعاء الخصم قبل الضريبة) <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={newTx.base_amount || ''}
+              onChange={(e) => onChange({ ...newTx, base_amount: Number(e.target.value) })}
+              placeholder="0.00"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 700, backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+            />
           </div>
+
+          {newTx.base_amount > 0 && (
+            <div style={{
+              backgroundColor: '#ecfdf5',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              border: '1px solid #a7f3d0',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <span style={{ fontSize: '12px', color: '#047857' }}>قيمة الضريبة المحتسبة:</span>
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#047857' }}>
+                {formatCurrencyWithSymbol(newTx.base_amount * ((newTx.wht_rate || 1) / 100))}
+              </span>
+            </div>
+          )}
         </div>
       </div>
-    </DialogShell>
+
+      <StandardDialogFooter>
+        <Button variant="secondary" onClick={onClose} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
+          إلغاء
+        </Button>
+        <Button
+          onClick={onSubmit}
+          disabled={
+            isPending ||
+            !newTx.partner_name ||
+            !newTx.invoice_number ||
+            !newTx.base_amount
+          }
+          style={{
+            backgroundColor: '#170e5e',
+            color: '#ffffff',
+            padding: '8px 22px',
+            fontSize: '13px',
+            fontWeight: 700,
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: isPending || !newTx.partner_name || !newTx.invoice_number || !newTx.base_amount ? 0.6 : 1,
+          }}
+        >
+          {isPending ? 'جاري الحفظ...' : 'حفظ المعاملة'}
+        </Button>
+      </StandardDialogFooter>
+    </StandardDialog>
   );
 }

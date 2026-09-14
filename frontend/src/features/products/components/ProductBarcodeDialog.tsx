@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { productsApi } from '@/features/products/api/products.api';
@@ -36,6 +38,14 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
   );
   const currentBarcode = selectedUnit?.barcode || product?.barcode || '';
   const previewSvg = buildCode128Svg(activeMode === 'generate' ? generatedValue : scanValue || currentBarcode);
+
+  const unitOptions = useMemo(
+    () => units.map((unit) => ({
+      value: String(unit.id || unit.name),
+      label: `${unit.name}${unit.barcode ? ` (${unit.barcode})` : ' (بدون باركود)'}`,
+    })),
+    [units],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -95,91 +105,162 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
     setHelperMessage(`تم حفظ الباركود على ${selectedUnit?.name || 'الوحدة الأساسية'} بنجاح.`);
   }
 
+  const effectiveBarcode = activeMode === 'generate' ? generatedValue : scanValue;
+
   return (
-    <DialogShell open={open} onClose={onClose} width="min(920px, 100%)" zIndex={82} ariaLabel="إدارة باركود الصنف">
-      <div className="page-stack">
-        <div className="section-title">
-          <div className="section-heading-copy">
-            <h3>الباركود داخل سطر الصنف</h3>
-            <p className="section-description">{currentProduct.name} · افتح النافذة من السجل مباشرة، بدون الحاجة لاختيار الصنف أسفل الصفحة.</p>
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title="إدارة باركود الصنف (Product Barcode Management)"
+      subtitle={`${currentProduct.name} · وحدة: ${selectedUnit?.name || 'قطعة'} · الباركود الحالي: ${currentBarcode || 'غير مسجل'}`}
+      maxWidth="880px"
+      footerActions={
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <div>
+            {currentBarcode && onOpenPrint ? (
+              <Button type="button" variant="secondary" onClick={() => onOpenPrint(currentProduct, selectedUnit)} style={{ fontSize: '0.8rem' }}>
+                <AppIcons.Printer size={14} style={{ marginInlineEnd: '6px' }} />
+                طباعة الملصقات
+              </Button>
+            ) : null}
           </div>
-          <div className="section-title-actions actions compact-actions">
-            <span className="nav-pill">{selectedUnit?.name || 'قطعة'}</span>
-            <Button type="button" variant="secondary" onClick={onClose}>إغلاق</Button>
+          <StandardDialogFooter
+            cancelText="إغلاق"
+            onCancel={onClose}
+            submitText={activeMode === 'generate' ? 'حفظ الباركود المولد' : 'حفظ قراءة الباركود'}
+            onSubmit={() => void saveBarcode(effectiveBarcode)}
+            isSubmitting={mutation.isPending}
+            submitDisabled={mutation.isPending || !effectiveBarcode.trim()}
+          />
+        </div>
+      }
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '14px', alignItems: 'start' }} dir="rtl">
+        {/* 1. بيانات الصنف والباركود */}
+        <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+              <AppIcons.Barcode size={15} />
+              <span>1. إعداد وقراءة الباركود (Barcode Setup)</span>
+            </div>
+            <div style={{ display: 'inline-flex', gap: '4px', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setActiveMode('scan')}
+                style={{
+                  padding: '3px 10px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  background: activeMode === 'scan' ? '#170e5e' : 'transparent',
+                  color: activeMode === 'scan' ? '#ffffff' : '#475569',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                مسح / إدخال يدوي
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMode('generate');
+                  setGeneratedValue(createGeneratedBarcode(collectExistingBarcodes(products), 'ZS'));
+                }}
+                style={{
+                  padding: '3px 10px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  background: activeMode === 'generate' ? '#170e5e' : 'transparent',
+                  color: activeMode === 'generate' ? '#ffffff' : '#475569',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                توليد باركود تلقائي
+              </button>
+            </div>
           </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <Field label="اسم الصنف">
+              <input value={currentProduct.name} readOnly disabled style={{ background: '#f1f5f9' }} />
+            </Field>
+
+            <Field label="الوحدة المستهدفة">
+              <CustomSelect
+                value={unitId || String(selectedUnit?.id || '')}
+                options={unitOptions}
+                onChange={(val) => setUnitId(val)}
+              />
+            </Field>
+
+            <Field label="الباركود الحالي المسجل">
+              <input value={currentBarcode || 'لا يوجد باركود'} readOnly disabled style={{ background: '#f1f5f9', color: currentBarcode ? '#170e5e' : '#94a3b8', fontWeight: 600 }} />
+            </Field>
+
+            {activeMode === 'scan' ? (
+              <Field label="قراءة السكانر أو الإدخال اليدوي *">
+                <input
+                  data-autofocus
+                  value={scanValue}
+                  onChange={(event) => setScanValue(event.target.value)}
+                  placeholder="وجّه السكانر أو اكتب الباركود..."
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void saveBarcode(scanValue);
+                    }
+                  }}
+                />
+              </Field>
+            ) : (
+              <Field label="الباركود المولد تلقائياً *">
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input data-autofocus value={generatedValue} onChange={(event) => setGeneratedValue(event.target.value)} />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setGeneratedValue(createGeneratedBarcode(collectExistingBarcodes(products), 'ZS'))}
+                    style={{ padding: '0 10px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                  >
+                    تجديد
+                  </Button>
+                </div>
+              </Field>
+            )}
+          </div>
+
+          <MutationFeedback isError={mutation.isError} error={mutation.error} errorFallback="تعذر حفظ الباركود" />
+          {helperMessage ? (
+            <div style={{ marginTop: '10px', padding: '8px 12px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', color: '#065f46', fontSize: '0.8rem', fontWeight: 600 }}>
+              {helperMessage}
+            </div>
+          ) : null}
         </div>
 
-        <div className="two-column-grid" style={{ alignItems: 'start' }}>
-          <div className="card" style={{ minHeight: 0 }}>
-            <div className="actions compact-actions" style={{ marginBottom: 12 }}>
-              <Button type="button" variant={activeMode === 'scan' ? 'primary' : 'secondary'} onClick={() => setActiveMode('scan')}>إضافة باركود</Button>
-              <Button type="button" variant={activeMode === 'generate' ? 'primary' : 'secondary'} onClick={() => {
-                setActiveMode('generate');
-                setGeneratedValue(createGeneratedBarcode(collectExistingBarcodes(products), 'ZS'));
-              }}>توليد باركود</Button>
-            </div>
-            <div className="form-grid">
-              <Field label="الصنف المحدد">
-                <input value={currentProduct.name} readOnly disabled />
-              </Field>
-              <Field label="الوحدة">
-                <select value={unitId} onChange={(event) => setUnitId(event.target.value)}>
-                  {units.map((unit) => <option key={unit.id || unit.name} value={unit.id}>{unit.name}{unit.barcode ? ` (${unit.barcode})` : ' (بدون باركود)'}</option>)}
-                </select>
-              </Field>
-              <Field label="الباركود الحالي">
-                <input value={currentBarcode} readOnly disabled />
-              </Field>
-              {activeMode === 'scan' ? (
-                <Field label="قراءة السكانر / إدخال يدوي">
-                  <input
-                    data-autofocus
-                    value={scanValue}
-                    onChange={(event) => setScanValue(event.target.value)}
-                    placeholder="وجه السكانر هنا أو اكتب الباركود"
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        void saveBarcode(scanValue);
-                      }
-                    }}
-                  />
-                </Field>
-              ) : (
-                <Field label="الباركود المولد">
-                  <input data-autofocus value={generatedValue} onChange={(event) => setGeneratedValue(event.target.value)} />
-                </Field>
-              )}
-            </div>
-            <div className="actions compact-actions" style={{ marginTop: 12 }}>
-              <Button type="button" onClick={() => void saveBarcode(activeMode === 'generate' ? generatedValue : scanValue)} disabled={mutation.isPending || !(activeMode === 'generate' ? generatedValue : scanValue).trim()}>{activeMode === 'generate' ? 'حفظ الباركود المولد' : 'حفظ القراءة'}</Button>
-              <Button type="button" variant="secondary" onClick={() => {
-                const nextValue = createGeneratedBarcode(collectExistingBarcodes(products), 'ZS');
-                setActiveMode('generate');
-                setGeneratedValue(nextValue);
-              }} disabled={mutation.isPending}>توليد جديد</Button>
-              <Button type="button" variant="secondary" onClick={() => onOpenPrint?.(currentProduct, selectedUnit)} disabled={!currentBarcode}>طباعة الملصقات</Button>
-            </div>
-            <MutationFeedback isError={mutation.isError} error={mutation.error} errorFallback="تعذر حفظ الباركود" />
-            {helperMessage ? <div className="success-box">{helperMessage}</div> : null}
+        {/* 2. المعاينة المباشرة للباركود */}
+        <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.Eye size={15} />
+            <span>2. معاينة الباركود الحية (Code-128 Preview)</span>
           </div>
 
-          <div className="card" style={{ minHeight: 0 }}>
-            <div className="section-title" style={{ marginBottom: 8 }}>
-              <div className="section-heading-copy">
-                <h3 style={{ fontSize: 16 }}>معاينة الباركود</h3>
-                <p className="section-description">يمكنك حفظه أولًا أو الانتقال مباشرة لنافذة الطباعة والملصقات.</p>
-              </div>
-            </div>
-            {previewSvg ? <div className="barcode-preview-panel" dangerouslySetInnerHTML={{ __html: previewSvg }} /> : <div className="muted">اكتب أو ولد باركودًا صالحًا لتظهر المعاينة.</div>}
-            <div className="muted small" style={{ marginTop: 12 }}>
-              {activeMode === 'scan'
-                ? 'لو عندك سكانر، اترك المؤشر داخل الحقل وسيستقبل القراءة مباشرة. الضغط على Enter يحفظ الباركود على الصنف أو الوحدة المختارة.'
-                : 'لأصناف بدون باركود، يمكنك توليد كود جديد ومعاينته ثم حفظه مباشرة.'}
-            </div>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', textAlign: 'center', minHeight: '110px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {previewSvg ? (
+              <div className="barcode-preview-panel" dangerouslySetInnerHTML={{ __html: previewSvg }} />
+            ) : (
+              <div style={{ color: '#94a3b8', fontSize: '0.82rem' }}>اكتب أو ولّد باركوداً صالحاً لتظهر المعاينة هنا.</div>
+            )}
           </div>
+
+          <p style={{ margin: '10px 0 0 0', fontSize: '0.75rem', color: '#64748b', lineHeight: 1.5 }}>
+            {activeMode === 'scan'
+              ? 'عند استخدام جهاز السكانر، ضع المؤشر في خانة القراءة وسيتم التقاط الكود مباشرة، والضغط على Enter يقوم بالحفظ التلقائي.'
+              : 'الباركود المولد يطابق نظام التشفير القياسي Code-128 وجاهز للطباعة على كافة أنواع الملصقات الحرارية وورق A4.'}
+          </p>
         </div>
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }

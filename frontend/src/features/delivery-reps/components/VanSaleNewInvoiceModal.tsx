@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { toast } from '@/shared/components/system-alert';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { formatCurrency } from '@/lib/format';
@@ -16,8 +18,6 @@ import {
   CheckCircleIcon,
   PrinterIcon,
   MessageSquareIcon,
-  TruckIcon,
-  XIcon,
   BarcodeIcon,
   DollarSignIcon,
   FileTextIcon,
@@ -267,74 +267,71 @@ export function VanSaleNewInvoiceModal({
   };
 
   return (
-    <DialogShell
+    <StandardDialog
       open={open}
       onClose={handleResetModal}
-      width="min(560px, 98vw)"
-      ariaLabel="فاتورة بيع مباشر من السيارة"
+      width="min(640px, 98vw)"
+      title={completedSale ? 'تم إصدار الفاتورة وحفظها بنجاح' : 'فاتورة بيع مباشر من السيارة (Van Sale)'}
+      subtitle={completedSale ? `رقم الفاتورة: #${completedSale.docNo}` : `المندوب: ${repName || 'المندوب الحسابي'}`}
+      badge="مبيعات الفان"
+      footerActions={
+        completedSale ? (
+          <StandardDialogFooter
+            onClose={handleResetModal}
+            cancelText="إغلاق"
+            extraActions={
+              <div style={{ display: 'inline-flex', gap: '8px' }}>
+                <Button
+                  onClick={handlePrintReceipt}
+                  style={{ background: '#170e5e', color: '#fff', padding: '6px 14px', fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <PrinterIcon size={16} color="#fff" />
+                  <span>طباعة الإيصال (بلوتوث)</span>
+                </Button>
+                {completedSale.customerPhone && (
+                  <Button
+                    onClick={handleSendWhatsAppReceipt}
+                    style={{ background: '#16a34a', color: '#fff', padding: '6px 14px', fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <MessageSquareIcon size={16} color="#fff" />
+                    <span>واتساب</span>
+                  </Button>
+                )}
+              </div>
+            }
+          />
+        ) : (
+          <StandardDialogFooter
+            onClose={handleResetModal}
+            cancelText="إلغاء"
+            onSubmit={() => createSaleMutation.mutate()}
+            submitText={createSaleMutation.isPending ? 'جاري الحفظ...' : 'تأكيد وحفظ الفاتورة'}
+            isSubmitting={createSaleMutation.isPending}
+            submitDisabled={cart.length === 0}
+          />
+        )
+      }
     >
-      <div className="page-stack" style={{ padding: '6px' }} dir="rtl">
+      <div className="page-stack" style={{ padding: '4px 0' }} dir="rtl">
         {completedSale ? (
           /* Success Screen */
           <div style={{ textAlign: 'center', padding: '16px 8px' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
               <CheckCircleIcon size={48} color="#16a34a" />
             </div>
-            <h3 style={{ margin: '0 0 4px 0', color: '#166534', fontWeight: 'bold' }}>
-              تم إصدار الفاتورة وحفظها بنجاح!
+            <h3 style={{ margin: '0 0 6px 0', color: '#166534', fontWeight: 'bold', fontSize: '16px' }}>
+              تم حفظ وترحيل الفاتورة بنجاح!
             </h3>
             <p className="muted small" style={{ margin: '0 0 16px 0' }}>
               رقم الفاتورة: <strong>#{completedSale.docNo}</strong> بمبلغ{' '}
               <strong>{formatCurrency(completedSale.total)}</strong>
             </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '320px', margin: '0 auto' }}>
-              <Button
-                onClick={handlePrintReceipt}
-                style={{ background: '#170e5e', color: '#fff', padding: '12px', fontSize: '1.05em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-              >
-                <PrinterIcon size={18} color="#fff" />
-                <span>طباعة الإيصال الفوري (بلوتوث)</span>
-              </Button>
-
-              {completedSale.customerPhone && (
-                <Button
-                  onClick={handleSendWhatsAppReceipt}
-                  style={{ background: '#16a34a', color: '#fff', padding: '12px', fontSize: '1.05em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                >
-                  <MessageSquareIcon size={18} color="#fff" />
-                  <span>إرسال الفاتورة عبر واتساب</span>
-                </Button>
-              )}
-
-              <Button variant="secondary" onClick={handleResetModal} style={{ marginTop: '8px' }}>
-                تم / إغلاق
-              </Button>
-            </div>
           </div>
         ) : (
           /* New Sale Form */
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <TruckIcon size={18} color="#170e5e" />
-                  <span>بيع مباشر من السيارة (Van Sale)</span>
-                </h3>
-                <span className="muted small">المندوب: {repName || 'المندوب الحسابي'}</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleResetModal}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}
-                title="إغلاق"
-              >
-                <XIcon size={18} />
-              </button>
-            </div>
-
             {/* Customer Section */}
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                 <Button
                   variant={isCashCustomer ? 'primary' : 'secondary'}
@@ -371,17 +368,16 @@ export function VanSaleNewInvoiceModal({
                 </div>
               ) : (
                 <Field label="اختر العميل">
-                  <select
+                  <CustomSelect
                     value={selectedCustomerId}
-                    onChange={(e) => setSelectedCustomerId(e.target.value)}
-                  >
-                    <option value="">-- اختر من قائمة العملاء --</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} {c.phone ? `(${c.phone})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSelectedCustomerId(val)}
+                    placeholder="-- اختر من قائمة العملاء --"
+                    options={customers.map((c) => ({
+                      value: String(c.id),
+                      label: c.name,
+                      hint: c.phone || undefined,
+                    }))}
+                  />
                 </Field>
               )}
             </div>
@@ -513,7 +509,7 @@ export function VanSaleNewInvoiceModal({
                   variant={paymentMethod === 'credit' ? 'primary' : 'secondary'}
                   onClick={() => {
                     if (isCashCustomer && !selectedCustomerId) {
-                      alert('البيع الآجل يتطلب اختيار عميل مسجل من القائمة لتقييد المديونية على حسابه.');
+                      toast.warning('البيع الآجل يتطلب اختيار عميل مسجل من القائمة لتقييد المديونية على حسابه.');
                       setIsCashCustomer(false);
                     }
                     setPaymentMethod('credit');
@@ -538,20 +534,6 @@ export function VanSaleNewInvoiceModal({
               </div>
             </div>
 
-            {/* Submit Action */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
-              <Button variant="secondary" onClick={handleResetModal}>
-                إلغاء
-              </Button>
-              <Button
-                onClick={() => createSaleMutation.mutate()}
-                disabled={cart.length === 0 || createSaleMutation.isPending}
-                style={{ background: '#170e5e', color: '#fff', minWidth: '160px' }}
-              >
-                {createSaleMutation.isPending ? 'جاري الحفظ...' : 'تأكيد وحفظ الفاتورة'}
-              </Button>
-            </div>
-
             {/* Scanner Dialog */}
             {scannerOpen && (
               <CameraBarcodeScannerModal
@@ -563,6 +545,6 @@ export function VanSaleNewInvoiceModal({
           </>
         )}
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }

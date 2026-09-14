@@ -36,10 +36,45 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/purchases/orders': 'purchases',
   'purchases-rfqs': 'purchases',
   '/purchases/rfqs': 'purchases',
+  'purchases-reorder': 'purchases',
+  '/purchases/reorder': 'purchases',
+  'purchases-new': 'purchases',
+  '/purchases/new': 'purchases',
   inventory: 'inventory',
   '/inventory': 'inventory',
+  'inventory-tree': 'inventory',
+  '/inventory-tree': 'inventory',
+  'inventory/tree': 'inventory',
+  '/inventory/tree': 'inventory',
+  'inventory-warehouses': 'inventory',
+  '/inventory/warehouses': 'inventory',
+  'inventory/warehouses-management': 'inventory',
+  '/inventory/warehouses-management': 'inventory',
   'inventory-bins': 'inventory',
   '/inventory/bins': 'inventory',
+  'inventory-batches': 'inventory',
+  '/inventory/batches': 'inventory',
+  'inventory-issue-orders': 'inventory',
+  '/inventory/issue-orders': 'inventory',
+  '/inventory/transfers': 'inventory',
+  'inventory-issue-order-new': 'inventory',
+  '/inventory/issue-order/new': 'inventory',
+  '/inventory/issue-orders/new': 'inventory',
+  'price-lists': ['sales', 'products', 'pricingCenterView'],
+  '/price-lists': ['sales', 'products', 'pricingCenterView'],
+  'sales/price-lists': ['sales', 'products', 'pricingCenterView'],
+  '/sales/price-lists': ['sales', 'products', 'pricingCenterView'],
+  quotations: ['sales', 'crm'],
+  '/quotations': ['sales', 'crm'],
+  'sales/quotations': ['sales', 'crm'],
+  '/sales/quotations': ['sales', 'crm'],
+  'product-categories': 'products',
+  '/product-categories': 'products',
+  'products/categories': 'products',
+  '/products/categories': 'products',
+  'product-new': 'products',
+  'products/new': 'products',
+  '/products/new': 'products',
   suppliers: 'suppliers',
   '/suppliers': 'suppliers',
   customers: 'customers',
@@ -189,11 +224,6 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/manufacturing/components': 'manufacturing',
   'purchase-returns': 'returns',
   '/purchase-returns': 'returns',
-  'purchases-new': 'purchases',
-  'inventory-issue-order-new': 'inventory',
-  'inventory-issue-orders': 'inventory',
-  'inventory-warehouses': 'inventory',
-  'product-categories': 'products',
   maritime: null,
   '/maritime': null,
   'maritime-freight': null,
@@ -234,6 +264,9 @@ export const routeFeatureMap: Record<string, string | null> = {
   '/mobile/owner': 'reports',
   catalog: 'catalog',
   products: 'catalog',
+  'product-new': 'catalog',
+  'products/new': 'catalog',
+  '/products/new': 'catalog',
   'product-categories': 'catalog',
   services: 'catalog',
   'sales-orders': 'sales',
@@ -497,7 +530,7 @@ function normalizePermissionList(input: RoutePermissionRequirement): string[] {
 export function hasAnyPermission(user: AuthUser | null | undefined, required: RoutePermissionRequirement) {
   if (!required) return true;
   if (!user) return false;
-  if (user.role === 'super_admin') return true;
+  if (user.role === 'super_admin' || user.role === 'admin') return true;
   const needed = normalizePermissionList(required);
   if (!needed.length) return true;
   const userPermissions = new Set((user.permissions || []).map((permission) => String(permission || '').trim()).filter(Boolean));
@@ -585,8 +618,35 @@ export function hasRequiredFeature(target: string, user?: AuthUser | null): bool
   
   const tenant = useAuthStore.getState().tenant;
   if (!tenant) return true;
+
+  const rawActivity = String(tenant?.activityType || tenant?.pillar || '').trim().toLowerCase();
+  const isContracting = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
+  const isMaritime = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+  const isManufacturing = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
+  const isCommerce = !isContracting && !isMaritime && !isManufacturing;
+
+  if (isContracting && ['contracting', 'purchases', 'inventory', 'catalog', 'products', 'suppliers', 'customers', 'crm', 'accounting', 'hr'].includes(requiredFeature)) {
+    return true;
+  }
+  if (isMaritime && ['maritime_freight', 'purchases', 'suppliers', 'customers', 'crm', 'sales', 'accounting', 'hr'].includes(requiredFeature)) {
+    return true;
+  }
+  if (isManufacturing && ['manufacturing', 'purchases', 'inventory', 'catalog', 'products', 'suppliers', 'customers', 'crm', 'sales', 'pricing', 'accounting', 'hr'].includes(requiredFeature)) {
+    return true;
+  }
+  if (isCommerce && ['catalog', 'products', 'sales', 'purchases', 'inventory', 'accounting', 'hr', 'crm', 'pricing', 'suppliers', 'customers'].includes(requiredFeature)) {
+    return true;
+  }
+
   if (!tenant.features || !Array.isArray(tenant.features)) return false;
   
+  if (requiredFeature === 'catalog' && (tenant.features.includes('inventory') || tenant.features.includes('products'))) {
+    return true;
+  }
+  if (requiredFeature === 'inventory' && tenant.features.includes('catalog')) {
+    return true;
+  }
+
   return tenant.features.includes(requiredFeature);
 }
 

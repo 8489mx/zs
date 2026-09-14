@@ -266,7 +266,7 @@ export function SupplierReturnsModal({
                     type="text"
                     value={creditNoteNumber}
                     onChange={(e) => setCreditNoteNumber(e.target.value)}
-                    placeholder="مثال: CRN-2026-08"
+                    placeholder="مثال: CRN-260914-0001"
                     style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
                   />
                 </div>

@@ -33,6 +33,8 @@ export interface SubmitSupplierBidDto {
   }>;
 }
 
+import { getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
+
 @Injectable()
 export class PurchaseRfqsService {
   private readonly logger = new Logger(PurchaseRfqsService.name);
@@ -40,15 +42,16 @@ export class PurchaseRfqsService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
   private async generateRfqNumber(tenantId: string): Promise<string> {
-    const year = new Date().getFullYear();
+    const prefix = getDailyDocumentPrefix('RFQ');
     const countResult = await this.db
       .selectFrom('purchase_rfqs')
       .select([sql<number>`count(*)::int`.as('count')])
       .where('tenant_id', '=', tenantId)
+      .where('rfq_number', 'like', `${prefix}%`)
       .executeTakeFirst();
 
     const seq = (countResult?.count || 0) + 1;
-    return `RFQ-${year}-${String(seq).padStart(4, '0')}`;
+    return `${prefix}${String(seq).padStart(4, '0')}`;
   }
 
   async listRfqs(auth: AuthContext) {

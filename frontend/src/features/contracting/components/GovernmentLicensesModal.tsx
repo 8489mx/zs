@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { contractingApi } from '../api/contracting.api';
@@ -86,26 +86,30 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
   const lbl: React.CSSProperties = { fontSize: '0.74rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' };
 
   return (
-    <DialogShell open={open} onClose={onClose} size="lg">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }} dir="rtl">
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '16px 20px 14px', borderBottom: '1px solid #e2e8f0' }}>
-          <div>
-            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#170c5c', margin: 0 }}>تراخيص وموافقات المشروع الحكومية</h2>
-            <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '4px 0 0' }}>{projectName || projectId}</p>
-          </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px' }}>
-            <AppIcons.X size={18} />
-          </button>
-        </div>
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title="تراخيص وموافقات المشروع الحكومية"
+      subtitle={projectName || projectId}
+      width="min(960px, 95vw)"
+      minHeight="auto"
+      footerActions={(
+        <StandardDialogFooter
+          onCancel={onClose}
+          cancelText="إغلاق"
+        />
+      )}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
         {expiring.length > 0 && (
-          <div style={{ margin: '12px 20px 0', padding: '8px 12px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ padding: '8px 12px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AppIcons.AlertTriangle size={15} style={{ color: '#ea580c', flexShrink: 0 }} />
             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#9a3412' }}>
               تحذير رقابي: {expiring.length} ترخيص قارب على الانتهاء أو منتهي الصلاحية
             </span>
           </div>
         )}
-        <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '60vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '60vh', overflowY: 'auto' }}>
           {!showForm ? (
             <div>
               <button
@@ -251,10 +255,7 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
-          <button onClick={onClose} style={{ height: '36px', padding: '0 20px', borderRadius: '8px', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: 'var(--font-body)' }}>إغلاق</button>
-        </div>
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }

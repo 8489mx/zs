@@ -4,11 +4,17 @@ import { queryKeys } from '@/app/query-keys';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { purchasePaymentScheduleApi, type SupplierPaymentScheduleItem } from '@/features/purchases/api/purchase-payment-schedule.api';
 import { formatCurrency, formatDateOnly } from '@/lib/format';
 import type { Purchase } from '@/types/domain';
+
+const SCHEDULE_MODE_OPTIONS = [
+  { value: 'count', label: 'حسب عدد الدفعات' },
+  { value: 'amount', label: 'حسب مبلغ الدفعة' },
+];
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -118,10 +124,12 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
       {canCreateSchedule ? (
         <div className="form-grid schedule-form-grid" style={{ marginTop: 12 }}>
           <Field label="طريقة التقسيم">
-            <select value={mode} onChange={(event) => setMode(event.target.value as 'count' | 'amount')}>
-              <option value="count">حسب عدد الدفعات</option>
-              <option value="amount">حسب مبلغ الدفعة</option>
-            </select>
+            <CustomSelect
+              value={mode}
+              onChange={(val) => setMode(val as 'count' | 'amount')}
+              options={SCHEDULE_MODE_OPTIONS}
+              searchable={false}
+            />
           </Field>
           {mode === 'count' ? (
             <Field label="عدد الدفعات">

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog } from '@/shared/components/StandardDialog';
 import { useSalesPage } from '@/features/sales/hooks/useSalesPage';
 import { useSaleActions } from '@/features/sales/hooks/useSaleActions';
 import { useSalesWorkspaceActions } from '@/features/sales/hooks/useSalesWorkspaceActions';
@@ -160,30 +160,30 @@ export function SalesWorkspace() {
         />
 
         {/* Modal for Invoice Details */}
-        <DialogShell
-          open={isDetailOpen && Boolean(selectedSaleId)}
+        <StandardDialog
+          isOpen={isDetailOpen && Boolean(selectedSaleId)}
           onClose={() => { setIsDetailOpen(false); }}
-          width="min(960px, 95vw)"
-          ariaLabel="تفاصيل الفاتورة"
-          showCloseButton={true}
+          title={`تفاصيل الفاتورة: ${selectedSale?.docNo || selectedSale?.id || ''}`}
+          subtitle="معاينة بنود الفاتورة والمدفوعات والمستندات المرتبطة"
+          maxWidth="960px"
+          loading={saleDetailQuery.isLoading}
+          loadingText="جاري تحميل تفاصيل الفاتورة..."
         >
-          <div className="dialog-card">
-            <SaleDetailCard
-              sale={selectedSale || undefined}
-              isLoading={saleDetailQuery.isLoading}
-              onPrint={canPrint && selectedSale ? () => selectedSale ? printSaleDocument(selectedSale, printSettings, printSettings?.paperSize === 'receipt' ? 'receipt' : 'a4') : undefined : undefined}
-              onEdit={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? () => {
-                setSaleToEdit(selectedSale);
-                setEditFeedback('');
-                setIsDetailOpen(false);
-              } : undefined}
-              onCancel={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? () => {
-                setSaleToCancel(selectedSale);
-                setIsDetailOpen(false);
-              } : undefined}
-            />
-          </div>
-        </DialogShell>
+          <SaleDetailCard
+            sale={selectedSale || undefined}
+            isLoading={saleDetailQuery.isLoading}
+            onPrint={canPrint && selectedSale ? () => selectedSale ? printSaleDocument(selectedSale, printSettings, printSettings?.paperSize === 'receipt' ? 'receipt' : 'a4') : undefined : undefined}
+            onEdit={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? () => {
+              setSaleToEdit(selectedSale);
+              setEditFeedback('');
+              setIsDetailOpen(false);
+            } : undefined}
+            onCancel={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? () => {
+              setSaleToCancel(selectedSale);
+              setIsDetailOpen(false);
+            } : undefined}
+          />
+        </StandardDialog>
       </main>
 
       <SaleEditDialog

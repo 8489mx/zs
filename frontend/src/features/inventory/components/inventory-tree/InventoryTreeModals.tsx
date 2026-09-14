@@ -1,27 +1,29 @@
-import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
+import { StandardDialog } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import type { ProductRow } from './inventoryTree.types';
 
 // ─── Shared modal backdrop ────────────────────────────────────────────────────
-function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+function ModalBackdrop({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title?: string }) {
   return (
-    <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+    <StandardDialog
+      open={true}
+      onClose={onClose}
+      title={title || 'إدارة المخزون'}
+      size="md"
     >
-      <div style={{ background: 'var(--bg-color, #fff)', borderRadius: '16px', padding: '28px 32px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', direction: 'rtl' }}>
+      <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {children}
       </div>
-    </div>
+    </StandardDialog>
   );
 }
 
-function ModalHeader({ title, onClose }: { title: string; onClose: () => void }) {
+function ModalHeader({ title }: { title: string; onClose?: () => void }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-      <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>{title}</h2>
-      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: 'var(--text-secondary, #666)' }}><XIcon size={15} /></button>
+    <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '6px' }}>
+      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#170e5e' }}>{title}</h3>
     </div>
   );
 }
@@ -97,10 +99,15 @@ function QuickAssignModal({
       )}
 
       <FieldLabel>المخزن المستهدف</FieldLabel>
-      <select value={toLocationId} onChange={(e) => setToLocationId(e.target.value)} style={selectStyle}>
-        <option value="">اختر المخزن...</option>
-        {validLocations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-      </select>
+      <CustomSelect
+        value={toLocationId}
+        onChange={(val) => setToLocationId(val)}
+        options={[
+          { value: '', label: 'اختر المخزن...' },
+          ...validLocations.map((l) => ({ value: String(l.id), label: l.name })),
+        ]}
+        placeholder="اختر المخزن..."
+      />
 
       {error && <ErrorBox msg={error} />}
 
@@ -220,20 +227,32 @@ function QuickTransferModal({
       )}
 
       {isSingle && (
-        <>
+        <div style={{ marginBottom: '10px' }}>
           <FieldLabel>من مخزن</FieldLabel>
-          <select value={fromLocationId} onChange={(e) => setFromLocationId(e.target.value)} style={selectStyle}>
-            <option value="">اختر مخزن المصدر...</option>
-            {availableFrom.map((s) => <option key={s.locationId || '-1'} value={s.locationId || '-1'}>{s.locationName || 'رصيد غير مربوط'} ({s.qty})</option>)}
-          </select>
-        </>
+          <CustomSelect
+            value={fromLocationId}
+            onChange={(val) => setFromLocationId(val)}
+            options={[
+              { value: '', label: 'اختر مخزن المصدر...' },
+              ...availableFrom.map((s) => ({ value: String(s.locationId || '-1'), label: `${s.locationName || 'رصيد غير مربوط'} (${s.qty})` })),
+            ]}
+            placeholder="اختر مخزن المصدر..."
+          />
+        </div>
       )}
 
-      <FieldLabel>إلى مخزن</FieldLabel>
-      <select value={toLocationId} onChange={(e) => setToLocationId(e.target.value)} style={selectStyle}>
-        <option value="">اختر مخزن الوجهة...</option>
-        {validTo.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-      </select>
+      <div style={{ marginBottom: '10px' }}>
+        <FieldLabel>إلى مخزن</FieldLabel>
+        <CustomSelect
+          value={toLocationId}
+          onChange={(val) => setToLocationId(val)}
+          options={[
+            { value: '', label: 'اختر مخزن الوجهة...' },
+            ...validTo.map((l) => ({ value: String(l.id), label: l.name })),
+          ]}
+          placeholder="اختر مخزن الوجهة..."
+        />
+      </div>
 
       {isSingle && fromLocationId && (
         <div style={{ marginTop: '12px' }}>
@@ -349,16 +368,6 @@ function QuickConsolidateModal({
     }
   };
 
-  const selectStyle = {
-    width: '100%',
-    padding: '12px 14px',
-    borderRadius: '10px',
-    border: '1px solid var(--border-color, #e5e7eb)',
-    fontSize: '14px',
-    background: '#fff',
-    outline: 'none',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-  };
 
   return (
     <ModalBackdrop onClose={onClose}>
@@ -369,10 +378,15 @@ function QuickConsolidateModal({
       </div>
 
       <FieldLabel>المخزن الموحد (الهدف)</FieldLabel>
-      <select value={toLocationId} onChange={(e) => setToLocationId(e.target.value)} style={selectStyle}>
-        <option value="">اختر المخزن...</option>
-        {validTo.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-      </select>
+      <CustomSelect
+        value={toLocationId}
+        onChange={(val) => setToLocationId(val)}
+        options={[
+          { value: '', label: 'اختر المخزن...' },
+          ...validTo.map((l) => ({ value: String(l.id), label: l.name })),
+        ]}
+        placeholder="اختر المخزن..."
+      />
 
       {error && <ErrorBox msg={error} />}
 
@@ -440,11 +454,18 @@ function CategoryTransferModal({
     <ModalBackdrop onClose={onClose}>
       <ModalHeader title={`نقل قسم: ${categoryName}`} onClose={onClose} />
 
-      <FieldLabel>من مخزن</FieldLabel>
-      <select value={fromLocationId} onChange={(e) => setFromLocationId(e.target.value)} style={selectStyle}>
-        <option value="">اختر مخزن المصدر...</option>
-        {validLocations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-      </select>
+      <div style={{ marginBottom: '10px' }}>
+        <FieldLabel>من مخزن</FieldLabel>
+        <CustomSelect
+          value={fromLocationId}
+          onChange={(val) => setFromLocationId(val)}
+          options={[
+            { value: '', label: 'اختر مخزن المصدر...' },
+            ...validLocations.map((l) => ({ value: String(l.id), label: l.name })),
+          ]}
+          placeholder="اختر مخزن المصدر..."
+        />
+      </div>
 
       {fromLocationId && (
         <div style={{ background: affectedProducts.length > 0 ? '#f0fdf4' : '#fef2f2', border: `1px solid ${affectedProducts.length > 0 ? '#86efac' : '#fca5a5'}`, borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: affectedProducts.length > 0 ? '#166534' : '#dc2626' }}>
@@ -454,11 +475,18 @@ function CategoryTransferModal({
         </div>
       )}
 
-      <FieldLabel>إلى مخزن</FieldLabel>
-      <select value={toLocationId} onChange={(e) => setToLocationId(e.target.value)} style={selectStyle}>
-        <option value="">اختر مخزن الوجهة...</option>
-        {validTo.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-      </select>
+      <div style={{ marginBottom: '10px' }}>
+        <FieldLabel>إلى مخزن</FieldLabel>
+        <CustomSelect
+          value={toLocationId}
+          onChange={(val) => setToLocationId(val)}
+          options={[
+            { value: '', label: 'اختر مخزن الوجهة...' },
+            ...validTo.map((l) => ({ value: String(l.id), label: l.name })),
+          ]}
+          placeholder="اختر مخزن الوجهة..."
+        />
+      </div>
 
       {error && <ErrorBox msg={error} />}
 

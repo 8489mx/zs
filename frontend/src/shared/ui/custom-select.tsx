@@ -14,6 +14,7 @@ export interface CustomSelectProps {
   options: readonly SelectOption[] | SelectOption[];
   placeholder?: string;
   disabled?: boolean;
+  searchable?: boolean;
   style?: React.CSSProperties;
   className?: string;
 }

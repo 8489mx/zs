@@ -157,7 +157,7 @@ export function CreateRfiModal({
                 type="text"
                 value={formData.rfiNumber}
                 onChange={(e) => setFormData({ ...formData, rfiNumber: e.target.value })}
-                placeholder="مثال: RFI-2026-001"
+                placeholder="مثال: RFI-260914-0001"
                 style={{ fontFamily: 'monospace', fontWeight: 700, color: '#170e5e' }}
                 required
               />

@@ -1,5 +1,6 @@
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
+import { systemConfirm } from '@/shared/components/system-alert';
 import type { Product } from '@/types/domain';
 
 interface ProductOfferActiveCombosTabProps {
@@ -249,8 +250,15 @@ export function ProductOfferActiveCombosTab({
 
                     <button
                       type="button"
-                      onClick={() => {
-                        if (window.confirm(`هل أنت متأكد من حذف العرض المجمع "${prod.name}" نهائياً؟`)) {
+                      onClick={async () => {
+                        const confirmed = await systemConfirm({
+                          title: 'تأكيد حذف العرض',
+                          message: `هل أنت متأكد من حذف العرض المجمع "${prod.name}" نهائياً؟`,
+                          confirmText: 'حذف',
+                          cancelText: 'إلغاء',
+                          variant: 'danger',
+                        });
+                        if (confirmed) {
                           onDeleteCombo(prod);
                         }
                       }}

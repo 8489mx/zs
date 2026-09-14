@@ -43,7 +43,6 @@ export function getStartupIssues(pos: PosWorkspaceState) {
   }
   return [
     !pos.hasOperationalSetup ? 'أكمل تعريف المتجر ونقطة التشغيل من الإعدادات قبل استخدام شاشة الكاشير.' : '',
-    !pos.hasCatalogReady ? 'أضف صنفًا واحدًا على الأقل قبل بدء البيع.' : '',
     pos.requiresCashierShift && !pos.ownOpenShift ? 'لا توجد وردية مفتوحة لهذا المستخدم. افتح وردية لبدء البيع.' : '',
   ].filter(Boolean);
 }

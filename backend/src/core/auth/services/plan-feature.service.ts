@@ -80,6 +80,16 @@ export class PlanFeatureService implements OnModuleInit {
       }
     }
 
+    if (pillar === 'commerce' || !pillar || ['retail_general', 'pharmacy', 'restaurant', 'maintenance'].includes(activityType || '')) {
+      const profile = getIndustryProfile(activityType);
+      if (profile.defaultFeatures.includes(requiredFeature)) {
+        return true;
+      }
+      if (['contracting', 'maritime_freight'].includes(requiredFeature)) {
+        return false;
+      }
+    }
+
     if (!planId) {
       return true; // If no plan is assigned, assume backward compatibility
     }

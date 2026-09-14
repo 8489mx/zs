@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { Button } from '@/shared/ui/button';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Field } from '@/shared/ui/field';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { useTranslation } from '../../utils/i18n-purchase-prototype';
 import type { QuickCreateState, QuickCreateResult } from './newPurchaseOrder.types';
 
@@ -188,19 +190,28 @@ export function QuickCreateDialog({
     onCancel();
   };
 
-  return (
-    <div className="purchase-prototype-create-backdrop" role="presentation" onMouseDown={requestClose}>
-      <div className="purchase-prototype-create-card" role="dialog" aria-modal="true" aria-labelledby="purchase-prototype-create-title" onMouseDown={(event) => event.stopPropagation()}>
-        <div className="purchase-prototype-create-header">
-          <div>
-            <h4 id="purchase-prototype-create-title">{titleMap[state.kind]}</h4>
-            <p>{t('local_use_only')}</p>
-          </div>
-          <button type="button" className="purchase-prototype-create-close" aria-label={t("close")} onClick={requestClose}>
-            ×
-          </button>
-        </div>
+  const productTypeOptions = useMemo(() => [
+    { value: 'stock', label: t('stock_type') },
+    { value: 'service', label: t('service_type') },
+  ], [t]);
 
+  return (
+    <>
+      <StandardDialog
+        open={Boolean(state)}
+        onClose={requestClose}
+        title={titleMap[state.kind]}
+        subtitle={t('local_use_only')}
+        maxWidth="640px"
+        footerActions={
+          <StandardDialogFooter
+            onCancel={requestClose}
+            cancelLabel={t('cancel')}
+            onSubmit={submit}
+            submitLabel={t('create_and_select')}
+          />
+        }
+      >
         <div className="purchase-prototype-create-grid">
           <Field label={state.kind === 'product' ? t('product_name') : state.kind === 'address' ? t('shipping_address') : t('name')}>
             <input className="purchase-prototype-create-input" value={name} onChange={(event) => setName(event.target.value)} placeholder={state.query} />
@@ -220,10 +231,12 @@ export function QuickCreateDialog({
           {state.kind === 'product' ? (
             <>
               <Field label={t("product_type")}>
-                <select className="purchase-prototype-create-select" value={productType} onChange={(event) => setProductType(event.target.value as 'stock' | 'service')}>
-                  <option value="stock">{t("stock_type")}</option>
-                  <option value="service">{t("service_type")}</option>
-                </select>
+                <CustomSelect
+                  value={productType}
+                  onChange={(val) => setProductType(val as 'stock' | 'service')}
+                  options={productTypeOptions}
+                  searchable={false}
+                />
               </Field>
               <Field label={t("barcode")}>
                 <input className="purchase-prototype-create-input" value={state.barcode ?? ''} readOnly disabled placeholder={t("optional")} />
@@ -245,21 +258,20 @@ export function QuickCreateDialog({
             <Field label={t("code")}><input className="purchase-prototype-create-input" value={code} onChange={(event) => setCode(event.target.value)} /></Field>
           ) : null}
         </div>
+      </StandardDialog>
 
-        <div className="purchase-prototype-create-actions">
-          <Button variant="secondary" type="button" onClick={requestClose}>{t('cancel')}</Button>
-          <Button type="button" onClick={submit}>{t('create_and_select')}</Button>
-        </div>
-      </div>
-      {showUnsavedConfirm ? (
-        <div className="purchase-prototype-create-confirm" role="dialog" aria-modal="true" aria-labelledby="purchase-prototype-confirm-title" onMouseDown={(event) => event.stopPropagation()}>
-          <h4 id="purchase-prototype-confirm-title">{t('unsaved_changes_title')}</h4>
-          <div className="purchase-prototype-create-confirm-actions">
-            <Button variant="secondary" type="button" onClick={() => setShowUnsavedConfirm(false)}>{t('cancel')}</Button>
-            <Button type="button" onClick={() => { setShowUnsavedConfirm(false); onCancel(); }}>{t('ok')}</Button>
-          </div>
-        </div>
-      ) : null}
-    </div>
+      <ActionConfirmDialog
+        open={showUnsavedConfirm}
+        title={t('unsaved_changes_title')}
+        description="هل أنت متأكد؟ لن يتم حفظ البيانات المدخلة."
+        confirmLabel={t('ok')}
+        cancelLabel={t('cancel')}
+        onConfirm={() => {
+          setShowUnsavedConfirm(false);
+          onCancel();
+        }}
+        onCancel={() => setShowUnsavedConfirm(false)}
+      />
+    </>
   );
 }

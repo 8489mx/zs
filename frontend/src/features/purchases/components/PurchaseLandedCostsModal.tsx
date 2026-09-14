@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
-import { Card } from '@/shared/ui/card';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
@@ -9,6 +9,14 @@ import { XIcon } from '@/shared/components/icons/AppIcons';
 import {
   purchasesApi,
 } from '@/features/purchases/api/purchases.api';
+
+const COST_TYPE_OPTIONS = [
+  { value: 'freight', label: 'شحن ونقل' },
+  { value: 'handling', label: 'تفريغ ومشال' },
+  { value: 'customs', label: 'جمارك ورسوم' },
+  { value: 'insurance', label: 'تأمين نقل' },
+  { value: 'other', label: 'مصاريف أخرى' },
+];
 
 interface PurchaseLandedCostsModalProps {
   open: boolean;
@@ -141,104 +149,97 @@ export function PurchaseLandedCostsModal({
   if (!open) return null;
 
   return (
-    <DialogShell
+    <StandardDialog
       open={open}
       onClose={onClose}
-      width="min(980px, calc(100vw - 32px))"
-      zIndex={95}
-      ariaLabel="تحميل وتوزيع تكلفة الوصول (Landed Costs)"
+      title="تحميل وتوزيع تكلفة الوصول على فاتورة المشتريات (Landed Costs Engine)"
+      subtitle={`فاتورة شراء: ${query.data?.purchase?.docNo || `#${purchaseId}`} (${query.data?.purchase?.supplierName || ''})`}
+      maxWidth="980px"
+      footerActions={
+        <StandardDialogFooter
+          onCancel={onClose}
+          submitLabel={applyMutation.isPending ? 'جارٍ التحميل والتوزيع...' : 'تطبيق وتحديث تكلفة المخزون'}
+          cancelLabel="إلغاء"
+          isSubmitting={applyMutation.isPending}
+          submitDisabled={applyMutation.isPending || totalLandedCost <= 0}
+          onSubmit={handleSubmit}
+        />
+      }
     >
-      <Card
-        title="تحميل وتوزيع تكلفة الوصول على فاتورة المشتريات (Landed Costs Engine)"
-        className="dialog-card"
-        style={{
-          maxHeight: 'calc(100vh - 32px)',
-          display: 'flex',
-          flexDirection: 'column',
-          boxSizing: 'border-box',
-          padding: '16px 20px',
-        }}
-      >
-        <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Header Info */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                فاتورة شراء: {query.data?.purchase?.docNo || `#${purchaseId}`} ({query.data?.purchase?.supplierName})
-              </h3>
-              <span style={{ fontSize: '12.5px', color: '#64748b' }}>
-                قيمة البضاعة الأساسية: <strong style={{ color: '#0f172a' }}>{formatCurrency(query.data?.purchase?.subtotal || 0)}</strong> • {purchaseItems.length} بنود
-              </span>
-            </div>
-
-            {query.data?.purchase?.landedCostAppliedAt && (
-              <span style={{
-                background: '#f0fdf4',
-                color: '#166534',
-                border: '1px solid #bbf7d0',
-                padding: '3px 10px',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: 700,
-              }}>
-                تم تطبيق تكلفة وصول سابقة: {formatCurrency(query.data.purchase.landedCostTotal)}
-              </span>
-            )}
+      <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Header Info */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+              فاتورة شراء: {query.data?.purchase?.docNo || `#${purchaseId}`} ({query.data?.purchase?.supplierName})
+            </h3>
+            <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+              قيمة البضاعة الأساسية: <strong style={{ color: '#0f172a' }}>{formatCurrency(query.data?.purchase?.subtotal || 0)}</strong> • {purchaseItems.length} بنود
+            </span>
           </div>
 
-          {/* Status Alert */}
-          {statusMessage && (
-            <div style={{
-              padding: '8px 14px',
+          {query.data?.purchase?.landedCostAppliedAt && (
+            <span style={{
+              background: '#f0fdf4',
+              color: '#166534',
+              border: '1px solid #bbf7d0',
+              padding: '3px 10px',
               borderRadius: '6px',
-              background: '#eff6ff',
-              border: '1px solid #bfdbfe',
-              color: '#1e40af',
-              fontSize: '13px',
+              fontSize: '12px',
               fontWeight: 700,
             }}>
-              {statusMessage}
-            </div>
+              تم تطبيق تكلفة وصول سابقة: {formatCurrency(query.data.purchase.landedCostTotal)}
+            </span>
           )}
+        </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* 1. Additional Expenses Rows */}
-            <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <strong style={{ fontSize: '13.5px', color: '#0f172a' }}>
-                  بنود المصاريف الإضافية (شحن، تفريغ، جمارك، تأمين):
-                </strong>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleAddCostRow}
-                  style={{ fontSize: '12px', padding: '3px 10px' }}
-                >
-                  + إضافة بند مصروف
-                </Button>
-              </div>
+        {/* Status Alert */}
+        {statusMessage && (
+          <div style={{
+            padding: '8px 14px',
+            borderRadius: '6px',
+            background: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            color: '#1e40af',
+            fontSize: '13px',
+            fontWeight: 700,
+          }}>
+            {statusMessage}
+          </div>
+        )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {costItems.map((cost, idx) => (
-                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 130px 30px', gap: '8px', alignItems: 'center' }}>
-                    <select
-                      value={cost.costType}
-                      onChange={(e) => {
-                        const val = e.target.value as any;
-                        setCostItems((prev) => prev.map((c, i) => i === idx ? { ...c, costType: val } : c));
-                      }}
-                      style={{ padding: '6px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                    >
-                      <option value="freight">شحن ونقل</option>
-                      <option value="handling">تفريغ ومشال</option>
-                      <option value="customs">جمارك ورسوم</option>
-                      <option value="insurance">تأمين نقل</option>
-                      <option value="other">مصاريف أخرى</option>
-                    </select>
+        <form id="landed-costs-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* 1. Additional Expenses Rows */}
+          <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <strong style={{ fontSize: '13.5px', color: '#0f172a' }}>
+                بنود المصاريف الإضافية (شحن، تفريغ، جمارك، تأمين):
+              </strong>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleAddCostRow}
+                style={{ fontSize: '12px', padding: '3px 10px' }}
+              >
+                + إضافة بند مصروف
+              </Button>
+            </div>
 
-                    <input
-                      type="text"
-                      placeholder="البيان (مثال: نولون سيارة نقل رقم 5)"
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {costItems.map((cost, idx) => (
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '160px 1fr 130px 30px', gap: '8px', alignItems: 'center' }}>
+                  <CustomSelect
+                    value={cost.costType}
+                    onChange={(val) => {
+                      setCostItems((prev) => prev.map((c, i) => i === idx ? { ...c, costType: val as any } : c));
+                    }}
+                    options={COST_TYPE_OPTIONS}
+                    searchable={false}
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="البيان (مثال: نولون سيارة نقل رقم 5)"
                       value={cost.description}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -382,23 +383,8 @@ export function PurchaseLandedCostsModal({
               </div>
             </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
-              <Button type="button" variant="secondary" onClick={onClose} disabled={applyMutation.isPending}>
-                إلغاء
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                disabled={applyMutation.isPending || totalLandedCost <= 0}
-                style={{ background: '#170e5e', borderColor: '#170e5e', fontWeight: 800 }}
-              >
-                {applyMutation.isPending ? 'جارٍ التحميل والتوزيع...' : 'تطبيق وتحديث تكلفة المخزون'}
-              </Button>
-            </div>
           </form>
         </div>
-      </Card>
-    </DialogShell>
+    </StandardDialog>
   );
 }

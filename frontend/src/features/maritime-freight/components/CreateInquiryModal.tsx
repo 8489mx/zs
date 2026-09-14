@@ -4,6 +4,7 @@ import { Field } from '@/shared/ui/field';
 import { ComboboxSelect } from '@/shared/ui/ComboboxSelect';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { maritimeApi, ShippingPort } from '../api/maritime-freight.api';
+import { customersApi, Customer } from '@/features/customers/api/customers.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface CreateInquiryModalProps {
@@ -14,6 +15,8 @@ interface CreateInquiryModalProps {
 
 export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryModalProps) {
   const [ports, setPorts] = useState<ShippingPort[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -44,8 +47,24 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
   useEffect(() => {
     if (open) {
       maritimeApi.getPorts().then(setPorts).catch(() => {});
+      customersApi.list().then((data) => {
+        if (Array.isArray(data)) setCustomers(data);
+      }).catch(() => {});
     }
   }, [open]);
+
+  const handleCustomerChange = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    const selected = customers.find((c) => String(c.id) === customerId) as any;
+    if (selected) {
+      setFormData((prev) => ({
+        ...prev,
+        customerName: selected.company_name || selected.name || prev.customerName,
+        customerPhone: selected.phone || prev.customerPhone,
+        customerEmail: selected.email || prev.customerEmail,
+      }));
+    }
+  };
 
   const handlePolChange = (code: string) => {
     const p = ports.find((item) => item.code === code);
@@ -150,6 +169,24 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
             <AppIcons.Users size={15} />
             <span>1. بيانات العميل أو المستورد (Customer Profile)</span>
           </div>
+
+          <div style={{ marginBottom: '8px' }}>
+            <Field label="اختيار عميل مسجل من الدليل (Customer Lookup) - اختياري">
+              <CustomSelect
+                value={selectedCustomerId}
+                onChange={handleCustomerChange}
+                placeholder="اختر عميلاً مسجلاً لجلب بياناته تلقائياً أو أدخل البيانات يدوياً أدناه..."
+                options={[
+                  { value: '', label: '— إدخال يدوي / عميل جديد —' },
+                  ...customers.map((c: any) => ({
+                    value: String(c.id),
+                    label: `${c.company_name ? `${c.company_name} - ` : ''}${c.name || 'عميل'}${c.phone ? ` (${c.phone})` : ''}`,
+                  })),
+                ]}
+              />
+            </Field>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1.2fr', gap: '10px' }}>
             <Field label="اسم العميل أو الشركة *">
               <input

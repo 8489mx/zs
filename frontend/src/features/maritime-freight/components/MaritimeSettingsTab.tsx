@@ -129,7 +129,7 @@ export function MaritimeSettingsTab() {
     const activeCompanyPhone = companyProfile.phone || '';
 
     return templateStr
-      .replace(/{{rfq_number}}/g, 'RFQ-2026-0045')
+      .replace(/{{rfq_number}}/g, 'RFQ-260914-0045')
       .replace(/{{carrier_name}}/g, 'Maersk Line (توكيل ميرسك)')
       .replace(/{{pol_name}}/g, 'Alexandria Port')
       .replace(/{{pod_name}}/g, 'Shanghai Port')
@@ -1278,7 +1278,7 @@ export function MaritimeSettingsTab() {
               {/* جدول مواصفات الشحنة القياسي */}
               <table style={{ borderCollapse: 'collapse', width: '100%', margin: '14px 0', border: '1px solid #e2e8f0', fontSize: '12.5px' }}>
                 <tbody>
-                  <tr style={{ background: '#f8fafc' }}><td style={{ padding: '7px 10px', fontWeight: 'bold', width: '35%', borderBottom: '1px solid #e2e8f0' }}>Reference</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0', color: '#170e5e', fontWeight: 'bold' }}>RFQ-2026-0045</td></tr>
+                  <tr style={{ background: '#f8fafc' }}><td style={{ padding: '7px 10px', fontWeight: 'bold', width: '35%', borderBottom: '1px solid #e2e8f0' }}>Reference</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0', color: '#170e5e', fontWeight: 'bold' }}>RFQ-260914-0045</td></tr>
                   <tr><td style={{ padding: '7px 10px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>Port of Loading (POL)</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0' }}>Alexandria Port (EGALY)</td></tr>
                   <tr style={{ background: '#f8fafc' }}><td style={{ padding: '7px 10px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>Port of Discharge (POD)</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0' }}>Shanghai Port (CNSHA)</td></tr>
                   <tr><td style={{ padding: '7px 10px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>Equipment</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0' }}>2 x 40' High Cube (FCL)</td></tr>

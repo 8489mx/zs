@@ -4,8 +4,7 @@ import { deliveryRepsApi } from '../api/delivery-reps.api';
 import { salesApi } from '@/features/sales/api/sales.api';
 import { formatCurrency, formatDate, formatDateTimeArabic } from '@/lib/format';
 import { Button } from '@/shared/ui/button';
-import { DialogShell } from '@/shared/components/dialog-shell';
-import { Card } from '@/shared/ui/card';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { printPostedSaleReceipt } from '@/lib/pos-printing';
 
 function getLocalDateStr(date: Date = new Date()): string {
@@ -203,122 +202,121 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
 
       {/* Sale Quick View Modal */}
       {viewingSaleId && (
-        <DialogShell
+        <StandardDialog
           open={true}
           onClose={() => setViewingSaleId(null)}
-          width="700px"
-          ariaLabel="تفاصيل الفاتورة"
-        >
-          <Card
-            title={viewingSaleQuery.data ? `تفاصيل الفاتورة #${viewingSaleQuery.data.docNo || viewingSaleQuery.data.id}` : 'جاري التحميل...'}
-            actions={
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {viewingSaleQuery.data && (
+          width="min(720px, 96vw)"
+          title={viewingSaleQuery.data ? `تفاصيل الفاتورة #${viewingSaleQuery.data.docNo || viewingSaleQuery.data.id}` : 'تفاصيل الفاتورة'}
+          subtitle="معاينة تفاصيل وبيانات الفاتورة الميدانية"
+          badge="مبيعات التوصيل"
+          footerActions={
+            <StandardDialogFooter
+              onClose={() => setViewingSaleId(null)}
+              cancelText="إغلاق"
+              extraActions={
+                viewingSaleQuery.data ? (
                   <Button
                     variant="primary"
                     onClick={() => {
                       void printPostedSaleReceipt(viewingSaleQuery.data);
                     }}
-                    style={{ fontSize: '12px', padding: '4px 12px' }}
+                    style={{ fontSize: '12px', padding: '6px 14px', backgroundColor: '#170e5e', color: '#ffffff' }}
                   >
                     طباعة الفاتورة
                   </Button>
-                )}
-                <Button variant="secondary" onClick={() => setViewingSaleId(null)} style={{ fontSize: '12px', padding: '4px 12px' }}>
-                  إغلاق
-                </Button>
-              </div>
-            }
-          >
-            {viewingSaleQuery.isLoading ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جاري تحميل تفاصيل الفاتورة...</div>
-            ) : viewingSaleQuery.data ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px' }}>
-                {/* Meta Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <div>
-                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>العميل</span>
-                    {viewingSaleQuery.data.customerPhone && (
-                      <div style={{ fontSize: '11px', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                        </svg>
-                        <span>{viewingSaleQuery.data.customerPhone}</span>
-                      </div>
-                    )}
-                    {viewingSaleQuery.data.customerAddress && (
-                      <div style={{ fontSize: '11px', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                          <circle cx="12" cy="10" r="3"/>
-                        </svg>
-                        <span>{viewingSaleQuery.data.customerAddress}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>الكاشير</span>
-                    <strong>{viewingSaleQuery.data.cashierName || viewingSaleQuery.data.createdByName || '-'}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>المندوب</span>
-                    <strong>{viewingSaleQuery.data.deliveryRepName || '-'}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>التاريخ والوقت</span>
-                    <strong style={{ direction: 'ltr', display: 'inline-block' }}>{formatDate(viewingSaleQuery.data.createdAt || viewingSaleQuery.data.date)}</strong>
-                  </div>
+                ) : undefined
+              }
+            />
+          }
+        >
+          {viewingSaleQuery.isLoading ? (
+            <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جاري تحميل تفاصيل الفاتورة...</div>
+          ) : viewingSaleQuery.data ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px' }}>
+              {/* Meta Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>العميل</span>
+                  {viewingSaleQuery.data.customerPhone && (
+                    <div style={{ fontSize: '11px', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                      </svg>
+                      <span>{viewingSaleQuery.data.customerPhone}</span>
+                    </div>
+                  )}
+                  {viewingSaleQuery.data.customerAddress && (
+                    <div style={{ fontSize: '11px', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                      <span>{viewingSaleQuery.data.customerAddress}</span>
+                    </div>
+                  )}
                 </div>
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>الكاشير</span>
+                  <strong>{viewingSaleQuery.data.cashierName || viewingSaleQuery.data.createdByName || '-'}</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>المندوب</span>
+                  <strong>{viewingSaleQuery.data.deliveryRepName || '-'}</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>التاريخ والوقت</span>
+                  <strong style={{ direction: 'ltr', display: 'inline-block' }}>{formatDate(viewingSaleQuery.data.createdAt || viewingSaleQuery.data.date)}</strong>
+                </div>
+              </div>
 
-                {/* Items Table */}
-                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
-                  <table className="table" style={{ width: '100%', margin: 0, fontSize: '12px' }}>
-                    <thead style={{ background: '#f1f5f9' }}>
-                      <tr>
-                        <th style={{ padding: '6px 8px' }}>الصنف</th>
-                        <th style={{ padding: '6px 8px', textAlign: 'center' }}>الكمية</th>
-                        <th style={{ padding: '6px 8px', textAlign: 'center' }}>السعر</th>
-                        <th style={{ padding: '6px 8px', textAlign: 'left' }}>الإجمالي</th>
+              {/* Items Table */}
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                <table className="table" style={{ width: '100%', margin: 0, fontSize: '12px' }}>
+                  <thead style={{ background: '#f1f5f9' }}>
+                    <tr>
+                      <th style={{ padding: '6px 8px' }}>الصنف</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>الكمية</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>السعر</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'left' }}>الإجمالي</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewingSaleQuery.data.items?.map((item: any, idx: number) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '6px 8px', fontWeight: 600 }}>{item.name || item.productName}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'center' }}>{item.qty} {item.unit || ''}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'center' }}>{formatCurrency(Number(item.price || 0))}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 'bold' }}>{formatCurrency(Number(item.total || (item.qty * item.price) || 0))}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {viewingSaleQuery.data.items?.map((item: any, idx: number) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '6px 8px', fontWeight: 600 }}>{item.name || item.productName}</td>
-                          <td style={{ padding: '6px 8px', textAlign: 'center' }}>{item.qty} {item.unit || ''}</td>
-                          <td style={{ padding: '6px 8px', textAlign: 'center' }}>{formatCurrency(Number(item.price || 0))}</td>
-                          <td style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 'bold' }}>{formatCurrency(Number(item.total || (item.qty * item.price) || 0))}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-                {/* Totals Summary */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', background: '#f8fafc', padding: '10px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
-                  {Number(viewingSaleQuery.data.deliveryFee || 0) > 0 && (
-                    <div style={{ color: '#059669', fontWeight: 600 }}>
-                      <span>أجرة التوصيل: </span>
-                      <strong>{formatCurrency(Number(viewingSaleQuery.data.deliveryFee))}</strong>
-                    </div>
-                  )}
-                  {Number(viewingSaleQuery.data.discount || 0) > 0 && (
-                    <div style={{ color: '#dc2626', fontWeight: 600 }}>
-                      <span>الخصم: </span>
-                      <strong>{formatCurrency(Number(viewingSaleQuery.data.discount))}</strong>
-                    </div>
-                  )}
-                  <div>
-                    <span style={{ fontWeight: 700, color: '#0f172a' }}>الإجمالي النهائي: </span>
-                    <strong style={{ fontSize: '15px', color: '#170c5c', fontWeight: 900 }}>{formatCurrency(Number(viewingSaleQuery.data.total || 0))}</strong>
+              {/* Totals Summary */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', background: '#f8fafc', padding: '10px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+                {Number(viewingSaleQuery.data.deliveryFee || 0) > 0 && (
+                  <div style={{ color: '#059669', fontWeight: 600 }}>
+                    <span>أجرة التوصيل: </span>
+                    <strong>{formatCurrency(Number(viewingSaleQuery.data.deliveryFee))}</strong>
                   </div>
+                )}
+                {Number(viewingSaleQuery.data.discount || 0) > 0 && (
+                  <div style={{ color: '#dc2626', fontWeight: 600 }}>
+                    <span>الخصم: </span>
+                    <strong>{formatCurrency(Number(viewingSaleQuery.data.discount))}</strong>
+                  </div>
+                )}
+                <div>
+                  <span style={{ fontWeight: 700, color: '#0f172a' }}>الإجمالي النهائي: </span>
+                  <strong style={{ fontSize: '15px', color: '#170c5c', fontWeight: 900 }}>{formatCurrency(Number(viewingSaleQuery.data.total || 0))}</strong>
                 </div>
               </div>
-            ) : (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#dc2626' }}>تعذر تحميل بيانات الفاتورة</div>
-            )}
-          </Card>
-        </DialogShell>
+            </div>
+          ) : (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#dc2626' }}>تعذر تحميل بيانات الفاتورة</div>
+          )}
+        </StandardDialog>
       )}
 
     </div>

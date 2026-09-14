@@ -127,7 +127,18 @@ export const settingsApi = {
     }),
   branches: async () => unwrapArray<Branch>(await http<Branch[] | { branches: Branch[] }>('/api/branches'), 'branches'),
   locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/settings/locations'), 'locations'),
-  update: async (payload: unknown) => unwrapByKey<AppSettings>(await http<AppSettings | { settings: AppSettings }>('/api/settings', { method: 'PUT', body: JSON.stringify(payload) }), 'settings', {} as AppSettings),
+  update: async (payload: unknown) => {
+    const isWrapped = Boolean(payload && typeof payload === 'object' && 'settings' in payload && (payload as any).settings && typeof (payload as any).settings === 'object');
+    const body = isWrapped ? payload : { settings: payload };
+    return unwrapByKey<AppSettings>(
+      await http<AppSettings | { settings: AppSettings }>('/api/settings', {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+      'settings',
+      {} as AppSettings,
+    );
+  },
   createBranch: (payload: unknown) => http<CreateBranchResponse>('/api/branches', { method: 'POST', body: JSON.stringify(payload) }),
   updateBranch: (branchId: string, payload: unknown) => http<{ ok: boolean; branchId: string; branches: Branch[] }>(`/api/branches/${branchId}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteBranch: (branchId: string) => http<{ ok: boolean; removedBranchId: string; branches: Branch[] }>(`/api/branches/${branchId}`, { method: 'DELETE' }),

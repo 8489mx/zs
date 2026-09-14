@@ -84,6 +84,7 @@
 | **أرقام التشغيلات وتواريخ الصلاحية ونظام FEFO** | 🟢 | 100% | `pharmacy_batches`, `sales-write.service.ts`, `PharmacyBatchesExpiryPage.tsx` | تتبع رقم التشغيلة (Batch) وتاريخ الانتهاء، وصرف الأسبق انتهاءً تلقائياً في الكاشير مع حظر بيع المنتهي الصلاحية نهائياً (انظر تفاصيل الوحدة 13). |
 | **تتبع التشغيلات وتواريخ الصلاحية الشامل لكافة الأنشطة (Universal Batches & Expiry)** | 🟢 | 100% | `InventoryBatchesPage.tsx`, `purchases-write.service.ts`, `pharmacy.service.ts`, `inventory/routes.tsx` | شاشة شاملة لإدارة وتتبع أرقام التشغيلات وتواريخ الانتهاء في المخازن العامة للصيدليات والأغذية والتوزيع والتجزئة عبر المسار `/inventory/batches`، وتحديث تلقائي لبيانات التشغيلة عند الشراء، مع مؤشرات ذكية وتمديد الصلاحية السريع (+3M, +6M, +1Y, +2Y). |
 | **مركز التسعير الجماعي ومحاكاة الأثر المالي (Batch Pricing Center & Financial Simulation)** | 🟢 | 100% | `PricingCenterPage.tsx`, `PricingScopeFormulaSection.tsx`, `PricingSimulationSection.tsx`, `PricingPreviewTableSection.tsx`, `PricingRunsHistorySection.tsx`, `pricing.service.ts` | محرك تسعير جماعي ذكي ومتقدم للأصناف عبر المسار `/pricing-center`، يشمل تحديد نطاق الأصناف حسب المورد أو القسم أو نوع الصنف، ومعادلات زيادة أو تخفيض الأسعار (نسبة، قيمة ثابتة، هامش ربح من التكلفة) مع قواعد التقريب الذكية، وشاشة محاكاة مالية فورية متجاوبة جنباً إلى جنب مع نطاق التسعير لاحتساب أثر التعديل على قيمة المخزون وهوامش الربح وفحص أمان التكلفة، وجدول معاينة تفصيلي لقبل وبعد، مع سجل تدقيق كامل لموجات التسعير وإمكانية التراجع الفوري بضغطة زر. |
+| **الوصول المباشر لقسم المخزون والأصناف وإضافة صنف جديد في السايدبار** | 🟢 | 100% | `routes.tsx`, `app-shell.tsx`, `access.ts`, `use-permission.ts`, `ModulesSettingsTab.tsx`, `settings.service.ts` | تفعيل قسم المخزون والأصناف تلقائياً في نمط التجارة والتجزئة (Commerce)، وفصل حوكمة الكتالوج عن المستودعات لضمان ظهور الأصناف والكتالوج دائماً، وإتاحة زر ورابط مباشر لإضافة صنف جديد (`/products/new`) ودليل الأصناف من القائمة الجانبية (Sidebar) ومساحة العمل، ودعم صلاحيات مدير المنشأة admin بدون أي حجب. |
 
 
 
@@ -3924,3 +3925,395 @@
      - توثيق محاضر لجان الاستلام الابتدائي وبدء فترة الصيانة التعاقدية، وتسهيل إجراءات الاستلام النهائي والإفراج التدريجي عن محجوز الضمان (Release Retention).
   5. **التحليل الخماسي المباشر للتكاليف (5-Stream Cost Breakdown vs Baseline):**
      - لوحة رقابية مالية تجمع التكاليف الفعلية المقيدة من 5 مصادر تشغيلية (الخامات والمشتريات + العمالة والمصنعيات + مقاولي الباطن + المعدات وتكاليف الموقع + العهد النثرية) ومقارنتها بالقيمة التعاقدية للمشروع لبيان هامش الربح والانحرافات بدقة.
+
+---
+
+### 120. محرك الاستيراد الذكي لكشوف الحسابات البنكية ومطابقة الأعمدة التلقائية (Smart Bank Statement Import, Multi-Bank Column Detection & Template Generator)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% (Production Ready) ومطابق لمعايير Z-Systems البصرية و 0 Emojis ودستور الكومبوبوكس الموحد.
+* **مسارات وملفات التنفيذ الأساسية:**
+  - `frontend/src/features/accounting/utils/bankStatementParser.ts`:
+    - محرك استخراج وتحليل ذكي يدعم ملفات Excel (`.xlsx`, `.xls`) و `.csv` والنصوص المنسوخة (Paste Text) مباشرة من الخدمات المصرفية للشركات أو كشوفات الـ PDF.
+    - تجاوز أسطر الترويسة والبيانات الفوقية غير الجدولية (Metadata & Bank Info Skipping).
+    - الكشف والتطبيع التلقائي للأعمدة الشائعة بكافة البنوك (Date, Description, Reference, Balance).
+    - المعالجة المزدوجة لأنماط المبالغ: دعم الأعمدة المنفصلة للسحب والإيداع (Debit / Credit) أو العمود الموحد للمبلغ بإشارة (+ / -) وحساب الصافي رياضياً.
+    - دالة `downloadBankStatementTemplate`: توليد وتنزيل قالب كشف حساب بنكي قياسي موحد بصيغة Excel.
+  - `frontend/src/features/accounting/components/bank-reconciliation/CreateBankStatementModal.tsx`:
+    - واجهة تفاعلية بريميوم مقسمة لتبويبين: «الاستيراد الذكي» و «مراجعة وإدخال الأسطر يدوياً».
+    - منطقة سحب وإفلات للملفات (Drag & Drop Zone).
+    - صندوق لصق الحركات المنسوخة من موقع البنك أو الـ PDF.
+    - شريط المطابقة اليدوية للأعمدة (Visual Column Mapping Customizer) لتمكين المحاسب من إعادة تعيين أو توجيه أي عمود في الكشوف غير القياسية بنقرة واحدة.
+    - شريط المؤشرات المالية الفورية (KPIs Strip): إجمالي الإيداعات، إجمالي السحوبات، صافي حركة الكشف، وعدد الأسطر المكتشفة.
+    - جدول معاينة الحركات المستخرجة مع إمكانية حذف أي سطر بنقرة واحدة وتحديث رصيد النهاية تلقائياً.
+    - استبدال الـ native select بـ `CustomSelect` القياسي التزاماً بدستور الكومبوبوكس الموحد.
+* **القدرات التشغيلية المعتمدة:**
+  1. **التعامل المرن مع تنوع صيغ البنوك (Multi-Bank Compatibility):**
+     - التوافق التام مع كشوف الحسابات الصادرة من مختلف البنوك المصرية والعربية والدولية (CIB, البنك الأهلي المصري, بنك مصر, QNB, مصرف الراجحي, بنك الرياض, الإنماء, إلخ).
+  2. **تخطي عقبة كشوفات الـ PDF (Copy & Paste Text Extraction):**
+     - إتاحة نسخ جدول الحركات من أي ملف PDF ولصقه في مربع المعالجة النصية ليقوم النظام بفرزه واستخراج التاريخ والمبلغ والبيان بدقة متناهية دون الحاجة لتحويل الملف يدوياً.
+  3. **الحساب الآلي لأرصدة الكشف (Auto Balance Calculation):**
+     - تحديث رصيد النهاية المطلوب تلقائياً استناداً إلى رصيد البداية وصافي حركة السحب والإيداع.
+
+---
+
+### 121. دستور الترقيم الموحد للوثائق والأذونات ومطابقة العملة المركزية (Universal Document Numbering Engine & Central System Currency Standard)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري و 0 Emojis وسياسة العزل الصارم.
+* **مسارات وملفات التنفيذ الأساسية:**
+  - `backend/src/common/utils/document-number.util.ts`:
+    - محرك الترقيم المركزي الموحد لدوال البادئة اليومية `getDailyDocumentPrefix(prefix, date)` وصيغة الترقيم `formatDailyDocumentNumber(prefix, seq, date, padding)`.
+  - الموديولات والخدمات المحدثة:
+    - طلبات عروض الأسعار للمشتريات: `backend/src/modules/purchases/services/purchase-rfqs.service.ts` (`RFQ-YYMMDD-XXXX`).
+    - مستحقات نهاية الخدمة: `backend/src/modules/hr/services/end-of-service.service.ts` (`EOS-YYMMDD-XXXX`).
+    - تذاكر الصيانة: `backend/src/modules/maintenance/maintenance.service.ts` (`ZM-YYMMDD-XXXX`).
+    - موديول المقاولات: `backend/src/modules/contracting/contracting.service.ts` (أوامر التغيير `CO-YYMMDD-XXXX`، عقود الباطن `SC-YYMMDD-XXXX`، استفسارات الموقع `RFI-YYMMDD-XXXX`، أذون فحص الأعمال `WIR-YYMMDD-XXXX`، مرتجعات الموردين `RTN-YYMMDD-XXXX`، أذون الصرف النقدية `CSH-YYMMDD-XXXX`، والمشاريع `PRJ-YYMMDD-XXXX`).
+    - الشحن البحري، المبيعات، المشتريات، والمخازن: اعتماد صيغ `JOB-YYMMDD-XXXX` و `Z-YYMMDD-XXXX` و `ZP-YYMMDD-XXXX` و `ZTR-YYMMDD-XXXX`.
+  - معالجة العملة المركزية:
+    - `frontend/src/lib/currencies.ts` و `frontend/src/shared/hooks/use-system-currency.ts`: إزالة أي تثبيت عشوائي للريال السعودي (`SAR`)، وربط العملة الافتراضية حصرياً بإعدادات المنشأة الحالية (`settings.currency`) وتفضيلات النظام المخزنة (`zs_system_currency`).
+  - دستور النظام:
+    - توثيق المعيار في `d:\zn\AGENTS.md` (بند 10) و `d:\zn\GEMINI.md` (بند 20).
+* **القدرات التشغيلية المعتمدة:**
+  1. **التاريخ السداسي اليومي الموحد (`YYMMDD`):** استبدال السنوات الرباعية القديمة (`2026`) بالتاريخ المباشر للسنة والشهر واليوم لسهولة الفرز الزمني ومنع تضخم أطوال الأكواد.
+  2. **التسلسل المصفّر الرباعي (`0001`, `0002`...):** ضمان الاتساق الهندسي عبر كامل فروع وأذونات المنظومة.
+  3. **تزامن نصوص الشاشات والـ Placeholders:** توحيد كافة النوافذ الإدخالية والأمثلة التوضيحية لتطابق الصيغة الجديدة بنسبة 100%.
+
+---
+
+### 122. ترقية وتطوير نافذة إنشاء الفرص البيعية وإدارة الصفقات المؤسسية (Enterprise CRM Opportunity Creation & Sales Pipeline Upgrades)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق لمعايير Z-Systems البصرية و 0 Emojis وحظر التنبيهات والقوائم البدائية.
+* **مسارات وملفات التنفيذ الأساسية:**
+  - `frontend/src/features/crm/components/CrmDealCreateModal.tsx`:
+    - الترقية إلى الهيكل القياسي `StandardDialog` لضمان الثبات الهندسي للأبعاد.
+    - إضافة قائمة ذكية `CustomSelect` لاختيار عميل مسجل مسبقاً من قاعدة بيانات العملاء (`customersApi.list`) مع الملء التلقائي لكافة بياناته، أو إدخال عميل محتمل جديد.
+    - إضافة قائمة لاختيار وتعيين مسؤول المتابعة / مندوب المبيعات من مستخدمي المنظومة (`userDirectoryApi.users`).
+    - إضافة قائمة منسدلة لتحديد عملة الصفقة من العملات المدعومة (`SUPPORTED_CURRENCIES`) وربطها بعملة النظام الافتراضية.
+    - إضافة حقل البريد الإلكتروني (`contactEmail`).
+    - إضافة حقل تعديل نسبة احتمالية الفوز بالصفقة يدوياً (`probability %`).
+    - حقل ديناميكي لتسجيل سبب الخسارة (`lostReason`) عند اختيار مرحلة الصفقة الخاسرة.
+    - استبدال كافة القوائم البدائية بـ `CustomSelect` الموحد، واستبدال `alert` بـ `toast`.
+  - `frontend/src/features/crm/components/CrmDealDetailModal.tsx`:
+    - تطهير النافذة من القوائم البدائية واستبدال قائمة نقل المرحلة وقائمة نوع النشاط بـ `CustomSelect`.
+    - استبدال التنبيه البدائي بـ `toast.warning`.
+  - `backend/src/modules/crm/crm.service.ts` & `dto/crm.dto.ts`:
+    - دعم حقل `customerId` و `lostReason` في عمليات إنشاء وتحديث الفرص البيعية وحفظها في قاعدة البيانات.
+* **القدرات التشغيلية المعتمدة:**
+  1. **الربط التلقائي بقاعدة العملاء والشركات:** تمكين فريق المبيعات من استدعاء أي عميل مسجل فوراً دون تكرار إدخال البيانات.
+  2. **حوكمة ومتابعة أداء المناديب:** تحديد مسؤول المتابعة لكل فرصة لتوزيع المهام وقياس كفاءة الإغلاق.
+  3. **الامتثال التام لدستور النظام (0 Alerts & 0 Raw Selects):** توافق كامل مع معايير Enterprise SaaS.
+
+---
+
+### 123. الفحص الشامل وتطوير نوافذ موديول الشحن واللوجستيات وفق النموذج المرجعي القياسي (Maritime Freight Suite Comprehensive Audit & Golden Reference Modal Upgrades)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق تماماً لدستور النوافذ المنبثقة (`StandardModalExample.tsx`)، 0 Emojis، 0 Native Alerts، و 0 Native Selects.
+* **مسارات وملفات التنفيذ الأساسية:**
+  - `frontend/src/features/maritime-freight/components/DispatchRfqModal.tsx`:
+    - تصحيح تموضع التذييل المعياري ونقله حصرياً إلى خاصية `footerActions={(<StandardDialogFooter .../>)}` بدلاً من وضعه داخل جسم النافذة.
+    - ضبط العرض القياسي المعتمد `width="min(880px, 95vw)"` و `minHeight="auto"`.
+    - ترقية بطاقات ملخص الشحنة وقائمة الخطوط إلى بنية البطاقات المقسمة المرقمة (Sectional Cards) مع أيقونات SVG رسمية من `AppIcons` وتنسيقات الـ 33px.
+  - `frontend/src/features/maritime-freight/components/ContainerMilestoneModal.tsx`:
+    - تصحيح تموضع التذييل ونقله إلى `footerActions` مع ربط الخصائص القياسية (`onSubmit`, `submitText`).
+    - ضبط العرض القياسي `width="min(640px, 95vw)"`.
+    - تقسيم الحقول إلى بطاقات منطقية تشغيلية (ملخص الحاوية، تواريخ التفريغ والبوابات، الملاحظات الميدانية) بنمط الـ 33px.
+  - `frontend/src/features/maritime-freight/components/ImportCarriersModal.tsx`:
+    - إزالة أزرار الحفظ والإلغاء اليدوية من أسفل جسم النافذة ونقلها إلى `footerActions` عبر `StandardDialogFooter`.
+    - ضبط العرض القياسي `width="min(880px, 95vw)"` و `minHeight="auto"`.
+  - `frontend/src/features/maritime-freight/components/CreateInquiryModal.tsx`:
+    - إضافة ميزة البحث والاستدعاء التلقائي للعملاء المسجلين (`customersApi.list`) عبر قائمة منسدلة ذكية `CustomSelect` مع الملء الفوري لاسم الشركة والهاتف والبريد، مع إمكانية الإدخال اليدوي لعميل جديد.
+  - `frontend/src/features/maritime-freight/components/JobDetailsModal.tsx` (النوافذ الفرعية Sub-modals):
+    - نافذة تعديل بيانات الرحلة والبوالص (`showEditVoyage`): إعادة هيكلتها بالكامل إلى 3 بطاقات مقسمة (بيانات السفينة والحجز، المواعيد الزمنية للرحلة، بوالص الشحن والأطراف التعاقدية) مع حقول `Field` و `CustomSelect` وارتفاع 33px.
+    - نافذة إضافة حاوية جديدة (`showAddContainer`): إعادة هيكلتها إلى بطاقتين منطقيتين (هوية الحاوية والمواصفات الفنية، شروط السماح والغرامات والتأمين) مع ربط `footerActions` بـ `onSubmit`.
+    - نافذة تعديل الحاوية (`editingContainer`): تقسيمها إلى بطاقتي الختم والمواعيد، والغرامات وحالة التأمين.
+    - نافذة إصدار فاتورة الخدمات الملاحية (`showInvoiceDialog`): ترقيتها لبطاقة إدخال موحدة مع `Field` وتذييل معتمد.
+    - نافذة ترحيل سند المصروفات الملاحية (`showExpenseDialog`): ترقيتها لبطاقة إدخال موحدة مع `Field` وقوائم `CustomSelect`.
+    - نافذة الاستخراج الذكي لبيانات الحجز (`showSmartParseModal`): توحيد خصائص التذييل المعياري `StandardDialogFooter`.
+* **القدرات التشغيلية المعتمدة:**
+  1. **التوافق التام مع النموذج المرجعي (Golden Reference Alignment):** القضاء التام على النوافذ المتضخمة أو العشوائية، وثبات أبعاد النوافذ المنبثقة.
+  2. **الترابط اللوجستي مع منظومة العملاء:** تمكين مسؤولي الشحن من اختيار عملاء المنظومة المسجلين بنقرة واحدة عند إنشاء استفسار أو طلب شحن جديد.
+  3. **استقرار التذييلات (Pinned Dialog Footers):** ضمان بقاء أزرار الإجراءات مثبتة في أسفل النافذة المنبثقة وعدم تمريرها واختفائها مع المحتوى الداخلي.
+
+---
+
+### 124. الفحص الشامل وتطوير شاشات ونوافذ إدارة علاقات العملاء والـ CRM وفق دستور النظام (CRM & Customer Relations Suite Comprehensive Audit & Golden Reference Upgrades)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق تماماً لدستور النوافذ المنبثقة (`StandardModalExample.tsx`)، 0 Emojis، 0 Native Alerts/Confirms، و 0 Native Selects.
+* **مسارات وملفات التنفيذ الأساسية:**
+  - `frontend/src/features/crm/pages/CrmPipelinePage.tsx`:
+    - استبدال فلاتر الـ `<select>` التقليدية البدائية للقوائم المنسدلة للأولوية والمرحلة البيعية بالقائمة المركزية الموحدة `CustomSelect`.
+    - استبدال بنرات التغذية الراجعة السفلية بمنظومة الإشعارات الموحدة `toast.success` و `toast.error`.
+  - `frontend/src/features/crm/components/CrmDealDetailModal.tsx`:
+    - القضاء التام على نافذة التأكيد البدائية للمتصفح `window.confirm(...)` عند حذف الصفقة واستبدالها بحوار التأكيد المؤسسي الحديث `await systemConfirm(...)`.
+    - الترقية من `DialogShell` إلى `StandardDialog` مع تذييل الإجراءات المعياري `StandardDialogFooter`.
+    - إعادة تنظيم النافذة إلى 3 بطاقات مقسمة (شريط المراحل والإجراءات السريعة، الملخص المالي والملاحظات، سجل الأنشطة والمتابعات).
+  - `frontend/src/features/customers/components/CustomerLoyaltyModal.tsx`:
+    - القضاء التام على نوافذ التنبيه البدائية للمتصفح `alert(...)` (3 تنبيهات) واستبدالها بـ `toast.success` و `toast.error` و `toast.warning`.
+    - الترقية من `DialogShell` إلى `StandardDialog` و `StandardDialogFooter`.
+    - إعادة هيكلة المحتوى إلى 3 بطاقات مقسمة بنمط الـ 33px (إحصائيات رصيد النقاط، نموذج التعديل اليدوي، وسجل حركات النقاط مع الشارات الملونة).
+  - `frontend/src/features/customers/components/WhatsAppMarketingModal.tsx`:
+    - الترقية من `DialogShell` إلى `StandardDialog` وتثبيت أزرار الإجراءات ونسخ الأرقام في التذييل `footerActions`.
+    - تقسيم الواجهة إلى 3 بطاقات مقسمة بأيقونات SVG كحلية رسمية (فلترة مدة الانقطاع والعدد المستهدف، قالب الرسالة الترويجية، وجدول المراسلة المباشرة بنقرة زر).
+  - `frontend/src/features/customers/pages/CustomersPage.tsx`:
+    - ترقية نوافذ إنشاء وتعديل العملاء من `DialogShell` إلى `StandardDialog` لضمان اتساق الهيدر وأزرار الإغلاق مع النموذج المرجعي.
+  - `frontend/src/features/customers/components/CustomerForm.tsx` & `CustomerEditorCard.tsx`:
+    - استبدال كلاسات Tailwind غير المدعومة في إعدادات الاستيراد بحقول وتنسيقات الـ CSS القياسية الصافية.
+* **القدرات التشغيلية المعتمدة:**
+  1. **التطهير الكامل من الرموز والتنبيهات البدائية (Zero-Native Standards):** خلو كامل من نوافذ `alert` أو `confirm` أو قوائم `select` التقليدية في كامل قطاع العملاء والـ CRM.
+  2. **الهوية البصرية المؤسسية المتزنة (Sectional Cards Architecture):** تنسيق جميع النوافذ بنمط البطاقات المقسمة والأيقونات الرسمية وتذييلات `footerActions` المثبتة.
+  3. **التكامل بين النماذج والعمليات اللوجستية والبيعية:** دعم كامل للعملاء المرجعيين، التخصيص التلقائي للمناديب، وإدارة حملات الاستهداف ونقاط الولاء.
+
+---
+
+### 125. الفحص الشامل وتطوير شاشات ونوافذ موديول المشتريات والموردين وفق دستور النظام (Purchases & Suppliers Suite Comprehensive Audit & Golden Reference Upgrades)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق تماماً لدستور النوافذ المنبثقة (`StandardModalExample.tsx`)، 0 Emojis، 0 Native Alerts/Confirms، و 0 Native Selects (100% CustomSelect).
+* **مسارات وملفات التنفيذ الأساسية:**
+  - `frontend/src/features/suppliers/pages/SuppliersPage.tsx`:
+    - ترقية نوافذ إنشاء وتعديل الموردين من `DialogShell` إلى `StandardDialog` المتوافق مع النموذج المرجعي.
+  - `frontend/src/features/suppliers/components/SupplierForm.tsx` & `SupplierEditorCard.tsx`:
+    - إصلاح الخطأ البرمجي في اسم العملة الافتتاحية (`${getGlobalCurrencySymbol()}`).
+    - إزالة كلاسات Tailwind غير المدعومة في حقول الاستيراد، وترقية القوائم المنسدلة للعملة ونوع المورد إلى `CustomSelect` عبر `Controller`.
+  - `frontend/src/features/purchases/pages/PurchaseOrdersPage.tsx`:
+    - تطهير واستبدال 13 تنبيهاً بدائياً `alert(...)` بمنظومة الإشعارات الموحدة `toast.success` و `toast.error` و `toast.warning`.
+  - `frontend/src/features/purchases/pages/PurchaseRfqsPage.tsx`:
+    - استبدال نوافذ التأكيد البدائية `window.confirm(...)` بحوار التأكيد المؤسسي الحديث `await systemConfirm(...)`.
+    - ترقية فلتر الحالة من `<select>` تقليدي إلى `CustomSelect`، واستبدال `alert` بـ `toast.success`.
+  - `frontend/src/features/purchases/components/CreatePurchaseOrderModal.tsx`:
+    - الترقية الكاملة من `DialogShell` بهيدر وتذييل يدويين إلى `StandardDialog` مع التذييل المثبت `StandardDialogFooter`.
+  - `frontend/src/features/purchases/components/PurchaseOrderDetailsModal.tsx`:
+    - استبدال تأكيدات الحذف والاعتماد البدائية بـ `await systemConfirm(...)`، والترقية إلى `StandardDialog` و `StandardDialogFooter`.
+  - `frontend/src/features/purchases/components/PurchaseLandedCostsModal.tsx`:
+    - الترقية من `DialogShell` وبطاقة داخلية إلى `StandardDialog` وتذييل `StandardDialogFooter`، وترقية قائمة أنواع المصروفات إلى `CustomSelect`.
+  - `frontend/src/features/purchases/components/PurchaseEditDialog.tsx`:
+    - الترقية من `DialogShell` إلى `StandardDialog` و `StandardDialogFooter`، واستبدال قائمة السداد إلى `CustomSelect`.
+  - `frontend/src/features/purchases/components/PurchaseComposer.tsx`:
+    - ترقية قوائم المورد، نوع السداد، الفرع، والمستودع إلى `CustomSelect` عبر `Controller`.
+  - `frontend/src/features/purchases/components/purchase-composer/PurchaseQuickCreateDialog.tsx`:
+    - الترقية من `DialogShell` إلى `StandardDialog` و `StandardDialogFooter`، واستبدال قوائم المجموعات والموردين بـ `CustomSelect`.
+  - `frontend/src/features/purchases/components/PurchasePaymentScheduleCard.tsx`:
+    - ترقية اختيار نمط الدفعات إلى `CustomSelect`.
+  - `frontend/src/features/purchases/components/new-purchase-order/QuickCreateDialog.tsx`:
+    - الترقية من شاشة مخصصة غير قياسية إلى `StandardDialog` و `CustomSelect` و `ActionConfirmDialog`.
+  - `frontend/src/features/purchases/components/new-purchase-order/PurchaseOrderSuccessModal.tsx`:
+    - الترقية إلى `StandardDialog` وإزالة كلاسات Tailwind غير المفعلة.
+  - `frontend/src/features/purchases/components/smart-reorder/SmartReorderFilters.tsx`:
+    - استبدال الفلاتر الأربعة بقوائم `CustomSelect`، وتطهير نصوص الخيارات من رموز النجوم (`★`).
+  - `frontend/src/features/purchases/components/smart-reorder/SmartReorderSuccessModal.tsx` & `SmartReorderConfirmModal.tsx`:
+    - الترقية إلى `StandardDialog` و `StandardDialogFooter`.
+  - `frontend/src/features/purchases/components/PurchasesWorkspace.tsx`:
+    - ترقية نافذة تفاصيل الفاتورة إلى `StandardDialog` و `StandardDialogFooter`.
+  - `frontend/src/features/purchases/components/ReceivePurchaseOrderModal.tsx`:
+    - ترقية نافذة إثبات الاستلام المخزني إلى `StandardDialog` و `StandardDialogFooter`.
+  - `frontend/src/features/purchases/components/PurchaseRepricingDialog.tsx`:
+    - الترقية إلى `StandardDialog` و `StandardDialogFooter` مع زر فتح مركز التسعير في `extraActions`.
+  - `frontend/src/features/purchases/components/MarginProtectionModal.tsx`:
+    - التطهير التام من كلاسات Tailwind وخلفية الـ overlay اليدوية، والترقية إلى `StandardDialog` و `StandardDialogFooter` مع بطاقات إحصائية متناسقة بنمط 33px.
+  - `frontend/src/features/purchases/components/rfq/CreateRfqModal.tsx` & `RfqComparisonMatrixModal.tsx`:
+    - توحيد استخدام `open` و `footerActions={<StandardDialogFooter .../>}` وإزالة أزرار الحفظ والإلغاء غير المثبتة.
+* **القدرات التشغيلية المعتمدة:**
+  1. **التوافق التام مع النموذج المرجعي (Golden Reference Modal Standard):** كافة نوافذ المشتريات والموردين (أكثر من 15 نافذة) تستخدم حصرياً `StandardDialog` و `StandardDialogFooter`.
+  2. **100% تطهير من عناصر Select التقليدية:** استخدام الحصري لمكون `CustomSelect` في كافة الفلاتر ونماذج الإدخال والتوزيع.
+  3. **صفرية التنبيهات البدائية (Zero-Native Alerts/Confirms):** ترقية كافة الإجراءات الحساسة (حذف، اعتماد، تحويل، إلغاء) إلى `await systemConfirm(...)` ومنظومة التوست الحديثة.
+
+---
+
+### 126. الفحص الشامل وتطوير شاشات ونوافذ موديول المخازن والأصناف والتصنيفات وفق دستور النظام (Inventory, Products, Categories & Barcodes Suite Comprehensive Audit & Golden Reference Upgrades)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق تماماً لدستور النوافذ المنبثقة (`StandardModalExample.tsx`)، معمارية البطاقات الرمادية المنظمة (`#f8fafc`)، 0 Emojis، 0 Native Alerts/Confirms، و 0 Native Selects (100% CustomSelect).
+* **مسارات وملفات التنفيذ الأساسية:**
+  - `frontend/src/features/inventory/components/InventoryActionsPanel.tsx`:
+    - ربط نماذج التسوية المخزنية والتالف بالـ `Controller` مع المكون القياسي `CustomSelect` لكافة القوائم المنسدلة (المخازن والأسباب).
+  - `frontend/src/features/inventory/components/sections/InventoryComposerCards.tsx`:
+    - استبدال كافة القوائم المنسدلة التقليدية (6 قوائم) بـ `CustomSelect` مع دعم البحث والتطبيع اللحظي.
+  - `frontend/src/features/products/pages/ProductModifiersPage.tsx`:
+    - استبدال تنبيهات `window.confirm` و `alert` البدائية بـ `systemConfirm` ومنظومة `toast` الموحدة.
+  - `frontend/src/features/products/components/offers/ProductOfferActiveCombosTab.tsx`:
+    - استبدال نوافذ التأكيد البدائية `window.confirm` بـ `await systemConfirm`.
+  - `frontend/src/features/products/components/ProductsTableCard.tsx`:
+    - استبدال `window.confirm` لحذف الموديل بـ `systemConfirm`، وترقية نافذة الملاحظة `activeNoteModal` إلى `StandardDialog` وتذييل `StandardDialogFooter`.
+  - `frontend/src/features/products/components/AddonsManagementDialog.tsx`:
+    - الترقية الكاملة إلى `StandardDialog` وبطاقتين رماديتين منظمتين (`#f8fafc` مع أيقونة رسمية وهيدر كحلي): بطاقة بيانات الإضافة والتسعير + بطاقة جدول الإضافات المسجلة مع تذييل `StandardDialogFooter`.
+  - `frontend/src/features/products/components/BarcodePrintDialog.tsx`:
+    - الترقية إلى `StandardDialog` وبطاقتين رماديتين (إعدادات الطابعة والمقاس + معاينة الملصق الحية) مع `CustomSelect`.
+  - `frontend/src/features/products/components/modifiers/ModifierGroupModal.tsx`:
+    - الترقية إلى `StandardDialog` وبطاقتين رماديتين (بيانات المجموعة والقواعد + قائمة الخيارات والإضافات) مع `CustomSelect` وتذييل `StandardDialogFooter`.
+  - `frontend/src/features/products/components/ProductBarcodeDialog.tsx`:
+    - الترقية إلى `StandardDialog` وبطاقتين رماديتين (إعداد وقراءة الباركود + معاينة الباركود الحية) مع `CustomSelect` وتذييل `StandardDialogFooter`.
+  - `frontend/src/features/products/components/ProductSerialsDialog.tsx`:
+    - الترقية إلى `StandardDialog` و 3 بطاقات رمادية منظمة (ملخص أرصدة السيريالات + تسجيل أرقام تسلسلية جديدة + سجل السيريالات التفصيلي) مع `StandardDialogFooter`.
+  - `frontend/src/features/products/components/ProductOfferDialog.tsx`:
+    - ترقية الحاوية الخارجية إلى `StandardDialog` و `StandardDialogFooter` وإزالة الأزرار غير المثبتة.
+  - `frontend/src/features/products/components/ScalePluExportModal.tsx`:
+    - الترقية إلى `StandardDialog` و 3 بطاقات رمادية منظمة (إعدادات الميزان وصيغة التصدير + معاينة الأصناف الجاهزة + إرشادات التنزيل المباشر) مع `CustomSelect` وتذييل `StandardDialogFooter`.
+  - `frontend/src/features/products/components/SerialLookupModal.tsx`:
+    - الترقية إلى `StandardDialog` وبطاقتين رماديتين (مسح وفحص السيريال + تفاصيل الجهاز وسجل الضمان وحالة الصنف).
+  - `frontend/src/features/products/components/categories/CategoryFormModal.tsx`:
+    - الترقية إلى `StandardDialog` وبطاقة رمادية منظمة لبيانات القسم مع تذييل `StandardDialogFooter` وإزالة `DialogShell` البدائي.
+  - `frontend/src/features/products/components/categories/CategoryTransferProductsModal.tsx`:
+    - الترقية إلى `StandardDialog` وبطاقتين رماديتين (وجهة النقل والتصنيف المستهدف مع `CustomSelect` + تحديد الأصناف للنقل مع شريط الأدوات) وتذييل `StandardDialogFooter`.
+  - `frontend/src/features/products/components/categories/CategoryTransferWarehouseModal.tsx`:
+    - الترقية إلى `StandardDialog` وبطاقتين رماديتين (معلومات العملية + تحديد المخزن المصدر والوجهة عبر `CustomSelect` في عمودين متناسقين) وتذييل `StandardDialogFooter`.
+* **القدرات التشغيلية المعتمدة:**
+  1. **دستور البطاقات الرمادية المنظمة (Sectional Grey Cards Standard):** تقسيم الأجسام الداخلية لجميع النوافذ المنبثقة (16 نافذة) إلى بطاقات رمادية منظمة بخلفية `#f8fafc` وبوردر `#e2e8f0` وأيقونة رسمية وعنوان كحلي `#170e5e`، مما يوحد المسار الإدراكي للمستخدم.
+  2. **تطهير شامل لكافة عناصر الإدخال البدائية:** 100% اعتماد على `CustomSelect` لجميع القوائم، وتطهير كامل من التنبيهات البدائية لصالح `toast.*` و `systemConfirm`.
+  3. **استقرار الأبعاد وتذييلات مثبتة:** حماية كاملة من وميض النوافذ بفضل `StandardDialog` و `StandardDialogFooter`.
+
+---
+
+### 127. تدقيق ومراجعة الباك إند لموديول نقاط البيع والمبيعات والكاشير والالتزام بحظر تعديل الـ UI (POS & Sales Backend Audit & Standard Verification)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق لتعليمات المستخدم الصارمة (حظر كامل للمساس بواجهة الكاشير ونقطة البيع UI)، مع تدقيق وتصحيح كود الباك إند بالكامل وفق دستور النظام والمعايير الدستورية (Rule 10).
+* **مسارات وملفات التنفيذ الأساسية:**
+  - `backend/src/modules/sales/services/sales-orders.service.ts`:
+    - ترقية وتوحيد خوارزمية ترقيم أوامر البيع (`order_number`) لتتوافق حرفياً مع دستور الترقيم الموحد للوثائق والأذونات (Rule 10) باستخدام `getDailyDocumentPrefix('SO')` والتسلسل اليومي التراكمي المسبوق بأصفار رباعية الخانات (`SO-YYMMDD-XXXX`) بدلاً من التسلسل القديم العشوائي.
+  - `backend/src/modules/sales/services/sales-write.service.ts`:
+    - مراجعة وتدقيق محرك ترقيم الفواتير النقدية والآجلة (`doc_no`) والتحقق من التزامه الصارم بتنسيق `Z-YYMMDD-XXXX` بالاعتماد على اليومية والتسلسل اليومي المحمي بالتينانت.
+    - تدقيق وتأكيد قيود العزل المتعدد للمستأجرين (`tenant_id` & `account_id`) ومنع التداخل بين الحسابات.
+    - تدقيق ومطابقة محرك حماية الخصومات (`assertDiscountChangeAllowed`) مع صلاحيات المدير وتخطي الـ PIN.
+  - `backend/src/modules/cash-drawer/cash-drawer.service.ts` & `helpers/cash-drawer.helper.ts`:
+    - مراجعة وتدقيق دورة حياة الورديات النقدية (فتح الوردية، تسجيل حركات الصرف والإيداع النثري، الإغلاق الأعمى Blind Close، وحساب الفروقات والعجز والزيادة).
+  - `frontend/src/features/pos`:
+    - الالتزام التام بنسبة 100% بالأمر المباشر من المستخدم بعدم لمس أو تغيير أو تعديل أي ملف في واجهة مستخدم الكاشير ونقاط البيع.
+* **القدرات التشغيلية المعتمدة:**
+  1. **الامتثال لدستور الترقيم الموحد (Universal Document Numbering Rule 10):** ضبط أوامر البيع اليومية بتسلسل نظامي مشفر باليوم والشهر والسنة (`SO-YYMMDD-XXXX`).
+  2. **الحفاظ التام على استقرار نقطة البيع:** صفر تغييرات على واجهة الكاشير لحماية سير العمل اليومي للعميل.
+  3. **سلامة التحقق النوعي 100%:** اجتياز الفحص البرمجي والأنواع في الباك إند والفرونت إند بنجاح تام.
+
+---
+
+### 128. الربط الهندسي الشامل للموديولات الأربعة ومزامنة الصلاحيات ورفع الحجب عن المخازن وشجرة المخازن والأرفف (Cross-Module Complete Suite Interconnection & Architecture Harmonization)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومطابق تماماً لدستور المنظومة المعماري والواجهات المؤسسية (0 Emojis & Clean Enterprise Architecture).
+* **معيار المقارنة الدولي:** SAP S/4HANA & Odoo 18 Multi-Vertical Suite Harmonization Standard.
+* **الموديولات الأربعة المشمولة بالتكامل الشامل:**
+  1. **قطاع التجارة العامة والتجزئة (Commerce & Retail):**
+     - تفعيل وحماية كونتينرات المخازن والأصناف التسعة كاملة: دليل الأصناف، أقسام الأصناف، المستودعات، شجرة المخازن، الأرفف، أذونات الصرف، إذن صرف جديد، جرد المخزون، ومركز التسعير.
+     - تفعيل المبيعات، عروض الأسعار، أوامر البيع، الـ CRM، المشتريات، الموردين، المالية وشجرة الحسابات ومراكز التكلفة، والموارد البشرية.
+  2. **قطاع التصنيع والإنتاج الصناعي (Manufacturing & Production):**
+     - تفعيل أوامر الإنتاج والتشغيل، قوائم المكونات (BOM)، مكونات التصنيع، مراكز العمل، وإعدادات التصنيع.
+     - ربط مستودعات ومخازن الخامات والمنتج التام بالكامل وشجرة المخازن والأرفف وأذونات الصرف ومركز التسعير.
+     - إضافة مجموعة المبيعات وعروض الأسعار وأوامر التوريد والعملاء للمصنع وتقارير المبيعات.
+  3. **قطاع المقاولات وإدارة المشاريع (Contracting & Construction):**
+     - سجل المشاريع، مقايسات الكميات (BOQ)، المالية والمستخلصات، مقاولو الباطن، الميدان والجدول الزمني، وبنك بنود المقاولات المرجعي.
+     - ربط مستودعات ومخازن المواقع بجميع مكوناتها (الأصناف، المستودعات، شجرة المخازن، الأرفف، أذونات الصرف للمواقع، مركز التسعير).
+     - إضافة عروض الأسعار ومقايسات العطاءات ضمن مجموعة إدارة الصفقات وجهات الإسناد.
+  4. **قطاع الشحن البحري واللوجستيات (Maritime Freight & Logistics):**
+     - استفسارات الشحن والنولون، عروض أسعار الخطوط، مصفوفة المقارنة، عروض أسعار العملاء، أوامر تشغيل الشحنات، تتبع الحاويات، ودليل الموانئ والخطوط.
+     - تفعيل اختياري مرن للمخازن ومستودعات التخزين ومواد التعبئة عند طلب تفعيلها من الإعدادات.
+     - المالية والمحاسبة اللوجستية، الأصول الثابتة، والضرائب.
+* **مسارات وملفات التنفيذ الأساسية:**
+  - **الباك إند:**
+    - `backend/src/core/tenant/industry-profiles.ts`: إضافة الحزمة الكاملة (`catalog`, `products`, `crm`, `pricing`, `suppliers`, `customers`) إلى الميزات الافتراضية لكافة القطاعات الأربعة.
+    - `backend/src/core/auth/services/plan-feature.service.ts`: ترقية دالة فحص الميزات `hasFeature` لضمان إتاحة كامل الميزات التشغيلية المعتمدة لقطاع المنشأة تلقائياً.
+    - `backend/src/modules/settings/settings.service.ts`: ترقية `setActivityProfile` لضمان تفعيل المخزون والمشتريات والـ CRM ونقاط البيع تلقائياً عند اختيار التجارة، وتطهير كاش المنشأة والإعدادات فورياً.
+  - **الفرونت إند:**
+    - `frontend/src/shared/components/feature-gate.tsx`: إضافة صمام أمان معماري في `useFeatureGate` يضمن عدم قفل أي شاشة تابعة للنشاط التشغيلي الفعال للشركة.
+    - `frontend/src/app/router/access.ts`: تسجيل كافة مسارات المخازن وشجرة المخازن والأرفف وأذونات الصرف والأسعار وعروض الأسعار في خريطة الصلاحيات `routePermissionMap` وترقية `hasRequiredFeature`.
+    - `frontend/src/shared/layout/app-shell.tsx`: إعادة هيكلة القوائم الجانبية ومصفوفات التوجيه بدقة لكل قطاع ورفع الحجب عن مركز التسعير والأرفف وشجرة المخازن.
+    - ملفات الراوتر (`inventory/routes.tsx`, `products/routes.tsx`, `sales/routes.tsx`, `purchases/routes.tsx`): إضافة مسارات بديلة (Aliases) لضمان الوصول المباشر لأي رابط دون أخطاء 404.
+* **القدرات التشغيلية المعتمدة:**
+  1. **الاستقرار الشامل وسلامة التنقل (Zero Broken Links & Zero Missing Containers):** القضاء التام على اختفاء أو حجب أي شاشة أو كونتينر تابع لأي قطاع تشغيلي معتمد.
+  2. **حماية التخصيص الرأسي والأفقي:** عزل شاشات القطاعات المتخصصة (مثل بوالص الشحن عن المقاولات، أو شاشات المطبخ عن المصانع) مع توفير الأدوات المشتركة (المخازن، الحسابات، المشتريات، المبيعات) بأعلى كفاءة.
+  3. **التحقق البرمجي التام (100% Type-Safe):** اجتياز فحص الـ TypeScript Typecheck بنجاح كلي (0 errors) في كل من الواجهة الأمامية والخلفية.
+
+---
+
+## 129. موديول الحسابات العامة والشجرة المالية وإدارة الضرائب والشيكات (StandardDialog Modals & Enterprise Architecture 100%)
+* **حالة الموديول العامة:** 🟢 مكتمل 100% (Enterprise Production Ready - 0 Native Alerts & 0 Traditional Selects & 0 Emojis)
+* **المسار في الكود:** `frontend/src/features/accounting`
+* **وصف الترقية والتطهير الشامل:**
+  تمت مراجعة وترقية كافة النوافذ المنبثقة (Modals & Dialogs) في موديول الحسابات العامة وشجرة الحسابات ومراكز التكلفة وإدارة الشيكات (PDC) والأصول الثابتة وضريبة الخصم والإضافة والسنوات المالية بالكامل لتتوافق بنسبة 100% مع معايير الدستور البصري والمعماري:
+  1. **التحويل القياسي إلى `StandardDialog` و `StandardDialogFooter`:**
+     - استبدال كافة هياكل الـ `DialogShell` أو الـ Popups المنفردة بمكون `StandardDialog` البريميوم الموحد مع الترويسة القياسية وتدرج العناوين الكحلية والوصف التوضيحي.
+     - اعتماد `StandardDialogFooter` مع الأزرار المؤسسية (الزر الأساسي الكحلي الملكي `#170e5e` وزر الإلغاء الرمادي).
+  2. **الهندسة البصرية بالبطاقات الرمادية المؤسسية (`#f8fafc`):**
+     - إعادة هيكلة وتوزيع الحقول داخل بطاقات رمادية محددة بحدود ناعمة (`border: 1px solid #e2e8f0`) مع عناوين فرعية كحلية وشبكات إدخال متوازنة هندسياً تمنع التكدس البصري.
+  3. **الاستبدال الحصري لـ `<select>` بمكون `CustomSelect` القياسي:**
+     - استبدال جميع القوائم المنسدلة التقليدية بـ `CustomSelect` مع دعم البحث اللحظي والتطبيع التلقائي للحروف العربية والإنجليزية وخيارات التلميح والشارات.
+  4. **سياسة 0 Emojis و 0 Native Alerts التامة:**
+     - إزالة أي إيموجيز نهائياً واستبدالها بأيقونات SVG البريميوم الرسمية من `@/shared/components/icons/AppIcons`.
+     - اعتماد نظام التنبيهات المؤسسي Toast و ActionConfirmDialog بالكامل.
+* **قائمة النوافذ والشاشات التي تم تطهيرها وترقيتها (18 نافذة منبثقة):**
+  1. `ManualJournalEntryDialog.tsx`: نافذة قيود اليومية اليدوية (3 بطاقات رمادية منظمة + CustomSelect لكافة الحسابات ومراكز التكلفة).
+  2. `PdcChequeActionModal.tsx`: معالج إجراءات الشيكات البنكية (إيداع، تحصيل، صرف، ارتداد، تظهير) مع بطاقة بيانات الشيك وبطاقة الارتداد واستبدال سبب الارتداد بـ CustomSelect.
+  3. `PdcChequeCreateModal.tsx`: إنشاء وتحرير الشيكات وأوراق القبض والدفع ببطاقتين متناسقتين و CustomSelect للعملات.
+  4. `PdcChequeVoucherModal.tsx`: سند استلام/تسليم شيك بنكي مع خيارات الطباعة الرسمية في الـ Footer.
+  5. `BankFeeAdjustmentModal.tsx`: تسوية العمولات والمصروفات البنكية الفورية مع CustomSelect لحساب المصروفات.
+  6. `CreateBankStatementModal.tsx`: رفع ومعالجة كشوف الحساب البنكية مع الإحصائيات الفورية.
+  7. `CostCenterFormModal.tsx`: إضافة وتعديل مراكز التكلفة ببطاقتين و CustomSelect للأبعاد والمراكز الأب.
+  8. `CostCenterReportModal.tsx`: كشف حركات ومطابقة مركز التكلفة مع بطاقات الإجماليات والفلاتر القياسية.
+  9. `CreateFiscalYearModal.tsx`: إنشاء سنة مالية جديدة ببطاقتين منفصلتين للفترة والبيانات الأساسية.
+  10. `FiscalYearCloseWizardModal.tsx`: معالج إقفال السنة المالية الذكي عبر 3 خطوات متدرجة.
+  11. `ReopenFiscalYearModal.tsx`: إعادة فتح السنة المالية مع بطاقة التنبيه الرقابي والمبرر الإداري.
+  12. `AddFixedAssetModal.tsx`: إضافة أصل ثابت ببطاقتين و CustomSelect للتصنيف وطريقة الإهلاك التناقصي/المستقيم.
+  13. `DepreciateModals.tsx`: نافذة إهلاك الأصل المنفرد والإهلاك الشامل لكافة الأصول النشطة.
+  14. `CreateWhtModal.tsx`: تسجيل معاملة خصم وتحصيل (نموذج 41 ضرائب) مع CustomSelect وبطاقة الحسبة الضريبية التفاعلية.
+  15. `ExtractWhtModal.tsx`: استيراد آلي لضرائب الخصم من فواتير المشتريات مع CustomSelect للنسبة والنوع.
+  16. `PrintWhtModal.tsx`: إقرار وتصدير نموذج 41 ضرائب مع أزرار التحكم في StandardDialogFooter.
+  17. `AccountingAccountForm.tsx`: نموذج إضافة وتعديل حسابات الدليل المحاسبي (شجرة الحسابات) ببطاقتين و CustomSelect للنوع والرصيد الطبيعي مربوط بـ Controller.
+  18. `AccountingOpeningBalancesSection.tsx`: نافذة تأكيد ترحيل الأرصدة الافتتاحية للمنشأة بـ StandardDialog وتنبيه رقابي مالي محكم.
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص `npx tsc --noEmit` للفرونت إند: **Code 0 (Zero Errors)**.
+  - فحص `npx tsc --noEmit` للباك إند: **Code 0 (Zero Errors)**.
+
+---
+
+## 130. موديول المبيعات وعروض الأسعار وخطط التقسيط وسندات القبض (StandardDialog & Enterprise Modals 100%)
+* **حالة الموديول العامة:** 🟢 مكتمل 100% (Enterprise Production Ready - 0 Native Alerts & 0 Traditional Selects & 0 Emojis)
+* **المسار في الكود:** `frontend/src/features/sales`
+* **وصف الترقية والتطهير الشامل:**
+  تمت مراجعة وترقية كافة النوافذ المنبثقة (Modals & Dialogs) في موديول المبيعات وأوامر البيع والتقسيط وسندات القبض وتعديل الفواتير وعروض الأسعار بالكامل لتتوافق بنسبة 100% مع معايير الدستور البصري والمعماري:
+  1. **القضاء التام على هياكل `DialogShell` القديمة:**
+     - استبدال كافة استدعاءات `DialogShell` (0 DialogShell متبقية في موديول المبيعات) بمكون `StandardDialog` البريميوم الموحد مع الترويسة القياسية والشارات وتدرج العناوين الكحلية.
+     - ربط التذييل المعياري الموحد `StandardDialogFooter` مع تثبيت أزرار الحفظ والإلغاء وتفادي تآكل الأطراف.
+  2. **الهندسة البصرية بالبطاقات الرمادية المؤسسية (`#f8fafc`):**
+     - إعادة هيكلة وتوزيع الحقول داخل بطاقات رمادية محددة بحدود ناعمة (`border: 1px solid #e2e8f0`) مع عناوين فرعية كحلية وأيقونات رسمية موحدة.
+  3. **الاستبدال الحصري لـ `<select>` بمكون `CustomSelect` القياسي:**
+     - استبدال القوائم المنسدلة التقليدية (قنوات الدفع، اختيار العملاء، طرق سداد الأقساط) بمكون `CustomSelect` مع دعم البحث اللحظي والتطبيع التلقائي وشارات التوضيح.
+  4. **سياسة 0 Emojis و 0 Native Alerts التامة:**
+     - إزالة أي استدعاءات لـ `window.alert` و `window.confirm` واستبدالها حصرياً بـ `await systemConfirm` ومنظومة التنبيهات المؤسسية `toast.success` و `toast.error`.
+* **قائمة النوافذ والشاشات التي تم تطهيرها وترقيتها (7 نوافذ منبثقة رئيسية):**
+  1. `CreateSalesOrderModal.tsx`: إنشاء أمر بيع جديد (StandardDialog + إزالة alert واستبدالها بـ toast.error).
+  2. `SalesOrderDetailsModal.tsx`: تفاصيل أمر البيع وتوفر المخزون (StandardDialog + استبدال confirm و alert المباشرة بـ systemConfirm و toast عند توليد MTO).
+  3. `CreateInstallmentPlanModal.tsx`: إنشاء خطة تقسيط للمبيعات ببطاقتين رماديتين منظمتين + CustomSelect للعميل وتذييل StandardDialogFooter.
+  4. `InstallmentModalsManager.tsx`: إدارة 3 نوافذ منبثقة للأقساط (تحصيل القسط بـ CustomSelect لطرق الدفع، إيصال الاستلام وسند القبض، وجدول أقساط العقد التفصيلي).
+  5. `SaleEditDialog.tsx`: تعديل الفاتورة والتدقيق الرقابي بـ StandardDialog + CustomSelect لنوع وقناة الدفع وبطاقتين متناسقتين.
+  6. `quotations/CreateQuotationModal.tsx`: إنشاء عرض السعر بـ StandardDialog وبطاقتين رماديتين للعميل والأصناف والأسعار.
+  7. `SalesWorkspace.tsx`: نافذة تفاصيل الفاتورة داخل مساحة العمل المعيارية بـ StandardDialog.
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص `npx tsc --noEmit` للفرونت إند: **Code 0 (Zero Errors)**.
+
+---
+
+## 131. موديول التصنيع والإنتاج ومراكز العمل وأوامر التفكيك (StandardDialog & CustomSelect 100%)
+* **حالة الموديول العامة:** 🟢 مكتمل 100% (Enterprise Production Ready - 0 Native Alerts & 0 Traditional Selects & 0 Emojis)
+* **المسار في الكود:** `frontend/src/features/manufacturing`
+* **وصف الترقية والتطهير الشامل:**
+  تمت مراجعة وترقية كافة النوافذ المنبثقة (Modals & Dialogs) في موديول التصنيع والإنتاج وأوامر التشغيل ومراكز العمل وأوامر التفكيك بالكامل لتتوافق بنسبة 100% مع معايير الدستور البصري والمعماري:
+  1. **التحويل القياسي إلى `StandardDialog` و `StandardDialogFooter`:**
+     - استبدال كافة استدعاءات `DialogShell` القديمة في مجلد التصنيع (0 DialogShell متبقية في مجلد التصنيع) بالهيكل القياسي الموحد `StandardDialog`.
+     - اعتماد `StandardDialogFooter` مع دعم مؤشرات التحميل وأزرار الإلغاء والحفظ المتناسقة.
+  2. **الهندسة البصرية بالبطاقات الرمادية المؤسسية (`#f8fafc`):**
+     - تقسيم النوافذ إلى بطاقات رمادية منظمة بأيقونات SVG كحلية رسمية، وتنظيم بيانات الإنتاج ومراكز العمل واستهلاك الخامات بصرياً.
+  3. **الاستبدال الحصري لـ `<select>` بمكون `CustomSelect` القياسي:**
+     - ترقية القوائم المنسدلة (اختيار مركز العمل، شجرة المنتج BOM، الحالة التشغيلية للمركز) إلى المكون المركزي الموحد `CustomSelect`.
+  4. **صفرية التنبيهات والإيموجيز:**
+     - استبدال التنبيهات المباشرة بمنظومة الإشعارات الموحدة `toast` مع خلو تام من أي إيموجيز.
+* **قائمة النوافذ والشاشات التي تم تطهيرها وترقيتها (3 نوافذ منبثقة):**
+  1. `CompleteWorkOrderModal.tsx`: إنهاء أمر الإنتاج وتسليم المنتج التام (StandardDialog + بطاقة تنبيهية + CustomSelect لمراكز العمل + StandardDialogFooter).
+  2. `UnbuildOrdersModal.tsx`: إنشاء أوامر تفكيك المنتجات واسترجاع الخامات (StandardDialog + CustomSelect لشجرة المنتج BOM + toast.error للإشعارات).
+  3. `WorkCenterModal.tsx`: إضافة وتعديل مراكز العمل والطاقة الإنتاجية والتكلفة بالساعة (StandardDialog + بطاقتين رماديتين + CustomSelect للحالة التشغيلية).
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص `npx tsc --noEmit` للفرونت إند: **Code 0 (Zero Errors)**.
+
+---
+
+## 132. إصلاح وحوكمة تفعيل موديولات متجر التطبيقات ومطابقة مخطط الإعدادات العامة (Apps Store Module Activation & Settings Validation Schema Alignment)
+* **حالة الموديول العامة:** 🟢 مكتمل 100% (Production Ready)
+* **المسارات في الكود:**
+  - `frontend/src/features/settings/api/settings.api.ts`: التغليف التلقائي لحزمة التحديث في `{ settings: payload }` لحماية طلبات متجر التطبيقات `/apps` من الرفض في الـ ValidationPipe.
+  - `backend/src/modules/settings/settings.controller.ts`: مرونة استقبال حمولة الإعدادات (قبول كلا التنسيقين المغلف `{ settings: ... }` والمباشر `{ [appKey]: value }`) دون إثارة أخطاء عدم التصريح بالحقول.
+  - `frontend/src/features/settings/schemas/settings.schema.ts`: تحويل حقل `businessIndustry` إلى `z.string().optional().default('retail_general')` بدلاً من الـ enum المقيد لتفادي كسر التحقق عند حفظ الإعدادات للأنشطة المختلفة (`retail_general`, `maintenance`, `maritime_freight`, إلخ).
+* **وصف الإصلاح والتحسين:**
+  1. **حل خطأ متجر التطبيقات (`الحقل inventoryModuleEnabled غير مسموح إرساله`):**
+     - عند النقر على «تثبيت وتفعيل» لتطبيق مثل المخازن المتقدمة أو العروض أو الكاشير، كان الفرونت إند يرسل المفتاح مباشرة في الـ root payload، مما يسبب رفض الباك إند بسبب `forbidNonWhitelisted`. تم حلها مزدوجاً في الـ API والـ Controller.
+  2. **حل خطأ حفظ الإعدادات العامة (`Invalid option: expected one of...`):**
+     - كان مخطط Zod يرفض حفظ أي تعديلات إذا كانت المنشأة تحمل طبيعة نشاط `retail_general`، مما يمنع حفظ الموديولات. تم فتح التحقق ليكون نصاً مرناً يدعم كافة الأنماط القطاعية للمنظومة.
+  3. **تفعيل موديول المخازن وشجرة المخازن:**
+     - تفعيل `inventoryModuleEnabled: true` و `purchasesModuleEnabled: true` و `posModuleEnabled: true` في قاعدة البيانات وضمان ظهور كامل أقسام المخازن (المستودعات، شجرة المخازن، الأرفف، أذونات الصرف والتحويل، وجرد المخزون) في القائمة الجانبية فورياً.
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص `npx tsc --noEmit` للفرونت إند: **Code 0 (Zero Errors)**.
+  - فحص `npx tsc --noEmit` للباك إند: **Code 0 (Zero Errors)**.
+
+

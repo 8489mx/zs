@@ -108,10 +108,7 @@ export function BankReconciliationPage() {
   const [newStmtStartBal, setNewStmtStartBal] = useState<number>(0);
   const [newStmtEndBal, setNewStmtEndBal] = useState<number>(0);
   const [newStmtNotes, setNewStmtNotes] = useState('');
-  const [newStmtLines, setNewStmtLines] = useState<Array<{ lineDate: string; description: string; reference: string; amount: number }>>([
-    { lineDate: new Date().toISOString().slice(0, 10), description: '', reference: '', amount: 0 },
-    { lineDate: new Date().toISOString().slice(0, 10), description: '', reference: '', amount: 0 },
-  ]);
+  const [newStmtLines, setNewStmtLines] = useState<Array<{ lineDate: string; description: string; reference: string; amount: number }>>([]);
 
   const createStatementMutation = useMutation({
     mutationFn: (data: any) => bankReconciliationApi.createStatement(data),

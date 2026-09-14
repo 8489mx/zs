@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { DraftStateNotice } from '@/shared/components/draft-state-notice';
@@ -60,7 +62,7 @@ export function SupplierEditorCard({ supplier, onSaved }: { supplier?: Supplier;
       </Field>
 
       <Field 
-        label="الرصيد الافتتاحي (${getGlobalCurrencySymbol()})" 
+        label={`الرصيد الافتتاحي (${getGlobalCurrencySymbol()})`} 
         hint="المبلغ المستحق للمورد عند بداية التسجيل (إن وجد)"
         error={form.formState.errors.balance?.message}
       >
@@ -95,23 +97,45 @@ export function SupplierEditorCard({ supplier, onSaved }: { supplier?: Supplier;
       </Field>
       
       {importModuleEnabled && (
-        <fieldset className="p-4 border rounded bg-slate-50 dark:bg-slate-800/50 space-y-4 col-span-2">
-          <legend className="px-2 font-semibold text-primary">إعدادات الاستيراد</legend>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <fieldset style={{ padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc', gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <legend style={{ padding: '0 8px', fontWeight: 700, color: '#170e5e', fontSize: '0.82rem' }}>إعدادات الاستيراد</legend>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
             <Field label="عملة التعامل">
-              <select {...form.register('metadata.currency')} disabled={mutation.isPending}>
-                <option value="USD">دولار أمريكي</option>
-                <option value="EUR">يورو</option>
-                <option value="CNY">يوان صيني</option>
-                <option value="EGP">جنيه مصري</option>
-              </select>
+              <Controller
+                name="metadata.currency"
+                control={form.control}
+                render={({ field }) => (
+                  <CustomSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={mutation.isPending}
+                    options={[
+                      { value: 'USD', label: 'USD (دولار أمريكي)' },
+                      { value: 'EUR', label: 'EUR (يورو)' },
+                      { value: 'CNY', label: 'CNY (يوان صيني)' },
+                      { value: 'EGP', label: 'EGP (جنيه مصري)' },
+                    ]}
+                  />
+                )}
+              />
             </Field>
             <Field label="تصنيف المورد">
-              <select {...form.register('metadata.supplierType')} disabled={mutation.isPending}>
-                <option value="factory">مصنع خارجي</option>
-                <option value="shipping">شركة شحن</option>
-                <option value="customs">مخلص جمركي</option>
-              </select>
+              <Controller
+                name="metadata.supplierType"
+                control={form.control}
+                render={({ field }) => (
+                  <CustomSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={mutation.isPending}
+                    options={[
+                      { value: 'factory', label: 'مصنع خارجي' },
+                      { value: 'shipping', label: 'شركة شحن' },
+                      { value: 'customs', label: 'مخلص جمركي' },
+                    ]}
+                  />
+                )}
+              />
             </Field>
           </div>
         </fieldset>

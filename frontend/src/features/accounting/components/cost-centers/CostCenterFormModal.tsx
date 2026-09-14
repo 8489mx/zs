@@ -1,7 +1,8 @@
 import React from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
-import { XIcon } from '@/shared/components/icons/AppIcons';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { LayersIcon, DollarSignIcon } from '@/shared/components/icons/AppIcons';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import type { CostCenterRecord } from '../../api/cost-centers.api';
 import { COST_CENTER_DIMENSIONS } from './types';
@@ -37,38 +38,48 @@ export function CostCenterFormModal({
 }: CostCenterFormModalProps) {
   if (!isOpen) return null;
 
-  return (
-    <DialogShell
-      open={true}
-      onClose={onClose}
-      width="min(540px, 95vw)"
-      ariaLabel={isEditing ? 'تعديل مركز تكلفة' : 'إضافة مركز تكلفة جديد'}
-    >
-      <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
-        <div className="standard-dialog-header">
-          <div className="standard-dialog-header-info">
-            <h3 className="standard-dialog-title">
-              {isEditing ? 'تعديل مركز تكلفة' : 'إضافة مركز تكلفة جديد'}
-            </h3>
-            <p className="standard-dialog-subtitle">
-              تحديد كود واسم المركز والبعد التحليلي والموازنة التقديرية
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="standard-dialog-close-btn"
-            aria-label="إغلاق"
-          >
-            <XIcon size={18} />
-          </button>
-        </div>
+  const dimensionOptions = Object.entries(COST_CENTER_DIMENSIONS).map(([key, item]) => ({
+    value: key,
+    label: item.label,
+  }));
 
-        <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+  const parentOptions = [
+    { value: '', label: 'بدون مركز أب (رئيسي جذر)' },
+    ...availableParents.map((p) => ({
+      value: String(p.id),
+      label: `${p.name} (${p.code})`,
+      hint: p.code,
+    })),
+  ];
+
+  return (
+    <StandardDialog
+      open={isOpen}
+      onClose={onClose}
+      title={isEditing ? 'تعديل مركز تكلفة' : 'إضافة مركز تكلفة جديد'}
+      subtitle="تحديد كود واسم المركز والبعد التحليلي والموازنة التقديرية"
+      size="md"
+    >
+      <form id="cost-center-form" onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* Card 1: Definition & Dimensions */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '10px',
+          padding: '14px 16px',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
+            <LayersIcon size={15} style={{ color: '#170e5e' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>بيانات التعريف والتبويب</span>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                كود المركز *
+                كود المركز <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="text"
@@ -82,7 +93,7 @@ export function CostCenterFormModal({
 
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                اسم مركز التكلفة *
+                اسم مركز التكلفة <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="text"
@@ -100,36 +111,39 @@ export function CostCenterFormModal({
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
                 البُعد التحليلي
               </label>
-              <select
+              <CustomSelect
                 value={formData.dimension}
-                onChange={(e) => onChange({ ...formData, dimension: e.target.value })}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
-              >
-                {Object.entries(COST_CENTER_DIMENSIONS).map(([key, item]) => (
-                  <option key={key} value={key}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => onChange({ ...formData, dimension: val })}
+                options={dimensionOptions}
+              />
             </div>
 
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
                 المركز الأب (إن وجد)
               </label>
-              <select
+              <CustomSelect
                 value={formData.parentId}
-                onChange={(e) => onChange({ ...formData, parentId: e.target.value })}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
-              >
-                <option value="">بدون مركز أب (رئيسي جذر)</option>
-                {availableParents.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.code})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => onChange({ ...formData, parentId: val })}
+                options={parentOptions}
+              />
             </div>
+          </div>
+        </div>
+
+        {/* Card 2: Budget & Status */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '10px',
+          padding: '14px 16px',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
+            <DollarSignIcon size={15} style={{ color: '#170e5e' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>الموازنة والحالة التشغيلية</span>
           </div>
 
           <div>
@@ -152,39 +166,52 @@ export function CostCenterFormModal({
               الوصف أو الملاحظات
             </label>
             <textarea
+              rows={2}
               value={formData.description}
               onChange={(e) => onChange({ ...formData, description: e.target.value })}
               placeholder="ملاحظات توضيحية حول طبيعة المركز..."
-              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', minHeight: '60px', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box', resize: 'none' }}
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', backgroundColor: '#ffffff', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
             <input
               type="checkbox"
               id="isActive"
               checked={formData.isActive}
               onChange={(e) => onChange({ ...formData, isActive: e.target.checked })}
+              style={{ width: '16px', height: '16px', accentColor: '#170e5e' }}
             />
             <label htmlFor="isActive" style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
               مركز تكلفة نشط ومتاح للقيود والعمليات
             </label>
           </div>
+        </div>
+      </form>
 
-          <div className="standard-dialog-footer">
-            <Button variant="secondary" onClick={onClose}>
-              إلغاء
-            </Button>
-            <Button
-              type="submit"
-              disabled={isPending}
-              style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 700 }}
-            >
-              {isPending ? 'جاري الحفظ...' : isEditing ? 'تحديث المركز' : 'إضافة المركز'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </DialogShell>
+      <StandardDialogFooter>
+        <Button variant="secondary" onClick={onClose} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
+          إلغاء
+        </Button>
+        <Button
+          type="submit"
+          form="cost-center-form"
+          disabled={isPending}
+          style={{
+            backgroundColor: '#170e5e',
+            color: '#ffffff',
+            padding: '8px 22px',
+            fontSize: '13px',
+            fontWeight: 700,
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: isPending ? 0.6 : 1,
+          }}
+        >
+          {isPending ? 'جاري الحفظ...' : isEditing ? 'تحديث المركز' : 'إضافة المركز'}
+        </Button>
+      </StandardDialogFooter>
+    </StandardDialog>
   );
 }

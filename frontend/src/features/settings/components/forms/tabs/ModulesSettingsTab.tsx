@@ -329,6 +329,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
   const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
   const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
+  const isCommerceVertical = !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical;
 
   const hasManufacturingFeature = useHasFeature('manufacturing') || isManufacturingVertical || isSuperAdmin;
   const hasImportFeature = useHasFeature('import') || isSuperAdmin;
@@ -341,12 +342,13 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const hasFixedAssetsFeature = useHasFeature('fixed_assets') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
   const hasTaxDeclarationFeature = useHasFeature('vat_declaration') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
   const hasDeliveryFleetFeature = useHasFeature('deliveryReps') || isSuperAdmin;
-  const hasPurchasesFeature = useHasFeature('purchases') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
-  const hasInventoryFeature = useHasFeature('inventory') || isContractingVertical || isManufacturingVertical || isSuperAdmin;
+  const hasPurchasesFeature = useHasFeature('purchases') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isCommerceVertical || isSuperAdmin;
+  const hasInventoryFeature = useHasFeature('inventory') || isContractingVertical || isManufacturingVertical || isCommerceVertical || isSuperAdmin;
   const hasHrFeature = useHasFeature('hr') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
   const hasClothingFeature = useHasFeature('clothing') || isSuperAdmin;
   const hasMaritimeFreightFeature = useHasFeature('maritime_freight') || isMaritimeVertical || isSuperAdmin;
   const hasContractingFeature = useHasFeature('contracting') || isContractingVertical || isSuperAdmin;
+
   const hasServicesFeature = hasPurchasesFeature || hasInventoryFeature;
   const hasPosMetaFeature = hasRestaurantFeature;
 

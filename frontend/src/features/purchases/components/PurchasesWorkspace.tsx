@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PurchaseDetailCard } from '@/features/purchases/components/PurchaseDetailCard';
 import { PurchaseEditDialog } from '@/features/purchases/components/PurchaseEditDialog';
@@ -43,25 +43,27 @@ export function PurchasesWorkspace() {
         <PurchasesRegisterCard {...controller} selectedPurchase={selectedPurchase} summary={controller.summary || null} />
 
         {/* Modal for Purchase Details */}
-        <DialogShell
+        <StandardDialog
           open={Boolean(selectedPurchase)}
           onClose={() => controller.setSelectedPurchaseId('')}
-          width="min(960px, 95vw)"
-          ariaLabel="تفاصيل فاتورة الشراء"
-          showCloseButton={true}
-        >
-          <div className="dialog-card">
-            <PurchaseDetailCard
-              purchase={selectedPurchase || undefined}
-              onPrint={controller.canPrint && selectedPurchase ? () => printPurchaseDocument(selectedPurchase, settingsQuery.data) : undefined}
-              onEdit={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToEdit(selectedPurchase) : undefined}
-              onCancel={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToCancel(selectedPurchase) : undefined}
-              onRefresh={() => { controller.purchasesQuery.purchasesQuery.refetch(); controller.setSelectedPurchaseId(''); }}
+          title={`تفاصيل فاتورة الشراء ${selectedPurchase?.docNo || ''}`}
+          subtitle="عرض كامل لبنود وأطراف ومصاريف الفاتورة"
+          maxWidth="960px"
+          footerActions={
+            <StandardDialogFooter
+              onCancel={() => controller.setSelectedPurchaseId('')}
+              cancelLabel="إغلاق"
             />
-
-
-          </div>
-        </DialogShell>
+          }
+        >
+          <PurchaseDetailCard
+            purchase={selectedPurchase || undefined}
+            onPrint={controller.canPrint && selectedPurchase ? () => printPurchaseDocument(selectedPurchase, settingsQuery.data) : undefined}
+            onEdit={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToEdit(selectedPurchase) : undefined}
+            onCancel={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToCancel(selectedPurchase) : undefined}
+            onRefresh={() => { controller.purchasesQuery.purchasesQuery.refetch(); controller.setSelectedPurchaseId(''); }}
+          />
+        </StandardDialog>
 
         <TopSuppliersCard
           topSuppliers={controller.topSuppliers}

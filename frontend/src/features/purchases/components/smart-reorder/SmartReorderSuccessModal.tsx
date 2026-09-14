@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { formatCurrency } from '@/lib/format';
 import { CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 
@@ -22,25 +22,27 @@ export function SmartReorderSuccessModal({ orders, onClose }: SmartReorderSucces
   const navigate = useNavigate();
 
   return (
-    <DialogShell
+    <StandardDialog
       open={Boolean(orders)}
       onClose={onClose}
-      width="min(600px, 95vw)"
-      ariaLabel="تم توليد مسودات أوامر الشراء بنجاح"
-      showCloseButton={true}
+      title="تم توليد مسودات أوامر الشراء بنجاح"
+      subtitle="تم حفظ مسودات أوامر الشراء في النظام بنجاح. يمكنك استعراضها الآن أو الانتقال لسجل فواتير المشتريات."
+      maxWidth="600px"
+      footerActions={
+        <StandardDialogFooter
+          onCancel={onClose}
+          cancelLabel="البقاء في مقترح الطلب"
+          onSubmit={() => navigate('/purchases')}
+          submitLabel="الانتقال لسجل المشتريات"
+        />
+      }
     >
-      <div className="dialog-card" style={{ padding: '24px', direction: 'rtl', textAlign: 'center' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+      <div style={{ direction: 'rtl' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
           <CheckCircleIcon size={48} color="#16a34a" />
         </div>
-        <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#166534', marginBottom: '8px' }}>
-          تم توليد مسودات أوامر الشراء بنجاح!
-        </h3>
-        <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>
-          تم حفظ مسودات أوامر الشراء في النظام بنجاح. يمكنك استعراضها الآن أو الانتقال لسجل فواتير المشتريات.
-        </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px', textAlign: 'right' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {(orders || []).map((ord) => (
             <div
               key={ord.id}
@@ -73,20 +75,7 @@ export function SmartReorderSuccessModal({ orders, onClose }: SmartReorderSucces
             </div>
           ))}
         </div>
-
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-          <Button
-            variant="primary"
-            style={{ backgroundColor: '#170e5e', borderColor: '#170e5e', color: '#ffffff' }}
-            onClick={() => navigate('/purchases')}
-          >
-            الانتقال لسجل المشتريات
-          </Button>
-          <Button variant="secondary" onClick={onClose}>
-            البقاء في مقترح الطلب
-          </Button>
-        </div>
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }

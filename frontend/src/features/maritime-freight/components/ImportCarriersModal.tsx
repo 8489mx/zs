@@ -1,5 +1,5 @@
 import { useState, useRef, useId } from 'react';
-import { StandardDialog } from '@/shared/components/StandardDialog';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { downloadExcelFile } from '@/lib/browser';
 import { maritimeApi } from '../api/maritime-freight.api';
@@ -330,7 +330,18 @@ export function ImportCarriersModal({
       onClose={onClose}
       title="استيراد البيانات المرجعية من ملف Excel أو CSV"
       subtitle="سحب واستيراد خطوط الملاحة والوكلاء المعتمدين عالمياً (WCA / Directories) بضغطة زر واحدة"
-      maxWidth="850px"
+      width="min(880px, 95vw)"
+      minHeight="auto"
+      footerActions={(
+        <StandardDialogFooter
+          onCancel={onClose}
+          onSubmit={handleExecuteImport}
+          submitDisabled={validItems.length === 0 || importing}
+          isSubmitting={importing}
+          submitText={`تأكيد واستيراد (${validItems.length}) سجل`}
+          cancelText="إلغاء"
+        />
+      )}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
         {/* شريط اختيار نوع البيانات + تحميل النموذج الاسترشادي */}
@@ -842,60 +853,6 @@ export function ImportCarriersModal({
           </div>
         )}
 
-        {/* أزرار الإجراءات */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '8px',
-            borderTop: '1px solid #e2e8f0',
-            paddingTop: '12px',
-          }}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#475569',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            إلغاء
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExecuteImport}
-            disabled={validItems.length === 0 || importing}
-            style={{
-              padding: '8px 20px',
-              borderRadius: '8px',
-              border: 'none',
-              background: validItems.length === 0 || importing ? '#94a3b8' : '#170e5e',
-              color: '#ffffff',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              cursor: validItems.length === 0 || importing ? 'not-allowed' : 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: validItems.length > 0 ? '0 2px 4px rgba(23, 14, 94, 0.2)' : 'none',
-            }}
-          >
-            <AppIcons.Check size={15} />
-            <span>
-              {importing
-                ? 'جاري الاستيراد...'
-                : `تأكيد واستيراد (${validItems.length}) سجل`}
-            </span>
-          </button>
-        </div>
       </div>
     </StandardDialog>
   );

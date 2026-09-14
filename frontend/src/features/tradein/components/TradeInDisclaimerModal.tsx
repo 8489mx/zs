@@ -1,7 +1,8 @@
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-﻿import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
+import { PrinterIcon } from '@/shared/components/icons/AppIcons';
 import { buildCode128Svg } from '@/lib/barcode';
 import { escapeHtml, printHtmlDocument } from '@/lib/browser';
 import type { TradeInTransaction } from '@/types/domain-models/tradein';
@@ -105,33 +106,49 @@ export function TradeInDisclaimerModal({ open, transaction, settings, onClose }:
   const dateFormatted = new Date(transaction.createdAt).toLocaleDateString('ar-EG');
 
   return (
-    <DialogShell open={open} onClose={onClose} ariaLabel="عقد وإقرار بيع وتنازل عن جهاز">
-      <div className="page-stack" dir="rtl" style={{ gap: '16px', maxWidth: '540px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700 }}>عقد وإقرار بيع وتنازل عن جهاز</h3>
-          <Button variant="primary" onClick={handlePrint}>
-            طباعة الإقرار
-          </Button>
-        </div>
-
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title="عقد وإقرار بيع وتنازل عن جهاز"
+      subtitle={`رقم العملية: ${transaction.docNo} • التاريخ: ${dateFormatted}`}
+      badge="استبدال وشراء أجهزة"
+      width="min(680px, 95vw)"
+      footerActions={
+        <StandardDialogFooter
+          onClose={onClose}
+          cancelText="إغلاق"
+          extraActions={
+            <Button
+              variant="primary"
+              onClick={handlePrint}
+              style={{ backgroundColor: '#170e5e', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <PrinterIcon size={15} />
+              <span>طباعة الإقرار</span>
+            </Button>
+          }
+        />
+      }
+    >
+      <div className="page-stack" dir="rtl" style={{ gap: '14px', maxWidth: '580px', margin: '0 auto' }}>
         {/* Preview card shown in modal */}
-        <div style={{ background: '#fff', border: '1px solid #94a3b8', borderRadius: '8px', padding: '20px', fontSize: '0.875rem', lineHeight: 1.6, color: '#0f172a' }}>
+        <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '18px', fontSize: '0.875rem', lineHeight: 1.6, color: '#0f172a' }}>
           <div style={{ textAlign: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '10px', marginBottom: '14px' }}>
-            <h2 style={{ margin: '0 0 4px', fontSize: '1.3rem', fontWeight: 800 }}>{settings?.storeName || 'متجر الإلكترونيات'}</h2>
-            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>إقرار وتعهد بيع وتنازل عن جهاز وإخلاء مسؤولية أمنية</div>
+            <h2 style={{ margin: '0 0 4px', fontSize: '1.25rem', fontWeight: 800 }}>{settings?.storeName || 'متجر الإلكترونيات'}</h2>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>إقرار وتعهد بيع وتنازل عن جهاز وإخلاء مسؤولية أمنية</div>
             <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>رقم العملية: {transaction.docNo} • التاريخ: {dateFormatted}</div>
           </div>
           <div style={{ textAlign: 'center', marginBottom: '12px' }}>
             <div dangerouslySetInnerHTML={{ __html: barcodeSvg }} style={{ height: '40px', margin: '0 auto' }} />
           </div>
-          <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
+          <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
             <p style={{ margin: 0 }}>
               أقر أنا الموقع أدناه / <strong>{transaction.sellerName}</strong><br />
               بطاقة رقم قومي: <strong dir="ltr">{transaction.sellerNationalId}</strong><br />
               رقم الهاتف: <strong dir="ltr">{transaction.sellerPhone}</strong>
             </p>
           </div>
-          <div style={{ background: '#f1f5f9', padding: '10px', borderRadius: '6px', marginBottom: '14px' }}>
+          <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '8px', marginBottom: '14px' }}>
             <div>• الجهاز: <strong>{transaction.deviceBrand ? `${transaction.deviceBrand} ` : ''}{transaction.deviceModel}</strong></div>
             <div>• {profile.serialLabel}: <strong dir="ltr">{transaction.serialNumber}</strong></div>
             <div>• السعر المتفق عليه: <strong>{Number(transaction.agreedPurchasePrice).toFixed(2)} <CurrencySymbol /></strong></div>
@@ -141,11 +158,7 @@ export function TradeInDisclaimerModal({ open, transaction, settings, onClose }:
             <div><strong>توقيع المستلم</strong><br /><br />الاسم: .............<br />الختم: .............</div>
           </div>
         </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-          <Button variant="secondary" onClick={onClose}>إغلاق</Button>
-        </div>
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }

@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, type CSSProperties } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { Button } from '@/shared/ui/button';
@@ -18,6 +18,7 @@ export interface StandardDialogProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | string;
   zIndex?: number;
   ariaLabel?: string;
+  badge?: ReactNode;
   footerActions?: ReactNode;
   footer?: ReactNode;
   loading?: boolean;
@@ -40,6 +41,7 @@ export function StandardDialog({
   onClose,
   title,
   subtitle,
+  badge,
   children,
   width,
   maxWidth,
@@ -106,7 +108,14 @@ export function StandardDialog({
         {/* Header */}
         <div className="standard-dialog-header">
           <div className="standard-dialog-header-info">
-            <h3 className="standard-dialog-title">{title}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 className="standard-dialog-title">{title}</h3>
+              {badge && (
+                <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#1e40af', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                  {badge}
+                </span>
+              )}
+            </div>
             {subtitle && <p className="standard-dialog-subtitle">{subtitle}</p>}
           </div>
           <button
@@ -184,50 +193,101 @@ export function StandardDialog({
  * StandardDialogFooter - تذييل قياسي لأزرار الحفظ والإلغاء
  */
 export interface StandardDialogFooterProps {
-  onCancel: () => void;
-  onSubmit?: () => void;
-  onConfirm?: () => void;
+  children?: ReactNode;
+  style?: CSSProperties;
+  className?: string;
+  onCancel?: () => void;
+  onClose?: () => void;
+  onSubmit?: (e?: any) => void | Promise<void>;
+  onConfirm?: (e?: any) => void | Promise<void>;
   cancelText?: string;
+  cancelLabel?: string;
+  closeLabel?: string;
   submitText?: string;
+  submitLabel?: string;
   confirmText?: string;
+  confirmLabel?: string;
+  primaryLabel?: string;
+  onPrimary?: (e?: any) => void | Promise<void>;
   isSubmitting?: boolean;
+  isPending?: boolean;
+  isPrimaryLoading?: boolean;
+  loadingText?: string;
   submitDisabled?: boolean;
+  disabled?: boolean;
+  isPrimaryDisabled?: boolean;
   extraActions?: ReactNode;
+  primaryButton?: {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+    variant?: string;
+  };
 }
 
 export function StandardDialogFooter({
   onCancel,
+  onClose,
   onSubmit,
   onConfirm,
-  cancelText = 'إلغاء',
+  onPrimary,
+  cancelText,
+  cancelLabel,
+  closeLabel,
   submitText,
+  submitLabel,
   confirmText,
+  confirmLabel,
+  primaryLabel,
   isSubmitting = false,
+  isPending = false,
+  isPrimaryLoading = false,
+  loadingText = 'جاري الحفظ...',
   submitDisabled = false,
+  disabled = false,
+  isPrimaryDisabled = false,
   extraActions,
+  primaryButton,
+  children,
+  style,
+  className,
 }: StandardDialogFooterProps) {
-  const handleSubmit = onSubmit || onConfirm;
-  const resolvedSubmitText = confirmText || submitText || 'حفظ التغييرات';
+  if (children) {
+    return (
+      <div className={`standard-dialog-footer ${className || ''}`.trim()} style={style}>
+        {children}
+      </div>
+    );
+  }
+
+  const handleCancel = onCancel || onClose;
+  const handleSubmit = onSubmit || onConfirm || onPrimary || primaryButton?.onClick;
+  const resolvedCancelText = cancelText || cancelLabel || closeLabel || 'إلغاء';
+  const resolvedSubmitText = confirmText || confirmLabel || submitText || submitLabel || primaryLabel || primaryButton?.label || 'حفظ التغييرات';
+  const resolvedIsSubmitting = isSubmitting || isPending || isPrimaryLoading;
+  const resolvedSubmitDisabled = submitDisabled || disabled || isPrimaryDisabled || Boolean(primaryButton?.disabled);
 
   return (
-    <div className="standard-dialog-footer">
+    <div className={`standard-dialog-footer ${className || ''}`.trim()} style={style}>
       {extraActions}
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={onCancel}
-        disabled={isSubmitting}
-      >
-        {cancelText}
-      </Button>
+      {handleCancel && (
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={handleCancel}
+          disabled={resolvedIsSubmitting}
+        >
+          {resolvedCancelText}
+        </Button>
+      )}
       {handleSubmit && (
         <Button
           type="button"
-          variant="primary"
+          variant={(primaryButton?.variant as any) || 'primary'}
           onClick={handleSubmit}
-          disabled={submitDisabled || isSubmitting}
+          disabled={resolvedSubmitDisabled || resolvedIsSubmitting}
         >
-          {isSubmitting ? 'جاري الحفظ...' : resolvedSubmitText}
+          {resolvedIsSubmitting ? loadingText : resolvedSubmitText}
         </Button>
       )}
     </div>

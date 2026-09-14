@@ -5,10 +5,17 @@ import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { pharmacyApi } from '@/features/pharmacy/api/pharmacy.api';
 import type { PharmacyBatch } from '@/features/pharmacy/types/pharmacy.types';
-import { PackageIcon, PlusIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { PackageIcon, PlusIcon } from '@/shared/components/icons/AppIcons';
+
+const BATCH_STATUS_OPTIONS = [
+  { value: 'active', label: 'صالحة ونشطة' },
+  { value: 'near_expiry', label: 'وشيكة الانتهاء' },
+  { value: 'expired', label: 'منتهية الصلاحية' },
+  { value: 'returned', label: 'مرتجعة للشركة' },
+];
 
 export function InventoryBatchesPage() {
   const queryClient = useQueryClient();
@@ -256,149 +263,131 @@ export function InventoryBatchesPage() {
       </section>
 
         {/* Add/Edit Modal */}
-        <DialogShell
+        <StandardDialog
           open={Boolean(modalOpen && editingBatch)}
           onClose={() => setModalOpen(false)}
+          title={editingBatch?.id ? `تعديل التشغيلة #${editingBatch.batch_number}` : 'إضافة تشغيلة جديدة للمستودع'}
+          subtitle="تحديد رقم التشغيلة وتاريخ انتهاء الصلاحية والكميات المستودعية"
           size="md"
+          footerActions={
+            <StandardDialogFooter
+              onCancel={() => setModalOpen(false)}
+              cancelLabel="إلغاء"
+              primaryLabel={upsertMutation.isPending ? 'جاري الحفظ...' : 'حفظ بيانات التشغيلة'}
+              onPrimary={() => {
+                const form = document.getElementById('batch-form') as HTMLFormElement | null;
+                if (form) form.requestSubmit();
+              }}
+              isPrimaryLoading={upsertMutation.isPending}
+              isPrimaryDisabled={upsertMutation.isPending}
+            />
+          }
         >
           {editingBatch && (
-            <>
-              <div className="standard-dialog-header">
+            <form id="batch-form" onSubmit={handleSave} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <h2 className="standard-dialog-title">
-                    {editingBatch.id ? `تعديل التشغيلة #${editingBatch.batch_number}` : 'إضافة تشغيلة جديدة للمستودع'}
-                  </h2>
-                  <p className="standard-dialog-subtitle">
-                    تحديد رقم التشغيلة وتاريخ انتهاء الصلاحية والكميات المستودعية
-                  </p>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                    رقم التشغيلة (Batch / Lot No) *
+                  </label>
+                  <input
+                    value={editingBatch.batch_number || ''}
+                    onChange={(e) => setEditingBatch((prev) => ({ ...prev, batch_number: e.target.value.toUpperCase() }))}
+                    placeholder="مثال: LOT-2026-X1"
+                    dir="ltr"
+                    required
+                    style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
+                  />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="standard-dialog-close-btn"
-                  aria-label="إغلاق"
-                >
-                  <XIcon size={18} />
-                </button>
-              </div>
-              <form onSubmit={handleSave} dir="rtl" className="standard-dialog-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      رقم التشغيلة (Batch / Lot No) *
-                    </label>
-                    <input
-                      value={editingBatch.batch_number || ''}
-                      onChange={(e) => setEditingBatch((prev) => ({ ...prev, batch_number: e.target.value.toUpperCase() }))}
-                      placeholder="مثال: LOT-2026-X1"
-                      dir="ltr"
-                      required
-                      style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      تاريخ الصلاحية (YYYY-MM أو YYYY-MM-DD) *
-                    </label>
-                    <input
-                      value={editingBatch.expiry_date || ''}
-                      onChange={(e) => setEditingBatch((prev) => ({ ...prev, expiry_date: e.target.value }))}
-                      placeholder="YYYY-MM"
-                      dir="ltr"
-                      required
-                      style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                      <button type="button" onClick={() => handleSetQuickExpiry(3)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>+3 أشهر</button>
-                      <button type="button" onClick={() => handleSetQuickExpiry(6)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>+6 أشهر</button>
-                      <button type="button" onClick={() => handleSetQuickExpiry(12)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>+سنة</button>
-                      <button type="button" onClick={() => handleSetQuickExpiry(24)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>+سنتين</button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      الكمية الرصيد *
-                    </label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      min="0"
-                      value={editingBatch.quantity ?? 1}
-                      onChange={(e) => setEditingBatch((prev) => ({ ...prev, quantity: Number(e.target.value) }))}
-                      required
-                      style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      تكلفة الوحدة (Unit Cost)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={editingBatch.unit_cost ?? 0}
-                      onChange={(e) => setEditingBatch((prev) => ({ ...prev, unit_cost: Number(e.target.value) }))}
-                      style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      المورد / جهة التوريد
-                    </label>
-                    <input
-                      value={editingBatch.supplier_name || ''}
-                      onChange={(e) => setEditingBatch((prev) => ({ ...prev, supplier_name: e.target.value }))}
-                      placeholder="اسم المورد أو شركة التوزيع"
-                      style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      الحالة
-                    </label>
-                    <select
-                      value={editingBatch.status || 'active'}
-                      onChange={(e) => setEditingBatch((prev) => ({ ...prev, status: e.target.value as any }))}
-                      style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
-                    >
-                      <option value="active">صالحة ونشطة</option>
-                      <option value="near_expiry">وشيكة الانتهاء</option>
-                      <option value="expired">منتهية الصلاحية</option>
-                      <option value="returned">مرتجعة للشركة</option>
-                    </select>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                    تاريخ الصلاحية (YYYY-MM أو YYYY-MM-DD) *
+                  </label>
+                  <input
+                    value={editingBatch.expiry_date || ''}
+                    onChange={(e) => setEditingBatch((prev) => ({ ...prev, expiry_date: e.target.value }))}
+                    placeholder="YYYY-MM"
+                    dir="ltr"
+                    required
+                    style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
+                  />
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                    <button type="button" onClick={() => handleSetQuickExpiry(3)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>+3 أشهر</button>
+                    <button type="button" onClick={() => handleSetQuickExpiry(6)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>+6 أشهر</button>
+                    <button type="button" onClick={() => handleSetQuickExpiry(12)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>+سنة</button>
+                    <button type="button" onClick={() => handleSetQuickExpiry(24)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>+سنتين</button>
                   </div>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    ملاحظات
+                    الكمية الرصيد *
                   </label>
                   <input
-                    value={editingBatch.notes || ''}
-                    onChange={(e) => setEditingBatch((prev) => ({ ...prev, notes: e.target.value }))}
-                    placeholder="أي ملاحظات إضافية حول التشغيلة..."
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={editingBatch.quantity ?? 1}
+                    onChange={(e) => setEditingBatch((prev) => ({ ...prev, quantity: Number(e.target.value) }))}
+                    required
                     style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
                   />
                 </div>
 
-                <div className="standard-dialog-footer" style={{ marginTop: '12px' }}>
-                  <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
-                    إلغاء
-                  </Button>
-                  <Button type="submit" disabled={upsertMutation.isPending} style={{ background: '#170e5e', color: '#ffffff' }}>
-                    {upsertMutation.isPending ? 'جاري الحفظ...' : 'حفظ بيانات التشغيلة'}
-                  </Button>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                    تكلفة الوحدة (Unit Cost)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editingBatch.unit_cost ?? 0}
+                    onChange={(e) => setEditingBatch((prev) => ({ ...prev, unit_cost: Number(e.target.value) }))}
+                    style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
+                  />
                 </div>
-              </form>
-            </>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                    المورد / جهة التوريد
+                  </label>
+                  <input
+                    value={editingBatch.supplier_name || ''}
+                    onChange={(e) => setEditingBatch((prev) => ({ ...prev, supplier_name: e.target.value }))}
+                    placeholder="اسم المورد أو شركة التوزيع"
+                    style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                    الحالة
+                  </label>
+                  <CustomSelect
+                    value={editingBatch.status || 'active'}
+                    onChange={(val) => setEditingBatch((prev) => ({ ...prev, status: val as any }))}
+                    options={BATCH_STATUS_OPTIONS}
+                    placeholder="اختر حالة التشغيلة"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                  ملاحظات
+                </label>
+                <input
+                  value={editingBatch.notes || ''}
+                  onChange={(e) => setEditingBatch((prev) => ({ ...prev, notes: e.target.value }))}
+                  placeholder="أي ملاحظات إضافية حول التشغيلة..."
+                  style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
+                />
+              </div>
+            </form>
           )}
-        </DialogShell>
+        </StandardDialog>
       </main>
     </div>
   );

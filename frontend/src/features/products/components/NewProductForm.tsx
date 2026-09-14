@@ -497,8 +497,8 @@ export function NewProductForm({
             </div>
           </div>
 
-          {/* Row 1: Full-Width Product Name */}
-          <div style={{ marginBottom: '0.85rem' }}>
+          {/* Row 1: Product Name, Item Type & Barcode (3 balanced columns on one line) */}
+          <div className="product-form-grid-3" style={{ marginBottom: '0.85rem' }}>
             <ProductNameField
               label={usesVariantBuilder ? 'اسم الصنف الأساسي' : 'اسم الصنف'}
               value={watchedName || ''}
@@ -522,10 +522,7 @@ export function NewProductForm({
                 />
               }
             />
-          </div>
 
-          {/* Row 2: Item Type & Barcode (2 balanced columns) */}
-          <div className="product-form-grid-2" style={{ marginBottom: '0.85rem' }}>
             <Field label="نوع الصنف">
               <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
                 <option value="product">منتج تام للبيع (مخزني)</option>

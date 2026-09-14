@@ -5,6 +5,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AccountingService } from '../../accounting/accounting.service';
 import { KYSELY_DB } from '../../../database/database.constants';
+import { getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
 
 export interface SettlementCalculateInput {
   employeeId: number;
@@ -235,15 +236,16 @@ export class EndOfServiceService {
     // Calculate full breakdown
     const calc = await this.calculateSettlementPreview(dto, auth);
 
-    // Generate settlement number: EOS-YYYY-XXXX
-    const currentYear = new Date().getFullYear();
+    // Generate settlement number: EOS-YYMMDD-XXXX
+    const prefix = getDailyDocumentPrefix('EOS');
     const countRes = await (this.db as any)
       .selectFrom('hr_end_of_service_settlements')
       .select(sql<number>`COUNT(*)::int`.as('count'))
       .where('tenant_id', '=', tenantId)
+      .where('settlement_no', 'like', `${prefix}%`)
       .executeTakeFirst();
     const seq = ((countRes?.count || 0) + 1).toString().padStart(4, '0');
-    const settlementNo = `EOS-${currentYear}-${seq}`;
+    const settlementNo = `${prefix}${seq}`;
 
     // Insert record
     const [inserted] = await (this.db as any)

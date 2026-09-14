@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { customersApi } from '@/shared/api/customers.api';
-import { XIcon } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 import type { Customer } from '@/types/domain';
 
 interface CustomerLoyaltyModalProps {
@@ -34,10 +35,10 @@ export function CustomerLoyaltyModal({ customer, onClose }: CustomerLoyaltyModal
       queryClient.invalidateQueries({ queryKey: ['customer-loyalty-history', customer?.id] });
       refetch();
       setNotes('');
-      alert('تم تحديث رصيد نقاط الولاء بنجاح!');
+      toast.success('تم تحديث رصيد نقاط الولاء بنجاح.');
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل تحديث النقاط');
+      toast.error(err?.message || 'فشل تحديث النقاط');
     },
   });
 
@@ -49,74 +50,74 @@ export function CustomerLoyaltyModal({ customer, onClose }: CustomerLoyaltyModal
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (pointsChange <= 0) {
-      alert('يرجى تحديد عدد نقاط صحيح');
+      toast.warning('يرجى تحديد عدد نقاط صحيح أكبر من صفر.');
       return;
     }
     adjustMutation.mutate();
   };
 
   return (
-    <DialogShell open={Boolean(customer)} onClose={onClose} ariaLabel={`نقاط الولاء - ${customer.name}`} width="640px">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px 20px' }} dir="rtl">
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-              رصيد نقاط الولاء: {customer.name}
-            </h3>
-            <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>
-              إدارة وتعديل رصيد النقاط واستعراض سجل الحركات المكتسبة والمستبدلة.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ background: 'transparent', border: 'none', fontSize: '18px', color: '#64748b', cursor: 'pointer', padding: '4px 8px' }}
-          >
-            <XIcon size={16} />
-          </button>
-        </div>
-
-        {/* Summary Stats Grid */}
+    <StandardDialog
+      open={Boolean(customer)}
+      onClose={onClose}
+      title={`رصيد نقاط الولاء: ${customer.name}`}
+      subtitle="إدارة وتعديل رصيد النقاط واستعراض سجل الحركات المكتسبة والمستبدلة"
+      width="min(680px, 95vw)"
+      minHeight="auto"
+      footerActions={(
+        <StandardDialogFooter
+          onCancel={onClose}
+          cancelText="إغلاق"
+        />
+      )}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
+        
+        {/* Section 1: Summary Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 12px' }}>
-            <div style={{ fontSize: '11px', color: '#166534', fontWeight: 700 }}>إجمالي النقاط المكتسبة</div>
-            <div style={{ fontSize: '18px', fontWeight: 900, color: '#15803d', marginTop: '2px' }}>
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px' }}>
+            <div style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 700 }}>إجمالي النقاط المكتسبة</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#15803d', marginTop: '3px' }}>
               +{logs.filter((l: any) => Number(l.points_change) > 0).reduce((s: number, l: any) => s + Number(l.points_change), 0).toLocaleString()}
             </div>
           </div>
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 12px' }}>
-            <div style={{ fontSize: '11px', color: '#991b1b', fontWeight: 700 }}>إجمالي النقاط المستبدلة</div>
-            <div style={{ fontSize: '18px', fontWeight: 900, color: '#b91c1c', marginTop: '2px' }}>
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 14px' }}>
+            <div style={{ fontSize: '0.75rem', color: '#991b1b', fontWeight: 700 }}>إجمالي النقاط المستبدلة</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#b91c1c', marginTop: '3px' }}>
               {logs.filter((l: any) => l.action_type === 'redeem').reduce((s: number, l: any) => s + Math.abs(Number(l.points_change)), 0).toLocaleString()}
             </div>
           </div>
-          <div style={{ background: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: '8px', padding: '10px 12px' }}>
-            <div style={{ fontSize: '11px', color: '#9d174d', fontWeight: 700 }}>الرصيد الفعلي المتاح</div>
-            <div style={{ fontSize: '18px', fontWeight: 900, color: '#be185d', marginTop: '2px' }}>
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '10px 14px' }}>
+            <div style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: 700 }}>الرصيد الفعلي المتاح</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1d4ed8', marginTop: '3px' }}>
               {currentBalance.toLocaleString()} نقطة
             </div>
           </div>
         </div>
 
-        {/* Adjust Form */}
-        <form onSubmit={handleSubmit} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>إضافة أو خصم نقاط يدوياً:</div>
+        {/* Section 2: Adjust Form */}
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.TrendingUp size={15} />
+            <span>إضافة أو خصم نقاط يدوياً (Manual Points Adjustment)</span>
+          </div>
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '6px' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '4px' }}>
               <button
                 type="button"
                 onClick={() => setIsDeduction(false)}
                 style={{
-                  padding: '6px 12px',
+                  height: '33px',
+                  padding: '0 12px',
                   borderRadius: '6px',
-                  fontSize: '12px',
+                  fontSize: '0.78rem',
                   fontWeight: 800,
                   border: 'none',
                   cursor: 'pointer',
                   background: !isDeduction ? '#166534' : '#e2e8f0',
                   color: !isDeduction ? '#ffffff' : '#475569',
+                  transition: 'background 0.15s',
                 }}
               >
                 + إضافة نقاط
@@ -125,14 +126,16 @@ export function CustomerLoyaltyModal({ customer, onClose }: CustomerLoyaltyModal
                 type="button"
                 onClick={() => setIsDeduction(true)}
                 style={{
-                  padding: '6px 12px',
+                  height: '33px',
+                  padding: '0 12px',
                   borderRadius: '6px',
-                  fontSize: '12px',
+                  fontSize: '0.78rem',
                   fontWeight: 800,
                   border: 'none',
                   cursor: 'pointer',
                   background: isDeduction ? '#b91c1c' : '#e2e8f0',
                   color: isDeduction ? '#ffffff' : '#475569',
+                  transition: 'background 0.15s',
                 }}
               >
                 - خصم نقاط
@@ -144,42 +147,75 @@ export function CustomerLoyaltyModal({ customer, onClose }: CustomerLoyaltyModal
               min="1"
               value={pointsChange}
               onChange={(e) => setPointsChange(Math.max(1, Number(e.target.value)))}
-              style={{ width: '100px', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px' }}
+              style={{
+                width: '90px',
+                height: '33px',
+                padding: '0 10px',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                textAlign: 'center',
+                boxSizing: 'border-box',
+              }}
             />
 
             <input
               type="text"
-              placeholder="السبب أو الملاحظة (اختياري)..."
+              placeholder="سبب العملية أو الملاحظة..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              style={{ flex: 1, padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px' }}
+              style={{
+                flex: '1 1 180px',
+                height: '33px',
+                padding: '0 10px',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                fontSize: '0.8125rem',
+                boxSizing: 'border-box',
+              }}
             />
 
-            <Button variant="primary" type="submit" disabled={adjustMutation.isPending} style={{ background: isDeduction ? '#b91c1c' : '#166534' }}>
-              {adjustMutation.isPending ? '...' : 'تنفيذ'}
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={adjustMutation.isPending}
+              style={{
+                height: '33px',
+                background: isDeduction ? '#b91c1c' : '#166534',
+                borderColor: isDeduction ? '#991b1b' : '#15803d',
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                padding: '0 16px',
+              }}
+            >
+              {adjustMutation.isPending ? 'جاري التنفيذ...' : 'تنفيذ العملية'}
             </Button>
-          </div>
-        </form>
+          </form>
+        </div>
 
-        {/* History Table */}
-        <div>
-          <div style={{ fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>سجل حركات النقاط:</div>
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', maxHeight: '200px', overflowY: 'auto' }}>
+        {/* Section 3: History Table */}
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+          <div style={{ padding: '8px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
+            <AppIcons.Clock size={14} />
+            <span>سجل حركات ونقاط العميل (Transaction History)</span>
+          </div>
+          <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
             {isLoading ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>جاري التحميل...</div>
+              <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '0.8125rem' }}>جاري التحميل...</div>
             ) : logs.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '12.5px' }}>
+              <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8125rem' }}>
                 لا توجد حركات نقاط سابقة لهذا العميل.
               </div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right', position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
-                    <th style={{ padding: '6px 10px' }}>التاريخ</th>
-                    <th style={{ padding: '6px 10px' }}>النوع</th>
-                    <th style={{ padding: '6px 10px' }}>الحركة</th>
-                    <th style={{ padding: '6px 10px' }}>الرصيد بعد</th>
-                    <th style={{ padding: '6px 10px' }}>الملاحظات</th>
+                    <th style={{ padding: '7px 12px' }}>التاريخ</th>
+                    <th style={{ padding: '7px 12px' }}>نوع الحركة</th>
+                    <th style={{ padding: '7px 12px' }}>عدد النقاط</th>
+                    <th style={{ padding: '7px 12px' }}>الرصيد بعد</th>
+                    <th style={{ padding: '7px 12px' }}>الملاحظات</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -187,31 +223,31 @@ export function CustomerLoyaltyModal({ customer, onClose }: CustomerLoyaltyModal
                     const actionBadge = (() => {
                       switch (log.action_type) {
                         case 'earn':
-                          return <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>اكتساب مشتريات</span>;
+                          return <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>اكتساب مشتريات</span>;
                         case 'redeem':
-                          return <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>استبدال بخصم</span>;
+                          return <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>استبدال بخصم</span>;
                         case 'return_clawback':
-                          return <span style={{ background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>خصم لمرتجع</span>;
+                          return <span style={{ background: '#fef3c7', color: '#b45309', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>خصم لمرتجع</span>;
                         case 'return_refund':
-                          return <span style={{ background: '#e0e7ff', color: '#4338ca', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>رد نقاط مرتجع</span>;
+                          return <span style={{ background: '#e0e7ff', color: '#4338ca', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>رد نقاط مرتجع</span>;
                         default:
-                          return <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>تعديل يدوي</span>;
+                          return <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>تعديل يدوي</span>;
                       }
                     })();
 
                     return (
                       <tr key={log.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '6px 10px', color: '#64748b' }}>
+                        <td style={{ padding: '7px 12px', color: '#64748b' }}>
                           {new Date(log.created_at).toLocaleDateString('ar-EG')}
                         </td>
-                        <td style={{ padding: '6px 10px' }}>
+                        <td style={{ padding: '7px 12px' }}>
                           {actionBadge}
                         </td>
-                        <td style={{ padding: '6px 10px', fontWeight: 800, color: Number(log.points_change) > 0 ? '#166534' : '#b91c1c' }}>
+                        <td style={{ padding: '7px 12px', fontWeight: 800, color: Number(log.points_change) > 0 ? '#166534' : '#b91c1c' }}>
                           {Number(log.points_change) > 0 ? `+${log.points_change}` : log.points_change}
                         </td>
-                        <td style={{ padding: '6px 10px', fontWeight: 700 }}>{log.balance_after}</td>
-                        <td style={{ padding: '6px 10px', color: '#64748b' }}>{log.notes || '-'}</td>
+                        <td style={{ padding: '7px 12px', fontWeight: 700, color: '#170e5e' }}>{log.balance_after}</td>
+                        <td style={{ padding: '7px 12px', color: '#64748b' }}>{log.notes || '—'}</td>
                       </tr>
                     );
                   })}
@@ -221,13 +257,7 @@ export function CustomerLoyaltyModal({ customer, onClose }: CustomerLoyaltyModal
           </div>
         </div>
 
-        {/* Close Button */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-          <Button variant="secondary" onClick={onClose}>
-            إغلاق
-          </Button>
-        </div>
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }

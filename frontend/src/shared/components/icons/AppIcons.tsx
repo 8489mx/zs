@@ -29,6 +29,26 @@ export function PackageIcon({ size = 18, color = 'currentColor', strokeWidth = 2
   );
 }
 
+export const BoxesIcon = PackageIcon;
+
+export function FolderIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+    </svg>
+  );
+}
+
+export function InfoIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
+
 export function ReceiptIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
@@ -961,6 +981,10 @@ export const AppIcons = {
   Trash: TrashIcon,
   Box: PackageIcon,
   Package: PackageIcon,
+  Filter: FilterIcon,
+  XCircle: XCircleIcon,
+  Folder: FolderIcon,
+  Info: InfoIcon,
   Barcode: BarcodeIcon,
   Refresh: RefreshCwIcon,
   RefreshCw: RefreshCwIcon,

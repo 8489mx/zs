@@ -1,5 +1,4 @@
-import { Button } from '@/shared/ui/button';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { formatCurrency } from '@/lib/format';
 
 interface SmartReorderConfirmModalProps {
@@ -30,22 +29,24 @@ export function SmartReorderConfirmModal({
   onExecute,
 }: SmartReorderConfirmModalProps) {
   return (
-    <DialogShell
+    <StandardDialog
       open={open}
       onClose={onClose}
-      width="min(560px, 95vw)"
-      ariaLabel="تأكيد توليد مسودات أوامر الشراء"
-      showCloseButton={true}
+      title="تأكيد توليد مسودات أوامر الشراء"
+      subtitle="سيتم إنشاء أوامر شراء مسودة (Draft POs) مجمعة تلقائياً في سجل المشتريات دون التأثير على رصيد المخزون حتى يتم الاستلام الفعلي."
+      maxWidth="560px"
+      footerActions={
+        <StandardDialogFooter
+          onCancel={onClose}
+          cancelLabel="إلغاء"
+          onSubmit={onExecute}
+          submitLabel={isPending ? 'جاري الإنشاء...' : 'نعم، توليد أوامر الشراء'}
+          isSubmitting={isPending}
+          submitDisabled={isPending || ordersCount === 0}
+        />
+      }
     >
-      <div className="dialog-card" style={{ padding: '24px', direction: 'rtl' }}>
-        <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b', marginBottom: '12px' }}>
-          تأكيد توليد مسودات أوامر الشراء
-        </h3>
-        <p style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.6', marginBottom: '16px' }}>
-          سيتم إنشاء أوامر شراء مسودة (Draft POs) مجمعة تلقائياً في سجل المشتريات.
-          <strong> لن يتم التأثير على رصيد المخزون </strong> حتى تقوم باعتماد الاستلام المخزني الفعلي.
-        </p>
-
+      <div style={{ direction: 'rtl' }}>
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
             <span style={{ fontSize: '13px', color: '#64748b' }}>عدد أوامر الشراء المستهدفة:</span>
@@ -75,6 +76,7 @@ export function SmartReorderConfirmModal({
               borderRadius: '8px',
               border: '1px solid #cbd5e1',
               fontSize: '13px',
+              boxSizing: 'border-box',
             }}
           />
         </div>
@@ -84,21 +86,7 @@ export function SmartReorderConfirmModal({
             {errorMessage || 'فشل توليد أوامر الشراء'}
           </div>
         ) : null}
-
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-          <Button variant="secondary" onClick={onClose} disabled={isPending}>
-            إلغاء
-          </Button>
-          <Button
-            variant="primary"
-            style={{ backgroundColor: '#170e5e', borderColor: '#170e5e', color: '#ffffff', fontWeight: 600 }}
-            onClick={onExecute}
-            disabled={isPending || ordersCount === 0}
-          >
-            {isPending ? 'جاري الإنشاء...' : 'نعم، توليد أوامر الشراء'}
-          </Button>
-        </div>
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }
