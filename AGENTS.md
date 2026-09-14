@@ -53,4 +53,10 @@
 - For mandatory confirmations, exclusively use `await systemConfirm(...)`, `systemAlert`, or `StandardDialog` / `ActionConfirmDialog`.
 - Global interceptor shield in `SystemAlertProvider` automatically captures and upgrades any legacy alerts into modern toasts.
 
+## 9. Strict Migration Sequence & Dynamic Auto-Detection Standard
+- **Mandatory Folder Scan:** AI agents MUST NEVER guess migration numbers from memory or prior session state.
+- Before creating any migration in `backend/src/database/migrations`, you MUST inspect the disk to discover the actual highest numerical prefix among all existing `.ts` migration files.
+- The new migration file MUST be numbered strictly as `(Highest + 1)`.
+- Kysely sorts migrations alphabetically; never duplicate a prefix or insert a migration alphabetically before an already executed one.
+
 

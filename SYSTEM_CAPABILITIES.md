@@ -3892,7 +3892,7 @@
 ### 119. إغلاق الثغرات التشغيلية والمالية لموديول المقاولات وإدارة المشاريع (Construction Lifecycle Loophole Closure & Real-world Workflows)
 * **حالة الوحدة العامة:** 🟢 مكتمل 100% (Production Ready) ومطابق لمعايير Z-Systems البصرية و 0 Emojis وحظر النوافذ والتنبيهات البدائية.
 * **مسارات وملفات التنفيذ الأساسية:**
-  - `backend/src/database/migrations/2040000000087_contracting_wir_and_handover_workflows.ts`: إنشاء جداول ضبط الجودة والفحص `contracting_inspection_requests`، قائمة الملاحظات والتسليمات `contracting_snag_items`، ومحاضر الاستلام `contracting_project_handovers`، وتوسيع جدول الفواتير `contracting_invoices` بحقل `subcontract_id`.
+  - `backend/src/database/migrations/2040000000092_contracting_wir_and_handover_workflows.ts`: إنشاء جداول ضبط الجودة والفحص `contracting_inspection_requests`، قائمة الملاحظات والتسليمات `contracting_snag_items`، ومحاضر الاستلام `contracting_project_handovers`، وتوسيع جدول الفواتير `contracting_invoices` بحقل `subcontract_id`.
   - `backend/src/database/database.types.ts`: إضافة الواجهات الصارمة لجداول الفحص والملاحظات والاستلام وتوسيع جدول مستخلصات وفواتير المقاولات.
   - `backend/src/modules/contracting/contracting.types.ts`: تعريف النماذج البرمجية لـ `ContractingInspectionRequest`, `ContractingSnagItem`, `ContractingProjectHandover`, و `ContractingProjectCostBreakdown`.
   - `backend/src/modules/contracting/dto/contracting.dto.ts`: إضافة الـ DTOs للتحقق من طلبات الفحص وتحديث حالتها، قائمة الملاحظات وإغلاق العيوب، ومحاضر الاستلام الابتدائي والنهائي، وتحديث `CreateIpcInvoiceDto` لدعم عقود مقاولي الباطن.
