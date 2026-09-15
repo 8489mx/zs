@@ -36,6 +36,7 @@ import {
   CreateGovernmentLicenseDto,
   CreateMasterBoqLibraryItemDto,
   UpdateMasterBoqLibraryItemDto,
+  BatchImportMasterBoqDto,
   ImportMasterBoqToProjectDto,
   SaveBoqTakeoffsDto,
   CreateSiteMobilizationExpenseDto,
@@ -3178,13 +3179,19 @@ export class ContractingService {
       trade_name_ar: string;
       items_count: string;
     }>`
+      WITH scoped_items AS (
+        SELECT DISTINCT ON (item_code)
+          trade_category, trade_name_ar, is_active
+        FROM contracting_master_boq_library
+        WHERE (tenant_id = ${tenantId} OR tenant_id = '')
+        ORDER BY item_code, (CASE WHEN tenant_id = ${tenantId} THEN 1 ELSE 2 END)
+      )
       SELECT 
         trade_category,
         trade_name_ar,
         COUNT(*)::text as items_count
-      FROM contracting_master_boq_library
-      WHERE (tenant_id = ${tenantId} OR tenant_id = '')
-        AND is_active = true
+      FROM scoped_items
+      WHERE is_active = true
       GROUP BY trade_category, trade_name_ar
       ORDER BY trade_category ASC
     `.execute(this.db);
@@ -3196,32 +3203,42 @@ export class ContractingService {
     }));
   }
 
-  async getMasterBoqLibrary(auth: AuthContext, query?: { tradeCategory?: string; search?: string }) {
+  async getMasterBoqLibrary(auth: AuthContext, query?: { tradeCategory?: string; search?: string; status?: string }) {
     const { tenantId } = requireTenantScope(auth);
-    let q = (this.db as any)
-      .selectFrom('contracting_master_boq_library')
-      .selectAll()
-      .where((eb: any) => eb.or([eb('tenant_id', '=', tenantId), eb('tenant_id', '=', '')]))
-      .where('is_active', '=', true);
+    let rawQuery = sql<any>`
+      WITH scoped_items AS (
+        SELECT DISTINCT ON (item_code)
+          id, tenant_id, trade_category, trade_name_ar, item_code, name, description, unit, standard_cost, standard_price, is_active, created_at, updated_at
+        FROM contracting_master_boq_library
+        WHERE (tenant_id = ${tenantId} OR tenant_id = '')
+        ORDER BY item_code, (CASE WHEN tenant_id = ${tenantId} THEN 1 ELSE 2 END)
+      )
+      SELECT * FROM scoped_items
+      WHERE 1=1
+    `;
+
+    if (query?.status === 'active') {
+      rawQuery = sql`${rawQuery} AND is_active = true`;
+    } else if (query?.status === 'inactive') {
+      rawQuery = sql`${rawQuery} AND is_active = false`;
+    } else {
+      // Default: show active items unless specified
+      rawQuery = sql`${rawQuery} AND is_active = true`;
+    }
 
     if (query?.tradeCategory && query.tradeCategory !== 'all') {
-      q = q.where('trade_category', '=', query.tradeCategory);
+      rawQuery = sql`${rawQuery} AND trade_category = ${query.tradeCategory}`;
     }
 
     if (query?.search) {
       const s = `%${query.search.trim()}%`;
-      q = q.where((eb: any) =>
-        eb.or([
-          eb('name', 'ilike', s),
-          eb('item_code', 'ilike', s),
-          eb('description', 'ilike', s),
-          eb('trade_name_ar', 'ilike', s),
-        ])
-      );
+      rawQuery = sql`${rawQuery} AND (name ILIKE ${s} OR item_code ILIKE ${s} OR description ILIKE ${s} OR trade_name_ar ILIKE ${s})`;
     }
 
-    const items = await q.orderBy('trade_category', 'asc').orderBy('item_code', 'asc').execute();
-    return items.map((it: any) => ({
+    rawQuery = sql`${rawQuery} ORDER BY trade_category ASC, item_code ASC`;
+
+    const result = await rawQuery.execute(this.db);
+    return result.rows.map((it: any) => ({
       id: String(it.id),
       tradeCategory: it.trade_category,
       tradeNameAr: it.trade_name_ar,
@@ -3232,7 +3249,7 @@ export class ContractingService {
       standardCost: Number(it.standard_cost || 0),
       standardPrice: Number(it.standard_price || 0),
       isActive: Boolean(it.is_active),
-      isCustom: Boolean(it.tenant_id && it.tenant_id !== ''),
+      isCustom: Boolean(it.tenant_id && it.tenant_id === tenantId),
       createdAt: it.created_at,
     }));
   }
@@ -3270,8 +3287,64 @@ export class ContractingService {
     return inserted;
   }
 
+  async bulkImportMasterBoqItems(auth: AuthContext, dto: BatchImportMasterBoqDto) {
+    const { tenantId } = requireTenantScope(auth);
+    if (!dto.items || dto.items.length === 0) {
+      throw new BadRequestException('لا توجد بنود للاستيراد');
+    }
+
+    let insertedCount = 0;
+    for (const item of dto.items) {
+      if (!item.name || !item.itemCode) continue;
+      await sql`
+        INSERT INTO contracting_master_boq_library (
+          tenant_id, trade_category, trade_name_ar, item_code, name, description, unit, standard_cost, standard_price, is_active
+        ) VALUES (
+          ${tenantId}, 
+          ${item.tradeCategory || 'civil_concrete'}, 
+          ${item.tradeNameAr || 'الأعمال المدنية والخرسانات'}, 
+          ${item.itemCode.trim()}, 
+          ${item.name.trim()}, 
+          ${item.description?.trim() || ''}, 
+          ${item.unit?.trim() || 'm3'}, 
+          ${item.standardCost || 0}, 
+          ${item.standardPrice || 0}, 
+          true
+        )
+        ON CONFLICT (tenant_id, item_code) DO UPDATE SET
+          name = EXCLUDED.name,
+          trade_category = EXCLUDED.trade_category,
+          trade_name_ar = EXCLUDED.trade_name_ar,
+          description = EXCLUDED.description,
+          unit = EXCLUDED.unit,
+          standard_cost = EXCLUDED.standard_cost,
+          standard_price = EXCLUDED.standard_price,
+          is_active = true,
+          updated_at = NOW();
+      `.execute(this.db);
+      insertedCount++;
+    }
+
+    return {
+      success: true,
+      count: insertedCount,
+      message: `تم استيراد وتحديث ${insertedCount} بند في بنك البنود بنجاح`,
+    };
+  }
+
   async updateMasterBoqItem(auth: AuthContext, id: string, dto: UpdateMasterBoqLibraryItemDto) {
     const { tenantId } = requireTenantScope(auth);
+    const item = await (this.db as any)
+      .selectFrom('contracting_master_boq_library')
+      .selectAll()
+      .where('id', '=', id as any)
+      .where((eb: any) => eb.or([eb('tenant_id', '=', tenantId), eb('tenant_id', '=', '')]))
+      .executeTakeFirst();
+
+    if (!item) {
+      throw new NotFoundException(`البند المرجعي برقم ${id} غير موجود`);
+    }
+
     const updates: any = { updated_at: new Date() };
     if (dto.name !== undefined) updates.name = dto.name.trim();
     if (dto.tradeCategory !== undefined) updates.trade_category = dto.tradeCategory.trim();
@@ -3280,33 +3353,124 @@ export class ContractingService {
     if (dto.unit !== undefined) updates.unit = dto.unit.trim();
     if (dto.standardCost !== undefined) updates.standard_cost = dto.standardCost;
     if (dto.standardPrice !== undefined) updates.standard_price = dto.standardPrice;
+    if (dto.isActive !== undefined) updates.is_active = dto.isActive;
 
-    const updated = await (this.db as any)
-      .updateTable('contracting_master_boq_library')
-      .set(updates)
+    if (item.tenant_id === tenantId) {
+      const updated = await (this.db as any)
+        .updateTable('contracting_master_boq_library')
+        .set(updates)
+        .where('id', '=', id as any)
+        .returningAll()
+        .executeTakeFirst();
+      return updated;
+    } else {
+      // Standard item: create/update tenant-specific override
+      const merged = {
+        trade_category: updates.trade_category || item.trade_category,
+        trade_name_ar: updates.trade_name_ar || item.trade_name_ar,
+        item_code: item.item_code,
+        name: updates.name || item.name,
+        description: updates.description !== undefined ? updates.description : item.description,
+        unit: updates.unit || item.unit,
+        standard_cost: updates.standard_cost !== undefined ? updates.standard_cost : item.standard_cost,
+        standard_price: updates.standard_price !== undefined ? updates.standard_price : item.standard_price,
+        is_active: updates.is_active !== undefined ? updates.is_active : item.is_active,
+      };
+
+      const override = await sql<any>`
+        INSERT INTO contracting_master_boq_library (
+          tenant_id, trade_category, trade_name_ar, item_code, name, description, unit, standard_cost, standard_price, is_active
+        ) VALUES (
+          ${tenantId}, ${merged.trade_category}, ${merged.trade_name_ar}, ${merged.item_code}, ${merged.name}, ${merged.description}, ${merged.unit}, ${merged.standard_cost}, ${merged.standard_price}, ${merged.is_active}
+        )
+        ON CONFLICT (tenant_id, item_code) DO UPDATE SET
+          name = EXCLUDED.name,
+          trade_category = EXCLUDED.trade_category,
+          trade_name_ar = EXCLUDED.trade_name_ar,
+          description = EXCLUDED.description,
+          unit = EXCLUDED.unit,
+          standard_cost = EXCLUDED.standard_cost,
+          standard_price = EXCLUDED.standard_price,
+          is_active = EXCLUDED.is_active,
+          updated_at = NOW()
+        RETURNING *;
+      `.execute(this.db);
+      return override.rows[0];
+    }
+  }
+
+  async toggleMasterBoqItemStatus(auth: AuthContext, id: string, targetActive?: boolean) {
+    const { tenantId } = requireTenantScope(auth);
+    const item = await (this.db as any)
+      .selectFrom('contracting_master_boq_library')
+      .selectAll()
       .where('id', '=', id as any)
       .where((eb: any) => eb.or([eb('tenant_id', '=', tenantId), eb('tenant_id', '=', '')]))
-      .returningAll()
       .executeTakeFirst();
 
-    if (!updated) {
-      throw new NotFoundException(`البند المرجعي برقم ${id} غير موجود`);
+    if (!item) {
+      throw new NotFoundException('البند المرجعي غير موجود');
     }
-    return updated;
+
+    const newStatus = targetActive !== undefined ? targetActive : !Boolean(item.is_active);
+
+    if (item.tenant_id === tenantId) {
+      const updated = await (this.db as any)
+        .updateTable('contracting_master_boq_library')
+        .set({ is_active: newStatus, updated_at: new Date() })
+        .where('id', '=', id as any)
+        .returningAll()
+        .executeTakeFirst();
+      return { success: true, isActive: newStatus, item: updated };
+    } else {
+      const override = await sql<any>`
+        INSERT INTO contracting_master_boq_library (
+          tenant_id, trade_category, trade_name_ar, item_code, name, description, unit, standard_cost, standard_price, is_active
+        ) VALUES (
+          ${tenantId}, ${item.trade_category}, ${item.trade_name_ar}, ${item.item_code}, ${item.name}, ${item.description}, ${item.unit}, ${item.standard_cost}, ${item.standard_price}, ${newStatus}
+        )
+        ON CONFLICT (tenant_id, item_code) DO UPDATE SET
+          is_active = ${newStatus},
+          updated_at = NOW()
+        RETURNING *;
+      `.execute(this.db);
+      return { success: true, isActive: newStatus, item: override.rows[0] };
+    }
   }
 
   async deleteMasterBoqItem(auth: AuthContext, id: string) {
     const { tenantId } = requireTenantScope(auth);
-    const res = await (this.db as any)
-      .deleteFrom('contracting_master_boq_library')
+    const item = await (this.db as any)
+      .selectFrom('contracting_master_boq_library')
+      .selectAll()
       .where('id', '=', id as any)
-      .where('tenant_id', '=', tenantId)
+      .where((eb: any) => eb.or([eb('tenant_id', '=', tenantId), eb('tenant_id', '=', '')]))
       .executeTakeFirst();
 
-    if (!res || Number(res.numDeletedRows || 0) === 0) {
-      throw new BadRequestException('لا يمكن حذف البنود المرجعية القياسية العامة للنظام');
+    if (!item) {
+      throw new NotFoundException('البند المرجعي غير موجود');
     }
-    return { success: true, message: 'تم حذف البند المرجعي بنجاح' };
+
+    if (item.tenant_id === tenantId) {
+      await (this.db as any)
+        .deleteFrom('contracting_master_boq_library')
+        .where('id', '=', id as any)
+        .execute();
+      return { success: true, message: 'تم حذف البند المرجعي المخصص بنجاح' };
+    } else {
+      // Standard item: deactivating it for this tenant acts as hiding/excluding it from their company library
+      await sql`
+        INSERT INTO contracting_master_boq_library (
+          tenant_id, trade_category, trade_name_ar, item_code, name, description, unit, standard_cost, standard_price, is_active
+        ) VALUES (
+          ${tenantId}, ${item.trade_category}, ${item.trade_name_ar}, ${item.item_code}, ${item.name}, ${item.description}, ${item.unit}, ${item.standard_cost}, ${item.standard_price}, false
+        )
+        ON CONFLICT (tenant_id, item_code) DO UPDATE SET
+          is_active = false,
+          updated_at = NOW();
+      `.execute(this.db);
+      return { success: true, message: 'تم استبعاد وإخفاء البند القياسي من مكتبة بنود الشركة' };
+    }
   }
 
   async importMasterBoqItemsToProject(auth: AuthContext, projectId: string, dto: ImportMasterBoqToProjectDto) {

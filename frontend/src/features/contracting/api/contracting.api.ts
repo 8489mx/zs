@@ -340,7 +340,7 @@ export const contractingApi = {
   getMasterBoqTrades: () =>
     http<import('../contracting.types').MasterBoqTrade[]>('/api/contracting/master-boq/trades'),
 
-  getMasterBoqLibrary: (params?: { tradeCategory?: string; search?: string }) =>
+  getMasterBoqLibrary: (params?: { tradeCategory?: string; search?: string; status?: string }) =>
     http<import('../contracting.types').MasterBoqItem[]>(`/api/contracting/master-boq/items${toQueryString(params)}`),
 
   createMasterBoqItem: (data: any) =>
@@ -349,10 +349,22 @@ export const contractingApi = {
       body: JSON.stringify(data),
     }),
 
+  bulkImportMasterBoqItems: (items: any[]) =>
+    http<{ success: boolean; count: number; message: string }>('/api/contracting/master-boq/items/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    }),
+
   updateMasterBoqItem: (id: string, data: any) =>
     http<import('../contracting.types').MasterBoqItem>(`/api/contracting/master-boq/items/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    }),
+
+  toggleMasterBoqItemStatus: (id: string, isActive?: boolean) =>
+    http<{ success: boolean; isActive: boolean; item: any }>(`/api/contracting/master-boq/items/${id}/toggle-status`, {
+      method: 'PUT',
+      body: JSON.stringify({ isActive }),
     }),
 
   deleteMasterBoqItem: (id: string) =>

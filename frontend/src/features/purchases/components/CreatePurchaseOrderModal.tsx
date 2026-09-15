@@ -218,10 +218,14 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
             onClear={resetForm}
             onDismiss={dismissRestoredNotice}
           />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-            <div className="field">
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>المورد *</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', alignItems: 'start' }}>
+            <div className="field" style={{ margin: 0 }}>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px', display: 'block', height: '18px', lineHeight: '18px' }}>
+                المورد <span style={{ color: '#ef4444' }}>*</span>
+              </label>
               <SearchableCombobox
+                inline={true}
+                inputStyle={{ width: '100%', height: '38px', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
                 placeholder="ابحث عن مورد بالاسم أو الهاتف..."
                 value={supplierName}
                 onChange={(val) => {
@@ -248,46 +252,54 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
               />
             </div>
 
-            <div className="field">
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>هاتف المورد</label>
+            <div className="field" style={{ margin: 0 }}>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px', display: 'block', height: '18px', lineHeight: '18px' }}>
+                هاتف المورد
+              </label>
               <input
                 type="text"
                 value={supplierPhone}
                 onChange={(e) => setSupplierPhone(e.target.value)}
                 placeholder="رقم التواصل"
-                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                style={{ width: '100%', height: '38px', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
 
-            <div className="field">
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>مستودع الاستلام</label>
+            <div className="field" style={{ margin: 0 }}>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px', display: 'block', height: '18px', lineHeight: '18px' }}>
+                مستودع الاستلام
+              </label>
               <input
                 type="text"
                 value={warehouseName}
                 onChange={(e) => setWarehouseName(e.target.value)}
                 placeholder="اسم المستودع أو الفرع"
-                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                style={{ width: '100%', height: '38px', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
 
-            <div className="field">
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>تاريخ التوريد المتوقع</label>
+            <div className="field" style={{ margin: 0 }}>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px', display: 'block', height: '18px', lineHeight: '18px' }}>
+                تاريخ التوريد المتوقع
+              </label>
               <input
                 type="date"
                 value={expectedDeliveryDate}
                 onChange={(e) => setExpectedDeliveryDate(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                style={{ width: '100%', height: '38px', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
 
-            <div className="field">
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>ملاحظات داخلية</label>
+            <div className="field" style={{ margin: 0 }}>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px', display: 'block', height: '18px', lineHeight: '18px' }}>
+                ملاحظات داخلية
+              </label>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="أي شروط أو متطلبات خاصة للتوريد"
-                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
+                style={{ width: '100%', height: '38px', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
           </div>
@@ -319,6 +331,8 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                     <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '6px 4px', minWidth: '240px' }}>
                         <SearchableCombobox
+                          inline={true}
+                          inputStyle={{ width: '100%', height: '32px', fontSize: '12px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
                           placeholder="ابحث باسم الصنف أو الباركود..."
                           value={it.productName || ''}
                           onChange={(val) => {

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsInt, IsArray, Min, ValidateNested, IsIn } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsInt, IsArray, IsBoolean, Min, ValidateNested, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateProjectDto {
@@ -980,6 +980,23 @@ export class UpdateMasterBoqLibraryItemDto {
   @Min(0)
   @IsOptional()
   standardPrice?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
+}
+
+export class BatchImportMasterBoqDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateMasterBoqLibraryItemDto)
+  items!: CreateMasterBoqLibraryItemDto[];
+}
+
+export class ToggleMasterBoqItemStatusDto {
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 }
 
 export class ImportMasterBoqToProjectDto {

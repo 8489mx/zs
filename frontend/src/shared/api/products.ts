@@ -17,7 +17,7 @@ export interface SharedProductsPageResponse {
 }
 
 export const sharedProductsApi = {
-  list: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products'), 'products'),
+  list: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products?pageSize=10000'), 'products'),
   listPage: (params: SharedProductsListParams) => http<SharedProductsPageResponse>(`/api/products${buildQueryString(params)}`),
   categories: async () => unwrapArray<Category>(await http<Category[] | { categories: Category[] }>('/api/categories'), 'categories'),
   suppliers: async () => unwrapArray<Supplier>(await http<Supplier[] | { suppliers: Supplier[] }>('/api/suppliers'), 'suppliers'),

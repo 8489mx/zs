@@ -36,6 +36,8 @@ import {
   CreateGovernmentLicenseDto,
   CreateMasterBoqLibraryItemDto,
   UpdateMasterBoqLibraryItemDto,
+  BatchImportMasterBoqDto,
+  ToggleMasterBoqItemStatusDto,
   ImportMasterBoqToProjectDto,
   SaveBoqTakeoffsDto,
   CreateSiteMobilizationExpenseDto,
@@ -594,6 +596,11 @@ export class ContractingController {
     return this.contractingService.createMasterBoqItem(req.authContext!, dto);
   }
 
+  @Post('master-boq/items/bulk')
+  async bulkImportMasterBoqItems(@Body() dto: BatchImportMasterBoqDto, @Req() req: RequestWithAuth) {
+    return this.contractingService.bulkImportMasterBoqItems(req.authContext!, dto);
+  }
+
   @Put('master-boq/items/:id')
   async updateMasterBoqItem(
     @Param('id') id: string,
@@ -601,6 +608,15 @@ export class ContractingController {
     @Req() req: RequestWithAuth,
   ) {
     return this.contractingService.updateMasterBoqItem(req.authContext!, id, dto);
+  }
+
+  @Put('master-boq/items/:id/toggle-status')
+  async toggleMasterBoqItemStatus(
+    @Param('id') id: string,
+    @Body() dto: ToggleMasterBoqItemStatusDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.toggleMasterBoqItemStatus(req.authContext!, id, dto.isActive);
   }
 
   @Delete('master-boq/items/:id')

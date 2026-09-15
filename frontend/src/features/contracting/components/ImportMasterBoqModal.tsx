@@ -129,8 +129,9 @@ export function ImportMasterBoqModal({
       onClose={onClose}
       title="سحب واستيراد من بنك بنود المقاولات المرجعي"
       subtitle={`سحب وتوريث البنود القياسية بأسعار السوق المحدثة إلى مشروع: ${projectName}`}
-      width="min(1100px, 96vw)"
-      minHeight="min(600px, 85vh)"
+      width="min(1200px, 96vw)"
+      maxWidth="1200px"
+      minHeight="min(620px, 85vh)"
       footerActions={(
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--font-subtitle)', color: '#475569' }}>
@@ -188,7 +189,7 @@ export function ImportMasterBoqModal({
       )}
     >
       {/* Container with a fixed, stable height to eliminate all resizing jitter & flickering */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '580px', maxHeight: '72vh' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '600px', maxHeight: '75vh' }}>
         {/* Messages */}
         {errorMsg && (
           <div style={{ padding: '8px 14px', borderRadius: '8px', background: '#fee2e2', color: '#b91c1c', fontSize: 'var(--font-subtitle)', fontWeight: 600 }}>
@@ -323,12 +324,21 @@ export function ImportMasterBoqModal({
           </div>
         </div>
 
-        {/* Items Table - Solid flex container with fixed vertical bounds */}
-        <div style={{ flex: 1, minHeight: '340px', overflowX: 'auto', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#ffffff' }}>
+        {/* Items Table - Solid flex container with fixed vertical bounds and zero horizontal clipping */}
+        <div style={{ flex: 1, minHeight: '350px', overflowX: 'auto', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#ffffff' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+            <colgroup>
+              <col style={{ width: '38px' }} />
+              <col style={{ width: '85px' }} />
+              <col style={{ width: 'auto' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '60px' }} />
+              <col style={{ width: '100px' }} />
+              <col style={{ width: '100px' }} />
+            </colgroup>
             <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: '#f8fafc' }}>
               <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                <th style={{ padding: '10px 14px', width: '40px', textAlign: 'center' }}>
+                <th style={{ padding: '9px 8px', textAlign: 'center' }}>
                   <input
                     type="checkbox"
                     checked={allVisibleSelected}
@@ -337,12 +347,12 @@ export function ImportMasterBoqModal({
                     title="تحديد كل المعروض"
                   />
                 </th>
-                <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569', width: '100px' }}>كود البند</th>
-                <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569' }}>اسم البند والتوصيف الهندسي</th>
-                <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569', width: '140px' }}>التخصص</th>
-                <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569', width: '70px', textAlign: 'center' }}>الوحدة</th>
-                <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569', width: '110px', textAlign: 'left' }}>تكلفة السوق</th>
-                <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569', width: '120px', textAlign: 'left' }}>سعر البيع المقترح</th>
+                <th style={{ padding: '9px 8px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>كود البند</th>
+                <th style={{ padding: '9px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>اسم البند والتوصيف الهندسي</th>
+                <th style={{ padding: '9px 8px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>التخصص</th>
+                <th style={{ padding: '9px 8px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>الوحدة</th>
+                <th style={{ padding: '9px 10px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'left' }}>تكلفة السوق</th>
+                <th style={{ padding: '9px 10px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'left' }}>سعر البيع</th>
               </tr>
             </thead>
             <tbody>
@@ -375,7 +385,7 @@ export function ImportMasterBoqModal({
                         transition: 'background 0.1s ease',
                       }}
                     >
-                      <td style={{ padding: '10px 14px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                      <td style={{ padding: '8px 8px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isChecked}
@@ -383,37 +393,37 @@ export function ImportMasterBoqModal({
                           style={{ cursor: 'pointer', width: '16px', height: '16px' }}
                         />
                       </td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, fontSize: 'var(--font-micro)', color: '#0369a1' }}>
+                      <td style={{ padding: '8px 8px', fontFamily: 'monospace', fontWeight: 700, fontSize: 'var(--font-micro)', color: '#0369a1', textAlign: 'center' }}>
                         {it.itemCode}
                       </td>
                       {(() => {
                         const dir = getTextDirection(it.description || it.name);
                         const isRtl = dir === 'rtl';
                         return (
-                          <td dir={dir} style={{ padding: '10px 14px', textAlign: isRtl ? 'right' : 'left' }}>
-                            <div dir={dir} style={{ fontWeight: 700, fontSize: 'var(--font-body)', color: '#0f172a', textAlign: isRtl ? 'right' : 'left' }}>
+                          <td dir={dir} style={{ padding: '8px 10px', textAlign: isRtl ? 'right' : 'left' }}>
+                            <div dir={dir} style={{ fontWeight: 700, fontSize: 'var(--font-body)', color: '#0f172a', textAlign: isRtl ? 'right' : 'left', lineHeight: 1.35 }}>
                               {it.name}
                             </div>
                             {it.description && (
-                              <div dir={dir} style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px', textAlign: isRtl ? 'right' : 'left' }}>
+                              <div dir={dir} style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px', textAlign: isRtl ? 'right' : 'left', lineHeight: 1.4 }}>
                                 {it.description}
                               </div>
                             )}
                           </td>
                         );
                       })()}
-                      <td style={{ padding: '10px 14px' }}>
-                        <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#334155', fontSize: 'var(--font-badge)', fontWeight: 600 }}>
+                      <td style={{ padding: '8px 8px', textAlign: 'center' }}>
+                        <span style={{ padding: '2px 8px', borderRadius: '10px', background: '#f1f5f9', color: '#334155', fontSize: 'var(--font-badge)', fontWeight: 600, display: 'inline-block', whiteSpace: 'nowrap' }}>
                           {it.tradeNameAr}
                         </span>
                       </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: 'var(--font-micro)' }}>
+                      <td style={{ padding: '8px 8px', textAlign: 'center', fontWeight: 700, color: '#64748b', fontSize: 'var(--font-micro)' }}>
                         {it.unit}
                       </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: 'var(--font-body)' }}>
+                      <td style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: 'var(--font-body)', whiteSpace: 'nowrap' }}>
                         {it.standardCost.toLocaleString('ar-EG', { minimumFractionDigits: 2 })}
                       </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: '#15803d', fontSize: 'var(--font-body)' }}>
+                      <td style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: '#15803d', fontSize: 'var(--font-body)', whiteSpace: 'nowrap' }}>
                         {it.standardPrice.toLocaleString('ar-EG', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>

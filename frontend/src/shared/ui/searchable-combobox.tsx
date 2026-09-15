@@ -39,6 +39,8 @@ type SearchableComboboxProps<T extends ComboboxOption> = {
   showIdleHelper?: boolean;
   showDropdownOnEmpty?: boolean;
   disabled?: boolean;
+  style?: CSSProperties;
+  inputStyle?: CSSProperties;
 };
 
 const containsDigitLikeCharacter = (value: string) => /[0-9٠-٩۰-۹]/.test(value);
@@ -72,7 +74,9 @@ export function SearchableCombobox<T extends ComboboxOption>({
   idleHelperLabel,
   showIdleHelper = true,
   showDropdownOnEmpty = true,
-  disabled
+  disabled,
+  style,
+  inputStyle,
 }: SearchableComboboxProps<T>) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -320,12 +324,14 @@ export function SearchableCombobox<T extends ComboboxOption>({
     <div
       ref={rootRef}
       className={`purchase-prototype-combobox ${inline ? 'is-inline' : ''} ${className ?? ''}`.trim()}
+      style={style}
     >
       {inline ? (
         <input
           ref={inputRef}
           id={inputId}
           className={inputClassName}
+          style={inputStyle}
           aria-invalid={Boolean(error)}
           aria-label={ariaLabel || label || placeholder}
           value={value}
@@ -347,6 +353,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
             ref={inputRef}
             id={inputId}
             className={inputClassName}
+            style={inputStyle}
             aria-invalid={Boolean(error)}
             aria-label={ariaLabel || label || placeholder}
             value={value}

@@ -5,6 +5,7 @@ import { contractingApi } from '../api/contracting.api';
 import { MasterBoqItem, MasterBoqTrade } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { CreateMasterBoqItemModal } from '../components/CreateMasterBoqItemModal';
+import { ImportMasterBoqExcelModal } from '../components/ImportMasterBoqExcelModal';
 import { downloadExcelFile } from '@/lib/browser';
 import { getTextDirection } from '@/lib/arabic-normalization';
 import { systemConfirm } from '@/shared/components/system-alert';
@@ -19,11 +20,13 @@ export function ContractingMasterBoqPage() {
   const [trades, setTrades] = useState<MasterBoqTrade[]>([]);
   const [selectedTrade, setSelectedTrade] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'inactive'>('active');
   const [items, setItems] = useState<MasterBoqItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isExcelImportModalOpen, setIsExcelImportModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MasterBoqItem | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [actioningId, setActioningId] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Load trades on mount
@@ -43,6 +46,7 @@ export function ContractingMasterBoqPage() {
       const data = await contractingApi.getMasterBoqLibrary({
         tradeCategory: selectedTrade !== 'all' ? selectedTrade : undefined,
         search: search.trim() || undefined,
+        status: statusFilter,
       });
       setItems(data || []);
     } catch (err) {
@@ -51,7 +55,7 @@ export function ContractingMasterBoqPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTrade, search]);
+  }, [selectedTrade, search, statusFilter]);
 
   useEffect(() => {
     loadTrades();
@@ -61,24 +65,45 @@ export function ContractingMasterBoqPage() {
     loadItems();
   }, [loadItems]);
 
-  const handleDeleteItem = async (id: string, name: string) => {
+  const handleDeleteItem = async (item: MasterBoqItem) => {
+    const isCustom = item.isCustom;
     const confirmed = await systemConfirm({
-      title: 'حذف البند المرجعي',
-      message: `هل أنت متأكد من حذف البند المرجعي "${name}"؟`,
-      confirmText: 'نعم، احذف البند',
-      variant: 'danger',
+      title: isCustom ? 'حذف البند المخصص' : 'استبعاد البند من مكتبة الشركة',
+      message: isCustom
+        ? `هل أنت متأكد من حذف البند المخصص "${item.name}" نهائياً من بنك البنود؟`
+        : `هل أنت متأكد من استبعاد وإخفاء البند القياسي "${item.name}" من مكتبة بنود الشركة؟ (يمكنك استعادته في أي وقت).`,
+      confirmText: isCustom ? 'نعم، احذف البند' : 'نعم، استبعد البند',
+      variant: isCustom ? 'danger' : 'warning',
     });
     if (!confirmed) return;
-    setDeletingId(id);
+
+    setActioningId(item.id);
     try {
-      await contractingApi.deleteMasterBoqItem(id);
-      setNotification({ type: 'success', text: 'تم حذف البند المرجعي بنجاح' });
+      const res = await contractingApi.deleteMasterBoqItem(item.id);
+      setNotification({ type: 'success', text: res.message || 'تم تحديث حالة البند بنجاح' });
       loadItems();
       loadTrades();
     } catch (err: any) {
-      setNotification({ type: 'error', text: err?.message || 'تعذر حذف البند المرجعي' });
+      setNotification({ type: 'error', text: err?.message || 'تعذر إجراء العملية على البند المرجعي' });
     } finally {
-      setDeletingId(null);
+      setActioningId(null);
+    }
+  };
+
+  const handleToggleItemStatus = async (item: MasterBoqItem, targetActive: boolean) => {
+    setActioningId(item.id);
+    try {
+      await contractingApi.toggleMasterBoqItemStatus(item.id, targetActive);
+      setNotification({
+        type: 'success',
+        text: targetActive ? `تمت إعادة تفعيل البند "${item.name}" بنجاح` : `تم استبعاد البند "${item.name}" من العرض`,
+      });
+      loadItems();
+      loadTrades();
+    } catch (err: any) {
+      setNotification({ type: 'error', text: err?.message || 'تعذر تغيير حالة تفعيل البند' });
+    } finally {
+      setActioningId(null);
     }
   };
 
@@ -104,9 +129,10 @@ export function ContractingMasterBoqPage() {
       'بيان الأعمال والمواصفات',
       'الوحدة',
       'التكلفة المرجعية',
-      'سعر الفئة التعاقدي المقترح',
+      'سعر البيع',
       'هامش الربح التقديري (%)',
       'نوع البند',
+      'الحالة',
     ];
     const rows = items.map((i) => {
       const price = Number(i.standardPrice) || 0;
@@ -121,7 +147,8 @@ export function ContractingMasterBoqPage() {
         cost,
         price,
         `${margin}%`,
-        i.isCustom ? 'مخصص للشركة' : 'قياسي عام',
+        i.isCustom ? 'مخصص للشركة' : 'نظام قياسي',
+        i.isActive ? 'نشط' : 'معطل ومخفي',
       ];
     });
     downloadExcelFile(
@@ -139,7 +166,29 @@ export function ContractingMasterBoqPage() {
           title="إعدادات وبنك بنود المقاولات العام"
           description="دليل البنود والمقايسات القياسي لكافة التخصصات الإنشائية والكهروميكانيكية وثوابت التسعير للشركة — تسحب منها كافة المشاريع بضغطة زر."
           actions={
-            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setIsExcelImportModalOpen(true)}
+                style={{
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  color: '#170e5e',
+                  border: '1px solid #cbd5e1',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  fontSize: 'var(--font-body)',
+                }}
+              >
+                <AppIcons.Upload size={14} />
+                <span>استيراد Excel</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleExportExcel}
@@ -186,7 +235,7 @@ export function ContractingMasterBoqPage() {
                   fontSize: 'var(--font-body)',
                 }}
               >
-                <AppIcons.RefreshCw size={15} />
+                <AppIcons.RefreshCw size={14} />
                 <span>تحديث</span>
               </button>
             </div>
@@ -236,14 +285,18 @@ export function ContractingMasterBoqPage() {
               borderRadius: '12px',
               padding: '16px 20px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minHeight: '88px',
             }}
           >
-            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>
               إجمالي البنود بالبنك
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>
-              {totalItemsCount.toLocaleString('en-US')}{' '}
-              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>بند قياسي</span>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+              <span>{totalItemsCount.toLocaleString('en-US')}</span>
+              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>بند معتمد</span>
             </div>
           </div>
 
@@ -254,13 +307,17 @@ export function ContractingMasterBoqPage() {
               borderRadius: '12px',
               padding: '16px 20px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minHeight: '88px',
             }}
           >
-            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
-              التخصصات الإنشائية المعتمدة
+            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>
+              التخصصات الإنشائية
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#170e5e' }}>
-              {totalTradesCount}{' '}
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+              <span>{totalTradesCount}</span>
               <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>تخصص هندسي</span>
             </div>
           </div>
@@ -272,13 +329,17 @@ export function ContractingMasterBoqPage() {
               borderRadius: '12px',
               padding: '16px 20px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minHeight: '88px',
             }}
           >
-            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>
               بنود الشركة المخصصة
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1e40af' }}>
-              {customItemsCount.toLocaleString('en-US')}{' '}
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1e40af', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+              <span>{customItemsCount.toLocaleString('en-US')}</span>
               <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>بند مخصص</span>
             </div>
           </div>
@@ -290,19 +351,23 @@ export function ContractingMasterBoqPage() {
               borderRadius: '12px',
               padding: '16px 20px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minHeight: '88px',
             }}
           >
-            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>
               متوسط هامش الربح المرجعي
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981' }}>
-              {avgMargin}%{' '}
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+              <span>{avgMargin}%</span>
               <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>تقديري</span>
             </div>
           </div>
         </div>
 
-        {/* شريط الإجراءات والبحث */}
+        {/* شريط الإجراءات والبحث وفلتر الحالة */}
         <div
           style={{
             background: '#ffffff',
@@ -340,16 +405,76 @@ export function ContractingMasterBoqPage() {
             </div>
           </div>
 
-          <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
-            معروض الآن: <strong style={{ color: '#0f172a' }}>{items.length}</strong> بند من أصل {trades.reduce((sum, t) => sum + t.itemsCount, 0)}
+          {/* فلاتر الحالة النشطة والمستبعدة */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '2px' }}>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('active')}
+                style={{
+                  height: '30px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: 'var(--font-micro)',
+                  fontWeight: statusFilter === 'active' ? 700 : 500,
+                  background: statusFilter === 'active' ? '#ffffff' : 'transparent',
+                  color: statusFilter === 'active' ? '#0f172a' : '#64748b',
+                  cursor: 'pointer',
+                  boxShadow: statusFilter === 'active' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                }}
+              >
+                النشطة والمعتمدة
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('all')}
+                style={{
+                  height: '30px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: 'var(--font-micro)',
+                  fontWeight: statusFilter === 'all' ? 700 : 500,
+                  background: statusFilter === 'all' ? '#ffffff' : 'transparent',
+                  color: statusFilter === 'all' ? '#0f172a' : '#64748b',
+                  cursor: 'pointer',
+                  boxShadow: statusFilter === 'all' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                }}
+              >
+                كافة البنود
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('inactive')}
+                style={{
+                  height: '30px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: 'var(--font-micro)',
+                  fontWeight: statusFilter === 'inactive' ? 700 : 500,
+                  background: statusFilter === 'inactive' ? '#ffffff' : 'transparent',
+                  color: statusFilter === 'inactive' ? '#b91c1c' : '#64748b',
+                  cursor: 'pointer',
+                  boxShadow: statusFilter === 'inactive' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                }}
+              >
+                المستبعدة والمخفية
+              </button>
+            </div>
+
+            <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', marginInlineStart: '6px' }}>
+              معروض: <strong style={{ color: '#0f172a' }}>{items.length}</strong> بند
+            </div>
           </div>
         </div>
 
-        {/* شبكة تخصصات البنود الإنشائية المتناسقة بصرياً على سطرين بدون سكرول نهائياً */}
+        {/* شرائح فلاتر التخصصات الإنشائية المرنة المتجاوبة بدون أي قص أو كسر للكلمات */}
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))',
+            display: 'flex',
+            flexWrap: 'wrap',
             gap: '8px',
             marginBottom: '16px',
           }}
@@ -359,7 +484,7 @@ export function ContractingMasterBoqPage() {
             onClick={() => setSelectedTrade('all')}
             style={{
               height: '34px',
-              padding: '0 12px',
+              padding: '0 14px',
               borderRadius: '8px',
               fontSize: 'var(--font-badge)',
               fontWeight: 700,
@@ -367,16 +492,15 @@ export function ContractingMasterBoqPage() {
               background: selectedTrade === 'all' ? '#170e5e' : '#ffffff',
               color: selectedTrade === 'all' ? '#ffffff' : '#475569',
               cursor: 'pointer',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              gap: '8px',
+              whiteSpace: 'nowrap',
               transition: 'all 0.15s ease',
               boxShadow: selectedTrade === 'all' ? '0 1px 2px rgba(23, 14, 94, 0.15)' : 'none',
             }}
           >
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              كافة التخصصات
-            </span>
+            <span>كافة التخصصات</span>
             <span
               style={{
                 fontSize: '11px',
@@ -385,7 +509,6 @@ export function ContractingMasterBoqPage() {
                 background: selectedTrade === 'all' ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
                 color: selectedTrade === 'all' ? '#ffffff' : '#64748b',
                 fontWeight: 700,
-                marginInlineStart: '6px',
               }}
             >
               {trades.reduce((sum, t) => sum + t.itemsCount, 0)}
@@ -401,24 +524,23 @@ export function ContractingMasterBoqPage() {
                 onClick={() => setSelectedTrade(t.tradeCategory)}
                 style={{
                   height: '34px',
-                  padding: '0 12px',
+                  padding: '0 14px',
                   borderRadius: '8px',
                   fontSize: 'var(--font-badge)',
-                  fontWeight: 600,
+                  fontWeight: isSelected ? 700 : 600,
                   border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
                   background: isSelected ? '#170e5e' : '#ffffff',
                   color: isSelected ? '#ffffff' : '#475569',
                   cursor: 'pointer',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
+                  gap: '8px',
+                  whiteSpace: 'nowrap',
                   transition: 'all 0.15s ease',
                   boxShadow: isSelected ? '0 1px 2px rgba(23, 14, 94, 0.15)' : 'none',
                 }}
               >
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {t.tradeNameAr}
-                </span>
+                <span>{t.tradeNameAr}</span>
                 <span
                   style={{
                     fontSize: '11px',
@@ -427,7 +549,6 @@ export function ContractingMasterBoqPage() {
                     background: isSelected ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
                     color: isSelected ? '#ffffff' : '#64748b',
                     fontWeight: 700,
-                    marginInlineStart: '6px',
                   }}
                 >
                   {t.itemsCount}
@@ -437,7 +558,7 @@ export function ContractingMasterBoqPage() {
           })}
         </div>
 
-        {/* شريط الإجراء المباشر أعلى الجدول مباشرة */}
+        {/* شريط الإجراء المباشر أعلى الجدول */}
         <div
           style={{
             display: 'flex',
@@ -500,39 +621,50 @@ export function ContractingMasterBoqPage() {
                 لا توجد بنود مطابقة
               </div>
               <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', maxWidth: '420px', margin: '0 auto' }}>
-                لم يتم العثور على أي بنود في هذا التخصص أو بكلمة البحث المدخلة.
+                لم يتم العثور على أي بنود في هذا التخصص أو بكلمة البحث المحددة.
               </div>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+                <colgroup>
+                  <col style={{ width: '105px' }} />
+                  <col style={{ width: '150px' }} />
+                  <col style={{ width: 'auto' }} />
+                  <col style={{ width: '65px' }} />
+                  <col style={{ width: '110px' }} />
+                  <col style={{ width: '110px' }} />
+                  <col style={{ width: '75px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '115px' }} />
+                </colgroup>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                    <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
+                    <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
                       كود البند
                     </th>
-                    <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
+                    <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
                       التخصص
                     </th>
-                    <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
+                    <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
                       مسمى البند والمواصفات الفنية
                     </th>
-                    <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
+                    <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
                       الوحدة
                     </th>
-                    <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
-                      التكلفة المرجعية
+                    <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
+                      التكلفة
                     </th>
-                    <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
-                      سعر البيع المقترح
+                    <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
+                      سعر البيع
                     </th>
-                    <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
+                    <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
                       الهامش
                     </th>
-                    <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
+                    <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
                       النوع
                     </th>
-                    <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
+                    <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
                       الإجراءات
                     </th>
                   </tr>
@@ -542,20 +674,24 @@ export function ContractingMasterBoqPage() {
                     const price = Number(item.standardPrice) || 0;
                     const cost = Number(item.standardCost) || 0;
                     const margin = price > 0 ? Math.round(((price - cost) / price) * 100) : 0;
+                    const isBusy = actioningId === item.id;
+
                     return (
                       <tr
                         key={item.id}
                         style={{
                           borderBottom: '1px solid #f1f5f9',
                           transition: 'background-color 0.15s',
+                          opacity: item.isActive ? 1 : 0.65,
+                          background: item.isActive ? 'transparent' : '#fdfaf9',
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = item.isActive ? '#f8fafc' : '#fbf3f1')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = item.isActive ? 'transparent' : '#fdfaf9')}
                       >
-                        <td style={{ padding: '12px 16px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e', fontFamily: 'monospace' }}>
+                        <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e', fontFamily: 'monospace' }}>
                           {item.itemCode}
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: 'var(--font-micro)' }}>
+                        <td style={{ padding: '12px 14px', fontSize: 'var(--font-micro)' }}>
                           <span
                             style={{
                               background: '#f1f5f9',
@@ -564,6 +700,7 @@ export function ContractingMasterBoqPage() {
                               borderRadius: '6px',
                               fontWeight: 600,
                               whiteSpace: 'nowrap',
+                              display: 'inline-block',
                             }}
                           >
                             {item.tradeNameAr || item.tradeCategory}
@@ -574,7 +711,7 @@ export function ContractingMasterBoqPage() {
                           const dir = getTextDirection(descText);
                           const isRtl = dir === 'rtl';
                           return (
-                            <td dir={dir} style={{ padding: '12px 16px', maxWidth: '380px', textAlign: isRtl ? 'right' : 'left' }}>
+                            <td dir={dir} style={{ padding: '12px 14px', maxWidth: '380px', textAlign: isRtl ? 'right' : 'left' }}>
                               <div
                                 dir={dir}
                                 style={{
@@ -609,16 +746,16 @@ export function ContractingMasterBoqPage() {
                             </td>
                           );
                         })()}
-                        <td style={{ padding: '12px 16px', fontSize: 'var(--font-body)', color: '#475569', textAlign: 'center' }}>
+                        <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#475569', textAlign: 'center' }}>
                           {item.unit}
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: 'var(--font-body)', color: '#64748b' }}>
+                        <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#64748b' }}>
                           {cost > 0 ? cost.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e' }}>
+                        <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e' }}>
                           {price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                           <span
                             style={{
                               fontSize: 'var(--font-micro)',
@@ -632,7 +769,7 @@ export function ContractingMasterBoqPage() {
                             {margin}%
                           </span>
                         </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                           <span
                             style={{
                               fontSize: 'var(--font-micro)',
@@ -647,11 +784,13 @@ export function ContractingMasterBoqPage() {
                             {item.isCustom ? 'مخصص للشركة' : 'نظام قياسي'}
                           </span>
                         </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                           <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                            {/* زر التعديل */}
                             <button
                               type="button"
                               title="تعديل السعر والمواصفات"
+                              disabled={isBusy}
                               onClick={() => {
                                 setEditingItem(item);
                                 setIsCreateModalOpen(true);
@@ -669,24 +808,45 @@ export function ContractingMasterBoqPage() {
                             >
                               <AppIcons.Edit size={13} />
                             </button>
-                            {item.isCustom && (
+
+                            {/* زر الحذف أو الاستبعاد / إعادة التفعيل */}
+                            {item.isActive ? (
                               <button
                                 type="button"
-                                title="حذف البند المخصص"
-                                disabled={deletingId === item.id}
-                                onClick={() => handleDeleteItem(item.id, item.name)}
+                                title={item.isCustom ? 'حذف البند المخصص نهائياً' : 'استبعاد وإخفاء البند من مكتبة الشركة'}
+                                disabled={isBusy}
+                                onClick={() => handleDeleteItem(item)}
                                 style={{
                                   padding: '5px 8px',
                                   borderRadius: '6px',
-                                  background: '#fef2f2',
-                                  color: '#b91c1c',
-                                  border: '1px solid #fecaca',
+                                  background: item.isCustom ? '#fef2f2' : '#fffbeb',
+                                  color: item.isCustom ? '#b91c1c' : '#b45309',
+                                  border: `1px solid ${item.isCustom ? '#fecaca' : '#fde68a'}`,
                                   cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                 }}
                               >
                                 <AppIcons.Trash size={13} />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                title="إعادة تفعيل وإظهار البند في المكتبة"
+                                disabled={isBusy}
+                                onClick={() => handleToggleItemStatus(item, true)}
+                                style={{
+                                  padding: '5px 8px',
+                                  borderRadius: '6px',
+                                  background: '#f0fdf4',
+                                  color: '#15803d',
+                                  border: '1px solid #bbf7d0',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                }}
+                              >
+                                <AppIcons.CheckCircle size={13} />
                               </button>
                             )}
                           </div>
@@ -718,6 +878,23 @@ export function ContractingMasterBoqPage() {
               setNotification({
                 type: 'success',
                 text: editingItem ? 'تم تحديث بيانات البند بنجاح' : 'تمت إضافة البند إلى بنك البنود المرجعي بنجاح',
+              });
+            }}
+          />
+        )}
+
+        {/* مودال استيراد Excel */}
+        {isExcelImportModalOpen && (
+          <ImportMasterBoqExcelModal
+            open={isExcelImportModalOpen}
+            trades={trades}
+            onClose={() => setIsExcelImportModalOpen(false)}
+            onImported={() => {
+              loadItems();
+              loadTrades();
+              setNotification({
+                type: 'success',
+                text: 'تم استيراد بنود المقاولات من ملف Excel بنجاح إلى بنك البنود المرجعي',
               });
             }}
           />
