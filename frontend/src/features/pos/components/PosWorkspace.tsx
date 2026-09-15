@@ -17,6 +17,8 @@ import { QuickProductModal } from '@/shared/components/QuickProductModal';
 import { PosNewProductModal } from '@/features/pos/components/pos-workspace/PosNewProductModal';
 import { PosScannedInvoiceModal } from '@/features/pos/components/pos-workspace/PosScannedInvoiceModal';
 import { PosRecentSalesReprintModal } from '@/features/pos/components/pos-workspace/PosRecentSalesReprintModal';
+import { PosPhoneOrderDialog } from '@/features/pos/components/pos-workspace/PosPhoneOrderDialog';
+import { PosCallerIdFloatingAlert } from '@/features/pos/components/pos-workspace/PosCallerIdFloatingAlert';
 import { salesApi } from '@/features/sales/api/sales.api';
 import {
   getSelectedCustomerName,
@@ -71,8 +73,17 @@ export function PosWorkspace() {
   const [scannedSale, setScannedSale] = useState<Sale | null>(null);
   const [scannedSaleModalOpen, setScannedSaleModalOpen] = useState(false);
   const [reprintModalOpen, setReprintModalOpen] = useState(false);
+  const [phoneOrderOpen, setPhoneOrderOpen] = useState(false);
+  const [phoneOrderInitialPhone, setPhoneOrderInitialPhone] = useState('');
+  const [phoneOrderInitialName, setPhoneOrderInitialName] = useState('');
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
+
+  const handleOpenPhoneOrder = useCallback((phone?: string, name?: string) => {
+    setPhoneOrderInitialPhone(phone || '');
+    setPhoneOrderInitialName(name || '');
+    setPhoneOrderOpen(true);
+  }, []);
 
   const handlePriceTypeChange = useCallback((nextPriceType: PosPriceType) => {
     if (nextPriceType === 'wholesale' && !pos.canSellWholesale) {
@@ -320,7 +331,7 @@ export function PosWorkspace() {
 
         const remappedQuery = remapArabicKeyboardToEnglish(query);
         const lookupProducts = await posApi.lookupProducts({ barcode: query, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
-        let remoteMatch = matchProductByCode(lookupProducts, query);
+        const remoteMatch = matchProductByCode(lookupProducts, query);
 
         if (remoteMatch.status !== 'matched' && remappedQuery !== query) {
           const remappedLookup = await posApi.lookupProducts({ barcode: remappedQuery, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
@@ -522,6 +533,7 @@ export function PosWorkspace() {
     onOpenHeldDrafts: () => handleOpenHeldOrTables('floor'),
     onRecallHeldDraftByIndex: requestRecallHeldDraftByIndex,
     onOpenReprintModal: () => setReprintModalOpen(true),
+    onOpenPhoneOrder: () => handleOpenPhoneOrder(),
   });
 
   return (
@@ -535,6 +547,7 @@ export function PosWorkspace() {
         onOpenQuickService={isServicesActive ? () => setQuickServiceOpen(true) : undefined}
         onOpenTables={() => handleOpenHeldOrTables('floor')}
         onOpenHeldDrafts={() => handleOpenHeldOrTables('list')}
+        onOpenPhoneOrder={() => handleOpenPhoneOrder()}
         onPrintDraft={printCurrentDraft}
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
         onOpenSerialLookup={() => setSerialLookupOpen(true)}
@@ -883,6 +896,19 @@ export function PosWorkspace() {
             window.location.hash = `#/returns?invoiceId=${targetSale.id}&docNo=${encodeURIComponent(targetSale.docNo || '')}`;
           }
         }}
+      />
+
+      <PosCallerIdFloatingAlert onOpenPhoneOrder={handleOpenPhoneOrder} />
+
+      <PosPhoneOrderDialog
+        open={phoneOrderOpen}
+        onClose={() => {
+          setPhoneOrderOpen(false);
+          focusBarcodeEntry();
+        }}
+        pos={pos}
+        initialPhone={phoneOrderInitialPhone}
+        initialName={phoneOrderInitialName}
       />
     </div>
   );

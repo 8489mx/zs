@@ -27,6 +27,7 @@ interface PosWorkspaceKeyboardShortcutsParams {
   onOpenHeldDrafts: () => void;
   onRecallHeldDraftByIndex: (index: number) => void;
   onOpenReprintModal?: () => void;
+  onOpenPhoneOrder?: () => void;
 }
 
 export function usePosWorkspaceKeyboardShortcuts({
@@ -41,6 +42,7 @@ export function usePosWorkspaceKeyboardShortcuts({
   onOpenHeldDrafts,
   onRecallHeldDraftByIndex,
   onOpenReprintModal,
+  onOpenPhoneOrder,
 }: PosWorkspaceKeyboardShortcutsParams) {
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
@@ -131,6 +133,10 @@ export function usePosWorkspaceKeyboardShortcuts({
         } else {
           pos.reprintLastSale();
         }
+      } else if (event.key === 'F10' || (event.altKey && (event.key === 'p' || event.key === 'P' || event.key === 'ح'))) {
+        event.preventDefault();
+        onOpenPhoneOrder?.();
+        return;
       } else if (event.key === 'F12') {
         event.preventDefault();
         if (pos.canShowLastSaleActions) pos.printA4Now();
@@ -138,5 +144,5 @@ export function usePosWorkspaceKeyboardShortcuts({
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, [focusBarcodeEntry, onOpenHeldDrafts, onOpenNewProduct, onOpenQuickService, onOpenReprintModal, onRecallHeldDraftByIndex, onRequestCheckout, onRequestClearCart, onRequestLineDelete, pos, printCurrentDraft]);
+  }, [focusBarcodeEntry, onOpenHeldDrafts, onOpenNewProduct, onOpenPhoneOrder, onOpenQuickService, onOpenReprintModal, onRecallHeldDraftByIndex, onRequestCheckout, onRequestClearCart, onRequestLineDelete, pos, printCurrentDraft]);
 }

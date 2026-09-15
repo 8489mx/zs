@@ -28,6 +28,72 @@ export interface PosCustomerSummary {
   returnCount: number;
 }
 
+export interface PosCustomerDeliveryProfileItem {
+  id: number;
+  productId: string;
+  name: string;
+  qty: number;
+  unitPrice: number;
+  lineTotal: number;
+  unitName: string;
+  unitMultiplier: number;
+  modifiers?: any[];
+  notes?: string;
+}
+
+export interface PosCustomerDeliveryProfileOrder {
+  id: number;
+  docNo: string;
+  total: number;
+  subtotal: number;
+  discount: number;
+  deliveryFee: number;
+  orderType: string;
+  customerAddress: string;
+  note: string;
+  createdAt: string;
+  branchName?: string;
+  items: PosCustomerDeliveryProfileItem[];
+}
+
+export interface PosCustomerDeliveryProfile {
+  found: boolean;
+  query?: string;
+  phone?: string;
+  customer?: {
+    id: string;
+    name: string;
+    phone: string;
+    address: string;
+    customerType: string;
+    balance: number;
+    creditLimit: number;
+    storeCreditBalance: number;
+    loyaltyPoints: number;
+    companyName: string;
+    taxNumber: string;
+    notes: string;
+    preferences: string;
+  };
+  matchedCustomers?: Array<{
+    id: string;
+    name: string;
+    phone: string;
+    address: string;
+    customerType: string;
+    balance: number;
+    loyaltyPoints: number;
+  }>;
+  addresses: string[];
+  recentOrders: PosCustomerDeliveryProfileOrder[];
+  stats?: {
+    totalSalesAmount: number;
+    invoiceCount: number;
+    averageInvoice: number;
+    lastSaleAt: string | null;
+  };
+}
+
 function shouldRetrySaleWithFallback(error: unknown) {
   if (!(error instanceof ApiError)) return false;
   if (error.status !== 400) return false;
@@ -70,6 +136,8 @@ export const posApi = {
     return unwrapArray<Customer>(await http<Customer[] | { customers: Customer[] }>(`/api/customers${query ? `?${query}` : ''}`), 'customers');
   },
   customerPosSummary: (customerId: string) => http<PosCustomerSummary>(`/api/customers/${customerId}/pos-summary`),
+  customerDeliveryLookup: (phone: string) => http<PosCustomerDeliveryProfile>(`/api/customers/delivery-lookup?phone=${encodeURIComponent(phone)}`),
+  customerDeliveryProfile: (customerId: string | number) => http<PosCustomerDeliveryProfile>(`/api/customers/${customerId}/delivery-profile`),
   settings: async () => unwrapByKey<AppSettings>(await http<AppSettings | { settings: AppSettings }>('/api/settings'), 'settings', {} as AppSettings),
   branches: async () => unwrapArray<Branch>(await http<Branch[] | { branches: Branch[] }>('/api/branches'), 'branches'),
   locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/locations'), 'locations'),

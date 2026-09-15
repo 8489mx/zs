@@ -26,6 +26,15 @@ export class PartnersController {
     return this.partnersService.createCustomer(payload, req.authContext!);
   }
 
+  @Get('customers/delivery-lookup')
+  @AllowAuthenticated()
+  lookupCustomerDeliveryProfile(
+    @Query('phone') phone: string,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.partnersService.lookupCustomerDeliveryProfile(phone, req.authContext!);
+  }
+
   @Get('customers/marketing/inactive')
   @RequirePermissions('customers')
   getInactiveCustomersMarketing(
@@ -66,6 +75,12 @@ export class PartnersController {
   @AllowAuthenticated()
   getCustomerAddresses(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<string[]> {
     return this.partnersService.getCustomerAddresses(id, req.authContext!);
+  }
+
+  @Get('customers/:id/delivery-profile')
+  @AllowAuthenticated()
+  getCustomerDeliveryProfile(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.partnersService.getCustomerDeliveryProfile(id, req.authContext!);
   }
 
   @Put('customers/:id')

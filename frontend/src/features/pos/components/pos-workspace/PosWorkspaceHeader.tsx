@@ -30,6 +30,7 @@ import {
   MaximizeIcon,
   MenuIcon,
   ChevronDownIcon,
+  PhoneCallIcon,
 } from '@/shared/components/icons/AppIcons';
 
 interface PosWorkspaceHeaderProps {
@@ -41,13 +42,14 @@ interface PosWorkspaceHeaderProps {
   onOpenQuickService?: () => void;
   onOpenHeldDrafts?: () => void;
   onOpenTables?: () => void;
+  onOpenPhoneOrder?: () => void;
   onPrintDraft: () => void;
   onRequestOpenShift?: () => void;
   onOpenSerialLookup?: () => void;
   onOpenReprintModal?: () => void;
 }
 
-function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenQuickService, onOpenHeldDrafts, onOpenTables, onRequestOpenShift, onOpenReprintModal }: PosWorkspaceHeaderProps) {
+function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenQuickService, onOpenHeldDrafts, onOpenTables, onOpenPhoneOrder, onRequestOpenShift, onOpenReprintModal }: PosWorkspaceHeaderProps) {
   const { data: settings } = useSettingsQuery();
   const isRestaurantActive = settings?.restaurantModuleEnabled === true;
   const isStorefrontActive = settings?.storefrontModuleEnabled !== false;
@@ -273,6 +275,28 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           <Button type="button" variant="secondary" onClick={onOpenReprintModal || pos.reprintLastSale} title="إعادة طباعة الفواتير (F9)">
             F9 إعادة طباعة
           </Button>
+
+          {/* Phone & Delivery Order Desk */}
+          {onOpenPhoneOrder && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onOpenPhoneOrder}
+              style={{
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                color: pos.orderType === 'delivery' ? '#1e40af' : '#334155',
+                background: pos.orderType === 'delivery' ? '#eff6ff' : undefined,
+                border: pos.orderType === 'delivery' ? '1px solid #93c5fd' : undefined,
+              }}
+              title="مكتب طلبات الهاتف والتوصيل السريع وكاشف المتصل (Alt + P)"
+            >
+              <PhoneCallIcon size={14} color={pos.orderType === 'delivery' ? '#2563eb' : '#170e5e'} />
+              <span>طلب هاتفي</span>
+            </Button>
+          )}
 
           {/* 4. Restaurant Tables (Only when Restaurant Module is active or table is assigned) */}
           {(isRestaurantActive || pos.tableNumber) && (
