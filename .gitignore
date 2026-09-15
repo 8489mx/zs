@@ -48,6 +48,8 @@ backend/superbaseold.env
 frontend/.env.production
 
 backend/uploads/
+backend/storage/
+storage/
 
 # Portable Data & Backups
 frontend/portable_data/
