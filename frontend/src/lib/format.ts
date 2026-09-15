@@ -25,10 +25,10 @@ export function formatWhatsAppNumber(phone: string) {
   return cleaned;
 }
 
-export function formatDate(value?: string) {
+export function formatDate(value?: string | Date | number | null) {
   if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: '2-digit',

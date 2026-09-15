@@ -26,8 +26,10 @@ class CallerIdService {
   private reader: any = null;
   private isReading = false;
   private buffer = '';
+  private recentCalls: CallerIdCallEvent[] = [];
 
   constructor() {
+    this.loadRecentCalls();
     if (typeof window !== 'undefined') {
       window.addEventListener('zs:caller-id-incoming', (event: any) => {
         if (event.detail && event.detail.phone) {
@@ -42,6 +44,38 @@ class CallerIdService {
         }
       });
     }
+  }
+
+  private loadRecentCalls() {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const stored = sessionStorage.getItem('zs_pos_recent_calls');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          this.recentCalls = parsed.map((item: any) => ({
+            ...item,
+            timestamp: new Date(item.timestamp),
+          }));
+        }
+      }
+    } catch {}
+  }
+
+  private saveRecentCalls() {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.setItem('zs_pos_recent_calls', JSON.stringify(this.recentCalls.slice(0, 30)));
+      }
+    } catch {}
+  }
+
+  getRecentCalls(): CallerIdCallEvent[] {
+    return [...this.recentCalls];
+  }
+
+  clearRecentCalls() {
+    this.recentCalls = [];
+    this.saveRecentCalls();
   }
 
   isSupported(): boolean {
@@ -60,6 +94,13 @@ class CallerIdService {
   }
 
   notifyListeners(event: CallerIdCallEvent) {
+    // Add to call history
+    this.recentCalls.unshift(event);
+    if (this.recentCalls.length > 30) {
+      this.recentCalls.pop();
+    }
+    this.saveRecentCalls();
+
     for (const listener of this.listeners) {
       try {
         listener(event);

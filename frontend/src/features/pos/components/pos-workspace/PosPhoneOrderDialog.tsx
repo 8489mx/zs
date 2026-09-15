@@ -4,9 +4,10 @@ import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { posApi, type PosCustomerDeliveryProfile, type PosCustomerDeliveryProfileOrder } from '@/features/pos/api/pos.api';
 import { catalogApi } from '@/lib/api/catalog';
+import { deliveryRepsApi, type DeliveryRep } from '@/shared/api/delivery-reps.api';
 import { toast } from '@/shared/components/system-alert';
 import { formatCurrency, formatDate } from '@/lib/format';
-import { callerIdService } from '@/features/pos/lib/pos-caller-id-service';
+import { callerIdService, type CallerIdCallEvent } from '@/features/pos/lib/pos-caller-id-service';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosItem } from '@/features/pos/types/pos.types';
 import {
@@ -23,6 +24,10 @@ import {
   SlidersIcon,
   RefreshCwIcon,
   XIcon,
+  TruckIcon,
+  CreditCardIcon,
+  DollarSignIcon,
+  TrashIcon,
 } from '@/shared/components/icons/AppIcons';
 
 interface PosPhoneOrderDialogProps {
@@ -32,6 +37,17 @@ interface PosPhoneOrderDialogProps {
   initialPhone?: string;
   initialName?: string;
 }
+
+export type DoorstepPaymentMethod = 'cash' | 'card_pos' | 'instapay_wallet';
+
+const DELIVERY_ZONES = [
+  { id: 'zone_standard', name: 'توصيل عادي / داخل النطاق', fee: 15, eta: 30 },
+  { id: 'zone_near', name: 'منطقة قريبة (أقل من 3 كم)', fee: 10, eta: 25 },
+  { id: 'zone_med', name: 'منطقة متوسطة (3 - 6 كم)', fee: 20, eta: 35 },
+  { id: 'zone_far', name: 'منطقة بعيدة (6 - 10 كم)', fee: 30, eta: 45 },
+  { id: 'zone_extra', name: 'توصيل ممتد / خارج النطاق', fee: 45, eta: 60 },
+  { id: 'zone_custom', name: 'تحديد رسوم مخصصة يدويًا', fee: 0, eta: 35 },
+];
 
 export function PosPhoneOrderDialog({
   open,
@@ -48,10 +64,20 @@ export function PosPhoneOrderDialog({
   const [selectedAddress, setSelectedAddress] = useState<string>('');
   const [isCustomAddressMode, setIsCustomAddressMode] = useState(false);
   const [customAddressInput, setCustomAddressInput] = useState('');
+  const [addressTag, setAddressTag] = useState<'home' | 'work' | 'other'>('home');
   const [deliveryNotes, setDeliveryNotes] = useState('');
+
+  // Delivery & Payment Enhancements
+  const [selectedZoneId, setSelectedZoneId] = useState<string>('zone_standard');
+  const [customDeliveryFee, setCustomDeliveryFee] = useState<number>(15);
+  const [etaMinutes, setEtaMinutes] = useState<number>(30);
+  const [paymentMethodAtDoor, setPaymentMethodAtDoor] = useState<DoorstepPaymentMethod>('cash');
+  const [customerPaidNote, setCustomerPaidNote] = useState<string>('');
+  const [selectedDriverId, setSelectedDriverId] = useState<string>('');
   
-  // Tab: 'desk' (Order lookup & history) | 'hardware' (Caller ID USB setup)
-  const [activeTab, setActiveTab] = useState<'desk' | 'hardware'>('desk');
+  // Tab: 'desk' | 'recent_calls' | 'hardware'
+  const [activeTab, setActiveTab] = useState<'desk' | 'recent_calls' | 'hardware'>('desk');
+  const [recentCallsList, setRecentCallsList] = useState<CallerIdCallEvent[]>([]);
 
   // New Customer Form State
   const [newName, setNewName] = useState(initialName);
@@ -63,6 +89,30 @@ export function PosPhoneOrderDialog({
   const [isSerialConnected, setIsSerialConnected] = useState(callerIdService.isConnected());
   const [isConnectingHardware, setIsConnectingHardware] = useState(false);
   const isSerialSupported = callerIdService.isSupported();
+
+  // Load active delivery reps
+  const deliveryRepsQuery = useQuery({
+    queryKey: ['delivery-reps'],
+    queryFn: deliveryRepsApi.list,
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  });
+
+  const deliveryReps = useMemo(() => {
+    const list = deliveryRepsQuery.data || [];
+    return list.filter((r: DeliveryRep) => r.is_active !== false);
+  }, [deliveryRepsQuery.data]);
+
+  // Sync recent calls on open & subscribe
+  useEffect(() => {
+    if (open) {
+      setRecentCallsList(callerIdService.getRecentCalls());
+      const unsub = callerIdService.subscribe(() => {
+        setRecentCallsList(callerIdService.getRecentCalls());
+      });
+      return () => unsub();
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -111,6 +161,53 @@ export function PosPhoneOrderDialog({
     }
   }, [currentCustomer, addresses, selectedAddress, isCustomAddressMode]);
 
+  // Zone selection calculation
+  const currentDeliveryFee = useMemo(() => {
+    if (selectedZoneId === 'zone_custom') return customDeliveryFee;
+    const found = DELIVERY_ZONES.find((z) => z.id === selectedZoneId);
+    return found ? found.fee : 15;
+  }, [selectedZoneId, customDeliveryFee]);
+
+  function handleZoneChange(zoneId: string) {
+    setSelectedZoneId(zoneId);
+    const found = DELIVERY_ZONES.find((z) => z.id === zoneId);
+    if (found) {
+      if (zoneId !== 'zone_custom') {
+        setCustomDeliveryFee(found.fee);
+      }
+      setEtaMinutes(found.eta);
+    }
+  }
+
+  // Construct combined delivery & payment operational note
+  function buildCombinedNote(): string {
+    const parts: string[] = [];
+
+    // Zone & ETA
+    const zoneObj = DELIVERY_ZONES.find((z) => z.id === selectedZoneId);
+    const zoneName = zoneObj ? zoneObj.name : 'توصيل';
+    parts.push(`[التوصيل: ${zoneName} - ${currentDeliveryFee} ج | الوقت المتوقع: ${etaMinutes} دقيقة]`);
+
+    // Payment method at doorstep
+    if (paymentMethodAtDoor === 'cash') {
+      if (customerPaidNote.trim()) {
+        parts.push(`[الدفع: كاش عند الاستلام | العميل يدفع: ${customerPaidNote.trim()} ج - تجهيز فكة للطيار]`);
+      } else {
+        parts.push(`[الدفع: كاش عند الاستلام]`);
+      }
+    } else if (paymentMethodAtDoor === 'card_pos') {
+      parts.push(`[الدفع: فيزا مع الطيار | اصطحاب ماكينة POS المحمولة]`);
+    } else if (paymentMethodAtDoor === 'instapay_wallet') {
+      parts.push(`[الدفع: إنستاباي / محفظة إلكترونية]`);
+    }
+
+    if (deliveryNotes.trim()) {
+      parts.push(`[ملاحظات الطيار: ${deliveryNotes.trim()}]`);
+    }
+
+    return parts.join(' ');
+  }
+
   // Quick Customer Creation Mutation
   const createCustomerMutation = useMutation({
     mutationFn: async (payload: { name: string; phone: string; address: string; notes?: string }) => {
@@ -129,7 +226,9 @@ export function PosPhoneOrderDialog({
       await queryClient.invalidateQueries({ queryKey: ['posCustomers'] });
       
       const createdId = String(created?.id || created?.customer?.id || '');
-      const assignedAddress = newAddress.trim();
+      const assignedAddress = newAddress.trim() 
+        ? `${addressTag === 'work' ? '[العمل] ' : addressTag === 'home' ? '[المنزل] ' : ''}${newAddress.trim()}`
+        : '';
       
       toast.success('تم تسجيل العميل بنجاح وتجهيز طلب التوصيل');
       
@@ -140,8 +239,14 @@ export function PosPhoneOrderDialog({
       pos.setQuickCustomerPhone(newPhone.trim());
       pos.setQuickCustomerAddress(assignedAddress);
       pos.setOrderType('delivery');
-      if (deliveryNotes.trim()) {
-        pos.setNote(deliveryNotes.trim());
+      pos.setDeliveryFee(currentDeliveryFee);
+      if (selectedDriverId) {
+        pos.setDeliveryRepId(selectedDriverId);
+      }
+      
+      const note = buildCombinedNote();
+      if (note) {
+        pos.setNote(note);
       }
       
       onClose();
@@ -154,7 +259,10 @@ export function PosPhoneOrderDialog({
   // Re-order handler: reconstructs cart from previous sale
   function handleReorder(order: PosCustomerDeliveryProfileOrder) {
     if (!currentCustomer) return;
-    const finalAddress = isCustomAddressMode ? customAddressInput.trim() : (selectedAddress || currentCustomer.address || '');
+    const rawAddress = isCustomAddressMode ? customAddressInput.trim() : (selectedAddress || currentCustomer.address || '');
+    const finalAddress = isCustomAddressMode && rawAddress
+      ? `${addressTag === 'work' ? '[العمل] ' : addressTag === 'home' ? '[المنزل] ' : ''}${rawAddress}`
+      : rawAddress;
 
     const productsCatalog = pos.productsQuery.data || [];
     const newCart: PosItem[] = [];
@@ -197,11 +305,14 @@ export function PosPhoneOrderDialog({
     pos.setQuickCustomerPhone(currentCustomer.phone);
     pos.setQuickCustomerAddress(finalAddress);
     pos.setOrderType('delivery');
-    if (order.deliveryFee > 0) {
-      pos.setDeliveryFee(order.deliveryFee);
+    pos.setDeliveryFee(currentDeliveryFee > 0 ? currentDeliveryFee : (order.deliveryFee || 0));
+    if (selectedDriverId) {
+      pos.setDeliveryRepId(selectedDriverId);
     }
-    if (order.note) {
-      pos.setNote(order.note);
+    
+    const note = buildCombinedNote();
+    if (note) {
+      pos.setNote(note);
     }
 
     toast.success(`تم تكرار الطلب (${order.docNo}) بنجاح وتعبئة السلة بـ ${newCart.length} صنف.`);
@@ -211,18 +322,27 @@ export function PosPhoneOrderDialog({
   // Start new empty delivery order for this customer
   function handleStartNewOrder() {
     if (!currentCustomer) return;
-    const finalAddress = isCustomAddressMode ? customAddressInput.trim() : (selectedAddress || currentCustomer.address || '');
+    const rawAddress = isCustomAddressMode ? customAddressInput.trim() : (selectedAddress || currentCustomer.address || '');
+    const finalAddress = isCustomAddressMode && rawAddress
+      ? `${addressTag === 'work' ? '[العمل] ' : addressTag === 'home' ? '[المنزل] ' : ''}${rawAddress}`
+      : rawAddress;
 
     pos.setCustomerId(String(currentCustomer.id));
     pos.setQuickCustomerName(currentCustomer.name);
     pos.setQuickCustomerPhone(currentCustomer.phone);
     pos.setQuickCustomerAddress(finalAddress);
     pos.setOrderType('delivery');
-    if (deliveryNotes.trim()) {
-      pos.setNote(deliveryNotes.trim());
+    pos.setDeliveryFee(currentDeliveryFee);
+    if (selectedDriverId) {
+      pos.setDeliveryRepId(selectedDriverId);
+    }
+    
+    const note = buildCombinedNote();
+    if (note) {
+      pos.setNote(note);
     }
 
-    toast.info(`تم تعيين العميل (${currentCustomer.name}) وبدء طلب توصيل جديد.`);
+    toast.info(`تم تعيين العميل (${currentCustomer.name}) وتجهيز بيانات التوصيل.`);
     onClose();
   }
 
@@ -248,6 +368,15 @@ export function PosPhoneOrderDialog({
     callerIdService.simulateCall(randomPhone, 'عميل تجريبي');
     toast.info(`تم إرسال إشارة رنين تجريبية للرقم ${randomPhone}`);
     setPhoneQuery(randomPhone);
+    setRecentCallsList(callerIdService.getRecentCalls());
+    setActiveTab('desk');
+  }
+
+  function handlePickRecentCall(phone: string) {
+    setPhoneQuery(phone);
+    setSelectedCustomerId(null);
+    setSelectedAddress('');
+    setActiveTab('desk');
   }
 
   return (
@@ -260,10 +389,10 @@ export function PosPhoneOrderDialog({
           <span>مكتب طلبات الهاتف والتوصيل السريع (Phone Order Desk)</span>
         </div>
       }
-      subtitle="استقبال مكالمات العملاء، البحث الفوري بالهاتف، وتكرار الطلبات بضغطة واحدة"
-      width="960px"
-      maxWidth="95vw"
-      minHeight="540px"
+      subtitle="استقبال مكالمات العملاء، كاشف الأرقام، تجهيز فكة الطيار، وتكرار الطلبات بضغطة واحدة"
+      width="1040px"
+      maxWidth="96vw"
+      minHeight="560px"
       badge={
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
@@ -274,13 +403,47 @@ export function PosPhoneOrderDialog({
               color: activeTab === 'desk' ? '#ffffff' : '#475569',
               border: 'none',
               borderRadius: '6px',
-              padding: '4px 10px',
-              fontSize: '0.75rem',
+              padding: '5px 12px',
+              fontSize: '0.78rem',
               fontWeight: 700,
               cursor: 'pointer',
             }}
           >
             شاشة الطلبات
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('recent_calls')}
+            style={{
+              background: activeTab === 'recent_calls' ? '#170e5e' : '#f1f5f9',
+              color: activeTab === 'recent_calls' ? '#ffffff' : '#475569',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '5px 12px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+            }}
+          >
+            <ClockIcon size={13} />
+            سجل المكالمات
+            {recentCallsList.length > 0 && (
+              <span
+                style={{
+                  background: activeTab === 'recent_calls' ? '#3b82f6' : '#e2e8f0',
+                  color: activeTab === 'recent_calls' ? '#ffffff' : '#1e293b',
+                  fontSize: '0.7rem',
+                  fontWeight: 800,
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                }}
+              >
+                {recentCallsList.length}
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -290,8 +453,8 @@ export function PosPhoneOrderDialog({
               color: activeTab === 'hardware' ? '#ffffff' : '#475569',
               border: 'none',
               borderRadius: '6px',
-              padding: '4px 10px',
-              fontSize: '0.75rem',
+              padding: '5px 12px',
+              fontSize: '0.78rem',
               fontWeight: 700,
               cursor: 'pointer',
               display: 'flex',
@@ -320,7 +483,7 @@ export function PosPhoneOrderDialog({
             <Button variant="secondary" onClick={onClose}>
               إلغاء وإغلاق
             </Button>
-            {currentCustomer && (
+            {currentCustomer && activeTab === 'desk' && (
               <Button
                 style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700 }}
                 onClick={handleStartNewOrder}
@@ -333,7 +496,121 @@ export function PosPhoneOrderDialog({
         </div>
       }
     >
-      {activeTab === 'hardware' ? (
+      {activeTab === 'recent_calls' ? (
+        /* Recent Incoming Calls Log Tab */
+        <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
+                سجل المكالمات الواردة الأخيرة (Caller ID Log)
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
+                يمكنك الضغط على أي مكالمة فائتة أو واردة لفتح ملف العميل وبدء الطلب فوراً.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  callerIdService.clearRecentCalls();
+                  setRecentCallsList([]);
+                  toast.info('تم مسح سجل المكالمات');
+                }}
+                disabled={recentCallsList.length === 0}
+              >
+                <TrashIcon size={14} style={{ marginLeft: '4px' }} />
+                مسح السجل
+              </Button>
+              <Button
+                size="sm"
+                style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700 }}
+                onClick={handleSimulateCall}
+              >
+                <PhoneIncomingIcon size={14} style={{ marginLeft: '4px' }} />
+                محاكاة رنين وارد
+              </Button>
+            </div>
+          </div>
+
+          {recentCallsList.length === 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '48px 24px',
+                textAlign: 'center',
+                background: '#f8fafc',
+                borderRadius: '12px',
+                border: '1px dashed #cbd5e1',
+              }}
+            >
+              <PhoneIncomingIcon size={36} color="#94a3b8" style={{ marginBottom: '10px' }} />
+              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                لا توجد مكالمات مسجلة في الجلسة الحالية
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', maxWidth: '380px', margin: 0 }}>
+                بمجرد توصيل جهاز كاشف الأرقام USB أو استقبال رنين، ستظهر الأرقام هنا تلقائياً.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '420px', overflowY: 'auto' }}>
+              {recentCallsList.map((call) => (
+                <div
+                  key={call.id}
+                  style={{
+                    background: '#ffffff',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        background: '#eff6ff',
+                        color: '#2563eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <PhoneCallIcon size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                        {call.phone}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                        {call.callerName ? `${call.callerName} • ` : ''}
+                        {formatDate(call.timestamp)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700 }}
+                    onClick={() => handlePickRecentCall(call.phone)}
+                  >
+                    <SearchIcon size={13} style={{ marginLeft: '4px' }} />
+                    فتح ملف العميل وبدء الطلب
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : activeTab === 'hardware' ? (
         /* Hardware Configuration Tab */
         <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
@@ -533,20 +810,20 @@ export function PosPhoneOrderDialog({
             </div>
           ) : currentCustomer ? (
             /* STATE 1: Existing Customer Found */
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: '16px' }}>
-              {/* Left Column: Customer Profile & Addresses */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: '16px' }}>
+              {/* Left Column: Customer Profile, Addresses, Zone & Payment */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {/* Profile Card */}
                 <div
                   style={{
                     background: '#ffffff',
-                    padding: '16px',
+                    padding: '14px 16px',
                     borderRadius: '12px',
                     border: '1px solid #e2e8f0',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                     <div>
                       <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
                         {currentCustomer.name}
@@ -570,30 +847,30 @@ export function PosPhoneOrderDialog({
                   </div>
 
                   {/* Customer Quick Stats */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
-                    <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                    <div style={{ background: '#f8fafc', padding: '6px 8px', borderRadius: '8px', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.6875rem', color: '#64748b', fontWeight: 600 }}>إجمالي الطلبات</div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e293b' }}>
                         {profileData?.stats?.invoiceCount || 0}
                       </div>
                     </div>
-                    <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
+                    <div style={{ background: '#f8fafc', padding: '6px 8px', borderRadius: '8px', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.6875rem', color: '#64748b', fontWeight: 600 }}>إجمالي المشتريات</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#170e5e' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#170e5e' }}>
                         {formatCurrency(profileData?.stats?.totalSalesAmount || 0)}
                       </div>
                     </div>
-                    <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
+                    <div style={{ background: '#f8fafc', padding: '6px 8px', borderRadius: '8px', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.6875rem', color: '#64748b', fontWeight: 600 }}>نقاط الولاء</div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#059669' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#059669' }}>
                         {currentCustomer.loyaltyPoints || 0}
                       </div>
                     </div>
                   </div>
 
-                  {/* Preferences or Notes */}
+                  {/* Notes if any */}
                   {currentCustomer.notes && (
-                    <div style={{ background: '#fffbeb', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fef3c7', fontSize: '0.78rem', color: '#92400e' }}>
+                    <div style={{ background: '#fffbeb', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fef3c7', fontSize: '0.75rem', color: '#92400e', marginTop: '8px' }}>
                       <strong>ملاحظات العميل:</strong> {currentCustomer.notes}
                     </div>
                   )}
@@ -603,16 +880,16 @@ export function PosPhoneOrderDialog({
                 <div
                   style={{
                     background: '#ffffff',
-                    padding: '16px',
+                    padding: '14px 16px',
                     borderRadius: '12px',
                     border: '1px solid #e2e8f0',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <MapPinIcon size={16} color="#2563eb" />
-                      <span>عنوان التوصيل المعتمد للطلب</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <MapPinIcon size={15} color="#2563eb" />
+                      <span>عنوان التوصيل</span>
                     </div>
                     <button
                       type="button"
@@ -627,12 +904,33 @@ export function PosPhoneOrderDialog({
                         padding: 0,
                       }}
                     >
-                      {isCustomAddressMode ? 'اختيار من العناوين المحفوظة' : '+ عنوان جديد'}
+                      {isCustomAddressMode ? 'اختيار من العناوين المحفوظة' : '+ إضافة عنوان جديد'}
                     </button>
                   </div>
 
                   {isCustomAddressMode ? (
                     <div>
+                      <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                        {(['home', 'work', 'other'] as const).map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => setAddressTag(tag)}
+                            style={{
+                              background: addressTag === tag ? '#2563eb' : '#f1f5f9',
+                              color: addressTag === tag ? '#ffffff' : '#475569',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '3px 8px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {tag === 'home' ? 'المنزل' : tag === 'work' ? 'العمل' : 'أخرى'}
+                          </button>
+                        ))}
+                      </div>
                       <input
                         type="text"
                         value={customAddressInput}
@@ -640,30 +938,29 @@ export function PosPhoneOrderDialog({
                         placeholder="أدخل العنوان الجديد بالتفصيل (المنطقة، الشارع، رقم العقار، الدور)..."
                         style={{
                           width: '100%',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
+                          padding: '7px 10px',
+                          borderRadius: '6px',
                           border: '1px solid #cbd5e1',
-                          fontSize: '0.8125rem',
+                          fontSize: '0.8rem',
                           outline: 'none',
-                          marginBottom: '8px',
                         }}
                       />
                     </div>
                   ) : addresses.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '120px', overflowY: 'auto' }}>
                       {addresses.map((addr, idx) => (
                         <label
                           key={idx}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '10px',
-                            padding: '10px 12px',
-                            borderRadius: '8px',
+                            gap: '8px',
+                            padding: '8px 10px',
+                            borderRadius: '6px',
                             border: selectedAddress === addr ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
                             background: selectedAddress === addr ? '#eff6ff' : '#ffffff',
                             cursor: 'pointer',
-                            fontSize: '0.8125rem',
+                            fontSize: '0.78rem',
                             fontWeight: selectedAddress === addr ? 700 : 500,
                             color: selectedAddress === addr ? '#1e40af' : '#334155',
                           }}
@@ -680,14 +977,211 @@ export function PosPhoneOrderDialog({
                       ))}
                     </div>
                   ) : (
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', padding: '12px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', padding: '8px', textAlign: 'center', background: '#f8fafc', borderRadius: '6px' }}>
                       لا يوجد عناوين سابقة مسجلة لهذا العميل.
                     </div>
                   )}
+                </div>
+
+                {/* Delivery Zone, Fees & Driver Setup */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    padding: '14px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <TruckIcon size={15} color="#059669" />
+                    <span>منطقة التوصيل والطيار المتاح</span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '3px' }}>
+                        منطقة التوصيل والرسوم
+                      </label>
+                      <select
+                        value={selectedZoneId}
+                        onChange={(e) => handleZoneChange(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.78rem',
+                          background: '#ffffff',
+                        }}
+                      >
+                        {DELIVERY_ZONES.map((z) => (
+                          <option key={z.id} value={z.id}>
+                            {z.name} ({z.fee} ج)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '3px' }}>
+                        تعيين الطيار (اختياري)
+                      </label>
+                      <select
+                        value={selectedDriverId}
+                        onChange={(e) => setSelectedDriverId(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.78rem',
+                          background: '#ffffff',
+                        }}
+                      >
+                        <option value="">توزيع تلقائي لاحقاً</option>
+                        {deliveryReps.map((dr: DeliveryRep) => (
+                          <option key={dr.id} value={dr.id}>
+                            {dr.name} {dr.phone ? `(${dr.phone})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {selectedZoneId === 'zone_custom' && (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>رسوم التوصيل:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={customDeliveryFee}
+                        onChange={(e) => setCustomDeliveryFee(Number(e.target.value) || 0)}
+                        style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                      />
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>ج.م</span>
+                    </div>
+                  )}
+
+                  {/* Payment at Doorstep Selector */}
+                  <div style={{ paddingTop: '6px', borderTop: '1px dashed #e2e8f0' }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                      طريقة الدفع المتوقعة عند الاستلام
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethodAtDoor('cash')}
+                        style={{
+                          background: paymentMethodAtDoor === 'cash' ? '#170e5e' : '#f8fafc',
+                          color: paymentMethodAtDoor === 'cash' ? '#ffffff' : '#334155',
+                          border: '1px solid',
+                          borderColor: paymentMethodAtDoor === 'cash' ? '#170e5e' : '#cbd5e1',
+                          borderRadius: '6px',
+                          padding: '6px 4px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <DollarSignIcon size={12} />
+                        كاش عند الاستلام
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethodAtDoor('card_pos')}
+                        style={{
+                          background: paymentMethodAtDoor === 'card_pos' ? '#170e5e' : '#f8fafc',
+                          color: paymentMethodAtDoor === 'card_pos' ? '#ffffff' : '#334155',
+                          border: '1px solid',
+                          borderColor: paymentMethodAtDoor === 'card_pos' ? '#170e5e' : '#cbd5e1',
+                          borderRadius: '6px',
+                          padding: '6px 4px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <CreditCardIcon size={12} />
+                        فيزا مع الطيار
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethodAtDoor('instapay_wallet')}
+                        style={{
+                          background: paymentMethodAtDoor === 'instapay_wallet' ? '#170e5e' : '#f8fafc',
+                          color: paymentMethodAtDoor === 'instapay_wallet' ? '#ffffff' : '#334155',
+                          border: '1px solid',
+                          borderColor: paymentMethodAtDoor === 'instapay_wallet' ? '#170e5e' : '#cbd5e1',
+                          borderRadius: '6px',
+                          padding: '6px 4px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        إنستاباي / محفظة
+                      </button>
+                    </div>
+
+                    {paymentMethodAtDoor === 'cash' && (
+                      <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', whiteSpace: 'nowrap' }}>العميل سيدفع:</span>
+                        <input
+                          type="text"
+                          value={customerPaidNote}
+                          onChange={(e) => setCustomerPaidNote(e.target.value)}
+                          placeholder="مثلاً: 200 ج (فكة مطلوبة)..."
+                          style={{
+                            flex: 1,
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.78rem',
+                          }}
+                        />
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          {['100', '200', '500'].map((val) => (
+                            <button
+                              key={val}
+                              type="button"
+                              onClick={() => setCustomerPaidNote(val)}
+                              style={{
+                                background: '#f1f5f9',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '4px',
+                                padding: '3px 6px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {val}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Delivery Note input */}
-                  <div style={{ marginTop: '12px' }}>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '3px' }}>
                       توجيهات إضافية للطيار (Delivery Note)
                     </label>
                     <input
@@ -697,10 +1191,10 @@ export function PosPhoneOrderDialog({
                       placeholder="مثال: رن الجرس مرتين، بجوار صيدلية العزبي..."
                       style={{
                         width: '100%',
-                        padding: '6px 10px',
+                        padding: '6px 8px',
                         borderRadius: '6px',
                         border: '1px solid #cbd5e1',
-                        fontSize: '0.8rem',
+                        fontSize: '0.78rem',
                       }}
                     />
                   </div>
@@ -708,14 +1202,14 @@ export function PosPhoneOrderDialog({
               </div>
 
               {/* Right Column: Order History & 1-Click Repeat */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <ReceiptIcon size={16} color="#170e5e" />
-                    <span>سجل آخر طلبات العميل وتكرار الطلب</span>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ReceiptIcon size={15} color="#170e5e" />
+                    <span>سجل طلبات العميل السابقة</span>
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    {recentOrders.length} طلبات سابقة
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    {recentOrders.length} طلبات مسجلة
                   </span>
                 </div>
 
@@ -730,15 +1224,22 @@ export function PosPhoneOrderDialog({
                     }}
                   >
                     <ClockIcon size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
-                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#334155' }}>
-                      لا توجد طلبات سابقة لهذا العميل
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
+                      لا توجد طلبات سابقة مسجلة لهذا العميل
                     </div>
-                    <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>
-                      يمكنك بدء أول طلب له عبر زر "بدء طلب جديد للعميل".
+                    <p style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', marginBottom: '14px' }}>
+                      يمكنك بدء أول طلب له وسيقوم النظام بحفظ عنوانه وتفضيلاته تلقائياً.
                     </p>
+                    <Button
+                      style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '0.8rem' }}
+                      onClick={handleStartNewOrder}
+                    >
+                      <PlusIcon size={14} style={{ marginLeft: '4px' }} />
+                      بدء أول طلب للعميل
+                    </Button>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto', paddingLeft: '4px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '440px', overflowY: 'auto', paddingLeft: '4px' }}>
                     {recentOrders.map((order) => (
                       <div
                         key={order.id}
@@ -788,7 +1289,7 @@ export function PosPhoneOrderDialog({
 
                         {/* Order Footer & Repeat Button */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
                             {order.customerAddress ? `العنوان: ${order.customerAddress}` : 'بدون عنوان محدد'}
                           </div>
                           <Button
@@ -818,16 +1319,16 @@ export function PosPhoneOrderDialog({
             <div
               style={{
                 background: '#ffffff',
-                padding: '24px',
+                padding: '20px',
                 borderRadius: '12px',
                 border: '1px solid #e2e8f0',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
                 <PlusIcon size={18} color="#2563eb" />
-                <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                  تسجيل عميل جديد وبدء طلب التوصيل
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  تسجيل عميل جديد وتجهيز طلب التوصيل
                 </h3>
               </div>
 
@@ -845,11 +1346,11 @@ export function PosPhoneOrderDialog({
                     notes: newNotes,
                   });
                 }}
-                style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
               >
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
-                    <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                       اسم العميل <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
@@ -860,16 +1361,16 @@ export function PosPhoneOrderDialog({
                       placeholder="اسم العميل الكامل..."
                       style={{
                         width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
+                        padding: '7px 10px',
+                        borderRadius: '6px',
                         border: '1px solid #cbd5e1',
-                        fontSize: '0.85rem',
+                        fontSize: '0.82rem',
                       }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                       رقم الهاتف
                     </label>
                     <input
@@ -879,19 +1380,42 @@ export function PosPhoneOrderDialog({
                       placeholder="رقم الهاتف..."
                       style={{
                         width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
+                        padding: '7px 10px',
+                        borderRadius: '6px',
                         border: '1px solid #cbd5e1',
-                        fontSize: '0.85rem',
+                        fontSize: '0.82rem',
                       }}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                    عنوان التوصيل التفصيلي (المنطقة، الشارع، العقار، الدور، الشقة)
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', margin: 0 }}>
+                      عنوان التوصيل التفصيلي (المنطقة، الشارع، العقار، الدور، الشقة)
+                    </label>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {(['home', 'work', 'other'] as const).map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => setAddressTag(tag)}
+                          style={{
+                            background: addressTag === tag ? '#2563eb' : '#f1f5f9',
+                            color: addressTag === tag ? '#ffffff' : '#475569',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '2px 6px',
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {tag === 'home' ? 'المنزل' : tag === 'work' ? 'العمل' : 'أخرى'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <input
                     type="text"
                     value={newAddress}
@@ -899,16 +1423,65 @@ export function PosPhoneOrderDialog({
                     placeholder="مثال: المعادي - شارع 9 - عمارة 14 - الدور الثالث شقة 6"
                     style={{
                       width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
+                      padding: '7px 10px',
+                      borderRadius: '6px',
                       border: '1px solid #cbd5e1',
-                      fontSize: '0.85rem',
+                      fontSize: '0.82rem',
                     }}
                   />
                 </div>
 
+                {/* Delivery Zone & Payment in New Customer Form */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '3px' }}>
+                      منطقة التوصيل
+                    </label>
+                    <select
+                      value={selectedZoneId}
+                      onChange={(e) => handleZoneChange(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '5px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.78rem',
+                        background: '#ffffff',
+                      }}
+                    >
+                      {DELIVERY_ZONES.map((z) => (
+                        <option key={z.id} value={z.id}>
+                          {z.name} ({z.fee} ج)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '3px' }}>
+                      طريقة الدفع عند الاستلام
+                    </label>
+                    <select
+                      value={paymentMethodAtDoor}
+                      onChange={(e) => setPaymentMethodAtDoor(e.target.value as DoorstepPaymentMethod)}
+                      style={{
+                        width: '100%',
+                        padding: '5px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.78rem',
+                        background: '#ffffff',
+                      }}
+                    >
+                      <option value="cash">كاش عند الاستلام</option>
+                      <option value="card_pos">فيزا مع الطيار (POS)</option>
+                      <option value="instapay_wallet">إنستاباي / محفظة إلكترونية</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div>
-                  <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                     ملاحظات أو علامات مميزة للعنوان
                   </label>
                   <input
@@ -918,15 +1491,15 @@ export function PosPhoneOrderDialog({
                     placeholder="مثال: أمام مسجد الفتح، مدخل العمارة من الجانب..."
                     style={{
                       width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
+                      padding: '7px 10px',
+                      borderRadius: '6px',
                       border: '1px solid #cbd5e1',
-                      fontSize: '0.85rem',
+                      fontSize: '0.82rem',
                     }}
                   />
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
                   <Button
                     type="submit"
                     disabled={createCustomerMutation.isPending}

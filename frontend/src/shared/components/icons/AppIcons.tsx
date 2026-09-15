@@ -1091,6 +1091,8 @@ export const AppIcons = {
   Share2: Share2Icon,
   Coins: DollarSignIcon,
   Truck: TruckIcon,
+  CreditCard: CreditCardIcon,
+  RotateCcw: RotateCcwIcon,
   HelpCircle: HelpCircleIcon,
   BarChart: BarChartIcon,
 };
