@@ -4,12 +4,15 @@ export type CommerceSubVertical =
   | 'retail_general'
   | 'pharmacy'
   | 'restaurant'
-  | 'manufacturing'
-  | 'maintenance';
+  | 'maintenance'
+  | 'import_export'
+  | 'auto_parts'
+  | 'clothing';
 
 export type IndustryProfileKey =
   | 'contracting'
   | 'maritime_freight'
+  | 'manufacturing'
   | CommerceSubVertical;
 
 export interface IndustryProfile {
@@ -44,6 +47,7 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
       'sales',
       'pricing',
       'accounting',
+      'treasury',
       'hr',
       'fixed_assets',
       'vat_declaration',
@@ -70,6 +74,7 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
       'sales',
       'pricing',
       'accounting',
+      'treasury',
       'hr',
       'fixed_assets',
       'vat_declaration',
@@ -183,7 +188,6 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
   manufacturing: {
     key: 'manufacturing',
     pillar: 'manufacturing',
-    subVertical: 'manufacturing',
     labelAr: 'قطاع التصنيع والإنتاج الصناعي',
     labelEn: 'Manufacturing & Industrial Production',
     descriptionAr: 'منظومة المصانع والمعامل: تخطيط الإنتاج، شجرة المنتج (BOM)، أوامر التشغيل، مستودعات الخامات والمنتج التام، ومحاسبة التكاليف الصناعية.',
@@ -200,6 +204,7 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
       'sales',
       'pricing',
       'accounting',
+      'treasury',
       'hr',
       'fixed_assets',
       'vat_declaration',
@@ -241,6 +246,101 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
     ],
     allowedExtraFeatures: ['storefront'],
   },
+
+  import_export: {
+    key: 'import_export',
+    pillar: 'commerce',
+    subVertical: 'import_export',
+    labelAr: 'الاستيراد والتجارة الدولية والتوزيع',
+    labelEn: 'Import & International Wholesale',
+    descriptionAr: 'إدارة الشحنات والحاويات الجمركية، مديونية الموردين والمصانع الخارجية، وأرباح الشركاء الممولين.',
+    defaultRoute: '/import/shipments',
+    defaultFeatures: [
+      'catalog',
+      'products',
+      'sales',
+      'sessions',
+      'cashDrawer',
+      'purchases',
+      'inventory',
+      'suppliers',
+      'customers',
+      'crm',
+      'pricing',
+      'reports',
+      'import',
+      'accounting',
+      'treasury',
+      'hr',
+      'fixed_assets',
+      'vat_declaration',
+      'taxIntegration',
+    ],
+    allowedExtraFeatures: ['storefront'],
+  },
+
+  auto_parts: {
+    key: 'auto_parts',
+    pillar: 'commerce',
+    subVertical: 'auto_parts',
+    labelAr: 'قطع غيار السيارات والآليات',
+    labelEn: 'Auto Spare Parts & Vehicles',
+    descriptionAr: 'دليل قطع الغيار، أرقام القطع الأصلية (OEM)، توافق الموديلات والماركات وسنوات الصنع.',
+    defaultRoute: '/dashboard',
+    defaultFeatures: [
+      'catalog',
+      'products',
+      'sales',
+      'sessions',
+      'cashDrawer',
+      'purchases',
+      'inventory',
+      'suppliers',
+      'customers',
+      'crm',
+      'pricing',
+      'reports',
+      'accounting',
+      'treasury',
+      'hr',
+      'fixed_assets',
+      'vat_declaration',
+      'taxIntegration',
+    ],
+    allowedExtraFeatures: ['storefront'],
+  },
+
+  clothing: {
+    key: 'clothing',
+    pillar: 'commerce',
+    subVertical: 'clothing',
+    labelAr: 'الملابس والأزياء والأحذية',
+    labelEn: 'Fashion & Apparel',
+    descriptionAr: 'إدارة مصفوفة الألوان والمقاسات (Variants)، وتوليد الباركود للأزياء، وتصنيفات الموديلات.',
+    defaultRoute: '/dashboard',
+    defaultFeatures: [
+      'catalog',
+      'products',
+      'sales',
+      'sessions',
+      'cashDrawer',
+      'purchases',
+      'inventory',
+      'suppliers',
+      'customers',
+      'crm',
+      'pricing',
+      'reports',
+      'clothing',
+      'accounting',
+      'treasury',
+      'hr',
+      'fixed_assets',
+      'vat_declaration',
+      'taxIntegration',
+    ],
+    allowedExtraFeatures: ['storefront'],
+  },
 };
 
 /**
@@ -274,6 +374,33 @@ export function normalizeIndustryProfileKey(raw?: string | null): IndustryProfil
   }
   if (trimmed === 'maintenance' || trimmed === 'صيانة' || trimmed === 'repair' || trimmed === 'ورشة') {
     return 'maintenance';
+  }
+  if (
+    trimmed === 'import_export' ||
+    trimmed === 'import' ||
+    trimmed === 'استيراد' ||
+    trimmed === 'شراكة' ||
+    trimmed === 'استيراد_وتصدير'
+  ) {
+    return 'import_export';
+  }
+  if (
+    trimmed === 'auto_parts' ||
+    trimmed === 'autoparts' ||
+    trimmed === 'قطع_غيار' ||
+    trimmed === 'قطع غيار' ||
+    trimmed === 'سيارات'
+  ) {
+    return 'auto_parts';
+  }
+  if (
+    trimmed === 'clothing' ||
+    trimmed === 'fashion' ||
+    trimmed === 'apparel' ||
+    trimmed === 'ملابس' ||
+    trimmed === 'أزياء'
+  ) {
+    return 'clothing';
   }
 
   return 'retail_general';
@@ -310,6 +437,7 @@ export function resolvePillarScopedFeatures(
     candidates.delete('pharmacy');
     candidates.delete('restaurant');
     candidates.delete('maritime_freight');
+    candidates.delete('manufacturing');
     candidates.delete('storefront');
     candidates.delete('kds');
     candidates.delete('displays');
@@ -346,9 +474,10 @@ export function resolvePillarScopedFeatures(
     candidates.delete('clothing');
     if (!explicitPlus.includes('pos')) candidates.delete('pos');
   } else {
-    // Pillar is commerce: remove isolated vertical modules (contracting & maritime_freight) unless explicitly granted
+    // Pillar is commerce: remove isolated vertical modules (contracting, maritime_freight, manufacturing) unless explicitly granted
     if (!explicitPlus.includes('contracting')) candidates.delete('contracting');
     if (!explicitPlus.includes('maritime_freight')) candidates.delete('maritime_freight');
+    if (!explicitPlus.includes('manufacturing')) candidates.delete('manufacturing');
 
     // Remove specialized commerce verticals that do not match the subVertical unless explicitly granted
     if (profile.subVertical !== 'pharmacy' && !explicitPlus.includes('pharmacy')) {
@@ -357,11 +486,14 @@ export function resolvePillarScopedFeatures(
     if (profile.subVertical !== 'restaurant' && !explicitPlus.includes('restaurant')) {
       candidates.delete('restaurant');
     }
-    if (profile.subVertical !== 'manufacturing' && !explicitPlus.includes('manufacturing')) {
-      candidates.delete('manufacturing');
-    }
     if (profile.subVertical !== 'maintenance' && !explicitPlus.includes('maintenance')) {
       candidates.delete('maintenance');
+    }
+    if (profile.subVertical !== 'import_export' && !explicitPlus.includes('import')) {
+      candidates.delete('import');
+    }
+    if (profile.subVertical !== 'clothing' && !explicitPlus.includes('clothing')) {
+      candidates.delete('clothing');
     }
   }
 

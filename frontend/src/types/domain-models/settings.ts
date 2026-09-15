@@ -60,6 +60,7 @@ export interface AppSettings {
   onboardingCompleted?: boolean;
   manufacturingModuleEnabled?: boolean;
   importModuleEnabled?: boolean;
+  autoPartsModuleEnabled?: boolean;
   maritimeFreightModuleEnabled?: boolean;
   contractingModuleEnabled?: boolean;
   comboModuleEnabled?: boolean;

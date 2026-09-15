@@ -45,6 +45,18 @@ describe('PosSaleSuccessDialog', () => {
     expect(screen.getByRole('button', { name: /طباعة ريسيت العميل F2/ })).toBeInTheDocument();
   });
 
+  it('renders dual receipt print button with F4 and executes on F4 press', async () => {
+    const user = userEvent.setup();
+    const dualPrintMock = vi.fn();
+    renderDialog({ onPrintDualReceipt: dualPrintMock });
+
+    const dualBtn = screen.getByRole('button', { name: /طباعة نسختين \(عميل \+ محل\) F4/ });
+    expect(dualBtn).toBeInTheDocument();
+
+    await user.keyboard('{F4}');
+    expect(dualPrintMock).toHaveBeenCalledTimes(1);
+  });
+
   it('uses the selected customer phone for WhatsApp', async () => {
     const user = userEvent.setup();
     const openMock = vi.spyOn(window, 'open').mockImplementation(() => null);
@@ -65,8 +77,8 @@ describe('PosSaleSuccessDialog', () => {
       customer: { id: 'cust-1', name: 'أحمد علي', phone: '', address: '', balance: 0, type: 'cash', creditLimit: 0, storeCreditBalance: 0 },
     });
 
-    expect(screen.getByLabelText('رقم الهاتف')).toBeInTheDocument();
-    await user.type(screen.getByLabelText('رقم الهاتف'), '01234567890');
+    expect(screen.getByPlaceholderText('أدخل رقم الهاتف لإرسال الفاتورة')).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText('أدخل رقم الهاتف لإرسال الفاتورة'), '01234567890');
     await user.click(screen.getByRole('button', { name: 'إرسال مرة واحدة F8' }));
 
     expect(openMock).toHaveBeenCalledWith(expect.stringContaining('https://wa.me/01234567890'), '_blank', 'noopener,noreferrer');

@@ -41,6 +41,12 @@ export interface StorefrontInfo {
   stripeTestMode?: boolean;
   logo_url?: string;
   logoUrl?: string;
+  brandColor?: string;
+  metaPixelId?: string;
+  ga4Id?: string;
+  tiktokPixelId?: string;
+  snapchatPixelId?: string;
+  pickupEnabled?: boolean;
 }
 
 export interface StorefrontCategory {
@@ -99,6 +105,9 @@ export interface CreateOnlineOrderPayload {
   deliveryZoneName?: string;
   orderType?: 'delivery' | 'dine_in';
   tableNumber?: string;
+  fulfillmentType?: 'delivery' | 'pickup' | 'dine_in';
+  countryCode?: string;
+  pickupBranchId?: number;
 }
 
 export interface CreateOnlineOrderResponse {
@@ -328,4 +337,35 @@ export interface CreateDeliveryZonePayload {
 }
 
 export interface UpdateDeliveryZonePayload extends Partial<CreateDeliveryZonePayload> {}
+
+export interface AbandonedCartRecord {
+  id: number;
+  customerName: string;
+  customerPhone: string;
+  countryCode: string;
+  items: Array<{
+    productId: number | string;
+    quantity: number;
+    name?: string;
+    unitPrice?: number;
+    total?: number;
+  }>;
+  subtotal: number;
+  recovered: boolean;
+  createdAt: string;
+}
+
+export interface StorefrontAnalytics {
+  totalOrders: number;
+  totalRevenue: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  pendingOrders: number;
+  averageOrderValue: number;
+  unrecoveredAbandoned: number;
+  recoveredAbandoned: number;
+  abandonedCartsCount?: number;
+  conversionRate: number;
+}
+
 

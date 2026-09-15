@@ -3,6 +3,7 @@ import { StorefrontService } from './storefront.service';
 import { StorefrontPaymentService } from './storefront-payment.service';
 import { CreateOnlineOrderDto } from './dto/create-online-order.dto';
 import { CreateProductReviewDto } from './dto/create-product-review.dto';
+import { RecordAbandonedCartDto } from './dto/abandoned-cart.dto';
 
 @Controller('api/storefront')
 export class StorefrontPublicController {
@@ -87,6 +88,14 @@ export class StorefrontPublicController {
     @Body() body: CreateOnlineOrderDto,
   ) {
     return this.service.updateCustomerOrder(slug, orderNumber, body);
+  }
+
+  @Post(':slug/abandoned-cart')
+  recordAbandonedCart(
+    @Param('slug') slug: string,
+    @Body() body: RecordAbandonedCartDto,
+  ) {
+    return this.service.recordAbandonedCart(slug, body);
   }
 
   // --- Online Payment Gateway Endpoints ---

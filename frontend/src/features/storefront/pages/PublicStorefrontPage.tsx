@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import '@/styles/partials/storefront.css';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { StorefrontHeader } from '../components/StorefrontHeader';
@@ -7,6 +8,8 @@ import { StorefrontBannerCarousel } from '../components/StorefrontBannerCarousel
 import { StorefrontMultiRowHome } from '../components/StorefrontMultiRowHome';
 import { StorefrontFilteredGrid } from '../components/StorefrontFilteredGrid';
 import { StorefrontModals } from '../components/StorefrontModals';
+import { initStorefrontPixels, trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
+import type { StorefrontProduct } from '../types/storefront.types';
 import { usePublicStorefront, ITEMS_PER_PAGE } from '../hooks/usePublicStorefront';
 import { IconStore } from '../components/StorefrontIcons';
 import { UtensilsIcon } from '@/shared/components/icons/AppIcons';
@@ -16,6 +19,7 @@ export function PublicStorefrontPage() {
   const [searchParams] = useSearchParams();
   const tableParam = (tableNo || searchParams.get('table') || '').trim();
   const cleanSlug = String(slug || 'default').trim();
+  const [quickViewProduct, setQuickViewProduct] = useState<StorefrontProduct | null>(null);
 
   const {
     infoQuery,
@@ -74,6 +78,18 @@ export function PublicStorefrontPage() {
     hasMore,
     isHomepageMultiRow,
   } = usePublicStorefront(cleanSlug);
+
+  useEffect(() => {
+    if (info) {
+      initStorefrontPixels(info);
+      trackStorefrontEvent('ViewContent', {
+        contentName: info.title || info.businessName || 'المتجر الإلكتروني',
+      });
+      if (info.brandColor) {
+        document.documentElement.style.setProperty('--storefront-primary-color', info.brandColor);
+      }
+    }
+  }, [info]);
 
   if (catalogQuery.isLoading || infoQuery.isLoading) {
     return (
@@ -302,6 +318,7 @@ export function PublicStorefrontPage() {
             onUpdateQuantity={handleUpdateQuantity}
             onOpenReviewModal={handleOpenReviewModal}
             onToggleFavorite={handleToggleFavorite}
+            onQuickView={(p: StorefrontProduct) => setQuickViewProduct(p)}
             onSelectDeals={() => setOnlyDeals(true)}
             onSelectCategory={(id) => setSelectedCategory(id)}
             onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
@@ -328,12 +345,17 @@ export function PublicStorefrontPage() {
             onUpdateQuantity={handleUpdateQuantity}
             onOpenReviewModal={handleOpenReviewModal}
             onToggleFavorite={handleToggleFavorite}
+            onQuickView={(p: StorefrontProduct) => setQuickViewProduct(p)}
           />
         )}
       </main>
 
       {/* Modals & Live Cart */}
       <StorefrontModals
+        allProducts={filteredProducts || []}
+        onAddToCart={handleAddToCart}
+        quickViewProduct={quickViewProduct}
+        onCloseQuickView={() => setQuickViewProduct(null)}
         isCategoriesModalOpen={isCategoriesModalOpen}
         onCloseCategoriesModal={() => setIsCategoriesModalOpen(false)}
         categories={categories}

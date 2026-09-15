@@ -16,6 +16,8 @@ import {
   UpdateDeliveryZonePayload,
   StorefrontPaymentSessionResponse,
   StorefrontPaymentStatusResponse,
+  AbandonedCartRecord,
+  StorefrontAnalytics,
 } from '../types/storefront.types';
 
 export const storefrontApi = {
@@ -99,6 +101,15 @@ export const storefrontApi = {
         body: JSON.stringify(payload),
       }
     ),
+
+  recordAbandonedCart: (
+    slug: string,
+    payload: { customerPhone: string; customerName?: string; countryCode?: string; items: any[]; subtotal: number }
+  ) =>
+    http<{ ok: boolean; cartId?: number }>(`/api/storefront/${encodeURIComponent(slug)}/abandoned-cart`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
   submitReview: (
     slug: string,
@@ -229,4 +240,15 @@ export const storefrontApi = {
     http<{ ok: boolean; id: number }>(`/api/storefront/admin/delivery-zones/${id}`, {
       method: 'DELETE',
     }),
+
+  listAbandonedCarts: () =>
+    http<{ ok: boolean; carts: AbandonedCartRecord[] }>('/api/storefront/admin/abandoned-carts'),
+
+  deleteAbandonedCart: (id: number) =>
+    http<{ ok: boolean }>(`/api/storefront/admin/abandoned-carts/${id}`, {
+      method: 'DELETE',
+    }),
+
+  getAnalytics: () =>
+    http<{ ok: boolean } & StorefrontAnalytics>('/api/storefront/admin/analytics'),
 };

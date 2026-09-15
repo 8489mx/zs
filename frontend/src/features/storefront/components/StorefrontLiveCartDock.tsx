@@ -1,10 +1,10 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
-import { useState, useEffect, useRef } from 'react';
-import { CartItem, StorefrontInfo } from '../types/storefront.types';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { CartItem, StorefrontInfo, StorefrontProduct } from '../types/storefront.types';
 import { StorefrontLiveCartItem } from './StorefrontLiveCartItem';
 import { StorefrontLiveCartPill } from './StorefrontLiveCartPill';
-import { Trash2Icon, XIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
+import { Trash2Icon, XIcon, AlertTriangleIcon, TruckIcon, PlusIcon } from '@/shared/components/icons/AppIcons';
 
 function formatArabicItems(count: number): string {
   if (count === 1) return 'صنف واحد';
@@ -24,6 +24,8 @@ interface StorefrontLiveCartDockProps {
   onUpdateQuantity: (productId: number, qty: number) => void;
   onClearCart: () => void;
   onProceedToCheckout: () => void;
+  suggestedProducts?: StorefrontProduct[];
+  onAddToCart?: (product: StorefrontProduct) => void;
 }
 
 export function StorefrontLiveCartDock({
@@ -37,8 +39,11 @@ export function StorefrontLiveCartDock({
   onUpdateQuantity,
   onClearCart,
   onProceedToCheckout,
+  suggestedProducts = [],
+  onAddToCart,
 }: StorefrontLiveCartDockProps) {
   const [isDismissed, setIsDismissed] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const prevItemsCount = useRef(cartItems.length);
   const prevTotalQuantity = useRef(0);
 
@@ -48,6 +53,18 @@ export function StorefrontLiveCartDock({
   const minOrder = minOrderProp ?? info?.minOrder ?? 0;
   const total = subtotal + deliveryFee;
   const isMinOrderMet = minOrder <= 0 || subtotal >= minOrder;
+
+  const freeShippingThreshold = info?.freeShippingMinOrder || 500;
+  const isFreeShippingQualified = Boolean(info?.freeShippingEnabled && subtotal >= freeShippingThreshold);
+  const freeShippingPercent = info?.freeShippingEnabled
+    ? Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100))
+    : 0;
+  const freeShippingRemaining = Math.max(0, freeShippingThreshold - subtotal);
+
+  const cartProductIds = useMemo(() => new Set(cartItems.map((item) => item.product.id)), [cartItems]);
+  const crossSellProducts = useMemo(() => {
+    return suggestedProducts.filter((p) => !cartProductIds.has(p.id)).slice(0, 4);
+  }, [suggestedProducts, cartProductIds]);
 
   // Auto-restore visibility if items or quantities change
   useEffect(() => {
@@ -171,7 +188,7 @@ export function StorefrontLiveCartDock({
           height: '100%',
           background: '#ffffff',
           boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
-          borderRight: '5px solid #170e5e',
+          borderRight: `5px solid ${info?.brandColor || '#170e5e'}`,
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
@@ -235,7 +252,7 @@ export function StorefrontLiveCartDock({
                     fontSize: '11.5px',
                     fontWeight: 700,
                     background: '#f0f3ff',
-                    color: '#170e5e',
+                    color: info?.brandColor || '#170e5e',
                     border: '1px solid #d8e0fc',
                     padding: '2px 8px',
                     borderRadius: '6px',
@@ -252,18 +269,53 @@ export function StorefrontLiveCartDock({
 
           {/* Controls: Clear Cart & Close / Minimize */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <button
-              type="button"
-              className="live-cart-ctrl-btn live-cart-clear-btn"
-              onClick={() => {
-                if (window.confirm('هل تود تفريغ سلة المشتريات بالكامل؟')) {
-                  onClearCart();
-                }
-              }}
-              title="تفريغ السلة بالكامل"
-            >
-              <Trash2Icon size={15} />
-            </button>
+            {showClearConfirm ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', animation: 'fadeIn 0.15s ease' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClearCart();
+                    setShowClearConfirm(false);
+                  }}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  تأكيد التفريغ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowClearConfirm(false)}
+                  style={{
+                    padding: '4px 6px',
+                    borderRadius: '6px',
+                    background: '#e2e8f0',
+                    color: '#475569',
+                    border: 'none',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  إلغاء
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="live-cart-ctrl-btn live-cart-clear-btn"
+                onClick={() => setShowClearConfirm(true)}
+                title="تفريغ السلة بالكامل"
+              >
+                <Trash2Icon size={15} />
+              </button>
+            )}
 
             <button
               type="button"
@@ -275,6 +327,55 @@ export function StorefrontLiveCartDock({
             </button>
           </div>
         </div>
+
+        {/* Interactive Free Shipping Progress Bar */}
+        {info?.freeShippingEnabled && (
+          <div
+            style={{
+              padding: '10px 18px',
+              background: isFreeShippingQualified ? '#f0fdf4' : '#f8fafc',
+              borderBottom: '1px solid #e2e8f0',
+              transition: 'background 0.2s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', fontSize: '11.5px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <TruckIcon size={14} color={isFreeShippingQualified ? '#16a34a' : (info?.brandColor || '#170e5e')} />
+                {isFreeShippingQualified ? (
+                  <span style={{ fontWeight: 800, color: '#15803d' }}>
+                    مبروك! حصلت على توصيل مجاني لطلبك!
+                  </span>
+                ) : (
+                  <span style={{ color: '#334155' }}>
+                    أضف بـ <strong style={{ color: info?.brandColor || '#170e5e' }}>{freeShippingRemaining.toFixed(0)} <CurrencySymbol /></strong> للشحن المجاني
+                  </span>
+                )}
+              </div>
+              <span style={{ fontWeight: 700, color: isFreeShippingQualified ? '#15803d' : '#64748b', fontSize: '11px' }}>
+                {freeShippingPercent}%
+              </span>
+            </div>
+            <div
+              style={{
+                height: '6px',
+                width: '100%',
+                background: '#e2e8f0',
+                borderRadius: '999px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${freeShippingPercent}%`,
+                  background: isFreeShippingQualified ? '#22c55e' : (info?.brandColor || '#170e5e'),
+                  borderRadius: '999px',
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Scrollable Items List */}
         <div
@@ -297,6 +398,69 @@ export function StorefrontLiveCartDock({
             />
           ))}
         </div>
+
+        {/* Cross-Sell Recommendations */}
+        {crossSellProducts.length > 0 && onAddToCart && (
+          <div
+            style={{
+              padding: '10px 16px',
+              background: '#f8fafc',
+              borderTop: '1px solid #e2e8f0',
+            }}
+          >
+            <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
+              قد يعجبك أيضاً (إضافة سريعة للسلة):
+            </div>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+              {crossSellProducts.map((p) => (
+                <div
+                  key={p.id}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    minWidth: '130px',
+                    maxWidth: '150px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    flexShrink: 0,
+                  }}
+                >
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.name}>
+                    {p.name}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: info?.brandColor || '#170e5e' }}>
+                      {p.price} <CurrencySymbol />
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onAddToCart(p)}
+                      style={{
+                        padding: '3px 7px',
+                        borderRadius: '6px',
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        border: '1px solid #bfdbfe',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                      }}
+                    >
+                      <PlusIcon size={12} />
+                      <span>إضافة</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Breakdown & Calculation Shelf */}
         <div
@@ -372,7 +536,7 @@ export function StorefrontLiveCartDock({
               width: '100%',
               padding: '13px 18px',
               borderRadius: '12px',
-              background: isMinOrderMet ? '#170e5e' : '#94a3b8',
+              background: isMinOrderMet ? (info?.brandColor || '#170e5e') : '#94a3b8',
               color: '#ffffff',
               border: 'none',
               fontSize: '14px',

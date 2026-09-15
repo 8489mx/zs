@@ -9,6 +9,7 @@ import { CreateProductReviewDto } from './dto/create-product-review.dto';
 import { UpdateStorefrontSettingsDto } from './dto/update-storefront-settings.dto';
 import { CreateCouponDto, UpdateCouponDto } from './dto/coupon.dto';
 import { CreateDeliveryZoneDto, UpdateDeliveryZoneDto } from './dto/delivery-zone.dto';
+import { RecordAbandonedCartDto } from './dto/abandoned-cart.dto';
 import { SalesService } from '../sales/sales.service';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 
@@ -200,6 +201,12 @@ export class StorefrontService {
       onlinePaymentEnabled,
       onlinePaymentTestMode,
       onlinePaymentProvider,
+      brandColor: settings.get('storefront_brand_color') || '#170e5e',
+      metaPixelId: settings.get('storefront_meta_pixel_id') || '',
+      ga4Id: settings.get('storefront_ga4_id') || '',
+      tiktokPixelId: settings.get('storefront_tiktok_pixel_id') || '',
+      snapchatPixelId: settings.get('storefront_snapchat_pixel_id') || '',
+      pickupEnabled: settings.get('storefront_pickup_enabled') !== 'false',
     };
   }
 
@@ -344,10 +351,22 @@ export class StorefrontService {
     }
 
     const isDineIn = dto.orderType === 'dine_in' || Boolean(dto.tableNumber);
+    const isPickup = dto.fulfillmentType === 'pickup';
+    const countryCode = (dto.countryCode || 'EG').toUpperCase();
 
-    const cleanCustomerPhone = (dto.customerPhone || '').replace(/\D/g, '');
-    if (!isDineIn && !/^01[0125]\d{8}$/.test(cleanCustomerPhone)) {
-      throw new BadRequestException('يرجى إدخال رقم هاتف محمول مصري صحيح مكون من 11 رقماً ويبدأ بـ (010، 011، 012، 015)');
+    const cleanCustomerPhone = (dto.customerPhone || '').replace(/[^0-9+]/g, '');
+    if (!isDineIn) {
+      if (countryCode === 'EG' && (cleanCustomerPhone.startsWith('01') || cleanCustomerPhone.length === 11)) {
+        const digitsOnly = cleanCustomerPhone.replace(/\D/g, '');
+        if (!/^01[0125]\d{8}$/.test(digitsOnly)) {
+          throw new BadRequestException('يرجى إدخال رقم هاتف محمول مصري صحيح مكون من 11 رقماً ويبدأ بـ (010، 011، 012، 015)');
+        }
+      } else {
+        const digitsOnly = cleanCustomerPhone.replace(/\D/g, '');
+        if (digitsOnly.length < 7 || digitsOnly.length > 16) {
+          throw new BadRequestException('يرجى إدخال رقم هاتف صحيح');
+        }
+      }
     }
 
     const cleanCustomerName = (dto.customerName || (isDineIn ? `عميل طاولة ${dto.tableNumber}` : '')).trim();
@@ -356,8 +375,13 @@ export class StorefrontService {
       throw new BadRequestException('يرجى إدخال اسم مستلم صحيح لا يقل عن 3 أحرف (مثال: علي، مازن، محمد)');
     }
 
-    const cleanCustomerAddress = isDineIn ? `طاولة رقم ${dto.tableNumber}` : (dto.customerAddress || '').trim();
-    if (!isDineIn && cleanCustomerAddress) {
+    let cleanCustomerAddress = isDineIn
+      ? `طاولة رقم ${dto.tableNumber}`
+      : isPickup
+      ? 'استلام ذاتي من الفرع'
+      : (dto.customerAddress || '').trim();
+
+    if (!isDineIn && !isPickup && cleanCustomerAddress) {
       const addressLetters = (cleanCustomerAddress.match(/[\p{L}\p{M}]/gu) || []).length;
       if (cleanCustomerAddress.length < 5 || addressLetters < 3) {
         throw new BadRequestException('يرجى إدخال عنوان توصيل واضح ومفصل لا يقل عن 5 أحرف');
@@ -365,11 +389,11 @@ export class StorefrontService {
     }
 
     const minOrder = isDineIn ? 0 : Number(settings.get('storefront_min_order') || 0);
-    let deliveryFee = isDineIn ? 0 : Number(settings.get('storefront_delivery_fee') || 0);
+    let deliveryFee = (isDineIn || isPickup) ? 0 : Number(settings.get('storefront_delivery_fee') || 0);
     let deliveryZoneId: number | null = null;
     let deliveryZoneName: string | null = null;
 
-    if (!isDineIn && dto.deliveryZoneId) {
+    if (!isDineIn && !isPickup && dto.deliveryZoneId) {
       const zone = await this.db
         .selectFrom('storefront_delivery_zones')
         .selectAll()
@@ -571,11 +595,28 @@ export class StorefrontService {
         payment_status: 'pending',
         branch_id: branchId,
         order_type: isDineIn ? 'dine_in' : 'delivery',
+        fulfillment_type: isDineIn ? 'dine_in' : (isPickup ? 'pickup' : 'delivery'),
+        country_code: countryCode,
+        pickup_branch_id: isPickup ? (dto.pickupBranchId || branchId) : null,
         table_number: dto.tableNumber ? String(dto.tableNumber).trim() : null,
         sale_id: null,
       })
       .returning(['id', 'order_number', 'total_amount', 'created_at'])
       .executeTakeFirstOrThrow();
+
+    // Mark matching abandoned carts as recovered
+    try {
+      const cleanPhone = (dto.customerPhone || '').replace(/\D/g, '');
+      if (cleanPhone && cleanPhone.length >= 6) {
+        await (this.db as any)
+          .updateTable('storefront_abandoned_carts')
+          .set({ recovered: true, updated_at: new Date() })
+          .where(sql<boolean>`tenant_id = ${tenant.id}`)
+          .where(sql<boolean>`customer_phone LIKE ${'%' + cleanPhone.slice(-8)}`)
+          .where('recovered', '=', false)
+          .execute();
+      }
+    } catch {}
 
     // Auto-create sale for Dine-In so it flows directly to KDS
     if (isDineIn) {
@@ -1463,6 +1504,12 @@ export class StorefrontService {
       stripePublishableKey: settings.get('storefront_stripe_publishable_key') || '',
       stripeWebhookSecret: settings.get('storefront_stripe_webhook_secret') || '',
       stripeTestMode: settings.get('storefront_stripe_test_mode') !== 'false',
+      brandColor: settings.get('storefront_brand_color') || '#170e5e',
+      metaPixelId: settings.get('storefront_meta_pixel_id') || '',
+      ga4Id: settings.get('storefront_ga4_id') || '',
+      tiktokPixelId: settings.get('storefront_tiktok_pixel_id') || '',
+      snapchatPixelId: settings.get('storefront_snapchat_pixel_id') || '',
+      pickupEnabled: settings.get('storefront_pickup_enabled') !== 'false',
     };
   }
 
@@ -1562,6 +1609,12 @@ export class StorefrontService {
     if (payload.stripePublishableKey !== undefined) entries.push({ key: 'storefront_stripe_publishable_key', value: payload.stripePublishableKey });
     if (payload.stripeWebhookSecret !== undefined) entries.push({ key: 'storefront_stripe_webhook_secret', value: payload.stripeWebhookSecret });
     if (payload.stripeTestMode !== undefined) entries.push({ key: 'storefront_stripe_test_mode', value: payload.stripeTestMode });
+    if (payload.brandColor !== undefined) entries.push({ key: 'storefront_brand_color', value: payload.brandColor });
+    if (payload.metaPixelId !== undefined) entries.push({ key: 'storefront_meta_pixel_id', value: payload.metaPixelId });
+    if (payload.ga4Id !== undefined) entries.push({ key: 'storefront_ga4_id', value: payload.ga4Id });
+    if (payload.tiktokPixelId !== undefined) entries.push({ key: 'storefront_tiktok_pixel_id', value: payload.tiktokPixelId });
+    if (payload.snapchatPixelId !== undefined) entries.push({ key: 'storefront_snapchat_pixel_id', value: payload.snapchatPixelId });
+    if (payload.pickupEnabled !== undefined) entries.push({ key: 'storefront_pickup_enabled', value: payload.pickupEnabled });
 
     for (const e of entries) {
       await sql`
@@ -2040,6 +2093,146 @@ export class StorefrontService {
       tenantName: tenant.business_name,
       totalTables: tables.length,
       tables,
+    };
+  }
+
+  // --- Abandoned Carts & Recovery ---
+
+  async recordAbandonedCart(slug: string, dto: RecordAbandonedCartDto) {
+    const tenant = await this.getTenantBySlug(slug);
+    const cleanPhone = (dto.customerPhone || '').trim();
+    if (!cleanPhone || cleanPhone.length < 6) return { ok: false };
+
+    const recent = await (this.db as any)
+      .selectFrom('storefront_abandoned_carts')
+      .select(['id'])
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('customer_phone', '=', cleanPhone)
+      .where('recovered', '=', false)
+      .orderBy('created_at', 'desc')
+      .executeTakeFirst();
+
+    if (recent) {
+      await (this.db as any)
+        .updateTable('storefront_abandoned_carts')
+        .set({
+          customer_name: dto.customerName || null,
+          country_code: dto.countryCode || 'EG',
+          items_json: JSON.stringify(dto.items || []),
+          subtotal: Number(dto.subtotal || 0),
+          updated_at: new Date(),
+        })
+        .where('id', '=', recent.id)
+        .execute();
+      return { ok: true, cartId: recent.id };
+    }
+
+    const inserted = await (this.db as any)
+      .insertInto('storefront_abandoned_carts')
+      .values({
+        tenant_id: tenant.id,
+        customer_name: dto.customerName || null,
+        customer_phone: cleanPhone,
+        country_code: dto.countryCode || 'EG',
+        items_json: JSON.stringify(dto.items || []),
+        subtotal: Number(dto.subtotal || 0),
+        recovered: false,
+      })
+      .returning(['id'])
+      .executeTakeFirst();
+
+    return { ok: true, cartId: inserted?.id };
+  }
+
+  async listAbandonedCarts(actor: AuthContext) {
+    const { tenantId } = requireTenantScope(actor);
+    const carts = await (this.db as any)
+      .selectFrom('storefront_abandoned_carts')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .orderBy('created_at', 'desc')
+      .limit(100)
+      .execute();
+
+    return carts.map((c: any) => {
+      let items: any[] = [];
+      try {
+        items = JSON.parse(c.items_json);
+      } catch {}
+      return {
+        id: c.id,
+        customerName: c.customer_name || 'عميل محتمل',
+        customerPhone: c.customer_phone,
+        countryCode: c.country_code || 'EG',
+        items,
+        subtotal: Number(c.subtotal || 0),
+        recovered: Boolean(c.recovered),
+        createdAt: c.created_at,
+      };
+    });
+  }
+
+  async deleteAbandonedCart(id: number, actor: AuthContext) {
+    const { tenantId } = requireTenantScope(actor);
+    await (this.db as any)
+      .deleteFrom('storefront_abandoned_carts')
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('id', '=', id)
+      .execute();
+    return { ok: true };
+  }
+
+  // --- Storefront Analytics & KPIs ---
+
+  async getStorefrontAnalytics(actor: AuthContext) {
+    const { tenantId } = requireTenantScope(actor);
+
+    const stats = await this.db
+      .selectFrom('online_orders')
+      .select([
+        sql<number>`COUNT(*)::int`.as('total_orders'),
+        sql<number>`COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0)::float`.as('total_revenue'),
+        sql<number>`COUNT(CASE WHEN status = 'delivered' THEN 1 END)::int`.as('delivered_orders'),
+        sql<number>`COUNT(CASE WHEN status = 'cancelled' THEN 1 END)::int`.as('cancelled_orders'),
+        sql<number>`COUNT(CASE WHEN status = 'pending' THEN 1 END)::int`.as('pending_orders'),
+      ])
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .executeTakeFirst();
+
+    const cartStats = await (this.db as any)
+      .selectFrom('storefront_abandoned_carts')
+      .select([
+        sql<number>`COUNT(*)::int`.as('total_abandoned'),
+        sql<number>`COUNT(CASE WHEN recovered = false THEN 1 END)::int`.as('unrecovered_abandoned'),
+        sql<number>`COUNT(CASE WHEN recovered = true THEN 1 END)::int`.as('recovered_abandoned'),
+      ])
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .executeTakeFirst();
+
+    const totalOrders = Number(stats?.total_orders || 0);
+    const totalRevenue = Number(stats?.total_revenue || 0);
+    const deliveredOrders = Number(stats?.delivered_orders || 0);
+    const cancelledOrders = Number(stats?.cancelled_orders || 0);
+    const pendingOrders = Number(stats?.pending_orders || 0);
+    const validOrders = Math.max(0, totalOrders - cancelledOrders);
+    const averageOrderValue = validOrders > 0 ? Math.round(totalRevenue / validOrders) : 0;
+
+    const unrecoveredAbandoned = Number(cartStats?.unrecovered_abandoned || 0);
+    const recoveredAbandoned = Number(cartStats?.recovered_abandoned || 0);
+    const totalSessions = totalOrders + unrecoveredAbandoned;
+    const conversionRate = totalSessions > 0 ? Math.round((totalOrders / totalSessions) * 100) : 0;
+
+    return {
+      totalOrders,
+      totalRevenue,
+      deliveredOrders,
+      cancelledOrders,
+      pendingOrders,
+      averageOrderValue,
+      unrecoveredAbandoned,
+      recoveredAbandoned,
+      abandonedCartsCount: unrecoveredAbandoned,
+      conversionRate,
     };
   }
 }

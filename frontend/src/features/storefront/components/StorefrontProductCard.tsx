@@ -14,6 +14,7 @@ interface StorefrontProductCardProps {
   onOpenReviewModal?: (product: StorefrontProduct) => void;
   isFavorite?: boolean;
   onToggleFavorite?: (productId: number) => void;
+  onQuickView?: (product: StorefrontProduct) => void;
 }
 
 export const StorefrontProductCard = React.memo(function StorefrontProductCard({
@@ -26,6 +27,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   onOpenReviewModal,
   isFavorite: isFavoriteProp,
   onToggleFavorite: onToggleFavoriteProp,
+  onQuickView,
 }: StorefrontProductCardProps) {
   const isOutOfStock = !product.inStock || product.stockQty <= 0;
   const isZeroPrice = product.price <= 0;
@@ -187,7 +189,9 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
         {/* Real Product Photo Showcase Box (Square 1:1 Aspect Ratio) */}
         <div
           className="storefront-product-photo-box"
+          onClick={() => onQuickView?.(product)}
           style={{
+            cursor: onQuickView ? 'pointer' : 'default',
             width: '100%',
             aspectRatio: '1 / 1',
             borderRadius: '12px',
@@ -461,7 +465,9 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
         {/* Product Title */}
         <h3
           className="storefront-product-title"
+          onClick={() => onQuickView?.(product)}
           style={{
+            cursor: onQuickView ? 'pointer' : 'default',
             margin: '0 0 3px',
             fontSize: '14px',
             fontWeight: 800,

@@ -67,6 +67,12 @@ export function StorefrontSettingsTab() {
     minOrder: 0,
     whatsappPhone: '',
     customDomain: '',
+    brandColor: '#170e5e',
+    pickupEnabled: true,
+    metaPixelId: '',
+    ga4Id: '',
+    tiktokPixelId: '',
+    snapchatPixelId: '',
   });
 
   const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
@@ -119,6 +125,12 @@ export function StorefrontSettingsTab() {
         minOrder: settingsQuery.data.minOrder || 0,
         whatsappPhone: settingsQuery.data.whatsappPhone || '',
         customDomain: (settingsQuery.data as any).customDomain || '',
+        brandColor: settingsQuery.data.brandColor || '#170e5e',
+        pickupEnabled: settingsQuery.data.pickupEnabled !== false,
+        metaPixelId: settingsQuery.data.metaPixelId || '',
+        ga4Id: settingsQuery.data.ga4Id || '',
+        tiktokPixelId: settingsQuery.data.tiktokPixelId || '',
+        snapchatPixelId: settingsQuery.data.snapchatPixelId || '',
       });
     }
   }, [settingsQuery.data]);
@@ -243,7 +255,7 @@ export function StorefrontSettingsTab() {
       setIsCompressingBanner(false);
       e.target.value = '';
     } catch (err: any) {
-      alert(`فشل ضغط البنر: ${err.message || 'خطأ غير متوقع'}`);
+      setBannerCompressFeedback(`فشل ضغط البنر: ${err.message || 'خطأ غير متوقع'}`);
       setIsCompressingBanner(false);
     }
   };
@@ -741,6 +753,100 @@ export function StorefrontSettingsTab() {
                     direction: 'ltr',
                     textAlign: 'right',
                   }}
+                />
+              </div>
+
+              {/* Brand Primary Color */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  لون الهوية التجارية الموحد (Brand Color):
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <input
+                    type="color"
+                    value={formState.brandColor || '#170e5e'}
+                    onChange={(e) => setFormState({ ...formState, brandColor: e.target.value })}
+                    style={{
+                      width: '40px',
+                      height: '34px',
+                      padding: '0',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: 'none',
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={formState.brandColor || '#170e5e'}
+                    onChange={(e) => setFormState({ ...formState, brandColor: e.target.value })}
+                    style={{
+                      width: '90px',
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      fontFamily: 'monospace',
+                      direction: 'ltr',
+                      textAlign: 'center',
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                    {[
+                      { name: 'كحلي ملكي', color: '#170e5e' },
+                      { name: 'أخضر زمردي', color: '#059669' },
+                      { name: 'أحمر قرمزي', color: '#dc2626' },
+                      { name: 'أزرق كلاسيك', color: '#2563eb' },
+                      { name: 'بنفسجي', color: '#7c3aed' },
+                      { name: 'عنبري', color: '#d97706' },
+                    ].map((preset) => (
+                      <button
+                        key={preset.color}
+                        type="button"
+                        onClick={() => setFormState({ ...formState, brandColor: preset.color })}
+                        title={preset.name}
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: preset.color,
+                          border: formState.brandColor === preset.color ? '2px solid #0f172a' : '2px solid #ffffff',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                          cursor: 'pointer',
+                          padding: 0,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Pickup / Click & Collect Toggle */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 12px',
+                  background: '#f8fafc',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
+                    تفعيل استلام الطلبات من الفرع (Click & Collect)
+                  </span>
+                  <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                    يتيح للزبائن اختيار استلام طلبهم ذاتياً من مقركم بدون مصاريف توصيل
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={formState.pickupEnabled}
+                  onChange={(e) => setFormState({ ...formState, pickupEnabled: e.target.checked })}
+                  style={{ width: '16px', height: '16px', accentColor: '#170e5e', cursor: 'pointer' }}
                 />
               </div>
 
@@ -1587,6 +1693,133 @@ export function StorefrontSettingsTab() {
                       : 'رفع صورة بنر أولى +'}
                   </span>
                 </label>
+              </div>
+            </div>
+
+            {/* Card 3: أكواد البيكسل والتتبع الإعلاني */}
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                gridColumn: '1 / -1',
+              }}
+            >
+              <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
+                    أكواد البيكسل والتتبع الإعلاني (Marketing & Conversion Pixels)
+                  </h3>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    تتبع الزيارات وإتمام عمليات الشراء تلقائياً على المنصات الإعلانية العالمية
+                  </span>
+                </div>
+                <span style={{ fontSize: '10.5px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                  تتبع تلقائي للأحداث
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                {/* Meta / Facebook Pixel */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    معرف بيكسل فيسبوك / ميتا (Meta Pixel ID):
+                  </label>
+                  <input
+                    type="text"
+                    value={formState.metaPixelId}
+                    onChange={(e) => setFormState({ ...formState, metaPixelId: e.target.value.trim() })}
+                    placeholder="مثال: 123456789012345"
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '12px',
+                      fontFamily: 'monospace',
+                      direction: 'ltr',
+                      textAlign: 'left',
+                    }}
+                  />
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>يتتبع أحداث ViewContent و InitiateCheckout و Purchase</span>
+                </div>
+
+                {/* Google Analytics 4 */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    معرف جوجل أناليتكس 4 (GA4 Measurement ID):
+                  </label>
+                  <input
+                    type="text"
+                    value={formState.ga4Id}
+                    onChange={(e) => setFormState({ ...formState, ga4Id: e.target.value.trim().toUpperCase() })}
+                    placeholder="مثال: G-XXXXXXXXXX"
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '12px',
+                      fontFamily: 'monospace',
+                      direction: 'ltr',
+                      textAlign: 'left',
+                    }}
+                  />
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>إحصائيات متقدمة لحركة الزوار والتجارة الإلكترونية</span>
+                </div>
+
+                {/* TikTok Pixel */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    معرف بيكسل تيك توك (TikTok Pixel ID):
+                  </label>
+                  <input
+                    type="text"
+                    value={formState.tiktokPixelId}
+                    onChange={(e) => setFormState({ ...formState, tiktokPixelId: e.target.value.trim() })}
+                    placeholder="مثال: C9XXXXXX123456"
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '12px',
+                      fontFamily: 'monospace',
+                      direction: 'ltr',
+                      textAlign: 'left',
+                    }}
+                  />
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>تتبع حملات تيك توك الإعلانية ومعدل التحويل</span>
+                </div>
+
+                {/* Snapchat Pixel */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    معرف بيكسل سناب شات (Snapchat Pixel ID):
+                  </label>
+                  <input
+                    type="text"
+                    value={formState.snapchatPixelId}
+                    onChange={(e) => setFormState({ ...formState, snapchatPixelId: e.target.value.trim() })}
+                    placeholder="مثال: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '12px',
+                      fontFamily: 'monospace',
+                      direction: 'ltr',
+                      textAlign: 'left',
+                    }}
+                  />
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>تتبع حملات سناب شات الإعلانية ومشتريات المتجر</span>
+                </div>
               </div>
             </div>
           </div>

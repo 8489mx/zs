@@ -21,11 +21,15 @@ export class CreateOnlineOrderDto {
   @MinLength(3, { message: 'اسم المستلم يجب ألا يقل عن 3 أحرف' })
   customerName!: string;
 
-  @Transform(({ value }) => (typeof value === 'string' ? value.replace(/\D/g, '').trim() : value))
+  @Transform(({ value }) => (typeof value === 'string' ? value.replace(/[^0-9+]/g, '').trim() : value))
   @IsString()
   @IsNotEmpty({ message: 'يرجى إدخال رقم الهاتف' })
-  @Matches(/^01[0125]\d{8}$/, { message: 'رقم المحمول يجب أن يتكون من 11 رقماً ويبدأ بـ 010 أو 011 أو 012 أو 015' })
+  @Matches(/^[+]?[0-9]{7,16}$/, { message: 'يرجى إدخال رقم هاتف صحيح (بين 7 إلى 16 رقماً)' })
   customerPhone!: string;
+
+  @IsOptional()
+  @IsString()
+  countryCode?: string;
 
   @IsOptional()
   @IsString()
@@ -64,5 +68,13 @@ export class CreateOnlineOrderDto {
   @IsOptional()
   @IsString()
   tableNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  fulfillmentType?: 'delivery' | 'pickup' | 'dine_in';
+
+  @IsOptional()
+  @IsNumber()
+  pickupBranchId?: number;
 }
 

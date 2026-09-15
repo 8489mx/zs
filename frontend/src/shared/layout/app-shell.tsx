@@ -125,6 +125,7 @@ const iconPathMap: Record<string, string> = {
   'manufacturing-boms': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
   'manufacturing-work-orders': 'M2 12h4l2-2h4l2 2h8M6 14v6M18 14v6M10 6L8 10h8l-2-4h-4z',
   'manufacturing-settings': 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
+  'manufacturing-work-centers': 'M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
   reports: 'M18 20V10M12 20V4M6 20v-6M3 20h18',
   'reports-overview': 'M18 20V10M12 20V4M6 20v-6M3 20h18',
   'reports-sales': 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
@@ -163,6 +164,10 @@ const iconPathMap: Record<string, string> = {
   contracting: 'M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h6M9 13h6M9 17h6',
   'contracting-projects': 'M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h6M9 13h6M9 17h6',
   'contracting-boq': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
+  'contracting-financials': 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+  'contracting-procurement': 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  'contracting-field': 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+  'contracting-master-boq': 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z',
   'contracting-change-orders': 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
   'contracting-invoices': 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
   'contracting-subcontracts': 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
@@ -346,8 +351,12 @@ export function AppShell({ children }: PropsWithChildren) {
     const contractingOrder = [
       'dashboard',
       'contracting-projects',
-      'contracting-invoices',
       'contracting-boq',
+      'contracting-financials',
+      'contracting-procurement',
+      'contracting-field',
+      'contracting-master-boq',
+      'contracting-invoices',
       'contracting-change-orders',
       'contracting-subcontracts',
       'contracting-daily-logs',
@@ -453,6 +462,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'manufacturing-work-orders',
       'manufacturing-boms',
       'manufacturing-components',
+      'manufacturing-work-centers',
       'manufacturing-settings',
       'crm',
       'customers',
@@ -681,6 +691,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'manufacturing-components',
       'manufacturing-work-orders',
       'manufacturing-boms',
+      'manufacturing-work-centers',
       'manufacturing-settings',
 
       // 10. Reports & Analytics
@@ -781,6 +792,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'manufacturing-components': 'مكونات التصنيع',
       'manufacturing-work-orders': 'أوامر الإنتاج',
       'manufacturing-boms': 'قوائم المكونات',
+      'manufacturing-work-centers': 'مراكز العمل والماكينات',
       'manufacturing-settings': 'إعدادات التصنيع',
       'maritime-inquiries': 'استفسارات الشحن',
       'maritime-rfqs': 'عروض تسعير الخطوط',
@@ -996,7 +1008,7 @@ export function AppShell({ children }: PropsWithChildren) {
         ...dashKeys,
         ...(settings?.maritimeFreightModuleEnabled ? ['maritime-jobs'] : []),
         ...(settings?.contractingModuleEnabled ? ['contracting-projects'] : []),
-        ...(settings?.importModuleEnabled ? ['import-shipments'] : []),
+        ...(settings?.importModuleEnabled && isImportVertical ? ['import-shipments'] : []),
         ...(storefrontActive ? ['online-orders'] : []),
         ...(settings?.purchasesModuleEnabled ? ['purchases'] : []),
       ];
@@ -1154,7 +1166,7 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'manufacturing-group',
           label: 'التصنيع والإنتاج الصناعي',
-          itemKeys: ['manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-components', 'manufacturing-settings'],
+          itemKeys: ['manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-components', 'manufacturing-work-centers', 'manufacturing-settings'],
           iconKey: 'manufacturing',
         },
         {
@@ -1325,7 +1337,7 @@ export function AppShell({ children }: PropsWithChildren) {
         itemKeys: ['maritime-inquiries', 'maritime-rfqs', 'maritime-matrix', 'maritime-quotations', 'maritime-jobs', 'maritime-containers', 'maritime-lines', 'maritime-settings'],
         iconKey: 'ship',
       }] : []),
-      ...(settings?.importModuleEnabled && hasImport ? [{
+      ...(settings?.importModuleEnabled && isDedicatedImportOnly && hasImport ? [{
         key: 'import-group',
         label: 'الاستيراد والشراكة',
         itemKeys: ['import-shipments', 'import-supplier-credit', 'import-profit-pool'],
@@ -1376,7 +1388,7 @@ export function AppShell({ children }: PropsWithChildren) {
       ...(settings?.manufacturingModuleEnabled && hasManufacturing ? [{
         key: 'manufacturing-group',
         label: t('sidebar.manufacturing-group', 'التصنيع والإنتاج'),
-        itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'],
+        itemKeys: ['manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-components', 'manufacturing-work-centers', 'manufacturing-settings'],
         iconKey: 'manufacturing',
       }] : []),
       { key: 'reports-group', label: t('sidebar.reports-group', 'التقارير والتحليلات'), itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'], iconKey: 'reports' },

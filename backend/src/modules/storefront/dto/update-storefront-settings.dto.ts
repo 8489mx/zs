@@ -152,4 +152,31 @@ export class UpdateStorefrontSettingsDto {
   @IsOptional()
   @IsBoolean()
   stripeTestMode?: boolean;
+
+  // Custom Branding
+  @IsOptional()
+  @IsString()
+  brandColor?: string;
+
+  // Tracking Pixels
+  @IsOptional()
+  @IsString()
+  metaPixelId?: string;
+
+  @IsOptional()
+  @IsString()
+  ga4Id?: string;
+
+  @IsOptional()
+  @IsString()
+  tiktokPixelId?: string;
+
+  @IsOptional()
+  @IsString()
+  snapchatPixelId?: string;
+
+  // Fulfillment Options
+  @IsOptional()
+  @IsBoolean()
+  pickupEnabled?: boolean;
 }

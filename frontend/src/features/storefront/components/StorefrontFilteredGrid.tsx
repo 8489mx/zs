@@ -23,6 +23,7 @@ interface StorefrontFilteredGridProps {
   onUpdateQuantity: (productId: number, qty: number) => void;
   onOpenReviewModal: (product: StorefrontProduct) => void;
   onToggleFavorite: (productId: number) => void;
+  onQuickView?: (product: StorefrontProduct) => void;
 }
 
 export function StorefrontFilteredGrid({
@@ -46,6 +47,7 @@ export function StorefrontFilteredGrid({
   onUpdateQuantity,
   onOpenReviewModal,
   onToggleFavorite,
+  onQuickView,
 }: StorefrontFilteredGridProps) {
   const currentCategory = categories.find((c) => c.id === selectedCategory);
   const title = searchTerm
@@ -281,6 +283,7 @@ export function StorefrontFilteredGrid({
                 onOpenReviewModal={onOpenReviewModal}
                 isFavorite={favoriteIds.has(product.id)}
                 onToggleFavorite={onToggleFavorite}
+                onQuickView={onQuickView}
               />
             ))}
           </div>

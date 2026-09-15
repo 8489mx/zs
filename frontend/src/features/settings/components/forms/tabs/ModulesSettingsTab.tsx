@@ -1,21 +1,15 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import { FormSection } from '@/shared/components/form-section';
 import { LightbulbIcon, XIcon, CheckIcon, StarIcon, ChevronDownIcon, MonitorIcon, PackageIcon, ReceiptIcon, UsersIcon } from '@/shared/components/icons/AppIcons';
-import { toast, systemConfirm } from '@/shared/components/system-alert';
-import { settingsApi } from '@/features/settings/api/settings.api';
-import { authApi } from '@/shared/api/auth';
 import { useHasFeature } from '@/shared/hooks/use-permission';
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin } from '@/app/router/access';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { MAINTENANCE_PROFILES, getMaintenanceProfile, type MaintenanceProfileKey } from '@/features/maintenance/constants/maintenance-profiles';
-import { SmartModularConfiguratorModal } from '@/features/settings/components/modular-configurator/SmartModularConfiguratorModal';
-import { SmartModularQuickBar } from '@/features/settings/components/modular-configurator/SmartModularQuickBar';
-import { INDUSTRY_PRESETS, type IndustryPresetId, resolveModuleDependencies, SYSTEM_MODULES } from '@/features/settings/components/modular-configurator/modular-presets';
+import { IndustryModeSelectorCard } from '@/features/settings/components/workspace-sections/IndustryModeSelectorCard';
 
 interface ModulesTabProps {
   form: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>;
@@ -232,14 +226,6 @@ function ProfileVectorIcon({ type, size = 20 }: { type: string; size?: number })
   return <MaintenanceWrenchIcon size={size} />;
 }
 
-function CrownIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
-    </svg>
-  );
-}
-
 function LockIcon({ size = 12 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle', marginInlineEnd: '3px' }}>
@@ -319,10 +305,8 @@ const premiumCheckboxInputStyle = {
 };
 
 export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProps) {
-  const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
-  const updateSessionMeta = useAuthStore((s) => s.updateSessionMeta);
   const isSuperAdmin = isPlatformAdmin(user) || (user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs');
 
   const rawActivity = String(tenant?.activityType || tenant?.pillar || form.watch('businessIndustry') || form.watch('activityType') || 'retail_general').trim().toLowerCase();
@@ -382,7 +366,6 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const currentProfile = getMaintenanceProfile(currentProfileKey);
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [configuratorOpen, setConfiguratorOpen] = useState(false);
   const [showManualSwitches, setShowManualSwitches] = useState(false);
   const [upgradeModalInfo, setUpgradeModalInfo] = useState<{
     open: boolean;
@@ -390,137 +373,6 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
     planName: string;
     description: string;
   } | null>(null);
-
-  const handleApplyConfig = (config: {
-    selectedModules: Record<string, boolean>;
-    industry: IndustryPresetId;
-    posMode?: 'scanner' | 'touch';
-    productKind?: 'standard' | 'fashion';
-    maintenanceProfile?: string;
-  }) => {
-    const featureModuleMap: Record<string, boolean> = {
-      posModuleEnabled: true,
-      weightedBarcodeEnabled: true,
-      posShowCartMeta: hasPosMetaFeature,
-      servicesModuleEnabled: hasServicesFeature,
-      comboModuleEnabled: true,
-      inventoryModuleEnabled: hasInventoryFeature,
-      purchasesModuleEnabled: hasPurchasesFeature,
-      hrModuleEnabled: hasHrFeature,
-      manufacturingModuleEnabled: hasManufacturingFeature,
-      importModuleEnabled: hasImportFeature,
-      restaurantModuleEnabled: hasRestaurantFeature,
-      enableMobileStoreFeatures: hasMaintenanceFeature,
-      enablePharmacyModule: hasPharmacyFeature,
-      clothingModuleEnabled: hasClothingFeature,
-      enableEnterpriseFeatures: hasEnterpriseFeature,
-      storefrontModuleEnabled: hasStorefrontFeature,
-      installmentsModuleEnabled: hasInstallmentsFeature,
-      fixedAssetsModuleEnabled: hasFixedAssetsFeature,
-      taxDeclarationModuleEnabled: hasTaxDeclarationFeature,
-      deliveryFleetModuleEnabled: hasDeliveryFleetFeature,
-      maritimeFreightModuleEnabled: hasMaritimeFreightFeature,
-      contractingModuleEnabled: hasContractingFeature,
-    };
-
-    for (const [key, value] of Object.entries(config.selectedModules)) {
-      const isAllowed = isSuperAdmin || (featureModuleMap[key] ?? true);
-      const effectiveValue = isAllowed ? value : false;
-      form.setValue(key as any, effectiveValue, { shouldDirty: true, shouldValidate: true });
-    }
-    form.setValue('businessIndustry', config.industry as any, { shouldDirty: true });
-    form.setValue('activityType', config.industry as any, { shouldDirty: true });
-    if (config.posMode) {
-      form.setValue('defaultPosMode', config.posMode, { shouldDirty: true });
-    }
-    if (config.productKind) {
-      form.setValue('defaultProductKind', config.productKind, { shouldDirty: true });
-    }
-    if (config.maintenanceProfile) {
-      form.setValue('maintenanceProfile', config.maintenanceProfile, { shouldDirty: true });
-    }
-  };
-
-  const handleQuickSelectIndustry = async (indId: IndustryPresetId) => {
-    const preset = INDUSTRY_PRESETS[indId];
-    if (!preset) return;
-
-    const currentAct = String(tenant?.activityType || tenant?.pillar || form.watch('businessIndustry') || 'retail_general').trim().toLowerCase();
-    const isPillarSwitch = indId !== currentAct;
-
-    if (isSuperAdmin && isPillarSwitch) {
-      const confirmed = await systemConfirm({
-        title: 'تأكيد تحويل نشاط المنشأة (سوبر أدمن)',
-        message: `هل تريد تحويل نشاط وهيكل المنظومة إلى [${preset.name}]؟ سيتم تحديث هوية المنشأة في السيرفر وإعادة بناء القائمة الجانبية فوراً بما يطابق هذا النشاط.`,
-        confirmText: 'تحويل النشاط فوراً',
-        cancelText: 'إلغاء',
-        variant: 'primary',
-      });
-      if (!confirmed) return;
-
-      try {
-        const res = await settingsApi.setActivityProfile(indId);
-        if (res.ok) {
-          if (tenant) {
-            updateSessionMeta({
-              tenant: {
-                ...tenant,
-                activityType: res.activityType,
-                pillar: res.pillar,
-              },
-            });
-          }
-          authApi.me().then((meRes) => {
-            if (meRes?.tenant) {
-              updateSessionMeta({ tenant: meRes.tenant });
-            }
-          }).catch(() => undefined);
-
-          queryClient.setQueriesData({ queryKey: ['settings'] }, (old: any) => {
-            if (!old) return old;
-            return {
-              ...old,
-              activityType: res.activityType,
-              businessIndustry: res.activityType,
-              ...(res.settingsPatch || {}),
-            };
-          });
-          await queryClient.invalidateQueries({ queryKey: ['settings'] });
-          await queryClient.invalidateQueries({ queryKey: ['auth'] });
-          toast.success(res.message || `تم تحويل نشاط المنظومة إلى [${preset.name}] بنجاح`);
-        }
-      } catch (err: any) {
-        toast.error(err?.message || 'تعذر تغيير نمط المنظومة');
-        return;
-      }
-    }
-
-    const newSelection: Record<string, boolean> = {};
-    for (const mod of SYSTEM_MODULES) {
-      newSelection[mod.key] = false;
-    }
-    for (const key of preset.recommendedModules) {
-      newSelection[key] = true;
-    }
-    for (const key of preset.disabledModules) {
-      newSelection[key] = false;
-    }
-
-    const activeKeys = Object.keys(newSelection).filter((k) => newSelection[k]);
-    const { resolvedKeys } = resolveModuleDependencies(activeKeys);
-    for (const key of resolvedKeys) {
-      newSelection[key] = true;
-    }
-
-    handleApplyConfig({
-      selectedModules: newSelection,
-      industry: indId,
-      posMode: preset.defaultPosMode,
-      productKind: preset.defaultProductKind,
-      maintenanceProfile: preset.maintenanceProfile,
-    });
-  };
-
 
   const handleLockedCardClick = (title: string, planName: string, description: string) => {
     setUpgradeModalInfo({
@@ -562,28 +414,10 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
 
   return (
     <div style={{ display: activeTab === 'modules' ? 'block' : 'none' }}>
+      {/* بطاقة نمط المنظومة وعزل الأنشطة (متاحة حصرياً للسوبر أدمن للتبديل الفوري بين المقاولات، الشحن، والتجارة) */}
       {isSuperAdmin && (
-        <div style={{
-          padding: '10px 16px',
-          marginBottom: '14px',
-          background: '#fffdf5',
-          border: '1px solid #fde68a',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          fontSize: '0.8rem',
-          color: '#92400e',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ color: '#d97706', display: 'flex', alignItems: 'center' }}>
-              <CrownIcon size={18} />
-            </span>
-            <span><strong>وضع السوبر أدمن:</strong> يمكنك تفعيل وتجربة أي موديول على هذه المنشأة بحرية كاملة، أو إدارة الباقات من لوحة التحكم المركزية.</span>
-          </div>
-          <span style={{ fontSize: '0.72rem', background: '#fef3c7', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, border: '1px solid #fde68a' }}>
-            تحكم مركزي
-          </span>
+        <div style={{ marginBottom: '16px' }}>
+          <IndustryModeSelectorCard settings={form.getValues() as any} canManageSettings={!disabled} />
         </div>
       )}
 
@@ -671,17 +505,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
         </div>
       )}
 
-      {/* ===== شريط التخصيص السريع ومعالج الموديولات ===== */}
-      {(!isContractingVertical && !isMaritimeVertical && !isManufacturingVertical) || isSuperAdmin ? (
-        <SmartModularQuickBar
-          currentIndustry={form.watch('businessIndustry')}
-          onOpenModal={() => setConfiguratorOpen(true)}
-          onQuickSelect={handleQuickSelectIndustry}
-          disabled={disabled}
-        />
-      ) : null}
-
-      {/* ===== متجر التطبيقات المستقل ===== */}
+      {/* ===== متجر التطبيقات ومعالج الموديولات ===== */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -1897,15 +1721,6 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </div>
         </div>
       </DialogShell>
-      
-      {/* معالج التخصيص الذكي للموديولات والمنيو */}
-      <SmartModularConfiguratorModal
-        open={configuratorOpen}
-        onClose={() => setConfiguratorOpen(false)}
-        currentValues={form.getValues()}
-        onApply={handleApplyConfig}
-        disabled={disabled}
-      />
     </div>
   );
 }

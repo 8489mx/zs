@@ -2112,6 +2112,7 @@ export interface Database {
   product_reviews: ProductReviewTable;
   storefront_coupons: StorefrontCouponTable;
   storefront_delivery_zones: StorefrontDeliveryZoneTable;
+  storefront_abandoned_carts: StorefrontAbandonedCartTable;
   accounting_cheques: AccountingChequeTable;
   withholding_tax_transactions: WithholdingTaxTransactionTable;
   sales_orders: SalesOrderTable;
@@ -2333,6 +2334,9 @@ export interface OnlineOrderTable {
   gcc_shipping_status?: string | null;
   gcc_awb_url?: string | null;
   gcc_shipping_created_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  fulfillment_type?: ColumnType<'delivery' | 'pickup' | 'dine_in' | string, string | undefined, string | undefined>;
+  country_code?: ColumnType<string, string | undefined, string | undefined>;
+  pickup_branch_id?: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -2533,6 +2537,19 @@ export interface StorefrontDeliveryZoneTable {
   estimated_time: string | null;
   is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
   sort_order: ColumnType<number, number | undefined, number | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface StorefrontAbandonedCartTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  customer_name: string | null;
+  customer_phone: string;
+  country_code: ColumnType<string, string | undefined, string | undefined>;
+  items_json: ColumnType<string, string | undefined, string | undefined>;
+  subtotal: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  recovered: ColumnType<boolean, boolean | undefined, boolean | undefined>;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }

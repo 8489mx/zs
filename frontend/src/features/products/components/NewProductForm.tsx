@@ -132,7 +132,7 @@ export function NewProductForm({
 
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
-  const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
+  const autoPartsModuleEnabled = settingsQuery.data?.autoPartsModuleEnabled === true || settingsQuery.data?.activityType === 'auto_parts' || settingsQuery.data?.businessIndustry === 'auto_parts';
   const comboModuleEnabled = settingsQuery.data?.comboModuleEnabled === true || manufacturingModuleEnabled;
   const defaultItemKind: 'standard' | 'fashion' = clothingModuleEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
   const defaultGroupedMode = defaultItemKind === 'fashion';
@@ -788,7 +788,7 @@ export function NewProductForm({
         )}
 
         {/* 5. Auto Parts */}
-        {importModuleEnabled && (
+        {autoPartsModuleEnabled && (
           <div className="product-compact-card">
             <div className="product-compact-card-header">
               <h3 className="product-compact-card-title">بيانات قطعة الغيار (Auto Parts)</h3>

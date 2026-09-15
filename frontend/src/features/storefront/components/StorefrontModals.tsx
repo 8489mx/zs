@@ -12,6 +12,7 @@ import { StorefrontCheckoutModal } from './StorefrontCheckoutModal';
 import { StorefrontSuccessModal } from './StorefrontSuccessModal';
 import { StorefrontMyOrdersModal } from './StorefrontMyOrdersModal';
 import { StorefrontReviewModal } from './StorefrontReviewModal';
+import { StorefrontProductQuickViewModal } from './StorefrontProductQuickViewModal';
 
 interface StorefrontModalsProps {
   // Categories Modal
@@ -21,6 +22,12 @@ interface StorefrontModalsProps {
   categoryCounts: Map<number | 'all', number>;
   selectedCategory: number | 'all';
   onSelectCategory: (id: number | 'all') => void;
+
+  // Quick View & Recommendations
+  allProducts?: StorefrontProduct[];
+  onAddToCart?: (product: StorefrontProduct) => void;
+  quickViewProduct?: StorefrontProduct | null;
+  onCloseQuickView?: () => void;
 
   // Cart Dock
   cartItems: CartItem[];
@@ -65,6 +72,11 @@ export function StorefrontModals({
   categoryCounts,
   selectedCategory,
   onSelectCategory,
+
+  allProducts,
+  onAddToCart,
+  quickViewProduct,
+  onCloseQuickView,
 
   cartItems,
   info,
@@ -120,6 +132,8 @@ export function StorefrontModals({
         onUpdateQuantity={onUpdateQuantity}
         onClearCart={onClearCart}
         onProceedToCheckout={onProceedToCheckout}
+        suggestedProducts={allProducts}
+        onAddToCart={onAddToCart}
       />
 
       {/* Checkout Modal */}
@@ -154,6 +168,18 @@ export function StorefrontModals({
         info={info}
         onEditOrder={onEditOrder}
       />
+
+      {/* Product Quick View & Share Modal */}
+      {quickViewProduct && onCloseQuickView && onAddToCart && (
+        <StorefrontProductQuickViewModal
+          isOpen={Boolean(quickViewProduct)}
+          product={quickViewProduct}
+          info={info}
+          tenantSlug={cleanSlug}
+          onClose={onCloseQuickView}
+          onAddToCart={onAddToCart}
+        />
+      )}
 
       {/* Customer Product Review Modal */}
       <StorefrontReviewModal

@@ -9,14 +9,14 @@ import { applyAccentColorToDocument } from '@/lib/theme';
 import { ShieldCheckIcon } from '@/shared/components/icons/AppIcons';
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin } from '@/app/router/access';
-import { IndustryModeSelectorCard } from '@/features/settings/components/workspace-sections/IndustryModeSelectorCard';
 
 function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null) {
   const norm = String(rawActivity || pillar || 'retail_general').trim().toLowerCase();
   if (norm === 'contracting' || norm === 'construction' || norm === 'مقاولات') {
     return {
+      shortTitle: 'قطاع المقاولات',
       title: 'قطاع المقاولات وإدارة المشاريع الإنشائية',
-      badge: 'جناح مؤسسي شامل (Full Enterprise Suite)',
+      badge: 'مشاريع ومقايسات',
       desc: 'بيئة عمل متكاملة للمشاريع والمقايسات (BOQ) والمستخلصات وعقود مقاولي الباطن والمشتريات والمخازن والحسابات.',
       color: '#0284c7',
       bg: '#f0f9ff',
@@ -25,8 +25,9 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'maritime_freight' || norm === 'maritime' || norm === 'freight' || norm === 'shipping' || norm === 'شحن') {
     return {
+      shortTitle: 'قطاع الشحن',
       title: 'قطاع الشحن البحري واللوجستيات',
-      badge: 'جناح مؤسسي شامل (Full Enterprise Suite)',
+      badge: 'نولون وحاويات',
       desc: 'بيئة عمل متكاملة للخطوط الملاحية، الموانئ، مقارنة أسعار النولون (RFQ)، أوامر التشغيل وتتبع الحاويات.',
       color: '#0d9488',
       bg: '#f0fdfa',
@@ -35,8 +36,9 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'pharmacy' || norm === 'صيدلية') {
     return {
+      shortTitle: 'قطاع التجارة',
       title: 'قطاع التجارة: صيدليات ومستلزمات طبية',
-      badge: 'نظام رقابي FEFO',
+      badge: 'صيدليات FEFO',
       desc: 'إدارة متكاملة للأدوية والبدائل، تتبع التشغيلات وتواريخ انتهاء الصلاحية، والروشتات.',
       color: '#16a34a',
       bg: '#f0fdf4',
@@ -45,8 +47,9 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'restaurant' || norm === 'cafe' || norm === 'مطعم') {
     return {
+      shortTitle: 'قطاع التجارة',
       title: 'قطاع التجارة: مطاعم وكافيهات وضيافة',
-      badge: 'KDS وشاشات المطبخ',
+      badge: 'مطاعم KDS',
       desc: 'إدارة متكاملة لشاشات المطبخ، خيارات الوجبات والإضافات، والصالات ونقاط البيع.',
       color: '#ea580c',
       bg: '#fff7ed',
@@ -55,8 +58,9 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'manufacturing' || norm === 'تصنيع') {
     return {
+      shortTitle: 'قطاع التصنيع',
       title: 'قطاع التجارة: تصنيع وخطوط إنتاج خفيف',
-      badge: 'BOM وشجرة المنتج',
+      badge: 'تصنيع BOM',
       desc: 'إدارة متكاملة لقوائم المكونات (BOM)، أوامر التشغيل والإنتاج، وحساب التكاليف الصناعية.',
       color: '#7c3aed',
       bg: '#f5f3ff',
@@ -65,17 +69,52 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'maintenance' || norm === 'electronics' || norm === 'صيانة') {
     return {
+      shortTitle: 'قطاع التجارة',
       title: 'قطاع التجارة: مراكز صيانة وخدمة أجهزة',
-      badge: 'كروت الصيانة و IMEI',
+      badge: 'كروت صيانة',
       desc: 'إدارة متكاملة لكروت فحص واستلام الأجهزة، قطع الغيار المستهلكة، وتتبع أرقام السيريال.',
       color: '#2563eb',
       bg: '#eff6ff',
       borderColor: '#bfdbfe',
     };
   }
+  if (norm === 'auto_parts' || norm === 'autoparts' || norm === 'قطع_غيار') {
+    return {
+      shortTitle: 'قطاع التجارة',
+      title: 'قطاع التجارة: قطع غيار ومعدات',
+      badge: 'قطع غيار',
+      desc: 'إدارة متكاملة لأكواد قطع الغيار، سنة الصنع، والموديلات المتوافقة.',
+      color: '#b45309',
+      bg: '#fffbeb',
+      borderColor: '#fde68a',
+    };
+  }
+  if (norm === 'import_export' || norm === 'import' || norm === 'استيراد') {
+    return {
+      shortTitle: 'قطاع التجارة',
+      title: 'قطاع التجارة: استيراد وتصدير وشراكة',
+      badge: 'استيراد وتصدير',
+      desc: 'إدارة متكاملة للشحنات الاستيرادية وتكاليف الوصول ومستندات الشحن.',
+      color: '#0369a1',
+      bg: '#f0f9ff',
+      borderColor: '#bae6fd',
+    };
+  }
+  if (norm === 'clothing' || norm === 'fashion' || norm === 'ملابس') {
+    return {
+      shortTitle: 'قطاع التجارة',
+      title: 'قطاع التجارة: أزياء وملابس ومقاسات',
+      badge: 'ملابس ومقاسات',
+      desc: 'إدارة متكاملة للمقاسات والألوان وتوليد الباركود التلقائي للمصفوفة.',
+      color: '#db2777',
+      bg: '#fdf2f8',
+      borderColor: '#fbcfe8',
+    };
+  }
   return {
+    shortTitle: 'قطاع التجارة',
     title: 'قطاع التجارة وإدارة الأعمال العامة',
-    badge: 'تجزئة ومستودعات قياسية',
+    badge: 'تجزئة ومستودعات',
     desc: 'إدارة متكاملة لنقاط البيع السريعة، المخازن والمستودعات، المشتريات، والحسابات المالية.',
     color: '#170e5e',
     bg: '#eef2ff',
@@ -205,16 +244,11 @@ export function GeneralSettingsTab({
     }
   }, [accentColor]);
 
-  const rawAct = String(tenant?.activityType || tenant?.pillar || businessIndustry || 'retail_general').trim().toLowerCase();
+  const rawAct = String(businessIndustry || tenant?.activityType || tenant?.pillar || 'retail_general').trim().toLowerCase();
   const info = getPillarBadgeInfo(rawAct, tenant?.pillar);
 
   return (
     <div style={{ display: activeTab === 'general' ? 'flex' : 'none', flexDirection: 'column', gap: '16px' }}>
-      {/* بطاقة نمط المنظومة وعزل الأنشطة (متاحة حصرياً للسوبر أدمن للتبديل الفوري بين المقاولات، الشحن، والتجارة) */}
-      {isSuperAdmin && (
-        <IndustryModeSelectorCard settings={form.getValues() as any} canManageSettings={canManageSettings} />
-      )}
-
       {/* Top 2-Column Balanced Dashboard */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px' }}>
         
@@ -229,49 +263,7 @@ export function GeneralSettingsTab({
           gap: '14px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         }}>
-          {/* Locked Activity Profile Header Banner */}
-          <div
-            style={{
-              background: info.bg,
-              border: `1px solid ${info.borderColor}`,
-              borderRadius: '10px',
-              padding: '10px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-              flexWrap: 'wrap',
-            }}
-          >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-                  <ShieldCheckIcon size={20} color={info.color} />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <strong style={{ fontSize: '0.84rem', color: '#0f172a', fontWeight: 800 }}>
-                        {info.title}
-                      </strong>
-                      <span
-                        style={{
-                          fontSize: '0.68rem',
-                          background: '#ffffff',
-                          color: info.color,
-                          border: `1px solid ${info.borderColor}`,
-                          padding: '1px 6px',
-                          borderRadius: '4px',
-                          fontWeight: 700,
-                        }}
-                      >
-                        {info.badge}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: '2px' }}>
-                      {isSuperAdmin
-                        ? 'وضع السوبر أدمن مفعل: يمكنك تحويل نشاط المنشأة وإعادة هيكلة القوائم الجانبية فوراً من بطاقة الأنماط أعلاه.'
-                        : 'تم اعتماد وتثبيت هذا النمط عند تهيئة المنشأة الأولى لحماية سلامة القيود والمعاملات المحاسبية.'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+          {/* Section Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <strong style={{ fontSize: '0.95rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
@@ -281,94 +273,136 @@ export function GeneralSettingsTab({
             </div>
           </div>
 
-          {/* Interactive Logo & Brand Header */}
+          {/* Interactive Logo & Brand Header with Operational Sector Badge */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '14px',
+            justifyContent: 'space-between',
+            gap: '12px',
             background: '#f8fafc',
             border: '1px solid #e2e8f0',
             borderRadius: '10px',
             padding: '10px 14px',
           }}>
-            {/* Logo Preview box */}
-            <div style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '8px',
-              border: `2px solid ${accentColor}`,
-              background: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-              flexShrink: 0,
-            }}>
-              {logoData ? (
-                <img src={logoData} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              ) : (
-                <span style={{ fontSize: '1.4rem', fontWeight: 900, color: accentColor }}>
-                  {(storeName || brandName || 'Z').slice(0, 1).toUpperCase()}
-                </span>
-              )}
-            </div>
-
-            {/* Brand details + upload trigger */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {storeName || 'اسم النشاط / المتجر'}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                {brandName || 'Z Systems'}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                <label style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  color: '#0f172a',
-                  background: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '5px',
-                  padding: '2px 8px',
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                }}>
-                  {logoData ? 'تغيير الشعار' : 'رفع شعار'}
-                  <input
-                    type="file"
-                    style={{ display: 'none' }}
-                    accept="image/*"
-                    disabled={disabled}
-                    onChange={async (event) => {
-                      const file = event.target.files?.[0];
-                      if (!file) return;
-                      try {
-                        form.setValue('logoData', await readFileAsDataUrl(file), { shouldDirty: true, shouldValidate: true });
-                      } finally {
-                        event.currentTarget.value = '';
-                      }
-                    }}
-                  />
-                </label>
-
-                {logoData && (
-                  <button
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => form.setValue('logoData', '', { shouldDirty: true, shouldValidate: true })}
-                    style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      color: '#b91c1c',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '2px 6px',
-                    }}
-                  >
-                    حذف
-                  </button>
+            {/* Right: Logo Preview box + Brand details */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+              {/* Logo Preview box */}
+              <div style={{
+                width: '50px',
+                height: '50px',
+                borderRadius: '8px',
+                border: `2px solid ${accentColor}`,
+                background: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                flexShrink: 0,
+              }}>
+                {logoData ? (
+                  <img src={logoData} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                ) : (
+                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: accentColor }}>
+                    {(storeName || brandName || 'Z').slice(0, 1).toUpperCase()}
+                  </span>
                 )}
               </div>
+
+              {/* Brand details + upload trigger */}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {storeName || 'اسم النشاط / المتجر'}
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                  {brandName || 'Z Systems'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
+                  <label style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#0f172a',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '5px',
+                    padding: '2px 8px',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                  }}>
+                    {logoData ? 'تغيير الشعار' : 'رفع شعار'}
+                    <input
+                      type="file"
+                      style={{ display: 'none' }}
+                      accept="image/*"
+                      disabled={disabled}
+                      onChange={async (event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          form.setValue('logoData', await readFileAsDataUrl(file), { shouldDirty: true, shouldValidate: true });
+                        } finally {
+                          event.currentTarget.value = '';
+                        }
+                      }}
+                    />
+                  </label>
+
+                  {logoData && (
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => form.setValue('logoData', '', { shouldDirty: true, shouldValidate: true })}
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: '#b91c1c',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '2px 6px',
+                      }}
+                    >
+                      حذف
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Left: Compact Enterprise Sector & Activity Badge (Strictly on the same line) */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: info.bg,
+                border: `1px solid ${info.borderColor}`,
+                borderRadius: '8px',
+                padding: '5px 10px',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
+              }}
+              title={
+                isSuperAdmin
+                  ? 'وضع السوبر أدمن: التعديل متاح من تبويب تخصيص المنظومة والنشاط'
+                  : 'نمط معتمد ومثبت للمنشأة لحماية سلامة القيود'
+              }
+            >
+              <ShieldCheckIcon size={14} color={info.color} />
+              <strong style={{ fontSize: '0.78rem', color: '#0f172a', fontWeight: 800 }}>
+                {info.shortTitle || info.title}
+              </strong>
+              <span
+                style={{
+                  fontSize: '0.66rem',
+                  background: '#ffffff',
+                  color: info.color,
+                  border: `1px solid ${info.borderColor}`,
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontWeight: 700,
+                }}
+              >
+                {info.badge}
+              </span>
             </div>
           </div>
 

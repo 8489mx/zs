@@ -107,7 +107,7 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
   const settingsQuery = useSettingsQuery();
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
-  const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
+  const autoPartsModuleEnabled = settingsQuery.data?.autoPartsModuleEnabled === true || settingsQuery.data?.activityType === 'auto_parts' || settingsQuery.data?.businessIndustry === 'auto_parts';
   const defaultItemKind: 'standard' | 'fashion' = clothingModuleEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
   const defaultGroupedMode = defaultItemKind === 'fashion';
   const [units, setUnits] = useState<ProductUnit[]>(normalizeProductUnits(undefined, ''));
@@ -435,7 +435,7 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
 
         <Field label="مكان التخزين (Bin Location)"><input {...form.register('binLocation')} disabled={mutation.isPending} placeholder="مثال: مخزن رئيسي، رف 5، شقة 2" /></Field>
         
-        {importModuleEnabled ? (
+        {autoPartsModuleEnabled ? (
           <div className="surface-note form-grid" style={{ padding: 12, gridColumn: '1 / -1', background: 'var(--blue-50)', border: '1px solid var(--blue-200)', marginTop: 8 }}>
             <h4 style={{ gridColumn: '1 / -1', margin: '0 0 12px 0', color: 'var(--blue-900)' }}>بيانات قطعة الغيار (Auto Parts)</h4>
             <Field label="رقم القطعة (OEM)"><input {...form.register('metadata.oemNumber')} disabled={mutation.isPending} placeholder="مثال: 1J0907530" /></Field>

@@ -53,6 +53,7 @@ const baseSettingsMutationValues = {
   importModuleEnabled: false,
   maritimeFreightModuleEnabled: false,
   contractingModuleEnabled: false,
+  autoPartsModuleEnabled: false,
   comboModuleEnabled: false,
   restaurantModuleEnabled: false,
   posModuleEnabled: true,

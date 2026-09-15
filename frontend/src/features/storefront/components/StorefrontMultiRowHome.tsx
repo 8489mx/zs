@@ -22,6 +22,7 @@ interface StorefrontMultiRowHomeProps {
   onUpdateQuantity: (productId: number, qty: number) => void;
   onOpenReviewModal: (product: StorefrontProduct) => void;
   onToggleFavorite: (productId: number) => void;
+  onQuickView?: (product: StorefrontProduct) => void;
   onSelectDeals: () => void;
   onSelectCategory: (categoryId: number) => void;
   onOpenCategoriesModal: () => void;
@@ -38,6 +39,7 @@ export function StorefrontMultiRowHome({
   onUpdateQuantity,
   onOpenReviewModal,
   onToggleFavorite,
+  onQuickView,
   onSelectDeals,
   onSelectCategory,
   onOpenCategoriesModal,
@@ -122,6 +124,7 @@ export function StorefrontMultiRowHome({
                 onOpenReviewModal={onOpenReviewModal}
                 isFavorite={favoriteIds.has(product.id)}
                 onToggleFavorite={onToggleFavorite}
+                onQuickView={onQuickView}
               />
             ))}
           </div>
@@ -227,6 +230,7 @@ export function StorefrontMultiRowHome({
                     onOpenReviewModal={onOpenReviewModal}
                     isFavorite={favoriteIds.has(product.id)}
                     onToggleFavorite={onToggleFavorite}
+                onQuickView={onQuickView}
                   />
                 ))}
               </div>

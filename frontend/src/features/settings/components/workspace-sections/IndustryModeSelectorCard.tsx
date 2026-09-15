@@ -11,6 +11,10 @@ import {
   ToolIcon,
   CheckCircleIcon,
   AlertCircleIcon,
+  GlobeIcon,
+  TruckIcon,
+  TagIcon,
+  SlidersIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { settingsApi } from '@/features/settings/api/settings.api';
@@ -24,7 +28,14 @@ interface IndustryModeSelectorCardProps {
 }
 
 type PillarKey = 'contracting' | 'maritime_freight' | 'manufacturing' | 'commerce';
-type CommerceSubVertical = 'retail_general' | 'pharmacy' | 'restaurant' | 'manufacturing' | 'maintenance';
+type CommerceSubVertical =
+  | 'retail_general'
+  | 'pharmacy'
+  | 'restaurant'
+  | 'maintenance'
+  | 'import_export'
+  | 'auto_parts'
+  | 'clothing';
 
 interface PillarConfig {
   key: PillarKey;
@@ -93,7 +104,7 @@ interface SubVerticalConfig {
   icon: typeof PackageIcon;
 }
 
-const COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
+const PRIMARY_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
   {
     key: 'retail_general',
     labelAr: 'التجزئة والتجارة العامة',
@@ -116,13 +127,6 @@ const COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
     icon: ReceiptIcon,
   },
   {
-    key: 'manufacturing',
-    labelAr: 'التصنيع وخطوط الإنتاج الخفيف',
-    tag: 'BOM وشجرة المنتج',
-    descriptionAr: 'قوائم مكونات الإنتاج (BOM)، أوامر التشغيل، استهلاك المواد الخام، وحساب التكلفة الصناعية.',
-    icon: LayersIcon,
-  },
-  {
     key: 'maintenance',
     labelAr: 'مراكز الصيانة وخدمة الأجهزة',
     tag: 'كروت الصيانة و IMEI',
@@ -130,6 +134,37 @@ const COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
     icon: ToolIcon,
   },
 ];
+
+const EXTENDED_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
+  {
+    key: 'import_export',
+    labelAr: 'الاستيراد والتجارة الدولية',
+    tag: 'شحنات وجمارك وشركاء',
+    descriptionAr: 'إدارة الشحنات والحاويات الجمركية، مديونية المصانع والموردين الخارجيين، وأرباح الشركاء الممولين.',
+    icon: GlobeIcon,
+  },
+  {
+    key: 'auto_parts',
+    labelAr: 'قطع غيار السيارات والمعدات',
+    tag: 'أرقام OEM وتوافق السيارات',
+    descriptionAr: 'دليل قطع الغيار، أرقام القطع الأصلية OEM، وتوافق موديلات وماركات وسنوات صنع المركبات.',
+    icon: TruckIcon,
+  },
+  {
+    key: 'clothing',
+    labelAr: 'الملابس والأزياء والأحذية',
+    tag: 'مصفوفة المقاسات والألوان',
+    descriptionAr: 'إدارة المقاسات والألوان المتعددة للأصناف، توليد باركود الفاشون، وتصنيفات الموديلات والمواسم.',
+    icon: TagIcon,
+  },
+];
+
+const ALL_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
+  ...PRIMARY_COMMERCE_SUB_VERTICALS,
+  ...EXTENDED_COMMERCE_SUB_VERTICALS,
+];
+
+const COMMERCE_SUB_VERTICALS = ALL_COMMERCE_SUB_VERTICALS;
 
 export function IndustryModeSelectorCard({ settings, canManageSettings }: IndustryModeSelectorCardProps) {
   const queryClient = useQueryClient();
@@ -143,6 +178,9 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
   const currentActivityType = String(
     tenant?.activityType || settings?.activityType || settings?.businessIndustry || 'retail_general',
   ).trim().toLowerCase();
+
+  const isCurrentSubExtended = ['import_export', 'import', 'auto_parts', 'autoparts', 'clothing', 'fashion'].includes(currentActivityType);
+  const [showAllSubVerticals, setShowAllSubVerticals] = useState(() => isCurrentSubExtended);
 
   const currentPillar: PillarKey =
     currentActivityType === 'contracting'
@@ -158,10 +196,14 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
       ? 'pharmacy'
       : currentActivityType === 'restaurant'
       ? 'restaurant'
-      : currentActivityType === 'manufacturing'
-      ? 'manufacturing'
       : currentActivityType === 'maintenance' || currentActivityType === 'electronics'
       ? 'maintenance'
+      : currentActivityType === 'import_export' || currentActivityType === 'import'
+      ? 'import_export'
+      : currentActivityType === 'auto_parts' || currentActivityType === 'autoparts'
+      ? 'auto_parts'
+      : currentActivityType === 'clothing' || currentActivityType === 'fashion'
+      ? 'clothing'
       : 'retail_general';
 
   const handleSelectMode = async (targetActivityType: string, labelAr: string) => {
@@ -332,9 +374,10 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
               key={pillar.key}
               onClick={() => {
                 if (pillar.key === 'commerce') {
-                  // If switching from contracting/maritime/manufacturing to commerce, default to current subVertical or retail_general
                   if (!isPillarActive) {
-                    handleSelectMode(currentSubVertical, `قطاع التجارة - ${COMMERCE_SUB_VERTICALS.find(s => s.key === currentSubVertical)?.labelAr}`);
+                    const targetSub = currentSubVertical || 'retail_general';
+                    const targetLabel = COMMERCE_SUB_VERTICALS.find((s) => s.key === targetSub)?.labelAr || 'التجزئة والتجارة العامة';
+                    handleSelectMode(targetSub, `قطاع التجارة - ${targetLabel}`);
                   }
                 } else {
                   handleSelectMode(pillar.key, pillar.labelAr);
@@ -473,12 +516,34 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
             <div>
               <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
-                التخصص الفرعي لقطاع التجارة (5 تخصصات متوافقة)
+                التخصص الفرعي لقطاع التجارة ({showAllSubVerticals ? '7 تخصصات متاحة' : '4 تخصصات رئيسية'})
               </strong>
               <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginTop: '2px' }}>
-                حدد التخصص الدقيق لنشاطك لتفعيل الأدوات المتخصصة (مثل أرقام التشغيلات، شاشات المطبخ، أو شجرة التصنيع):
+                حدد التخصص الدقيق لنشاطك لتفعيل الأدوات المتخصصة دون تداخل مع الأنشطة الأخرى:
               </span>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAllSubVerticals((prev) => !prev)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                background: showAllSubVerticals ? '#eef2ff' : '#ffffff',
+                color: showAllSubVerticals ? '#170e5e' : '#475569',
+                border: showAllSubVerticals ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <SlidersIcon size={14} color={showAllSubVerticals ? '#170e5e' : '#475569'} />
+              <span>{showAllSubVerticals ? 'إخفاء الأنشطة الإضافية' : 'عرض باقي التخصصات والأنشطة (3)'}</span>
+            </button>
           </div>
 
           <div
@@ -488,7 +553,10 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
               gap: '10px',
             }}
           >
-            {COMMERCE_SUB_VERTICALS.map((sub) => {
+            {[
+              ...PRIMARY_COMMERCE_SUB_VERTICALS,
+              ...(showAllSubVerticals ? EXTENDED_COMMERCE_SUB_VERTICALS : []),
+            ].map((sub) => {
               const isSubActive = currentSubVertical === sub.key;
               const SubIcon = sub.icon;
               const isSubUpdating = updatingKey === sub.key;

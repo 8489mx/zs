@@ -120,4 +120,19 @@ export class StorefrontMerchantController {
   deleteDeliveryZone(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.service.deleteDeliveryZone(id, req.authContext!);
   }
+
+  @Get('abandoned-carts')
+  listAbandonedCarts(@Req() req: RequestWithAuth) {
+    return this.service.listAbandonedCarts(req.authContext!);
+  }
+
+  @Delete('abandoned-carts/:id')
+  deleteAbandonedCart(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.service.deleteAbandonedCart(id, req.authContext!);
+  }
+
+  @Get('analytics')
+  getAnalytics(@Req() req: RequestWithAuth) {
+    return this.service.getStorefrontAnalytics(req.authContext!);
+  }
 }

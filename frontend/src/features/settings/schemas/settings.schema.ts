@@ -40,6 +40,7 @@ export const settingsFormSchema = z.object({
   crmModuleEnabled: z.boolean().optional().default(false),
   manufacturingModuleEnabled: z.boolean().default(false),
   importModuleEnabled: z.boolean().default(false),
+  autoPartsModuleEnabled: z.boolean().default(false),
   maritimeFreightModuleEnabled: z.boolean().default(false),
   contractingModuleEnabled: z.boolean().default(false),
   comboModuleEnabled: z.boolean().default(false),

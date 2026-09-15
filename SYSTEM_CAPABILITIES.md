@@ -24,13 +24,21 @@
 ## 1. المتجر الإلكتروني وقنوات البيع الموحدة (Storefront & Omnichannel)
 * **حالة الوحدة العامة:** 🟢 مكتمل 100%
 * **مسارات الكود:** `backend/src/modules/storefront`, `frontend/src/features/storefront`
-* **الجداول في قاعدة البيانات:** `tenants`, `settings`, `online_orders`, `storefront_coupons`, `storefront_delivery_zones`, `product_reviews`, `products`, `product_categories`
+* **الجداول في قاعدة البيانات:** `tenants`, `settings`, `online_orders`, `storefront_abandoned_carts`, `storefront_coupons`, `storefront_delivery_zones`, `product_reviews`, `products`, `product_categories`
 
 | الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
 | :--- | :---: | :---: | :--- | :--- |
 | **واجهة الكتالوج العام للمتجر** | 🟢 | 100% | `PublicStorefrontPage.tsx`, `storefront.service.ts` | تصفح الأصناف، الأقسام، شريط البحث الفوري، فرز الأسعار، والمفضلة. |
 | **سلة المشتريات التفاعلية** | 🟢 | 100% | `StorefrontCartDrawer.tsx`, `StorefrontProductCard.tsx` | درج سلة جانبي، تعديل الكميات (+ و - بنظام RTL صحيح)، وحساب المجاميع فورياً. |
 | **نافذة إتمام الطلب المحكمة** | 🟢 | 100% | `StorefrontCheckoutModal.tsx` | تحقق صارم برقم الموبايل المصري (11 رقم: 010/011/012/015)، الاسم، العنوان، وتثبيت زر الطلب Sticky CTA. |
+| **التحقق الدولي من الهاتف واختيار الدولة (International Phone Selector)** | 🟢 | 100% | `StorefrontCheckoutModal.tsx`, `online_orders` | محدد كود الدولة (مصر 20+، السعودية 966+، الإمارات 971+) مع التحقق التلقائي من طول ورقم الهاتف لكل دولة وتخزين كود الدولة بالطلب. |
+| **الاستلام من الفرع / المتجر (Click & Collect / Branch Pickup)** | 🟢 | 100% | `StorefrontCheckoutModal.tsx`, `StorefrontSettingsTab.tsx`, `storefront.service.ts` | خيار الاستلام من الفرع في صفحة الدفع بإلغاء مصاريف التوصيل تلقائياً، مع تفعيل/تعطيل الميزة من إعدادات المتجر وتحديد الفرع والوقت التقديري. |
+| **المعاينة السريعة ومشاركة الصنف (Quick View & Social Share)** | 🟢 | 100% | `StorefrontProductQuickViewModal.tsx`, `StorefrontProductCard.tsx`, `StorefrontModals.tsx` | نافذة منبثقة سريعة لتفاصيل الصنف والصورة الكبيرة ومحدد الكميات، مع زر مشاركة فوري عبر واتساب ونسخ رابط الصنف بدقة. |
+| **شريط تقدم الشحن المجاني التفاعلي واقتراحات السلة (Interactive Free Shipping Progress & Upsell)** | 🟢 | 100% | `StorefrontLiveCartDock.tsx`, `StorefrontModals.tsx` | شريط تقدم بصري ديناميكي يحسب المبلغ المتبقي لنيل الشحن المجاني، مع صف اقتراحات أصناف ذكية (Cross-sell) بنقرة واحدة داخل السلة، وخالٍ تماماً من رسائل التأكيد التقليدية. |
+| **تخصيص الهوية البصرية ولون المتجر البراند (Custom Brand Theming)** | 🟢 | 100% | `StorefrontSettingsTab.tsx`, `PublicStorefrontPage.tsx`, `storefront.service.ts` | باليتة ألوان براند متكاملة بستة ألوان جاهزة ومحدد لون مخصص بالهيكس كود، مع حقن متغير CSS `--storefront-primary-color` في كافة مكونات المتجر. |
+| **إدارة واسترداد السلات المتروكة (Abandoned Carts Recovery)** | 🟢 | 100% | `storefront_abandoned_carts`, `storefront.service.ts`, `MerchantOnlineOrdersPage.tsx` | التقاط صامت وفوري لبيانات العميل والسلة قبل إتمام الطلب، تبويب مخصص في لوحة التاجر، وزر استرداد فوري بنقرة واحدة يفتح محادثة واتساب مخصصة بمحتوى السلة، مع تمييز السلات المستردة تلقائياً عند إتمام الشراء. |
+| **محرك بكسلات التتبع والتسويق (Multi-Pixel Marketing Engine)** | 🟢 | 100% | `storefront-pixel-tracker.ts`, `StorefrontSettingsTab.tsx`, `PublicStorefrontPage.tsx` | تتبع قياسي لأربعة منصات تسويقية (Meta / Facebook Pixel, Google Analytics 4, TikTok Pixel, Snapchat Pixel) لأحداث ViewContent, AddToCart, InitiateCheckout, Purchase. |
+| **لوحة مؤشرات الأداء والتحليلات للتاجر (Storefront KPI Analytics Dashboard)** | 🟢 | 100% | `MerchantOnlineOrdersPage.tsx`, `storefront.service.ts` | بطاقات KPI إحصائية فورية أعلى صفحة الطلبات (إجمالي المبيعات، إجمالي الطلبات، متوسط قيمة الطلب AOV، ومعدل التحويل Conversion Rate) مع عداد لحظي للسلات المتروكة. |
 | **تتبع الطلبات المباشر «طلباتي»** | 🟢 | 100% | `StorefrontCustomerOrderCard.tsx`, `StorefrontMyOrdersModal.tsx` | شريط مراحل تتبع حي (تم الاستلام ➔ جاري التجهيز ➔ مع المندوب ➔ تم التسليم) مع إمكانية إلغاء وتعديل الطلب وهو pending. |
 | **ربط بيانات ومحادثة مندوب التوصيل** | 🟢 | 100% | `StorefrontCustomerOrderCard.tsx` | عند خروج الطلب مع المندوب يظهر اسمه ورقمه مع زر اتصال `tel:` ومحادثة واتساب مباشرة `wa.me`. |
 | **كوبونات الخصم والعروض الترويجية** | 🟢 | 100% | `StorefrontCouponsManager.tsx`, `coupon.dto.ts` | كوبونات خصم (نسبة مئوية مع سقف، مبلغ ثابت، أو شحن مجاني)، حدود استخدام، وتطبيق لحظي في الدفع. |
@@ -38,7 +46,7 @@
 | **تسعير التوصيل الذكي حسب المنطقة/المحافظة** | 🟢 | 100% | `StorefrontDeliveryZonesManager.tsx`, `delivery-zone.dto.ts` | مصفوفة مناطق وشحن، قوالب جاهزة بضغطة زر (محلي وشحن محافظات)، اختيار المنطقة بدقة، وحساب الفاتورة فورياً. |
 | **تكامل واتساب المباشر والتلقائي** | 🟢 | 100% | `storefront.service.ts`, `whatsapp-gateway.service.ts` | توليد رابط رسالة واتساب منسقة بالتفاصيل، وإشعار فوري عبر بوابة الواتساب عند كل طلب جديد. |
 | **استوديو وضبط صور الأصناف** | 🟢 | 100% | `StorefrontProductStudio.tsx`, `image-compressor.ts` | ضغط الصور، قص، ورفع ومعاينة مباشرة لصور الكتالوج والتصنيفات. |
-| **بوابات الدفع الإلكتروني المتكاملة (Tap GCC & Stripe & Paymob & XPay & Mock)** | 🟢 | 100% | `storefront-payment.service.ts`, `StorefrontPaymentGatewaysManager.tsx`, `StorefrontOnlinePaymentModal.tsx`, `storefront-public.controller.ts` | دعم متكامل وشامل لـ 5 بوابات دفع رئيسية: **تاب (Tap Payments الخليجية)** لدعم بطاقات مدى السعودية 🇸🇦، شبكة كي نت الكويتية 🇰🇼، بطاقات ناباس القطرية 🇶🇦، وبطاقات بنفت 🇧🇭، و **Stripe العالمية 🌍** لدعم كافة البطاقات الدولية و Apple Pay و Google Pay، بالإضافة إلى **Paymob** و **XPay** للمدفوعات المصرية و **Sandbox Mock**، مع تأكيد سداد آلي عبر الـ Webhooks وإشعارات واتساب فورية. |
+| **بوابات الدفع الإلكتروني المتكاملة (Tap GCC & Stripe & Paymob & XPay & Mock)** | 🟢 | 100% | `storefront-payment.service.ts`, `StorefrontPaymentGatewaysManager.tsx`, `StorefrontOnlinePaymentModal.tsx`, `storefront-public.controller.ts` | دعم متكامل وشامل لـ 5 بوابات دفع رئيسية: **تاب (Tap Payments الخليجية)** لدعم بطاقات مدى السعودية، شبكة كي نت الكويتية، بطاقات ناباس القطرية، وبطاقات بنفت، و **Stripe العالمية** لدعم كافة البطاقات الدولية و Apple Pay و Google Pay، بالإضافة إلى **Paymob** و **XPay** للمدفوعات المصرية و **Sandbox Mock**، مع تأكيد سداد آلي عبر الـ Webhooks وإشعارات واتساب فورية. |
 | **لوحة إدارة الطلبات للتاجر** | 🟢 | 100% | `MerchantOnlineOrdersPage.tsx`, `ConvertDeliveryModal.tsx` | متابعة الطلبات، الفلترة حسب الحالة، وتنزيل الطلب بنقرة واحدة في سلة الـ POS أو تحويله مباشرة لفاتورة دليفري مع مندوب. |
 
 ---
@@ -4315,5 +4323,125 @@
 * **فحص الجودة والسلامة البرمجية:**
   - فحص `npx tsc --noEmit` للفرونت إند: **Code 0 (Zero Errors)**.
   - فحص `npx tsc --noEmit` للباك إند: **Code 0 (Zero Errors)**.
+
+---
+
+## 133. حوكمة وتدقيق الأنماط القطاعية الأربعة والربط الموديولي الصارم (4 Industry Pillars Governance & Leak-Proof Module Alignment 100%)
+* **حالة الموديول العامة:** 🟢 مكتمل ومحكم 100% (Enterprise Production Ready - Strict Vertical Isolation)
+* **المسارات في الكود:**
+  - `frontend/src/features/settings/components/workspace-sections/IndustryModeSelectorCard.tsx`: بطاقة اختيار وتفعيل نمط المنظومة عبر الأعمدة الأربعة (Pillars) مع تطهير التخصصات الفرعية لقطاع التجارة وتأمين التحويل التلقائي عند التبديل بين الأنماط دون أي تعليق أو تضارب.
+  - `backend/src/core/tenant/industry-profiles.ts`: عزل ركيزة التصنيع (`manufacturing`) كعمود مستقل ومنفصل تماماً عن التجارة، وإضافة ميزة الخزينة (`treasury`) لافتراضيات المقاولات والشحن والتصنيع، وحذف احتمالات تسرب ميزات التصنيع لقطاع المقاولات أو التجارة.
+  - `backend/src/modules/settings/settings.service.ts`: ترقية دالة `setActivityProfile` لتصفير وتفعيل مصفوفات الموديولات (`modulePatch`) بصرامة حتمية (Deterministic Isolation)؛ بحيث يضمن تفعيل الموديولات الخاصة بالقطاع فقط وإطفاء كافة الموديولات المتعارضة (إلغاء التصنيع والصيدلية والمطاعم والصيانة عند تفعيل المقاولات أو الشحن أو العكس).
+  - `frontend/src/shared/layout/app-shell.tsx`:
+    - قطاع المقاولات: إدراج مفاتيح الملاحة المعيارية (`contracting-financials`, `contracting-procurement`, `contracting-field`, `contracting-master-boq`) في ترتيب `contractingOrder` وخريطة الأيقونات الرسمية SVG (`iconPathMap`) وضبط أسمائها المعربة.
+    - قطاع التصنيع: إدراج مراكز العمل والماكينات (`manufacturing-work-centers`) في القائمة الجانبية للتصنيع، وترتيب `manufacturingOrder`، والأيقونة الرسمية، ومصفوفة `sidebarGroups`.
+    - قطاع الشحن: الحفاظ على الربط الكامل لموديولات الشحن الـ 8 (الاستفسارات، عروض النولون، المقارنة، عروض الأسعار، أوامر التشغيل، تتبع الحاويات، دليل الخطوط والموانئ، أتمتة المراسلات) والشجرة المحاسبية والـ CRM.
+    - قطاع التجارة: تثبيت وتفعيل نقاط البيع السريعة، درج النقدية، المخازن والباركود، المشتريات، الحسابات العامة، الخزينة والبنوك، والفاتورة الإلكترونية مع 4 تخصصات فرعية منضبطة (التجزئة العامة، الصيدليات FEFO، المطاعم KDS، مراكز الصيانة IMEI).
+  - `frontend/src/shared/components/GlobalSearchModal.tsx`: تعريف حاسم لـ `isManufacturingVertical` ومنع ظهور نقاط البيع أو كاشير التجزئة في نتائج البحث للمصانع، وتطهير عناصر التصنيع من البحث في قطاع التجزئة إذا كان الموديول معطلاً.
+* **القدرات التشغيلية المعتمدة للأوضاع الأربعة:**
+  1. **قطاع المقاولات وإدارة المشاريع (Contracting ERP):** المشاريع • المقايسات • المستخلصات • مقاولو الباطن • الحسابات العامة • الموارد البشرية • مخازن المواقع ومواد البناء • اليوميات واستفسارات الموقع.
+  2. **قطاع الشحن البحري واللوجستيات (Freight Forwarding):** استفسارات الشحن • تسعير النولون (RFQ) • مقارنة الخطوط • عروض أسعار العملاء • أوامر تشغيل الشحنات • الحاويات وفترات السماح • دليل الخطوط والموانئ • الشجرة المحاسبية والمالية اللوجستية • CRM الشحن.
+  3. **قطاع التصنيع والإنتاج الصناعي (Industrial Production):** أوامر الإنتاج • قوائم المكونات BOM • مكونات ومستلزمات التصنيع • مراكز العمل والماكينات • مخازن المواد الخام والمنتج التام • مراكز التكلفة المحاسبية • مشتريات التوريد الصناعي • CRM العملاء والتوزيع.
+  4. **قطاع التجارة وإدارة الأعمال (Commerce & Retail):** نقاط البيع السريعة • الوردية والدرج النقدي • المخازن والباركود • المشتريات والموردين • شجرة الحسابات والقيود • الخزينة والبنوك • الفاتورة الإلكترونية والإقرار الضريبي، مع التخصصات الرقابية الدقيقة (الصيدلية FEFO، المطاعم KDS، الصيانة IMEI، التجزئة العامة).
+* **معايير العزل الصارم وحظر التداخل (Zero Cross-Pillar Leakage):**
+  - تم القضاء تماماً على أي تداخل أو تسرب لأدوات البيع بالتجزئة (مثل الكاشير السريع أو شاشات المطبخ) داخل قطاعي المقاولات أو المصانع أو الشحن.
+  - إمكانية التبديل الآني الفوري (0ms transition) بين الأنماط للسوبر أدمن وإدارة المنشأة مع إعادة رسم القوائم وتحديث صلاحيات الجلسة آلياً.
+
+---
+
+## 134. توحيد أبعاد أزرار نافذة إتمام البيع السريع وإضافة اختصار طباعة النسختين F4 (POS Sale Success Dialog Uniform Buttons & Dual Print F4 Shortcut)
+* **حالة الموديول العامة:** 🟢 مكتمل 100% ومطابق لمعايير التناسق البصري ودستور النظام
+* **المسارات في الكود:**
+  - `frontend/src/features/pos/components/pos-workspace/PosSaleSuccessDialog.tsx`:
+    1. إضافة اختصار لوحة المفاتيح `F4` لطباعة النسختين المزدوجتين (نسخة العميل + نسخة المحل / المطبخ / الدليفري) عبر استدعاء `safePrint(onPrintDualReceipt || onPrintReceipt)`.
+    2. تأمين مستمع الاختصارات `handleShortcut` من اعتراض `Alt+F4` لعدم التشويش على اختصار إغلاق النوافذ في بيئة نظام التشغيل Windows.
+    3. توحيد التوزيع البصري للأزرار التشغيلية: تحويل الصفوف إلى نسب متكافئة بدقة هندسية (`flex: '1 1 0'`, `minWidth: 0`) في الصف الأول والصف الثاني، مما يجعل جميع الأزرار متساوية الحجم تماماً ومتطابقة هوامش المحاذاة العمودية والأفقية مع منع تفاوت العرض أو تآكل النصوص.
+  - `frontend/src/features/pos/components/pos-workspace/PosSaleSuccessDialog.spec.tsx`:
+    - إضافة اختبار وحدة آلي شامل للتحقق من ظهور نص الزر «طباعة نسختين (عميل + محل) F4» وتنفيذ الطباعة المزدوجة فورياً عند الضغط على زر `F4` في لوحة المفاتيح.
+* **النتائج البرمجية:**
+  - جميع اختبارات الوحدة نجحت (7 passed).
+  - فحص TypeScript للفرونت إند: Code 0 (Zero Errors).
+
+---
+
+## 135. حوكمة التخصصات الفرعية لقطاع التجارة وعزل موديولات الاستيراد وقطع الغيار (Commerce Sub-Verticals Hierarchy, Auto Parts Decoupling & Strict Default Isolation)
+* **حالة الموديول العامة:** 🟢 مكتمل ومحكم 100% (Enterprise Production Ready)
+* **المسارات في الكود:**
+  - `backend/src/core/tenant/industry-profiles.ts`:
+    1. توسيع `CommerceSubVertical` لدعم 7 تخصصات قطاعية دقيقة تشمل (`retail_general`, `pharmacy`, `restaurant`, `maintenance`, `import_export`, `auto_parts`, `clothing`).
+    2. إضافة ملفات تعريفية متكاملة لـ (`import_export`, `auto_parts`, `clothing`) مع ضبط المسارات والميزات الافتراضية.
+    3. عزل ميزة `import` و `clothing` في `resolvePillarScopedFeatures` بحيث يتم حذفهما تلقائياً من جلسة المنشأة ما لم يكن التخصص الفرعي مطابقاً أو ممنوحاً صراحة، مما يمنع تسرب موديول الاستيراد لمتاجر التجزئة العامة والسوبرماركت.
+  - `backend/src/modules/settings/settings.service.ts`:
+    1. ترقية دالتي `getSettings` و `setActivityProfile` لضبط مصفوفة الموديولات بصرامة حتمية: تعطيل `importModuleEnabled = false` و `autoPartsModuleEnabled = false` و `clothingModuleEnabled = false` افتراضياً عند اختيار التجزئة العامة أو الصيدليات أو المطاعم أو الصيانة أو قطاعات المقاولات والمصانع والشحن.
+    2. تفعيل الموديول التخصصي فقط عند اختيار تخصص النشاط الخاص به (`import_export` يفعل الاستيراد، `auto_parts` يفعل قطع الغيار، `clothing` يفعل الفاشون).
+  - `frontend/src/features/settings/components/workspace-sections/IndustryModeSelectorCard.tsx`:
+    1. تقسيم التخصصات الفرعية إلى قائمتين: **الأنشطة الأساسية الأكثر استخداماً (4)** و **الأنشطة التخصصية الإضافية (3)**.
+    2. إضافة زر تفاعلي مؤسسي: «عرض باقي التخصصات والأنشطة (3)» / «إخفاء الأنشطة الإضافية» بأيقونة `<SlidersIcon size={14} />` يتيح كشف الأنشطة التخصصية بسلاسة بدون ازدحام بصري، مع الفتح التلقائي إذا كان المستأجر الحالي يعمل بنشاط تخصصي.
+  - `frontend/src/features/products/components/NewProductForm.tsx`, `EditProductForm.tsx`, `ProductForm.tsx`:
+    - **الفصل التام بين الاستيراد وقطع الغيار:** استبدال شرط `importModuleEnabled` بـ `autoPartsModuleEnabled`؛ بحيث لا تظهر بطاقة «بيانات قطعة الغيار (Auto Parts: OEM, Car Brand, Model, Years)» في شاشات إضافة وتعديل الأصناف إلا إذا كانت المنشأة تعمل في نشاط قطع الغيار أو قامت بتفعيل الموديول صراحة.
+  - `frontend/src/features/settings/schemas/settings.schema.ts` و `contracts.ts` و `domain-models`:
+    - تسجيل حقل `autoPartsModuleEnabled: z.boolean().default(false)` في المخطط والأنواع والعقود.
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص TypeScript للباك إند: **Code 0 (Zero Errors)**.
+  - فحص TypeScript للفرونت إند: **Code 0 (Zero Errors)**.
+  - اختبارات الوحدة: **All Passed (7 passed)**.
+
+---
+
+## 136. توحيد بطاقة هوية المنشأة وتكامل بادج النشاط والقطاع التشغيلي (Store Identity Card & Sector Classification Integration)
+* **حالة الموديول العامة:** 🟢 مكتمل ومحكم 100% (Enterprise Production Ready - Zero Clutter)
+* **المسارات في الكود:**
+  - `frontend/src/features/settings/components/forms/tabs/GeneralSettingsTab.tsx`:
+    1. إزالة البانر الضخم المستقل (`Locked Activity Profile Header Banner`) الذي كان يحتل صفاً كاملاً أعلى بطاقة «الهوية وبيانات النشاط».
+    2. استثمار المساحة المقابلة في كارت هوية المنشأة وتوحيدها على سطر واحد قطعي بدون أي التفاف (`flexWrap: 'nowrap'`)؛ بحيث يظهر الشعار واسم النشاط على اليمين، وبادج النشاط المصغر على أقصى اليسار (`flexShrink: 0`).
+    3. اختصار نصوص البادج لتكون شارة مضغوطة أنيقة (`ShieldCheckIcon` + `قطاع التجارة` + `تجزئة ومستودعات`) مع نقل التفاصيل الإدارية للتلميح الذكي (`title tooltip`) لضمان المحاذاة التامة بجوار بيانات المتجر على نفس السطر.
+    4. توسيع دالة `getPillarBadgeInfo` بـ `shortTitle` لكافة الأنماط والتخصصات القطاعية مع ربطها تفاعلياً بـ `form.watch('businessIndustry')` للتحديث الحي والآني.
+    5. الحفاظ على عنوان القسم «الهوية وبيانات النشاط» كعنوان قياسي موحد ونظيف يطابق دستور التيبوجرافي والهوية البصرية للنظام.
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص TypeScript للفرونت إند: **Code 0 (Zero Errors)**.
+  - فحص TypeScript للباك إند: **Code 0 (Zero Errors)**.
+
+---
+
+## 137. العزل الحصري لموديول الاستيراد في القائمة الجانبية وحظر ظهوره في التجزئة العامة (Strict Import Navigation Isolation to Import Sub-Vertical)
+* **حالة الموديول العامة:** 🟢 مكتمل ومحكم 100% (Enterprise Production Ready - Strict Sub-Vertical Gating)
+* **المسارات في الكود:**
+  - `frontend/src/shared/layout/app-shell.tsx`:
+    1. تقييد ظهور مجموعة «الاستيراد والشراكة» (`import-group`: إدارة الشحنات، مديونية الموردين، أرباح الشركاء) في القائمة الجانبية بشرط التخصص الحصري `isDedicatedImportOnly && hasImport && settings?.importModuleEnabled`.
+    2. تقييد أزرار الوصول السريع في لوحة التحكم لشاشات الاستيراد بـ `isImportVertical`.
+    3. النتيجة: اختفاء موديول الاستيراد تماماً وبشكل قاطع عن كافة أنشطة التجزئة والتجارة العامة، الصيدليات، المطاعم، مراكز الصيانة، قطع الغيار، والملابس، وقصره حصرياً وفقط على تخصص «الاستيراد والتجارة الدولية».
+  - `backend/src/modules/settings/settings.service.ts` وقاعدة البيانات:
+    - تثبيت `importModuleEnabled: false` في جدول `settings` لمنشأة `zs` والأنشطة العامة.
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص TypeScript للفرونت إند: **Code 0 (Zero Errors)**.
+  - فحص TypeScript للباك إند: **Code 0 (Zero Errors)**.
+
+---
+
+## 138. نقل بطاقة نمط المنظومة إلى تبويب تخصيص الموديولات والأنشطة (Relocating Industry Mode Selector to Modules Settings Tab)
+* **حالة الموديول العامة:** 🟢 مكتمل ومحكم 100% (Enterprise Production Ready - Logical Tab Separation)
+* **المسارات في الكود:**
+  - `frontend/src/features/settings/components/forms/tabs/GeneralSettingsTab.tsx`:
+    1. حذف استدعاء ومكون `IndustryModeSelectorCard` بالكامل من تبويب الإعدادات العامة («عام»).
+    2. تحرير تبويب «عام» ليركز حصرياً على هوية المنشأة الأساسية (اسم النشاط، الشعار المطبوع، العملة، الضريبة، ومعلومات التواصل) دون أي بطاقات عزل موديولات ضخمة تؤثر على التناسق البصري.
+    3. استعادة تعريف `isSuperAdmin` واستيراد `isPlatformAdmin` لمنع خطأ `ReferenceError: isSuperAdmin is not defined` وتحديث التلميح الذكي في بادج النشاط ليرشد إلى مكانه الجديد في تبويب «تخصيص المنظومة والنشاط».
+  - `frontend/src/features/settings/components/forms/tabs/ModulesSettingsTab.tsx`:
+    1. إدراج مكون `IndustryModeSelectorCard` في قمة تبويب «تخصيص المنظومة والنشاط» (`activeTab === 'modules'`) مخصصاً للسوبر أدمن (`isSuperAdmin`).
+    2. التكامل السلس مع إدارة الموديولات والباقات التشغيلية بحيث يختار السوبر أدمن النمط والنشاط التشغيلي في نفس موضع التحكم بباقات وموديولات النظام.
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص TypeScript للفرونت إند: **Code 0 (Zero Errors)**.
+
+---
+
+## 139. إزالة شريط القوالب القديم المكرر وتوحيد إدارة الأنماط والموديولات (Eliminating Duplicate QuickBar & Consolidating Modular Controls)
+* **حالة الموديول العامة:** 🟢 مكتمل ومحكم 100% (Enterprise Production Ready - Zero Duplication)
+* **المسارات في الكود:**
+  - `frontend/src/features/settings/components/forms/tabs/ModulesSettingsTab.tsx`:
+    1. حذف كارت شريط القوالب السريع القديم (`SmartModularQuickBar`) الذي كان يكرر أسماء الأنشطة والأنماط بشكل مزدوج أسفل بطاقة العزل القطاعي الشامل.
+    2. اعتماد `IndustryModeSelectorCard` كمصدر موحد ووحيد للحقيقة (Single Source of Truth) لاختيار الأنماط والتخصصات الفرعية الـ 7.
+    3. حذف نافذة «معالج التخصيص والمنيو القديم» (`SmartModularConfiguratorModal`) والزر المرتبط بها بالكامل للتخلص الجذري من تكرار قوالب الأنشطة الموروثة، ليصبح متجر التطبيقات الرسمي المعتمد (`/apps`) والخيارات اليدوية هما المرجعان الحصريان لإدارة موديولات المنظومة.
+    4. إزالة البانر الأصفر القديم للسوبر أدمن («وضع السوبر أدمن: يمكنك تفعيل وتجربة أي موديول...») الذي كان يمثل حاجزاً بصرياً غير مبرر يقطع الصفحة، مما جعل الانتقال البصري بين بطاقة الأنماط ومتجر التطبيقات سلساً ومؤسسياً متكاملاً.
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص TypeScript للفرونت إند: **Code 0 (Zero Errors)**.
 
 

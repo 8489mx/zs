@@ -189,6 +189,21 @@ export class SettingsService {
       if (settings.restaurantModuleEnabled === undefined) {
         settings.restaurantModuleEnabled = (settings.industryProfile as any)?.subVertical === 'restaurant';
       }
+      if (settings.enablePharmacyModule === undefined) {
+        settings.enablePharmacyModule = (settings.industryProfile as any)?.subVertical === 'pharmacy';
+      }
+      if (settings.enableMobileStoreFeatures === undefined) {
+        settings.enableMobileStoreFeatures = (settings.industryProfile as any)?.subVertical === 'maintenance';
+      }
+      if (settings.importModuleEnabled === undefined) {
+        settings.importModuleEnabled = (settings.industryProfile as any)?.subVertical === 'import_export';
+      }
+      if (settings.autoPartsModuleEnabled === undefined) {
+        settings.autoPartsModuleEnabled = (settings.industryProfile as any)?.subVertical === 'auto_parts';
+      }
+      if (settings.clothingModuleEnabled === undefined) {
+        settings.clothingModuleEnabled = (settings.industryProfile as any)?.subVertical === 'clothing';
+      }
     }
 
     this._settingsCache.set(cacheKey, { data: settings, expiresAt: Date.now() + this.CACHE_TTL_MS });
@@ -608,7 +623,14 @@ export class SettingsService {
       modulePatch.fixedAssetsModuleEnabled = true;
       modulePatch.taxDeclarationModuleEnabled = true;
       modulePatch.maritimeFreightModuleEnabled = false;
+      modulePatch.manufacturingModuleEnabled = false;
       modulePatch.posModuleEnabled = false;
+      modulePatch.enablePharmacyModule = false;
+      modulePatch.restaurantModuleEnabled = false;
+      modulePatch.enableMobileStoreFeatures = false;
+      modulePatch.importModuleEnabled = false;
+      modulePatch.autoPartsModuleEnabled = false;
+      modulePatch.clothingModuleEnabled = false;
       modulePatch.requireCashierShiftForSales = false;
     } else if (profile.pillar === 'maritime_freight') {
       modulePatch.maritimeFreightModuleEnabled = true;
@@ -622,6 +644,12 @@ export class SettingsService {
       modulePatch.manufacturingModuleEnabled = false;
       modulePatch.inventoryModuleEnabled = false;
       modulePatch.posModuleEnabled = false;
+      modulePatch.enablePharmacyModule = false;
+      modulePatch.restaurantModuleEnabled = false;
+      modulePatch.enableMobileStoreFeatures = false;
+      modulePatch.importModuleEnabled = false;
+      modulePatch.autoPartsModuleEnabled = false;
+      modulePatch.clothingModuleEnabled = false;
       modulePatch.requireCashierShiftForSales = false;
     } else if (profile.pillar === 'manufacturing') {
       modulePatch.manufacturingModuleEnabled = true;
@@ -635,6 +663,12 @@ export class SettingsService {
       modulePatch.contractingModuleEnabled = false;
       modulePatch.maritimeFreightModuleEnabled = false;
       modulePatch.posModuleEnabled = false;
+      modulePatch.enablePharmacyModule = false;
+      modulePatch.restaurantModuleEnabled = false;
+      modulePatch.enableMobileStoreFeatures = false;
+      modulePatch.importModuleEnabled = false;
+      modulePatch.autoPartsModuleEnabled = false;
+      modulePatch.clothingModuleEnabled = false;
       modulePatch.requireCashierShiftForSales = false;
     } else {
       // commerce pillar
@@ -648,15 +682,12 @@ export class SettingsService {
       modulePatch.enableEnterpriseFeatures = true;
       modulePatch.fixedAssetsModuleEnabled = true;
       modulePatch.taxDeclarationModuleEnabled = true;
-      if (normalizedKey === 'pharmacy') {
-        modulePatch.enablePharmacyModule = true;
-      } else if (normalizedKey === 'restaurant') {
-        modulePatch.restaurantModuleEnabled = true;
-      } else if (normalizedKey === 'manufacturing') {
-        modulePatch.manufacturingModuleEnabled = true;
-      } else if (normalizedKey === 'maintenance') {
-        modulePatch.enableMobileStoreFeatures = true;
-      }
+      modulePatch.enablePharmacyModule = normalizedKey === 'pharmacy';
+      modulePatch.restaurantModuleEnabled = normalizedKey === 'restaurant';
+      modulePatch.enableMobileStoreFeatures = normalizedKey === 'maintenance';
+      modulePatch.importModuleEnabled = normalizedKey === 'import_export';
+      modulePatch.autoPartsModuleEnabled = normalizedKey === 'auto_parts';
+      modulePatch.clothingModuleEnabled = normalizedKey === 'clothing';
     }
 
     const settingsEntries: Array<[string, any]> = [

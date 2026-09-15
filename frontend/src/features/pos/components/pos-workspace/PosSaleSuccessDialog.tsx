@@ -120,13 +120,20 @@ export function PosSaleSuccessDialog({
     document.body.style.overflow = 'hidden';
 
     const handleShortcut = (event: KeyboardEvent) => {
-      if (!['F2', 'F3', 'F8', 'F10', 'Escape'].includes(event.key)) return;
+      if (!['F2', 'F3', 'F4', 'F8', 'F10', 'Escape'].includes(event.key)) return;
+
+      // Do not intercept Alt+F4 (system window close)
+      if (event.key === 'F4' && event.altKey) return;
 
       event.preventDefault();
       event.stopPropagation();
 
       if (event.key === 'F2') {
         safePrint(onPrintReceipt);
+        return;
+      }
+      if (event.key === 'F4') {
+        safePrint(onPrintDualReceipt || onPrintReceipt);
         return;
       }
       if (event.key === 'F3') {
@@ -151,7 +158,7 @@ export function PosSaleSuccessDialog({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleShortcut, true);
     };
-  }, [onClose, onNewSale, onPrintA4, onPrintReceipt, open, sale, triggerWhatsapp]);
+  }, [onClose, onNewSale, onPrintA4, onPrintDualReceipt, onPrintReceipt, open, sale, triggerWhatsapp]);
 
   if (!open || !sale || typeof document === 'undefined') return null;
 
@@ -297,14 +304,16 @@ export function PosSaleSuccessDialog({
               type="button"
               onClick={() => safePrint(onPrintReceipt)}
               style={{
-                flex: 1.5,
-                minHeight: '42px',
+                flex: '1 1 0',
+                minWidth: 0,
+                minHeight: '44px',
                 fontSize: '13px',
                 fontWeight: 800,
                 background: '#0f172a',
                 color: '#ffffff',
                 border: 'none',
-                borderRadius: '8px'
+                borderRadius: '8px',
+                padding: '0 6px',
               }}
             >
               طباعة ريسيت العميل F2
@@ -315,17 +324,19 @@ export function PosSaleSuccessDialog({
                 variant="secondary"
                 onClick={() => safePrint(onPrintDualReceipt || onPrintReceipt)}
                 style={{
-                  flex: 1.2,
-                  minHeight: '42px',
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  minHeight: '44px',
                   fontWeight: 800,
                   fontSize: '13px',
                   background: '#f8fafc',
                   color: '#0f172a',
                   border: '1px solid #cbd5e1',
-                  borderRadius: '8px'
+                  borderRadius: '8px',
+                  padding: '0 6px',
                 }}
               >
-                طباعة نسختين (عميل + محل)
+                طباعة نسختين (عميل + محل) F4
               </Button>
             )}
             <Button
@@ -333,11 +344,13 @@ export function PosSaleSuccessDialog({
               variant="success"
               onClick={onNewSale}
               style={{
-                flex: 1.5,
-                minHeight: '42px',
+                flex: '1 1 0',
+                minWidth: 0,
+                minHeight: '44px',
                 fontSize: '13px',
                 fontWeight: 800,
-                borderRadius: '8px'
+                borderRadius: '8px',
+                padding: '0 6px',
               }}
             >
               بيع جديد F3
@@ -347,11 +360,11 @@ export function PosSaleSuccessDialog({
           {/* Kitchen Print Row if Enabled */}
           {settings?.posKitchenPrinterEnabled && onPrintKitchen && (
             <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
-              <Button type="button" onClick={() => safePrint(onPrintKitchen)} style={{ flex: 1, minHeight: '38px', borderRadius: '8px' }}>
+              <Button type="button" onClick={() => safePrint(onPrintKitchen)} style={{ flex: '1 1 0', minWidth: 0, minHeight: '40px', borderRadius: '8px', padding: '0 6px' }}>
                 طباعة للمطبخ
               </Button>
               {onPrintBoth && (
-                <Button type="button" onClick={() => safePrint(onPrintBoth)} style={{ flex: 1, minHeight: '38px', borderRadius: '8px' }}>
+                <Button type="button" onClick={() => safePrint(onPrintBoth)} style={{ flex: '1 1 0', minWidth: 0, minHeight: '40px', borderRadius: '8px', padding: '0 6px' }}>
                   طباعة الريسيت والمطبخ
                 </Button>
               )}
@@ -365,14 +378,16 @@ export function PosSaleSuccessDialog({
               variant="secondary"
               onClick={triggerWhatsapp}
               style={{
-                flex: 1,
-                minHeight: '38px',
-                fontSize: '12px',
+                flex: '1 1 0',
+                minWidth: 0,
+                minHeight: '40px',
+                fontSize: '12.5px',
                 fontWeight: 700,
                 color: '#15803d',
                 background: '#f0fdf4',
                 borderColor: '#bbf7d0',
-                borderRadius: '8px'
+                borderRadius: '8px',
+                padding: '0 6px',
               }}
             >
               إرسال واتساب F8
@@ -382,14 +397,16 @@ export function PosSaleSuccessDialog({
               variant="secondary"
               onClick={() => safePrint(onPrintA4)}
               style={{
-                flex: 1,
-                minHeight: '38px',
-                fontSize: '12px',
+                flex: '1 1 0',
+                minWidth: 0,
+                minHeight: '40px',
+                fontSize: '12.5px',
                 fontWeight: 700,
                 color: '#475569',
                 background: '#f8fafc',
                 borderColor: '#e2e8f0',
-                borderRadius: '8px'
+                borderRadius: '8px',
+                padding: '0 6px',
               }}
             >
               طباعة A4 F10
@@ -399,14 +416,16 @@ export function PosSaleSuccessDialog({
               variant="secondary"
               onClick={onClose}
               style={{
-                flex: 0.8,
-                minHeight: '38px',
-                fontSize: '12px',
+                flex: '1 1 0',
+                minWidth: 0,
+                minHeight: '40px',
+                fontSize: '12.5px',
                 fontWeight: 700,
                 color: '#64748b',
                 background: '#f1f5f9',
                 borderColor: '#cbd5e1',
-                borderRadius: '8px'
+                borderRadius: '8px',
+                padding: '0 6px',
               }}
             >
               إغلاق Esc
