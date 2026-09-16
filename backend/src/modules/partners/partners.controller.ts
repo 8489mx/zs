@@ -77,6 +77,26 @@ export class PartnersController {
     return this.partnersService.getCustomerAddresses(id, req.authContext!);
   }
 
+  @Post('customers/:id/addresses')
+  @AllowAuthenticated()
+  addCustomerAddress(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: { address: string },
+    @Req() req: RequestWithAuth,
+  ): Promise<{ ok: boolean; addresses: string[] }> {
+    return this.partnersService.addCustomerAddress(id, payload.address, req.authContext!);
+  }
+
+  @Delete('customers/:id/addresses')
+  @AllowAuthenticated()
+  deleteCustomerAddress(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: { address: string },
+    @Req() req: RequestWithAuth,
+  ): Promise<{ ok: boolean; addresses: string[] }> {
+    return this.partnersService.deleteCustomerAddress(id, payload.address, req.authContext!);
+  }
+
   @Get('customers/:id/delivery-profile')
   @AllowAuthenticated()
   getCustomerDeliveryProfile(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

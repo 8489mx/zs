@@ -140,6 +140,16 @@ export const posApi = {
   customerPosSummary: (customerId: string) => http<PosCustomerSummary>(`/api/customers/${customerId}/pos-summary`),
   customerDeliveryLookup: (phone: string) => http<PosCustomerDeliveryProfile>(`/api/customers/delivery-lookup?phone=${encodeURIComponent(phone)}`),
   customerDeliveryProfile: (customerId: string | number) => http<PosCustomerDeliveryProfile>(`/api/customers/${customerId}/delivery-profile`),
+  addCustomerAddress: (customerId: string | number, address: string) =>
+    http<{ ok: boolean; addresses: string[] }>(`/api/customers/${customerId}/addresses`, {
+      method: 'POST',
+      body: JSON.stringify({ address }),
+    }),
+  deleteCustomerAddress: (customerId: string | number, address: string) =>
+    http<{ ok: boolean; addresses: string[] }>(`/api/customers/${customerId}/addresses`, {
+      method: 'DELETE',
+      body: JSON.stringify({ address }),
+    }),
   settings: async () => unwrapByKey<AppSettings>(await http<AppSettings | { settings: AppSettings }>('/api/settings'), 'settings', {} as AppSettings),
   branches: async () => unwrapArray<Branch>(await http<Branch[] | { branches: Branch[] }>('/api/branches'), 'branches'),
   locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/locations'), 'locations'),

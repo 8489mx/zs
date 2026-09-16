@@ -23,6 +23,10 @@ export interface StandardDialogProps {
   footer?: ReactNode;
   loading?: boolean;
   loadingText?: string;
+  compact?: boolean;
+  shellClassName?: string;
+  containerStyle?: CSSProperties;
+  bodyStyle?: CSSProperties;
 }
 
 /**
@@ -55,6 +59,10 @@ export function StandardDialog({
   loading = false,
   loadingText,
   size,
+  compact = false,
+  shellClassName = '',
+  containerStyle,
+  bodyStyle,
 }: StandardDialogProps) {
   const isVisible = open !== undefined ? open : Boolean(isOpen);
   if (!isVisible) return null;
@@ -82,6 +90,8 @@ export function StandardDialog({
       ? undefined
       : 'min(560px, 85vh)';
 
+  const finalShellClass = [compact ? 'dialog-compact' : '', shellClassName].filter(Boolean).join(' ');
+
   return (
     <DialogShell
       open={isVisible}
@@ -91,10 +101,11 @@ export function StandardDialog({
       minHeight={resolvedMinHeight}
       maxHeight={maxHeight}
       zIndex={zIndex}
+      shellClassName={finalShellClass}
       ariaLabel={ariaLabel || (typeof title === 'string' ? title : 'نافذة منبثقة')}
     >
       <div
-        className="standard-dialog-container"
+        className={`standard-dialog-container ${compact ? 'standard-dialog-compact' : ''}`}
         dir="rtl"
         style={{
           width: '100%',
@@ -103,6 +114,7 @@ export function StandardDialog({
           minHeight: resolvedMinHeight || 'auto',
           display: 'flex',
           flexDirection: 'column',
+          ...containerStyle,
         }}
       >
         {/* Header */}
@@ -142,6 +154,7 @@ export function StandardDialog({
             width: '100%',
             boxSizing: 'border-box',
             overflowY: resolvedHeight ? 'hidden' : undefined,
+            ...bodyStyle,
           }}
         >
           {loading ? (

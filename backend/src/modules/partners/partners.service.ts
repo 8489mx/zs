@@ -161,18 +161,192 @@ export class PartnersService {
   }
 
   async getCustomerAddresses(id: number, actor: AuthContext): Promise<string[]> {
-    const rows = await this.db
+    const customer = await this.db
+      .selectFrom('customers')
+      .select(['id', 'address', 'metadata', 'phone'])
+      .where('id', '=', id)
+      .where('is_active', '=', true)
+      .where(this.tenantPredicate(actor))
+      .executeTakeFirst();
+
+    if (!customer) return [];
+
+    const salesAddresses = await this.db
       .selectFrom('sales')
       .select('customer_address')
-      .where('customer_id', '=', id)
+      .where((eb) => {
+        const conds: any[] = [eb('customer_id', '=', id)];
+        if (customer.phone) {
+          conds.push(eb('customer_phone', '=', customer.phone));
+        }
+        return eb.or(conds);
+      })
       .where(this.tenantPredicate(actor))
       .where('customer_address', 'is not', null)
       .where('customer_address', '!=', '')
       .distinct()
-      .limit(10)
+      .limit(20)
       .execute();
 
-    return rows.map((r) => String(r.customer_address).trim()).filter(Boolean);
+    return this.extractCustomerAddresses(customer.address, customer.metadata, salesAddresses);
+  }
+
+  private extractCustomerAddresses(
+    customerAddress: string | null | undefined,
+    metadata: any,
+    rawSalesAddresses: Array<{ customer_address: string | null }>,
+  ): string[] {
+    const addressesSet = new Set<string>();
+
+    // 1. Split customer.address by newlines or delimiters
+    if (customerAddress && typeof customerAddress === 'string') {
+      const rawLines = customerAddress.split(/[\r\n]+/);
+      for (const line of rawLines) {
+        const subparts = line.split(/[;|]/);
+        for (const p of subparts) {
+          const trimmed = p.replace(/^[0-9]+[-.)]\s*/, '').trim();
+          if (trimmed.length >= 2) {
+            addressesSet.add(trimmed);
+          }
+        }
+      }
+    }
+
+    // 2. Metadata addresses array / delivery_addresses
+    let metaObj = metadata;
+    if (typeof metaObj === 'string') {
+      try {
+        metaObj = JSON.parse(metaObj);
+      } catch {
+        metaObj = {};
+      }
+    }
+    if (metaObj && typeof metaObj === 'object') {
+      const metaAddresses = metaObj.addresses || metaObj.delivery_addresses || metaObj.address_list || [];
+      if (Array.isArray(metaAddresses)) {
+        for (const addr of metaAddresses) {
+          const trimmed = String(addr || '').trim();
+          if (trimmed.length >= 2) {
+            addressesSet.add(trimmed);
+          }
+        }
+      } else if (typeof metaAddresses === 'string') {
+        const lines = metaAddresses.split(/[\r\n]+/);
+        for (const l of lines) {
+          const trimmed = l.trim();
+          if (trimmed.length >= 2) {
+            addressesSet.add(trimmed);
+          }
+        }
+      }
+    }
+
+    // 3. Raw sales addresses
+    for (const r of rawSalesAddresses) {
+      const addr = String(r.customer_address || '').trim();
+      if (addr.length >= 2) {
+        addressesSet.add(addr);
+      }
+    }
+
+    return Array.from(addressesSet);
+  }
+
+  async addCustomerAddress(id: number, newAddress: string, actor: AuthContext): Promise<{ ok: boolean; addresses: string[] }> {
+    const trimmed = String(newAddress || '').trim();
+    if (!trimmed) throw new AppError('Address is required', 'ADDRESS_REQUIRED', 400);
+
+    const customer = await this.db
+      .selectFrom('customers')
+      .selectAll()
+      .where('id', '=', id)
+      .where('is_active', '=', true)
+      .where(this.tenantPredicate(actor))
+      .executeTakeFirst();
+
+    if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
+
+    let meta: any = {};
+    if (typeof customer.metadata === 'string') {
+      try {
+        meta = JSON.parse(customer.metadata);
+      } catch {
+        meta = {};
+      }
+    } else if (customer.metadata && typeof customer.metadata === 'object') {
+      meta = { ...customer.metadata };
+    }
+
+    const currentList: string[] = Array.isArray(meta.addresses) ? [...meta.addresses] : [];
+    if (!currentList.includes(trimmed)) {
+      currentList.unshift(trimmed);
+    }
+    meta.addresses = currentList;
+
+    const baseAddress = customer.address && customer.address.trim() ? customer.address : trimmed;
+
+    await this.db
+      .updateTable('customers')
+      .set({
+        address: baseAddress,
+        metadata: JSON.stringify(meta),
+        updated_at: sql`NOW()`,
+      })
+      .where('id', '=', id)
+      .where(this.tenantPredicate(actor))
+      .execute();
+
+    const addresses = await this.getCustomerAddresses(id, actor);
+    return { ok: true, addresses };
+  }
+
+  async deleteCustomerAddress(id: number, addressToDelete: string, actor: AuthContext): Promise<{ ok: boolean; addresses: string[] }> {
+    const target = String(addressToDelete || '').trim();
+    if (!target) throw new AppError('Address to delete is required', 'ADDRESS_REQUIRED', 400);
+
+    const customer = await this.db
+      .selectFrom('customers')
+      .selectAll()
+      .where('id', '=', id)
+      .where('is_active', '=', true)
+      .where(this.tenantPredicate(actor))
+      .executeTakeFirst();
+
+    if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
+
+    let meta: any = {};
+    if (typeof customer.metadata === 'string') {
+      try {
+        meta = JSON.parse(customer.metadata);
+      } catch {
+        meta = {};
+      }
+    } else if (customer.metadata && typeof customer.metadata === 'object') {
+      meta = { ...customer.metadata };
+    }
+
+    if (Array.isArray(meta.addresses)) {
+      meta.addresses = meta.addresses.filter((a: string) => String(a).trim() !== target);
+    }
+
+    let newMainAddress = customer.address || '';
+    if (newMainAddress.trim() === target) {
+      newMainAddress = (meta.addresses && meta.addresses[0]) ? meta.addresses[0] : '';
+    }
+
+    await this.db
+      .updateTable('customers')
+      .set({
+        address: newMainAddress,
+        metadata: JSON.stringify(meta),
+        updated_at: sql`NOW()`,
+      })
+      .where('id', '=', id)
+      .where(this.tenantPredicate(actor))
+      .execute();
+
+    const addresses = await this.getCustomerAddresses(id, actor);
+    return { ok: true, addresses };
   }
 
   async getCustomerPosSummary(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
@@ -350,12 +524,18 @@ export class PartnersService {
       this.db
         .selectFrom('sales')
         .select('customer_address')
-        .where('customer_id', '=', id)
+        .where((eb) => {
+          const conds: any[] = [eb('customer_id', '=', id)];
+          if (customer.phone) {
+            conds.push(eb('customer_phone', '=', customer.phone));
+          }
+          return eb.or(conds);
+        })
         .where(this.tenantPredicate(actor))
         .where('customer_address', 'is not', null)
         .where('customer_address', '!=', '')
         .distinct()
-        .limit(10)
+        .limit(20)
         .execute(),
       this.db
         .selectFrom('sales as s')
@@ -425,15 +605,6 @@ export class PartnersService {
       };
     });
 
-    const addressesSet = new Set<string>();
-    if (customer.address && String(customer.address).trim()) {
-      addressesSet.add(String(customer.address).trim());
-    }
-    for (const r of rawAddresses) {
-      const addr = String(r.customer_address || '').trim();
-      if (addr) addressesSet.add(addr);
-    }
-
     let parsedMetadata: any = {};
     if (typeof customer.metadata === 'string') {
       try {
@@ -444,6 +615,8 @@ export class PartnersService {
     } else if (customer.metadata && typeof customer.metadata === 'object') {
       parsedMetadata = customer.metadata;
     }
+
+    const addresses = this.extractCustomerAddresses(customer.address, parsedMetadata, rawAddresses);
 
     return {
       found: true,
@@ -462,7 +635,7 @@ export class PartnersService {
         notes: String(parsedMetadata.notes || parsedMetadata.remarks || ''),
         preferences: String(parsedMetadata.preferences || ''),
       },
-      addresses: Array.from(addressesSet),
+      addresses,
       recentOrders,
       stats: {
         totalSalesAmount: Number(salesSummary?.total_sales_amount || 0),

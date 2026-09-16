@@ -70,6 +70,53 @@
   width: 100%;
 }
 
+/* Universal 14"-to-32" Compact Modal Standard */
+.dialog-shell.dialog-compact > form,
+.dialog-shell.dialog-compact > .dialog-content,
+.dialog-shell.dialog-compact > .dialog-body,
+.dialog-shell.dialog-compact > div:not(.pos-workspace):not(.full-bleed):not(.dialog-card):not(.page-stack) {
+  padding: 14px 18px !important;
+}
+
+.dialog-shell.dialog-compact .standard-dialog-header {
+  padding-bottom: 8px !important;
+  margin-bottom: 10px !important;
+}
+
+.dialog-shell.dialog-compact .standard-dialog-footer {
+  padding-top: 10px !important;
+  margin-top: 10px !important;
+}
+
+.dialog-shell.dialog-compact .standard-dialog-body {
+  min-height: auto !important;
+  gap: 10px !important;
+}
+
+/* Automatic scaling for standard 14" laptop viewports (height <= 820px or width <= 1366px) */
+@media (max-height: 820px) {
+  .dialog-overlay {
+    padding: 12px 10px !important;
+  }
+  .dialog-shell {
+    max-height: calc(100vh - 24px) !important;
+  }
+  .dialog-shell > form,
+  .dialog-shell > .dialog-content,
+  .dialog-shell > .dialog-body,
+  .dialog-shell > div:not(.pos-workspace):not(.full-bleed):not(.dialog-card):not(.page-stack) {
+    padding: 14px 18px !important;
+  }
+  .standard-dialog-header {
+    padding-bottom: 8px !important;
+    margin-bottom: 10px !important;
+  }
+  .standard-dialog-footer {
+    padding-top: 10px !important;
+    margin-top: 10px !important;
+  }
+}
+
 /* Standard Dialog Components & Classes */
 .standard-dialog-header {
   display: flex;

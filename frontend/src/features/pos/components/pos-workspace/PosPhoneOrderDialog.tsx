@@ -24,7 +24,6 @@ import {
   SlidersIcon,
   RefreshCwIcon,
   XIcon,
-  TruckIcon,
   CreditCardIcon,
   DollarSignIcon,
   TrashIcon,
@@ -275,6 +274,56 @@ export function PosPhoneOrderDialog({
     },
   });
 
+  // Add address to customer profile mutation
+  const addAddressMutation = useMutation({
+    mutationFn: async ({ customerId, address }: { customerId: string; address: string }) => {
+      return posApi.addCustomerAddress(customerId, address);
+    },
+    onSuccess: async (_, vars) => {
+      await queryClient.invalidateQueries({ queryKey: ['posCustomerDeliveryLookup'] });
+      await queryClient.invalidateQueries({ queryKey: ['posCustomerDeliveryProfile', vars.customerId] });
+      await queryClient.invalidateQueries({ queryKey: ['customers'] });
+      setSelectedAddress(vars.address);
+      setIsCustomAddressMode(false);
+      setCustomAddressInput('');
+      toast.success('تم حفظ العنوان الجديد للعميل بنجاح');
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'تعذر حفظ العنوان');
+    },
+  });
+
+  // Delete address from customer profile mutation
+  const deleteAddressMutation = useMutation({
+    mutationFn: async ({ customerId, address }: { customerId: string; address: string }) => {
+      return posApi.deleteCustomerAddress(customerId, address);
+    },
+    onSuccess: async (_, vars) => {
+      await queryClient.invalidateQueries({ queryKey: ['posCustomerDeliveryLookup'] });
+      await queryClient.invalidateQueries({ queryKey: ['posCustomerDeliveryProfile', vars.customerId] });
+      await queryClient.invalidateQueries({ queryKey: ['customers'] });
+      if (selectedAddress === vars.address) {
+        setSelectedAddress('');
+      }
+      toast.info('تم حذف العنوان بنجاح');
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'تعذر حذف العنوان');
+    },
+  });
+
+  function handleSaveCustomAddress() {
+    if (!currentCustomer) return;
+    const raw = customAddressInput.trim();
+    if (!raw) {
+      toast.warning('يرجى كتابة تفاصيل العنوان أولاً');
+      return;
+    }
+    const tagPrefix = addressTag === 'work' ? '[العمل] ' : addressTag === 'home' ? '[المنزل] ' : '';
+    const formatted = `${tagPrefix}${raw}`;
+    addAddressMutation.mutate({ customerId: String(currentCustomer.id), address: formatted });
+  }
+
   // Re-order handler: reconstructs cart from previous sale
   function handleReorder(order: PosCustomerDeliveryProfileOrder) {
     if (!currentCustomer) return;
@@ -282,6 +331,14 @@ export function PosPhoneOrderDialog({
     const finalAddress = isCustomAddressMode && rawAddress
       ? `${addressTag === 'work' ? '[العمل] ' : addressTag === 'home' ? '[المنزل] ' : ''}${rawAddress}`
       : rawAddress;
+
+    // Automatically persist custom address if typed
+    if (isCustomAddressMode && rawAddress) {
+      posApi.addCustomerAddress(currentCustomer.id, finalAddress).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['posCustomerDeliveryLookup'] });
+        queryClient.invalidateQueries({ queryKey: ['posCustomerDeliveryProfile', currentCustomer.id] });
+      }).catch(() => {});
+    }
 
     const productsCatalog = pos.productsQuery.data || [];
     const newCart: PosItem[] = [];
@@ -346,6 +403,14 @@ export function PosPhoneOrderDialog({
       ? `${addressTag === 'work' ? '[العمل] ' : addressTag === 'home' ? '[المنزل] ' : ''}${rawAddress}`
       : rawAddress;
 
+    // Automatically persist custom address if typed
+    if (isCustomAddressMode && rawAddress) {
+      posApi.addCustomerAddress(currentCustomer.id, finalAddress).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['posCustomerDeliveryLookup'] });
+        queryClient.invalidateQueries({ queryKey: ['posCustomerDeliveryProfile', currentCustomer.id] });
+      }).catch(() => {});
+    }
+
     pos.setCustomerId(String(currentCustomer.id));
     pos.setQuickCustomerName(currentCustomer.name);
     pos.setQuickCustomerPhone(currentCustomer.phone);
@@ -402,18 +467,19 @@ export function PosPhoneOrderDialog({
     <StandardDialog
       open={open}
       onClose={onClose}
+      compact
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <PhoneCallIcon size={20} color="#170e5e" />
+          <PhoneCallIcon size={18} color="#170e5e" />
           <span>مكتب طلبات الهاتف والتوصيل السريع (Phone Order Desk)</span>
         </div>
       }
       subtitle="استقبال مكالمات العملاء، كاشف الأرقام، تجهيز فكة الطيار، وتكرار الطلبات بضغطة واحدة"
-      width="1040px"
+      width="1180px"
       maxWidth="96vw"
-      minHeight="560px"
+      minHeight="auto"
       badge={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <button
             type="button"
             onClick={() => setActiveTab('desk')}
@@ -422,8 +488,8 @@ export function PosPhoneOrderDialog({
               color: activeTab === 'desk' ? '#ffffff' : '#475569',
               border: 'none',
               borderRadius: '6px',
-              padding: '5px 12px',
-              fontSize: '0.78rem',
+              padding: '4px 10px',
+              fontSize: '0.75rem',
               fontWeight: 700,
               cursor: 'pointer',
             }}
@@ -438,25 +504,25 @@ export function PosPhoneOrderDialog({
               color: activeTab === 'recent_calls' ? '#ffffff' : '#475569',
               border: 'none',
               borderRadius: '6px',
-              padding: '5px 12px',
-              fontSize: '0.78rem',
+              padding: '4px 10px',
+              fontSize: '0.75rem',
               fontWeight: 700,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '5px',
+              gap: '4px',
             }}
           >
-            <ClockIcon size={13} />
+            <ClockIcon size={12} />
             سجل المكالمات
             {recentCallsList.length > 0 && (
               <span
                 style={{
                   background: activeTab === 'recent_calls' ? '#3b82f6' : '#e2e8f0',
                   color: activeTab === 'recent_calls' ? '#ffffff' : '#1e293b',
-                  fontSize: '0.7rem',
+                  fontSize: '0.6875rem',
                   fontWeight: 800,
-                  padding: '1px 6px',
+                  padding: '1px 5px',
                   borderRadius: '10px',
                 }}
               >
@@ -472,8 +538,8 @@ export function PosPhoneOrderDialog({
               color: activeTab === 'hardware' ? '#ffffff' : '#475569',
               border: 'none',
               borderRadius: '6px',
-              padding: '5px 12px',
-              fontSize: '0.78rem',
+              padding: '4px 10px',
+              fontSize: '0.75rem',
               fontWeight: 700,
               cursor: 'pointer',
               display: 'flex',
@@ -481,7 +547,7 @@ export function PosPhoneOrderDialog({
               gap: '4px',
             }}
           >
-            <SlidersIcon size={12} />
+            <SlidersIcon size={11} />
             كاشف المتصل (Caller ID)
             {isSerialConnected && (
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
@@ -491,7 +557,7 @@ export function PosPhoneOrderDialog({
       }
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+          <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
             {currentCustomer ? (
               <span>العميل المحدد: <strong>{currentCustomer.name}</strong> ({currentCustomer.phone || 'بدون هاتف'})</span>
             ) : isSearchActive ? (
@@ -501,15 +567,16 @@ export function PosPhoneOrderDialog({
             )}
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <Button variant="secondary" onClick={onClose}>
+            <Button variant="secondary" size="sm" onClick={onClose} style={{ fontSize: '0.78rem' }}>
               إلغاء وإغلاق
             </Button>
             {currentCustomer && activeTab === 'desk' && (
               <Button
-                style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700 }}
+                size="sm"
+                style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '0.78rem' }}
                 onClick={handleStartNewOrder}
               >
-                <PlusIcon size={15} style={{ marginLeft: '4px' }} />
+                <PlusIcon size={14} style={{ marginLeft: '4px' }} />
                 بدء طلب جديد للعميل
               </Button>
             )}
@@ -696,17 +763,17 @@ export function PosPhoneOrderDialog({
         </div>
       ) : (
         /* Order Desk Tab */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {/* Top Phone Search Bar */}
           <div
             style={{
               background: '#f8fafc',
-              padding: '12px 16px',
-              borderRadius: '12px',
+              padding: '6px 12px',
+              borderRadius: '8px',
               border: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
+              gap: '8px',
             }}
           >
             <div style={{ position: 'relative', flex: 1 }}>
@@ -724,10 +791,10 @@ export function PosPhoneOrderDialog({
                 placeholder="أدخل رقم هاتف العميل (مثال: 01012345678) أو اسم العميل..."
                 style={{
                   width: '100%',
-                  padding: '10px 38px 10px 14px',
-                  borderRadius: '8px',
+                  padding: '6px 32px 6px 10px',
+                  borderRadius: '6px',
                   border: '1px solid #cbd5e1',
-                  fontSize: '0.95rem',
+                  fontSize: '0.85rem',
                   fontWeight: 600,
                   color: '#0f172a',
                   background: '#ffffff',
@@ -735,9 +802,9 @@ export function PosPhoneOrderDialog({
                 }}
               />
               <SearchIcon
-                size={18}
+                size={16}
                 color="#94a3b8"
-                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }}
+                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }}
               />
               {phoneQuery && (
                 <button
@@ -751,24 +818,24 @@ export function PosPhoneOrderDialog({
                   }}
                   style={{
                     position: 'absolute',
-                    left: '10px',
+                    left: '8px',
                     top: '50%',
                     transform: 'translateY(-50%)',
                     background: 'none',
                     border: 'none',
                     color: '#94a3b8',
                     cursor: 'pointer',
-                    padding: '4px',
+                    padding: '2px',
                   }}
                 >
-                  <XIcon size={14} />
+                  <XIcon size={13} />
                 </button>
               )}
             </div>
 
             {deliveryLookupQuery.isFetching && (
-              <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <RefreshCwIcon size={14} className="spin" />
+              <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <RefreshCwIcon size={13} className="spin" />
                 <span>جاري البحث...</span>
               </div>
             )}
@@ -783,18 +850,18 @@ export function PosPhoneOrderDialog({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '48px 24px',
+                padding: '36px 20px',
                 textAlign: 'center',
                 background: '#f8fafc',
-                borderRadius: '12px',
+                borderRadius: '10px',
                 border: '1px dashed #cbd5e1',
               }}
             >
-              <PhoneIcon size={42} color="#94a3b8" style={{ marginBottom: '12px' }} />
-              <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
+              <PhoneIcon size={36} color="#94a3b8" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
                 مكتب استقبال طلبات الهاتف والتوصيل السريع
               </div>
-              <p style={{ fontSize: '0.82rem', color: '#64748b', maxWidth: '460px', margin: '0 0 16px 0', lineHeight: 1.6 }}>
+              <p style={{ fontSize: '0.78rem', color: '#64748b', maxWidth: '440px', margin: '0 0 12px 0', lineHeight: 1.5 }}>
                 أدخل <strong>6 أرقام على الأقل</strong> للبحث برقم الهاتف لتجاوز بادئة شركات المحمول (010 / 011 / 012 / 015)، أو ابدأ بكتابة اسم العميل.
               </p>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -802,9 +869,9 @@ export function PosPhoneOrderDialog({
                   variant="secondary"
                   size="sm"
                   onClick={() => setActiveTab('recent_calls')}
-                  style={{ fontSize: '0.78rem', fontWeight: 700 }}
+                  style={{ fontSize: '0.75rem', fontWeight: 700 }}
                 >
-                  <ClockIcon size={13} style={{ marginLeft: '4px' }} />
+                  <ClockIcon size={12} style={{ marginLeft: '4px' }} />
                   سجل المكالمات الواردة
                 </Button>
                 <Button
@@ -814,33 +881,33 @@ export function PosPhoneOrderDialog({
                     setIsForceNewCustomer(true);
                     setNewPhone(phoneQuery || '');
                   }}
-                  style={{ fontSize: '0.78rem', fontWeight: 700 }}
+                  style={{ fontSize: '0.75rem', fontWeight: 700 }}
                 >
-                  <PlusIcon size={13} style={{ marginLeft: '4px' }} />
+                  <PlusIcon size={12} style={{ marginLeft: '4px' }} />
                   تسجيل عميل جديد مباشرة
                 </Button>
               </div>
             </div>
           ) : currentCustomer ? (
             /* STATE 1: Existing / Selected Customer Workspace */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {/* Active Customer Strip */}
               <div
                 style={{
                   background: '#eff6ff',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
                   border: '1px solid #bfdbfe',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div
                     style={{
-                      width: '32px',
-                      height: '32px',
+                      width: '26px',
+                      height: '26px',
                       borderRadius: '50%',
                       background: '#1e40af',
                       color: '#ffffff',
@@ -849,15 +916,27 @@ export function PosPhoneOrderDialog({
                       justifyContent: 'center',
                     }}
                   >
-                    <UserIcon size={16} />
+                    <UserIcon size={14} />
                   </div>
-                  <div>
-                    <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#1e3a8a' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e3a8a' }}>
                       العميل النشط: {currentCustomer.name}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 600 }}>
-                      {currentCustomer.phone || 'بدون رقم'} • {currentCustomer.customerType === 'vip' ? 'عميل VIP' : 'عميل نقدي'}
-                    </div>
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 600 }}>
+                      ({currentCustomer.phone || 'بدون رقم'})
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.6875rem',
+                        fontWeight: 700,
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        background: currentCustomer.customerType === 'vip' ? '#fef3c7' : '#e0e7ff',
+                        color: currentCustomer.customerType === 'vip' ? '#92400e' : '#3730a3',
+                      }}
+                    >
+                      {currentCustomer.customerType === 'vip' ? 'VIP' : 'نقدي'}
+                    </span>
                   </div>
                 </div>
                 <Button
@@ -870,549 +949,600 @@ export function PosPhoneOrderDialog({
                     searchInputRef.current?.focus();
                   }}
                   style={{
-                    fontSize: '0.75rem',
+                    fontSize: '0.72rem',
                     fontWeight: 700,
+                    padding: '3px 8px',
                     background: '#ffffff',
                     border: '1px solid #93c5fd',
                     color: '#1e40af',
                   }}
                 >
-                  <SearchIcon size={13} style={{ marginLeft: '4px' }} />
-                  تغيير العميل / بحث جديد
+                  <SearchIcon size={12} style={{ marginLeft: '4px' }} />
+                  تغيير العميل
                 </Button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: '16px' }}>
-              {/* Left Column: Customer Profile, Addresses, Zone & Payment */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {/* Profile Card */}
-                <div
-                  style={{
-                    background: '#ffffff',
-                    padding: '14px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                    <div>
-                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                        {currentCustomer.name}
-                      </div>
-                      <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>
-                        {currentCustomer.phone || 'بدون رقم مسجل'}
-                      </div>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        background: currentCustomer.customerType === 'vip' ? '#fef3c7' : '#f1f5f9',
-                        color: currentCustomer.customerType === 'vip' ? '#92400e' : '#475569',
-                      }}
-                    >
-                      {currentCustomer.customerType === 'vip' ? 'عميل VIP' : 'عميل نقدي'}
-                    </span>
-                  </div>
-
-                  {/* Customer Quick Stats */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                    <div style={{ background: '#f8fafc', padding: '6px 8px', borderRadius: '8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.6875rem', color: '#64748b', fontWeight: 600 }}>إجمالي الطلبات</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e293b' }}>
-                        {profileData?.stats?.invoiceCount || 0}
-                      </div>
-                    </div>
-                    <div style={{ background: '#f8fafc', padding: '6px 8px', borderRadius: '8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.6875rem', color: '#64748b', fontWeight: 600 }}>إجمالي المشتريات</div>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#170e5e' }}>
-                        {formatCurrency(profileData?.stats?.totalSalesAmount || 0)}
-                      </div>
-                    </div>
-                    <div style={{ background: '#f8fafc', padding: '6px 8px', borderRadius: '8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.6875rem', color: '#64748b', fontWeight: 600 }}>نقاط الولاء</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#059669' }}>
-                        {currentCustomer.loyaltyPoints || 0}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Notes if any */}
-                  {currentCustomer.notes && (
-                    <div style={{ background: '#fffbeb', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fef3c7', fontSize: '0.75rem', color: '#92400e', marginTop: '8px' }}>
-                      <strong>ملاحظات العميل:</strong> {currentCustomer.notes}
-                    </div>
-                  )}
-                </div>
-
-                {/* Delivery Address Selector */}
-                <div
-                  style={{
-                    background: '#ffffff',
-                    padding: '14px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <MapPinIcon size={15} color="#2563eb" />
-                      <span>عنوان التوصيل</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomAddressMode(!isCustomAddressMode)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#2563eb',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        padding: 0,
-                      }}
-                    >
-                      {isCustomAddressMode ? 'اختيار من العناوين المحفوظة' : '+ إضافة عنوان جديد'}
-                    </button>
-                  </div>
-
-                  {isCustomAddressMode ? (
-                    <div>
-                      <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
-                        {(['home', 'work', 'other'] as const).map((tag) => (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => setAddressTag(tag)}
-                            style={{
-                              background: addressTag === tag ? '#2563eb' : '#f1f5f9',
-                              color: addressTag === tag ? '#ffffff' : '#475569',
-                              border: 'none',
-                              borderRadius: '6px',
-                              padding: '3px 8px',
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {tag === 'home' ? 'المنزل' : tag === 'work' ? 'العمل' : 'أخرى'}
-                          </button>
-                        ))}
-                      </div>
-                      <input
-                        type="text"
-                        value={customAddressInput}
-                        onChange={(e) => setCustomAddressInput(e.target.value)}
-                        placeholder="أدخل العنوان الجديد بالتفصيل (المنطقة، الشارع، رقم العقار، الدور)..."
-                        style={{
-                          width: '100%',
-                          padding: '7px 10px',
-                          borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
-                          fontSize: '0.8rem',
-                          outline: 'none',
-                        }}
-                      />
-                    </div>
-                  ) : addresses.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '120px', overflowY: 'auto' }}>
-                      {addresses.map((addr, idx) => (
-                        <label
-                          key={idx}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '8px 10px',
-                            borderRadius: '6px',
-                            border: selectedAddress === addr ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
-                            background: selectedAddress === addr ? '#eff6ff' : '#ffffff',
-                            cursor: 'pointer',
-                            fontSize: '0.78rem',
-                            fontWeight: selectedAddress === addr ? 700 : 500,
-                            color: selectedAddress === addr ? '#1e40af' : '#334155',
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            name="delivery_address"
-                            checked={selectedAddress === addr}
-                            onChange={() => setSelectedAddress(addr)}
-                            style={{ accentColor: '#2563eb' }}
-                          />
-                          <span style={{ flex: 1, wordBreak: 'break-word' }}>{addr}</span>
-                        </label>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', padding: '8px', textAlign: 'center', background: '#f8fafc', borderRadius: '6px' }}>
-                      لا يوجد عناوين سابقة مسجلة لهذا العميل.
-                    </div>
-                  )}
-                </div>
-
-                {/* Delivery Zone, Fees & Driver Setup */}
-                <div
-                  style={{
-                    background: '#ffffff',
-                    padding: '14px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                  }}
-                >
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <TruckIcon size={15} color="#059669" />
-                    <span>منطقة التوصيل والطيار المتاح</span>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '3px' }}>
-                        منطقة التوصيل والرسوم
-                      </label>
-                      <select
-                        value={selectedZoneId}
-                        onChange={(e) => handleZoneChange(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '6px 8px',
-                          borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
-                          fontSize: '0.78rem',
-                          background: '#ffffff',
-                        }}
-                      >
-                        {DELIVERY_ZONES.map((z) => (
-                          <option key={z.id} value={z.id}>
-                            {z.name} ({z.fee} ج)
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '3px' }}>
-                        تعيين الطيار (اختياري)
-                      </label>
-                      <select
-                        value={selectedDriverId}
-                        onChange={(e) => setSelectedDriverId(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '6px 8px',
-                          borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
-                          fontSize: '0.78rem',
-                          background: '#ffffff',
-                        }}
-                      >
-                        <option value="">توزيع تلقائي لاحقاً</option>
-                        {deliveryReps.map((dr: DeliveryRep) => (
-                          <option key={dr.id} value={dr.id}>
-                            {dr.name} {dr.phone ? `(${dr.phone})` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {selectedZoneId === 'zone_custom' && (
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>رسوم التوصيل:</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={customDeliveryFee}
-                        onChange={(e) => setCustomDeliveryFee(Number(e.target.value) || 0)}
-                        style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
-                      />
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>ج.م</span>
-                    </div>
-                  )}
-
-                  {/* Payment at Doorstep Selector */}
-                  <div style={{ paddingTop: '6px', borderTop: '1px dashed #e2e8f0' }}>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                      طريقة الدفع المتوقعة عند الاستلام
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethodAtDoor('cash')}
-                        style={{
-                          background: paymentMethodAtDoor === 'cash' ? '#170e5e' : '#f8fafc',
-                          color: paymentMethodAtDoor === 'cash' ? '#ffffff' : '#334155',
-                          border: '1px solid',
-                          borderColor: paymentMethodAtDoor === 'cash' ? '#170e5e' : '#cbd5e1',
-                          borderRadius: '6px',
-                          padding: '6px 4px',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        <DollarSignIcon size={12} />
-                        كاش عند الاستلام
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethodAtDoor('card_pos')}
-                        style={{
-                          background: paymentMethodAtDoor === 'card_pos' ? '#170e5e' : '#f8fafc',
-                          color: paymentMethodAtDoor === 'card_pos' ? '#ffffff' : '#334155',
-                          border: '1px solid',
-                          borderColor: paymentMethodAtDoor === 'card_pos' ? '#170e5e' : '#cbd5e1',
-                          borderRadius: '6px',
-                          padding: '6px 4px',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        <CreditCardIcon size={12} />
-                        فيزا مع الطيار
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethodAtDoor('instapay_wallet')}
-                        style={{
-                          background: paymentMethodAtDoor === 'instapay_wallet' ? '#170e5e' : '#f8fafc',
-                          color: paymentMethodAtDoor === 'instapay_wallet' ? '#ffffff' : '#334155',
-                          border: '1px solid',
-                          borderColor: paymentMethodAtDoor === 'instapay_wallet' ? '#170e5e' : '#cbd5e1',
-                          borderRadius: '6px',
-                          padding: '6px 4px',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        إنستاباي / محفظة
-                      </button>
-                    </div>
-
-                    {paymentMethodAtDoor === 'cash' && (
-                      <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '0.72rem', color: '#64748b', whiteSpace: 'nowrap' }}>العميل سيدفع:</span>
-                        <input
-                          type="text"
-                          value={customerPaidNote}
-                          onChange={(e) => setCustomerPaidNote(e.target.value)}
-                          placeholder="مثلاً: 200 ج (فكة مطلوبة)..."
-                          style={{
-                            flex: 1,
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            border: '1px solid #cbd5e1',
-                            fontSize: '0.78rem',
-                          }}
-                        />
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                          {['100', '200', '500'].map((val) => (
-                            <button
-                              key={val}
-                              type="button"
-                              onClick={() => setCustomerPaidNote(val)}
-                              style={{
-                                background: '#f1f5f9',
-                                border: '1px solid #cbd5e1',
-                                borderRadius: '4px',
-                                padding: '3px 6px',
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {val}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Delivery Note input */}
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '3px' }}>
-                      توجيهات إضافية للطيار (Delivery Note)
-                    </label>
-                    <input
-                      type="text"
-                      value={deliveryNotes}
-                      onChange={(e) => setDeliveryNotes(e.target.value)}
-                      placeholder="مثال: رن الجرس مرتين، بجوار صيدلية العزبي..."
-                      style={{
-                        width: '100%',
-                        padding: '6px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '0.78rem',
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Order History & 1-Click Repeat */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <ReceiptIcon size={15} color="#170e5e" />
-                    <span>سجل طلبات العميل السابقة</span>
-                  </div>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                    {recentOrders.length} طلبات مسجلة
-                  </span>
-                </div>
-
-                {recentOrders.length === 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: '10px' }}>
+                {/* Left Column: Customer Profile, Addresses, Zone & Payment */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {/* Customer Quick Stats & Address Card */}
                   <div
                     style={{
-                      background: '#f8fafc',
-                      padding: '36px 16px',
-                      borderRadius: '12px',
-                      border: '1px dashed #cbd5e1',
-                      textAlign: 'center',
+                      background: '#ffffff',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
                     }}
                   >
-                    <ClockIcon size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
-                      لا توجد طلبات سابقة مسجلة لهذا العميل
-                    </div>
-                    <p style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', marginBottom: '14px' }}>
-                      يمكنك بدء أول طلب له وسيقوم النظام بحفظ عنوانه وتفضيلاته تلقائياً.
-                    </p>
-                    <Button
-                      style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '0.8rem' }}
-                      onClick={handleStartNewOrder}
-                    >
-                      <PlusIcon size={14} style={{ marginLeft: '4px' }} />
-                      بدء أول طلب للعميل
-                    </Button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '440px', overflowY: 'auto', paddingLeft: '4px' }}>
-                    {recentOrders.map((order) => (
-                      <div
-                        key={order.id}
-                        style={{
-                          background: '#ffffff',
-                          borderRadius: '10px',
-                          border: '1px solid #e2e8f0',
-                          padding: '12px 14px',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '8px',
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#170e5e' }}>
-                              {order.docNo}
-                            </span>
-                            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                              {order.createdAt ? formatDate(order.createdAt) : ''}
-                            </span>
-                          </div>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
-                            {formatCurrency(order.total)}
-                          </span>
+                    {/* Stats */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                      <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: '6px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>إجمالي الطلبات</div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>
+                          {profileData?.stats?.invoiceCount || 0}
                         </div>
+                      </div>
+                      <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: '6px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>إجمالي المشتريات</div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#170e5e' }}>
+                          {formatCurrency(profileData?.stats?.totalSalesAmount || 0)}
+                        </div>
+                      </div>
+                      <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: '6px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>نقاط الولاء</div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#059669' }}>
+                          {currentCustomer.loyaltyPoints || 0}
+                        </div>
+                      </div>
+                    </div>
 
-                        {/* Items breakdown list */}
-                        <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.78rem', color: '#334155' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {order.items.map((item, idx) => (
-                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span>
-                                  <strong>{item.qty}x</strong> {item.name}
-                                  {item.modifiers && item.modifiers.length > 0 && (
-                                    <span style={{ color: '#64748b', fontSize: '0.72rem', marginRight: '4px' }}>
-                                      ({item.modifiers.map((m: any) => m.name || m).join(' + ')})
+                    {/* Customer notes if any */}
+                    {currentCustomer.notes && (
+                      <div style={{ background: '#fffbeb', padding: '3px 8px', borderRadius: '4px', border: '1px solid #fef3c7', fontSize: '0.7rem', color: '#92400e' }}>
+                        <strong>ملاحظات:</strong> {currentCustomer.notes}
+                      </div>
+                    )}
+
+                    {/* Delivery Address Selector */}
+                    <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '5px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <MapPinIcon size={12} color="#2563eb" />
+                          <span>عنوان التوصيل</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsCustomAddressMode(!isCustomAddressMode)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#2563eb',
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            padding: 0,
+                          }}
+                        >
+                          {isCustomAddressMode ? 'اختيار من العناوين المحفوظة' : '+ عنوان جديد'}
+                        </button>
+                      </div>
+
+                      {isCustomAddressMode ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            {(['home', 'work', 'other'] as const).map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => setAddressTag(tag)}
+                                style={{
+                                  background: addressTag === tag ? '#2563eb' : '#f1f5f9',
+                                  color: addressTag === tag ? '#ffffff' : '#475569',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  padding: '2px 6px',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {tag === 'home' ? 'المنزل' : tag === 'work' ? 'العمل' : 'أخرى'}
+                              </button>
+                            ))}
+                          </div>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <input
+                              type="text"
+                              value={customAddressInput}
+                              onChange={(e) => setCustomAddressInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleSaveCustomAddress();
+                                }
+                              }}
+                              placeholder="اكتب العنوان بالتفصيل (المنطقة، الشارع، العقار، الدور)..."
+                              style={{
+                                flex: 1,
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '0.75rem',
+                                outline: 'none',
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={handleSaveCustomAddress}
+                              disabled={addAddressMutation.isPending || !customAddressInput.trim()}
+                              style={{
+                                background: '#10b981',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                fontSize: '0.6875rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                whiteSpace: 'nowrap',
+                                opacity: !customAddressInput.trim() ? 0.6 : 1,
+                              }}
+                              title="حفظ هذا العنوان في ملف العميل دائماً"
+                            >
+                              <PlusIcon size={12} />
+                              <span>حفظ العنوان</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : addresses.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '80px', overflowY: 'auto' }}>
+                          {addresses.map((addr, idx) => {
+                            const isSelected = selectedAddress === addr;
+                            const isHome = addr.startsWith('[المنزل]');
+                            const isWork = addr.startsWith('[العمل]');
+                            const displayAddr = addr.replace(/^\[(المنزل|العمل|أخرى)\]\s*/, '');
+                            const tagLabel = isHome ? 'المنزل' : isWork ? 'العمل' : null;
+
+                            return (
+                              <div
+                                key={idx}
+                                onClick={() => setSelectedAddress(addr)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '6px',
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  border: isSelected ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
+                                  background: isSelected ? '#eff6ff' : '#ffffff',
+                                  cursor: 'pointer',
+                                  fontSize: '0.72rem',
+                                  fontWeight: isSelected ? 700 : 500,
+                                  color: isSelected ? '#1e40af' : '#334155',
+                                  transition: 'all 0.15s ease',
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                                  <input
+                                    type="radio"
+                                    name="delivery_address"
+                                    checked={isSelected}
+                                    onChange={() => setSelectedAddress(addr)}
+                                    style={{ accentColor: '#2563eb', margin: 0 }}
+                                  />
+                                  {tagLabel && (
+                                    <span
+                                      style={{
+                                        background: isHome ? '#e0f2fe' : '#fef3c7',
+                                        color: isHome ? '#0369a1' : '#b45309',
+                                        fontSize: '0.625rem',
+                                        fontWeight: 700,
+                                        padding: '1px 5px',
+                                        borderRadius: '3px',
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                    >
+                                      {tagLabel}
                                     </span>
                                   )}
-                                </span>
-                                <span style={{ color: '#64748b', fontWeight: 600 }}>{formatCurrency(item.lineTotal)}</span>
+                                  <span style={{ flex: 1, wordBreak: 'break-word', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {displayAddr}
+                                  </span>
+                                </div>
+                                {currentCustomer && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteAddressMutation.mutate({ customerId: String(currentCustomer.id), address: addr });
+                                    }}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#94a3b8',
+                                      cursor: 'pointer',
+                                      padding: '2px',
+                                      borderRadius: '3px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                    }}
+                                    title="حذف هذا العنوان"
+                                    onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+                                  >
+                                    <TrashIcon size={11} />
+                                  </button>
+                                )}
                               </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', padding: '4px', textAlign: 'center', background: '#f8fafc', borderRadius: '4px' }}>
+                          لا يوجد عناوين سابقة مسجلة لهذا العميل. اضغط على "+ عنوان جديد" لإضافة عنوان.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Delivery Zone, Fees, Driver & Payment Setup */}
+                  <div
+                    style={{
+                      background: '#ffffff',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                    }}
+                  >
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '6px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '2px' }}>
+                          منطقة التوصيل والرسوم
+                        </label>
+                        <select
+                          value={selectedZoneId}
+                          onChange={(e) => handleZoneChange(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '4px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.72rem',
+                            background: '#ffffff',
+                          }}
+                        >
+                          {DELIVERY_ZONES.map((z) => (
+                            <option key={z.id} value={z.id}>
+                              {z.name} ({z.fee} ج)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '2px' }}>
+                          تعيين الطيار (اختياري)
+                        </label>
+                        <select
+                          value={selectedDriverId}
+                          onChange={(e) => setSelectedDriverId(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '4px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.72rem',
+                            background: '#ffffff',
+                          }}
+                        >
+                          <option value="">توزيع تلقائي لاحقاً</option>
+                          {deliveryReps.map((dr: DeliveryRep) => (
+                            <option key={dr.id} value={dr.id}>
+                              {dr.name} {dr.phone ? `(${dr.phone})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {selectedZoneId === 'zone_custom' && (
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>رسوم التوصيل:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={customDeliveryFee}
+                          onChange={(e) => setCustomDeliveryFee(Number(e.target.value) || 0)}
+                          style={{ width: '65px', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                        />
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>ج.م</span>
+                      </div>
+                    )}
+
+                    {/* Payment at Doorstep Selector */}
+                    <div style={{ paddingTop: '4px', borderTop: '1px dashed #e2e8f0' }}>
+                      <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '2px' }}>
+                        طريقة الدفع عند الاستلام
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethodAtDoor('cash')}
+                          style={{
+                            background: paymentMethodAtDoor === 'cash' ? '#170e5e' : '#f8fafc',
+                            color: paymentMethodAtDoor === 'cash' ? '#ffffff' : '#334155',
+                            border: '1px solid',
+                            borderColor: paymentMethodAtDoor === 'cash' ? '#170e5e' : '#cbd5e1',
+                            borderRadius: '4px',
+                            padding: '3px 2px',
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '3px',
+                          }}
+                        >
+                          <DollarSignIcon size={11} />
+                          كاش
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethodAtDoor('card_pos')}
+                          style={{
+                            background: paymentMethodAtDoor === 'card_pos' ? '#170e5e' : '#f8fafc',
+                            color: paymentMethodAtDoor === 'card_pos' ? '#ffffff' : '#334155',
+                            border: '1px solid',
+                            borderColor: paymentMethodAtDoor === 'card_pos' ? '#170e5e' : '#cbd5e1',
+                            borderRadius: '4px',
+                            padding: '3px 2px',
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '3px',
+                          }}
+                        >
+                          <CreditCardIcon size={11} />
+                          فيزا مع الطيار
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethodAtDoor('instapay_wallet')}
+                          style={{
+                            background: paymentMethodAtDoor === 'instapay_wallet' ? '#170e5e' : '#f8fafc',
+                            color: paymentMethodAtDoor === 'instapay_wallet' ? '#ffffff' : '#334155',
+                            border: '1px solid',
+                            borderColor: paymentMethodAtDoor === 'instapay_wallet' ? '#170e5e' : '#cbd5e1',
+                            borderRadius: '4px',
+                            padding: '3px 2px',
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '3px',
+                          }}
+                        >
+                          إنستاباي / محفظة
+                        </button>
+                      </div>
+
+                      {paymentMethodAtDoor === 'cash' && (
+                        <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '0.65rem', color: '#64748b', whiteSpace: 'nowrap' }}>العميل يدفع:</span>
+                          <input
+                            type="text"
+                            value={customerPaidNote}
+                            onChange={(e) => setCustomerPaidNote(e.target.value)}
+                            placeholder="مثال: 200 ج..."
+                            style={{
+                              flex: 1,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1',
+                              fontSize: '0.7rem',
+                            }}
+                          />
+                          <div style={{ display: 'flex', gap: '2px' }}>
+                            {['100', '200', '500'].map((val) => (
+                              <button
+                                key={val}
+                                type="button"
+                                onClick={() => setCustomerPaidNote(val)}
+                                style={{
+                                  background: '#f1f5f9',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '3px',
+                                  padding: '1px 4px',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {val}
+                              </button>
                             ))}
                           </div>
                         </div>
+                      )}
+                    </div>
 
-                        {/* Order Footer & Repeat Button */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
-                            {order.customerAddress ? `العنوان: ${order.customerAddress}` : 'بدون عنوان محدد'}
-                          </div>
-                          <Button
-                            size="sm"
-                            style={{
-                              background: '#170e5e',
-                              color: '#ffffff',
-                              fontWeight: 700,
-                              fontSize: '0.75rem',
-                              padding: '5px 12px',
-                              borderRadius: '6px',
-                            }}
-                            onClick={() => handleReorder(order)}
-                          >
-                            <RotateCcwIcon size={13} style={{ marginLeft: '4px' }} />
-                            تكرار هذا الطلب في السلة
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                    {/* Delivery Note input */}
+                    <div>
+                      <input
+                        type="text"
+                        value={deliveryNotes}
+                        onChange={(e) => setDeliveryNotes(e.target.value)}
+                        placeholder="توجيهات للطيار (مثال: رن الجرس مرتين، بجوار صيدلية العزبي)..."
+                        style={{
+                          width: '100%',
+                          padding: '3px 6px',
+                          borderRadius: '4px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.72rem',
+                        }}
+                      />
+                    </div>
                   </div>
-                )}
+                </div>
+
+                {/* Right Column: Order History & 1-Click Repeat */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <ReceiptIcon size={13} color="#170e5e" />
+                      <span>سجل طلبات العميل السابقة</span>
+                    </div>
+                    <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>
+                      {recentOrders.length} طلبات مسجلة
+                    </span>
+                  </div>
+
+                  {recentOrders.length === 0 ? (
+                    <div
+                      style={{
+                        background: '#f8fafc',
+                        padding: '24px 12px',
+                        borderRadius: '8px',
+                        border: '1px dashed #cbd5e1',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <ClockIcon size={24} color="#94a3b8" style={{ marginBottom: '4px' }} />
+                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
+                        لا توجد طلبات سابقة مسجلة لهذا العميل
+                      </div>
+                      <p style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px', marginBottom: '8px' }}>
+                        يمكنك بدء أول طلب له وسيقوم النظام بحفظ عنوانه وتفضيلاته تلقائياً.
+                      </p>
+                      <Button
+                        style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '0.72rem', padding: '3px 8px' }}
+                        onClick={handleStartNewOrder}
+                      >
+                        <PlusIcon size={12} style={{ marginLeft: '4px' }} />
+                        بدء أول طلب للعميل
+                      </Button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '255px', overflowY: 'auto', paddingLeft: '2px' }}>
+                      {recentOrders.map((order) => (
+                        <div
+                          key={order.id}
+                          style={{
+                            background: '#ffffff',
+                            borderRadius: '8px',
+                            border: '1px solid #e2e8f0',
+                            padding: '6px 8px',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#170e5e' }}>
+                                {order.docNo}
+                              </span>
+                              <span style={{ fontSize: '0.65rem', color: '#64748b' }}>
+                                {order.createdAt ? formatDate(order.createdAt) : ''}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>
+                              {formatCurrency(order.total)}
+                            </span>
+                          </div>
+
+                          {/* Items breakdown list */}
+                          <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: '4px', fontSize: '0.7rem', color: '#334155' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              {order.items.map((item, idx) => (
+                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span>
+                                    <strong>{item.qty}x</strong> {item.name}
+                                    {item.modifiers && item.modifiers.length > 0 && (
+                                      <span style={{ color: '#64748b', fontSize: '0.65rem', marginRight: '4px' }}>
+                                        ({item.modifiers.map((m: any) => m.name || m).join(' + ')})
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span style={{ color: '#64748b', fontWeight: 600 }}>{formatCurrency(item.lineTotal)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Order Footer & Repeat Button */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '2px' }}>
+                            <div style={{ fontSize: '0.65rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+                              {order.customerAddress ? `العنوان: ${order.customerAddress}` : 'بدون عنوان محدد'}
+                            </div>
+                            <Button
+                              size="sm"
+                              style={{
+                                background: '#170e5e',
+                                color: '#ffffff',
+                                fontWeight: 700,
+                                fontSize: '0.7rem',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                              }}
+                              onClick={() => handleReorder(order)}
+                            >
+                              <RotateCcwIcon size={11} style={{ marginLeft: '3px' }} />
+                              تكرار هذا الطلب
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
           ) : isSearchActive && !isForceNewCustomer && matchedCustomers.length > 0 ? (
             /* STATE 2: Candidate Customer Matches Cards Grid */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   background: '#f8fafc',
-                  padding: '10px 14px',
+                  padding: '6px 12px',
                   borderRadius: '8px',
                   border: '1px solid #e2e8f0',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>
                     نتائج البحث المتطابقة
                   </span>
                   <span
                     style={{
                       background: '#170e5e',
                       color: '#ffffff',
-                      fontSize: '0.72rem',
+                      fontSize: '0.6875rem',
                       fontWeight: 800,
-                      padding: '2px 8px',
-                      borderRadius: '12px',
+                      padding: '1px 6px',
+                      borderRadius: '10px',
                     }}
                   >
                     {matchedCustomers.length} عميل
@@ -1426,9 +1556,9 @@ export function PosPhoneOrderDialog({
                     setIsForceNewCustomer(true);
                     setNewPhone(phoneQuery || '');
                   }}
-                  style={{ fontSize: '0.75rem', fontWeight: 700 }}
+                  style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px' }}
                 >
-                  <PlusIcon size={13} style={{ marginLeft: '4px' }} />
+                  <PlusIcon size={12} style={{ marginLeft: '4px' }} />
                   تسجيل عميل جديد برقم ({phoneQuery})
                 </Button>
               </div>
@@ -1436,9 +1566,9 @@ export function PosPhoneOrderDialog({
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))',
-                  gap: '12px',
-                  maxHeight: '440px',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                  gap: '8px',
+                  maxHeight: '290px',
                   overflowY: 'auto',
                   padding: '2px',
                 }}
@@ -1448,23 +1578,23 @@ export function PosPhoneOrderDialog({
                     key={c.id}
                     style={{
                       background: '#ffffff',
-                      padding: '14px',
-                      borderRadius: '10px',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
                       border: '1px solid #e2e8f0',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
-                      gap: '10px',
+                      gap: '8px',
                     }}
                   >
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <div
                             style={{
-                              width: '32px',
-                              height: '32px',
+                              width: '26px',
+                              height: '26px',
                               borderRadius: '50%',
                               background: '#f1f5f9',
                               color: '#170e5e',
@@ -1473,24 +1603,24 @@ export function PosPhoneOrderDialog({
                               justifyContent: 'center',
                             }}
                           >
-                            <UserIcon size={16} />
+                            <UserIcon size={14} />
                           </div>
                           <div>
-                            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
                               {c.name}
                             </div>
-                            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <PhoneIcon size={12} color="#64748b" />
+                            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                              <PhoneIcon size={11} color="#64748b" />
                               <span>{c.phone || 'بدون رقم'}</span>
                             </div>
                           </div>
                         </div>
                         <span
                           style={{
-                            fontSize: '0.7rem',
+                            fontSize: '0.65rem',
                             fontWeight: 700,
-                            padding: '2px 6px',
-                            borderRadius: '4px',
+                            padding: '1px 5px',
+                            borderRadius: '3px',
                             background: c.customerType === 'vip' ? '#fef3c7' : '#f1f5f9',
                             color: c.customerType === 'vip' ? '#92400e' : '#475569',
                           }}
@@ -1502,18 +1632,18 @@ export function PosPhoneOrderDialog({
                       {c.address && (
                         <div
                           style={{
-                            fontSize: '0.75rem',
+                            fontSize: '0.7rem',
                             color: '#475569',
                             background: '#f8fafc',
-                            padding: '6px 8px',
-                            borderRadius: '6px',
+                            padding: '4px 6px',
+                            borderRadius: '4px',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px',
-                            marginTop: '4px',
+                            gap: '3px',
+                            marginTop: '2px',
                           }}
                         >
-                          <MapPinIcon size={12} color="#64748b" />
+                          <MapPinIcon size={11} color="#64748b" />
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {c.address}
                           </span>
@@ -1528,15 +1658,15 @@ export function PosPhoneOrderDialog({
                         background: '#170e5e',
                         color: '#ffffff',
                         fontWeight: 700,
-                        fontSize: '0.8rem',
-                        padding: '7px 12px',
+                        fontSize: '0.75rem',
+                        padding: '5px 8px',
                       }}
                       onClick={() => {
                         setSelectedCustomerId(c.id);
                         setSelectedAddress('');
                       }}
                     >
-                      <ArrowLeftIcon size={14} style={{ marginLeft: '4px' }} />
+                      <ArrowLeftIcon size={13} style={{ marginLeft: '4px' }} />
                       اختيار العميل وتجهيز الطلب
                     </Button>
                   </div>
@@ -1548,16 +1678,16 @@ export function PosPhoneOrderDialog({
             <div
               style={{
                 background: '#ffffff',
-                padding: '20px',
-                borderRadius: '12px',
+                padding: '12px 16px',
+                borderRadius: '8px',
                 border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <PlusIcon size={18} color="#2563eb" />
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlusIcon size={16} color="#2563eb" />
+                  <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
                     تسجيل عميل جديد وتجهيز طلب التوصيل
                   </h3>
                 </div>
@@ -1567,7 +1697,7 @@ export function PosPhoneOrderDialog({
                     variant="secondary"
                     size="sm"
                     onClick={() => setIsForceNewCustomer(false)}
-                    style={{ fontSize: '0.75rem', fontWeight: 700 }}
+                    style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px' }}
                   >
                     العودة لنتائج البحث ({matchedCustomers.length})
                   </Button>
@@ -1588,11 +1718,11 @@ export function PosPhoneOrderDialog({
                     notes: newNotes,
                   });
                 }}
-                style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
               >
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '2px' }}>
                       اسم العميل <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
@@ -1603,16 +1733,16 @@ export function PosPhoneOrderDialog({
                       placeholder="اسم العميل الكامل..."
                       style={{
                         width: '100%',
-                        padding: '7px 10px',
-                        borderRadius: '6px',
+                        padding: '5px 8px',
+                        borderRadius: '4px',
                         border: '1px solid #cbd5e1',
-                        fontSize: '0.82rem',
+                        fontSize: '0.78rem',
                       }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '2px' }}>
                       رقم الهاتف
                     </label>
                     <input
@@ -1622,21 +1752,21 @@ export function PosPhoneOrderDialog({
                       placeholder="رقم الهاتف..."
                       style={{
                         width: '100%',
-                        padding: '7px 10px',
-                        borderRadius: '6px',
+                        padding: '5px 8px',
+                        borderRadius: '4px',
                         border: '1px solid #cbd5e1',
-                        fontSize: '0.82rem',
+                        fontSize: '0.78rem',
                       }}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', margin: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155', margin: 0 }}>
                       عنوان التوصيل التفصيلي (المنطقة، الشارع، العقار، الدور، الشقة)
                     </label>
-                    <div style={{ display: 'flex', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '3px' }}>
                       {(['home', 'work', 'other'] as const).map((tag) => (
                         <button
                           key={tag}
@@ -1646,9 +1776,9 @@ export function PosPhoneOrderDialog({
                             background: addressTag === tag ? '#2563eb' : '#f1f5f9',
                             color: addressTag === tag ? '#ffffff' : '#475569',
                             border: 'none',
-                            borderRadius: '4px',
-                            padding: '2px 6px',
-                            fontSize: '0.7rem',
+                            borderRadius: '3px',
+                            padding: '1px 5px',
+                            fontSize: '0.65rem',
                             fontWeight: 700,
                             cursor: 'pointer',
                           }}
@@ -1665,18 +1795,18 @@ export function PosPhoneOrderDialog({
                     placeholder="مثال: المعادي - شارع 9 - عمارة 14 - الدور الثالث شقة 6"
                     style={{
                       width: '100%',
-                      padding: '7px 10px',
-                      borderRadius: '6px',
+                      padding: '5px 8px',
+                      borderRadius: '4px',
                       border: '1px solid #cbd5e1',
-                      fontSize: '0.82rem',
+                      fontSize: '0.78rem',
                     }}
                   />
                 </div>
 
                 {/* Delivery Zone & Payment in New Customer Form */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: '#f8fafc', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                   <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '3px' }}>
+                    <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '2px' }}>
                       منطقة التوصيل
                     </label>
                     <select
@@ -1684,10 +1814,10 @@ export function PosPhoneOrderDialog({
                       onChange={(e) => handleZoneChange(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '5px 8px',
-                        borderRadius: '6px',
+                        padding: '4px 6px',
+                        borderRadius: '4px',
                         border: '1px solid #cbd5e1',
-                        fontSize: '0.78rem',
+                        fontSize: '0.72rem',
                         background: '#ffffff',
                       }}
                     >
@@ -1700,7 +1830,7 @@ export function PosPhoneOrderDialog({
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '3px' }}>
+                    <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '2px' }}>
                       طريقة الدفع عند الاستلام
                     </label>
                     <select
@@ -1708,10 +1838,10 @@ export function PosPhoneOrderDialog({
                       onChange={(e) => setPaymentMethodAtDoor(e.target.value as DoorstepPaymentMethod)}
                       style={{
                         width: '100%',
-                        padding: '5px 8px',
-                        borderRadius: '6px',
+                        padding: '4px 6px',
+                        borderRadius: '4px',
                         border: '1px solid #cbd5e1',
-                        fontSize: '0.78rem',
+                        fontSize: '0.72rem',
                         background: '#ffffff',
                       }}
                     >
@@ -1723,31 +1853,29 @@ export function PosPhoneOrderDialog({
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                    ملاحظات أو علامات مميزة للعنوان
-                  </label>
                   <input
                     type="text"
                     value={newNotes}
                     onChange={(e) => setNewNotes(e.target.value)}
-                    placeholder="مثال: أمام مسجد الفتح، مدخل العمارة من الجانب..."
+                    placeholder="ملاحظات أو علامات مميزة للعنوان (مثال: أمام مسجد الفتح، مدخل العمارة من الجانب)..."
                     style={{
                       width: '100%',
-                      padding: '7px 10px',
-                      borderRadius: '6px',
+                      padding: '5px 8px',
+                      borderRadius: '4px',
                       border: '1px solid #cbd5e1',
-                      fontSize: '0.82rem',
+                      fontSize: '0.75rem',
                     }}
                   />
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '4px' }}>
                   <Button
                     type="submit"
                     disabled={createCustomerMutation.isPending}
-                    style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700 }}
+                    size="sm"
+                    style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '0.78rem' }}
                   >
-                    <CheckCircleIcon size={16} style={{ marginLeft: '6px' }} />
+                    <CheckCircleIcon size={14} style={{ marginLeft: '4px' }} />
                     {createCustomerMutation.isPending ? 'جاري الحفظ...' : 'حفظ العميل وبدء طلب التوصيل'}
                   </Button>
                 </div>

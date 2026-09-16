@@ -66,3 +66,15 @@
 - **Strict 6-Digit Date (`YYMMDD`):** NEVER use 4-digit years like `2026` or static numbers. Always embed the 2-digit year, 2-digit month, and 2-digit day (`YYMMDD` such as `260914`).
 - **Standard Sequence Padding:** Sequence counter must be at least 4 digits (`0001`, `0002`, ...), padded with leading zeros.
 - **Unified Engine:** Use `getDailyDocumentPrefix(prefix)` and `formatDailyDocumentNumber(...)` from `backend/src/common/utils/document-number.util.ts`. All frontend placeholders, examples, and mock formats must mirror this exact format.
+
+## 11. Strict Universal 14"-to-32" Multi-Screen Zero-Scroll Standard (دستور ملاءمة الشاشات من 14 إلى 32 بوصة وحظر السكرول الخارجي)
+- **Universal Zero-Scroll Boundary:** All modals, popups, dialogs, POS workstations, and full-screen ERP workflows MUST fit seamlessly on small 14-inch laptop screens (`1366x768` or 1080p with 125%-150% Windows scaling, vertical viewport ~560px - 640px) up to 32-inch desktop monitors with **ZERO outer vertical scrolling (`بدون سكرول`)**.
+- **Compact Dialog Architecture:**
+  - Use `compact` mode on `StandardDialog` / `DialogShell` (`padding: 14px 18px !important;`, compact header/footer margins).
+  - Expand modal width horizontally (e.g., `width="1180px"` or `min(1180px, 96vw)`) into balanced 2-column or 3-column layouts rather than tall stacked sections.
+  - Interactive inputs, tags, and search bars must maintain compact heights (`32px - 36px`, `padding: 6px 10px`, `fontSize: 12.5px - 13px`).
+- **Internal Slim Scrollbars Only:**
+  - Outer dialog shells must NEVER show scrollbars (`overflow: hidden` on root wrapper).
+  - Long lists, candidate matches, or order histories must be confined to internal containers with strict `maxHeight` (e.g. `240px - 290px`) and slim scrollbars (`.thin-scrollbar`).
+  - Action and confirmation buttons must always remain 100% visible and unclipped without any scrolling.
+
