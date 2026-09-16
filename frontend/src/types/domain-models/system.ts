@@ -207,6 +207,7 @@ export interface AppSettings {
   contractingModuleEnabled?: boolean;
   comboModuleEnabled?: boolean;
   restaurantModuleEnabled?: boolean;
+  phoneOrdersModuleEnabled?: boolean;
   posShowCartMeta?: boolean;
   clothingModuleEnabled?: boolean;
   enableMobileStoreFeatures?: boolean;

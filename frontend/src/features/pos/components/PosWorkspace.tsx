@@ -511,6 +511,7 @@ export function PosWorkspace() {
   const isServicesActive = pos.settingsQuery.data?.servicesModuleEnabled === true || Boolean(pos.settingsQuery.data?.enableMobileStoreFeatures);
 
   const isRestaurantActive = Boolean(pos.settingsQuery.data?.restaurantModuleEnabled);
+  const isPhoneOrdersActive = pos.settingsQuery.data?.phoneOrdersModuleEnabled === true || (pos.settingsQuery.data?.phoneOrdersModuleEnabled === undefined && (isRestaurantActive || ['restaurant', 'pharmacy', 'supermarket', 'grocery', 'food_beverage'].includes(pos.settingsQuery.data?.businessIndustry || '')));
 
   const handleOpenHeldOrTables = useCallback((initialTab: 'floor' | 'list' = 'floor') => {
     if (isRestaurantActive) {
@@ -533,7 +534,7 @@ export function PosWorkspace() {
     onOpenHeldDrafts: () => handleOpenHeldOrTables('floor'),
     onRecallHeldDraftByIndex: requestRecallHeldDraftByIndex,
     onOpenReprintModal: () => setReprintModalOpen(true),
-    onOpenPhoneOrder: () => handleOpenPhoneOrder(),
+    onOpenPhoneOrder: isPhoneOrdersActive ? () => handleOpenPhoneOrder() : undefined,
   });
 
   return (
@@ -547,7 +548,7 @@ export function PosWorkspace() {
         onOpenQuickService={isServicesActive ? () => setQuickServiceOpen(true) : undefined}
         onOpenTables={() => handleOpenHeldOrTables('floor')}
         onOpenHeldDrafts={() => handleOpenHeldOrTables('list')}
-        onOpenPhoneOrder={() => handleOpenPhoneOrder()}
+        onOpenPhoneOrder={isPhoneOrdersActive ? () => handleOpenPhoneOrder() : undefined}
         onPrintDraft={printCurrentDraft}
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
         onOpenSerialLookup={() => setSerialLookupOpen(true)}
@@ -898,18 +899,21 @@ export function PosWorkspace() {
         }}
       />
 
-      <PosCallerIdFloatingAlert onOpenPhoneOrder={handleOpenPhoneOrder} />
-
-      <PosPhoneOrderDialog
-        open={phoneOrderOpen}
-        onClose={() => {
-          setPhoneOrderOpen(false);
-          focusBarcodeEntry();
-        }}
-        pos={pos}
-        initialPhone={phoneOrderInitialPhone}
-        initialName={phoneOrderInitialName}
-      />
+      {isPhoneOrdersActive && (
+        <>
+          <PosCallerIdFloatingAlert onOpenPhoneOrder={handleOpenPhoneOrder} />
+          <PosPhoneOrderDialog
+            open={phoneOrderOpen}
+            onClose={() => {
+              setPhoneOrderOpen(false);
+              focusBarcodeEntry();
+            }}
+            pos={pos}
+            initialPhone={phoneOrderInitialPhone}
+            initialName={phoneOrderInitialName}
+          />
+        </>
+      )}
     </div>
   );
 }

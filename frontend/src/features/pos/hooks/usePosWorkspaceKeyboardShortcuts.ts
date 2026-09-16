@@ -76,7 +76,7 @@ export function usePosWorkspaceKeyboardShortcuts({
         }
         return;
       }
-      if (isTypingTarget && !['F2', 'F3', 'F4', 'F6', 'F8', 'F9', 'F12'].includes(event.key)) return;
+      if (isTypingTarget && !['F2', 'F3', 'F4', 'F6', 'F7', 'F8', 'F9', 'F12'].includes(event.key)) return;
       if (!isTypingTarget && pos.selectedLineKey) {
         if (event.key === 'ArrowDown') {
           event.preventDefault();
@@ -122,6 +122,10 @@ export function usePosWorkspaceKeyboardShortcuts({
         } else {
           void pos.holdDraft();
         }
+      } else if (event.key === 'F7' || (event.altKey && (event.key === 'p' || event.key === 'P' || event.key === 'ح' || event.key === 'd' || event.key === 'D' || event.key === 'ي'))) {
+        event.preventDefault();
+        onOpenPhoneOrder?.();
+        return;
       } else if (event.key === 'F8') {
         event.preventDefault();
         onOpenQuickService?.();
@@ -133,10 +137,6 @@ export function usePosWorkspaceKeyboardShortcuts({
         } else {
           pos.reprintLastSale();
         }
-      } else if (event.key === 'F10' || (event.altKey && (event.key === 'p' || event.key === 'P' || event.key === 'ح'))) {
-        event.preventDefault();
-        onOpenPhoneOrder?.();
-        return;
       } else if (event.key === 'F12') {
         event.preventDefault();
         if (pos.canShowLastSaleActions) pos.printA4Now();

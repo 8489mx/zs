@@ -67,6 +67,7 @@ const baseSettingsMutationValues = {
   fixedAssetsModuleEnabled: false,
   taxDeclarationModuleEnabled: false,
   deliveryFleetModuleEnabled: false,
+  phoneOrdersModuleEnabled: false,
   posShowCartMeta: false,
   printDeliveryRepOnReceipt: false,
   clothingModuleEnabled: false,

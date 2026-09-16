@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import { FormSection } from '@/shared/components/form-section';
-import { LightbulbIcon, XIcon, CheckIcon, StarIcon, ChevronDownIcon, MonitorIcon, PackageIcon, ReceiptIcon, UsersIcon } from '@/shared/components/icons/AppIcons';
+import { LightbulbIcon, XIcon, CheckIcon, StarIcon, ChevronDownIcon, MonitorIcon, PackageIcon, ReceiptIcon, UsersIcon, PhoneCallIcon } from '@/shared/components/icons/AppIcons';
 import { useHasFeature } from '@/shared/hooks/use-permission';
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin } from '@/app/router/access';
@@ -344,6 +344,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const isComboActive = hasPurchasesFeature && Boolean(form.watch('comboModuleEnabled'));
   const isImportActive = hasImportFeature && Boolean(form.watch('importModuleEnabled'));
   const isRestaurantActive = hasRestaurantFeature && Boolean(form.watch('restaurantModuleEnabled'));
+  const isPhoneOrdersActive = Boolean(form.watch('phoneOrdersModuleEnabled'));
   const isPosMetaActive = hasPosMetaFeature && Boolean(form.watch('posShowCartMeta'));
   const isMaintenanceActive = hasMaintenanceFeature && Boolean(form.watch('enableMobileStoreFeatures'));
   const enableMaintenance = isMaintenanceActive;
@@ -932,6 +933,26 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('restaurantModuleEnabled')} checked={Boolean(isRestaurantActive)} disabled={disabled || !hasRestaurantFeature} />
+            </label>
+          ) : null}
+
+          {/* مكتب طلبات الهاتف والتوصيل السريع */}
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isPhoneOrdersActive), true)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isPhoneOrdersActive))}>
+                  <PhoneCallIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>مكتب طلبات الهاتف والتوصيل السريع (Call Center)</strong>
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل نافذة طلبات التوصيل وكاشف المتصل (Caller ID) واختصار F7 في نقاط البيع</small>
+                </div>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('phoneOrdersModuleEnabled')} checked={Boolean(isPhoneOrdersActive)} disabled={disabled} />
             </label>
           ) : null}
 

@@ -28,6 +28,8 @@ import {
   CreditCardIcon,
   DollarSignIcon,
   TrashIcon,
+  UserIcon,
+  ArrowLeftIcon,
 } from '@/shared/components/icons/AppIcons';
 
 interface PosPhoneOrderDialogProps {
@@ -66,6 +68,7 @@ export function PosPhoneOrderDialog({
   const [customAddressInput, setCustomAddressInput] = useState('');
   const [addressTag, setAddressTag] = useState<'home' | 'work' | 'other'>('home');
   const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [isForceNewCustomer, setIsForceNewCustomer] = useState(false);
 
   // Delivery & Payment Enhancements
   const [selectedZoneId, setSelectedZoneId] = useState<string>('zone_standard');
@@ -131,12 +134,20 @@ export function PosPhoneOrderDialog({
     }
   }, [open, initialPhone, initialName]);
 
+  const trimmedQuery = phoneQuery.trim();
   const cleanDigits = phoneQuery.replace(/\D/g, '');
+  const isTextSearch = /[^\d\s\-+()]/.test(trimmedQuery);
+
+  // International Gold Standard Search Trigger:
+  // Phone numbers: >= 6 digits (eliminates 010, 011, 012 operator collision)
+  // Text/Name: >= 2 characters
+  const isSearchActive = isTextSearch ? trimmedQuery.length >= 2 : cleanDigits.length >= 6;
+  const searchParam = isTextSearch ? trimmedQuery : cleanDigits;
 
   const deliveryLookupQuery = useQuery<PosCustomerDeliveryProfile>({
-    queryKey: ['posCustomerDeliveryLookup', cleanDigits],
-    queryFn: () => posApi.customerDeliveryLookup(cleanDigits),
-    enabled: open && cleanDigits.length >= 3,
+    queryKey: ['posCustomerDeliveryLookup', searchParam],
+    queryFn: () => posApi.customerDeliveryLookup(searchParam),
+    enabled: open && isSearchActive && !selectedCustomerId,
     staleTime: 15_000,
   });
 
@@ -148,7 +159,15 @@ export function PosPhoneOrderDialog({
   });
 
   const profileData = selectedCustomerId ? specificProfileQuery.data : deliveryLookupQuery.data;
-  const currentCustomer = profileData?.customer;
+
+  // Active customer is either:
+  // 1. Explicitly selected candidate
+  // 2. Exact 1-to-1 match from phone lookup / caller ID
+  const currentCustomer = selectedCustomerId
+    ? specificProfileQuery.data?.customer
+    : (deliveryLookupQuery.data?.isExactMatch ? deliveryLookupQuery.data?.customer : null);
+
+  const matchedCustomers = deliveryLookupQuery.data?.matchedCustomers || [];
   const addresses = useMemo(() => profileData?.addresses || [], [profileData?.addresses]);
   const recentOrders = useMemo(() => profileData?.recentOrders || [], [profileData?.recentOrders]);
 
@@ -475,8 +494,10 @@ export function PosPhoneOrderDialog({
           <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
             {currentCustomer ? (
               <span>العميل المحدد: <strong>{currentCustomer.name}</strong> ({currentCustomer.phone || 'بدون هاتف'})</span>
+            ) : isSearchActive ? (
+              <span>نتائج البحث للرقم: <strong>{phoneQuery}</strong></span>
             ) : (
-              <span>أدخل رقم هاتف العميل للبحث التلقائي</span>
+              <span>أدخل 6 أرقام على الأقل للبحث السريع</span>
             )}
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -697,9 +718,10 @@ export function PosPhoneOrderDialog({
                   setPhoneQuery(e.target.value);
                   setSelectedCustomerId(null);
                   setSelectedAddress('');
+                  setIsForceNewCustomer(false);
                   setNewPhone(e.target.value);
                 }}
-                placeholder="أدخل رقم هاتف العميل (مثال: 01012345678)..."
+                placeholder="أدخل رقم هاتف العميل (مثال: 01012345678) أو اسم العميل..."
                 style={{
                   width: '100%',
                   padding: '10px 38px 10px 14px',
@@ -724,6 +746,7 @@ export function PosPhoneOrderDialog({
                     setPhoneQuery('');
                     setSelectedCustomerId(null);
                     setSelectedAddress('');
+                    setIsForceNewCustomer(false);
                     searchInputRef.current?.focus();
                   }}
                   style={{
@@ -751,41 +774,8 @@ export function PosPhoneOrderDialog({
             )}
           </div>
 
-          {/* Search Results / Multi-matches dropdown if any */}
-          {deliveryLookupQuery.data?.matchedCustomers && deliveryLookupQuery.data.matchedCustomers.length > 1 && (
-            <div style={{ background: '#eff6ff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e40af', marginBottom: '6px' }}>
-                تم العثور على أكثر من عميل يطابق الرقم:
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {deliveryLookupQuery.data.matchedCustomers.map((mc) => (
-                  <button
-                    key={mc.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedCustomerId(mc.id);
-                      setSelectedAddress('');
-                    }}
-                    style={{
-                      background: (selectedCustomerId === mc.id || (!selectedCustomerId && currentCustomer?.id === mc.id)) ? '#1e40af' : '#ffffff',
-                      color: (selectedCustomerId === mc.id || (!selectedCustomerId && currentCustomer?.id === mc.id)) ? '#ffffff' : '#1e293b',
-                      border: '1px solid #93c5fd',
-                      borderRadius: '6px',
-                      padding: '4px 10px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {mc.name} ({mc.phone})
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Main Content Area */}
-          {cleanDigits.length < 3 ? (
+          {!currentCustomer && !isSearchActive ? (
             /* Empty prompt state */
             <div
               style={{
@@ -801,16 +791,98 @@ export function PosPhoneOrderDialog({
               }}
             >
               <PhoneIcon size={42} color="#94a3b8" style={{ marginBottom: '12px' }} />
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                ابدأ بكتابة رقم هاتف العميل المتصل
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
+                مكتب استقبال طلبات الهاتف والتوصيل السريع
               </div>
-              <p style={{ fontSize: '0.8125rem', color: '#64748b', maxWidth: '420px', margin: 0 }}>
-                بمجرد إدخال الرقم، سيقوم النظام باسترجاع بيانات العميل وعناوينه المسجلة وتاريخ طلباته السابقة لتكرارها بضغطة واحدة.
+              <p style={{ fontSize: '0.82rem', color: '#64748b', maxWidth: '460px', margin: '0 0 16px 0', lineHeight: 1.6 }}>
+                أدخل <strong>6 أرقام على الأقل</strong> للبحث برقم الهاتف لتجاوز بادئة شركات المحمول (010 / 011 / 012 / 015)، أو ابدأ بكتابة اسم العميل.
               </p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setActiveTab('recent_calls')}
+                  style={{ fontSize: '0.78rem', fontWeight: 700 }}
+                >
+                  <ClockIcon size={13} style={{ marginLeft: '4px' }} />
+                  سجل المكالمات الواردة
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setIsForceNewCustomer(true);
+                    setNewPhone(phoneQuery || '');
+                  }}
+                  style={{ fontSize: '0.78rem', fontWeight: 700 }}
+                >
+                  <PlusIcon size={13} style={{ marginLeft: '4px' }} />
+                  تسجيل عميل جديد مباشرة
+                </Button>
+              </div>
             </div>
           ) : currentCustomer ? (
-            /* STATE 1: Existing Customer Found */
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: '16px' }}>
+            /* STATE 1: Existing / Selected Customer Workspace */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Active Customer Strip */}
+              <div
+                style={{
+                  background: '#eff6ff',
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  border: '1px solid #bfdbfe',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: '#1e40af',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <UserIcon size={16} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#1e3a8a' }}>
+                      العميل النشط: {currentCustomer.name}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 600 }}>
+                      {currentCustomer.phone || 'بدون رقم'} • {currentCustomer.customerType === 'vip' ? 'عميل VIP' : 'عميل نقدي'}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setSelectedCustomerId(null);
+                    setSelectedAddress('');
+                    setIsForceNewCustomer(false);
+                    searchInputRef.current?.focus();
+                  }}
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    background: '#ffffff',
+                    border: '1px solid #93c5fd',
+                    color: '#1e40af',
+                  }}
+                >
+                  <SearchIcon size={13} style={{ marginLeft: '4px' }} />
+                  تغيير العميل / بحث جديد
+                </Button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: '16px' }}>
               {/* Left Column: Customer Profile, Addresses, Zone & Payment */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {/* Profile Card */}
@@ -1314,8 +1386,165 @@ export function PosPhoneOrderDialog({
                 )}
               </div>
             </div>
+          </div>
+          ) : isSearchActive && !isForceNewCustomer && matchedCustomers.length > 0 ? (
+            /* STATE 2: Candidate Customer Matches Cards Grid */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: '#f8fafc',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>
+                    نتائج البحث المتطابقة
+                  </span>
+                  <span
+                    style={{
+                      background: '#170e5e',
+                      color: '#ffffff',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                    }}
+                  >
+                    {matchedCustomers.length} عميل
+                  </span>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setIsForceNewCustomer(true);
+                    setNewPhone(phoneQuery || '');
+                  }}
+                  style={{ fontSize: '0.75rem', fontWeight: 700 }}
+                >
+                  <PlusIcon size={13} style={{ marginLeft: '4px' }} />
+                  تسجيل عميل جديد برقم ({phoneQuery})
+                </Button>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))',
+                  gap: '12px',
+                  maxHeight: '440px',
+                  overflowY: 'auto',
+                  padding: '2px',
+                }}
+              >
+                {matchedCustomers.map((c) => (
+                  <div
+                    key={c.id}
+                    style={{
+                      background: '#ffffff',
+                      padding: '14px',
+                      borderRadius: '10px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              background: '#f1f5f9',
+                              color: '#170e5e',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <UserIcon size={16} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
+                              {c.name}
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <PhoneIcon size={12} color="#64748b" />
+                              <span>{c.phone || 'بدون رقم'}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: c.customerType === 'vip' ? '#fef3c7' : '#f1f5f9',
+                            color: c.customerType === 'vip' ? '#92400e' : '#475569',
+                          }}
+                        >
+                          {c.customerType === 'vip' ? 'VIP' : 'نقدي'}
+                        </span>
+                      </div>
+
+                      {c.address && (
+                        <div
+                          style={{
+                            fontSize: '0.75rem',
+                            color: '#475569',
+                            background: '#f8fafc',
+                            padding: '6px 8px',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            marginTop: '4px',
+                          }}
+                        >
+                          <MapPinIcon size={12} color="#64748b" />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {c.address}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      size="sm"
+                      style={{
+                        width: '100%',
+                        background: '#170e5e',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        padding: '7px 12px',
+                      }}
+                      onClick={() => {
+                        setSelectedCustomerId(c.id);
+                        setSelectedAddress('');
+                      }}
+                    >
+                      <ArrowLeftIcon size={14} style={{ marginLeft: '4px' }} />
+                      اختيار العميل وتجهيز الطلب
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
-            /* STATE 2: Customer Not Found - New Customer Quick Form */
+            /* STATE 3: Customer Not Found / Force New Customer Form */
             <div
               style={{
                 background: '#ffffff',
@@ -1325,11 +1554,24 @@ export function PosPhoneOrderDialog({
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                <PlusIcon size={18} color="#2563eb" />
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                  تسجيل عميل جديد وتجهيز طلب التوصيل
-                </h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <PlusIcon size={18} color="#2563eb" />
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    تسجيل عميل جديد وتجهيز طلب التوصيل
+                  </h3>
+                </div>
+                {isForceNewCustomer && matchedCustomers.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setIsForceNewCustomer(false)}
+                    style={{ fontSize: '0.75rem', fontWeight: 700 }}
+                  >
+                    العودة لنتائج البحث ({matchedCustomers.length})
+                  </Button>
+                )}
               </div>
 
               <form

@@ -52,6 +52,7 @@ interface PosWorkspaceHeaderProps {
 function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenQuickService, onOpenHeldDrafts, onOpenTables, onOpenPhoneOrder, onRequestOpenShift, onOpenReprintModal }: PosWorkspaceHeaderProps) {
   const { data: settings } = useSettingsQuery();
   const isRestaurantActive = settings?.restaurantModuleEnabled === true;
+  const isPhoneOrdersActive = settings?.phoneOrdersModuleEnabled === true || (settings?.phoneOrdersModuleEnabled === undefined && (isRestaurantActive || ['restaurant', 'pharmacy', 'supermarket', 'grocery', 'food_beverage'].includes(settings?.businessIndustry || '')));
   const isStorefrontActive = settings?.storefrontModuleEnabled !== false;
   const isServicesActive = settings?.servicesModuleEnabled === true || Boolean(settings?.enableMobileStoreFeatures);
 
@@ -276,8 +277,8 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
             F9 إعادة طباعة
           </Button>
 
-          {/* Phone & Delivery Order Desk */}
-          {onOpenPhoneOrder && (
+          {/* Phone & Delivery Order Desk (F7) */}
+          {isPhoneOrdersActive && onOpenPhoneOrder && (
             <Button
               type="button"
               variant="secondary"
@@ -291,10 +292,10 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
                 background: pos.orderType === 'delivery' ? '#eff6ff' : undefined,
                 border: pos.orderType === 'delivery' ? '1px solid #93c5fd' : undefined,
               }}
-              title="مكتب طلبات الهاتف والتوصيل السريع وكاشف المتصل (Alt + P)"
+              title="مكتب طلبات الهاتف والتوصيل السريع وكاشف المتصل (F7 أو Alt + P)"
             >
               <PhoneCallIcon size={14} color={pos.orderType === 'delivery' ? '#2563eb' : '#170e5e'} />
-              <span>طلب هاتفي</span>
+              <span>طلب هاتفي F7</span>
             </Button>
           )}
 

@@ -189,6 +189,10 @@ export class SettingsService {
       if (settings.restaurantModuleEnabled === undefined) {
         settings.restaurantModuleEnabled = (settings.industryProfile as any)?.subVertical === 'restaurant';
       }
+      if (settings.phoneOrdersModuleEnabled === undefined) {
+        const subVertical = (settings.industryProfile as any)?.subVertical;
+        settings.phoneOrdersModuleEnabled = ['restaurant', 'pharmacy', 'supermarket', 'grocery', 'food_beverage'].includes(subVertical) || settings.restaurantModuleEnabled === true;
+      }
       if (settings.enablePharmacyModule === undefined) {
         settings.enablePharmacyModule = (settings.industryProfile as any)?.subVertical === 'pharmacy';
       }
@@ -684,6 +688,7 @@ export class SettingsService {
       modulePatch.taxDeclarationModuleEnabled = true;
       modulePatch.enablePharmacyModule = normalizedKey === 'pharmacy';
       modulePatch.restaurantModuleEnabled = normalizedKey === 'restaurant';
+      modulePatch.phoneOrdersModuleEnabled = ['restaurant', 'pharmacy', 'supermarket', 'grocery', 'food_beverage'].includes(normalizedKey);
       modulePatch.enableMobileStoreFeatures = normalizedKey === 'maintenance';
       modulePatch.importModuleEnabled = normalizedKey === 'import_export';
       modulePatch.autoPartsModuleEnabled = normalizedKey === 'auto_parts';

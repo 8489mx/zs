@@ -150,6 +150,9 @@ export function buildSettingsUpdatePayload(
     restaurantModuleEnabled: values.restaurantModuleEnabled !== undefined
       ? values.restaurantModuleEnabled === true
       : current?.restaurantModuleEnabled === true,
+    phoneOrdersModuleEnabled: values.phoneOrdersModuleEnabled !== undefined
+      ? values.phoneOrdersModuleEnabled === true
+      : current?.phoneOrdersModuleEnabled === true,
     posShowCartMeta: values.posShowCartMeta !== undefined
       ? values.posShowCartMeta === true
       : current?.posShowCartMeta === true,

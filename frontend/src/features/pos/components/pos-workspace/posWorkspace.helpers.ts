@@ -8,14 +8,15 @@ export type PosWorkspaceState = ReturnType<typeof usePosWorkspace>;
 export type PosPostSalePrintMode = 'receipt' | 'a4';
 
 export const POS_SHORTCUTS = [
-  { key: 'F2', label: 'إتمام البيع' },
-  { key: 'F3', label: 'قارئ الباركود' },
+  { key: 'F2', label: 'إتمام البيع والدفع' },
+  { key: 'F3', label: 'الطاولات والطلبات المعلقة' },
   { key: 'F4', label: 'تعليق الفاتورة' },
-  { key: 'F6', label: 'إعادة طباعة آخر فاتورة' },
-  { key: 'F7', label: 'تعديل كمية السطر المحدد' },
-  { key: 'F8', label: 'معاينة الطباعة' },
-  { key: 'F9', label: 'إعادة طباعة آخر فاتورة' },
-  { key: 'F12', label: 'طباعة A4 عند تفعيلها' },
+  { key: 'F6', label: 'البحث في الأصناف والباركود' },
+  { key: 'F7', label: 'طلب هاتفي وكول سنتر التوصيل' },
+  { key: 'F8', label: 'الخدمات السريعة' },
+  { key: 'F9', label: 'إعادة طباعة الفواتير' },
+  { key: 'F10', label: 'إظهار / إخفاء القائمة الجانبية' },
+  { key: 'F12', label: 'طباعة A4' },
   { key: 'Esc', label: 'تفريغ السلة' },
 ] as const;
 

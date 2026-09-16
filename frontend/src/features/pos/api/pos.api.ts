@@ -58,6 +58,8 @@ export interface PosCustomerDeliveryProfileOrder {
 
 export interface PosCustomerDeliveryProfile {
   found: boolean;
+  isExactMatch?: boolean;
+  isMultipleMatches?: boolean;
   query?: string;
   phone?: string;
   customer?: {

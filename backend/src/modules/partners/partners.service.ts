@@ -232,16 +232,21 @@ export class PartnersService {
   async lookupCustomerDeliveryProfile(phoneQuery: string, actor: AuthContext): Promise<Record<string, unknown>> {
     const raw = String(phoneQuery || '').trim();
     const digits = raw.replace(/\D/g, '');
-    if (!digits || digits.length < 3) {
+    const isTextSearch = /[^\d\s\-+()]/.test(raw);
+
+    if ((isTextSearch && raw.length < 2) || (!isTextSearch && digits.length < 4)) {
       return {
         found: false,
         query: raw,
-        message: 'Phone search query must be at least 3 digits',
+        phone: raw,
+        message: 'Search query too short',
         matchedCustomers: [],
+        addresses: [],
+        recentOrders: [],
       };
     }
 
-    const variants = generatePhoneSearchVariants(raw);
+    const variants = digits ? generatePhoneSearchVariants(raw) : [];
     const searchTerms = Array.from(new Set([raw, digits, ...variants])).filter(Boolean);
 
     const customers = await this.db
@@ -251,11 +256,16 @@ export class PartnersService {
       .where(this.tenantPredicate(actor))
       .where((eb) => {
         const clauses: any[] = [];
+        if (raw.length >= 2) {
+          clauses.push(eb('name', 'ilike', `%${raw}%`));
+        }
         for (const term of searchTerms) {
           clauses.push(eb('phone', '=', term));
           clauses.push(eb('phone', 'like', `%${term}%`));
         }
-        clauses.push(sql<boolean>`REPLACE(REPLACE(phone, '-', ''), ' ', '') LIKE ${'%' + digits + '%'}`);
+        if (digits.length >= 4) {
+          clauses.push(sql<boolean>`REPLACE(REPLACE(phone, '-', ''), ' ', '') LIKE ${'%' + digits + '%'}`);
+        }
         return eb.or(clauses);
       })
       .limit(10)
@@ -272,11 +282,33 @@ export class PartnersService {
       };
     }
 
-    const primaryCustomer = customers[0];
-    const fullProfile = await this.getCustomerDeliveryProfile(Number(primaryCustomer.id), actor);
+    const isSingleMatch = customers.length === 1;
+    const isExactPhoneMatch = Boolean(digits && digits.length >= 10 && customers[0].phone && customers[0].phone.replace(/\D/g, '') === digits);
 
+    if (isSingleMatch || isExactPhoneMatch) {
+      const primaryCustomer = customers[0];
+      const fullProfile = await this.getCustomerDeliveryProfile(Number(primaryCustomer.id), actor);
+      return {
+        ...fullProfile,
+        isExactMatch: true,
+        matchedCustomers: customers.map((c) => ({
+          id: String(c.id),
+          name: c.name,
+          phone: c.phone || '',
+          address: c.address || '',
+          customerType: c.customer_type || 'cash',
+          balance: Number(c.balance || 0),
+          loyaltyPoints: Number(c.loyalty_points || 0),
+        })),
+      };
+    }
+
+    // Multiple candidates found
     return {
-      ...fullProfile,
+      found: false,
+      isMultipleMatches: true,
+      query: raw,
+      phone: raw,
       matchedCustomers: customers.map((c) => ({
         id: String(c.id),
         name: c.name,
@@ -286,6 +318,8 @@ export class PartnersService {
         balance: Number(c.balance || 0),
         loyaltyPoints: Number(c.loyalty_points || 0),
       })),
+      addresses: [],
+      recentOrders: [],
     };
   }
 

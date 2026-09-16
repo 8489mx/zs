@@ -120,6 +120,15 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     dependencies: ['posModuleEnabled'],
     defaultPosMode: 'touch',
   },
+  {
+    key: 'phoneOrdersModuleEnabled',
+    title: 'مكتب طلبات الهاتف والتوصيل السريع (Call Center)',
+    category: 'pos',
+    categoryLabel: 'المبيعات ونقاط الخدمة',
+    shortDesc: 'إدارة طلبات التوصيل وكاشف المتصل (Caller ID) وسجل المكالمات واختصار F7.',
+    requiredPlan: 'plan_pro',
+    dependencies: ['posModuleEnabled'],
+  },
 
   // 2. المخزون وسلاسل الإمداد
   {

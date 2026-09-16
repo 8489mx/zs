@@ -45,6 +45,7 @@ export const settingsFormSchema = z.object({
   contractingModuleEnabled: z.boolean().default(false),
   comboModuleEnabled: z.boolean().default(false),
   restaurantModuleEnabled: z.boolean().default(false),
+  phoneOrdersModuleEnabled: z.boolean().default(false),
   posShowCartMeta: z.boolean().default(false),
   printDeliveryRepOnReceipt: z.boolean().default(false),
   clothingModuleEnabled: z.boolean().default(false),
