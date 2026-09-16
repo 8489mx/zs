@@ -7,18 +7,20 @@ import { getTextDirection } from '@/lib/arabic-normalization';
 
 interface ImportMasterBoqModalProps {
   open: boolean;
-  projectId: string;
-  projectName: string;
+  projectId?: string;
+  projectName?: string;
   onClose: () => void;
   onSuccess?: () => void;
+  onImportSelected?: (selectedIds: (string | number)[]) => void;
 }
 
 export function ImportMasterBoqModal({
   open,
-  projectId,
-  projectName,
+  projectId = '',
+  projectName = '',
   onClose,
   onSuccess,
+  onImportSelected,
 }: ImportMasterBoqModalProps) {
   const [trades, setTrades] = useState<MasterBoqTrade[]>([]);
   const [selectedTrade, setSelectedTrade] = useState<string>('all');
@@ -104,6 +106,16 @@ export function ImportMasterBoqModal({
   const handleImport = async () => {
     if (selectedIds.size === 0) {
       setErrorMsg('يرجى تحديد بند واحد على الأقل للاستيراد');
+      return;
+    }
+
+    if (onImportSelected) {
+      onImportSelected(Array.from(selectedIds));
+      return;
+    }
+
+    if (!projectId) {
+      setErrorMsg('معرف المشروع غير متوفر');
       return;
     }
 

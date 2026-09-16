@@ -8,6 +8,9 @@ import { ContractingSubcontractsTab } from '../components/ContractingSubcontract
 import { ContractingMaterialsTab } from '../components/ContractingMaterialsTab';
 import { CreateSubcontractModal } from '../components/CreateSubcontractModal';
 import { CreateMaterialRequisitionModal } from '../components/CreateMaterialRequisitionModal';
+import { MaterialSubmittalsModal } from '../components/MaterialSubmittalsModal';
+import { MaterialPriceEscalationModal } from '../components/MaterialPriceEscalationModal';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface ContractingProcurementPageProps {
   initialSubTab?: 'subcontracts' | 'materials';
@@ -36,6 +39,10 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
   const [boqItems, setBoqItems] = useState<ContractingBoqItem[]>([]);
   const [materialsLoading, setMaterialsLoading] = useState(false);
   const [isCreateRequisitionOpen, setIsCreateRequisitionOpen] = useState(false);
+
+  // Advanced Global Benchmark Modals (Procore & RIB iTWO)
+  const [isSubmittalsModalOpen, setIsSubmittalsModalOpen] = useState(false);
+  const [isEscalationsModalOpen, setIsEscalationsModalOpen] = useState(false);
 
   const handleSubTabChange = (tab: 'subcontracts' | 'materials') => {
     setActiveSubTab(tab);
@@ -118,56 +125,114 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} dir="rtl">
-      {/* شريط التبديل الفرعي */}
+      {/* شريط التبديل الفرعي وأدوات الاعتمادات وفروق الأسعار */}
       <div
         style={{
           display: 'flex',
-          gap: '6px',
-          background: '#f1f5f9',
-          padding: '4px',
-          borderRadius: '10px',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '16px',
-          width: 'fit-content',
-          border: '1px solid #e2e8f0',
+          flexWrap: 'wrap',
+          gap: '10px',
         }}
       >
-        <button
-          type="button"
-          onClick={() => handleSubTabChange('subcontracts')}
+        <div
           style={{
-            padding: '7px 18px',
-            borderRadius: '8px',
-            fontSize: 'var(--font-body)',
-            fontWeight: 700,
-            border: 'none',
-            cursor: 'pointer',
-            background: activeSubTab === 'subcontracts' ? '#ffffff' : 'transparent',
-            color: activeSubTab === 'subcontracts' ? '#170e5e' : '#64748b',
-            boxShadow: activeSubTab === 'subcontracts' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-            transition: 'all 0.15s ease',
+            display: 'flex',
+            gap: '6px',
+            background: '#f1f5f9',
+            padding: '4px',
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0',
           }}
         >
-          عقود وإسناد مقاولي الباطن
-        </button>
+          <button
+            type="button"
+            onClick={() => handleSubTabChange('subcontracts')}
+            style={{
+              padding: '7px 18px',
+              borderRadius: '8px',
+              fontSize: 'var(--font-body)',
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+              background: activeSubTab === 'subcontracts' ? '#ffffff' : 'transparent',
+              color: activeSubTab === 'subcontracts' ? '#170e5e' : '#64748b',
+              boxShadow: activeSubTab === 'subcontracts' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            عقود وإسناد مقاولي الباطن
+          </button>
 
-        <button
-          type="button"
-          onClick={() => handleSubTabChange('materials')}
-          style={{
-            padding: '7px 18px',
-            borderRadius: '8px',
-            fontSize: 'var(--font-body)',
-            fontWeight: 700,
-            border: 'none',
-            cursor: 'pointer',
-            background: activeSubTab === 'materials' ? '#ffffff' : 'transparent',
-            color: activeSubTab === 'materials' ? '#170e5e' : '#64748b',
-            boxShadow: activeSubTab === 'materials' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          خامات وتشوينات الموقع (MRP)
-        </button>
+          <button
+            type="button"
+            onClick={() => handleSubTabChange('materials')}
+            style={{
+              padding: '7px 18px',
+              borderRadius: '8px',
+              fontSize: 'var(--font-body)',
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+              background: activeSubTab === 'materials' ? '#ffffff' : 'transparent',
+              color: activeSubTab === 'materials' ? '#170e5e' : '#64748b',
+              boxShadow: activeSubTab === 'materials' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            خامات وتشوينات الموقع (MRP)
+          </button>
+        </div>
+
+        {/* أزرار الميزات العالمية: اعتماد المواد MAR وفروق الأسعار */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setIsSubmittalsModalOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.FileCheck size={15} />
+            <span>اعتمادات المواد والمخططات (MAR / MAS)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsEscalationsModalOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.TrendingUp size={15} />
+            <span>فروق أسعار الخامات (Escalations)</span>
+          </button>
+        </div>
       </div>
 
       {/* محتوى التبويب النشط */}
@@ -215,6 +280,26 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
             />
           )}
         </>
+      )}
+
+      {/* نافذة اعتمادات المواد والمخططات التنفيذية MAR / MAS */}
+      {isSubmittalsModalOpen && effectiveProjectId && (
+        <MaterialSubmittalsModal
+          open={isSubmittalsModalOpen}
+          onClose={() => setIsSubmittalsModalOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+        />
+      )}
+
+      {/* نافذة مطالبات فروق أسعار الخامات والتضخم */}
+      {isEscalationsModalOpen && effectiveProjectId && (
+        <MaterialPriceEscalationModal
+          open={isEscalationsModalOpen}
+          onClose={() => setIsEscalationsModalOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+        />
       )}
     </div>
   );

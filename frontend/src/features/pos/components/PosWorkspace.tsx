@@ -635,6 +635,7 @@ export function PosWorkspace() {
             setRestaurantTablesOpen(false);
             focusBarcodeEntry();
           }}
+          settings={pos.settingsQuery.data}
           currentTableNumber={pos.tableNumber}
           currentCartItemsCount={pos.cart.length}
           currentCartTotal={Number(pos.totals?.total || 0)}

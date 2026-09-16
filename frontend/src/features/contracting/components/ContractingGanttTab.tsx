@@ -97,20 +97,21 @@ export function ContractingGanttTab({
               onClick={() => setShowGeneratorModal(true)}
               style={{
                 height: '36px',
-                padding: '0 16px',
+                padding: '0 14px',
                 borderRadius: '8px',
                 fontWeight: 600,
-                background: '#eff6ff',
-                color: '#1e40af',
-                border: '1px solid #bfdbfe',
+                background: '#ffffff',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '6px',
                 cursor: 'pointer',
                 fontSize: 'var(--font-body)',
+                transition: 'all 0.15s ease',
               }}
             >
-              <AppIcons.Calendar size={16} />
+              <AppIcons.Calendar size={15} />
               <span>توليد الجدول الزمني الذكي للأدوار</span>
             </button>
           )}
@@ -121,18 +122,20 @@ export function ContractingGanttTab({
               height: '36px',
               padding: '0 16px',
               borderRadius: '8px',
-              fontWeight: 600,
+              fontWeight: 700,
               background: '#170e5e',
               color: '#ffffff',
               border: 'none',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
+              boxShadow: '0 1px 3px rgba(23, 14, 94, 0.15)',
+              transition: 'all 0.15s ease',
             }}
           >
-            <AppIcons.Plus size={16} />
+            <AppIcons.Plus size={15} />
             <span>إضافة نشاط ومرحلة جديدة</span>
           </button>
         </div>

@@ -53,6 +53,13 @@ import {
   UpdateSnagItemStatusDto,
   CreateProjectHandoverDto,
   ApproveProjectHandoverDto,
+  CreateSubmittalDto,
+  UpdateSubmittalStatusDto,
+  CreateMaterialEscalationDto,
+  UpdateMaterialEscalationStatusDto,
+  CreateSubcontractorBackchargeDto,
+  UpdateBackchargeStatusDto,
+  CreateEquipmentFuelLogDto,
 } from './dto/contracting.dto';
 
 
@@ -908,6 +915,115 @@ export class ContractingController {
   ) {
     return this.contractingService.approveProjectHandover(req.authContext!, id, dto);
   }
+
+  // --------------------------------------------------------------------------
+  // 33. Material & Shop Drawing Submittals (اعتمادات المواد والمخططات MAR/MAS)
+  // --------------------------------------------------------------------------
+
+  @Get('projects/:projectId/submittals')
+  async getSubmittals(@Param('projectId') projectId: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getSubmittals(req.authContext!, projectId);
+  }
+
+  @Post('projects/:projectId/submittals')
+  async createSubmittal(
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateSubmittalDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.createSubmittal(req.authContext!, projectId, dto);
+  }
+
+  @Put('submittals/:id/status')
+  async updateSubmittalStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateSubmittalStatusDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.updateSubmittalStatus(req.authContext!, id, dto);
+  }
+
+  // --------------------------------------------------------------------------
+  // 34. Material Price Escalation & Fluctuation Claims (حاسبة ومطالبات فروق الأسعار)
+  // --------------------------------------------------------------------------
+
+  @Get('projects/:projectId/escalations')
+  async getMaterialEscalations(@Param('projectId') projectId: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getMaterialEscalations(req.authContext!, projectId);
+  }
+
+  @Post('projects/:projectId/escalations')
+  async createMaterialEscalation(
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateMaterialEscalationDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.createMaterialEscalation(req.authContext!, projectId, dto);
+  }
+
+  @Put('escalations/:id/status')
+  async updateMaterialEscalationStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateMaterialEscalationStatusDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.updateMaterialEscalationStatus(req.authContext!, id, dto);
+  }
+
+  // --------------------------------------------------------------------------
+  // 35. Subcontractor Back-Charges (سندات الخصومات المحملة على مقاولي الباطن)
+  // --------------------------------------------------------------------------
+
+  @Get('projects/:projectId/backcharges')
+  async getSubcontractorBackcharges(@Param('projectId') projectId: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getSubcontractorBackcharges(req.authContext!, projectId);
+  }
+
+  @Post('projects/:projectId/backcharges')
+  async createSubcontractorBackcharge(
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateSubcontractorBackchargeDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.createSubcontractorBackcharge(req.authContext!, projectId, dto);
+  }
+
+  @Put('backcharges/:id/status')
+  async updateBackchargeStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateBackchargeStatusDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.updateBackchargeStatus(req.authContext!, id, dto);
+  }
+
+  // --------------------------------------------------------------------------
+  // 36. Equipment Fuel & Operating Meter Logs (سجل عدادات وسولار المعدات)
+  // --------------------------------------------------------------------------
+
+  @Get('projects/:projectId/fuel-logs')
+  async getEquipmentFuelLogs(@Param('projectId') projectId: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getEquipmentFuelLogs(req.authContext!, projectId);
+  }
+
+  @Post('projects/:projectId/fuel-logs')
+  async createEquipmentFuelLog(
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateEquipmentFuelLogDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.createEquipmentFuelLog(req.authContext!, projectId, dto);
+  }
+
+  // --------------------------------------------------------------------------
+  // 37. Earned Value Management (EVM) & S-Curve Metrics (محرك القيمة المكتسبة)
+  // --------------------------------------------------------------------------
+
+  @Get('projects/:projectId/evm-metrics')
+  async getProjectEvmMetrics(@Param('projectId') projectId: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getProjectEvmMetrics(req.authContext!, projectId);
+  }
 }
+
 
 

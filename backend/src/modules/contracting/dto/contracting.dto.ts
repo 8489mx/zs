@@ -1012,6 +1012,14 @@ export class BoqTakeoffItemDto {
 
   @IsString()
   @IsOptional()
+  projectId?: string;
+
+  @IsString()
+  @IsOptional()
+  boqItemId?: string;
+
+  @IsString()
+  @IsOptional()
   drawingRef?: string;
 
   @IsString()
@@ -1044,13 +1052,33 @@ export class BoqTakeoffItemDto {
   voidDeduction?: number;
 
   @IsNumber()
+  @IsOptional()
+  netQty?: number;
+
+  @IsNumber()
   @Min(0)
   @IsOptional()
   wastePercent?: number;
 
+  @IsNumber()
+  @IsOptional()
+  totalWithWaste?: number;
+
+  @IsNumber()
+  @IsOptional()
+  calculatedQty?: number;
+
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  createdAt?: string;
+
+  @IsString()
+  @IsOptional()
+  updatedAt?: string;
 }
 
 export class SaveBoqTakeoffsDto {
@@ -1495,5 +1523,196 @@ export class ApproveProjectHandoverDto {
   @IsOptional()
   notes?: string;
 }
+
+// 10. Material & Shop Drawing Submittals DTOs
+export class CreateSubmittalDto {
+  @IsString()
+  @IsIn(['material', 'shop_drawing', 'sample', 'method_statement'])
+  submittalType!: 'material' | 'shop_drawing' | 'sample' | 'method_statement';
+
+  @IsString()
+  @IsNotEmpty()
+  title!: string;
+
+  @IsString()
+  @IsOptional()
+  specificationSection?: string;
+
+  @IsString()
+  @IsOptional()
+  supplierManufacturer?: string;
+
+  @IsString()
+  @IsOptional()
+  boqItemId?: string;
+
+  @IsString()
+  @IsOptional()
+  subcontractId?: string;
+
+  @IsString()
+  @IsOptional()
+  submissionDate?: string;
+
+  @IsString()
+  @IsOptional()
+  reviewDueDate?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class UpdateSubmittalStatusDto {
+  @IsString()
+  @IsIn(['submitted', 'approved', 'approved_as_noted', 'revise_and_resubmit', 'rejected'])
+  status!: 'submitted' | 'approved' | 'approved_as_noted' | 'revise_and_resubmit' | 'rejected';
+
+  @IsString()
+  @IsOptional()
+  consultantName?: string;
+
+  @IsString()
+  @IsOptional()
+  consultantComments?: string;
+
+  @IsString()
+  @IsOptional()
+  consultantReviewDate?: string;
+}
+
+// 11. Material Price Escalation Claims DTOs
+export class CreateMaterialEscalationDto {
+  @IsString()
+  @IsIn(['rebar_steel', 'portland_cement', 'ready_mix', 'bitumen', 'sand_gravel', 'other'])
+  materialType!: 'rebar_steel' | 'portland_cement' | 'ready_mix' | 'bitumen' | 'sand_gravel' | 'other';
+
+  @IsString()
+  @IsNotEmpty()
+  materialName!: string;
+
+  @IsNumber()
+  @Min(0)
+  basePriceContract!: number;
+
+  @IsNumber()
+  @Min(0)
+  currentMarketPrice!: number;
+
+  @IsNumber()
+  @Min(0)
+  executedQuantity!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  unit!: string;
+
+  @IsString()
+  @IsOptional()
+  bulletinSourceReference?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class UpdateMaterialEscalationStatusDto {
+  @IsString()
+  @IsIn(['draft', 'submitted_to_client', 'approved_by_consultant', 'settled_in_ipc', 'rejected'])
+  status!: 'draft' | 'submitted_to_client' | 'approved_by_consultant' | 'settled_in_ipc' | 'rejected';
+
+  @IsString()
+  @IsOptional()
+  ipcInvoiceId?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+// 12. Subcontractor Back-Charges DTOs
+export class CreateSubcontractorBackchargeDto {
+  @IsString()
+  @IsNotEmpty()
+  subcontractId!: string;
+
+  @IsString()
+  @IsOptional()
+  beneficiarySubcontractId?: string;
+
+  @IsString()
+  @IsIn(['damage_rework', 'safety_fine', 'equipment_usage', 'material_supplied', 'site_cleanup', 'other'])
+  backchargeCategory!: 'damage_rework' | 'safety_fine' | 'equipment_usage' | 'material_supplied' | 'site_cleanup' | 'other';
+
+  @IsNumber()
+  @Min(0.01)
+  amount!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  description!: string;
+
+  @IsString()
+  @IsOptional()
+  occurrenceDate?: string;
+}
+
+export class UpdateBackchargeStatusDto {
+  @IsString()
+  @IsIn(['pending_approval', 'applied_to_deduction', 'waived'])
+  status!: 'pending_approval' | 'applied_to_deduction' | 'waived';
+
+  @IsString()
+  @IsOptional()
+  appliedIpcInvoiceId?: string;
+}
+
+// 13. Equipment Fuel & Operating Meter Logs DTOs
+export class CreateEquipmentFuelLogDto {
+  @IsString()
+  @IsOptional()
+  equipmentId?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  equipmentName!: string;
+
+  @IsString()
+  @IsOptional()
+  logDate?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  startMeterHours?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  endMeterHours?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  fuelLitersAdded?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  fuelCostTotal?: number;
+
+  @IsString()
+  @IsOptional()
+  driverOperatorName?: string;
+
+  @IsString()
+  @IsOptional()
+  boqItemId?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
 
 

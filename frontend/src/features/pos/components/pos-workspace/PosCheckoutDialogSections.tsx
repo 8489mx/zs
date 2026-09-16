@@ -21,7 +21,7 @@ function getBalancePreview(pos: Pick<PosWorkspaceState, 'paymentType' | 'amountD
 
   if (pos.paymentType === 'credit' || (pos.customerId && paid < total)) {
     if (remainingDebt > 0.009) {
-      return { label: 'المتبقي على العميل (آجل)', value: -remainingDebt, tone: 'danger' as const };
+      return { label: 'المتبقي (آجل)', value: -remainingDebt, tone: 'danger' as const };
     }
   }
   if (Number(pos.amountDue || 0) > 0.009) {
@@ -305,7 +305,7 @@ export function PosCheckoutCustomerSection({
               <>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <StarIcon size={14} color="#b45309" />
-                  <span>رصيد نقاط الولاء: <strong>{loyaltyPoints.toLocaleString()} نقطة</strong> (تساوي {totalValueInCurrency.toLocaleString()} ${getGlobalCurrencySymbol()} خصم)</span>
+                  <span>رصيد نقاط الولاء: <strong>{loyaltyPoints.toLocaleString()} نقطة</strong> (تساوي {totalValueInCurrency.toLocaleString()} {getGlobalCurrencySymbol()} خصم)</span>
                 </span>
                 {loyaltyPoints < minPoints ? (
                   <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 600 }}>
@@ -479,7 +479,7 @@ export function PosCheckoutPaymentSection({
         }}
       >
         <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block' }}>نقدي</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>نقدي</span>
           <input
             ref={cashAmountInputRef}
             data-autofocus={!customerPickerOpen ? true : undefined}
@@ -487,11 +487,11 @@ export function PosCheckoutPaymentSection({
             step="0.01"
             value={pos.cashAmount}
             onChange={(event) => pos.setCashAmount(Number(event.target.value || 0))}
-            style={{ height: '38px', borderRadius: '6px', fontSize: '14px', fontWeight: 700, border: '1px solid #cbd5e1' }}
+            style={{ height: '38px', borderRadius: '6px', fontSize: '14px', fontWeight: 700, border: '1px solid #cbd5e1', textAlign: 'center' }}
           />
         </label>
         <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block' }}>{transferSelected ? (pos.paymentChannel === 'instapay' ? 'InstaPay' : 'محفظة') : 'فيزا'}</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>{transferSelected ? (pos.paymentChannel === 'instapay' ? 'InstaPay' : 'محفظة') : 'فيزا'}</span>
           <input
             type="number"
             step="0.01"
@@ -501,11 +501,11 @@ export function PosCheckoutPaymentSection({
               if (transferSelected) pos.setTransferAmount(val);
               else pos.setCardAmount(val);
             }}
-            style={{ height: '38px', borderRadius: '6px', fontSize: '14px', fontWeight: 700, border: '1px solid #cbd5e1' }}
+            style={{ height: '38px', borderRadius: '6px', fontSize: '14px', fontWeight: 700, border: '1px solid #cbd5e1', textAlign: 'center' }}
           />
         </label>
         <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block' }}>الخصم (مبلغ)</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>الخصم (مبلغ)</span>
           <input
             type="number"
             step="0.01"
@@ -513,11 +513,11 @@ export function PosCheckoutPaymentSection({
             onChange={(event) => pos.setDiscount(Number(event.target.value || 0))}
             disabled={isDiscountLocked}
             placeholder="0"
-            style={{ height: '38px', borderRadius: '6px', fontSize: '14px', border: '1px solid #cbd5e1' }}
+            style={{ height: '38px', borderRadius: '6px', fontSize: '14px', border: '1px solid #cbd5e1', textAlign: 'center' }}
           />
         </label>
         <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block' }}>الخصم (%)</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>الخصم (%)</span>
           <input
             type="number"
             step="0.01"
@@ -531,7 +531,7 @@ export function PosCheckoutPaymentSection({
             }}
             disabled={isDiscountLocked || pos.totals.subTotal === 0}
             placeholder="0"
-            style={{ height: '38px', borderRadius: '6px', fontSize: '14px', border: '1px solid #cbd5e1' }}
+            style={{ height: '38px', borderRadius: '6px', fontSize: '14px', border: '1px solid #cbd5e1', textAlign: 'center' }}
           />
         </label>
         {isDiscountLocked ? (
@@ -634,7 +634,6 @@ export function PosCheckoutPaymentSection({
         </div>
       )}
 
-
       {transferSelected ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', padding: '6px', background: '#f1f0fa', borderRadius: '6px' }}>
           <Button type="button" variant={pos.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('wallet')} style={{ minHeight: '34px', fontSize: '12px' }}>محفظة إلكترونية</Button>
@@ -654,24 +653,25 @@ export function PosCheckoutPaymentSection({
         </div>
       ) : null}
 
+      {/* Summary 3-Column Chips: Centered and Balanced */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
-        <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 12px', borderRadius: '6px' }}>
-          <span style={{ fontSize: '11px' }}>المطلوب دفعه</span>
-          <strong className="is-primary" style={{ fontSize: '15px' }}>{formatCurrency(pos.totals.total)}</strong>
+        <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>المطلوب دفعه</span>
+          <strong className="is-primary" style={{ fontSize: '15px', textAlign: 'center' }}>{formatCurrency(pos.totals.total)}</strong>
         </div>
-        <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 12px', borderRadius: '6px' }}>
-          <span style={{ fontSize: '11px' }}>المدفوع</span>
-          <strong className="is-success" style={{ fontSize: '15px' }}>{formatCurrency(paidAmount)}</strong>
+        <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>المدفوع</span>
+          <strong className="is-success" style={{ fontSize: '15px', textAlign: 'center' }}>{formatCurrency(paidAmount)}</strong>
         </div>
-        <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 12px', borderRadius: '6px' }}>
-          <span style={{ fontSize: '11px' }}>{balance.label}</span>
-          <strong className={balance.tone === 'danger' ? 'is-danger' : 'is-primary'} style={{ fontSize: '15px' }}>{formatCurrency(balance.value)}</strong>
+        <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>{balance.label}</span>
+          <strong className={balance.tone === 'danger' ? 'is-danger' : 'is-primary'} style={{ fontSize: '15px', textAlign: 'center' }}>{formatCurrency(balance.value)}</strong>
         </div>
       </div>
 
-      {needsCreditCustomer ? <div className="error-box" style={{ margin: 0 }}>البيع الآجل يحتاج اختيار عميل.</div> : null}
+      {needsCreditCustomer ? <div className="error-box" style={{ margin: 0, textAlign: 'center' }}>البيع الآجل يحتاج اختيار عميل.</div> : null}
       {!pos.canApplyDiscount ? <div className="pos-payment-strip-notes" style={{ margin: 0 }}><span className="pos-payment-strip-note">{pos.discountApprovalGranted ? 'تم اعتماد الخصم لهذه الفاتورة فقط.' : 'لا تملك صلاحية تعديل الخصم. استخدم اعتماد المدير لهذه الفاتورة.'}</span></div> : null}
-      {pos.hasDiscountPermissionViolation ? <div className="error-box" style={{ margin: 0 }}>تم اكتشاف خصم غير مسموح به في هذه الفاتورة.</div> : null}
+      {pos.hasDiscountPermissionViolation ? <div className="error-box" style={{ margin: 0, textAlign: 'center' }}>تم اكتشاف خصم غير مسموح به في هذه الفاتورة.</div> : null}
     </div>
   );
 }
@@ -816,7 +816,7 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
         </div>
 
         <div className="field" style={{ margin: 0 }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block' }}>رسوم التوصيل (${getGlobalCurrencySymbol()})</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>رسوم التوصيل ({getGlobalCurrencySymbol()})</span>
           <input
             type="number"
             min="0"
@@ -824,7 +824,7 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
             value={pos.deliveryFee === 0 ? '' : pos.deliveryFee}
             onChange={(event) => pos.setDeliveryFee(Number(event.target.value || 0))}
             placeholder="0"
-            style={{ padding: '6px 10px', height: '38px', width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '14px' }}
+            style={{ padding: '6px 10px', height: '38px', width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '14px', textAlign: 'center' }}
           />
         </div>
       </div>

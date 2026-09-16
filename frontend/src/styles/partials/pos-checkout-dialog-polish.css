@@ -1,18 +1,16 @@
 .pos-checkout-dialog-shell {
-  height: min(820px, calc(100vh - 24px)) !important;
-  min-height: min(820px, calc(100vh - 24px)) !important;
-  max-height: calc(100vh - 24px) !important;
+  height: auto !important;
+  max-height: calc(100vh - 20px) !important;
   display: flex !important;
   flex-direction: column !important;
 }
 
 .pos-checkout-dialog-card {
-  height: 100% !important;
-  min-height: 100% !important;
-  max-height: calc(100vh - 24px) !important;
+  height: auto !important;
+  max-height: calc(100vh - 20px) !important;
   display: flex !important;
   flex-direction: column !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   box-sizing: border-box !important;
 }
 
@@ -20,10 +18,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  height: 100%;
-  flex: 1;
-  overflow-y: auto;
-  padding-inline-end: 2px;
+  overflow: visible;
+  padding-inline-end: 0;
 }
 
 .pos-checkout-dialog-section {
@@ -79,30 +75,36 @@
 }
 
 .pos-checkout-dialog-chip {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 3px;
   min-width: 0;
-  min-height: 64px;
-  padding: 12px 14px;
+  min-height: 48px;
+  padding: 6px 8px;
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 8px;
   background: #fff;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
 }
 
 .pos-checkout-dialog-chip span {
   color: #64748b;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .pos-checkout-dialog-chip strong {
   min-width: 0;
   color: #0f172a;
-  font-size: 18px;
-  font-weight: 950;
+  font-size: 15px;
+  font-weight: 900;
   line-height: 1.15;
-  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .pos-checkout-dialog-chip.is-total {

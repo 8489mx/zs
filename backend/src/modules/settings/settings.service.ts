@@ -189,6 +189,9 @@ export class SettingsService {
       if (settings.restaurantModuleEnabled === undefined) {
         settings.restaurantModuleEnabled = (settings.industryProfile as any)?.subVertical === 'restaurant';
       }
+      if (settings.restaurantTablesCount === undefined) {
+        settings.restaurantTablesCount = 12;
+      }
       if (settings.phoneOrdersModuleEnabled === undefined) {
         const subVertical = (settings.industryProfile as any)?.subVertical;
         settings.phoneOrdersModuleEnabled = ['restaurant', 'pharmacy', 'supermarket', 'grocery', 'food_beverage'].includes(subVertical) || settings.restaurantModuleEnabled === true;

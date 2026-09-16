@@ -66,14 +66,15 @@ export function ContractingMaterialsTab({
               padding: '0 14px',
               borderRadius: '8px',
               fontWeight: 600,
-              background: '#fff7ed',
-              color: '#c2410c',
-              border: '1px solid #fed7aa',
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
             }}
           >
             <AppIcons.RefreshCw size={15} />
@@ -87,18 +88,20 @@ export function ContractingMaterialsTab({
               height: '36px',
               padding: '0 16px',
               borderRadius: '8px',
-              fontWeight: 600,
+              fontWeight: 700,
               background: '#170e5e',
               color: '#ffffff',
               border: 'none',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
+              boxShadow: '0 1px 3px rgba(23, 14, 94, 0.15)',
+              transition: 'all 0.15s ease',
             }}
           >
-            <AppIcons.Plus size={16} />
+            <AppIcons.Plus size={15} />
             <span>إصدار إذن صرف خامات للموقع</span>
           </button>
         </div>
@@ -170,14 +173,14 @@ export function ContractingMaterialsTab({
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>رقم الإذن والتاريخ</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>بيان المادة أو الخامة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الكمية المصروفة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>تكلفة الوحدة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>إجمالي التكلفة الفعلي</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>المستلم بالموقع</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>إجراءات</th>
+                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>رقم الإذن والتاريخ</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>بيان المادة أو الخامة</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>الكمية المصروفة</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>تكلفة الوحدة</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>إجمالي التكلفة الفعلي</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>المستلم بالموقع</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>إجراءات</th>
                 </tr>
               </thead>
               <tbody>

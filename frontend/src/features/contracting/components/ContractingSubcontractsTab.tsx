@@ -76,14 +76,15 @@ export function ContractingSubcontractsTab({
               padding: '0 14px',
               borderRadius: '8px',
               fontWeight: 600,
-              background: '#f8fafc',
-              color: '#170e5e',
+              background: '#ffffff',
+              color: '#334155',
               border: '1px solid #cbd5e1',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
             }}
           >
             <AppIcons.ShieldCheck size={15} />
@@ -99,14 +100,15 @@ export function ContractingSubcontractsTab({
               padding: '0 14px',
               borderRadius: '8px',
               fontWeight: 600,
-              background: '#fff1f2',
-              color: '#991b1b',
-              border: '1px solid #fecdd3',
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
             }}
           >
             <AppIcons.AlertTriangle size={15} />
@@ -130,6 +132,8 @@ export function ContractingSubcontractsTab({
               gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
+              boxShadow: '0 1px 3px rgba(23, 14, 94, 0.15)',
+              transition: 'all 0.15s ease',
             }}
           >
             <AppIcons.Plus size={15} />
@@ -149,19 +153,19 @@ export function ContractingSubcontractsTab({
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي الالتزامات التعاقدية</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
-            {totalCommitted.toLocaleString('ar-EG')} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currencySymbol}</span>
+            {totalCommitted.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currencySymbol}</span>
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>المستخلص المنفذ للمقاولين</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>
-            {totalInvoiced.toLocaleString('ar-EG')} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currencySymbol}</span>
+            {totalInvoiced.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currencySymbol}</span>
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>المتبقي من الالتزامات</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
-            {totalRemaining.toLocaleString('ar-EG')} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currencySymbol}</span>
+            {totalRemaining.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currencySymbol}</span>
           </div>
         </div>
       </div>
@@ -206,15 +210,15 @@ export function ContractingSubcontractsTab({
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>رقم العقد ومقاول الباطن</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>نطاق الأعمال المسندة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>القيمة التعاقدية</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>المستخلص حتى الآن</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>المتبقي من الالتزام</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>ضمان الأعمال</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الحالة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>إجراءات</th>
+                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>رقم العقد ومقاول الباطن</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>نطاق الأعمال المسندة</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>القيمة التعاقدية</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>المستخلص حتى الآن</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>المتبقي من الالتزام</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>ضمان الأعمال</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>الحالة</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>إجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -242,19 +246,19 @@ export function ContractingSubcontractsTab({
                         )}
                       </td>
                       <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
-                        {Number(sc.totalAmount).toLocaleString('ar-EG')} {currencySymbol}
+                        {Number(sc.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currencySymbol}
                       </td>
                       <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#2563eb' }}>
-                        {Number(sc.totalInvoiced || 0).toLocaleString('ar-EG')} {currencySymbol}
+                        {Number(sc.totalInvoiced || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currencySymbol}
                       </td>
                       <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 700, color: remaining > 0 ? '#15803d' : '#64748b' }}>
-                        {remaining.toLocaleString('ar-EG')} {currencySymbol}
+                        {remaining.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currencySymbol}
                       </td>
                       <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#a16207', fontWeight: 600 }}>
                         {sc.retentionPercent}%
                         {Number(sc.totalRetentionHeld || 0) > 0 && (
                           <div style={{ fontSize: 'var(--font-micro)', color: '#b45309' }}>
-                            ({Number(sc.totalRetentionHeld).toLocaleString('ar-EG')})
+                            ({Number(sc.totalRetentionHeld).toLocaleString('en-US', { minimumFractionDigits: 2 })})
                           </div>
                         )}
                       </td>

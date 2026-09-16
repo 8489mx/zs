@@ -11,6 +11,8 @@ import { PrintIpcCertificateModal } from '../components/PrintIpcCertificateModal
 import { CreateChangeOrderModal } from '../components/CreateChangeOrderModal';
 import { ProjectHandoverModal } from '../components/ProjectHandoverModal';
 import { ProjectCostBreakdownModal } from '../components/ProjectCostBreakdownModal';
+import { ProjectEvmMetricsModal } from '../components/ProjectEvmMetricsModal';
+import { SubcontractorBackChargesModal } from '../components/SubcontractorBackChargesModal';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface ContractingFinancialsPageProps {
@@ -42,9 +44,11 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
   const [changeOrdersLoading, setChangeOrdersLoading] = useState(false);
   const [isCreateChangeOrderOpen, setIsCreateChangeOrderOpen] = useState(false);
 
-  // Handover & Cost Analysis Modals
+  // Global Pillars Modals
   const [isHandoverModalOpen, setIsHandoverModalOpen] = useState(false);
   const [isCostBreakdownModalOpen, setIsCostBreakdownModalOpen] = useState(false);
+  const [isEvmModalOpen, setIsEvmModalOpen] = useState(false);
+  const [isBackchargesModalOpen, setIsBackchargesModalOpen] = useState(false);
 
   // Update URL on sub-tab change
   const handleSubTabChange = (tab: 'invoices' | 'change-orders') => {
@@ -123,7 +127,7 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} dir="rtl">
-      {/* شريط التبديل الفرعي وأدوات التسليم والتكاليف */}
+      {/* شريط التبديل الفرعي وأدوات EVM والاستقطاعات */}
       <div
         style={{
           display: 'flex',
@@ -183,8 +187,54 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
           </button>
         </div>
 
-        {/* أزرار الاستلام وتحليل التكاليف */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        {/* أزرار الإدارة المالية العالمية (EVM S-Curve, Back-Charges, Cost Breakdown) */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setIsEvmModalOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.TrendingUp size={15} />
+            <span>القيمة المكتسبة (EVM & S-Curve)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsBackchargesModalOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.Receipt size={15} />
+            <span>خصومات مقاولي الباطن (Back-Charges)</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setIsCostBreakdownModalOpen(true)}
@@ -193,40 +243,19 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
               padding: '0 14px',
               borderRadius: '8px',
               fontWeight: 600,
-              background: '#f8fafc',
-              color: '#170e5e',
+              background: '#ffffff',
+              color: '#334155',
               border: '1px solid #cbd5e1',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
             }}
           >
             <AppIcons.BarChart size={15} />
-            <span>تحليل التكاليف الخماسي</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsHandoverModalOpen(true)}
-            style={{
-              height: '36px',
-              padding: '0 14px',
-              borderRadius: '8px',
-              fontWeight: 600,
-              background: '#f8fafc',
-              color: '#15803d',
-              border: '1px solid #bbf7d0',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              fontSize: 'var(--font-body)',
-            }}
-          >
-            <AppIcons.ShieldCheck size={15} />
-            <span>محاضر الاستلام والضمان</span>
+            <span>تحليل التكاليف وميزانية المقايسة</span>
           </button>
         </div>
       </div>
@@ -295,6 +324,26 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
             />
           )}
         </>
+      )}
+
+      {/* مودال مؤشرات القيمة المكتسبة ومنحنى S-Curve العالمي */}
+      {isEvmModalOpen && effectiveProjectId && (
+        <ProjectEvmMetricsModal
+          open={isEvmModalOpen}
+          onClose={() => setIsEvmModalOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+        />
+      )}
+
+      {/* مودال خصومات ومخالفات مقاولي الباطن Back-Charges */}
+      {isBackchargesModalOpen && effectiveProjectId && (
+        <SubcontractorBackChargesModal
+          open={isBackchargesModalOpen}
+          onClose={() => setIsBackchargesModalOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+        />
       )}
 
       {/* مودال محاضر الاستلام الابتدائي والنهائي */}

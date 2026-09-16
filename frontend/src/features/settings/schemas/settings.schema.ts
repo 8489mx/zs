@@ -68,6 +68,10 @@ export const settingsFormSchema = z.object({
   allowNegativeStockSales: z.boolean().default(false),
   allowZeroPurchaseCost: z.boolean().default(false),
   requireCashierShiftForSales: z.boolean().default(true),
+  restaurantTablesCount: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined || Number.isNaN(Number(val)) || Number(val) < 1 ? 12 : Number(val)),
+    z.coerce.number().int().min(1, 'يجب تحديد طاولة واحدة على الأقل').max(200, 'الحد الأقصى 200 طاولة').default(12)
+  ),
   loyaltyEnabled: z.boolean().optional().default(true),
   loyaltyPointsPer100Egp: z.coerce.number().min(0, 'معدل اكتساب النقاط يجب أن يكون رقماً موجباً أو صفراً').default(10),
   loyaltyPointRedeemValue: z.coerce.number().min(0.01, 'قيمة استبدال النقطة يجب أن تكون 0.01 ج.م على الأقل').default(0.1),

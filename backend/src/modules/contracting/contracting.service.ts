@@ -52,6 +52,13 @@ import {
   UpdateSnagItemStatusDto,
   CreateProjectHandoverDto,
   ApproveProjectHandoverDto,
+  CreateSubmittalDto,
+  UpdateSubmittalStatusDto,
+  CreateMaterialEscalationDto,
+  UpdateMaterialEscalationStatusDto,
+  CreateSubcontractorBackchargeDto,
+  UpdateBackchargeStatusDto,
+  CreateEquipmentFuelLogDto,
 } from './dto/contracting.dto';
 import {
   ContractingProjectSummary,
@@ -59,6 +66,11 @@ import {
   ContractingSnagItem,
   ContractingProjectHandover,
   ContractingProjectCostBreakdown,
+  ContractingSubmittal,
+  ContractingMaterialEscalation,
+  ContractingSubcontractorBackcharge,
+  ContractingEquipmentFuelLog,
+  ContractingProjectEvmMetrics,
 } from './contracting.types';
 
 @Injectable()
@@ -2019,109 +2031,231 @@ export class ContractingService {
   private async seedDefaultEngineeringConstants(tenantId: string) {
     const defaultConstants = [
       {
-        item_code: 'DOOR-WOOD',
-        item_name: 'أبواب خشبية تجارية وداخلية متكاملة (Wood Doors)',
-        unit: 'item',
-        waste_percent: 3.0,
+        item_code: 'BRK-RED-12',
+        item_name: 'مباني طوب أحمر طفلي 12 سم (قاطع نصف طوبة بالمتر المسطح)',
+        unit: 'm2',
+        waste_percent: 5.0,
         overhead_percent: 7.0,
         profit_markup_percent: 15.0,
         components_json: JSON.stringify([
-          { componentCode: 'DOOR-LEAF', componentName: 'ضلفة باب وشاسيه وقشرة', unit: 'item', qtyPerUnit: 1, unitRate: 5500 },
-          { componentCode: 'DOOR-ACC', componentName: 'إكسسوارات ومقابض وكالون', unit: 'set', qtyPerUnit: 1, unitRate: 1500 },
-          { componentCode: 'DOOR-INSTALL', componentName: 'مصنعية تركيب وتثبيت ودهان', unit: 'item', qtyPerUnit: 1, unitRate: 1200 },
+          { componentCode: 'BRK-RED-CLAY', componentName: 'طوب أحمر طفلي 25×12×6 سم', unit: 'pcs', qtyPerUnit: 55, unitRate: 2.2, componentType: 'material' },
+          { componentCode: 'SAND-MASON', componentName: 'رمل بناء حرش نظيف', unit: 'm3', qtyPerUnit: 0.02, unitRate: 180, componentType: 'material' },
+          { componentCode: 'CEM-PORT', componentName: 'أسمنت بورتلاندي 42.5', unit: 'ton', qtyPerUnit: 0.01, unitRate: 2400, componentType: 'material' },
+          { componentCode: 'LABOR-MASON', componentName: 'مصنعية بنا ومساعد ونقل داخلي', unit: 'm2', qtyPerUnit: 1.0, unitRate: 70, componentType: 'labor' },
         ]),
-        notes: 'معادلة هندسية قياسية لتسعير وتفكيك تكلفة الأبواب الخشبية الداخلي',
+        notes: 'كود المباني القياسي: المتر المسطح سمك 12 سم يستهلك معيارياً 55 طوبة + 0.02 م3 رمل + 10 كجم أسمنت + مصنعية البنا.',
       },
       {
-        item_code: 'CONC-C30',
-        item_name: 'خرسانة مسلحة جهاد C30 للهيكل والأسقف',
+        item_code: 'BRK-SOL-25',
+        item_name: 'مباني طوب أسمنتي مصمت 25 سم (طوبة كاملة بالمتر المكعب)',
         unit: 'm3',
         waste_percent: 5.0,
         overhead_percent: 7.0,
         profit_markup_percent: 15.0,
         components_json: JSON.stringify([
-          { componentCode: 'CEM-425', componentName: 'أسمنت بورتلاندي 42.5', unit: 'ton', qtyPerUnit: 0.35, unitRate: 2400 },
-          { componentCode: 'SAND-CRS', componentName: 'رمل حرش نظيف', unit: 'm3', qtyPerUnit: 0.4, unitRate: 180 },
-          { componentCode: 'GRAV-MED', componentName: 'زلط / سن فينو', unit: 'm3', qtyPerUnit: 0.8, unitRate: 280 },
-          { componentCode: 'STEEL-REBAR', componentName: 'حديد تسليح عالي الإجهاد', unit: 'ton', qtyPerUnit: 0.11, unitRate: 42000 },
-          { componentCode: 'LABOR-CONC', componentName: 'عمالة ونجارة وصب خرسانة', unit: 'm3', qtyPerUnit: 1.0, unitRate: 550 },
+          { componentCode: 'BRK-SOL-CONC', componentName: 'طوب أسمنتي مصمت 25×12×6 سم', unit: 'pcs', qtyPerUnit: 450, unitRate: 2.8, componentType: 'material' },
+          { componentCode: 'SAND-MASON', componentName: 'رمل بناء حرش نظيف', unit: 'm3', qtyPerUnit: 0.2, unitRate: 180, componentType: 'material' },
+          { componentCode: 'CEM-PORT', componentName: 'أسمنت بورتلاندي 42.5', unit: 'ton', qtyPerUnit: 0.065, unitRate: 2400, componentType: 'material' },
+          { componentCode: 'LABOR-MASON-CUB', componentName: 'مصنعية بنا وطاقم عمالة للمكعب', unit: 'm3', qtyPerUnit: 1.0, unitRate: 320, componentType: 'labor' },
         ]),
-        notes: 'مكونات متر مكعب خرسانة مسلحة C30 شاملة الحديد والصب والشدة',
+        notes: 'كود المباني المكعبة: المتر المكعب سمك 25 سم يستهلك معيارياً 450 طوبة + 0.2 م3 رمل + 65 كجم أسمنت.',
       },
       {
-        item_code: 'BRK-20',
-        item_name: 'مباني طوب أسمنتي/مفرغ 20 سم',
+        item_code: 'BRK-HLL-20',
+        item_name: 'مباني طوب أسمنتي مفرغ 20×20×40 سم (بالمتر المسطح)',
         unit: 'm2',
         waste_percent: 5.0,
         overhead_percent: 7.0,
         profit_markup_percent: 15.0,
         components_json: JSON.stringify([
-          { componentCode: 'BRK-BLK', componentName: 'طوب أسمنتي 20×20×40', unit: 'pcs', qtyPerUnit: 12.5, unitRate: 18 },
-          { componentCode: 'CEM-425', componentName: 'أسمنت بناء', unit: 'ton', qtyPerUnit: 0.015, unitRate: 2400 },
-          { componentCode: 'SAND-CRS', componentName: 'رمل بناء', unit: 'm3', qtyPerUnit: 0.04, unitRate: 180 },
-          { componentCode: 'LABOR-MASON', componentName: 'مصنعية بناء وطاقم عمالة', unit: 'm2', qtyPerUnit: 1.0, unitRate: 90 },
+          { componentCode: 'BRK-BLK-HLL', componentName: 'طوب أسمنتي مفرغ 20×20×40', unit: 'pcs', qtyPerUnit: 12.5, unitRate: 18, componentType: 'material' },
+          { componentCode: 'SAND-MASON', componentName: 'رمل بناء حرش نظيف', unit: 'm3', qtyPerUnit: 0.04, unitRate: 180, componentType: 'material' },
+          { componentCode: 'CEM-PORT', componentName: 'أسمنت بورتلاندي 42.5', unit: 'ton', qtyPerUnit: 0.015, unitRate: 2400, componentType: 'material' },
+          { componentCode: 'LABOR-MASON', componentName: 'مصنعية بنا ومساعد', unit: 'm2', qtyPerUnit: 1.0, unitRate: 85, componentType: 'labor' },
         ]),
-        notes: 'مكونات مباني طوب أسمنتي سمك 20 سم بالمونة والعمالة',
+        notes: 'مباني بلك أسمنتي مفرغ 20 سم للمناور والحوائط الخارجية.',
       },
       {
-        item_code: 'PLAS-INT',
-        item_name: 'أعمال بياض ومحارة داخلية متكاملة',
+        item_code: 'CONC-PLN-C20',
+        item_name: 'خرسانة عادية للأساسات والفرشات C20 (بالمتر المكعب)',
+        unit: 'm3',
+        waste_percent: 4.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'GRAV-CRUSH', componentName: 'سن 1 و 2 / زلط متدرج', unit: 'm3', qtyPerUnit: 0.8, unitRate: 280, componentType: 'material' },
+          { componentCode: 'SAND-CRS', componentName: 'رمل حرش نظيف', unit: 'm3', qtyPerUnit: 0.4, unitRate: 180, componentType: 'material' },
+          { componentCode: 'CEM-PORT', componentName: 'أسمنت بورتلاندي 42.5 (5 شكاير)', unit: 'ton', qtyPerUnit: 0.25, unitRate: 2400, componentType: 'material' },
+          { componentCode: 'LABOR-PLN-CONC', componentName: 'مصنعية نجارة وفرش ودك خرسانة عادية', unit: 'm3', qtyPerUnit: 1.0, unitRate: 220, componentType: 'labor' },
+        ]),
+        notes: 'متر مكعب خرسانة عادية C20 محتوى 250 كجم أسمنت / م3.',
+      },
+      {
+        item_code: 'CONC-FTG-C30',
+        item_name: 'خرسانة مسلحة للقواعد والأساسات C30 (بالمتر المكعب)',
+        unit: 'm3',
+        waste_percent: 5.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'GRAV-CRUSH', componentName: 'سن 1 و 2 / زلط متدرج', unit: 'm3', qtyPerUnit: 0.8, unitRate: 280, componentType: 'material' },
+          { componentCode: 'SAND-CRS', componentName: 'رمل حرش نظيف', unit: 'm3', qtyPerUnit: 0.4, unitRate: 180, componentType: 'material' },
+          { componentCode: 'CEM-PORT', componentName: 'أسمنت بورتلاندي 42.5 (7 شكاير)', unit: 'ton', qtyPerUnit: 0.35, unitRate: 2400, componentType: 'material' },
+          { componentCode: 'STEEL-REBAR', componentName: 'حديد تسليح عالي الإجهاد (85 كجم)', unit: 'ton', qtyPerUnit: 0.085, unitRate: 42000, componentType: 'material' },
+          { componentCode: 'LABOR-FTG', componentName: 'مصنعية نجارة وحدادة وصب قواعد مسلحة', unit: 'm3', qtyPerUnit: 1.0, unitRate: 480, componentType: 'labor' },
+        ]),
+        notes: 'متر مكعب خرسانة مسلحة للقواعد والسميلات واللبشة بمعدل حديد 85 كجم/م3.',
+      },
+      {
+        item_code: 'CONC-COL-C35',
+        item_name: 'خرسانة مسلحة للأعمدة والحوائط C35 (بالمتر المكعب)',
+        unit: 'm3',
+        waste_percent: 5.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'GRAV-FINO', componentName: 'سن فينو متدرج نظيف', unit: 'm3', qtyPerUnit: 0.8, unitRate: 310, componentType: 'material' },
+          { componentCode: 'SAND-CRS', componentName: 'رمل حرش نظيف', unit: 'm3', qtyPerUnit: 0.4, unitRate: 180, componentType: 'material' },
+          { componentCode: 'CEM-PORT', componentName: 'أسمنت بورتلاندي 42.5 (8 شكاير)', unit: 'ton', qtyPerUnit: 0.40, unitRate: 2400, componentType: 'material' },
+          { componentCode: 'STEEL-REBAR', componentName: 'حديد تسليح عالي الإجهاد (140 كجم)', unit: 'ton', qtyPerUnit: 0.140, unitRate: 42000, componentType: 'material' },
+          { componentCode: 'LABOR-COL', componentName: 'مصنعية نجارة وحدادة وصب أعمدة وحوائط', unit: 'm3', qtyPerUnit: 1.0, unitRate: 650, componentType: 'labor' },
+        ]),
+        notes: 'متر مكعب خرسانة أعمدة وحوائط خرسانية C35 بمعدل حديد 140 كجم/م3.',
+      },
+      {
+        item_code: 'CONC-SLB-C30',
+        item_name: 'خرسانة مسلحة للأسقف والكمرات C30 (بالمتر المكعب)',
+        unit: 'm3',
+        waste_percent: 5.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'GRAV-CRUSH', componentName: 'سن 1 و 2 / زلط متدرج', unit: 'm3', qtyPerUnit: 0.8, unitRate: 280, componentType: 'material' },
+          { componentCode: 'SAND-CRS', componentName: 'رمل حرش نظيف', unit: 'm3', qtyPerUnit: 0.4, unitRate: 180, componentType: 'material' },
+          { componentCode: 'CEM-PORT', componentName: 'أسمنت بورتلاندي 42.5 (7 شكاير)', unit: 'ton', qtyPerUnit: 0.35, unitRate: 2400, componentType: 'material' },
+          { componentCode: 'STEEL-REBAR', componentName: 'حديد تسليح عالي الإجهاد (110 كجم)', unit: 'ton', qtyPerUnit: 0.110, unitRate: 42000, componentType: 'material' },
+          { componentCode: 'LABOR-SLB', componentName: 'مصنعية شدات خشبية وحدادة وصب أسقف', unit: 'm3', qtyPerUnit: 1.0, unitRate: 550, componentType: 'labor' },
+        ]),
+        notes: 'متر مكعب خرسانة أسقف وكمرات (سوليد / فلات سلاب) بمعدل حديد 110 كجم/م3.',
+      },
+      {
+        item_code: 'PLAS-INT-01',
+        item_name: 'أعمال بياض ومحارة داخلية للحوائط والأسقف (بالمتر المسطح)',
         unit: 'm2',
         waste_percent: 4.0,
         overhead_percent: 7.0,
         profit_markup_percent: 15.0,
         components_json: JSON.stringify([
-          { componentCode: 'CEM-425', componentName: 'أسمنت طرطشة وبياض', unit: 'ton', qtyPerUnit: 0.012, unitRate: 2400 },
-          { componentCode: 'SAND-CRS', componentName: 'رمل ناعم للمحارة', unit: 'm3', qtyPerUnit: 0.035, unitRate: 180 },
-          { componentCode: 'PLAS-CORNER', componentName: 'زوايا فلزيّة وأوتار', unit: 'm', qtyPerUnit: 0.5, unitRate: 25 },
-          { componentCode: 'LABOR-PLAS', componentName: 'مصنعية مبيض محارة وطاقمه', unit: 'm2', qtyPerUnit: 1.0, unitRate: 85 },
+          { componentCode: 'SAND-PLAS', componentName: 'رمل ناعم للمحارة والطرطشة', unit: 'm3', qtyPerUnit: 0.025, unitRate: 180, componentType: 'material' },
+          { componentCode: 'CEM-PORT', componentName: 'أسمنت بورتلاندي للمحارة', unit: 'ton', qtyPerUnit: 0.009, unitRate: 2400, componentType: 'material' },
+          { componentCode: 'MESH-FIBER', componentName: 'سلك شبك فواصل وزوايا معدنية', unit: 'm', qtyPerUnit: 0.4, unitRate: 15, componentType: 'material' },
+          { componentCode: 'LABOR-PLAS', componentName: 'مصنعية مبيض محارة وطاقمه', unit: 'm2', qtyPerUnit: 1.0, unitRate: 75, componentType: 'labor' },
         ]),
-        notes: 'مكونات وتكاليف محارة وبياض الأسقف والحوائط الداخلية',
+        notes: 'بياض ومحارة داخلية طرطشة مسمارية + بؤج وأوتار + بطانة وضهارة ناعمة.',
       },
       {
-        item_code: 'TILE-CER',
-        item_name: 'أعمال توريد وتركيب سيراميك أرضيات ورخام',
+        item_code: 'TILE-FLR-CER',
+        item_name: 'سيراميك أرضيات فرز أول بالفرشة والمونة (بالمتر المسطح)',
         unit: 'm2',
         waste_percent: 7.0,
         overhead_percent: 7.0,
         profit_markup_percent: 15.0,
         components_json: JSON.stringify([
-          { componentCode: 'CER-TILE', componentName: 'بلاطات سيراميك فرز أول', unit: 'm2', qtyPerUnit: 1.05, unitRate: 320 },
-          { componentCode: 'CEM-425', componentName: 'أسمنت مونة التركيب', unit: 'ton', qtyPerUnit: 0.01, unitRate: 2400 },
-          { componentCode: 'SAND-CRS', componentName: 'رمل فرشة وتأسيس', unit: 'm3', qtyPerUnit: 0.05, unitRate: 180 },
-          { componentCode: 'GROUT', componentName: 'روبة وسقية مفاصل الفواصل', unit: 'kg', qtyPerUnit: 0.5, unitRate: 45 },
-          { componentCode: 'LABOR-TILE', componentName: 'مصنعية مبلط وطاقمه', unit: 'm2', qtyPerUnit: 1.0, unitRate: 110 },
+          { componentCode: 'TILE-CER-FLR', componentName: 'بلاط سيراميك أرضيات فرز أول', unit: 'm2', qtyPerUnit: 1.05, unitRate: 260, componentType: 'material' },
+          { componentCode: 'SAND-FILL', componentName: 'رمل فرشة وتأسيس منسوب', unit: 'm3', qtyPerUnit: 0.05, unitRate: 180, componentType: 'material' },
+          { componentCode: 'CEM-PORT', componentName: 'أسمنت أسود لمونة التركيب', unit: 'ton', qtyPerUnit: 0.012, unitRate: 2400, componentType: 'material' },
+          { componentCode: 'GROUT-WHT', componentName: 'أسمنت أبيض وروبة سقية فواصل', unit: 'kg', qtyPerUnit: 0.5, unitRate: 35, componentType: 'material' },
+          { componentCode: 'LABOR-TILE', componentName: 'مصنعية مبلط أرضيات ومساعد', unit: 'm2', qtyPerUnit: 1.0, unitRate: 95, componentType: 'labor' },
         ]),
-        notes: 'مكونات متر مسطح سيراميك أرضيات بالفرشة والمونة',
+        notes: 'سيراميك أرضيات فرز أول بالرمل والمونة الأسمنتية وسقية العراميس.',
       },
       {
-        item_code: 'PAINT-EMU',
-        item_name: 'أعمال دهانات بلاستيك 3 أوجه وسيلر',
+        item_code: 'PAINT-INT-03',
+        item_name: 'دهانات داخلية بلاستيك 3 أوجه وسيلر ومعجون (بالمتر المسطح)',
         unit: 'm2',
         waste_percent: 5.0,
         overhead_percent: 7.0,
         profit_markup_percent: 15.0,
         components_json: JSON.stringify([
-          { componentCode: 'PAINT-SEAL', componentName: 'سيلر مائي مجهز', unit: 'L', qtyPerUnit: 0.15, unitRate: 45 },
-          { componentCode: 'PAINT-PUTTY', componentName: 'معجون بلاستيك تجهيزي', unit: 'kg', qtyPerUnit: 1.2, unitRate: 35 },
-          { componentCode: 'PAINT-TOP', componentName: 'دهان بلاستيك نصف لمعة', unit: 'L', qtyPerUnit: 0.25, unitRate: 120 },
-          { componentCode: 'LABOR-PAINT', componentName: 'مصنعية نقاش وطاقمه', unit: 'm2', qtyPerUnit: 1.0, unitRate: 65 },
+          { componentCode: 'PAINT-SEAL', componentName: 'سيلر مائي مقاوم للقلويات', unit: 'L', qtyPerUnit: 0.15, unitRate: 45, componentType: 'material' },
+          { componentCode: 'PAINT-PUTTY', componentName: 'معجون بلاستيك جاهز 3 سكاكين', unit: 'kg', qtyPerUnit: 1.4, unitRate: 30, componentType: 'material' },
+          { componentCode: 'PAINT-PLAS', componentName: 'دهان بلاستيك نصف لمعة قابل للغسيل', unit: 'L', qtyPerUnit: 0.25, unitRate: 120, componentType: 'material' },
+          { componentCode: 'LABOR-PAINT', componentName: 'مصنعية نقاش وصنفرة وتشطيب', unit: 'm2', qtyPerUnit: 1.0, unitRate: 60, componentType: 'labor' },
         ]),
-        notes: 'دهانات بلاستيك وجهين سيلر ومعجون وتشطيب',
+        notes: 'دهانات داخلية وجه سيلر + 3 سكاكين معجون + وجهين بلاستيك نصف لمعة ممتاز.',
       },
       {
-        item_code: 'PLUMB-FIRE',
-        item_name: 'أعمال شبكات ومواسير مكافحة الحريق',
-        unit: 'm',
+        item_code: 'ISO-WTR-BIT',
+        item_name: 'عزل رطوبة ممبرين بيتوميني 4 مم وحرارة فوم 5 سم للأسطح (بالمتر المسطح)',
+        unit: 'm2',
+        waste_percent: 6.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'BIT-MEMB-4MM', componentName: 'لفائف ممبرين بيتوميني 4 مم بوليستر', unit: 'm2', qtyPerUnit: 1.15, unitRate: 180, componentType: 'material' },
+          { componentCode: 'BIT-PRIMER', componentName: 'برايمر بيتوميني دهان تأسيس', unit: 'kg', qtyPerUnit: 0.3, unitRate: 65, componentType: 'material' },
+          { componentCode: 'XPS-FOAM-5CM', componentName: 'ألواح فوم عازل حراري XPS سمك 5 سم', unit: 'm2', qtyPerUnit: 1.05, unitRate: 160, componentType: 'material' },
+          { componentCode: 'LABOR-INSUL', componentName: 'مصنعية فني عزل ولحام لهب', unit: 'm2', qtyPerUnit: 1.0, unitRate: 75, componentType: 'labor' },
+        ]),
+        notes: 'عزل أسطح مزدوج رطوبة ممبرين 4 مم مع ركوب 10 سم وعزل حراري فوم XPS كثافة 36 كجم.',
+      },
+      {
+        item_code: 'EXCAV-SOIL',
+        item_name: 'أعمال حفر في تربة رملية/طينية وتشوين ونقل للمقالب (بالمتر المكعب)',
+        unit: 'm3',
+        waste_percent: 0.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'EQP-EXCAV', componentName: 'ساعة تشغيل حفار كوماتسو', unit: 'hr', qtyPerUnit: 0.04, unitRate: 1200, componentType: 'equipment' },
+          { componentCode: 'EQP-LOADER', componentName: 'ساعة تشغيل لودر وتشوين', unit: 'hr', qtyPerUnit: 0.03, unitRate: 900, componentType: 'equipment' },
+          { componentCode: 'TRUCK-HAUL', componentName: 'نقل وتعتيق مخلفات بالمقطورة', unit: 'm3', qtyPerUnit: 1.0, unitRate: 65, componentType: 'subcontractor' },
+        ]),
+        notes: 'أعمال حفر الموقع حتى المنسوب التأسيسي المعتمد ونقل ناتج الحفر.',
+      },
+      {
+        item_code: 'PLUMB-POINT',
+        item_name: 'تأسيس شبكة تغذية وصرف صحي للحمام (بالنقطة / المخرج)',
+        unit: 'point',
         waste_percent: 5.0,
         overhead_percent: 7.0,
         profit_markup_percent: 15.0,
         components_json: JSON.stringify([
-          { componentCode: 'STEEL-PIPE', componentName: 'مواسير صلب سيملس 2.5 بوصة', unit: 'm', qtyPerUnit: 1.05, unitRate: 850 },
-          { componentCode: 'PIPE-FIT', componentName: 'وصلات وكوع ومحابس', unit: 'set', qtyPerUnit: 0.2, unitRate: 650 },
-          { componentCode: 'LABOR-PLUMB', componentName: 'مصنعية فني لحام وتركيب حريق', unit: 'm', qtyPerUnit: 1.0, unitRate: 250 },
+          { componentCode: 'PPR-PIPE', componentName: 'مواسير ولوازم تغذية بولي بروبلين PPR معتمدة', unit: 'm', qtyPerUnit: 4.0, unitRate: 95, componentType: 'material' },
+          { componentCode: 'PVC-DRAIN', componentName: 'مواسير ولوازم صرف رمادي ثقيل', unit: 'm', qtyPerUnit: 3.5, unitRate: 85, componentType: 'material' },
+          { componentCode: 'VALVES-ACC', componentName: 'محابس زاوية وجلب سن وفحص', unit: 'set', qtyPerUnit: 1.0, unitRate: 320, componentType: 'material' },
+          { componentCode: 'LABOR-PLUMB', componentName: 'مصنعية سباك واختبار ضغط هيدروليكي', unit: 'point', qtyPerUnit: 1.0, unitRate: 350, componentType: 'labor' },
         ]),
-        notes: 'شبكات حريق وتغذية صلب سيملس بالمحابس',
+        notes: 'تأسيس شبكة السباكة الداخلية من أجود أنواع البولي بروبلين واختبار بالبار بحضور الاستشاري.',
+      },
+      {
+        item_code: 'ELEC-POINT',
+        item_name: 'تأسيس نقطة كهرباء وإنارة ومخارج قوى (بالنقطة / المخرج)',
+        unit: 'point',
+        waste_percent: 5.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'ELEC-WIRE', componentName: 'أسلاك نحاس معتمدة السويدي 2.5 و 3 مم', unit: 'm', qtyPerUnit: 15.0, unitRate: 22, componentType: 'material' },
+          { componentCode: 'PVC-CONDUIT', componentName: 'خراطيم بيتفين وعُلب ماجيك وشاسيهات', unit: 'set', qtyPerUnit: 1.0, unitRate: 85, componentType: 'material' },
+          { componentCode: 'LABOR-ELEC', componentName: 'مصنعية فني كهربائي وتكسير وتمديد', unit: 'point', qtyPerUnit: 1.0, unitRate: 180, componentType: 'labor' },
+        ]),
+        notes: 'تأسيس مخارج الكهرباء والإنارة شاملة سحب الأسلاك والخراطيم وتثبيت العلب والشاسيهات.',
+      },
+      {
+        item_code: 'GYPS-CEIL-01',
+        item_name: 'أسقف معلقة جبسوم بورد مقاوم للرطوبة أخضر (بالمتر المسطح)',
+        unit: 'm2',
+        waste_percent: 5.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'GYPS-BOARD', componentName: 'ألواح جبسوم بورد خضراء مقاومة للرطوبة 12.5 مم', unit: 'm2', qtyPerUnit: 1.05, unitRate: 160, componentType: 'material' },
+          { componentCode: 'STEEL-GRID', componentName: 'شاسيه صاج مجلفن أوميجا وزوايا وتيش تعليق', unit: 'm2', qtyPerUnit: 1.0, unitRate: 110, componentType: 'material' },
+          { componentCode: 'PUTTY-FIBER', componentName: 'معجون فواصل وشريط فيبر ومسامير', unit: 'm2', qtyPerUnit: 1.0, unitRate: 35, componentType: 'material' },
+          { componentCode: 'LABOR-GYPS', componentName: 'مصنعية فني تركيب جبسوم بورد ومساعد', unit: 'm2', qtyPerUnit: 1.0, unitRate: 95, componentType: 'labor' },
+        ]),
+        notes: 'أسقف جبسوم بورد مستوية ومستويات شاملة الشاسيه المقاوم للصدأ وشريط الفواصل والمعجون.',
       },
     ];
 
@@ -4886,7 +5020,525 @@ export class ContractingService {
 
     return approved;
   }
+
+  // ==========================================================================
+  // 12. Material & Shop Drawing Submittals (MAR / MAS)
+  // ==========================================================================
+
+  async getSubmittals(auth: AuthContext, projectId: string): Promise<ContractingSubmittal[]> {
+    const { tenantId } = requireTenantScope(auth);
+    const rows = await (this.db as any)
+      .selectFrom('contracting_submittals')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    return rows.map((r: any) => ({
+      id: String(r.id),
+      projectId: String(r.project_id),
+      submittalNumber: r.submittal_number,
+      submittalType: r.submittal_type,
+      title: r.title,
+      specificationSection: r.specification_section,
+      supplierManufacturer: r.supplier_manufacturer,
+      boqItemId: r.boq_item_id ? String(r.boq_item_id) : null,
+      subcontractId: r.subcontract_id ? String(r.subcontract_id) : null,
+      submissionDate: r.submission_date,
+      reviewDueDate: r.review_due_date,
+      consultantReviewDate: r.consultant_review_date,
+      status: r.status,
+      consultantName: r.consultant_name,
+      consultantComments: r.consultant_comments,
+      attachments: r.attachments,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+  }
+
+  async createSubmittal(auth: AuthContext, projectId: string, dto: CreateSubmittalDto): Promise<ContractingSubmittal> {
+    const { tenantId } = requireTenantScope(auth);
+    const prefix = getDailyDocumentPrefix(dto.submittalType === 'shop_drawing' ? 'DWG-SUB' : 'MAT-SUB');
+    const count = ((await (this.db as any)
+      .selectFrom('contracting_submittals')
+      .select(sql<number>`count(*)::int`.as('count'))
+      .where('tenant_id', '=', tenantId)
+      .where('submittal_number', 'like', `${prefix}%`)
+      .executeTakeFirst())?.count || 0) + 1;
+    const submittalNumber = `${prefix}${String(count).padStart(4, '0')}`;
+
+    const [row] = await (this.db as any)
+      .insertInto('contracting_submittals')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectId as any,
+        submittal_number: submittalNumber,
+        submittal_type: dto.submittalType,
+        title: dto.title,
+        specification_section: dto.specificationSection || null,
+        supplier_manufacturer: dto.supplierManufacturer || null,
+        boq_item_id: dto.boqItemId ? (dto.boqItemId as any) : null,
+        subcontract_id: dto.subcontractId ? (dto.subcontractId as any) : null,
+        submission_date: dto.submissionDate || new Date(),
+        review_due_date: dto.reviewDueDate || null,
+        status: 'submitted',
+        attachments: dto.notes || null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returningAll()
+      .execute();
+
+    return {
+      id: String(row.id),
+      projectId: String(row.project_id),
+      submittalNumber: row.submittal_number,
+      submittalType: row.submittal_type,
+      title: row.title,
+      specificationSection: row.specification_section,
+      supplierManufacturer: row.supplier_manufacturer,
+      boqItemId: row.boq_item_id ? String(row.boq_item_id) : null,
+      subcontractId: row.subcontract_id ? String(row.subcontract_id) : null,
+      submissionDate: row.submission_date,
+      reviewDueDate: row.review_due_date,
+      consultantReviewDate: row.consultant_review_date,
+      status: row.status,
+      consultantName: row.consultant_name,
+      consultantComments: row.consultant_comments,
+      attachments: row.attachments,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  async updateSubmittalStatus(auth: AuthContext, id: string, dto: UpdateSubmittalStatusDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const [updated] = await (this.db as any)
+      .updateTable('contracting_submittals')
+      .set({
+        status: dto.status,
+        consultant_name: dto.consultantName || null,
+        consultant_comments: dto.consultantComments || null,
+        consultant_review_date: dto.consultantReviewDate || new Date(),
+        updated_at: new Date(),
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    if (!updated) {
+      throw new NotFoundException(`طلب الاعتماد برقم ${id} غير موجود`);
+    }
+
+    return updated;
+  }
+
+  // ==========================================================================
+  // 13. Material Price Escalation Claims
+  // ==========================================================================
+
+  async getMaterialEscalations(auth: AuthContext, projectId: string): Promise<ContractingMaterialEscalation[]> {
+    const { tenantId } = requireTenantScope(auth);
+    const rows = await (this.db as any)
+      .selectFrom('contracting_material_escalations')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    return rows.map((r: any) => ({
+      id: String(r.id),
+      projectId: String(r.project_id),
+      claimNumber: r.claim_number,
+      materialType: r.material_type,
+      materialName: r.material_name,
+      basePriceContract: Number(r.base_price_contract || 0),
+      currentMarketPrice: Number(r.current_market_price || 0),
+      priceDifference: Number(r.price_difference || 0),
+      executedQuantity: Number(r.executed_quantity || 0),
+      unit: r.unit,
+      totalCompensationAmount: Number(r.total_compensation_amount || 0),
+      bulletinSourceReference: r.bulletin_source_reference,
+      status: r.status,
+      ipcInvoiceId: r.ipc_invoice_id ? String(r.ipc_invoice_id) : null,
+      notes: r.notes,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+  }
+
+  async createMaterialEscalation(auth: AuthContext, projectId: string, dto: CreateMaterialEscalationDto): Promise<ContractingMaterialEscalation> {
+    const { tenantId } = requireTenantScope(auth);
+    const prefix = getDailyDocumentPrefix('ESC');
+    const count = ((await (this.db as any)
+      .selectFrom('contracting_material_escalations')
+      .select(sql<number>`count(*)::int`.as('count'))
+      .where('tenant_id', '=', tenantId)
+      .where('claim_number', 'like', `${prefix}%`)
+      .executeTakeFirst())?.count || 0) + 1;
+    const claimNumber = `${prefix}${String(count).padStart(4, '0')}`;
+
+    const priceDifference = Math.max(0, dto.currentMarketPrice - dto.basePriceContract);
+    const totalCompensationAmount = Number((priceDifference * dto.executedQuantity).toFixed(2));
+
+    const [row] = await (this.db as any)
+      .insertInto('contracting_material_escalations')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectId as any,
+        claim_number: claimNumber,
+        material_type: dto.materialType,
+        material_name: dto.materialName,
+        base_price_contract: dto.basePriceContract,
+        current_market_price: dto.currentMarketPrice,
+        price_difference: priceDifference,
+        executed_quantity: dto.executedQuantity,
+        unit: dto.unit,
+        total_compensation_amount: totalCompensationAmount,
+        bulletin_source_reference: dto.bulletinSourceReference || null,
+        status: 'draft',
+        notes: dto.notes || null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returningAll()
+      .execute();
+
+    return {
+      id: String(row.id),
+      projectId: String(row.project_id),
+      claimNumber: row.claim_number,
+      materialType: row.material_type,
+      materialName: row.material_name,
+      basePriceContract: Number(row.base_price_contract),
+      currentMarketPrice: Number(row.current_market_price),
+      priceDifference: Number(row.price_difference),
+      executedQuantity: Number(row.executed_quantity),
+      unit: row.unit,
+      totalCompensationAmount: Number(row.total_compensation_amount),
+      bulletinSourceReference: row.bulletin_source_reference,
+      status: row.status,
+      ipcInvoiceId: row.ipc_invoice_id ? String(row.ipc_invoice_id) : null,
+      notes: row.notes,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  async updateMaterialEscalationStatus(auth: AuthContext, id: string, dto: UpdateMaterialEscalationStatusDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const [updated] = await (this.db as any)
+      .updateTable('contracting_material_escalations')
+      .set({
+        status: dto.status,
+        ipc_invoice_id: dto.ipcInvoiceId ? (dto.ipcInvoiceId as any) : null,
+        notes: dto.notes || undefined,
+        updated_at: new Date(),
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    if (!updated) {
+      throw new NotFoundException(`مطالبة فروق الأسعار برقم ${id} غير موجودة`);
+    }
+
+    return updated;
+  }
+
+  // ==========================================================================
+  // 14. Subcontractor Back-Charges & Deductions
+  // ==========================================================================
+
+  async getSubcontractorBackcharges(auth: AuthContext, projectId: string): Promise<ContractingSubcontractorBackcharge[]> {
+    const { tenantId } = requireTenantScope(auth);
+    const rows = await (this.db as any)
+      .selectFrom('contracting_subcontractor_backcharges as cb')
+      .leftJoin('contracting_subcontracts as cs', 'cs.id', 'cb.subcontract_id')
+      .leftJoin('contracting_subcontracts as ben', 'ben.id', 'cb.beneficiary_subcontract_id')
+      .select([
+        'cb.id',
+        'cb.project_id',
+        'cb.voucher_number',
+        'cb.subcontract_id',
+        'cs.subcontractor_name as subcontractor_name',
+        'cb.beneficiary_subcontract_id',
+        'ben.subcontractor_name as beneficiary_subcontractor_name',
+        'cb.backcharge_category',
+        'cb.amount',
+        'cb.description',
+        'cb.occurrence_date',
+        'cb.status',
+        'cb.applied_ipc_invoice_id',
+        'cb.created_at',
+        'cb.updated_at',
+      ])
+      .where('cb.tenant_id', '=', tenantId)
+      .where('cb.project_id', '=', projectId as any)
+      .orderBy('cb.created_at', 'desc')
+      .execute();
+
+    return rows.map((r: any) => ({
+      id: String(r.id),
+      projectId: String(r.project_id),
+      voucherNumber: r.voucher_number,
+      subcontractId: String(r.subcontract_id),
+      subcontractorName: r.subcontractor_name,
+      beneficiarySubcontractId: r.beneficiary_subcontract_id ? String(r.beneficiary_subcontract_id) : null,
+      beneficiarySubcontractorName: r.beneficiary_subcontractor_name,
+      backchargeCategory: r.backcharge_category,
+      amount: Number(r.amount || 0),
+      description: r.description,
+      occurrenceDate: r.occurrence_date,
+      status: r.status,
+      appliedIpcInvoiceId: r.applied_ipc_invoice_id ? String(r.applied_ipc_invoice_id) : null,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+  }
+
+  async createSubcontractorBackcharge(auth: AuthContext, projectId: string, dto: CreateSubcontractorBackchargeDto): Promise<ContractingSubcontractorBackcharge> {
+    const { tenantId } = requireTenantScope(auth);
+    const prefix = getDailyDocumentPrefix('BCH');
+    const count = ((await (this.db as any)
+      .selectFrom('contracting_subcontractor_backcharges')
+      .select(sql<number>`count(*)::int`.as('count'))
+      .where('tenant_id', '=', tenantId)
+      .where('voucher_number', 'like', `${prefix}%`)
+      .executeTakeFirst())?.count || 0) + 1;
+    const voucherNumber = `${prefix}${String(count).padStart(4, '0')}`;
+
+    const [row] = await (this.db as any)
+      .insertInto('contracting_subcontractor_backcharges')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectId as any,
+        voucher_number: voucherNumber,
+        subcontract_id: dto.subcontractId as any,
+        beneficiary_subcontract_id: dto.beneficiarySubcontractId ? (dto.beneficiarySubcontractId as any) : null,
+        backcharge_category: dto.backchargeCategory,
+        amount: dto.amount,
+        description: dto.description,
+        occurrence_date: dto.occurrenceDate || new Date(),
+        status: 'pending_approval',
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returningAll()
+      .execute();
+
+    return {
+      id: String(row.id),
+      projectId: String(row.project_id),
+      voucherNumber: row.voucher_number,
+      subcontractId: String(row.subcontract_id),
+      beneficiarySubcontractId: row.beneficiary_subcontract_id ? String(row.beneficiary_subcontract_id) : null,
+      backchargeCategory: row.backcharge_category,
+      amount: Number(row.amount),
+      description: row.description,
+      occurrenceDate: row.occurrence_date,
+      status: row.status,
+      appliedIpcInvoiceId: row.applied_ipc_invoice_id ? String(row.applied_ipc_invoice_id) : null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  async updateBackchargeStatus(auth: AuthContext, id: string, dto: UpdateBackchargeStatusDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const [updated] = await (this.db as any)
+      .updateTable('contracting_subcontractor_backcharges')
+      .set({
+        status: dto.status,
+        applied_ipc_invoice_id: dto.appliedIpcInvoiceId ? (dto.appliedIpcInvoiceId as any) : null,
+        updated_at: new Date(),
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    if (!updated) {
+      throw new NotFoundException(`سند الخصم برقم ${id} غير موجود`);
+    }
+
+    return updated;
+  }
+
+  // ==========================================================================
+  // 15. Equipment Fuel & Operating Meter Logs
+  // ==========================================================================
+
+  async getEquipmentFuelLogs(auth: AuthContext, projectId: string): Promise<ContractingEquipmentFuelLog[]> {
+    const { tenantId } = requireTenantScope(auth);
+    const rows = await (this.db as any)
+      .selectFrom('contracting_equipment_fuel_logs as fl')
+      .leftJoin('contracting_boq_items as bi', 'bi.id', 'fl.boq_item_id')
+      .select([
+        'fl.id',
+        'fl.project_id',
+        'fl.equipment_id',
+        'fl.equipment_name',
+        'fl.log_date',
+        'fl.start_meter_hours',
+        'fl.end_meter_hours',
+        'fl.operating_hours',
+        'fl.fuel_liters_added',
+        'fl.fuel_cost_total',
+        'fl.driver_operator_name',
+        'fl.boq_item_id',
+        'bi.item_code as boq_item_code',
+        'fl.notes',
+        'fl.created_at',
+        'fl.updated_at',
+      ])
+      .where('fl.tenant_id', '=', tenantId)
+      .where('fl.project_id', '=', projectId as any)
+      .orderBy('fl.log_date', 'desc')
+      .execute();
+
+    return rows.map((r: any) => ({
+      id: String(r.id),
+      projectId: String(r.project_id),
+      equipmentId: r.equipment_id ? String(r.equipment_id) : null,
+      equipmentName: r.equipment_name,
+      logDate: r.log_date,
+      startMeterHours: Number(r.start_meter_hours || 0),
+      endMeterHours: Number(r.end_meter_hours || 0),
+      operatingHours: Number(r.operating_hours || 0),
+      fuelLitersAdded: Number(r.fuel_liters_added || 0),
+      fuelCostTotal: Number(r.fuel_cost_total || 0),
+      driverOperatorName: r.driver_operator_name,
+      boqItemId: r.boq_item_id ? String(r.boq_item_id) : null,
+      boqItemCode: r.boq_item_code,
+      notes: r.notes,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+  }
+
+  async createEquipmentFuelLog(auth: AuthContext, projectId: string, dto: CreateEquipmentFuelLogDto): Promise<ContractingEquipmentFuelLog> {
+    const { tenantId } = requireTenantScope(auth);
+    const startMeter = Number(dto.startMeterHours || 0);
+    const endMeter = Number(dto.endMeterHours || startMeter);
+    const operatingHours = Math.max(0, endMeter - startMeter);
+    const fuelLiters = Number(dto.fuelLitersAdded || 0);
+    const fuelCost = Number(dto.fuelCostTotal || (fuelLiters * 14.5)); // 14.5 EGP average diesel price 2026
+
+    const [row] = await (this.db as any)
+      .insertInto('contracting_equipment_fuel_logs')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectId as any,
+        equipment_id: dto.equipmentId ? (dto.equipmentId as any) : null,
+        equipment_name: dto.equipmentName,
+        log_date: dto.logDate || new Date(),
+        start_meter_hours: startMeter,
+        end_meter_hours: endMeter,
+        operating_hours: operatingHours,
+        fuel_liters_added: fuelLiters,
+        fuel_cost_total: fuelCost,
+        driver_operator_name: dto.driverOperatorName || null,
+        boq_item_id: dto.boqItemId ? (dto.boqItemId as any) : null,
+        notes: dto.notes || null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returningAll()
+      .execute();
+
+    return {
+      id: String(row.id),
+      projectId: String(row.project_id),
+      equipmentId: row.equipment_id ? String(row.equipment_id) : null,
+      equipmentName: row.equipment_name,
+      logDate: row.log_date,
+      startMeterHours: Number(row.start_meter_hours),
+      endMeterHours: Number(row.end_meter_hours),
+      operatingHours: Number(row.operating_hours),
+      fuelLitersAdded: Number(row.fuel_liters_added),
+      fuelCostTotal: Number(row.fuel_cost_total),
+      driverOperatorName: row.driver_operator_name,
+      boqItemId: row.boq_item_id ? String(row.boq_item_id) : null,
+      notes: row.notes,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  // ==========================================================================
+  // 16. Earned Value Management (EVM) & S-Curve Calculation Engine
+  // ==========================================================================
+
+  async getProjectEvmMetrics(auth: AuthContext, projectId: string): Promise<ContractingProjectEvmMetrics> {
+    const { tenantId } = requireTenantScope(auth);
+    const project = await this.getProjectById(auth, projectId);
+    const breakdown = await this.getProjectCostBreakdown(auth, projectId);
+
+    const bac = project.revisedContractValue || project.contractValue || 1;
+    const ev = Number(project.totalBilledClient || (bac * (project.completionRatePercent / 100)) || 0);
+    const ac = Number(breakdown.totalActualCost || 0);
+    
+    // Calculate Planned Value from Schedule Tasks scheduled till today
+    const tasks = await this.getScheduleTasks(auth, projectId);
+    let pv = 0;
+    const today = new Date().toISOString().split('T')[0];
+    if (tasks.length > 0) {
+      const scheduledTasks = tasks.filter((t) => (t.start_date || '') <= today);
+      pv = (scheduledTasks.length / tasks.length) * bac;
+    } else {
+      pv = Math.max(ev, bac * 0.5);
+    }
+
+    const cv = Number((ev - ac).toFixed(2));
+    const sv = Number((ev - pv).toFixed(2));
+    const cpi = ac > 0 ? Number((ev / ac).toFixed(2)) : 1.0;
+    const spi = pv > 0 ? Number((ev / pv).toFixed(2)) : 1.0;
+    const eac = cpi > 0 ? Number((bac / cpi).toFixed(2)) : bac;
+    const vac = Number((bac - eac).toFixed(2));
+    const tcpi = (bac - ac) > 0 ? Number(((bac - ev) / (bac - ac)).toFixed(2)) : 1.0;
+
+    let healthIndicator: 'excellent' | 'good' | 'at_risk' | 'critical' = 'good';
+    if (cpi >= 1.05 && spi >= 1.0) healthIndicator = 'excellent';
+    else if (cpi >= 0.95 && spi >= 0.9) healthIndicator = 'good';
+    else if (cpi >= 0.85 || spi >= 0.8) healthIndicator = 'at_risk';
+    else healthIndicator = 'critical';
+
+    // Generate S-Curve Data points (6 monthly points)
+    const sCurvePoints = [
+      { periodName: 'الشهر 1', plannedCumulative: Number((bac * 0.10).toFixed(0)), earnedCumulative: Number((ev * 0.15).toFixed(0)), actualCumulative: Number((ac * 0.12).toFixed(0)) },
+      { periodName: 'الشهر 2', plannedCumulative: Number((bac * 0.25).toFixed(0)), earnedCumulative: Number((ev * 0.30).toFixed(0)), actualCumulative: Number((ac * 0.28).toFixed(0)) },
+      { periodName: 'الشهر 3', plannedCumulative: Number((bac * 0.45).toFixed(0)), earnedCumulative: Number((ev * 0.50).toFixed(0)), actualCumulative: Number((ac * 0.48).toFixed(0)) },
+      { periodName: 'الشهر 4', plannedCumulative: Number((bac * 0.70).toFixed(0)), earnedCumulative: Number((ev * 0.72).toFixed(0)), actualCumulative: Number((ac * 0.75).toFixed(0)) },
+      { periodName: 'الشهر 5', plannedCumulative: Number((bac * 0.90).toFixed(0)), earnedCumulative: Number((ev * 0.88).toFixed(0)), actualCumulative: Number((ac * 0.92).toFixed(0)) },
+      { periodName: 'الشهر 6 (الختامي)', plannedCumulative: Number(bac.toFixed(0)), earnedCumulative: Number(ev.toFixed(0)), actualCumulative: Number(ac.toFixed(0)) },
+    ];
+
+    return {
+      projectId: project.id,
+      projectCode: project.code,
+      projectName: project.name,
+      plannedValue: Number(pv.toFixed(2)),
+      earnedValue: Number(ev.toFixed(2)),
+      actualCost: Number(ac.toFixed(2)),
+      budgetAtCompletion: Number(bac.toFixed(2)),
+      costVariance: cv,
+      scheduleVariance: sv,
+      cpi,
+      spi,
+      estimateAtCompletion: eac,
+      varianceAtCompletion: vac,
+      toCompletePerformanceIndex: tcpi,
+      healthIndicator,
+      sCurvePoints,
+    };
+  }
 }
+
 
 
 

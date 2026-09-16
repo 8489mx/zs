@@ -144,6 +144,7 @@ const baseSettingsMutationValues = {
   posTerminalName: 'جهاز الكاشير الرئيسي (EDC)',
   posTerminalIp: '192.168.1.150',
   posTerminalPort: 8080,
+  restaurantTablesCount: 12,
 };
 
 describe('useSettingsUpdateMutation setup flow', () => {

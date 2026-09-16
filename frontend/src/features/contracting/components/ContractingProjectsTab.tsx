@@ -3,6 +3,7 @@ import { ContractingProject } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { GovernmentLicensesModal } from './GovernmentLicensesModal';
 import { ProjectHealthWidget } from './ProjectHealthWidget';
+import { TenderEstimatorModal } from './TenderEstimatorModal';
 
 interface ContractingProjectsTabProps {
   projects: ContractingProject[];
@@ -20,6 +21,7 @@ export function ContractingProjectsTab({
   const [licensesModal, setLicensesModal] = useState<{ open: boolean; projectId: string; projectName: string }>({
     open: false, projectId: '', projectName: '',
   });
+  const [isTenderEstimatorOpen, setIsTenderEstimatorOpen] = useState(false);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -68,27 +70,53 @@ export function ContractingProjectsTab({
             متابعة العقود، مراكز التكلفة التحليلية، والقيم التعاقدية المعدلة بالأوامر التغييرية
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onNewProject}
-          style={{
-            height: '36px',
-            padding: '0 16px',
-            borderRadius: '8px',
-            fontWeight: 700,
-            background: '#170e5e',
-            color: '#ffffff',
-            border: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            fontSize: 'var(--font-body)',
-          }}
-        >
-          <AppIcons.Plus size={15} />
-          <span>مشروع جديد</span>
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => setIsTenderEstimatorOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.Sliders size={15} />
+            <span>دراسة وتسعير عطاء جديد</span>
+          </button>
+          <button
+            type="button"
+            onClick={onNewProject}
+            style={{
+              height: '36px',
+              padding: '0 16px',
+              borderRadius: '8px',
+              fontWeight: 700,
+              background: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(23, 14, 94, 0.15)',
+              fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.Plus size={15} />
+            <span>مشروع جديد</span>
+          </button>
+        </div>
       </div>
 
       {/* جدول المشاريع */}
@@ -142,17 +170,17 @@ export function ContractingProjectsTab({
                 <col style={{ width: '85px' }} />
               </colgroup>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '10px 6px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الكود</th>
-                  <th style={{ padding: '10px 8px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>المشروع والموقع</th>
-                  <th style={{ padding: '10px 8px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>العميل</th>
-                  <th style={{ padding: '10px 8px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>المدير</th>
-                  <th style={{ padding: '10px 6px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>التعاقد الأصلي</th>
-                  <th style={{ padding: '10px 6px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>القيمة المعدلة</th>
-                  <th style={{ padding: '10px 6px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الدفعة المقدمة</th>
-                  <th style={{ padding: '10px 6px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الحالة</th>
-                  <th style={{ padding: '10px 4px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الصحة</th>
-                  <th style={{ padding: '10px 6px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الإجراءات</th>
+                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الكود</th>
+                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>المشروع والموقع</th>
+                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>العميل</th>
+                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>المدير</th>
+                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>التعاقد الأصلي</th>
+                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>القيمة المعدلة</th>
+                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الدفعة المقدمة</th>
+                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الحالة</th>
+                  <th style={{ padding: '12px 4px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الصحة</th>
+                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -212,15 +240,16 @@ export function ContractingProjectsTab({
                               borderRadius: '4px',
                               fontSize: '10.5px',
                               fontWeight: 600,
-                              background: '#eff6ff',
-                              color: '#1d4ed8',
-                              border: '1px solid #bfdbfe',
+                              background: '#ffffff',
+                              color: '#334155',
+                              border: '1px solid #cbd5e1',
                               cursor: 'pointer',
                               whiteSpace: 'nowrap',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               padding: 0,
+                              transition: 'all 0.15s ease',
                             }}
                           >
                             المقايسة
@@ -234,15 +263,16 @@ export function ContractingProjectsTab({
                               borderRadius: '4px',
                               fontSize: '10.5px',
                               fontWeight: 600,
-                              background: '#f0fdf4',
-                              color: '#15803d',
-                              border: '1px solid #bbf7d0',
+                              background: '#ffffff',
+                              color: '#334155',
+                              border: '1px solid #cbd5e1',
                               cursor: 'pointer',
                               whiteSpace: 'nowrap',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               padding: 0,
+                              transition: 'all 0.15s ease',
                             }}
                           >
                             المستخلصات
@@ -256,15 +286,16 @@ export function ContractingProjectsTab({
                               borderRadius: '4px',
                               fontSize: '10.5px',
                               fontWeight: 600,
-                              background: '#fff7ed',
-                              color: '#c2410c',
-                              border: '1px solid #fed7aa',
+                              background: '#ffffff',
+                              color: '#334155',
+                              border: '1px solid #cbd5e1',
                               cursor: 'pointer',
                               whiteSpace: 'nowrap',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               padding: 0,
+                              transition: 'all 0.15s ease',
                             }}
                           >
                             تراخيص
@@ -287,6 +318,17 @@ export function ContractingProjectsTab({
         projectId={licensesModal.projectId}
         projectName={licensesModal.projectName}
       />
+
+      {/* Tender & Bid Estimator Modal */}
+      {isTenderEstimatorOpen && (
+        <TenderEstimatorModal
+          isOpen={isTenderEstimatorOpen}
+          onClose={() => setIsTenderEstimatorOpen(false)}
+          onProjectCreated={(newPid) => {
+            onSelectProject(newPid, 'boq');
+          }}
+        />
+      )}
     </div>
   );
 }

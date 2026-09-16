@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -7,24 +7,46 @@ import { ContractingProvider, useContracting } from '../context/ContractingConte
 import { toast } from '@/shared/components/system-alert';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { CreateProjectModal } from '../components/CreateProjectModal';
+import { TenderEstimatorModal } from '../components/TenderEstimatorModal';
+import { ProjectLifecycleStepper, type ContractingPhaseKey } from '../components/ProjectLifecycleStepper';
+import { SmartNextActionGuide } from '../components/SmartNextActionGuide';
+import { GovernmentLicensesModal } from '../components/GovernmentLicensesModal';
+import { SiteMobilizationModal } from '../components/SiteMobilizationModal';
+import { ScheduleGeneratorModal } from '../components/ScheduleGeneratorModal';
+import { ProjectMaterialsMrpModal } from '../components/ProjectMaterialsMrpModal';
+import { MaterialSubmittalsModal } from '../components/MaterialSubmittalsModal';
+import { MaterialPriceEscalationModal } from '../components/MaterialPriceEscalationModal';
+import { ProjectEvmMetricsModal } from '../components/ProjectEvmMetricsModal';
+import { SubcontractorBackChargesModal } from '../components/SubcontractorBackChargesModal';
+import { EquipmentFuelLogsModal } from '../components/EquipmentFuelLogsModal';
+
 import { ContractingProjectsPage } from './ContractingProjectsPage';
+import { ContractingTenderPage } from './ContractingTenderPage';
 import { ContractingBoqPage } from './ContractingBoqPage';
+import { ContractingPlanningPage } from './ContractingPlanningPage';
 import { ContractingFinancialsPage } from './ContractingFinancialsPage';
 import { ContractingProcurementPage } from './ContractingProcurementPage';
 import { ContractingFieldPage } from './ContractingFieldPage';
-
-const NAV_TABS = [
-  { path: 'projects', label: 'سجل المشاريع' },
-  { path: 'boq', label: 'المقايسة والبنود (SOV)' },
-  { path: 'financials', label: 'المالية والمستخلصات' },
-  { path: 'procurement', label: 'مقاولو الباطن والتوريدات' },
-  { path: 'field', label: 'الميدان والجدول الزمني' },
-];
+import { ContractingCloseoutPage } from './ContractingCloseoutPage';
 
 function ContractingLayoutContent({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // Dialog states
+  const [isTenderEstimatorOpen, setIsTenderEstimatorOpen] = useState(false);
+  const [isLicensesModalOpen, setIsLicensesModalOpen] = useState(false);
+  const [isMobilizationModalOpen, setIsMobilizationModalOpen] = useState(false);
+  const [isScheduleGeneratorOpen, setIsScheduleGeneratorOpen] = useState(false);
+  const [isMrpModalOpen, setIsMrpModalOpen] = useState(false);
+
+  // 5 Global Benchmark Pillars Dialogs
+  const [isSubmittalsModalOpen, setIsSubmittalsModalOpen] = useState(false);
+  const [isEscalationsModalOpen, setIsEscalationsModalOpen] = useState(false);
+  const [isEvmModalOpen, setIsEvmModalOpen] = useState(false);
+  const [isBackchargesModalOpen, setIsBackchargesModalOpen] = useState(false);
+  const [isFuelLogsModalOpen, setIsFuelLogsModalOpen] = useState(false);
 
   const {
     projects,
@@ -43,12 +65,12 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
     { label: 'المقاولات والمشاريع', to: '/contracting' },
   ]);
 
-  // Backward compatibility & direct URL normalization: If accessed via `/contracting` or `/contracting?tab=xxx`, redirect cleanly to `/contracting/xxx`
+  // Backward compatibility & direct URL normalization: If accessed via `/contracting` or `/contracting?tab=xxx`, redirect cleanly
   useEffect(() => {
     if (location.pathname === '/contracting') {
       const tabParam = searchParams.get('tab');
       const pid = searchParams.get('projectId');
-      const targetSub = (tabParam && tabParam !== 'projects') ? tabParam : 'projects';
+      const targetSub = tabParam && tabParam !== 'projects' ? tabParam : 'projects';
       const query = pid ? `?projectId=${pid}` : '';
       navigate(`/contracting/${targetSub}${query}`, { replace: true });
     }
@@ -56,29 +78,64 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
 
   // Robust active tab subpath detection
   const subSegments = location.pathname.split('/').filter(Boolean);
-  const currentSubPath = (subSegments[0] === 'contracting' && subSegments[1]) ? subSegments[1] : 'projects';
+  const currentSubPath = subSegments[0] === 'contracting' && subSegments[1] ? subSegments[1] : 'projects';
 
   const isTabActive = (tabPath: string) => {
     if (tabPath === 'projects') return currentSubPath === 'projects' || currentSubPath === '';
+    if (tabPath === 'tender') return currentSubPath === 'tender';
     if (tabPath === 'boq') return currentSubPath === 'boq';
-    if (tabPath === 'financials') return currentSubPath === 'financials' || currentSubPath === 'invoices' || currentSubPath === 'change-orders';
+    if (tabPath === 'planning') return currentSubPath === 'planning' || currentSubPath === 'gantt';
     if (tabPath === 'procurement') return currentSubPath === 'procurement' || currentSubPath === 'subcontracts' || currentSubPath === 'materials';
-    if (tabPath === 'field') return currentSubPath === 'field' || currentSubPath === 'gantt' || currentSubPath === 'daily-logs' || currentSubPath === 'rfis';
+    if (tabPath === 'field') return currentSubPath === 'field' || currentSubPath === 'daily-logs' || currentSubPath === 'rfis';
+    if (tabPath === 'financials') return currentSubPath === 'financials' || currentSubPath === 'invoices' || currentSubPath === 'change-orders';
+    if (tabPath === 'closeout') return currentSubPath === 'closeout' || currentSubPath === 'handover' || currentSubPath === 'snag-list';
     return currentSubPath === tabPath;
   };
 
-  const handleNavigate = (path: string) => {
-    const targetUrl = `/contracting/${path}`;
-    const pid = selectedProjectId;
-    const query = pid ? `?projectId=${pid}` : '';
-    navigate(`${targetUrl}${query}`);
+  const getCurrentPhase = (): ContractingPhaseKey => {
+    if (isTabActive('tender')) return 'tender';
+    if (isTabActive('boq')) return 'boq';
+    if (isTabActive('planning')) return 'planning';
+    if (isTabActive('procurement')) return 'procurement';
+    if (isTabActive('field')) return 'field';
+    if (isTabActive('financials')) return 'financials';
+    if (isTabActive('closeout')) return 'closeout';
+    return 'projects';
   };
 
+  const handleNavigate = (pathWithOptionalQuery: string) => {
+    const hasQuery = pathWithOptionalQuery.includes('?');
+    const basePath = hasQuery ? pathWithOptionalQuery.split('?')[0] : pathWithOptionalQuery;
+    const extraQuery = hasQuery ? pathWithOptionalQuery.split('?')[1] : '';
 
+    const targetUrl = `/contracting/${basePath}`;
+    const pid = selectedProjectId;
+
+    const queryParts = [];
+    if (pid) queryParts.push(`projectId=${pid}`);
+    if (extraQuery) queryParts.push(extraQuery);
+
+    const fullQuery = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
+    navigate(`${targetUrl}${fullQuery}`);
+  };
+
+  const handlePhaseSelect = (phaseKey: ContractingPhaseKey) => {
+    handleNavigate(phaseKey);
+  };
 
   return (
     <div className="page-stack page-shell contracting-page" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+      <main
+        className="document-prototype-column"
+        style={{
+          paddingBottom: '80px',
+          maxWidth: '1280px',
+          margin: '0 auto',
+          width: '100%',
+          minWidth: 0,
+          boxSizing: 'border-box',
+        }}
+      >
         {/* هيدر الصفحة القياسي الموحد */}
         <PageHeader
           title="المقاولات والمشاريع"
@@ -87,10 +144,32 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button
                 type="button"
+                onClick={() => handleNavigate('tender')}
+                style={{
+                  height: '36px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  fontSize: 'var(--font-body)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <AppIcons.Sliders size={15} />
+                <span>دراسة وتسعير عطاء جديد</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setIsCreateProjectOpen(true)}
                 style={{
-                  height: '38px',
-                  padding: '0 18px',
+                  height: '36px',
+                  padding: '0 16px',
                   borderRadius: '8px',
                   fontWeight: 700,
                   background: '#170e5e',
@@ -100,11 +179,12 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                   alignItems: 'center',
                   gap: '6px',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 4px rgba(23, 14, 94, 0.15)',
+                  boxShadow: '0 1px 3px rgba(23, 14, 94, 0.15)',
                   fontSize: 'var(--font-body)',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <AppIcons.Plus size={16} />
+                <AppIcons.Plus size={15} />
                 <span>مشروع إنشائي جديد</span>
               </button>
               <button
@@ -120,7 +200,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                 disabled={loading}
                 title="تحديث بيانات المشاريع والمؤشرات"
                 style={{
-                  height: '38px',
+                  height: '36px',
                   padding: '0 14px',
                   borderRadius: '8px',
                   fontWeight: 600,
@@ -137,7 +217,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                 }}
               >
                 <AppIcons.RefreshCw
-                  size={15}
+                  size={14}
                   style={{
                     animation: loading ? 'spin 0.7s linear infinite' : 'none',
                   }}
@@ -148,7 +228,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
           }
         />
 
-        {/* بطاقات المؤشرات المالية والتشغيلية (KPIs) */}
+        {/* بطاقات المؤشرات المالية والتشغيلية العامة (KPIs) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '16px' }}>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
@@ -157,8 +237,8 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                 {projects.length} <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#64748b' }}>مشروع</span>
               </div>
             </div>
-            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
-              <AppIcons.Building size={22} />
+            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
+              <AppIcons.Building size={20} />
             </div>
           </div>
 
@@ -169,20 +249,20 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                 {Number(kpis?.totalContractValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d' }}>
-              <AppIcons.FileText size={22} />
+            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#170e5e' }}>
+              <AppIcons.FileText size={20} />
             </div>
           </div>
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
               <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>المستخلصات المعتمدة (Invoiced)</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#170e5e', marginTop: '4px' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f766e', marginTop: '4px' }}>
                 {Number(kpis?.totalBilledToDate || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#e0e7ff', border: '1px solid #c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3730a3' }}>
-              <AppIcons.Receipt size={22} />
+            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f766e' }}>
+              <AppIcons.Receipt size={20} />
             </div>
           </div>
 
@@ -193,56 +273,23 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                 {Number(kpis?.totalRetentionsHeld || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#fefce8', border: '1px solid #fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a16207' }}>
-              <AppIcons.FileCheck size={22} />
+            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a16207' }}>
+              <AppIcons.FileCheck size={20} />
             </div>
           </div>
         </div>
 
-        {/* شريط التبويبات القياسي الثابت */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '8px',
-            background: '#ffffff',
-            padding: '8px 12px',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            marginBottom: '14px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            overflowX: 'auto',
-          }}
-        >
-          {NAV_TABS.map((tab) => {
-            const isActive = isTabActive(tab.path);
-            const countBadge = tab.path === 'projects' ? ` (${projects.length})` : '';
+        {/* مسار مراحل المشروع المتسلسل القياسي من 1 إلى 7 (Project Lifecycle Stepper) */}
+        <ProjectLifecycleStepper
+          currentPhase={getCurrentPhase()}
+          onPhaseSelect={handlePhaseSelect}
+          activeProject={activeProject}
+          totalProjectsCount={projects.length}
+          onOpenTenderEstimator={() => handleNavigate('tender')}
+        />
 
-            return (
-              <button
-                key={tab.path}
-                type="button"
-                onClick={() => handleNavigate(tab.path)}
-                style={{
-                  padding: '8px 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  fontSize: 'var(--font-body)',
-                  background: isActive ? '#170e5e' : 'transparent',
-                  color: isActive ? '#ffffff' : '#64748b',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {tab.label}{countBadge}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* شريط اختيار المشروع السريع إذا لم نكن في شاشة قائمة المشاريع أو بنك البنود المرجعي */}
-        {currentSubPath !== 'projects' && currentSubPath !== 'master-boq' && (
+        {/* شريط اختيار المشروع السريع إذا لم نكن في شاشة سجل المشاريع أو دراسة العطاءات */}
+        {currentSubPath !== 'projects' && currentSubPath !== 'tender' && (
           <div
             style={{
               display: 'flex',
@@ -326,6 +373,41 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
           </div>
         )}
 
+        {/* بطاقة الموجه الذكي للخطوة التالية (Smart Next Action Guide) */}
+        <SmartNextActionGuide
+          phase={getCurrentPhase()}
+          activeProject={activeProject}
+          actions={{
+            openTenderEstimator: () => handleNavigate('tender'),
+            openCreateProject: () => setIsCreateProjectOpen(true),
+            openLicensesModal: () => setIsLicensesModalOpen(true),
+            openMobilizationModal: () => setIsMobilizationModalOpen(true),
+            openScheduleGenerator: () => setIsScheduleGeneratorOpen(true),
+            openMrpModal: () => setIsMrpModalOpen(true),
+            openCreateRequisition: () => handleNavigate('procurement?sub=materials'),
+            openCreateSubcontract: () => handleNavigate('procurement?sub=subcontracts'),
+            openMaterialSubmittalsModal: () => setIsSubmittalsModalOpen(true),
+            openPriceEscalationsModal: () => setIsEscalationsModalOpen(true),
+            openCreateDailyLog: () => handleNavigate('field?sub=daily-logs'),
+            openLaborAttendance: () => handleNavigate('field?sub=daily-logs'),
+            openEquipmentTracking: () => handleNavigate('field?sub=daily-logs'),
+            openFuelLogsModal: () => setIsFuelLogsModalOpen(true),
+            openPettyCash: () => handleNavigate('field?sub=daily-logs'),
+            openCreateRfi: () => handleNavigate('field?sub=rfis'),
+            openWorkInspection: () => handleNavigate('field?sub=rfis'),
+            openCreateIpc: () => handleNavigate('financials?sub=invoices'),
+            openCreateChangeOrder: () => handleNavigate('financials?sub=change-orders'),
+            openEvmMetricsModal: () => setIsEvmModalOpen(true),
+            openBackChargesModal: () => setIsBackchargesModalOpen(true),
+            openRetentionLedger: () => handleNavigate('closeout'),
+            openSnagList: () => handleNavigate('closeout'),
+            openHandoverModal: () => handleNavigate('closeout'),
+            openProfitabilityModal: () => handleNavigate('closeout'),
+            openCostSnapshotModal: () => handleNavigate('boq'),
+            openBoqItemModal: () => handleNavigate('boq'),
+          }}
+        />
+
         {/* تابات بيئة عمل المقاولات المحفوظة بالذاكرة (Keep-Alive) لمنع الهدم وإعادة التحميل والرعشة */}
         {children ? (
           children
@@ -334,22 +416,31 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
             <div style={{ display: isTabActive('projects') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
               <ContractingProjectsPage />
             </div>
+            <div style={{ display: isTabActive('tender') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+              <ContractingTenderPage />
+            </div>
             <div style={{ display: isTabActive('boq') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
               <ContractingBoqPage />
             </div>
-            <div style={{ display: isTabActive('financials') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-              <ContractingFinancialsPage initialSubTab={currentSubPath === 'change-orders' ? 'change-orders' : 'invoices'} />
+            <div style={{ display: isTabActive('planning') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+              <ContractingPlanningPage />
             </div>
             <div style={{ display: isTabActive('procurement') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
               <ContractingProcurementPage initialSubTab={currentSubPath === 'materials' ? 'materials' : 'subcontracts'} />
             </div>
             <div style={{ display: isTabActive('field') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-              <ContractingFieldPage initialSubTab={currentSubPath === 'daily-logs' ? 'daily-logs' : currentSubPath === 'rfis' ? 'rfis' : 'gantt'} />
+              <ContractingFieldPage initialSubTab={currentSubPath === 'rfis' ? 'rfis' : 'daily-logs'} />
+            </div>
+            <div style={{ display: isTabActive('financials') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+              <ContractingFinancialsPage initialSubTab={currentSubPath === 'change-orders' ? 'change-orders' : 'invoices'} />
+            </div>
+            <div style={{ display: isTabActive('closeout') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+              <ContractingCloseoutPage />
             </div>
           </>
         )}
 
-        {/* نافذة إنشاء مشروع جديد */}
+        {/* النوافذ المنبثقة العامة */}
         <CreateProjectModal
           open={isCreateProjectOpen}
           onClose={() => setIsCreateProjectOpen(false)}
@@ -360,6 +451,88 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
             reloadProjects();
           }}
         />
+
+        {/* نافذة دراسة وتسعير العطاءات والمشروعات المحتملة (Popup Mode Fallback) */}
+        {isTenderEstimatorOpen && (
+          <TenderEstimatorModal
+            isOpen={isTenderEstimatorOpen}
+            onClose={() => setIsTenderEstimatorOpen(false)}
+            onProjectCreated={async (newPid) => {
+              await reloadProjects();
+              setSelectedProjectId(newPid);
+              navigate(`/contracting/boq?projectId=${newPid}`);
+            }}
+          />
+        )}
+
+        {/* النوافذ المنبثقة التابعة للمشروع النشط */}
+        {activeProject && (
+          <>
+            <GovernmentLicensesModal
+              open={isLicensesModalOpen}
+              onClose={() => setIsLicensesModalOpen(false)}
+              projectId={activeProject.id}
+              projectName={activeProject.name}
+            />
+
+            <SiteMobilizationModal
+              open={isMobilizationModalOpen}
+              projectId={activeProject.id}
+              projectName={activeProject.name}
+              onClose={() => setIsMobilizationModalOpen(false)}
+            />
+
+            <ScheduleGeneratorModal
+              open={isScheduleGeneratorOpen}
+              projectId={activeProject.id}
+              projectName={activeProject.name}
+              onClose={() => setIsScheduleGeneratorOpen(false)}
+            />
+
+            <ProjectMaterialsMrpModal
+              isOpen={isMrpModalOpen}
+              onClose={() => setIsMrpModalOpen(false)}
+              projectId={activeProject.id}
+              projectName={activeProject.name}
+            />
+
+            {/* 5 Global Benchmark Pillars Modals */}
+            <MaterialSubmittalsModal
+              open={isSubmittalsModalOpen}
+              onClose={() => setIsSubmittalsModalOpen(false)}
+              projectId={activeProject.id}
+              projectName={activeProject.name}
+            />
+
+            <MaterialPriceEscalationModal
+              open={isEscalationsModalOpen}
+              onClose={() => setIsEscalationsModalOpen(false)}
+              projectId={activeProject.id}
+              projectName={activeProject.name}
+            />
+
+            <ProjectEvmMetricsModal
+              open={isEvmModalOpen}
+              onClose={() => setIsEvmModalOpen(false)}
+              projectId={activeProject.id}
+              projectName={activeProject.name}
+            />
+
+            <SubcontractorBackChargesModal
+              open={isBackchargesModalOpen}
+              onClose={() => setIsBackchargesModalOpen(false)}
+              projectId={activeProject.id}
+              projectName={activeProject.name}
+            />
+
+            <EquipmentFuelLogsModal
+              open={isFuelLogsModalOpen}
+              onClose={() => setIsFuelLogsModalOpen(false)}
+              projectId={activeProject.id}
+              projectName={activeProject.name}
+            />
+          </>
+        )}
       </main>
     </div>
   );

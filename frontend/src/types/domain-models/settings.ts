@@ -65,6 +65,7 @@ export interface AppSettings {
   contractingModuleEnabled?: boolean;
   comboModuleEnabled?: boolean;
   restaurantModuleEnabled?: boolean;
+  restaurantTablesCount?: number;
   phoneOrdersModuleEnabled?: boolean;
   posShowCartMeta?: boolean;
   printDeliveryRepOnReceipt?: boolean;

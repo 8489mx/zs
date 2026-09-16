@@ -221,6 +221,9 @@ export function buildSettingsUpdatePayload(
     requireCashierShiftForSales: values.requireCashierShiftForSales !== undefined
       ? values.requireCashierShiftForSales !== false
       : current?.requireCashierShiftForSales !== false,
+    restaurantTablesCount: values.restaurantTablesCount !== undefined
+      ? Math.min(200, Math.max(1, Math.floor(Number(values.restaurantTablesCount || 12))))
+      : Math.min(200, Math.max(1, Math.floor(Number(current?.restaurantTablesCount || 12)))),
     posMaxDiscountThresholdEnabled: values.posMaxDiscountThresholdEnabled !== undefined
       ? values.posMaxDiscountThresholdEnabled === true
       : current?.posMaxDiscountThresholdEnabled === true,

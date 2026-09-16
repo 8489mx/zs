@@ -1,10 +1,12 @@
-import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useEffect, useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
-import { XIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, AlertTriangleIcon, SlidersIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
+import { settingsApi } from '@/features/settings/api/settings.api';
+import type { AppSettings } from '@/types/domain';
 import type { HeldPosDraftSummary } from '@/features/pos/components/pos-cart-panel/posCartPanel.types';
 
 interface PosTablesFloorPlanDialogProps {
@@ -14,6 +16,7 @@ interface PosTablesFloorPlanDialogProps {
   currentCartItemsCount?: number;
   currentCartTotal?: number;
   heldDrafts: HeldPosDraftSummary[];
+  settings?: AppSettings | null;
   onSelectTable: (tableNumber: string) => Promise<void> | void;
   onRecallDraft: (draftId: string) => Promise<void>;
   onDeleteDraft?: (draftId: string) => Promise<void>;
@@ -30,6 +33,7 @@ export function PosTablesFloorPlanDialog({
   currentCartItemsCount = 0,
   currentCartTotal = 0,
   heldDrafts,
+  settings,
   onSelectTable,
   onRecallDraft,
   onDeleteDraft,
@@ -38,6 +42,7 @@ export function PosTablesFloorPlanDialog({
   onMergeTable,
   initialTab = 'floor',
 }: PosTablesFloorPlanDialogProps) {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'floor' | 'list'>(initialTab);
   const [customInput, setCustomInput] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
@@ -45,11 +50,24 @@ export function PosTablesFloorPlanDialog({
   const [isSubmittingTable, setIsSubmittingTable] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  // Dynamic tables count from settings
+  const configuredTablesCount = Math.max(1, Number(settings?.restaurantTablesCount || 12));
+  const [tablesCount, setTablesCount] = useState(configuredTablesCount);
+  const [isEditingCount, setIsEditingCount] = useState(false);
+  const [newTablesCount, setNewTablesCount] = useState(configuredTablesCount);
+  const [isSavingCount, setIsSavingCount] = useState(false);
+
+  useEffect(() => {
+    setTablesCount(configuredTablesCount);
+    setNewTablesCount(configuredTablesCount);
+  }, [configuredTablesCount]);
+
   useEffect(() => {
     if (open) {
       setActiveTab(initialTab);
       setIsTransferring(false);
       setIsSubmittingTable(false);
+      setIsEditingCount(false);
       setCustomInput('');
       setSelectedIndex((curr) => {
         if (!heldDrafts.length) return 0;
@@ -58,8 +76,8 @@ export function PosTablesFloorPlanDialog({
     }
   }, [open, initialTab, heldDrafts.length]);
 
-  // Tables 1 to 24 by default
-  const defaultTables = Array.from({ length: 24 }, (_, i) => String(i + 1));
+  // Dynamic table array based on configured count
+  const defaultTables = Array.from({ length: tablesCount }, (_, i) => String(i + 1));
 
   // Map occupied tables by table number
   const occupiedMap = new Map<string, HeldPosDraftSummary>();
@@ -85,7 +103,7 @@ export function PosTablesFloorPlanDialog({
   const totalOccupiedMoney =
     Array.from(occupiedMap.values()).reduce((sum, d) => sum + Number(d.total || 0), 0) +
     (currentTableHasLiveCart ? Number(currentCartTotal || 0) : 0);
-  const availableCount = Math.max(0, 24 - occupiedCount);
+  const availableCount = Math.max(0, tablesCount - occupiedCount);
 
   const handleRecall = useCallback(async (draftId: string) => {
     setPendingRecallId(draftId);
@@ -102,7 +120,12 @@ export function PosTablesFloorPlanDialog({
       if (currentTableNumber && currentTableNumber !== tableNum) {
         const isTargetOccupied = occupiedMap.has(tableNum);
         if (isTargetOccupied && onMergeTable) {
-          const confirmMerge = window.confirm(`الطاولة ${tableNum} مشغولة بالفعل بطلب قيمته ${Number(occupiedMap.get(tableNum)?.total || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}.\n\nهل ترغب في دمج طلب الطاولة ${currentTableNumber} مع هذه الطاولة؟`);
+          const confirmMerge = await systemConfirm({
+            title: 'دمج طلب طاولة',
+            message: `الطاولة ${tableNum} مشغولة بالفعل بطلب قيمته ${formatCurrency(occupiedMap.get(tableNum)?.total || 0)}.\n\nهل ترغب في دمج طلب الطاولة ${currentTableNumber} مع هذه الطاولة؟`,
+            confirmText: 'دمج الطلب',
+            cancelText: 'إلغاء',
+          });
           if (confirmMerge) {
             onMergeTable(currentTableNumber, tableNum);
             setIsTransferring(false);
@@ -157,6 +180,26 @@ export function PosTablesFloorPlanDialog({
       onClose();
     } finally {
       setIsSubmittingTable(false);
+    }
+  };
+
+  const handleSaveTablesCount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const count = Math.min(200, Math.max(1, Math.round(Number(newTablesCount) || 24)));
+    setIsSavingCount(true);
+    try {
+      await settingsApi.update({ restaurantTablesCount: count });
+      setTablesCount(count);
+      setIsEditingCount(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['settings'] }),
+        queryClient.invalidateQueries({ queryKey: ['posSettings'] }),
+      ]);
+      toast.success(`تم تحديث عدد طاولات الصالة إلى ${count} طاولة بنجاح`);
+    } catch {
+      toast.error('تعذر حفظ عدد الطاولات الجديد، يرجى المحاولة مرة أخرى');
+    } finally {
+      setIsSavingCount(false);
     }
   };
 
@@ -246,7 +289,7 @@ export function PosTablesFloorPlanDialog({
                         fontWeight: 900,
                       }}
                     >
-                      {Number(currentCartTotal).toLocaleString('ar-EG')} <CurrencySymbol /> ({currentCartItemsCount} صنف بالسلة)
+                      {formatCurrency(currentCartTotal)} ({currentCartItemsCount} صنف بالسلة)
                     </span>
                   )}
                 </span>
@@ -333,14 +376,14 @@ export function PosTablesFloorPlanDialog({
           <>
             {/* Stats and Quick Info Bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#166534', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
                   <span>طاولات شاغرة: <strong>{availableCount}</strong></span>
                 </div>
                 <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#991b1b', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
-                  <span>طاولات مشغولة: <strong>{occupiedCount}</strong> ({totalOccupiedMoney.toLocaleString('ar-EG')} <CurrencySymbol />)</span>
+                  <span>طاولات مشغولة: <strong>{occupiedCount}</strong> ({formatCurrency(totalOccupiedMoney)})</span>
                 </div>
                 {nonTableDrafts.length > 0 && (
                   <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#1e40af', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -350,25 +393,72 @@ export function PosTablesFloorPlanDialog({
                 )}
               </div>
 
-              {/* Transfer Table Button */}
-              {currentTableNumber && (
-                <button
-                  type="button"
-                  onClick={() => setIsTransferring(!isTransferring)}
-                  style={{
-                    background: isTransferring ? '#ea580c' : '#ffffff',
-                    color: isTransferring ? '#ffffff' : '#ea580c',
-                    border: '1px solid #fdba74',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
-                    fontSize: '12px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {isTransferring ? 'إلغاء وضع النقل' : 'نقل الطلب إلى طاولة أخرى'}
-                </button>
-              )}
+              {/* Action Buttons: Custom Table Count & Transfer Table */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {isEditingCount ? (
+                  <form onSubmit={handleSaveTablesCount} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f8fafc', border: '1.5px solid #170e5e', borderRadius: '8px', padding: '3px 8px' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>عدد الطاولات:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="200"
+                      autoFocus
+                      value={newTablesCount}
+                      onChange={(e) => setNewTablesCount(Number(e.target.value || 1))}
+                      disabled={isSavingCount}
+                      style={{ width: '55px', height: '28px', textAlign: 'center', fontWeight: 800, fontSize: '13px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    />
+                    <Button type="submit" variant="primary" style={{ minHeight: '28px', height: '28px', padding: '0 8px', fontSize: '11px', borderRadius: '4px' }} disabled={isSavingCount}>
+                      {isSavingCount ? '...' : 'حفظ'}
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => setIsEditingCount(false)} style={{ minHeight: '28px', height: '28px', padding: '0 8px', fontSize: '11px', borderRadius: '4px' }}>
+                      إلغاء
+                    </Button>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setNewTablesCount(tablesCount); setIsEditingCount(true); }}
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      padding: '5px 10px',
+                      fontSize: '11.5px',
+                      color: '#334155',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'all 0.15s ease',
+                    }}
+                    title="تعديل عدد طاولات الصالة المعروضة"
+                  >
+                    <SlidersIcon size={13} color="#170e5e" />
+                    <span>تخصيص الصالة: <strong>{tablesCount} طاولة</strong></span>
+                  </button>
+                )}
+
+                {currentTableNumber && (
+                  <button
+                    type="button"
+                    onClick={() => setIsTransferring(!isTransferring)}
+                    style={{
+                      background: isTransferring ? '#ea580c' : '#ffffff',
+                      color: isTransferring ? '#ffffff' : '#ea580c',
+                      border: '1px solid #fdba74',
+                      borderRadius: '8px',
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {isTransferring ? 'إلغاء وضع النقل' : 'نقل الطلب إلى طاولة أخرى'}
+                  </button>
+                )}
+              </div>
             </div>
 
             {isTransferring && (
@@ -409,7 +499,7 @@ export function PosTablesFloorPlanDialog({
                       title="استرجاع هذا الطلب للسلة فوراً"
                     >
                       <span>{d.label || 'طلب تيك أواي'}</span>
-                      <strong style={{ color: '#16a34a' }}>{Number(d.total || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}</strong>
+                      <strong style={{ color: '#16a34a' }}>{formatCurrency(d.total)}</strong>
                       <span style={{ color: '#64748b' }}>({d.itemsCount} صنف)</span>
                       <span style={{ color: '#170e5e', fontWeight: 800 }}>
                         {pendingRecallId === d.id ? 'جارٍ الفتح...' : 'استرجاع'}
@@ -511,7 +601,7 @@ export function PosTablesFloorPlanDialog({
                     {hasLiveCart ? (
                       <div style={{ textAlign: 'center', width: '100%' }}>
                         <div style={{ fontSize: '13px', fontWeight: 900, color: '#170e5e' }}>
-                          {Number(currentCartTotal).toLocaleString('ar-EG')} <CurrencySymbol />
+                          {formatCurrency(currentCartTotal)}
                         </div>
                         <div style={{ fontSize: '10.5px', color: '#475569', marginTop: '1px' }}>
                           {currentCartItemsCount} أصناف • بالسلة النشطة
@@ -520,7 +610,7 @@ export function PosTablesFloorPlanDialog({
                     ) : occupied ? (
                       <div style={{ textAlign: 'center', width: '100%' }}>
                         <div style={{ fontSize: '13px', fontWeight: 900, color: '#dc2626' }}>
-                          {Number(occupied.total).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}
+                          {formatCurrency(occupied.total)}
                         </div>
                         <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '1px' }}>
                           {occupied.itemsCount} أصناف • معلقة
@@ -660,7 +750,6 @@ export function PosTablesFloorPlanDialog({
                         <Button
                           type="button"
                           variant="primary"
-
                           disabled={isPending}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -682,7 +771,6 @@ export function PosTablesFloorPlanDialog({
                           <Button
                             type="button"
                             variant="secondary"
-  
                             onClick={(e) => {
                               e.stopPropagation();
                               void onDeleteDraft(draft.id);

@@ -577,7 +577,73 @@ export const contractingApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // 12. Material & Shop Drawing Submittals (MAR / MAS)
+  getSubmittals: (projectId: string) =>
+    http<import('../contracting.types').ContractingSubmittal[]>(`/api/contracting/projects/${projectId}/submittals`),
+
+  createSubmittal: (projectId: string, data: Partial<import('../contracting.types').ContractingSubmittal>) =>
+    http<import('../contracting.types').ContractingSubmittal>(`/api/contracting/projects/${projectId}/submittals`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateSubmittalStatus: (
+    id: string,
+    data: { status: string; consultantName?: string; consultantComments?: string; consultantReviewDate?: string },
+  ) =>
+    http<import('../contracting.types').ContractingSubmittal>(`/api/contracting/submittals/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  // 13. Material Price Escalation & Fluctuation Claims
+  getMaterialEscalations: (projectId: string) =>
+    http<import('../contracting.types').ContractingMaterialEscalation[]>(`/api/contracting/projects/${projectId}/escalations`),
+
+  createMaterialEscalation: (projectId: string, data: Partial<import('../contracting.types').ContractingMaterialEscalation>) =>
+    http<import('../contracting.types').ContractingMaterialEscalation>(`/api/contracting/projects/${projectId}/escalations`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateMaterialEscalationStatus: (id: string, data: { status: string; ipcInvoiceId?: string; notes?: string }) =>
+    http<import('../contracting.types').ContractingMaterialEscalation>(`/api/contracting/escalations/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  // 14. Subcontractor Back-Charges & Penalties
+  getSubcontractorBackcharges: (projectId: string) =>
+    http<import('../contracting.types').ContractingSubcontractorBackcharge[]>(`/api/contracting/projects/${projectId}/backcharges`),
+
+  createSubcontractorBackcharge: (projectId: string, data: Partial<import('../contracting.types').ContractingSubcontractorBackcharge>) =>
+    http<import('../contracting.types').ContractingSubcontractorBackcharge>(`/api/contracting/projects/${projectId}/backcharges`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateBackchargeStatus: (id: string, data: { status: string; appliedIpcInvoiceId?: string }) =>
+    http<import('../contracting.types').ContractingSubcontractorBackcharge>(`/api/contracting/backcharges/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  // 15. Equipment Fuel & Operating Meter Logs
+  getEquipmentFuelLogs: (projectId: string) =>
+    http<import('../contracting.types').ContractingEquipmentFuelLog[]>(`/api/contracting/projects/${projectId}/fuel-logs`),
+
+  createEquipmentFuelLog: (projectId: string, data: Partial<import('../contracting.types').ContractingEquipmentFuelLog>) =>
+    http<import('../contracting.types').ContractingEquipmentFuelLog>(`/api/contracting/projects/${projectId}/fuel-logs`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 16. Earned Value Management (EVM) & S-Curve Metrics
+  getProjectEvmMetrics: (projectId: string) =>
+    http<import('../contracting.types').ContractingProjectEvmMetrics>(`/api/contracting/projects/${projectId}/evm-metrics`),
 };
+
 
 
 

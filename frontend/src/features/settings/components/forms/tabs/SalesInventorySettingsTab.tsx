@@ -90,6 +90,19 @@ function DeliveryModeIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+function RestaurantTablesIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 6h16" />
+      <path d="M4 10h16" />
+      <path d="M6 10v10" />
+      <path d="M18 10v10" />
+      <path d="M10 10v6" />
+      <path d="M14 10v6" />
+    </svg>
+  );
+}
+
 function CourierCommissionIcon({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -691,6 +704,35 @@ export function SalesInventorySettingsTab({
                   </div>
                 </div>
               )}
+
+              {/* Card 9: Restaurant Tables Count */}
+              <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                  <div style={iconBadgeStyle}>
+                    <RestaurantTablesIcon size={20} />
+                  </div>
+                  <div style={premiumCardTextStyle}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>عدد طاولات الصالة</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                      العدد الافتراضي للطاولات المعروضة في خريطة الصالة والمطاعم
+                    </small>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input
+                    className="purchase-prototype-field-input"
+                    type="number"
+                    min="1"
+                    max="200"
+                    step="1"
+                    {...form.register('restaurantTablesCount')}
+                    disabled={disabled}
+                    placeholder="24"
+                    style={{ width: '85px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>طاولة</span>
+                </div>
+              </div>
             </>
           )}
         </div>

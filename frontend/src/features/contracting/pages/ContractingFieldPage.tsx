@@ -4,31 +4,29 @@ import { useContracting } from '../context/ContractingContext';
 import { contractingApi } from '../api/contracting.api';
 import { toast } from '@/shared/components/system-alert';
 import type {
-  ContractingScheduleTask,
-  ContractingBoqItem,
   ContractingSiteDailyLog,
   ContractingRfi,
 } from '../contracting.types';
-import { ContractingGanttTab } from '../components/ContractingGanttTab';
 import { ContractingDailyLogsTab } from '../components/ContractingDailyLogsTab';
 import { ContractingRfiTab } from '../components/ContractingRfiTab';
-import { CreateScheduleTaskModal } from '../components/CreateScheduleTaskModal';
 import { CreateDailyLogModal } from '../components/CreateDailyLogModal';
 import { CreateRfiModal } from '../components/CreateRfiModal';
 import { AnswerRfiModal } from '../components/AnswerRfiModal';
 import { WorkInspectionModal } from '../components/WorkInspectionModal';
-import { SnagListModal } from '../components/SnagListModal';
 import { EquipmentTrackingModal } from '../components/EquipmentTrackingModal';
+import { EquipmentFuelLogsModal } from '../components/EquipmentFuelLogsModal';
+import { LaborAttendanceModal } from '../components/LaborAttendanceModal';
+import { PettyCashModal } from '../components/PettyCashModal';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface ContractingFieldPageProps {
-  initialSubTab?: 'gantt' | 'daily-logs' | 'rfis';
+  initialSubTab?: 'daily-logs' | 'rfis';
 }
 
 export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const subParam = (searchParams.get('sub') as 'gantt' | 'daily-logs' | 'rfis') || initialSubTab || 'gantt';
-  const [activeSubTab, setActiveSubTab] = useState<'gantt' | 'daily-logs' | 'rfis'>(subParam);
+  const subParam = (searchParams.get('sub') as 'daily-logs' | 'rfis') || initialSubTab || 'daily-logs';
+  const [activeSubTab, setActiveSubTab] = useState<'daily-logs' | 'rfis'>(subParam === 'rfis' ? 'rfis' : 'daily-logs');
 
   const { projects, selectedProjectId, setSelectedProjectId, activeProject, setIsCreateProjectOpen } = useContracting();
 
@@ -37,12 +35,6 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
       setActiveSubTab(initialSubTab);
     }
   }, [initialSubTab]);
-
-  // Gantt tasks state
-  const [tasks, setTasks] = useState<ContractingScheduleTask[]>([]);
-  const [boqItems, setBoqItems] = useState<ContractingBoqItem[]>([]);
-  const [tasksLoading, setTasksLoading] = useState(false);
-  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 
   // Daily logs state
   const [dailyLogs, setDailyLogs] = useState<ContractingSiteDailyLog[]>([]);
@@ -57,10 +49,12 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
 
   // Field Tools Modals
   const [isWirModalOpen, setIsWirModalOpen] = useState(false);
-  const [isSnagModalOpen, setIsSnagModalOpen] = useState(false);
   const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
+  const [isFuelLogsModalOpen, setIsFuelLogsModalOpen] = useState(false);
+  const [isLaborModalOpen, setIsLaborModalOpen] = useState(false);
+  const [isPettyCashModalOpen, setIsPettyCashModalOpen] = useState(false);
 
-  const handleSubTabChange = (tab: 'gantt' | 'daily-logs' | 'rfis') => {
+  const handleSubTabChange = (tab: 'daily-logs' | 'rfis') => {
     setActiveSubTab(tab);
     const newParams = new URLSearchParams(searchParams);
     newParams.set('sub', tab);
@@ -69,27 +63,6 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
 
   const effectiveProjectId = selectedProjectId || (projects.length > 0 ? projects[0].id : '');
   const effectiveProject = activeProject || (projects.length > 0 ? (projects.find((p) => p.id === effectiveProjectId) || projects[0]) : null);
-
-  const loadGanttData = useCallback(async () => {
-    if (!effectiveProjectId) {
-      setTasks([]);
-      setBoqItems([]);
-      return;
-    }
-    try {
-      setTasksLoading(true);
-      const [tasksData, boqData] = await Promise.all([
-        contractingApi.getScheduleTasks(effectiveProjectId),
-        contractingApi.getBoqItems(effectiveProjectId),
-      ]);
-      setTasks(tasksData);
-      setBoqItems(boqData);
-    } catch (err) {
-      console.error('Failed to load schedule tasks:', err);
-    } finally {
-      setTasksLoading(false);
-    }
-  }, [effectiveProjectId]);
 
   const loadDailyLogs = useCallback(async () => {
     if (!effectiveProjectId) {
@@ -124,26 +97,12 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
   }, [effectiveProjectId]);
 
   useEffect(() => {
-    if (activeSubTab === 'gantt') {
-      loadGanttData();
-    } else if (activeSubTab === 'daily-logs') {
+    if (activeSubTab === 'daily-logs') {
       loadDailyLogs();
     } else {
       loadRfis();
     }
-  }, [activeSubTab, loadGanttData, loadDailyLogs, loadRfis]);
-
-  const handleOpenNewTask = () => {
-    if (projects.length === 0) {
-      toast.warning('يرجى تأسيس مشروع إنشائي وعقد مقاولة أولاً لإضافة مهام الجدول الزمني إليه.');
-      setIsCreateProjectOpen(true);
-      return;
-    }
-    if (!selectedProjectId && projects.length > 0) {
-      setSelectedProjectId(projects[0].id);
-    }
-    setIsCreateTaskOpen(true);
-  };
+  }, [activeSubTab, loadDailyLogs, loadRfis]);
 
   const handleOpenNewLog = () => {
     if (projects.length === 0) {
@@ -194,25 +153,6 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
         >
           <button
             type="button"
-            onClick={() => handleSubTabChange('gantt')}
-            style={{
-              padding: '7px 18px',
-              borderRadius: '8px',
-              fontSize: 'var(--font-body)',
-              fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
-              background: activeSubTab === 'gantt' ? '#ffffff' : 'transparent',
-              color: activeSubTab === 'gantt' ? '#170e5e' : '#64748b',
-              boxShadow: activeSubTab === 'gantt' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            الجدول الزمني ومخطط جانت (CPM)
-          </button>
-
-          <button
-            type="button"
             onClick={() => handleSubTabChange('daily-logs')}
             style={{
               padding: '7px 18px',
@@ -250,8 +190,8 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
           </button>
         </div>
 
-        {/* أزرار ضبط الجودة والمعدات بالموقع */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        {/* أزرار ضبط الجودة والوقود والعمالة والمعدات بالموقع */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={() => setIsWirModalOpen(true)}
@@ -260,14 +200,15 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
               padding: '0 14px',
               borderRadius: '8px',
               fontWeight: 600,
-              background: '#f8fafc',
-              color: '#170e5e',
+              background: '#ffffff',
+              color: '#334155',
               border: '1px solid #cbd5e1',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
             }}
           >
             <AppIcons.CheckCircle size={15} />
@@ -276,24 +217,71 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
 
           <button
             type="button"
-            onClick={() => setIsSnagModalOpen(true)}
+            onClick={() => setIsLaborModalOpen(true)}
             style={{
               height: '36px',
-              padding: '0 14px',
+              padding: '0 12px',
               borderRadius: '8px',
               fontWeight: 600,
-              background: '#f8fafc',
-              color: '#c2410c',
-              border: '1px solid #fed7aa',
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
             }}
           >
-            <AppIcons.AlertTriangle size={15} />
-            <span>قائمة العيوب (Punch List)</span>
+            <AppIcons.Users size={15} />
+            <span>حضور العمالة</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsPettyCashModalOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 12px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.DollarSign size={15} />
+            <span>العهدة النقدية</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsFuelLogsModalOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 12px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.Truck size={15} />
+            <span>سجل الوقود والمعدات</span>
           </button>
 
           <button
@@ -301,51 +289,27 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
             onClick={() => setIsEquipmentModalOpen(true)}
             style={{
               height: '36px',
-              padding: '0 14px',
+              padding: '0 12px',
               borderRadius: '8px',
               fontWeight: 600,
-              background: '#f8fafc',
-              color: '#475569',
+              background: '#ffffff',
+              color: '#334155',
               border: '1px solid #cbd5e1',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
             }}
           >
-            <AppIcons.Truck size={15} />
-            <span>المعدات والآليات</span>
+            <AppIcons.Tool size={15} />
+            <span>تتبع المعدات</span>
           </button>
         </div>
       </div>
 
       {/* محتوى التبويب النشط */}
-      {activeSubTab === 'gantt' && (
-        <>
-          <ContractingGanttTab
-            tasks={tasks}
-            loading={tasksLoading}
-            projectId={effectiveProjectId || undefined}
-            projectName={effectiveProject?.name}
-            onNewTask={handleOpenNewTask}
-            onTaskUpdated={loadGanttData}
-          />
-
-          {effectiveProjectId && (
-            <CreateScheduleTaskModal
-              open={isCreateTaskOpen}
-              projectId={effectiveProjectId}
-              projectName={effectiveProject?.name}
-              boqItems={boqItems}
-              existingTasks={tasks}
-              onClose={() => setIsCreateTaskOpen(false)}
-              onCreated={loadGanttData}
-            />
-          )}
-        </>
-      )}
-
       {activeSubTab === 'daily-logs' && (
         <>
           <ContractingDailyLogsTab
@@ -399,6 +363,16 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
         </>
       )}
 
+      {/* مودال سجل استهلاك الوقود وساعات تشغيل المعدات */}
+      {isFuelLogsModalOpen && effectiveProjectId && (
+        <EquipmentFuelLogsModal
+          open={isFuelLogsModalOpen}
+          onClose={() => setIsFuelLogsModalOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+        />
+      )}
+
       {/* مودال طلبات استلام الأعمال وضبط الجودة (WIR) */}
       {isWirModalOpen && effectiveProjectId && (
         <WorkInspectionModal
@@ -409,21 +383,32 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
         />
       )}
 
-      {/* مودال قائمة العيوب والملاحظات (Punch List) */}
-      {isSnagModalOpen && effectiveProjectId && (
-        <SnagListModal
-          open={isSnagModalOpen}
-          onClose={() => setIsSnagModalOpen(false)}
-          projectId={effectiveProjectId}
-          projectName={effectiveProject?.name}
-        />
-      )}
-
       {/* مودال تتبع المعدات والآليات الميدانية */}
       {isEquipmentModalOpen && (
         <EquipmentTrackingModal
           open={isEquipmentModalOpen}
           onClose={() => setIsEquipmentModalOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+        />
+      )}
+
+      {/* مودال حضور وسجلات عمالة الموقع */}
+      {isLaborModalOpen && (
+        <LaborAttendanceModal
+          isOpen={isLaborModalOpen}
+          onClose={() => setIsLaborModalOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+          boqItems={[]}
+        />
+      )}
+
+      {/* مودال العهد النقدية للموقع والمصاريف النثرية */}
+      {isPettyCashModalOpen && (
+        <PettyCashModal
+          isOpen={isPettyCashModalOpen}
+          onClose={() => setIsPettyCashModalOpen(false)}
           projectId={effectiveProjectId}
           projectName={effectiveProject?.name}
         />

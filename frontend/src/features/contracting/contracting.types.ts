@@ -852,4 +852,123 @@ export interface ContractingProjectHandover {
   updatedAt: string;
 }
 
+// 12. Material & Shop Drawing Submittals (MAR / MAS)
+export type SubmittalType = 'material' | 'shop_drawing' | 'sample' | 'method_statement';
+export type SubmittalStatus = 'submitted' | 'approved' | 'approved_as_noted' | 'revise_and_resubmit' | 'rejected';
+
+export interface ContractingSubmittal {
+  id: string;
+  projectId: string;
+  submittalNumber: string;
+  submittalType: SubmittalType;
+  title: string;
+  specificationSection?: string | null;
+  supplierManufacturer?: string | null;
+  boqItemId?: string | null;
+  boqItemCode?: string | null;
+  subcontractId?: string | null;
+  subcontractorName?: string | null;
+  submissionDate: string;
+  reviewDueDate?: string | null;
+  consultantReviewDate?: string | null;
+  status: SubmittalStatus;
+  consultantName?: string | null;
+  consultantComments?: string | null;
+  attachments?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 13. Material Price Escalation Claims
+export type MaterialEscalationType = 'rebar_steel' | 'portland_cement' | 'ready_mix' | 'bitumen' | 'sand_gravel' | 'other';
+export type MaterialEscalationStatus = 'draft' | 'submitted_to_client' | 'approved_by_consultant' | 'settled_in_ipc' | 'rejected';
+
+export interface ContractingMaterialEscalation {
+  id: string;
+  projectId: string;
+  claimNumber: string;
+  materialType: MaterialEscalationType;
+  materialName: string;
+  basePriceContract: number;
+  currentMarketPrice: number;
+  priceDifference: number;
+  executedQuantity: number;
+  unit: string;
+  totalCompensationAmount: number;
+  bulletinSourceReference?: string | null;
+  status: MaterialEscalationStatus;
+  ipcInvoiceId?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 14. Subcontractor Back-Charges & Penalties
+export type BackchargeCategory = 'damage_rework' | 'safety_fine' | 'equipment_usage' | 'material_supplied' | 'site_cleanup' | 'other';
+export type BackchargeStatus = 'pending_approval' | 'applied_to_deduction' | 'waived';
+
+export interface ContractingSubcontractorBackcharge {
+  id: string;
+  projectId: string;
+  voucherNumber: string;
+  subcontractId: string;
+  subcontractorName?: string | null;
+  beneficiarySubcontractId?: string | null;
+  beneficiarySubcontractorName?: string | null;
+  backchargeCategory: BackchargeCategory;
+  amount: number;
+  description: string;
+  occurrenceDate: string;
+  status: BackchargeStatus;
+  appliedIpcInvoiceId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 15. Equipment Fuel & Operating Meter Logs
+export interface ContractingEquipmentFuelLog {
+  id: string;
+  projectId: string;
+  equipmentId?: string | null;
+  equipmentName: string;
+  logDate: string;
+  startMeterHours: number;
+  endMeterHours: number;
+  operatingHours: number;
+  fuelLitersAdded: number;
+  fuelCostTotal: number;
+  driverOperatorName?: string | null;
+  boqItemId?: string | null;
+  boqItemCode?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 16. Earned Value Management (EVM) & S-Curve Metrics
+export interface ContractingProjectEvmMetrics {
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  plannedValue: number;
+  earnedValue: number;
+  actualCost: number;
+  budgetAtCompletion: number;
+  costVariance: number;
+  scheduleVariance: number;
+  cpi: number;
+  spi: number;
+  estimateAtCompletion: number;
+  varianceAtCompletion: number;
+  toCompletePerformanceIndex: number;
+  healthIndicator: 'excellent' | 'good' | 'at_risk' | 'critical';
+  sCurvePoints: {
+    periodName: string;
+    plannedCumulative: number;
+    earnedCumulative: number;
+    actualCumulative: number;
+  }[];
+}
+
+
 

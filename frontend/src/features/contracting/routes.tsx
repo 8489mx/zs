@@ -2,6 +2,7 @@ import React from 'react';
 import { createLazyRoute } from '@/app/router/lazy-route';
 import type { FeatureRouteModule } from '@/app/router/types';
 import { FeatureGate } from '@/shared/components/feature-gate';
+
 const wrapContractingIndependent = (Component: React.ComponentType) => (
   <FeatureGate feature="contracting" featureName="المقاولات وإدارة المشاريع الإنشائية">
     <Component />
@@ -39,10 +40,13 @@ export const contractingRouteModule: FeatureRouteModule = {
   ],
   navigation: [
     { key: 'contracting-projects', label: 'سجل المشاريع', to: '/contracting/projects' },
-    { key: 'contracting-boq', label: 'جداول الكميات', to: '/contracting/boq' },
-    { key: 'contracting-financials', label: 'المالية والمستخلصات', to: '/contracting/financials' },
-    { key: 'contracting-procurement', label: 'مقاولو الباطن والتوريد', to: '/contracting/procurement' },
-    { key: 'contracting-field', label: 'الميدان والجدول الزمني', to: '/contracting/field' },
+    { key: 'contracting-tender', label: 'التسعير والعطاءات', to: '/contracting/tender' },
+    { key: 'contracting-boq', label: 'المقايسة والميزانية', to: '/contracting/boq' },
+    { key: 'contracting-planning', label: 'التجهيز والجدول الزمني', to: '/contracting/planning' },
+    { key: 'contracting-procurement', label: 'المشتريات ومقاولو الباطن', to: '/contracting/procurement' },
+    { key: 'contracting-field', label: 'الميدان وضبط الجودة', to: '/contracting/field' },
+    { key: 'contracting-financials', label: 'المستخلصات والمالية', to: '/contracting/financials' },
+    { key: 'contracting-closeout', label: 'التسليم والإغلاق', to: '/contracting/closeout' },
     { key: 'contracting-master-boq', label: 'بنك بنود المقاولات', to: '/contracting/master-boq' },
   ],
 };

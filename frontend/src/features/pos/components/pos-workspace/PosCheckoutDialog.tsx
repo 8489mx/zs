@@ -180,7 +180,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
     <DialogShell
       open={open}
       onClose={handleDialogClose}
-      width="min(980px, calc(100vw - 32px))"
+      width="min(1080px, calc(100vw - 32px))"
       zIndex={86}
       ariaLabel="مراجعة وإتمام البيع"
       shellClassName="pos-checkout-dialog-shell"
@@ -189,9 +189,8 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
         title="مراجعة وإتمام البيع"
         className="dialog-card pos-checkout-dialog-card"
         style={{
-          height: 'min(820px, calc(100vh - 24px))',
-          minHeight: 'min(820px, calc(100vh - 24px))',
-          maxHeight: 'calc(100vh - 24px)',
+          height: 'auto',
+          maxHeight: 'calc(100vh - 20px)',
           display: 'flex',
           flexDirection: 'column',
           boxSizing: 'border-box'
@@ -232,67 +231,80 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
             onDeliverySelected={() => setCustomerPickerOpen(true)}
           />
 
-          <PosCheckoutCustomerSection
-            pos={pos}
-            selectedCustomerName={selectedCustomerName}
-            selectedCustomer={selectedCustomer}
-            filteredCustomers={filteredCustomers}
-            customerPickerOpen={customerPickerOpen}
-            customerQuery={customerQuery}
-            onCustomerPickerOpenChange={setCustomerPickerOpen}
-            onCustomerQueryChange={setCustomerQuery}
-            onQuickCustomerSubmit={(event) => { void handleQuickCustomerSubmit(event); }}
-            needsCustomer={pos.orderType === 'delivery' || pos.paymentType === 'credit'}
-            isManualOpen={isManualCustomerOpen}
-            onManualOpen={() => setIsManualCustomerOpen(true)}
-          />
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: pos.orderType === 'delivery' || pos.customerId ? 'minmax(0, 1.15fr) minmax(0, 1fr)' : 'minmax(0, 1fr)',
+            gap: '12px',
+            alignItems: 'start',
+          }}>
+            {/* Right Column: Customer, Delivery & Notes */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
+              <PosCheckoutCustomerSection
+                pos={pos}
+                selectedCustomerName={selectedCustomerName}
+                selectedCustomer={selectedCustomer}
+                filteredCustomers={filteredCustomers}
+                customerPickerOpen={customerPickerOpen}
+                customerQuery={customerQuery}
+                onCustomerPickerOpenChange={setCustomerPickerOpen}
+                onCustomerQueryChange={setCustomerQuery}
+                onQuickCustomerSubmit={(event) => { void handleQuickCustomerSubmit(event); }}
+                needsCustomer={pos.orderType === 'delivery' || pos.paymentType === 'credit'}
+                isManualOpen={isManualCustomerOpen}
+                onManualOpen={() => setIsManualCustomerOpen(true)}
+              />
 
-          <PosCheckoutDeliverySection
-            pos={pos}
-            deliveryReps={deliveryRepsQuery.data || []}
-          />
+              <PosCheckoutDeliverySection
+                pos={pos}
+                deliveryReps={deliveryRepsQuery.data || []}
+              />
 
-          <PosCheckoutPaymentSection
-            pos={pos}
-            cashAmountInputRef={cashAmountInputRef}
-            managerPinInputRef={managerPinInputRef}
-            customerPickerOpen={customerPickerOpen}
-            managerApprovalOpen={managerApprovalOpen}
-            managerPinDraft={managerPinDraft}
-            managerPinError={managerPinError}
-            isDiscountLocked={isDiscountLocked}
-            approvedManagerPinRef={approvedManagerPinRef}
-            onManagerApprovalOpenChange={setManagerApprovalOpen}
-            onManagerPinDraftChange={setManagerPinDraft}
-            onManagerPinErrorChange={setManagerPinError}
-            onInlineManagerApproval={(event) => { void handleInlineManagerApproval(event); }}
-            isPaymentActive={isPaymentActive}
-            onSelectPaymentPreset={(preset) => pos.setPaymentPreset(preset)}
-          />
+              <section className="pos-checkout-dialog-section" style={{ padding: 0, marginTop: '2px' }}>
+                {!isNotesOpen && !pos.note ? (
+                  <Button type="button" variant="secondary" onClick={() => setIsNotesOpen(true)} style={{ width: '100%', minHeight: '32px', fontSize: '12px' }}>+ إضافة ملاحظة للفاتورة</Button>
+                ) : (
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', width: '100%' }}>
+                    <input autoFocus={isNotesOpen && !pos.note} value={pos.note} onChange={(event) => pos.setNote(event.target.value)} placeholder="ملاحظات اختيارية على الفاتورة..." disabled={pos.createSale.isPending} style={{ flex: 1, padding: '4px 8px', fontSize: '12px', height: '32px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                    <Button type="button" variant="secondary" onClick={() => { setIsNotesOpen(false); pos.setNote(''); }} style={{ flexShrink: 0, height: '32px', padding: '0 8px', fontSize: '11px', borderRadius: '4px' }}>مسح</Button>
+                  </div>
+                )}
+              </section>
 
-          <section className="pos-checkout-dialog-section" style={{ padding: 0, marginTop: '2px' }}>
-            {!isNotesOpen && !pos.note ? (
-              <Button type="button" variant="secondary" onClick={() => setIsNotesOpen(true)} style={{ width: '100%', minHeight: '32px', fontSize: '12px' }}>+ إضافة ملاحظة للفاتورة</Button>
-            ) : (
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', width: '100%' }}>
-                <input autoFocus={isNotesOpen && !pos.note} value={pos.note} onChange={(event) => pos.setNote(event.target.value)} placeholder="ملاحظات اختيارية على الفاتورة..." disabled={pos.createSale.isPending} style={{ flex: 1, padding: '4px 8px', fontSize: '12px', height: '32px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
-                <Button type="button" variant="secondary" onClick={() => { setIsNotesOpen(false); pos.setNote(''); }} style={{ flexShrink: 0, height: '32px', padding: '0 8px', fontSize: '11px', borderRadius: '4px' }}>مسح</Button>
-              </div>
-            )}
-          </section>
-
-          {pos.orderType === 'delivery' && (!pos.deliveryRepId || Number(pos.deliveryRepId) <= 0) && (
-            <div className="error-box" style={{ margin: '12px 0 0', background: '#fef2f2', border: '1.5px solid #f87171', color: '#b91c1c', padding: '10px 14px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
-              </svg>
-              <span>يجب اختيار مندوب التوصيل لإتمام فاتورة الدليفري وتسجيل عهدة التحصيل عليه.</span>
+              {pos.orderType === 'delivery' && (!pos.deliveryRepId || Number(pos.deliveryRepId) <= 0) && (
+                <div className="error-box" style={{ margin: '4px 0 0', background: '#fef2f2', border: '1.5px solid #f87171', color: '#b91c1c', padding: '8px 12px', borderRadius: '8px', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  <span>يجب اختيار مندوب التوصيل لإتمام فاتورة الدليفري وتسجيل عهدة التحصيل عليه.</span>
+                </div>
+              )}
             </div>
-          )}
 
-          <div className="actions compact-actions pos-checkout-dialog-actions">
+            {/* Left Column: Payment Section */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
+              <PosCheckoutPaymentSection
+                pos={pos}
+                cashAmountInputRef={cashAmountInputRef}
+                managerPinInputRef={managerPinInputRef}
+                customerPickerOpen={customerPickerOpen}
+                managerApprovalOpen={managerApprovalOpen}
+                managerPinDraft={managerPinDraft}
+                managerPinError={managerPinError}
+                isDiscountLocked={isDiscountLocked}
+                approvedManagerPinRef={approvedManagerPinRef}
+                onManagerApprovalOpenChange={setManagerApprovalOpen}
+                onManagerPinDraftChange={setManagerPinDraft}
+                onManagerPinErrorChange={setManagerPinError}
+                onInlineManagerApproval={(event) => { void handleInlineManagerApproval(event); }}
+                isPaymentActive={isPaymentActive}
+                onSelectPaymentPreset={(preset) => pos.setPaymentPreset(preset)}
+              />
+            </div>
+          </div>
+
+          <div className="actions compact-actions pos-checkout-dialog-actions" style={{ marginTop: '8px' }}>
             <Button type="button" variant="secondary" onClick={handleDialogClose} disabled={pos.createSale.isPending}>رجوع للسلة</Button>
             {onOpenSplitBill && pos.cart.length > 0 && (
               <Button

@@ -77,6 +77,7 @@ export const SETTINGS_FIELD_METADATA: Record<
   posTerminalName: { tab: 'sales_inventory', label: 'اسم ماكينة الدفع' },
   posTerminalIp: { tab: 'sales_inventory', label: 'عنوان IP الماكينة' },
   posTerminalPort: { tab: 'sales_inventory', label: 'منفذ الاتصال بالماكينة' },
+  restaurantTablesCount: { tab: 'sales_inventory', label: 'عدد طاولات الصالة' },
 
   // Modules Tab
   onboardingCompleted: { tab: 'modules', label: 'حالة إكمال التهيئة الأولية' },
@@ -210,6 +211,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       allowNegativeStockSales: false,
       allowZeroPurchaseCost: false,
       requireCashierShiftForSales: true,
+      restaurantTablesCount: 12,
       loyaltyEnabled: true,
       loyaltyPointsPer100Egp: 10,
       loyaltyPointRedeemValue: 0.1,
@@ -421,6 +423,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
       allowZeroPurchaseCost: settings.allowZeroPurchaseCost === true,
       requireCashierShiftForSales: settings.requireCashierShiftForSales !== false,
+      restaurantTablesCount: Math.min(200, Math.max(1, Math.floor(Number(settings.restaurantTablesCount || 12)))),
       loyaltyEnabled: (settings as any)?.loyaltyEnabled !== false,
       loyaltyPointsPer100Egp: Number((settings as any)?.loyaltyPointsPer100Egp ?? 10),
       loyaltyPointRedeemValue: Number((settings as any)?.loyaltyPointRedeemValue ?? 0.1),

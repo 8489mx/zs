@@ -48,14 +48,15 @@ export function ContractingDailyLogsTab({
               padding: '0 14px',
               borderRadius: '8px',
               fontWeight: 600,
-              background: '#f8fafc',
-              color: '#170e5e',
+              background: '#ffffff',
+              color: '#334155',
               border: '1px solid #cbd5e1',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
             }}
           >
             <AppIcons.Users size={15} />
@@ -71,14 +72,15 @@ export function ContractingDailyLogsTab({
               padding: '0 14px',
               borderRadius: '8px',
               fontWeight: 600,
-              background: '#f0fdf4',
-              color: '#15803d',
-              border: '1px solid #bbf7d0',
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
             }}
           >
             <AppIcons.DollarSign size={15} />
@@ -101,7 +103,9 @@ export function ContractingDailyLogsTab({
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(23, 14, 94, 0.15)',
               fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
             }}
           >
             <AppIcons.Plus size={15} />

@@ -143,8 +143,24 @@ export function BoqTakeoffSheetModal({
     setSaving(true);
     setErrorMsg(null);
     try {
+      const sanitizedTakeoffs = takeoffs.map((t) => ({
+        id: t.id ? String(t.id) : undefined,
+        drawingRef: t.drawingRef || '',
+        axisRef: t.axisRef || '',
+        description: t.description || 'حصر بند',
+        length: Number(t.length) || 0,
+        width: Number(t.width) || 1,
+        height: Number(t.height) || 1,
+        countMultiplier: Number(t.countMultiplier) || 1,
+        voidDeduction: Number(t.voidDeduction) || 0,
+        netQty: Number(t.netQty) || 0,
+        wastePercent: Number(t.wastePercent) || 0,
+        totalWithWaste: Number(t.totalWithWaste) || 0,
+        notes: t.notes || undefined,
+      }));
+
       await contractingApi.saveBoqTakeoffs(String(boqItem.id), {
-        takeoffs,
+        takeoffs: sanitizedTakeoffs,
         syncToBoqQuantity: syncToBoq,
       });
       if (onSuccess) onSuccess();
