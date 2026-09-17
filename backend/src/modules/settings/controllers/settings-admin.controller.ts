@@ -90,5 +90,15 @@ export class SettingsAdminController {
   wipeDemoData(@Body() body: { password?: string }, @Req() req: RequestWithAuth) {
     return this.demoDataService.wipeAllData(body?.password || '', req.authContext!);
   }
+
+  @Post('reset-stock-balances')
+  resetStockBalances(@Body() body: { password?: string }, @Req() req: RequestWithAuth) {
+    return this.demoDataService.resetStockBalances(body?.password || '', req.authContext!);
+  }
+
+  @Post('wipe-catalog-products')
+  wipeCatalogProducts(@Body() body: { password?: string }, @Req() req: RequestWithAuth) {
+    return this.demoDataService.wipeCatalogAndStock(body?.password || '', req.authContext!);
+  }
 }
 

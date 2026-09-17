@@ -239,6 +239,18 @@ export const settingsApi = {
       method: 'POST',
     }),
 
+  // ─── Operational Inventory & Catalog Reset ──────────────────────────────
+  resetStockBalances: (password: string) =>
+    http<{ ok: boolean; message: string; productsCount: number }>('/api/admin/reset-stock-balances', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
+  wipeCatalogProducts: (password: string) =>
+    http<{ ok: boolean; message: string }>('/api/admin/wipe-catalog-products', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
+
   // ─── Offline Releases ────────────────────────────────────────────────────
   offlineReleases: {
     list: () => http<OfflineRelease[]>('/api/admin/offline-releases'),

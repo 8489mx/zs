@@ -204,6 +204,8 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      direction: ltr;
+      unicode-bidi: isolate;
     }
 
     .footer-brand span {
@@ -230,6 +232,12 @@
       background: #10b981;
       border-radius: 50%;
       display: inline-block;
+      animation: pulseDot 2.2s ease-in-out infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.92); }
     }
 
     /* Screen Bottom Credit */
@@ -280,18 +288,18 @@
     </div>
 
     <div class="card-footer">
-      <div class="footer-brand">
-        Powered by <span>Z-Systems</span>
-      </div>
       <div class="version-badge" id="versionBadge">
         <span class="version-dot"></span>
         <span id="versionText">نظام مؤمن • v1.1.31</span>
+      </div>
+      <div class="footer-brand" dir="ltr">
+        Powered by <span>Z-Systems</span>
       </div>
     </div>
   </div>
 
   <div class="screen-credit">
-    منصة Z-Systems السحابية المؤسسية • الإصدار المعتمد
+    منظومة Z-Systems المؤسسية • الإصدار المعتمد
   </div>
 
   <script>
@@ -326,16 +334,41 @@
     const bar = document.getElementById('progressBar');
     const percentEl = document.getElementById('progressPercent');
     const statusText = document.getElementById('statusText');
+
+    let currentPct = 15;
+    let animFrameId = null;
+
+    function animatePercentTo(targetPct, duration = 400) {
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      const startPct = currentPct;
+      const startTime = performance.now();
+
+      function update(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        currentPct = Math.round(startPct + (targetPct - startPct) * ease);
+        if (percentEl) percentEl.textContent = currentPct + '%';
+        if (progress < 1) {
+          animFrameId = requestAnimationFrame(update);
+        } else {
+          currentPct = targetPct;
+          if (percentEl) percentEl.textContent = targetPct + '%';
+        }
+      }
+      animFrameId = requestAnimationFrame(update);
+    }
+
     const steps = [
       { pct: 25, text: 'جاري تشغيل محرك قواعد البيانات والخدمات المحلية...', delay: 200 },
       { pct: 55, text: 'التحقق من سلامة البيانات والتراخيص المعتمدة...', delay: 1000 },
       { pct: 85, text: 'تجهيز واجهات نقطة البيع وتهيئة بيئة العمل...', delay: 1900 },
-      { pct: 100, text: 'اكتمل الإقلاع بنجاح! جاري فتح المنظومة...', delay: 2700, isDone: true },
+      { pct: 100, text: 'اكتمل الإقلاع بنجاح • جاري فتح المنظومة...', delay: 2700, isDone: true },
     ];
     steps.forEach(s => {
       setTimeout(() => {
         if (bar) bar.style.width = s.pct + '%';
-        if (percentEl) percentEl.textContent = s.pct + '%';
+        animatePercentTo(s.pct, 420);
         if (statusText) {
           statusText.style.opacity = '0';
           setTimeout(() => {

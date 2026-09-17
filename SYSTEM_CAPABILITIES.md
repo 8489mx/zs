@@ -4611,6 +4611,24 @@
 * **فحص الجودة والسلامة البرمجية:**
   - الالتزام الصارم بدستور واجهات المستخدم (RTL، Zero Emojis، StandardDialog، شريط أحادي السطر Single-Line Row، وفصل دقيق للتابات والأركان وتوافق الشاشات من 14 إلى 32 بوصة بدون سكرول خارجي).
 
+---
+
+## 141. إدارة تهيئة المخزون وتصفير البيانات للبدء الفعلي (Operational Inventory Reset & Catalog Wipe Engine)
+* **حالة الموديول العامة:** 🟢 مكتمل ومحكم 100% (Enterprise Production Ready)
+* **المسارات في الكود:**
+  - `backend/src/modules/settings/services/settings-demo-data.service.ts`: دوال `resetStockBalances` و `wipeCatalogAndStock` مع فحص كلمة مرور المدير (`assertAdminAndPassword`) وأخذ نسخة احتياطية Snapshot تلقائية وتسجيل النشاط في سجل التدقيق `audit_logs`.
+  - `backend/src/modules/settings/controllers/settings-admin.controller.ts`: مسارات الـ API المحمية بجارد الإدارة (`POST /api/admin/reset-stock-balances` و `POST /api/admin/wipe-catalog-products`).
+  - `frontend/src/features/settings/api/settings.api.ts`: دوال `resetStockBalances` و `wipeCatalogProducts`.
+  - `frontend/src/features/settings/components/workspace-sections/SettingsBackupImportSection.tsx`: بطاقة `InventoryOperationsResetCard` المؤسسية التفاعلية مع نافذة تأكيد أمنية بحماية كلمة المرور وتوضيح شفاف للبيانات المحفوظة وتلك التي سيتم تصفيرها.
+* **القدرات والوظائف المعتمدة:**
+  1. **تصفير أرصدة المخزون والحركات لبدء العمل الفعلي (Reset Stock Balances to Zero):**
+     - تصفير كميات وأرصدة كافة الأصناف في جميع المخازن لتصبح `0`، وحذف حركات المخزون والتحويلات وجلسات الجرد والتوالف والفواتير المعلقة، مع **الحفاظ الصارم والتام على بيانات الأصناف، الباركودات، الأسعار، التصنيفات، والوحدات**.
+  2. **مسح كافة الأصناف والمخزون كلياً (Wipe All Catalog Products & Stock):**
+     - مسح كافة الأصناف والتصنيفات والكتالوج بالكامل مع حركات المخزون للبدء بكتالوج جديد، مع **الحفاظ الصارم على بيانات المنشأة (اسم المنشأة، الشعار، العنوان، أرقام الهواتف)، الفروع، المخازن، المستخدمين والصلاحيات، التفضيلات، والاشتراك**.
+  3. **الأمان والحوكمة والنسخ الاحتياطي التلقائي:**
+     - اشتراط كلمة مرور حساب المدير للتنفيذ، مع أخذ لقطة احتياطية كاملة (Backup Snapshot) تلقائياً قبل أي عملية، وتسجيل العملية في سجلات التدقيق.
+
+
 
 
 
