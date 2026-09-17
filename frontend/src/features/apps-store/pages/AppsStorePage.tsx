@@ -182,17 +182,12 @@ export function AppsStorePage() {
   const handleToggle = async (app: AppItemDefinition, currentStatus: boolean) => {
     if (updateMutation.isPending) return;
 
+    if (!isSuperAdmin) {
+      toast.warning('إدارة وتثبيت الموديولات مخصصة حصرياً لإدارة المنصة (السوبر أدمن). يرجى التواصل لترقية باقتك وتفعيل الموديول المطلوب.');
+      return;
+    }
+
     if (currentStatus) {
-      if (!isSuperAdmin) {
-        if (isContractingVertical && CONTRACTING_ALLOWED_KEYS.has(app.key)) {
-          toast.warning(`تطبيق [${app.title}] جزء أساسي من باقة المقاولات الشاملة ولا يمكن إيقافه.`);
-          return;
-        }
-        if (isMaritimeVertical && MARITIME_ALLOWED_KEYS.has(app.key)) {
-          toast.warning(`تطبيق [${app.title}] جزء أساسي من باقة الشحن الشاملة ولا يمكن إيقافه.`);
-          return;
-        }
-      }
 
       // Confirm uninstallation to prevent accidental disabling of critical modules
       const confirmed = await systemConfirm({
@@ -588,6 +583,7 @@ export function AppsStorePage() {
                 isActive={isAppActive(app.key)}
                 isAllowedByPlan={isAppAllowedByPlan(app)}
                 isPending={updateMutation.isPending}
+                isSuperAdmin={isSuperAdmin}
                 isCoreSuiteApp={
                   !isSuperAdmin &&
                   ((isContractingVertical && CONTRACTING_ALLOWED_KEYS.has(app.key)) ||

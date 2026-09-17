@@ -13,7 +13,7 @@ export interface UserRowLike {
   username: string;
   phone?: string | null;
   role: string;
-  permissions_json?: string | null;
+  permissions_json?: unknown;
   display_name?: string | null;
   default_branch_id?: number | string | null;
   is_active?: boolean | number | null;
@@ -39,13 +39,21 @@ export interface UserViewModel {
   lastLoginAt: string | null;
 }
 
-function safeJsonArray(value: string): string[] {
-  try {
-    const parsed = JSON.parse(value || '[]');
-    return Array.isArray(parsed) ? parsed.map((item) => String(item)) : [];
-  } catch {
-    return [];
+function safeJsonArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
   }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      return Array.isArray(parsed) ? parsed.map((item) => String(item).trim()).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
 }
 
 export function normalizeUserListQuery(query: UserQueryInput): UserListQuery {
@@ -62,7 +70,7 @@ export function mapUserRow(row: UserRowLike, branchIds: string[]): UserViewModel
     username: row.username,
     phone: row.phone || null,
     role: row.role,
-    permissions: safeJsonArray(String(row.permissions_json || '[]')),
+    permissions: safeJsonArray(row.permissions_json),
     name: row.display_name || row.username,
     branchIds,
     defaultBranchId: row.default_branch_id ? String(row.default_branch_id) : '',

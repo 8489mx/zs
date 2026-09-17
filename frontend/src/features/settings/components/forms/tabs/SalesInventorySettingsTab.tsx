@@ -7,6 +7,7 @@ import type { AppSettings } from '@/types/domain';
 import { FormSection } from '@/shared/components/form-section';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 interface SalesInventoryTabProps {
   form: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>;
@@ -290,13 +291,14 @@ export function SalesInventorySettingsTab({
   activeTab,
   settings,
 }: SalesInventoryTabProps) {
-  const rawActivity = String(form.watch('businessIndustry') || settings?.businessIndustry || (settings as any)?.activityType || 'general').trim().toLowerCase();
+  const rawActivity = String(form.watch('businessIndustry') || settings?.businessIndustry || (settings as any)?.activityType || 'retail_general').trim().toLowerCase();
   const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || Boolean(form.watch('contractingModuleEnabled'));
   const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن' || Boolean(form.watch('maritimeFreightModuleEnabled'));
-  const isImportVertical = rawActivity === 'import_export' || Boolean(form.watch('importModuleEnabled'));
-  const isServicesVertical = rawActivity === 'services' || Boolean(form.watch('servicesModuleEnabled'));
-  const isManufacturingVertical = rawActivity === 'manufacturing' || Boolean(form.watch('manufacturingModuleEnabled'));
-  const isRetailCommerce = !isContractingVertical && !isMaritimeVertical && !isServicesVertical && !isImportVertical && !isManufacturingVertical;
+  const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع' || Boolean(form.watch('manufacturingModuleEnabled'));
+  const isServicesVertical = rawActivity === 'services' || rawActivity === 'consulting' || rawActivity === 'استشارات';
+  const isImportVertical = rawActivity === 'import_export' || rawActivity === 'import';
+  const isRestaurantVertical = ['restaurant', 'cafe', 'مطعم', 'كافيه'].includes(rawActivity) || Boolean(form.watch('restaurantModuleEnabled'));
+  const isRetailCommerce = !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isServicesVertical;
   const isPosModuleEnabled = Boolean(form.watch('posModuleEnabled') ?? settings?.posModuleEnabled ?? true);
   const showPosSettings = isPosModuleEnabled && isRetailCommerce;
   const showPhysicalInventory = !isServicesVertical;
@@ -788,6 +790,77 @@ export function SalesInventorySettingsTab({
         </FormSection>
       )}
 
+      {/* ===== مخصص للمصانع والإنتاج الصناعي (Manufacturing Dedicated) ===== */}
+      {isManufacturingVertical && (
+        <FormSection
+          title="ضوابط التصنيع والإنتاج ومخازن المواد الخام"
+          description="تحديد ضوابط حركة المواد الخام ومكونات الإنتاج وأوامر التشغيل بالمصنع."
+        >
+          <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
+            {/* Card 1: Default Issue Mode for Materials */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نمط صرف خامات ومكونات الإنتاج الافتراضي</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>آلية خصم الخامات من المخازن عند إصدار إذن تشغيل الإنتاج</span>
+              <CustomSelect
+                value={form.watch('defaultBranchIssueMode') || 'final_issue'}
+                onChange={(val) => form.setValue('defaultBranchIssueMode', val as any, { shouldDirty: true, shouldValidate: true })}
+                options={[
+                  { value: 'final_issue', label: 'صرف نهائي لأمر التشغيل (يُخصم الرصيد فوراً)' },
+                  { value: 'transfer_to_branch_stock', label: 'تحويل لمستودع تشغيل / خط الإنتاج (قيد الاستخدام)' },
+                ]}
+                disabled={disabled}
+              />
+            </div>
+
+            {/* Card 2: Raw Materials Low Stock Threshold */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>حد التنبيه لنقص المواد الخام والمكونات</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>إظهار تنبيه نقص المواد الخام في لوحة التحكم عند وصول الرصيد لهذا الحد</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="number"
+                  min="0"
+                  className="purchase-prototype-field-input"
+                  {...form.register('lowStockThreshold')}
+                  disabled={disabled}
+                  placeholder="10"
+                  style={{ ...fieldControlStyle, width: '100px', textAlign: 'center', fontWeight: 800 }}
+                />
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>وحدة مخزنية</span>
+              </div>
+            </div>
+
+            {/* Card 3: Allow Zero Purchase Cost */}
+            <label style={premiumCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={iconBadgeStyle}>
+                  <ZeroCostIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>السماح بسعر شراء صفر لخامات وعينات التشغيل</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>مخصص لخامات التشغيل المهداة، العينات المخبرية، ومخلفات التدوير</small>
+                </div>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowZeroPurchaseCost')} disabled={disabled} />
+            </label>
+
+            {/* Card 4: Allow Negative Stock Sales */}
+            <label style={premiumCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={iconBadgeStyle}>
+                  <NegativeStockIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>السماح بصرف الخامات بالسالب</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>تخطي رصيد المخزن لتفادي توقف خطوط الإنتاج قبل وصول أذون الإضافة</small>
+                </div>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowNegativeStockSales')} disabled={disabled} />
+            </label>
+          </div>
+        </FormSection>
+      )}
+
       {/* ===== خيارات وقواعد البيع والمخزون (للتجارة والتجزئة والأنشطة العامة) ===== */}
       {isRetailCommerce && (
         <FormSection
@@ -1007,7 +1080,7 @@ export function SalesInventorySettingsTab({
                         onChange={(val) => form.setValue('posMaxDiscountThresholdType', val as any, { shouldDirty: true, shouldValidate: true })}
                         options={[
                           { value: 'percentage', label: 'نسبة مئوية من إجمالي الفاتورة (%)' },
-                          { value: 'fixed', label: 'مبلغ ثابت بالجنيه (${getGlobalCurrencySymbol()})' },
+                          { value: 'fixed', label: `مبلغ ثابت بالعملة (${getGlobalCurrencySymbol()})` },
                         ]}
                         disabled={disabled}
                       />
@@ -1015,7 +1088,7 @@ export function SalesInventorySettingsTab({
 
                     <div>
                       <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                        قيمة سقف الخصم المسموح به {form.watch('posMaxDiscountThresholdType') === 'fixed' ? '(${getGlobalCurrencySymbol()})' : '(%)'}
+                        قيمة سقف الخصم المسموح به {form.watch('posMaxDiscountThresholdType') === 'fixed' ? `(${getGlobalCurrencySymbol()})` : '(%)'}
                       </label>
                       <input
                         type="number"
@@ -1153,34 +1226,36 @@ export function SalesInventorySettingsTab({
                 </div>
               )}
 
-              {/* Card 9: Restaurant Tables Count */}
-              <div style={{ ...premiumCardStyle, cursor: 'default' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                  <div style={iconBadgeStyle}>
-                    <RestaurantTablesIcon size={20} />
+              {/* Card 9: Restaurant Tables Count (Only for Restaurants & Cafes) */}
+              {isRestaurantVertical && (
+                <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                    <div style={iconBadgeStyle}>
+                      <RestaurantTablesIcon size={20} />
+                    </div>
+                    <div style={premiumCardTextStyle}>
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>عدد طاولات الصالة</strong>
+                      <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                        العدد الافتراضي للطاولات المعروضة في خريطة الصالة والمطاعم
+                      </small>
+                    </div>
                   </div>
-                  <div style={premiumCardTextStyle}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>عدد طاولات الصالة</strong>
-                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                      العدد الافتراضي للطاولات المعروضة في خريطة الصالة والمطاعم
-                    </small>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      className="purchase-prototype-field-input"
+                      type="number"
+                      min="1"
+                      max="200"
+                      step="1"
+                      {...form.register('restaurantTablesCount')}
+                      disabled={disabled}
+                      placeholder="24"
+                      style={{ width: '85px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                    />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>طاولة</span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <input
-                    className="purchase-prototype-field-input"
-                    type="number"
-                    min="1"
-                    max="200"
-                    step="1"
-                    {...form.register('restaurantTablesCount')}
-                    disabled={disabled}
-                    placeholder="24"
-                    style={{ width: '85px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                  />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>طاولة</span>
-                </div>
-              </div>
+              )}
             </>
           )}
         </div>

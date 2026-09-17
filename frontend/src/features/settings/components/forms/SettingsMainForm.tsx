@@ -318,23 +318,29 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const clothingModuleEnabled = form.watch('clothingModuleEnabled');
   const canNavigateAway = useUnsavedChangesGuard(form.formState.isDirty && !mutation.isPending);
 
-  const rawActivity = String(form.watch('businessIndustry') || tenant?.activityType || tenant?.pillar || settings?.activityType || (settings as any)?.businessIndustry || 'retail_general').trim().toLowerCase();
+  const rawActivity = String(form.watch('businessIndustry') || tenant?.activityType || settings?.activityType || (settings as any)?.businessIndustry || 'retail_general').trim().toLowerCase();
   const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || Boolean(form.watch('contractingModuleEnabled'));
   const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن' || Boolean(form.watch('maritimeFreightModuleEnabled'));
-  const isImportVertical = rawActivity === 'import_export' || Boolean(form.watch('importModuleEnabled'));
-  const isServicesVertical = rawActivity === 'services' || Boolean(form.watch('servicesModuleEnabled'));
+  const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع' || Boolean(form.watch('manufacturingModuleEnabled'));
+  const isServicesVertical = rawActivity === 'services' || rawActivity === 'consulting' || rawActivity === 'استشارات';
+  const isImportVertical = rawActivity === 'import_export' || rawActivity === 'import';
+  const isRestaurantVertical = ['restaurant', 'cafe', 'مطعم', 'كافيه'].includes(rawActivity) || Boolean(form.watch('restaurantModuleEnabled'));
 
   const salesInventoryTabLabel = isContractingVertical
     ? 'ضوابط المقاولات والمشاريع'
     : isMaritimeVertical
     ? 'ضوابط الشحن والعمليات الملاحية'
-    : isImportVertical
-    ? 'ضوابط الاستيراد والرسائل الجمركية'
+    : isManufacturingVertical
+    ? 'ضوابط التصنيع والإنتاج'
     : isServicesVertical
     ? 'ضوابط الخدمات وعقود الصيانة'
-    : 'البيع وقواعد المخزون';
+    : isImportVertical
+    ? 'ضوابط الاستيراد ونقاط البيع'
+    : isRestaurantVertical
+    ? 'إعدادات المطاعم والمبيعات والمخزون'
+    : 'إعدادات نقطة البيع والمبيعات والمخزون';
 
-  const printingTabLabel = isContractingVertical || isMaritimeVertical || isServicesVertical
+  const printingTabLabel = isContractingVertical || isMaritimeVertical || isServicesVertical || isManufacturingVertical
     ? 'نماذج المطبوعات والترويسة'
     : 'الطباعة والإيصالات';
 
@@ -741,6 +747,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       const rawActivity = String(values.businessIndustry || tenant?.activityType || tenant?.pillar || settings?.activityType || 'retail_general').trim().toLowerCase();
       const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
       const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+      const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
+      const isServicesVertical = rawActivity === 'services' || rawActivity === 'consulting' || rawActivity === 'استشارات';
 
       if (isContractingVertical) {
         values.contractingModuleEnabled = true;
@@ -752,6 +760,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         values.taxDeclarationModuleEnabled = true;
         values.posModuleEnabled = false;
         values.maritimeFreightModuleEnabled = false;
+        values.manufacturingModuleEnabled = false;
+        values.servicesModuleEnabled = false;
       } else if (isMaritimeVertical) {
         values.maritimeFreightModuleEnabled = true;
         values.purchasesModuleEnabled = true;
@@ -760,11 +770,29 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         values.fixedAssetsModuleEnabled = true;
         values.taxDeclarationModuleEnabled = true;
         values.contractingModuleEnabled = false;
+        values.manufacturingModuleEnabled = false;
         values.inventoryModuleEnabled = false;
+        values.posModuleEnabled = false;
+        values.servicesModuleEnabled = false;
+      } else if (isManufacturingVertical) {
+        values.manufacturingModuleEnabled = true;
+        values.purchasesModuleEnabled = true;
+        values.inventoryModuleEnabled = true;
+        values.hrModuleEnabled = true;
+        values.enableEnterpriseFeatures = true;
+        values.fixedAssetsModuleEnabled = true;
+        values.taxDeclarationModuleEnabled = true;
+        values.contractingModuleEnabled = false;
+        values.maritimeFreightModuleEnabled = false;
+        values.servicesModuleEnabled = false;
         values.posModuleEnabled = false;
       } else {
         values.contractingModuleEnabled = false;
         values.maritimeFreightModuleEnabled = false;
+        values.manufacturingModuleEnabled = false;
+        if (!isServicesVertical) {
+          values.servicesModuleEnabled = false;
+        }
       }
 
       values.activityType = values.businessIndustry;

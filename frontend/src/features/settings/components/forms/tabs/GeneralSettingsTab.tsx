@@ -245,31 +245,61 @@ export function GeneralSettingsTab({
     }
   }, [accentColor]);
 
-  const rawAct = String(businessIndustry || tenant?.activityType || tenant?.pillar || 'retail_general').trim().toLowerCase();
+  const rawAct = String(businessIndustry || tenant?.activityType || 'retail_general').trim().toLowerCase();
   const isContractingVertical = rawAct === 'contracting' || rawAct === 'construction' || rawAct === 'مقاولات' || Boolean(form.watch('contractingModuleEnabled'));
   const isMaritimeVertical = rawAct === 'maritime_freight' || rawAct === 'maritime' || rawAct === 'freight' || rawAct === 'shipping' || rawAct === 'شحن' || Boolean(form.watch('maritimeFreightModuleEnabled'));
-  const isImportVertical = rawAct === 'import_export' || Boolean(form.watch('importModuleEnabled'));
-  const isServicesVertical = rawAct === 'services' || Boolean(form.watch('servicesModuleEnabled'));
-  const isNonPosVertical = isContractingVertical || isMaritimeVertical || isServicesVertical || isImportVertical;
+  const isManufacturingVertical = rawAct === 'manufacturing' || rawAct === 'production' || rawAct === 'تصنيع' || rawAct === 'مصنع' || Boolean(form.watch('manufacturingModuleEnabled'));
+  const isServicesVertical = rawAct === 'services' || rawAct === 'consulting' || rawAct === 'استشارات';
+  const isImportVertical = rawAct === 'import_export' || rawAct === 'import';
+  const isRestaurantVertical = ['restaurant', 'cafe', 'مطعم', 'كافيه'].includes(rawAct) || Boolean(form.watch('restaurantModuleEnabled'));
+  const isPharmacyVertical = ['pharmacy', 'صيدلية', 'صيدليات'].includes(rawAct) || Boolean(form.watch('enablePharmacyModule'));
+  const isClothingVertical = ['clothing', 'fashion', 'ملابس', 'أزياء'].includes(rawAct) || Boolean(form.watch('clothingModuleEnabled'));
+  const isAutoPartsVertical = ['auto_parts', 'autoparts', 'قطع_غيار', 'قطع غيار'].includes(rawAct) || Boolean(form.watch('autoPartsModuleEnabled'));
+  const isMaintenanceVertical = ['maintenance', 'electronics', 'صيانة'].includes(rawAct) || Boolean(form.watch('enableMobileStoreFeatures'));
+  const isNonPosVertical = isContractingVertical || isMaritimeVertical || isServicesVertical || isManufacturingVertical;
 
   const storeNameLabel = isContractingVertical
     ? 'اسم شركة المقاولات / المؤسسة'
     : isMaritimeVertical
     ? 'اسم شركة الشحن والتوكيلات الملاحية'
+    : isManufacturingVertical
+    ? 'اسم المصنع / المنشأة الصناعية'
     : isImportVertical
     ? 'اسم شركة الاستيراد والتصدير'
     : isServicesVertical
     ? 'اسم المكتب / الشركة الاستشارية والخدمية'
+    : isRestaurantVertical
+    ? 'اسم المطعم / الكافيه'
+    : isPharmacyVertical
+    ? 'اسم الصيدلية / المؤسسة العلاجية'
+    : isClothingVertical
+    ? 'اسم المتجر / بوتيك الأزياء'
+    : isAutoPartsVertical
+    ? 'اسم المركز / محل قطع الغيار'
+    : isMaintenanceVertical
+    ? 'اسم المركز / محل صيانة الأجهزة'
     : 'اسم النشاط / المتجر';
 
   const storeNamePlaceholder = isContractingVertical
     ? 'مثال: شركة المقاولات والإنشاءات الحديثة'
     : isMaritimeVertical
     ? 'مثال: شركة الملاحة والخدمات اللوجستية'
+    : isManufacturingVertical
+    ? 'مثال: مصنع النور للصناعات والتجميع'
     : isImportVertical
     ? 'مثال: المجموعة الدولية للاستيراد والتصدير'
     : isServicesVertical
     ? 'مثال: المجموعة الاستشارية للأعمال'
+    : isRestaurantVertical
+    ? 'مثال: مطعم وكافيه الشرق'
+    : isPharmacyVertical
+    ? 'مثال: صيدليات الحياة الكبرى'
+    : isClothingVertical
+    ? 'مثال: دار النخبة للأزياء والملابس'
+    : isAutoPartsVertical
+    ? 'مثال: المركز المعتمد لقطع غيار السيارات'
+    : isMaintenanceVertical
+    ? 'مثال: مركز التقنية لصيانة الأجهزة والموبايل'
     : 'مثال: محلات رجب العطار';
 
   const locationFieldLabel = isContractingVertical
@@ -792,58 +822,84 @@ export function GeneralSettingsTab({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
           <div className="field">
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>لغة النظام</label>
-            <select className="purchase-prototype-field-input" {...form.register('uiLanguage')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
-              <option value="ar">العربية</option>
-              <option value="en" disabled>English (قريباً)</option>
-            </select>
+            <CustomSelect
+              value={form.watch('uiLanguage') || 'ar'}
+              onChange={(val) => form.setValue('uiLanguage', val as any, { shouldDirty: true, shouldValidate: true })}
+              options={[
+                { value: 'ar', label: 'العربية' },
+                { value: 'en', label: 'English (قريباً)' },
+              ]}
+              disabled={disabled}
+            />
           </div>
 
           <div className="field">
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>العملة</label>
-            <select className="purchase-prototype-field-input" {...form.register('currency')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
-              {SUPPORTED_CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.label}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={form.watch('currency') || 'EGP'}
+              onChange={(val) => form.setValue('currency', val, { shouldDirty: true, shouldValidate: true })}
+              options={SUPPORTED_CURRENCIES.map((c) => ({ value: c.code, label: c.label }))}
+              disabled={disabled}
+            />
           </div>
 
           <div className="field">
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>المنطقة الزمنية</label>
-            <select className="purchase-prototype-field-input" {...form.register('timezone')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
-              <option value="Africa/Cairo">مصر (Africa/Cairo)</option>
-              <option value="Asia/Riyadh">السعودية (Asia/Riyadh)</option>
-              <option value="Asia/Kuwait">الكويت (Asia/Kuwait)</option>
-              <option value="Asia/Qatar">قطر (Asia/Qatar)</option>
-              <option value="Asia/Dubai">الإمارات (Asia/Dubai)</option>
-              <option value="Asia/Bahrain">البحرين (Asia/Bahrain)</option>
-              <option value="Asia/Muscat">عُمان (Asia/Muscat)</option>
-              <option value="UTC">التوقيت العالمي (UTC)</option>
-            </select>
+            <CustomSelect
+              value={form.watch('timezone') || 'Africa/Cairo'}
+              onChange={(val) => form.setValue('timezone', val, { shouldDirty: true, shouldValidate: true })}
+              options={[
+                { value: 'Africa/Cairo', label: 'مصر (Africa/Cairo)' },
+                { value: 'Asia/Riyadh', label: 'السعودية (Asia/Riyadh)' },
+                { value: 'Asia/Kuwait', label: 'الكويت (Asia/Kuwait)' },
+                { value: 'Asia/Qatar', label: 'قطر (Asia/Qatar)' },
+                { value: 'Asia/Dubai', label: 'الإمارات (Asia/Dubai)' },
+                { value: 'Asia/Bahrain', label: 'البحرين (Asia/Bahrain)' },
+                { value: 'Asia/Muscat', label: 'عُمان (Asia/Muscat)' },
+                { value: 'UTC', label: 'التوقيت العالمي (UTC)' },
+              ]}
+              disabled={disabled}
+            />
           </div>
 
           <div className="field">
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>صيغة التاريخ</label>
-            <select className="purchase-prototype-field-input" {...form.register('dateFormat')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
-              <option value="yyyy-MM-dd">2026-06-07 (ISO)</option>
-              <option value="dd/MM/yyyy">07/06/2026</option>
-            </select>
+            <CustomSelect
+              value={form.watch('dateFormat') || 'dd/MM/yyyy'}
+              onChange={(val) => form.setValue('dateFormat', val as any, { shouldDirty: true, shouldValidate: true })}
+              options={[
+                { value: 'yyyy-MM-dd', label: '2026-06-07 (ISO)' },
+                { value: 'dd/MM/yyyy', label: '07/06/2026' },
+              ]}
+              disabled={disabled}
+            />
           </div>
 
           <div className="field">
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>صيغة الوقت</label>
-            <select className="purchase-prototype-field-input" {...form.register('timeFormat')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
-              <option value="24h">24 ساعة</option>
-              <option value="12h">12 ساعة (ص/م)</option>
-            </select>
+            <CustomSelect
+              value={form.watch('timeFormat') || '12h'}
+              onChange={(val) => form.setValue('timeFormat', val as any, { shouldDirty: true, shouldValidate: true })}
+              options={[
+                { value: '24h', label: '24 ساعة' },
+                { value: '12h', label: '12 ساعة (ص/م)' },
+              ]}
+              disabled={disabled}
+            />
           </div>
 
           <div className="field">
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>رابط إرسال الواتساب</label>
-            <select className="purchase-prototype-field-input" {...form.register('whatsappLinkMode')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
-              <option value="wa_me">افتراضي (يسأل المستخدم)</option>
-              <option value="web">واتساب ويب مباشرة</option>
-              <option value="app">تطبيق الواتساب مباشرة</option>
-            </select>
+            <CustomSelect
+              value={form.watch('whatsappLinkMode') || 'wa_me'}
+              onChange={(val) => form.setValue('whatsappLinkMode', val as any, { shouldDirty: true, shouldValidate: true })}
+              options={[
+                { value: 'wa_me', label: 'افتراضي (يسأل المستخدم)' },
+                { value: 'web', label: 'واتساب ويب مباشرة' },
+                { value: 'app', label: 'تطبيق الواتساب مباشرة' },
+              ]}
+              disabled={disabled}
+            />
           </div>
         </div>
       </div>

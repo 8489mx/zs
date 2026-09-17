@@ -394,6 +394,39 @@ export class SettingsService {
       normalizedPayload.posModuleEnabled = true;
     }
 
+    // Strictly protect module switches: only Super Admin can manually toggle or disable modules
+    if (!isSuperAdminActor) {
+      const protectedModuleKeys = [
+        'posModuleEnabled',
+        'inventoryModuleEnabled',
+        'purchasesModuleEnabled',
+        'contractingModuleEnabled',
+        'maritimeFreightModuleEnabled',
+        'manufacturingModuleEnabled',
+        'enablePharmacyModule',
+        'enableMobileStoreFeatures',
+        'clothingModuleEnabled',
+        'comboModuleEnabled',
+        'importModuleEnabled',
+        'storefrontModuleEnabled',
+        'crmModuleEnabled',
+        'restaurantModuleEnabled',
+        'servicesModuleEnabled',
+        'installmentsModuleEnabled',
+        'fixedAssetsModuleEnabled',
+        'taxDeclarationModuleEnabled',
+        'deliveryFleetModuleEnabled',
+        'enableEnterpriseFeatures',
+        'weightedBarcodeEnabled',
+        'posShowCartMeta',
+        'phoneOrdersModuleEnabled',
+        'autoPartsModuleEnabled',
+      ];
+      for (const key of protectedModuleKeys) {
+        delete normalizedPayload[key];
+      }
+    }
+
     for (const [key, value] of Object.entries(normalizedPayload)) {
       await sql`insert into settings (key, value, tenant_id, account_id) values (${key}, ${JSON.stringify(value)}, ${scope.tenantId}, ${scope.accountId}) on conflict (tenant_id, key) do update set value = excluded.value, account_id = excluded.account_id`.execute(this.db);
     }
@@ -631,6 +664,7 @@ export class SettingsService {
       modulePatch.taxDeclarationModuleEnabled = true;
       modulePatch.maritimeFreightModuleEnabled = false;
       modulePatch.manufacturingModuleEnabled = false;
+      modulePatch.servicesModuleEnabled = false;
       modulePatch.posModuleEnabled = false;
       modulePatch.enablePharmacyModule = false;
       modulePatch.restaurantModuleEnabled = false;
@@ -649,6 +683,7 @@ export class SettingsService {
       modulePatch.taxDeclarationModuleEnabled = true;
       modulePatch.contractingModuleEnabled = false;
       modulePatch.manufacturingModuleEnabled = false;
+      modulePatch.servicesModuleEnabled = false;
       modulePatch.inventoryModuleEnabled = false;
       modulePatch.posModuleEnabled = false;
       modulePatch.enablePharmacyModule = false;
@@ -669,6 +704,7 @@ export class SettingsService {
       modulePatch.taxDeclarationModuleEnabled = true;
       modulePatch.contractingModuleEnabled = false;
       modulePatch.maritimeFreightModuleEnabled = false;
+      modulePatch.servicesModuleEnabled = false;
       modulePatch.posModuleEnabled = false;
       modulePatch.enablePharmacyModule = false;
       modulePatch.restaurantModuleEnabled = false;
@@ -682,6 +718,7 @@ export class SettingsService {
       modulePatch.contractingModuleEnabled = false;
       modulePatch.maritimeFreightModuleEnabled = false;
       modulePatch.manufacturingModuleEnabled = false;
+      modulePatch.servicesModuleEnabled = false;
       modulePatch.posModuleEnabled = true;
       modulePatch.inventoryModuleEnabled = true;
       modulePatch.purchasesModuleEnabled = true;

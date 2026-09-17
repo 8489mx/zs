@@ -212,7 +212,9 @@ export function AppsKpiHeader({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>متاح للتثبيت الفوري</span>
+          <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>
+            {isSuperAdmin ? 'متاح للتثبيت الفوري' : 'موديولات إضافية للترقية'}
+          </span>
           <div
             style={{
               width: '36px',
@@ -232,23 +234,26 @@ export function AppsKpiHeader({
         </div>
 
         <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, margin: '2px 0 6px 0' }}>
-          {availableToInstallCount} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>متاح</span>
+          {isSuperAdmin ? availableToInstallCount : Math.max(0, totalApps - activeAppsCount)}{' '}
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>موديول</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ضمن باقتك الحالية مباشرة</span>
+          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+            {isSuperAdmin ? 'ضمن باقتك الحالية مباشرة' : 'تتطلب ترقية أو تفعيل من الإدارة'}
+          </span>
           <span
             style={{
               fontSize: '0.68rem',
               fontWeight: 700,
-              color: '#475569',
-              background: '#f8fafc',
+              color: isSuperAdmin ? '#475569' : '#1e40af',
+              background: isSuperAdmin ? '#f8fafc' : '#eff6ff',
               padding: '2px 7px',
               borderRadius: '6px',
-              border: '1px solid #e2e8f0',
+              border: isSuperAdmin ? '1px solid #e2e8f0' : '1px solid #bfdbfe',
             }}
           >
-            تثبيت فوري
+            {isSuperAdmin ? 'تثبيت فوري' : 'تواصل مع الإدارة'}
           </span>
         </div>
       </div>

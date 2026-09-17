@@ -7,7 +7,6 @@ import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 const checkboxGridStyle: CSSProperties = {
   display: 'grid',
@@ -124,16 +123,15 @@ export function PrintingSettingsTab({
   savedKitchenPrinter,
   posKitchenPrinterEnabled,
 }: PrintingTabProps) {
-  const rawActivity = String(form.watch('businessIndustry') || settings?.businessIndustry || (settings as any)?.activityType || 'general').trim().toLowerCase();
+  const rawActivity = String(form.watch('businessIndustry') || settings?.businessIndustry || (settings as any)?.activityType || 'retail_general').trim().toLowerCase();
   const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || Boolean(form.watch('contractingModuleEnabled'));
   const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن' || Boolean(form.watch('maritimeFreightModuleEnabled'));
-  const isImportVertical = rawActivity === 'import_export' || Boolean(form.watch('importModuleEnabled'));
-  const isServicesVertical = rawActivity === 'services' || Boolean(form.watch('servicesModuleEnabled'));
-  const isManufacturingVertical = rawActivity === 'manufacturing' || Boolean(form.watch('manufacturingModuleEnabled'));
-  const isNonPosVertical = isContractingVertical || isMaritimeVertical || isServicesVertical || isImportVertical || isManufacturingVertical;
+  const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع' || Boolean(form.watch('manufacturingModuleEnabled'));
+  const isServicesVertical = rawActivity === 'services' || rawActivity === 'consulting' || rawActivity === 'استشارات';
+  const isNonPosVertical = isContractingVertical || isMaritimeVertical || isServicesVertical || isManufacturingVertical;
   const isPosModuleEnabled = Boolean(form.watch('posModuleEnabled') ?? settings?.posModuleEnabled ?? true);
   const showPosSettings = isPosModuleEnabled && !isNonPosVertical;
-  const isRestaurantVertical = ['restaurant', 'cafe'].includes(rawActivity) || Boolean(form.watch('restaurantModuleEnabled'));
+  const isRestaurantVertical = ['restaurant', 'cafe', 'مطعم', 'كافيه'].includes(rawActivity) || Boolean(form.watch('restaurantModuleEnabled'));
 
   return (
     <div style={{ display: activeTab === 'printing' ? 'block' : 'none' }}>
@@ -553,7 +551,7 @@ export function PrintingSettingsTab({
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 900, marginTop: '4px' }}>
                   <span>الصافي النهائي:</span>
-                  <span>265.00 ${getGlobalCurrencySymbol()}</span>
+                  <span>265.00 <CurrencySymbol /></span>
                 </div>
               </div>
 

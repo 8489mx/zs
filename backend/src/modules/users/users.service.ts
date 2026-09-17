@@ -147,7 +147,7 @@ export class UsersService {
       normalizedQuery,
     );
 
-    const canManageUsers = actor.role === 'super_admin' || (actor.permissions && (actor.permissions.includes('canManageUsers') || actor.permissions.includes('canEditUsers')));
+    const canManageUsers = actor.role === 'super_admin' || actor.role === 'admin' || (actor.permissions && (actor.permissions.includes('canManageUsers') || actor.permissions.includes('canEditUsers')));
     const sanitizedUsers = canManageUsers
       ? users
       : users.map((u) => ({

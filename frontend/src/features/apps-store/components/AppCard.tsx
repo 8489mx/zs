@@ -9,6 +9,7 @@ interface AppCardProps {
   isAllowedByPlan: boolean;
   isPending: boolean;
   isCoreSuiteApp?: boolean;
+  isSuperAdmin?: boolean;
   onToggle: (app: AppItemDefinition, currentStatus: boolean) => void;
   onOpenUpgradeModal: (app: AppItemDefinition) => void;
 }
@@ -28,6 +29,7 @@ export function AppCard({
   isAllowedByPlan,
   isPending,
   isCoreSuiteApp = false,
+  isSuperAdmin = false,
   onToggle,
   onOpenUpgradeModal,
 }: AppCardProps) {
@@ -86,9 +88,9 @@ export function AppCard({
                 }}
               >
                 <CheckIcon size={12} color="#047857" />
-                <span>مُثبت ونشط</span>
+                <span>{isSuperAdmin ? 'مُثبت ونشط' : 'مُفعّل ضمن باقتك'}</span>
               </span>
-            ) : isAllowedByPlan ? (
+            ) : isSuperAdmin && isAllowedByPlan ? (
               <span
                 style={{
                   fontSize: '0.72rem',
@@ -244,35 +246,55 @@ export function AppCard({
               <span>أساسي في الباقة الشاملة</span>
             </span>
           ) : isActive ? (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => onToggle(app, true)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
-                color: '#64748b',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#dc2626';
-                e.currentTarget.style.borderColor = '#fca5a5';
-                e.currentTarget.style.background = '#fef2f2';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#64748b';
-                e.currentTarget.style.borderColor = '#cbd5e1';
-                e.currentTarget.style.background = '#ffffff';
-              }}
-            >
-              إلغاء التثبيت
-            </button>
-          ) : isAllowedByPlan ? (
+            isSuperAdmin ? (
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => onToggle(app, true)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#64748b',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#dc2626';
+                  e.currentTarget.style.borderColor = '#fca5a5';
+                  e.currentTarget.style.background = '#fef2f2';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#64748b';
+                  e.currentTarget.style.borderColor = '#cbd5e1';
+                  e.currentTarget.style.background = '#ffffff';
+                }}
+              >
+                إلغاء التثبيت
+              </button>
+            ) : (
+              <span
+                style={{
+                  fontSize: '0.74rem',
+                  color: '#047857',
+                  fontWeight: 700,
+                  background: '#ecfdf5',
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #a7f3d0',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+              >
+                <CheckIcon size={12} color="#047857" />
+                <span>مُدرج بالاشتراك</span>
+              </span>
+            )
+          ) : isSuperAdmin ? (
             <button
               type="button"
               disabled={isPending}
@@ -307,7 +329,7 @@ export function AppCard({
                 borderRadius: '8px',
                 border: '1px solid #cbd5e1',
                 background: '#ffffff',
-                color: '#334155',
+                color: '#170e5e',
                 fontSize: '0.78rem',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -317,16 +339,16 @@ export function AppCard({
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f8fafc';
-                e.currentTarget.style.borderColor = '#94a3b8';
+                e.currentTarget.style.background = '#eef2ff';
+                e.currentTarget.style.borderColor = '#c7d2fe';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = '#ffffff';
                 e.currentTarget.style.borderColor = '#cbd5e1';
               }}
             >
-              <LockIcon size={12} color="#64748b" />
-              <span>ترقية الباقة</span>
+              <LockIcon size={12} color="#170e5e" />
+              <span>طلب التفعيل والترقية</span>
             </button>
           )}
         </div>

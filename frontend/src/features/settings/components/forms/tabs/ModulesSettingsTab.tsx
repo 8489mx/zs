@@ -524,8 +524,8 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block', marginBottom: '3px', fontWeight: 800 }}>
             متجر التطبيقات والموديولات (Apps Store)
           </strong>
-          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-            الواجهة المعتمدة لإدارة وتثبيت وتفعيل موديولات وتطبيقات النظام بشبكة كروت عصرية وبحث وتصنيفات تفصيلية.
+          <span style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>
+            الواجهة المعتمدة لاستعراض موديولات وتطبيقات النظام وتفاصيلها التشغيلية وفق باقة الاشتراك المعتمدة ونشاط المنشأة.
           </span>
         </div>
         <Link
@@ -547,34 +547,35 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
         </Link>
       </div>
 
-      {/* ===== خيارات التفعيل اليدوي للموديولات (مخفية افتراضياً لمنع التكرار) ===== */}
-      <div style={{ marginTop: '14px', marginBottom: '20px' }}>
-        <button
-          type="button"
-          onClick={() => setShowManualSwitches((prev) => !prev)}
-          style={{
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '10px 16px',
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            cursor: 'pointer',
-            fontSize: '0.82rem',
-            fontWeight: 700,
-            color: '#475569',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>خيارات التفعيل اليدوي المتقدمة للموديولات (مخفية لمنع التكرار مع متجر التطبيقات)</span>
-          </span>
-          <span style={{ transform: showManualSwitches ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease', display: 'flex' }}>
-            <ChevronDownIcon size={18} />
-          </span>
-        </button>
+      {/* ===== خيارات التفعيل اليدوي للموديولات (مخصصة حصرياً للسوبر أدمن) ===== */}
+      {isSuperAdmin && (
+        <div style={{ marginTop: '14px', marginBottom: '20px' }}>
+          <button
+            type="button"
+            onClick={() => setShowManualSwitches((prev) => !prev)}
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '10px 16px',
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              color: '#475569',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>خيارات التفعيل اليدوي المتقدمة للموديولات (خاص بالسوبر أدمن فقط)</span>
+            </span>
+            <span style={{ transform: showManualSwitches ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease', display: 'flex' }}>
+              <ChevronDownIcon size={18} />
+            </span>
+          </button>
 
         <div style={{ display: showManualSwitches ? 'block' : 'none', marginTop: '14px' }}>
           <FormSection title="خيارات التفعيل اليدوي للموديولات" description={<>شغّل الأجزاء التي تحتاجها لنشاطك يدوياً إذا رغبت، وسيتم ضبط وتحديث القوائم والشاشات تلقائياً.</>}>
@@ -1661,6 +1662,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
       </FormSection>
         </div>
       </div>
+      )}
 
       {/* مودال ترقية الباقة عند محاولة الوصول لموديول مقفول */}
       <DialogShell

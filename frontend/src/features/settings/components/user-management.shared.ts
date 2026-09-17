@@ -211,7 +211,7 @@ export function normalizeUserRecord(user: Partial<ManagedUserRecord> | null | un
     phone: user?.phone ? String(user.phone) : '',
     password: typeof user?.password === 'string' ? user.password : '',
     role,
-    permissions: Array.isArray(user?.permissions) && user.permissions.length
+    permissions: Array.isArray(user?.permissions) && (user?.id || user.permissions.length > 0)
       ? Array.from(new Set((user.permissions || []).map((permission) => String(permission)).filter(Boolean)))
       : role === 'super_admin'
         ? [...DEFAULT_ADMIN_PERMS]
