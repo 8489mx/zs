@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { posApi } from '@/features/pos/api/pos.api';
 import { usePosCatalog } from '@/features/pos/hooks/usePosCatalog';
+import { usePosCatalogWarmup } from '@/features/pos/hooks/usePosCatalogWarmup';
 import { usePosSaleMutation } from '@/features/pos/hooks/usePosSaleMutation';
 import { createPosWorkspaceActions } from '@/features/pos/hooks/usePosWorkspaceActions';
 import { usePosWorkspaceDerived } from '@/features/pos/hooks/usePosWorkspaceDerived';
@@ -75,6 +76,11 @@ export function usePosWorkspace() {
     settings: settingsQuery.data || null,
     branches: branchesQuery.data || [],
     locations: locationsQuery.data || [],
+  });
+
+  const catalogWarmup = usePosCatalogWarmup({
+    branchId: operationalContext.branchId,
+    locationId: operationalContext.locationId,
   });
 
   const { saleProducts, catalogProducts, productsQuery } = usePosCatalog(state.search, operationalContext.branchId, operationalContext.locationId, state.productFilter);
@@ -415,6 +421,7 @@ export function usePosWorkspace() {
     saleProducts,
     catalogProducts,
     createSale,
+    catalogWarmup,
     quickCustomerMutation: mutations.quickCustomerMutation,
     discountAuthorizationMutation: mutations.discountAuthorizationMutation,
     refetchCatalogs,

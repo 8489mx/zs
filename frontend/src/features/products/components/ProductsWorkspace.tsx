@@ -116,6 +116,7 @@ export function ProductsWorkspace() {
           onOpenOfferDialog={controller.openOfferDialog}
           onOpenBarcodeDialog={controller.openBarcodeDialog}
           onOpenPrintDialog={controller.openPrintDialog}
+          onBulkPrintBarcodes={() => controller.openBulkPrintDialog(controller.selectedProducts)}
           canDelete={controller.canDelete}
           canPrint={controller.canPrint}
           onExportCsv={controller.exportProductsCsv}
@@ -189,6 +190,7 @@ export function ProductsWorkspace() {
               open={Boolean(controller.printDialogState)}
               product={controller.printDialogState?.product || null}
               unit={controller.printDialogState?.unit}
+              items={controller.printDialogState?.items}
               onClose={() => controller.setPrintDialogState(null)}
             />
           </Suspense>

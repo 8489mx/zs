@@ -5,6 +5,7 @@ import { getAvailableSaleProducts } from '@/features/pos/lib/pos.domain';
 import { POS_PRODUCT_CACHE_LIMIT, POS_PRODUCT_LOOKUP_LIMIT, createProductBarcodeMap, isLikelyBarcodeQuery, mergeLookupProducts } from '@/features/pos/lib/pos-product-lookup';
 import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix';
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
+import { searchCatalogFromStorage, getAllCatalogFromStorage } from '@/features/pos/lib/pos-catalog-storage';
 import type { Product } from '@/types/domain';
 
 const CATALOG_PERSIST_KEY = 'zsystems_pos_catalog_cache';
@@ -54,7 +55,13 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
         }
         return res;
       } catch {
-        // Graceful offline fallback: filter from stored catalog
+        // High-performance offline fallback from IndexedDB persistent storage
+        const idbStored = await searchCatalogFromStorage(lookupTerm, POS_PRODUCT_LOOKUP_LIMIT);
+        if (idbStored && idbStored.length > 0) {
+          return idbStored;
+        }
+
+        // Secondary fallback from legacy localStorage cache
         const stored = getStoredCatalog();
         if (!lookupTerm) return stored.slice(0, POS_PRODUCT_LOOKUP_LIMIT);
         const term = lookupTerm.toLowerCase();
@@ -70,8 +77,17 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
     placeholderData: (previousData) => previousData,
     staleTime: 60_000,
   });
+
   useEffect(() => {
-    setProductCache([]);
+    let active = true;
+    getAllCatalogFromStorage(POS_PRODUCT_CACHE_LIMIT).then((stored) => {
+      if (active && stored && stored.length > 0) {
+        setProductCache((current) => mergeLookupProducts(stored, current).slice(0, POS_PRODUCT_CACHE_LIMIT));
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [locationId, branchId]);
 
   useEffect(() => {

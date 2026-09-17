@@ -944,6 +944,13 @@ export class SalesWriteService {
         }
       }
 
+      const offlineDocNo = String((payload as any).offlineDocNo || (payload as any).offline_doc_no || '').trim();
+      let saleNote = normalized.note;
+      if (offlineDocNo && !saleNote.includes(offlineDocNo)) {
+        const offlineTag = `[إيصال أوفلاين: ${offlineDocNo}]`;
+        saleNote = saleNote ? `${saleNote} | ${offlineTag}` : offlineTag;
+      }
+
       const saleInsert = await trx
         .insertInto('sales')
         .values({
@@ -966,7 +973,7 @@ export class SalesWriteService {
           change_amount: changeAmount,
           store_credit_used: normalized.storeCreditUsed,
           status: 'posted',
-          note: normalized.note,
+          note: saleNote,
           branch_id: normalized.branchId,
           location_id: normalized.locationId,
           table_number: String(normalized.tableNumber || '').trim(),

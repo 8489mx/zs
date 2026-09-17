@@ -1,0 +1,353 @@
+import type { Product } from '@/types/domain';
+import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
+import { isLikelyBarcodeQuery } from './pos-product-lookup';
+
+const DB_NAME = 'zsystems_pos_catalog_db';
+const DB_VERSION = 1;
+const STORE_PRODUCTS = 'catalog_products';
+const STORE_META = 'catalog_meta';
+
+let dbInstance: IDBDatabase | null = null;
+let dbPromise: Promise<IDBDatabase> | null = null;
+
+function isIndexedDbSupported(): boolean {
+  return typeof window !== 'undefined' && typeof window.indexedDB !== 'undefined';
+}
+
+function openDb(): Promise<IDBDatabase> {
+  if (dbInstance) return Promise.resolve(dbInstance);
+  if (dbPromise) return dbPromise;
+
+  if (!isIndexedDbSupported()) {
+    return Promise.reject(new Error('IndexedDB is not supported in this environment'));
+  }
+
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
+    const request = window.indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+
+      if (!db.objectStoreNames.contains(STORE_PRODUCTS)) {
+        const productStore = db.createObjectStore(STORE_PRODUCTS, { keyPath: 'id' });
+        productStore.createIndex('barcode', 'barcode', { unique: false });
+        productStore.createIndex('name', 'name', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORE_META)) {
+        db.createObjectStore(STORE_META, { keyPath: 'key' });
+      }
+    };
+
+    request.onsuccess = (event) => {
+      dbInstance = (event.target as IDBOpenDBRequest).result;
+      dbInstance.onversionchange = () => {
+        dbInstance?.close();
+        dbInstance = null;
+        dbPromise = null;
+      };
+      resolve(dbInstance);
+    };
+
+    request.onerror = (event) => {
+      dbPromise = null;
+      reject((event.target as IDBOpenDBRequest).error);
+    };
+  });
+
+  return dbPromise;
+}
+
+export async function saveCatalogToStorage(products: Product[], version: string): Promise<void> {
+  if (!isIndexedDbSupported() || !products) return;
+  try {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction([STORE_PRODUCTS, STORE_META], 'readwrite');
+      const productStore = tx.objectStore(STORE_PRODUCTS);
+      const metaStore = tx.objectStore(STORE_META);
+
+      productStore.clear();
+
+      for (const product of products) {
+        if (!product || !product.id) continue;
+        productStore.put({
+          ...product,
+          id: String(product.id),
+          barcode: String(product.barcode || '').trim(),
+        });
+      }
+
+      metaStore.put({ key: 'catalog_version', value: version, updatedAt: new Date().toISOString() });
+      metaStore.put({ key: 'total_count', value: products.length, updatedAt: new Date().toISOString() });
+      metaStore.put({ key: 'last_synced_at', value: new Date().toISOString(), updatedAt: new Date().toISOString() });
+
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.warn('[POS Storage] Failed to save catalog into IndexedDB:', err);
+  }
+}
+
+export async function getCatalogVersionFromStorage(): Promise<string | null> {
+  if (!isIndexedDbSupported()) return null;
+  try {
+    const db = await openDb();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_META, 'readonly');
+      const store = tx.objectStore(STORE_META);
+      const request = store.get('catalog_version');
+
+      request.onsuccess = () => {
+        resolve(request.result?.value ? String(request.result.value) : null);
+      };
+      request.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function getCatalogCountFromStorage(): Promise<number> {
+  if (!isIndexedDbSupported()) return 0;
+  try {
+    const db = await openDb();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_META, 'readonly');
+      const store = tx.objectStore(STORE_META);
+      const request = store.get('total_count');
+
+      request.onsuccess = () => {
+        resolve(Number(request.result?.value || 0));
+      };
+      request.onerror = () => resolve(0);
+    });
+  } catch {
+    return 0;
+  }
+}
+
+export async function getLastSyncedAtFromStorage(): Promise<string | null> {
+  if (!isIndexedDbSupported()) return null;
+  try {
+    const db = await openDb();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_META, 'readonly');
+      const store = tx.objectStore(STORE_META);
+      const request = store.get('last_synced_at');
+
+      request.onsuccess = () => {
+        resolve(request.result?.value ? String(request.result.value) : null);
+      };
+      request.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function lookupProductByBarcodeFromStorage(rawCode: string): Promise<Product | null> {
+  if (!isIndexedDbSupported() || !rawCode) return null;
+  const cleanCode = rawCode.trim().toLowerCase();
+  if (!cleanCode) return null;
+
+  try {
+    const db = await openDb();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_PRODUCTS, 'readonly');
+      const store = tx.objectStore(STORE_PRODUCTS);
+      const barcodeIndex = store.index('barcode');
+
+      const indexReq = barcodeIndex.get(cleanCode);
+      indexReq.onsuccess = () => {
+        if (indexReq.result) {
+          resolve(indexReq.result as Product);
+          return;
+        }
+
+        // Deep check for units barcode, serial numbers, styleCode
+        const cursorReq = store.openCursor();
+        cursorReq.onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+          if (!cursor) {
+            resolve(null);
+            return;
+          }
+
+          const product = cursor.value as Product;
+          if (product.barcode && product.barcode.trim().toLowerCase() === cleanCode) {
+            resolve(product);
+            return;
+          }
+
+          if (product.styleCode && product.styleCode.trim().toLowerCase() === cleanCode) {
+            resolve(product);
+            return;
+          }
+
+          if ((product as any).matchedSerialNumber && String((product as any).matchedSerialNumber).trim().toLowerCase() === cleanCode) {
+            resolve(product);
+            return;
+          }
+
+          if (product.units && Array.isArray(product.units)) {
+            const matchedUnit = product.units.find(
+              (u) => u.barcode && u.barcode.trim().toLowerCase() === cleanCode,
+            );
+            if (matchedUnit) {
+              resolve({
+                ...product,
+                matchedUnitId: String(matchedUnit.id),
+                matchedUnit: {
+                  id: String(matchedUnit.id),
+                  name: matchedUnit.name,
+                  multiplier: Number(matchedUnit.multiplier || 1),
+                  barcode: matchedUnit.barcode,
+                  isBaseUnit: Boolean(matchedUnit.isBaseUnit),
+                  isSaleUnit: Boolean(matchedUnit.isSaleUnit),
+                  isPurchaseUnit: Boolean(matchedUnit.isPurchaseUnit),
+                },
+              } as unknown as Product);
+              return;
+            }
+          }
+
+          cursor.continue();
+        };
+
+        cursorReq.onerror = () => resolve(null);
+      };
+
+      indexReq.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function searchCatalogFromStorage(rawTerm: string, limit: number = 50): Promise<Product[]> {
+  if (!isIndexedDbSupported()) return [];
+  const term = String(rawTerm || '').trim();
+
+  try {
+    const db = await openDb();
+
+    // Fast-path for empty term: return first `limit` records
+    if (!term) {
+      return new Promise((resolve) => {
+        const tx = db.transaction(STORE_PRODUCTS, 'readonly');
+        const store = tx.objectStore(STORE_PRODUCTS);
+        const results: Product[] = [];
+        const cursorReq = store.openCursor();
+
+        cursorReq.onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+          if (!cursor || results.length >= limit) {
+            resolve(results);
+            return;
+          }
+          results.push(cursor.value as Product);
+          cursor.continue();
+        };
+
+        cursorReq.onerror = () => resolve([]);
+      });
+    }
+
+    // Fast-path for likely barcode
+    if (isLikelyBarcodeQuery(term)) {
+      const directMatch = await lookupProductByBarcodeFromStorage(term);
+      if (directMatch) return [directMatch];
+    }
+
+    // Text query with normalized tokens
+    const normalizedQuery = normalizeArabicSearchKey(term);
+    const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
+
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_PRODUCTS, 'readonly');
+      const store = tx.objectStore(STORE_PRODUCTS);
+      const results: Product[] = [];
+      const cursorReq = store.openCursor();
+
+      cursorReq.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+        if (!cursor || results.length >= limit) {
+          resolve(results);
+          return;
+        }
+
+        const product = cursor.value as Product;
+        const nameNorm = normalizeArabicSearchKey(product.name || '');
+        const barcodeNorm = String(product.barcode || '').toLowerCase();
+        const skuNorm = String(product.sku || '').toLowerCase();
+        const styleNorm = String(product.styleCode || '').toLowerCase();
+
+        const combinedHaystack = `${nameNorm} ${barcodeNorm} ${skuNorm} ${styleNorm}`;
+        const matchesAllTokens = tokens.every((token) => combinedHaystack.includes(token));
+
+        if (matchesAllTokens) {
+          results.push(product);
+        } else if (product.units && Array.isArray(product.units)) {
+          const unitMatches = product.units.some((u) => {
+            const unitNameNorm = normalizeArabicSearchKey(u.name || '');
+            const unitBarcode = String(u.barcode || '').toLowerCase();
+            return tokens.every((token) => unitNameNorm.includes(token) || unitBarcode.includes(token));
+          });
+          if (unitMatches) results.push(product);
+        }
+
+        cursor.continue();
+      };
+
+      cursorReq.onerror = () => resolve([]);
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function getAllCatalogFromStorage(limit: number = 1200): Promise<Product[]> {
+  if (!isIndexedDbSupported()) return [];
+  try {
+    const db = await openDb();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_PRODUCTS, 'readonly');
+      const store = tx.objectStore(STORE_PRODUCTS);
+      const results: Product[] = [];
+      const cursorReq = store.openCursor();
+
+      cursorReq.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+        if (!cursor || results.length >= limit) {
+          resolve(results);
+          return;
+        }
+        results.push(cursor.value as Product);
+        cursor.continue();
+      };
+
+      cursorReq.onerror = () => resolve([]);
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function clearCatalogStorage(): Promise<void> {
+  if (!isIndexedDbSupported()) return;
+  try {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction([STORE_PRODUCTS, STORE_META], 'readwrite');
+      tx.objectStore(STORE_PRODUCTS).clear();
+      tx.objectStore(STORE_META).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    // ignore
+  }
+}

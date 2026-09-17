@@ -11,6 +11,7 @@ type PosLookupParams = {
   locationId?: string;
   limit?: number;
   view?: 'offers' | string;
+  fullCatalog?: boolean;
 };
 
 export interface PosCustomerSummary {
@@ -122,12 +123,14 @@ function buildPosLookupPath(params: PosLookupParams = {}) {
   if (locationId) searchParams.set('locationId', locationId);
   if (limit > 0) searchParams.set('limit', String(limit));
   if (view) searchParams.set('view', view);
+  if (params.fullCatalog) searchParams.set('fullCatalog', 'true');
 
   const query = searchParams.toString();
   return `/api/catalog/pos-products${query ? `?${query}` : ''}`;
 }
 
 export const posApi = {
+  getCatalogVersion: () => http<{ version: string; totalCount: number; lastUpdatedAt: string }>('/api/catalog/pos-products/version'),
   lookupProducts: async (params: PosLookupParams = {}) => unwrapArray<Product>(await http<Product[] | { products: Product[] }>(buildPosLookupPath(params)), 'products'),
   customers: async (params?: { search?: string; limit?: number; recentIds?: string[] }) => {
     const searchParams = new URLSearchParams();

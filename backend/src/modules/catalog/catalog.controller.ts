@@ -74,6 +74,12 @@ export class CatalogController {
     return this.catalogService.getProduct(id, req.authContext!);
   }
 
+  @Get('catalog/pos-products/version')
+  @RequirePermissions('sales')
+  getPosCatalogVersion(@Req() req: RequestWithAuth): Promise<{ version: string; totalCount: number; lastUpdatedAt: string }> {
+    return this.catalogService.getPosCatalogVersion(req.authContext!);
+  }
+
   @Get('catalog/pos-products')
   @RequirePermissions('sales')
   listPosProducts(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

@@ -321,8 +321,35 @@ export class CatalogProductService {
     };
   }
 
+  async getPosCatalogVersion(actor: AuthContext): Promise<{ version: string; totalCount: number; lastUpdatedAt: string }> {
+    const result = await sql<{ max_updated: string | null; total_count: string | number }>`
+      SELECT 
+        GREATEST(
+          COALESCE(MAX(p.updated_at), '1970-01-01'::timestamptz),
+          COALESCE((SELECT MAX(pu.updated_at) FROM product_units pu WHERE ${this.tenantPredicate(actor, 'pu')}), '1970-01-01'::timestamptz),
+          COALESCE((SELECT MAX(po.updated_at) FROM product_offers po WHERE ${this.tenantPredicate(actor, 'po')}), '1970-01-01'::timestamptz)
+        ) as max_updated,
+        COUNT(p.id) as total_count
+      FROM products p
+      WHERE p.is_active = true
+        AND ${this.tenantPredicate(actor, 'p')}
+    `.execute(this.db);
+
+    const row = result.rows[0];
+    const totalCount = Number(row?.total_count || 0);
+    const lastUpdatedAt = row?.max_updated ? new Date(row.max_updated).toISOString() : new Date(0).toISOString();
+    const versionTime = Math.floor(new Date(lastUpdatedAt).getTime() / 1000);
+    const version = `v${totalCount}-${versionTime}`;
+
+    return {
+      version,
+      totalCount,
+      lastUpdatedAt,
+    };
+  }
+
   async listPosProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
-    const { q, barcode, limit, requestedLocationId, requestedBranchId, view } = this.parsePosProductLookupQuery(query);
+    const { q, barcode, limit, requestedLocationId, requestedBranchId, view, isFullCatalog } = this.parsePosProductLookupQuery(query);
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
     const scopedLocation = requestedLocationId > 0 ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor).catch(() => null) : null;
     const productRows = barcode
@@ -358,9 +385,9 @@ export class CatalogProductService {
     const bomIds = uniqueRows.map((r) => r.bom_id ? Number(r.bom_id) : null).filter((id): id is number => typeof id === 'number' && id > 0);
 
     const [unitsByProduct, scopedStockResult, offersByProduct, bomCombosById] = await Promise.all([
-      this.fetchPosProductUnits(productIds, actor),
-      this.resolveScopedStockByProduct(productIds, eligibleLocationIds, uniqueRows, actor),
-      this.fetchProductOffers(productIds, offerCapabilities.hasMinQty, actor),
+      this.fetchPosProductUnits(isFullCatalog ? [] : productIds, actor, isFullCatalog),
+      this.resolveScopedStockByProduct(isFullCatalog ? [] : productIds, eligibleLocationIds, uniqueRows, actor, isFullCatalog),
+      this.fetchProductOffers(isFullCatalog ? [] : productIds, offerCapabilities.hasMinQty, actor, isFullCatalog),
       this.fetchPosBomCombos(bomIds, actor),
     ]);
 
@@ -377,6 +404,7 @@ export class CatalogProductService {
         barcode,
         limit,
         view,
+        fullCatalog: isFullCatalog,
         locationId: scopedLocation?.id ? String(scopedLocation.id) : '',
       },
     };
@@ -386,7 +414,8 @@ export class CatalogProductService {
     const requestedLimit = Number(query.limit || 30);
     const safeLimit = Number.isFinite(requestedLimit) ? Math.floor(requestedLimit) : 30;
     const view = String(query.view || '').trim() === 'offers' ? 'offers' : 'all';
-    const maxLimit = view === 'offers' ? 240 : 1000;
+    const isFullCatalog = String(query.fullCatalog || '').trim() === 'true';
+    const maxLimit = isFullCatalog ? 25000 : (view === 'offers' ? 240 : 1000);
     return {
       q: String(query.q || '').trim(),
       barcode: String(query.barcode || '').trim(),
@@ -394,6 +423,7 @@ export class CatalogProductService {
       requestedLocationId: Number(query.locationId || 0),
       requestedBranchId: Number(query.branchId || 0),
       view,
+      isFullCatalog,
     };
   }
 
@@ -576,13 +606,18 @@ export class CatalogProductService {
     return uniqueRows;
   }
 
-  private async fetchPosProductUnits(productIds: number[], actor: AuthContext): Promise<Map<string, Record<string, unknown>[]>> {
-    if (!productIds.length) return new Map();
-    const unitRows = await this.db
+  private async fetchPosProductUnits(productIds: number[], actor: AuthContext, isFullCatalog = false): Promise<Map<string, Record<string, unknown>[]>> {
+    if (!isFullCatalog && !productIds.length) return new Map();
+    let query = this.db
       .selectFrom('product_units')
       .select(['id', 'product_id', 'name', 'multiplier', 'barcode', 'is_base_unit', 'is_sale_unit_default', 'is_purchase_unit_default'])
-      .where('product_id', 'in', productIds)
-      .where(this.tenantPredicate(actor))
+      .where(this.tenantPredicate(actor));
+
+    if (!isFullCatalog) {
+      query = query.where('product_id', 'in', productIds);
+    }
+
+    const unitRows = await query
       .orderBy('product_id', 'asc')
       .orderBy('is_base_unit', 'desc')
       .orderBy('id', 'asc')
@@ -622,8 +657,8 @@ export class CatalogProductService {
     return text;
   }
 
-  private async fetchProductOffers(productIds: number[], hasMinQty: boolean, actor: AuthContext): Promise<Map<string, Record<string, unknown>[]>> {
-    if (!productIds.length) return new Map();
+  private async fetchProductOffers(productIds: number[], hasMinQty: boolean, actor: AuthContext, isFullCatalog = false): Promise<Map<string, Record<string, unknown>[]>> {
+    if (!isFullCatalog && !productIds.length) return new Map();
     const capabilities = await this.getProductOfferColumnCapabilities();
     const selectCols: any[] = ['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date'];
     if (capabilities.hasMinQty) selectCols.push('min_qty');
@@ -631,12 +666,17 @@ export class CatalogProductService {
       selectCols.push('bogo_buy_qty', 'bogo_get_qty', 'bogo_discount_percent', 'happy_hour_start', 'happy_hour_end', 'days_of_week');
     }
 
-    const offers = await this.db
+    let query = this.db
       .selectFrom('product_offers')
       .select(selectCols)
       .where('is_active', '=', true)
-      .where('product_id', 'in', productIds)
-      .where(this.tenantPredicate(actor))
+      .where(this.tenantPredicate(actor));
+
+    if (!isFullCatalog) {
+      query = query.where('product_id', 'in', productIds);
+    }
+
+    const offers = await query
       .orderBy('id', 'desc')
       .execute() as ProductOfferReadRow[];
 
@@ -773,17 +813,21 @@ export class CatalogProductService {
     };
   }
 
-  private async resolveScopedStockByProduct(productIds: number[], eligibleLocationIds: number[], products: Array<Pick<ProductRow, 'id' | 'stock_qty'>>, actor: AuthContext): Promise<{ stock: Map<string, number>, locations: Map<string, number[]> }> {
+  private async resolveScopedStockByProduct(productIds: number[], eligibleLocationIds: number[], products: Array<Pick<ProductRow, 'id' | 'stock_qty'>>, actor: AuthContext, isFullCatalog = false): Promise<{ stock: Map<string, number>, locations: Map<string, number[]> }> {
     const scopedStockByProduct = new Map<string, number>();
     const activeLocationsByProduct = new Map<string, number[]>();
-    if (!productIds.length) return { stock: scopedStockByProduct, locations: activeLocationsByProduct };
+    if (!isFullCatalog && !productIds.length) return { stock: scopedStockByProduct, locations: activeLocationsByProduct };
 
-    const stockRows = await this.db
+    let query = this.db
       .selectFrom('product_location_stock as pls')
       .select(['pls.product_id', 'pls.location_id', 'pls.qty'])
-      .where('pls.product_id', 'in', productIds)
-      .where(this.tenantPredicate(actor, 'pls'))
-      .execute();
+      .where(this.tenantPredicate(actor, 'pls'));
+
+    if (!isFullCatalog) {
+      query = query.where('pls.product_id', 'in', productIds);
+    }
+
+    const stockRows = await query.execute();
 
     const locationQtyByProduct = new Map<string, number>();
     const unassignedQtyByProduct = new Map<string, number>();

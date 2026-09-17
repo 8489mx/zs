@@ -66,6 +66,7 @@ export class SalesQueryService {
           eb('c.phone', 'ilike', `%${search}%`),
           eb('s.customer_name', 'ilike', `%${search}%`),
           eb('s.customer_phone', 'ilike', `%${search}%`),
+          eb('s.note', 'ilike', `%${search}%`),
         ];
         if (hasNumericId && search.length <= 6) {
           clauses.push(eb('s.id', '=', numericId));

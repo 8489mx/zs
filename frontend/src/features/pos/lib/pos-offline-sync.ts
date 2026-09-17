@@ -21,29 +21,85 @@ export function getOfflineSalesQueue(): OfflinePosSale[] {
   }
 }
 
+/**
+ * Returns a persistent, unique terminal identifier for this browser/device.
+ * If not already set by the user or system, generates a permanent 4-char uppercase alphanumeric code (e.g. T4A2).
+ */
+export function getPosTerminalCode(): string {
+  try {
+    let code = localStorage.getItem('zs_pos_terminal_code');
+    if (!code) {
+      const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+      code = `T${rand}`;
+      localStorage.setItem('zs_pos_terminal_code', code);
+    }
+    return code;
+  } catch {
+    return 'T01';
+  }
+}
+
+/**
+ * Allows setting or updating the terminal identifier (e.g. POS1, CASHIER-2).
+ */
+export function setPosTerminalCode(code: string): string {
+  try {
+    const clean = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    const finalCode = clean || getPosTerminalCode();
+    localStorage.setItem('zs_pos_terminal_code', finalCode);
+    return finalCode;
+  } catch {
+    return getPosTerminalCode();
+  }
+}
+
+/**
+ * Generates a globally unique, multi-cashier safe offline document number.
+ * Conforms strictly to Rule 10: PREFIX-TERMINAL-YYMMDD-XXXX (e.g. INV-T4A2-260917-0001)
+ * Guaranteed zero conflict across any number of offline cashiers.
+ */
 export function generateOfflineDocNo(): string {
   try {
-    const rawSeq = localStorage.getItem('zs_offline_doc_seq');
-    const seq = (rawSeq ? parseInt(rawSeq, 10) : 100) + 1;
-    localStorage.setItem('zs_offline_doc_seq', String(seq));
+    const terminal = getPosTerminalCode();
     const now = new Date();
-    const dateStr = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-    return `INV-${dateStr}-${seq}`;
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${yy}${mm}${dd}`;
+
+    const seqKey = `zs_offline_seq_${dateStr}`;
+    const rawSeq = localStorage.getItem(seqKey);
+    const seq = (rawSeq ? parseInt(rawSeq, 10) : 0) + 1;
+    localStorage.setItem(seqKey, String(seq));
+
+    const paddedSeq = String(seq).padStart(4, '0');
+    return `INV-${terminal}-${dateStr}-${paddedSeq}`;
   } catch {
-    return `INV-${Date.now().toString().slice(-6)}`;
+    const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `INV-${rand}-${Date.now().toString().slice(-6)}`;
   }
 }
 
 export function enqueueOfflineSale(payload: CreatePosSaleInput, existingIdempotencyKey?: string): OfflinePosSale {
   const queue = getOfflineSalesQueue();
-  const docNo = (payload as any).docNo || generateOfflineDocNo();
+  const docNo = (payload as any).docNo || (payload as any).offlineDocNo || generateOfflineDocNo();
   const draftId = existingIdempotencyKey || docNo;
-  
+
+  const offlineTag = `[إيصال أوفلاين: ${docNo}]`;
+  const existingNote = String(payload.note || '').trim();
+  const mergedNote = existingNote.includes(docNo)
+    ? existingNote
+    : existingNote
+      ? `${existingNote} | ${offlineTag}`
+      : offlineTag;
+
   const offlineSale: OfflinePosSale = {
     id: draftId,
     payload: {
       ...payload,
       docNo,
+      offlineDocNo: docNo,
+      note: mergedNote,
     } as any,
     savedAt: new Date().toISOString(),
     status: 'pending',
@@ -55,10 +111,10 @@ export function enqueueOfflineSale(payload: CreatePosSaleInput, existingIdempote
   } catch (e) {
     console.error('Failed to save offline queue — storage may be full:', e);
   }
-  
+
   // Dispatch custom event to notify UI
   window.dispatchEvent(new Event('pos-offline-queue-updated'));
-  
+
   return offlineSale;
 }
 

@@ -31,6 +31,7 @@ import { normalizePosSaleMode, usePosSaleMode } from '@/features/pos/lib/pos-sal
 import { matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
 import { parseWeightedBarcode, matchProductByWeightedCode } from '@/features/pos/lib/weighted-barcode';
 import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix';
+import { lookupProductByBarcodeFromStorage } from '@/features/pos/lib/pos-catalog-storage';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
 import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
 import {
@@ -330,11 +331,23 @@ export function PosWorkspace() {
         }
 
         const remappedQuery = remapArabicKeyboardToEnglish(query);
-        const lookupProducts = await posApi.lookupProducts({ barcode: query, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
-        const remoteMatch = matchProductByCode(lookupProducts, query);
+        let lookupProducts: Product[] = [];
+        try {
+          lookupProducts = await posApi.lookupProducts({ barcode: query, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
+        } catch {
+          const offlineItem = await lookupProductByBarcodeFromStorage(query);
+          if (offlineItem) lookupProducts = [offlineItem];
+        }
+        let remoteMatch = matchProductByCode(lookupProducts, query);
 
         if (remoteMatch.status !== 'matched' && remappedQuery !== query) {
-          const remappedLookup = await posApi.lookupProducts({ barcode: remappedQuery, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
+          let remappedLookup: Product[] = [];
+          try {
+            remappedLookup = await posApi.lookupProducts({ barcode: remappedQuery, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
+          } catch {
+            const offlineItem = await lookupProductByBarcodeFromStorage(remappedQuery);
+            if (offlineItem) remappedLookup = [offlineItem];
+          }
           const remappedMatch = matchProductByCode(remappedLookup, remappedQuery);
           if (remappedMatch.status === 'matched') {
             const submitted = pos.handleQuickAddCodeSubmit(remappedQuery, remappedLookup);

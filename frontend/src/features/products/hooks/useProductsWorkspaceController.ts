@@ -9,6 +9,7 @@ import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import type { Product, ProductUnit } from '@/types/domain';
 import { useProductsPageQuery } from '@/features/products/hooks/useProductsPageQuery';
+import { resolveBarcodeUnit, type BarcodePrintItem } from '@/lib/barcode-labels';
 
 export function useProductsWorkspaceController() {
   const [search, setSearch] = useState('');
@@ -22,7 +23,11 @@ export function useProductsWorkspaceController() {
   const [offerDialogProduct, setOfferDialogProduct] = useState<Product | null>(null);
   const [barcodeDialogProduct, setBarcodeDialogProduct] = useState<Product | null>(null);
   const [barcodeDialogMode, setBarcodeDialogMode] = useState<'scan' | 'generate'>('scan');
-  const [printDialogState, setPrintDialogState] = useState<{ product: Product; unit?: ProductUnit | null } | null>(null);
+  const [printDialogState, setPrintDialogState] = useState<{
+    product?: Product | null;
+    unit?: ProductUnit | null;
+    items?: BarcodePrintItem[];
+  } | null>(null);
 
   const productsQuery = useProductsPageQuery({ page, pageSize, q: search, view: viewFilter });
   const categoriesQuery = useQuery({ queryKey: queryKeys.productsCategories, queryFn: productsApi.categories, staleTime: 60_000 });
@@ -237,11 +242,21 @@ export function useProductsWorkspaceController() {
     setPrintDialogState({ product, unit });
   }, []);
 
+  const openBulkPrintDialog = useCallback((products: Product[]) => {
+    if (!products.length) return;
+    const items: BarcodePrintItem[] = products.map((p) => ({
+      product: p,
+      unit: resolveBarcodeUnit(p),
+      copies: 1,
+    }));
+    setPrintDialogState({ items });
+  }, []);
+
   const applyProductPatch = useCallback((product: Product) => {
     setSelectedProduct((current) => (current && String(current.id) === String(product.id) ? product : current));
     setOfferDialogProduct((current) => (current && String(current.id) === String(product.id) ? product : current));
     setBarcodeDialogProduct((current) => (current && String(current.id) === String(product.id) ? product : current));
-    setPrintDialogState((current) => (current && String(current.product.id) === String(product.id) ? { ...current, product } : current));
+    setPrintDialogState((current) => (current && current.product && String(current.product.id) === String(product.id) ? { ...current, product } : current));
   }, []);
 
   return {
@@ -295,6 +310,7 @@ export function useProductsWorkspaceController() {
     openOfferDialog,
     openBarcodeDialog,
     openPrintDialog,
+    openBulkPrintDialog,
     applyProductPatch,
   };
 }

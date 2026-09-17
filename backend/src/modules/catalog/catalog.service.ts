@@ -21,6 +21,7 @@ export class CatalogService {
   transferCategoryProducts(id: number, toCategoryId: number, actor: AuthContext): Promise<Record<string, unknown>> { return this.categoryService.transferProducts(id, toCategoryId, actor); }
   listProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.listProducts(query, actor); }
   getProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.getProduct(id, actor); }
+  getPosCatalogVersion(actor: AuthContext): Promise<{ version: string; totalCount: number; lastUpdatedAt: string }> { return this.productService.getPosCatalogVersion(actor); }
   listPosProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.listPosProducts(query, actor); }
   createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.createProduct(payload, actor); }
   updateProduct(id: number, payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.updateProduct(id, payload, actor); }

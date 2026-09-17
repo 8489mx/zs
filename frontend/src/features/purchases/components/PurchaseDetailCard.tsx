@@ -1,14 +1,24 @@
-import { useState } from 'react';
-import type { Purchase } from '@/types/domain';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import type { Product, Purchase } from '@/types/domain';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
-import { FileTextIcon } from '@/shared/components/icons/AppIcons';
+import { AppIcons, FileTextIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { PurchasePaymentScheduleCard } from '@/features/purchases/components/PurchasePaymentScheduleCard';
 import { resolveRequestUrl } from '@/lib/http';
 import { purchasesApi } from '@/features/purchases/api/purchases.api';
+import { sharedProductsApi } from '@/shared/api/products';
+import { queryKeys } from '@/app/query-keys';
+import type { BarcodePrintItem } from '@/lib/barcode-labels';
 import { PurchaseLandedCostsModal } from './PurchaseLandedCostsModal';
+
+const LazyBarcodePrintDialog = lazy(() =>
+  import('@/features/products/components/BarcodePrintDialog').then((module) => ({
+    default: module.BarcodePrintDialog,
+  }))
+);
 
 interface PurchaseDetailCardProps {
   purchase?: Purchase;
@@ -25,6 +35,34 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
   const [receivingItems, setReceivingItems] = useState<{ [itemId: string]: number }>({});
   const [isSubmittingGrn, setIsSubmittingGrn] = useState(false);
   const [grnError, setGrnError] = useState('');
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+
+  const productsQuery = useQuery({
+    queryKey: queryKeys.products,
+    queryFn: sharedProductsApi.list,
+    enabled: showBarcodeModal,
+    staleTime: 60_000,
+  });
+
+  const barcodeItems: BarcodePrintItem[] = useMemo(() => {
+    if (!purchase?.items) return [];
+    const catalogProducts = productsQuery.data || [];
+    return purchase.items.map((item) => {
+      const p = catalogProducts.find((prod) => String(prod.id) === String(item.productId));
+      const product: Product = p || ({
+        id: item.productId,
+        name: item.name,
+        barcode: '',
+        retailPrice: item.cost,
+        stock: item.qty,
+        units: item.unitName ? [{ id: 'u1', name: item.unitName, multiplier: item.unitMultiplier || 1, isBaseUnit: true }] : [],
+      } as unknown as Product);
+
+      const unit = p?.units?.find((u) => u.name === item.unitName) || product.units?.[0] || null;
+      const copies = Math.max(1, Number(item.receivedQty || item.qty || 1));
+      return { product, unit, copies };
+    });
+  }, [purchase?.items, productsQuery.data]);
 
   if (isLoading) return <FormSection title="تفاصيل الفاتورة" className="purchase-detail-card"><div className="muted">جاري تحميل تفاصيل الفاتورة...</div></FormSection>;
   if (!purchase) return <FormSection title="تفاصيل الفاتورة" className="purchase-detail-card"><div className="muted">اختر فاتورة من الجدول لعرض التفاصيل.</div></FormSection>;
@@ -208,6 +246,15 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
             onClick={() => setShowLandedCostsModal(true)}
           >
             تكلفة الوصول (Landed Costs)
+          </Button>
+          <Button
+            variant="secondary"
+            style={{ fontSize: '12.5px', padding: '7px 8px', justifyContent: 'center', borderColor: '#170e5e', color: '#170e5e', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            onClick={() => setShowBarcodeModal(true)}
+            title="طباعة ملصقات الباركود واستيكرات الرفوف لبنود هذه الفاتورة بالكميات المستلمة أو المطلوبة"
+          >
+            <AppIcons.Printer size={15} />
+            <span>طباعة باركود البنود ({(purchase.items || []).length})</span>
           </Button>
           {onPrint ? <Button variant="secondary" style={{ fontSize: '12.5px', padding: '7px 8px', justifyContent: 'center' }} onClick={onPrint}>طباعة الفاتورة</Button> : null}
           {onEdit ? <Button variant="secondary" style={{ fontSize: '12.5px', padding: '7px 8px', justifyContent: 'center' }} onClick={onEdit}>تعديل الفاتورة</Button> : null}
@@ -416,6 +463,16 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
             if (onRefresh) onRefresh();
           }}
         />
+      )}
+
+      {showBarcodeModal && (
+        <Suspense fallback={null}>
+          <LazyBarcodePrintDialog
+            open={showBarcodeModal}
+            items={barcodeItems}
+            onClose={() => setShowBarcodeModal(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

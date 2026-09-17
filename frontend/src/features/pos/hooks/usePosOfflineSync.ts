@@ -41,9 +41,10 @@ export function usePosOfflineSync() {
         try {
           updateOfflineSaleStatus(sale.id, 'syncing');
           const input = sale.payload;
-          const payload = buildPosSalePayload(input);
-          const legacyPayload = buildLegacyPosSalePayload(input);
-          const minimalPayload = buildMinimalPosSalePayload(input);
+          const offlineDocNo = (input as any).docNo || (input as any).offlineDocNo || sale.id;
+          const payload = { ...buildPosSalePayload(input), offlineDocNo };
+          const legacyPayload = { ...buildLegacyPosSalePayload(input), offlineDocNo };
+          const minimalPayload = { ...buildMinimalPosSalePayload(input), offlineDocNo };
           
           try {
             await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': sale.id });

@@ -190,8 +190,8 @@ export function PosOfflineQueueModal({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b' }}>
-                        #{idx + 1}
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e', fontFamily: 'monospace', background: '#e0e7ff', padding: '2px 8px', borderRadius: '6px' }}>
+                        {(item.payload as any).docNo || (item.payload as any).offlineDocNo || `#${idx + 1}`}
                       </span>
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>

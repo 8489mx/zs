@@ -1,7 +1,7 @@
 import { Fragment, useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
-import { FileTextIcon, SearchIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { FileTextIcon, PrinterIcon, SearchIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { systemConfirm } from '@/shared/components/system-alert';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -34,6 +34,7 @@ export interface ProductsTableCardProps {
   onOpenOfferDialog: (product: Product) => void;
   onOpenBarcodeDialog: (product: Product, mode?: 'scan' | 'generate') => void;
   onOpenPrintDialog: (product: Product) => void;
+  onBulkPrintBarcodes?: () => void;
   onOpenSerialsDialog?: (product: Product) => void;
   canDelete: boolean;
   canPrint: boolean;
@@ -365,6 +366,17 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
             <span className="muted small">يمكنك حذف الأصناف المحددة دفعة واحدة أو مسح التحديد الحالي.</span>
           </div>
           <div className="actions compact-actions">
+            {props.onBulkPrintBarcodes && (
+              <Button
+                variant="secondary"
+                onClick={props.onBulkPrintBarcodes}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+                title="طباعة ملصقات الباركود واستيكرات الرفوف التموينية للأصناف المحددة"
+              >
+                <PrinterIcon size={14} />
+                <span>طباعة الباركود والرف ({props.selectedIds.length})</span>
+              </Button>
+            )}
             <Button variant="secondary" onClick={props.onClearSelection}>مسح التحديد</Button>
             <Button variant="danger" onClick={props.onBulkDelete} disabled={!props.canDelete}>حذف المحدد</Button>
           </div>

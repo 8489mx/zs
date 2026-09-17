@@ -1,8 +1,25 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode, RefObject } from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PosWorkspace } from './PosWorkspace';
+
+const testQueryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: false, staleTime: 0 },
+  },
+});
+
+function renderWorkspace() {
+  return render(
+    <QueryClientProvider client={testQueryClient}>
+      <MemoryRouter>
+        <PosWorkspace />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+}
 
 const testState = vi.hoisted(() => ({
   pos: null as ReturnType<typeof createPosMock> | null,
@@ -10,6 +27,10 @@ const testState = vi.hoisted(() => ({
 
 vi.mock('@/shared/components/query-feedback', () => ({
   QueryFeedback: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('@/shared/ui/currency-symbol', () => ({
+  CurrencySymbol: () => <span>ج.م</span>,
 }));
 
 vi.mock('@/features/pos/components/PosProductsPanel', () => ({
@@ -199,7 +220,7 @@ describe('POS workspace destructive keyboard safety', () => {
   });
 
   it('does not clear the cart when Escape closes the customer picker layer', async () => {
-    render(<PosWorkspace />);
+    renderWorkspace();
 
     fireEvent.click(screen.getByRole('button', { name: 'open customer picker' }));
     expect(screen.getByRole('dialog')).toHaveTextContent('customer picker');
@@ -212,7 +233,7 @@ describe('POS workspace destructive keyboard safety', () => {
   });
 
   it('asks for confirmation instead of clearing immediately on Escape with cart items', () => {
-    render(<PosWorkspace />);
+    renderWorkspace();
 
     fireEvent.keyDown(window, { key: 'Escape' });
 
@@ -221,7 +242,7 @@ describe('POS workspace destructive keyboard safety', () => {
   });
 
   it('cancels the clear-cart confirmation when Escape is pressed inside it', async () => {
-    render(<PosWorkspace />);
+    renderWorkspace();
 
     fireEvent.keyDown(window, { key: 'Escape' });
     fireEvent.keyDown(window, { key: 'Escape' });
@@ -231,7 +252,7 @@ describe('POS workspace destructive keyboard safety', () => {
   });
 
   it('keeps Delete line removal possible behind a confirmation', async () => {
-    render(<PosWorkspace />);
+    renderWorkspace();
 
     fireEvent.keyDown(window, { key: 'Delete' });
 
@@ -244,7 +265,7 @@ describe('POS workspace destructive keyboard safety', () => {
   });
 
   it('confirms held-sale delete and requires a stronger clear-all confirmation', async () => {
-    render(<PosWorkspace />);
+    renderWorkspace();
 
     fireEvent.click(screen.getByRole('button', { name: 'delete held' }));
     expect(screen.getByText('تأكيد حذف الفاتورة المعلقة')).toBeInTheDocument();
@@ -282,7 +303,7 @@ describe('POS workspace destructive keyboard safety', () => {
     } as unknown as ReturnType<typeof createPosMock>;
     testState.pos = pos;
 
-    render(<MemoryRouter><PosWorkspace /></MemoryRouter>);
+    renderWorkspace();
 
     expect(await screen.findByText('تم البيع بنجاح')).toBeInTheDocument();
 
@@ -293,7 +314,7 @@ describe('POS workspace destructive keyboard safety', () => {
   });
 
   it('uses F9 for last sale reprint modal', () => {
-    render(<PosWorkspace />);
+    renderWorkspace();
 
     fireEvent.keyDown(window, { key: 'F9' });
 
