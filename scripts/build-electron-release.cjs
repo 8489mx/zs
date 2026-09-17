@@ -17,7 +17,14 @@ async function main() {
 
     console.log(`[build-electron-release] Detected version: ${version}`);
 
-    // 2. Run electron-builder
+    // 2. Terminate any running instance of the application to prevent Windows file-lock errors
+    if (process.platform === 'win32') {
+      try {
+        execSync('taskkill /F /IM "ZSystems POS.exe" /T', { stdio: 'ignore' });
+      } catch {}
+    }
+
+    // 3. Run electron-builder
     console.log('[build-electron-release] Running electron-builder...');
     // We execute it in the frontend directory where the electron builder config is
     execSync('npx electron-builder', { 

@@ -49,3 +49,17 @@ for (const { source, target } of copies) {
   fs.cpSync(source, target, { recursive: true, force: true });
   console.log(`Copied ${source} -> ${target}`);
 }
+
+// 3. Explicitly verify critical dist subdirectories to protect against Windows partial copy/lock issues
+const distTarget = path.join(electronBackendRoot, 'dist');
+const distSource = path.join(backendRoot, 'dist');
+const criticalSubDirs = ['config', 'common', 'core', 'database', 'modules'];
+for (const subDir of criticalSubDirs) {
+  const targetSub = path.join(distTarget, subDir);
+  const sourceSub = path.join(distSource, subDir);
+  if (!fs.existsSync(targetSub) && fs.existsSync(sourceSub)) {
+    fs.cpSync(sourceSub, targetSub, { recursive: true, force: true });
+    console.log(`[REPAIR] Force-copied missing subdirectory: ${subDir}`);
+  }
+}
+console.log('[sync-electron-backend] Backend sync verified successfully.');
