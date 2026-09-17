@@ -37,10 +37,19 @@ export async function verifyLicense(machineId: string, providedKey: string): Pro
 export async function getHardwareId(): Promise<string> {
   // @ts-ignore
   if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.getHardwareId) {
-    // @ts-ignore
-    const id = await window.electronAPI.getHardwareId();
-    return id.trim();
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        // @ts-ignore
+        const id = await window.electronAPI.getHardwareId();
+        if (id && typeof id === 'string' && id.trim().length > 3) {
+          return id.trim();
+        }
+      } catch (e) {
+        console.warn(`[ACTIVATION] getHardwareId attempt ${attempt + 1} waiting for bridge:`, e);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
   }
   // Fallback for normal browser dev (if someone runs 'npm run dev' without electron)
-  return 'DEV-MACHINE-ID';
+  return 'WIN-DEVICE-AUTO-01';
 }

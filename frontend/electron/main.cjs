@@ -451,6 +451,204 @@ app.whenReady().then(async () => {
     }
   }
 
+  // ─── Multi-Layer Persistent License & Instant Hardware ID ───────────────────
+  let inMemoryCachedHwId = null;
+  let inMemoryCachedLicense = null;
+
+  const cleanHwStr = (s) => (s || '').replace(/[^A-Za-z0-9_-]/g, '').trim().toUpperCase();
+
+  const isInvalidHwVal = (val) => {
+    if (!val) return true;
+    const lower = val.toLowerCase().trim();
+    return lower === '' || 
+           lower.includes('default string') || 
+           lower.includes('to be filled by o.e.m') || 
+           lower.includes('ffffffff') || 
+           lower === 'none' ||
+           lower === '00000000' ||
+           lower === '0000000000000000';
+  };
+
+  const getProgramDataLicensePath = () => {
+    const base = process.env.PROGRAMDATA || (process.env.APPDATA ? path.dirname(process.env.APPDATA) : null) || app.getPath('userData');
+    const dir = path.join(base, 'ZSystemsLicense');
+    try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch {}
+    return path.join(dir, 'license.json');
+  };
+
+  const getUserDataLicensePath = () => path.join(app.getPath('userData'), 'license.json');
+
+  const readRegistryLicense = () => {
+    if (process.platform !== 'win32') return null;
+    try {
+      const out = execSync('reg query "HKCU\\Software\\ZSystems\\ERP"', { encoding: 'utf8', timeout: 1200 });
+      const keyMatch = out.match(/LicenseKey\s+REG_SZ\s+(\S+)/i);
+      const hwMatch = out.match(/HardwareId\s+REG_SZ\s+(\S+)/i);
+      const actMatch = out.match(/ActivatedAt\s+REG_SZ\s+([^\r\n]+)/i);
+      if (keyMatch && keyMatch[1]) {
+        return {
+          licenseKey: keyMatch[1].trim(),
+          hardwareId: hwMatch && hwMatch[1] ? hwMatch[1].trim() : '',
+          activatedAt: actMatch && actMatch[1] ? actMatch[1].trim() : new Date().toISOString(),
+        };
+      }
+    } catch {}
+    return null;
+  };
+
+  const writeRegistryLicense = (licenseKey, hardwareId) => {
+    if (process.platform !== 'win32') return;
+    try {
+      if (licenseKey) {
+        execSync(`reg add "HKCU\\Software\\ZSystems\\ERP" /v LicenseKey /t REG_SZ /d "${licenseKey.trim()}" /f`, { timeout: 1500 });
+      }
+      if (hardwareId) {
+        execSync(`reg add "HKCU\\Software\\ZSystems\\ERP" /v HardwareId /t REG_SZ /d "${hardwareId.trim()}" /f`, { timeout: 1500 });
+      }
+      execSync(`reg add "HKCU\\Software\\ZSystems\\ERP" /v ActivatedAt /t REG_SZ /d "${new Date().toISOString()}" /f`, { timeout: 1500 });
+    } catch (e) {
+      console.warn('[ELECTRON] Failed to write to Registry:', e);
+    }
+  };
+
+  const readLicenseFile = () => {
+    if (inMemoryCachedLicense && inMemoryCachedLicense.licenseKey) {
+      return inMemoryCachedLicense;
+    }
+
+    // 1. Check Windows Registry (Primary Immune Layer)
+    const regData = readRegistryLicense();
+    if (regData && regData.licenseKey) {
+      inMemoryCachedLicense = regData;
+      return regData;
+    }
+
+    // 2. Check ProgramData global file
+    try {
+      const progPath = getProgramDataLicensePath();
+      if (fs.existsSync(progPath)) {
+        const raw = fs.readFileSync(progPath, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.licenseKey) {
+          inMemoryCachedLicense = parsed;
+          return parsed;
+        }
+      }
+    } catch {}
+
+    // 3. Check AppData / userData local file
+    try {
+      const userPath = getUserDataLicensePath();
+      if (fs.existsSync(userPath)) {
+        const raw = fs.readFileSync(userPath, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.licenseKey) {
+          inMemoryCachedLicense = parsed;
+          return parsed;
+        }
+      }
+    } catch {}
+
+    return null;
+  };
+
+  const writeLicenseFile = (data) => {
+    try {
+      const existing = readLicenseFile() || {};
+      const updated = { ...existing, ...data, updatedAt: new Date().toISOString() };
+      inMemoryCachedLicense = updated;
+
+      // 1. Save to Registry
+      if (updated.licenseKey || updated.hardwareId) {
+        writeRegistryLicense(updated.licenseKey, updated.hardwareId);
+      }
+
+      // 2. Save to ProgramData
+      try {
+        const progPath = getProgramDataLicensePath();
+        fs.writeFileSync(progPath, JSON.stringify(updated, null, 2), 'utf8');
+      } catch {}
+
+      // 3. Save to UserData
+      try {
+        const userPath = getUserDataLicensePath();
+        fs.writeFileSync(userPath, JSON.stringify(updated, null, 2), 'utf8');
+      } catch {}
+
+      return true;
+    } catch (e) {
+      console.error('[ELECTRON] Failed to write license files:', e);
+      return false;
+    }
+  };
+
+  const computeHardwareId = () => {
+    if (inMemoryCachedHwId && inMemoryCachedHwId.length > 3) {
+      return inMemoryCachedHwId;
+    }
+
+    // 1. Check if already in Registry or cached file
+    const cached = readLicenseFile();
+    if (cached && cached.hardwareId && typeof cached.hardwareId === 'string' && cached.hardwareId.trim().length > 3) {
+      inMemoryCachedHwId = cached.hardwareId.trim();
+      return inMemoryCachedHwId;
+    }
+
+    // 2. Primary on Windows: Synchronous Fast MachineGuid query (< 10ms)
+    let generatedHwId = '';
+    if (process.platform === 'win32') {
+      try {
+        const regOutput = execSync('reg query HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid', { encoding: 'utf8', timeout: 1200 });
+        const match = regOutput.match(/MachineGuid\s+REG_SZ\s+(\S+)/i);
+        if (match && match[1] && !isInvalidHwVal(match[1])) {
+          generatedHwId = `WIN-${cleanHwStr(match[1])}`;
+        }
+      } catch {}
+
+      if (!generatedHwId) {
+        try {
+          const ps = `(Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID`;
+          const uuidOut = execSync(`powershell.exe -NoProfile -NonInteractive -Command "${ps}"`, { encoding: 'utf8', timeout: 2500 }).trim();
+          if (uuidOut && !isInvalidHwVal(uuidOut) && uuidOut !== '03000200040005000006000700080009') {
+            generatedHwId = `UUID-${cleanHwStr(uuidOut)}`;
+          }
+        } catch {}
+      }
+    }
+
+    // 3. Fallback OS Hostname & Username
+    if (!generatedHwId) {
+      try {
+        const os = require('os');
+        generatedHwId = `HOST-${cleanHwStr(os.hostname())}-${cleanHwStr(os.userInfo() ? os.userInfo().username : 'USER')}`;
+      } catch {
+        generatedHwId = 'WIN-SYSTEM-DEVICE-01';
+      }
+    }
+
+    inMemoryCachedHwId = generatedHwId;
+    writeLicenseFile({ hardwareId: generatedHwId });
+    return generatedHwId;
+  };
+
+  // Register all critical IPC handlers IMMEDIATELY before creating any browser window
+  ipcMain.handle('get-hardware-id', () => {
+    return computeHardwareId();
+  });
+
+  ipcMain.handle('get-saved-license', () => {
+    return readLicenseFile();
+  });
+
+  ipcMain.handle('save-license-key', (event, key) => {
+    const trimmedKey = (key || '').trim();
+    const id = computeHardwareId();
+    writeLicenseFile({ hardwareId: id, licenseKey: trimmedKey, activatedAt: new Date().toISOString() });
+    return { ok: true };
+  });
+
+  ipcMain.handle('get-runtime-config', () => currentConfig);
+
   // Show loading window with progress immediately
   createLoadingWindow();
 
@@ -641,7 +839,6 @@ app.whenReady().then(async () => {
   app.on('will-quit', cleanShutdown);
 
   // Handle IPC for LAN Modes
-  ipcMain.handle('get-runtime-config', () => currentConfig);
   ipcMain.on('force-close-app', async () => {
     isForceClosing = true;
     try {
@@ -812,202 +1009,6 @@ app.whenReady().then(async () => {
       }
       return { ok: false, error: errorMsg };
     }
-  });
-
-  // ─── Multi-Layer Persistent License & Instant Hardware ID ───────────────────
-  let inMemoryCachedHwId = null;
-  let inMemoryCachedLicense = null;
-
-  const cleanHwStr = (s) => (s || '').replace(/[^A-Za-z0-9_-]/g, '').trim().toUpperCase();
-
-  const isInvalidHwVal = (val) => {
-    if (!val) return true;
-    const lower = val.toLowerCase().trim();
-    return lower === '' || 
-           lower.includes('default string') || 
-           lower.includes('to be filled by o.e.m') || 
-           lower.includes('ffffffff') || 
-           lower === 'none' ||
-           lower === '00000000' ||
-           lower === '0000000000000000';
-  };
-
-  const getProgramDataLicensePath = () => {
-    const base = process.env.PROGRAMDATA || (process.env.APPDATA ? path.dirname(process.env.APPDATA) : null) || app.getPath('userData');
-    const dir = path.join(base, 'ZSystemsLicense');
-    try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch {}
-    return path.join(dir, 'license.json');
-  };
-
-  const getUserDataLicensePath = () => path.join(app.getPath('userData'), 'license.json');
-
-  const readRegistryLicense = () => {
-    if (process.platform !== 'win32') return null;
-    try {
-      const out = execSync('reg query "HKCU\\Software\\ZSystems\\ERP"', { encoding: 'utf8', timeout: 1200 });
-      const keyMatch = out.match(/LicenseKey\s+REG_SZ\s+(\S+)/i);
-      const hwMatch = out.match(/HardwareId\s+REG_SZ\s+(\S+)/i);
-      const actMatch = out.match(/ActivatedAt\s+REG_SZ\s+([^\r\n]+)/i);
-      if (keyMatch && keyMatch[1]) {
-        return {
-          licenseKey: keyMatch[1].trim(),
-          hardwareId: hwMatch && hwMatch[1] ? hwMatch[1].trim() : '',
-          activatedAt: actMatch && actMatch[1] ? actMatch[1].trim() : new Date().toISOString(),
-        };
-      }
-    } catch {}
-    return null;
-  };
-
-  const writeRegistryLicense = (licenseKey, hardwareId) => {
-    if (process.platform !== 'win32') return;
-    try {
-      if (licenseKey) {
-        execSync(`reg add "HKCU\\Software\\ZSystems\\ERP" /v LicenseKey /t REG_SZ /d "${licenseKey.trim()}" /f`, { timeout: 1500 });
-      }
-      if (hardwareId) {
-        execSync(`reg add "HKCU\\Software\\ZSystems\\ERP" /v HardwareId /t REG_SZ /d "${hardwareId.trim()}" /f`, { timeout: 1500 });
-      }
-      execSync(`reg add "HKCU\\Software\\ZSystems\\ERP" /v ActivatedAt /t REG_SZ /d "${new Date().toISOString()}" /f`, { timeout: 1500 });
-    } catch (e) {
-      console.warn('[ELECTRON] Failed to write to Registry:', e);
-    }
-  };
-
-  const readLicenseFile = () => {
-    if (inMemoryCachedLicense && inMemoryCachedLicense.licenseKey) {
-      return inMemoryCachedLicense;
-    }
-
-    // 1. Check Windows Registry (Primary Immune Layer)
-    const regData = readRegistryLicense();
-    if (regData && regData.licenseKey) {
-      inMemoryCachedLicense = regData;
-      return regData;
-    }
-
-    // 2. Check ProgramData global file
-    try {
-      const progPath = getProgramDataLicensePath();
-      if (fs.existsSync(progPath)) {
-        const raw = fs.readFileSync(progPath, 'utf8');
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.licenseKey) {
-          inMemoryCachedLicense = parsed;
-          return parsed;
-        }
-      }
-    } catch {}
-
-    // 3. Check AppData / userData local file
-    try {
-      const userPath = getUserDataLicensePath();
-      if (fs.existsSync(userPath)) {
-        const raw = fs.readFileSync(userPath, 'utf8');
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.licenseKey) {
-          inMemoryCachedLicense = parsed;
-          return parsed;
-        }
-      }
-    } catch {}
-
-    return null;
-  };
-
-  const writeLicenseFile = (data) => {
-    try {
-      const existing = readLicenseFile() || {};
-      const updated = { ...existing, ...data, updatedAt: new Date().toISOString() };
-      inMemoryCachedLicense = updated;
-
-      // 1. Save to Registry
-      if (updated.licenseKey || updated.hardwareId) {
-        writeRegistryLicense(updated.licenseKey, updated.hardwareId);
-      }
-
-      // 2. Save to ProgramData
-      try {
-        const progPath = getProgramDataLicensePath();
-        fs.writeFileSync(progPath, JSON.stringify(updated, null, 2), 'utf8');
-      } catch {}
-
-      // 3. Save to UserData
-      try {
-        const userPath = getUserDataLicensePath();
-        fs.writeFileSync(userPath, JSON.stringify(updated, null, 2), 'utf8');
-      } catch {}
-
-      return true;
-    } catch (e) {
-      console.error('[ELECTRON] Failed to write license files:', e);
-      return false;
-    }
-  };
-
-  const computeHardwareId = () => {
-    if (inMemoryCachedHwId && inMemoryCachedHwId.length > 3) {
-      return inMemoryCachedHwId;
-    }
-
-    // 1. Check if already in Registry or cached file
-    const cached = readLicenseFile();
-    if (cached && cached.hardwareId && typeof cached.hardwareId === 'string' && cached.hardwareId.trim().length > 3) {
-      inMemoryCachedHwId = cached.hardwareId.trim();
-      return inMemoryCachedHwId;
-    }
-
-    // 2. Primary on Windows: Synchronous Fast MachineGuid query (< 10ms)
-    let generatedHwId = '';
-    if (process.platform === 'win32') {
-      try {
-        const regOutput = execSync('reg query HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid', { encoding: 'utf8', timeout: 1200 });
-        const match = regOutput.match(/MachineGuid\s+REG_SZ\s+(\S+)/i);
-        if (match && match[1] && !isInvalidHwVal(match[1])) {
-          generatedHwId = `WIN-${cleanHwStr(match[1])}`;
-        }
-      } catch {}
-
-      if (!generatedHwId) {
-        try {
-          const ps = `(Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID`;
-          const uuidOut = execSync(`powershell.exe -NoProfile -NonInteractive -Command "${ps}"`, { encoding: 'utf8', timeout: 2500 }).trim();
-          if (uuidOut && !isInvalidHwVal(uuidOut) && uuidOut !== '03000200040005000006000700080009') {
-            generatedHwId = `UUID-${cleanHwStr(uuidOut)}`;
-          }
-        } catch {}
-      }
-    }
-
-    // 3. Fallback OS Hostname & Username
-    if (!generatedHwId) {
-      try {
-        const os = require('os');
-        generatedHwId = `HOST-${cleanHwStr(os.hostname())}-${cleanHwStr(os.userInfo() ? os.userInfo().username : 'USER')}`;
-      } catch {
-        generatedHwId = 'WIN-SYSTEM-DEVICE-01';
-      }
-    }
-
-    inMemoryCachedHwId = generatedHwId;
-    writeLicenseFile({ hardwareId: generatedHwId });
-    return generatedHwId;
-  };
-
-  // Handle IPC for hardware ID & License
-  ipcMain.handle('get-hardware-id', () => {
-    return computeHardwareId();
-  });
-
-  ipcMain.handle('get-saved-license', () => {
-    return readLicenseFile();
-  });
-
-  ipcMain.handle('save-license-key', (event, key) => {
-    const trimmedKey = (key || '').trim();
-    const id = computeHardwareId();
-    writeLicenseFile({ hardwareId: id, licenseKey: trimmedKey, activatedAt: new Date().toISOString() });
-    return { ok: true };
   });
 
   // Wait for backend to be ready then load the actual app

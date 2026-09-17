@@ -14,6 +14,7 @@ export function ActivationGuard({ children }: ActivationGuardProps) {
   const [isChecking, setIsChecking] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     async function checkLicense() {
       // Bypass activation if in DEV or if NOT running inside Electron
       if (import.meta.env.DEV || typeof window === 'undefined' || !(window as any).electronAPI) {
@@ -22,16 +23,18 @@ export function ActivationGuard({ children }: ActivationGuardProps) {
       }
       try {
         const id = await getHardwareId();
-        setHardwareId(id || 'WIN-SYSTEM-DEVICE-01');
+        if (isMounted) {
+          setHardwareId(id || 'WIN-DEVICE-AUTO-01');
+        }
 
         // 1. Check disk-persisted license from Electron first (reads Windows Registry & ProgramData)
         if ((window as any).electronAPI.getSavedLicense) {
-          const diskLicense = await (window as any).electronAPI.getSavedLicense();
+          const diskLicense = await (window as any).electronAPI.getSavedLicense().catch(() => null);
           if (diskLicense && diskLicense.licenseKey) {
             const isValid = await verifyLicense(id, diskLicense.licenseKey);
             if (isValid) {
               localStorage.setItem('zsystems_license_key', diskLicense.licenseKey);
-              setIsActivated(true);
+              if (isMounted) setIsActivated(true);
               return;
             }
           }
@@ -43,19 +46,28 @@ export function ActivationGuard({ children }: ActivationGuardProps) {
           const isValid = await verifyLicense(id, savedKey);
           if (isValid) {
             if ((window as any).electronAPI.saveLicenseKey) {
-              await (window as any).electronAPI.saveLicenseKey(savedKey);
+              await (window as any).electronAPI.saveLicenseKey(savedKey).catch(() => null);
             }
-            setIsActivated(true);
+            if (isMounted) setIsActivated(true);
             return;
           }
         }
-        setIsActivated(false);
+        if (isMounted) setIsActivated(false);
       } catch (err) {
         console.error('[ACTIVATION] Error verifying license:', err);
-        setIsActivated(false);
+        if (isMounted) {
+          try {
+            const fallbackId = await getHardwareId();
+            setHardwareId(fallbackId || 'WIN-DEVICE-AUTO-01');
+          } catch {
+            setHardwareId('WIN-DEVICE-AUTO-01');
+          }
+          setIsActivated(false);
+        }
       }
     }
     checkLicense();
+    return () => { isMounted = false; };
   }, []);
 
   const handleCopyHardwareId = () => {
