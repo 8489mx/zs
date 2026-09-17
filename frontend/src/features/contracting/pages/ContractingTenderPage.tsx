@@ -4,6 +4,7 @@ import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { contractingApi } from '../api/contracting.api';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
+import { ImportBoqModal } from '../components/ImportBoqModal';
 import { ImportMasterBoqModal } from '../components/ImportMasterBoqModal';
 import { AutoPricingModal } from '../components/AutoPricingModal';
 import { ClientQuotationModal } from '../components/ClientQuotationModal';
@@ -37,6 +38,23 @@ interface TenderItem {
   drawingCount?: number;
 }
 
+const formatUnitLabel = (unit?: string, compCode?: string): string => {
+  const u = (unit || '').toLowerCase().trim();
+  if (u === 'm2' || u === 'sqm') return 'م²';
+  if (u === 'm3' || u === 'cbm') return 'م³';
+  if (u === 'm' || u === 'lm') return 'م.ط';
+  if (u === 'ton') return 'طن';
+  if (u === 'kg') return 'كجم';
+  if (u === 'item' || u === 'pcs' || u === 'piece') {
+    if (compCode && (compCode.includes('BRK') || compCode.includes('BLK') || compCode.includes('طوب'))) return 'طوبة';
+    return 'عدد';
+  }
+  if (u === 'ls') return 'مقطوعية';
+  if (u === 'point') return 'نقطة';
+  if (u === 'set') return 'طقم';
+  return unit || '';
+};
+
 export function ContractingTenderPage() {
   const navigate = useNavigate();
   const { formatCurrency } = useSystemCurrency();
@@ -57,6 +75,7 @@ export function ContractingTenderPage() {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
 
   // Sub-modals & CAD Form State
+  const [isImportBoqOpen, setIsImportBoqOpen] = useState(false);
   const [isImportMasterOpen, setIsImportMasterOpen] = useState(false);
   const [isAutoPricingOpen, setIsAutoPricingOpen] = useState(false);
   const [isQuotationOpen, setIsQuotationOpen] = useState(false);
@@ -253,6 +272,35 @@ export function ContractingTenderPage() {
     setItems((prev) => [newItem, ...prev]);
     setIsCadTakeoffFormOpen(false);
     toast.success(`تم استنتاج الكمية وحصر ${netQty} ${constant.unit} وتفكيك الكود بالمقاس المحدد`);
+  };
+
+  const handleAddComponent = (itemId: string) => {
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.id !== itemId) return it;
+        const newComp: TenderItemComponent = {
+          componentCode: `RES-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+          componentName: 'خامة / مورد إضافي',
+          unit: it.unit || 'm2',
+          qtyPerUnit: 1,
+          unitRate: 0,
+          componentType: 'material',
+        };
+        return { ...it, components: [...(it.components || []), newComp] };
+      })
+    );
+  };
+
+  const handleRemoveComponent = (itemId: string, compIdx: number) => {
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.id !== itemId) return it;
+        return {
+          ...it,
+          components: it.components.filter((_, idx) => idx !== compIdx),
+        };
+      })
+    );
   };
 
   // Calculations per item
@@ -586,6 +634,29 @@ export function ContractingTenderPage() {
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
             type="button"
+            onClick={() => setIsImportBoqOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 16px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#f8fafc',
+              color: '#170e5e',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.FileSpreadsheet size={15} />
+            <span>استيراد مقايسة Excel (BOQ)</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setIsImportMasterOpen(true)}
             style={{
               height: '36px',
@@ -765,9 +836,60 @@ export function ContractingTenderPage() {
       {/* 4. Table of Tender Items */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
         {items.length === 0 ? (
-          <div style={{ padding: '48px 20px', textAlign: 'center', color: '#64748b' }}>
-            <div style={{ fontSize: '14px', fontWeight: 600 }}>لم يتم إضافة أي بنود لدراسة هذا العطاء بعد.</div>
-            <div style={{ fontSize: '12.5px', marginTop: '6px' }}>اضغط على «سحب من المقايسة المرجعية» أو «حصر سريع من الرسومات» لبدء التسعير فوراً.</div>
+          <div style={{ padding: '44px 20px', textAlign: 'center', color: '#64748b' }}>
+            <div style={{ color: '#94a3b8', marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>
+              <AppIcons.FileSpreadsheet size={42} />
+            </div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>لم يتم إضافة أي بنود لدراسة هذا العطاء بعد</div>
+            <div style={{ fontSize: '13px', marginTop: '6px', color: '#64748b', maxWidth: '500px', marginInline: 'auto' }}>
+              ارفع شيت مقايسة العطاء المسلّم من المالك (Excel)، أو اسحب بنوداً نمطية من المقايسة المرجعية، أو ابدأ بحصر سريع من اللوحات الهندسية.
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setIsImportBoqOpen(true)}
+                style={{
+                  height: '36px',
+                  padding: '0 18px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  boxShadow: '0 1px 3px rgba(23, 14, 94, 0.15)',
+                }}
+              >
+                <AppIcons.FileSpreadsheet size={15} />
+                <span>استيراد مقايسة العطاء من Excel (BOQ)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsImportMasterOpen(true)}
+                style={{
+                  height: '36px',
+                  padding: '0 16px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                }}
+              >
+                <AppIcons.Layers size={15} />
+                <span>سحب من المقايسة المرجعية</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -796,7 +918,7 @@ export function ContractingTenderPage() {
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '10px 14px', fontWeight: 700, color: '#170e5e' }}>{item.itemCode}</td>
                         <td style={{ padding: '10px 14px', maxWidth: '320px', color: '#1e293b' }}>{item.description}</td>
-                        <td style={{ padding: '10px 14px', color: '#64748b' }}>{item.unit}</td>
+                        <td style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>{formatUnitLabel(item.unit)}</td>
                         <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>
                           <input
                             type="number"
@@ -810,7 +932,33 @@ export function ContractingTenderPage() {
                           />
                         </td>
                         <td style={{ padding: '10px 14px', color: '#64748b' }}>{formatCurrency(rates.directCost)}</td>
-                        <td style={{ padding: '10px 14px', color: '#15803d', fontWeight: 600 }}>{item.profitMarkupPercent}%</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={item.profitMarkupPercent}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, profitMarkupPercent: val } : it)));
+                              }}
+                              style={{
+                                width: '50px',
+                                height: '28px',
+                                padding: '0 4px',
+                                textAlign: 'center',
+                                borderRadius: '6px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '12.5px',
+                                fontWeight: 700,
+                                color: '#15803d',
+                                background: '#ffffff',
+                              }}
+                            />
+                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>%</span>
+                          </div>
+                        </td>
                         <td style={{ padding: '10px 14px', fontWeight: 800, color: '#170e5e' }}>{formatCurrency(rates.sellingUnitPrice)}</td>
                         <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0f172a' }}>{formatCurrency(rates.totalItemValue)}</td>
                         <td style={{ padding: '10px 14px', textAlign: 'center' }}>
@@ -846,18 +994,202 @@ export function ContractingTenderPage() {
                       {/* Expandable BOM Exploder */}
                       {isExpanded && (
                         <tr>
-                          <td colSpan={10} style={{ padding: '14px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                            <div style={{ fontWeight: 700, fontSize: '12.5px', color: '#170e5e', marginBottom: '8px' }}>
-                              تفكيك الكود الهندسي والموارد المباشرة لبند: [{item.itemCode}] {item.description}
+                          <td colSpan={10} style={{ padding: '14px 20px', background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                              <div style={{ fontWeight: 700, fontSize: '13px', color: '#170e5e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <AppIcons.Sliders size={16} />
+                                <span>تفكيك الكود الهندسي وتخصيص استهلاك وأسعار الموارد: [{item.itemCode}] {item.description}</span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', color: '#334155' }}>
+                                  كمية البند: <strong style={{ color: '#0f172a' }}>{item.estimatedQty.toLocaleString()} {formatUnitLabel(item.unit)}</strong>
+                                </div>
+                                <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', color: '#334155' }}>
+                                  التكلفة المباشرة للوحدة: <strong style={{ color: '#170e5e', fontWeight: 800 }}>{formatCurrency(rates.directCost)}</strong>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddComponent(item.id)}
+                                  style={{
+                                    height: '28px',
+                                    padding: '0 12px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #170e5e',
+                                    background: '#eef2ff',
+                                    color: '#170e5e',
+                                    fontSize: '11.5px',
+                                    fontWeight: 700,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                >
+                                  <AppIcons.Plus size={13} />
+                                  <span>إضافة خامة / مورد</span>
+                                </button>
+                              </div>
                             </div>
+
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
                               {item.components.map((comp, cIdx) => (
-                                <div key={cIdx} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-                                  <div style={{ fontWeight: 700, fontSize: '12px', color: '#0f172a' }}>{comp.componentName}</div>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '11.5px', color: '#64748b' }}>
-                                    <span>المعدل: {comp.qtyPerUnit} {comp.unit}</span>
-                                    <span>سعر الوحدة: {comp.unitRate} ج.م</span>
-                                    <span style={{ fontWeight: 700, color: '#170e5e' }}>{(comp.qtyPerUnit * comp.unitRate).toFixed(2)} ج.م</span>
+                                <div
+                                  key={cIdx}
+                                  style={{
+                                    background: '#ffffff',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '8px',
+                                    padding: '10px 12px',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                                    <input
+                                      type="text"
+                                      value={comp.componentName}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setItems((prev) =>
+                                          prev.map((it) => {
+                                            if (it.id !== item.id) return it;
+                                            const newComps = it.components.map((c, idx) =>
+                                              idx === cIdx ? { ...c, componentName: val } : c
+                                            );
+                                            return { ...it, components: newComps };
+                                          })
+                                        );
+                                      }}
+                                      style={{
+                                        flex: 1,
+                                        fontSize: '12px',
+                                        fontWeight: 700,
+                                        color: '#0f172a',
+                                        border: '1px solid transparent',
+                                        borderRadius: '4px',
+                                        padding: '2px 4px',
+                                        background: 'transparent',
+                                      }}
+                                      onFocus={(e) => (e.target.style.border = '1px solid #94a3b8')}
+                                      onBlur={(e) => (e.target.style.border = '1px solid transparent')}
+                                    />
+                                    <button
+                                      type="button"
+                                      title="حذف هذا المورد من البند"
+                                      onClick={() => handleRemoveComponent(item.id, cIdx)}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#94a3b8',
+                                        cursor: 'pointer',
+                                        padding: '2px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        borderRadius: '4px',
+                                      }}
+                                      onMouseEnter={(e) => (e.currentTarget.style.color = '#dc2626')}
+                                      onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+                                    >
+                                      <AppIcons.Trash2 size={13} />
+                                    </button>
+                                  </div>
+
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
+                                    <div>
+                                      <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 600, marginBottom: '3px' }}>
+                                        المعدل/{formatUnitLabel(item.unit)}:
+                                      </label>
+                                      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                                        <input
+                                          type="number"
+                                          step="any"
+                                          min="0"
+                                          value={comp.qtyPerUnit}
+                                          onChange={(e) => {
+                                            const val = Number(e.target.value);
+                                            setItems((prev) =>
+                                              prev.map((it) => {
+                                                if (it.id !== item.id) return it;
+                                                const newComps = it.components.map((c, idx) =>
+                                                  idx === cIdx ? { ...c, qtyPerUnit: val } : c
+                                                );
+                                                return { ...it, components: newComps };
+                                              })
+                                            );
+                                          }}
+                                          style={{
+                                            width: '100%',
+                                            height: '28px',
+                                            padding: '0 6px',
+                                            border: 'none',
+                                            textAlign: 'center',
+                                            fontSize: '12px',
+                                            fontWeight: 700,
+                                            color: '#170e5e',
+                                            outline: 'none',
+                                            background: 'transparent',
+                                          }}
+                                        />
+                                        <span style={{ fontSize: '10.5px', color: '#475569', background: '#f1f5f9', padding: '0 7px', height: '28px', display: 'flex', alignItems: 'center', borderInlineStart: '1px solid #e2e8f0', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                                          {formatUnitLabel(comp.unit, comp.componentCode)}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div>
+                                      <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 600, marginBottom: '3px' }}>
+                                        سعر الوحدة:
+                                      </label>
+                                      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                                        <input
+                                          type="number"
+                                          step="any"
+                                          min="0"
+                                          value={comp.unitRate}
+                                          onChange={(e) => {
+                                            const val = Number(e.target.value);
+                                            setItems((prev) =>
+                                              prev.map((it) => {
+                                                if (it.id !== item.id) return it;
+                                                const newComps = it.components.map((c, idx) =>
+                                                  idx === cIdx ? { ...c, unitRate: val } : c
+                                                );
+                                                return { ...it, components: newComps };
+                                              })
+                                            );
+                                          }}
+                                          style={{
+                                            width: '100%',
+                                            height: '28px',
+                                            padding: '0 6px',
+                                            border: 'none',
+                                            textAlign: 'center',
+                                            fontSize: '12px',
+                                            fontWeight: 700,
+                                            color: '#15803d',
+                                            outline: 'none',
+                                            background: 'transparent',
+                                          }}
+                                        />
+                                        <span style={{ fontSize: '10.5px', color: '#475569', background: '#f1f5f9', padding: '0 7px', height: '28px', display: 'flex', alignItems: 'center', borderInlineStart: '1px solid #e2e8f0', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                                          ج.م
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', paddingTop: '6px', borderTop: '1px solid #f1f5f9', fontSize: '11px', color: '#64748b' }}>
+                                    <span>إجمالي احتياج المشروع (شامل الهالك):</span>
+                                    <strong style={{ color: '#0f172a', direction: 'ltr', display: 'inline-block' }}>
+                                      {(comp.qtyPerUnit * item.estimatedQty * (1 + (item.wastePercent || 0) / 100)).toLocaleString(undefined, { maximumFractionDigits: 1 })} {formatUnitLabel(comp.unit, comp.componentCode)}
+                                    </strong>
+                                  </div>
+
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px', fontSize: '11px', color: '#64748b' }}>
+                                    <span>حصة {formatUnitLabel(item.unit)} من التكلفة المباشرة:</span>
+                                    <strong style={{ color: '#170e5e', fontWeight: 800 }}>
+                                      {formatCurrency(comp.qtyPerUnit * comp.unitRate)}
+                                    </strong>
                                   </div>
                                 </div>
                               ))}
@@ -961,6 +1293,60 @@ export function ContractingTenderPage() {
       </div>
 
       {/* Sub-modals */}
+      {isImportBoqOpen && (
+        <ImportBoqModal
+          open={isImportBoqOpen}
+          projectName={projectName}
+          onClose={() => setIsImportBoqOpen(false)}
+          onImportItems={(parsedRows) => {
+            const newTenderItems: TenderItem[] = parsedRows.map((r, idx) => {
+              const fallbackCode = `BOQ-${String(items.length + idx + 1).padStart(3, '0')}`;
+              const itemCode = r.itemCode && r.itemCode.trim() ? r.itemCode.trim() : fallbackCode;
+              const unit = r.unit || 'm3';
+              const estimatedQty = r.contractQty > 0 ? r.contractQty : 1;
+              const unitCost = r.estimatedUnitCost > 0
+                ? r.estimatedUnitCost
+                : (r.unitPrice > 0 ? Math.round((r.unitPrice / (1 + (globalProfitMargin + globalOverhead + globalWaste) / 100)) * 100) / 100 : 0);
+
+              return {
+                id: `TND-${Math.random().toString(36).slice(2, 9)}`,
+                itemCode,
+                description: r.description,
+                unit,
+                estimatedQty,
+                trade: r.category || 'general',
+                components: [
+                  {
+                    componentCode: `MAT-${itemCode}`,
+                    componentName: `خامات وتوريدات: ${r.description.slice(0, 35)}`,
+                    unit,
+                    qtyPerUnit: 1,
+                    unitRate: Math.round(unitCost * 0.7 * 100) / 100,
+                    componentType: 'material',
+                  },
+                  {
+                    componentCode: `LAB-${itemCode}`,
+                    componentName: `مصنعيات وتنفيذ: ${r.description.slice(0, 35)}`,
+                    unit,
+                    qtyPerUnit: 1,
+                    unitRate: Math.round(unitCost * 0.3 * 100) / 100,
+                    componentType: 'labor',
+                  },
+                ],
+                wastePercent: globalWaste,
+                overheadPercent: globalOverhead,
+                profitMarkupPercent: globalProfitMargin,
+                notes: r.notes,
+              };
+            });
+
+            setItems((prev) => [...prev, ...newTenderItems]);
+            setIsImportBoqOpen(false);
+            toast.success(`تم استيراد ${newTenderItems.length} بند من ملف المقايسة بنجاح`);
+          }}
+        />
+      )}
+
       {isImportMasterOpen && (
         <ImportMasterBoqModal
           open={isImportMasterOpen}

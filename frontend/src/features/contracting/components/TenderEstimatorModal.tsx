@@ -5,6 +5,7 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { contractingApi } from '../api/contracting.api';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
+import { ImportBoqModal } from './ImportBoqModal';
 import { ImportMasterBoqModal } from './ImportMasterBoqModal';
 
 interface TenderItemComponent {
@@ -197,6 +198,7 @@ export function TenderEstimatorModal({
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
 
   // Sub-modals & CAD Form State
+  const [isImportBoqOpen, setIsImportBoqOpen] = useState(false);
   const [isImportMasterOpen, setIsImportMasterOpen] = useState(false);
   const [isCadTakeoffFormOpen, setIsCadTakeoffFormOpen] = useState(false);
   const [cadItemCode, setCadItemCode] = useState('BRK-RED-12');
@@ -787,6 +789,28 @@ export function TenderEstimatorModal({
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
               type="button"
+              onClick={() => setIsImportBoqOpen(true)}
+              style={{
+                height: '32px',
+                padding: '0 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                background: '#f8fafc',
+                color: '#170e5e',
+                fontSize: 'var(--font-subtitle)',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+              }}
+            >
+              <AppIcons.FileSpreadsheet size={14} />
+              <span>استيراد مقايسة Excel (BOQ)</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setIsImportMasterOpen(true)}
               style={{
                 height: '32px',
@@ -1000,7 +1024,7 @@ export function TenderEstimatorModal({
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {items.length === 0 ? (
             <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-              لا توجد بنود مضافة للعطاء حتى الآن. انقر على <strong>سحب من المقايسة المرجعية</strong> أو <strong>حصر سريع من الرسومات</strong> لبدء التسعير والتفكيك الهندسي.
+              لا توجد بنود مضافة للعطاء حتى الآن. انقر على <strong>استيراد مقايسة Excel</strong> أو <strong>سحب من المقايسة المرجعية</strong> أو <strong>حصر سريع من الرسومات</strong> لبدء التسعير والتفكيك الهندسي.
             </div>
           ) : (
             <div
@@ -1269,6 +1293,61 @@ export function TenderEstimatorModal({
           </div>
         )}
       </div>
+
+      {/* نافذة استيراد مقايسة العطاء من Excel */}
+      {isImportBoqOpen && (
+        <ImportBoqModal
+          open={isImportBoqOpen}
+          projectName={projectName}
+          onClose={() => setIsImportBoqOpen(false)}
+          onImportItems={(parsedRows) => {
+            const newTenderItems: TenderItem[] = parsedRows.map((r, idx) => {
+              const fallbackCode = `BOQ-${String(items.length + idx + 1).padStart(3, '0')}`;
+              const itemCode = r.itemCode && r.itemCode.trim() ? r.itemCode.trim() : fallbackCode;
+              const unit = r.unit || 'm3';
+              const estimatedQty = r.contractQty > 0 ? r.contractQty : 1;
+              const unitCost = r.estimatedUnitCost > 0
+                ? r.estimatedUnitCost
+                : (r.unitPrice > 0 ? Math.round((r.unitPrice / (1 + (globalProfitMargin + globalOverhead + globalWaste) / 100)) * 100) / 100 : 0);
+
+              return {
+                id: `TND-${Math.random().toString(36).slice(2, 9)}`,
+                itemCode,
+                description: r.description,
+                unit,
+                estimatedQty,
+                trade: r.category || 'general',
+                components: [
+                  {
+                    componentCode: `MAT-${itemCode}`,
+                    componentName: `خامات ومواد: ${r.description.slice(0, 35)}`,
+                    unit,
+                    qtyPerUnit: 1,
+                    unitRate: Math.round(unitCost * 0.7 * 100) / 100,
+                    componentType: 'material',
+                  },
+                  {
+                    componentCode: `LAB-${itemCode}`,
+                    componentName: `مصنعية وتنفيذ: ${r.description.slice(0, 35)}`,
+                    unit,
+                    qtyPerUnit: 1,
+                    unitRate: Math.round(unitCost * 0.3 * 100) / 100,
+                    componentType: 'labor',
+                  },
+                ],
+                wastePercent: globalWaste,
+                overheadPercent: globalOverhead,
+                profitMarkupPercent: globalProfitMargin,
+                notes: r.notes,
+              };
+            });
+
+            setItems((prev) => [...prev, ...newTenderItems]);
+            setIsImportBoqOpen(false);
+            toast.success(`تم استيراد ${newTenderItems.length} بند من ملف المقايسة بنجاح`);
+          }}
+        />
+      )}
 
       {/* نافذة سحب بنود المقايسة المرجعية */}
       {isImportMasterOpen && (

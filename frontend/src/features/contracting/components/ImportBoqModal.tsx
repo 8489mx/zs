@@ -13,11 +13,12 @@ import {
 
 interface ImportBoqModalProps {
   open: boolean;
-  projectId: string;
+  projectId?: string;
   projectName?: string;
   onClose: () => void;
   onImported?: () => void;
   onSuccess?: () => void;
+  onImportItems?: (items: ParsedBoqItemResult[]) => void;
 }
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -48,6 +49,7 @@ export function ImportBoqModal({
   onClose,
   onImported,
   onSuccess,
+  onImportItems,
 }: ImportBoqModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string>('');
@@ -311,6 +313,18 @@ export function ImportBoqModal({
     setGeneralError(null);
 
     try {
+      if (onImportItems) {
+        onImportItems(validRows);
+        (onImported || onSuccess)?.();
+        onClose();
+        return;
+      }
+
+      if (!projectId) {
+        setGeneralError('معرف المشروع غير محدد');
+        return;
+      }
+
       const itemsToCreate = validRows.map((r) => ({
         itemCode: r.itemCode,
         description: r.description,
@@ -336,7 +350,7 @@ export function ImportBoqModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="استيراد جدول الكميات والمقايسة من ملف Excel"
+      title={onImportItems ? 'استيراد مقايسة العطاء من ملف Excel (BOQ)' : 'استيراد جدول الكميات والمقايسة من ملف Excel'}
       subtitle={projectName ? `المشروع: ${projectName}` : 'التعرف الذكي التلقائي على الأعمدة والوحدات باللغتين العربية والإنجليزية'}
       width="min(1280px, 98vw)"
       minHeight="min(600px, 85vh)"
@@ -344,7 +358,7 @@ export function ImportBoqModal({
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={handleImport}
-          submitText={isSubmitting ? 'جاري الاستيراد...' : `تأكيد استيراد (${validRows.length}) بند إلى المقايسة`}
+          submitText={isSubmitting ? 'جاري الاستيراد...' : onImportItems ? `تأكيد إدراج (${validRows.length}) بند في دراسة العطاء` : `تأكيد استيراد (${validRows.length}) بند إلى المقايسة`}
           cancelText="إلغاء"
           submitDisabled={isSubmitting || validRows.length === 0}
         />

@@ -4511,6 +4511,8 @@
          * مقاس مخصص يدوي (Custom Dimensions): إدخال الطول، العرض، الارتفاع، وسماكة عرموس المونة لحساب عدد الطوب واستهلاك الرمل والأسمنت آلياً وفق المعادلة الهندسية.
     5. **ملخص خطة التوريدات والمشتريات الشامل للعطاء (Consolidated Pre-Procurement MRP):** تجميع فوري لإجمالي كافة المواد والموارد المطلوبة للمشروع بالكامل مع إجمالي التكلفة وقيمة العطاء وصافي الربح ونسبته.
     6. **الاعتماد والترسية الفورية بنقرة زر واحدة (One-Click Award):** إنشاء المشروع التعاقدي، زرع بنود المقايسة، وتوليد شيتات الحصر وخطة الاحتياجات تلقائياً.
+  - `frontend/src/features/contracting/pages/ContractingTenderPage.tsx` & `frontend/src/features/contracting/components/ImportBoqModal.tsx`:
+    - **محرك استيراد مقايسة العطاء من Excel (BOQ Import):** إضافة زر مباشر لاستيراد مقايسة العطاء غير المسعرة المسلّمة من المالك أو الاستشاري، والتعرف التلقائي على الأعمدة والكميات والوحدات وتفريغها في جدول التسعير والتفكيك الهندسي فوراً، ودعم النمط المزدوج لمودال الاستيراد الموحد (In-Memory لدراسة العطاء، وBatch DB للمشروع التعاقدي).
   - `frontend/src/features/contracting/pages/ContractingLayout.tsx`:
     - زر «دراسة وتسعير عطاء جديد» في هيدر الموديول الموحد.
   - `frontend/src/features/contracting/components/ContractingProjectsTab.tsx`:
