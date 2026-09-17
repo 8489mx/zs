@@ -145,6 +145,18 @@ const baseSettingsMutationValues = {
   posTerminalIp: '192.168.1.150',
   posTerminalPort: 8080,
   restaurantTablesCount: 12,
+  contractingRetentionPercent: 5,
+  contractingAdvanceRecoveryMode: 'proportional' as const,
+  contractingDefaultProfitMargin: 15,
+  contractingDefaultOverhead: 7,
+  contractingDefaultWaste: 5,
+  contractingRequireBoqLinkForIssue: false,
+  maritimeDemurrageFreeDays: 14,
+  maritimeDefaultCurrency: 'USD' as const,
+  importLandedCostMethod: 'by_value' as const,
+  importAutoLinkBankExpenses: 'auto_link' as const,
+  servicesBillingMethod: 'deliverable' as const,
+  servicesContractRenewalNoticeDays: 30,
 };
 
 describe('useSettingsUpdateMutation setup flow', () => {

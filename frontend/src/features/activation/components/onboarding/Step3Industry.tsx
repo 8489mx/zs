@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BuildingIcon,
   ShipIcon,
@@ -8,6 +8,9 @@ import {
   ReceiptIcon,
   LayersIcon,
   ToolIcon,
+  TagIcon,
+  TruckIcon,
+  GlobeIcon,
   CheckCircleIcon,
 } from '@/shared/components/icons/AppIcons';
 
@@ -19,7 +22,15 @@ interface Step3Props {
 }
 
 type PillarKey = 'contracting' | 'maritime_freight' | 'manufacturing' | 'commerce';
-type CommerceSubVertical = 'retail_general' | 'pharmacy' | 'restaurant' | 'manufacturing' | 'maintenance';
+type CommerceSubVertical =
+  | 'retail_general'
+  | 'pharmacy'
+  | 'restaurant'
+  | 'clothing'
+  | 'auto_parts'
+  | 'maintenance'
+  | 'manufacturing'
+  | 'import_export';
 
 interface PillarConfig {
   key: PillarKey;
@@ -29,49 +40,44 @@ interface PillarConfig {
   icon: typeof BuildingIcon;
   color: string;
   accentBg: string;
-  featuresSummary: string;
 }
 
 const PILLARS: PillarConfig[] = [
   {
     key: 'contracting',
-    labelAr: 'قطاع المقاولات وإدارة المشاريع',
-    badge: 'جناح مؤسسي شامل',
-    descriptionAr: 'إدارة متكاملة للمشاريع والمقايسات (BOQ)، الأوامر التغييرية، المستخلصات (IPC)، عقود مقاولي الباطن، المشتريات ومخازن الموقع.',
+    labelAr: 'المقاولات وإدارة المشاريع',
+    badge: 'جناح هندسي متكامل',
+    descriptionAr: 'المقايسات BOQ، المستخلصات، مقاولو الباطن، ومخازن ومشتريات الموقع.',
     icon: BuildingIcon,
     color: '#0284c7',
     accentBg: '#f0f9ff',
-    featuresSummary: 'المشاريع • المقايسات • المستخلصات • مقاولو الباطن • المشتريات • الحسابات والأصول',
   },
   {
     key: 'maritime_freight',
-    labelAr: 'قطاع الشحن البحري واللوجستيات',
-    badge: 'جناح مؤسسي شامل',
-    descriptionAr: 'منظومة الخطوط الملاحية، الموانئ، مقارنة أسعار النولون (RFQ)، عروض العملاء، أوامر التشغيل، وتتبع الحاويات وفترات السماح.',
+    labelAr: 'الشحن البحري واللوجستيات',
+    badge: 'وكلاء وخطوط ملاحية',
+    descriptionAr: 'الخطوط الملاحية، عروض النولون، أوامر التشغيل، وتتبع الحاويات وفترات السماح.',
     icon: ShipIcon,
     color: '#0d9488',
     accentBg: '#f0fdfa',
-    featuresSummary: 'الخطوط والموانئ • تسعير النولون • أوامر التشغيل • الحاويات والغرامات • الشجرة المحاسبية',
   },
   {
     key: 'manufacturing',
-    labelAr: 'قطاع التصنيع والإنتاج الصناعي',
-    badge: 'جناح مؤسسي شامل',
-    descriptionAr: 'منظومة المصانع وإدارة خطوط الإنتاج، أوامر الشغل، قوائم المكونات (BOM)، تكاليف الإنتاج ومخازن المواد الخام والمنتج التام.',
+    labelAr: 'التصنيع والإنتاج الصناعي',
+    badge: 'مصانع وخطوط إنتاج',
+    descriptionAr: 'أوامر الشغل، شجرة المنتج BOM، تكاليف الإنتاج، ومخازن الخامات والتام.',
     icon: LayersIcon,
     color: '#4338ca',
     accentBg: '#e0e7ff',
-    featuresSummary: 'أوامر الإنتاج • قوائم المكونات BOM • مخازن المواد الخام • مراكز التكلفة • مشتريات التوريد • CRM',
   },
   {
     key: 'commerce',
-    labelAr: 'قطاع التجارة وإدارة الأعمال',
-    badge: 'نقاط البيع والمخازن',
-    descriptionAr: 'منظومة التجارة المتكاملة لنقاط البيع السريعة، المخازن والمستودعات، المشتريات والموردين، مع تخصيصات فرعية دقيقة للنشاط.',
+    labelAr: 'التجارة والأنشطة العامة',
+    badge: 'نقاط بيع ومستودعات',
+    descriptionAr: 'كاشير سريع، مستودعات وباركود، مشتريات وفواتير، مع تخصيصات فرعية لنشاطك.',
     icon: ShoppingBagIcon,
     color: '#170e5e',
     accentBg: '#eef2ff',
-    featuresSummary: 'نقاط البيع • المخازن والباركود • المشتريات • الحسابات • الفاتورة الإلكترونية',
   },
 ];
 
@@ -87,37 +93,58 @@ const COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
   {
     key: 'retail_general',
     labelAr: 'التجزئة والتجارة العامة والسوبرماركت',
-    tag: 'عام وافتراضي',
-    descriptionAr: 'محلات التجزئة، الجملة، السوبرماركت، والأنشطة التجارية المتنوعة بمخزون وباركود قياسي.',
+    tag: 'كاشير ومخازن قياسية',
+    descriptionAr: 'محلات التجزئة، الجملة، والسوبرماركت بمخزون وباركود وجرد فوري.',
     icon: PackageIcon,
   },
   {
     key: 'pharmacy',
     labelAr: 'الصيدليات والمستلزمات الطبية',
-    tag: 'FEFO الرقابي',
-    descriptionAr: 'تتبع التشغيلات وتواريخ انتهاء الصلاحية، دليل الأدوية والبدائل، الروشتات، وكشكول النواقص.',
+    tag: 'FEFO وتواريخ الصلاحية',
+    descriptionAr: 'محرك أرقام التشغيلات، تواريخ الصلاحية، بدائل الأدوية، والروشتات.',
     icon: ShieldCheckIcon,
   },
   {
     key: 'restaurant',
     labelAr: 'المطاعم والكافيهات والأغذية',
-    tag: 'KDS والمطبخ',
-    descriptionAr: 'شاشة المطبخ KDS، الطاولات والصالات، خيارات وإضافات الأصناف، والطلبات السريعة.',
+    tag: 'KDS وشاشات المطبخ',
+    descriptionAr: 'شاشات المطبخ الذكية، الصالات والطاولات، وإضافات الوجبات السريعة.',
     icon: ReceiptIcon,
   },
   {
-    key: 'manufacturing',
-    labelAr: 'التصنيع وخطوط الإنتاج الخفيف والورش',
-    tag: 'BOM وشجرة المنتج',
-    descriptionAr: 'قوائم مكونات الإنتاج (BOM)، أوامر التشغيل، استهلاك المواد الخام، وحساب التكلفة الصناعية.',
-    icon: LayersIcon,
+    key: 'clothing',
+    labelAr: 'الملابس والأزياء والأحذية',
+    tag: 'الألوان والمقاسات Variants',
+    descriptionAr: 'مصفوفة المقاسات والألوان، باركود الأزياء، وتصنيفات الموديلات.',
+    icon: TagIcon,
+  },
+  {
+    key: 'auto_parts',
+    labelAr: 'قطع غيار السيارات والآليات',
+    tag: 'أرقام القطع الأصلية OEM',
+    descriptionAr: 'دليل أرقام القطع OEM، توافق الموديلات والماركات، وسنوات الصنع.',
+    icon: TruckIcon,
   },
   {
     key: 'maintenance',
     labelAr: 'مراكز الصيانة وخدمة الأجهزة',
-    tag: 'كروت الصيانة و IMEI',
-    descriptionAr: 'استلام الأجهزة، كروت الصيانة والضمان، تتبع أرقام السيريال IMEI، وفحص واستبدال المستعمل.',
+    tag: 'سيريال IMEI والضمان',
+    descriptionAr: 'كروت استلام وفحص الأجهزة، تتبع السيريال IMEI، وفحص المستعمل.',
     icon: ToolIcon,
+  },
+  {
+    key: 'manufacturing',
+    labelAr: 'التصنيع الخفيف والورش والمعامل',
+    tag: 'شجرة المنتج BOM',
+    descriptionAr: 'قوائم المكونات BOM، خطوط التشغيل، واستهلاك المواد الخام والتكلفة.',
+    icon: LayersIcon,
+  },
+  {
+    key: 'import_export',
+    labelAr: 'الاستيراد والتجارة الدولية والتوزيع',
+    tag: 'شحنات وحاويات جمركية',
+    descriptionAr: 'متابعة الشحنات الجمركية، حسابات الموردين الدوليين، وتكاليف الرسائل.',
+    icon: GlobeIcon,
   },
 ];
 
@@ -140,6 +167,12 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
       ? 'pharmacy'
       : currentVal === 'restaurant'
       ? 'restaurant'
+      : currentVal === 'clothing' || currentVal === 'fashion'
+      ? 'clothing'
+      : currentVal === 'auto_parts'
+      ? 'auto_parts'
+      : currentVal === 'import_export' || currentVal === 'import'
+      ? 'import_export'
       : currentVal === 'manufacturing'
       ? 'manufacturing'
       : currentVal === 'maintenance' || currentVal === 'electronics'
@@ -147,6 +180,12 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
       : 'retail_general';
 
   const [selectedSubVertical, setSelectedSubVertical] = useState<CommerceSubVertical>(initialSubVertical);
+
+  useEffect(() => {
+    if (!extraData.industry || extraData.industry === 'retail') {
+      updateExtra('industry', 'retail_general');
+    }
+  }, []);
 
   const handlePillarChange = (pillar: PillarKey) => {
     setSelectedPillar(pillar);
@@ -169,12 +208,12 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
 
   return (
     <div className="wizard-step-content" dir="rtl">
-      <div className="wizard-header" style={{ marginBottom: '18px' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
+      <div className="wizard-header" style={{ marginBottom: '14px', textAlign: 'right' }}>
+        <h2 style={{ fontSize: '1.18rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
           اختر قطاع وطبيعة نشاط المنشأة
         </h2>
-        <p style={{ fontSize: '0.84rem', color: '#64748b', margin: 0 }}>
-          يتم تجهيز المنظومة بكامل موديولاتها وشاشاتها الملائمة لنشاطك فورياً لضمان سلامة العمليات المحاسبية.
+        <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
+          يتم تجهيز المنظومة بكامل الموديولات والمحركات المحاسبية الملائمة لنشاطك فورياً.
         </p>
       </div>
 
@@ -183,16 +222,24 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
         .onboarding-pillars-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 12px;
-          margin-bottom: 16px;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .onboarding-sub-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
         }
         @media (max-width: 960px) {
           .onboarding-pillars-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
-        @media (max-width: 540px) {
+        @media (max-width: 640px) {
           .onboarding-pillars-grid {
+            grid-template-columns: 1fr;
+          }
+          .onboarding-sub-grid {
             grid-template-columns: 1fr;
           }
         }
@@ -207,79 +254,86 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
               key={pillar.key}
               onClick={() => handlePillarChange(pillar.key)}
               style={{
-                border: isPillarActive ? `2px solid ${pillar.color}` : '1px solid #e2e8f0',
+                border: isPillarActive ? `2px solid ${pillar.color}` : '1.5px solid #e2e8f0',
                 background: isPillarActive ? pillar.accentBg : '#ffffff',
-                borderRadius: '12px',
-                padding: '16px 18px',
+                borderRadius: '10px',
+                padding: '12px 14px',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '10px',
+                gap: '8px',
                 position: 'relative',
-                boxShadow: isPillarActive ? `0 4px 14px ${pillar.color}18` : '0 1px 3px rgba(0,0,0,0.02)',
+                boxShadow: isPillarActive ? `0 4px 12px ${pillar.color}20` : '0 1px 2px rgba(0,0,0,0.02)',
                 transition: 'all 0.15s ease',
               }}
             >
               {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   <div
                     style={{
-                      width: '38px',
-                      height: '38px',
+                      width: '34px',
+                      height: '34px',
                       borderRadius: '8px',
                       background: isPillarActive ? pillar.color : '#f1f5f9',
                       color: isPillarActive ? '#ffffff' : '#475569',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      flexShrink: 0,
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    <Icon size={20} />
+                    <Icon size={18} />
                   </div>
-                  <div>
-                    <strong style={{ fontSize: '0.94rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <strong
+                      style={{
+                        fontSize: '0.84rem',
+                        color: '#0f172a',
+                        fontWeight: 800,
+                        display: 'block',
+                        lineHeight: 1.25,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={pillar.labelAr}
+                    >
                       {pillar.labelAr}
                     </strong>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>
                       {pillar.badge}
                     </span>
                   </div>
                 </div>
 
-                {isPillarActive && (
-                  <div style={{ color: pillar.color }}>
-                    <CheckCircleIcon size={18} color={pillar.color} />
-                  </div>
-                )}
+                <div
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '50%',
+                    border: isPillarActive ? `5px solid ${pillar.color}` : '2px solid #cbd5e1',
+                    background: '#ffffff',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease',
+                  }}
+                />
               </div>
 
               {/* Description */}
               <p
                 style={{
-                  fontSize: '0.76rem',
+                  fontSize: '0.72rem',
                   color: '#475569',
-                  lineHeight: '1.45',
+                  lineHeight: '1.4',
                   margin: 0,
-                  textAlign: 'justify',
+                  textAlign: 'right',
+                  wordBreak: 'normal',
                 }}
               >
                 {pillar.descriptionAr}
               </p>
-
-              {/* Features hint */}
-              <div
-                style={{
-                  fontSize: '0.7rem',
-                  color: isPillarActive ? pillar.color : '#64748b',
-                  borderTop: '1px solid rgba(0,0,0,0.06)',
-                  paddingTop: '8px',
-                  fontWeight: 700,
-                }}
-              >
-                {pillar.featuresSummary}
-              </div>
             </div>
           );
         })}
@@ -290,28 +344,24 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
         <div
           style={{
             background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '12px',
-            padding: '14px 16px',
-            marginBottom: '16px',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '12px 14px',
+            marginBottom: '10px',
           }}
         >
-          <div style={{ marginBottom: '10px' }}>
-            <strong style={{ fontSize: '0.86rem', color: '#0f172a', fontWeight: 800 }}>
-              اختر تخصص نشاط التجارة الدقيق:
-            </strong>
-            <span style={{ fontSize: '0.74rem', color: '#64748b', marginRight: '8px' }}>
-              لتفعيل الخصائص الموجهة لنوعية بضاعتك
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+              <strong style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 800 }}>
+                تخصص نشاط التجارة والمخازن (8 قطاعات مدعومة):
+              </strong>
+              <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                تفعيل المحركات والخصائص التخصصية لنوعية بضاعتك
+              </span>
+            </div>
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '8px',
-            }}
-          >
+          <div className="onboarding-sub-grid">
             {COMMERCE_SUB_VERTICALS.map((sub) => {
               const isSubActive = selectedSubVertical === sub.key;
               const SubIcon = sub.icon;
@@ -322,9 +372,9 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
                   onClick={() => handleSubVerticalChange(sub.key)}
                   style={{
                     border: isSubActive ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
-                    background: isSubActive ? '#eef2ff' : '#f8fafc',
+                    background: isSubActive ? '#f0f4ff' : '#f8fafc',
                     borderRadius: '8px',
-                    padding: '10px 12px',
+                    padding: '8px 12px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -339,7 +389,7 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
                       borderRadius: '6px',
                       background: isSubActive ? '#170e5e' : '#ffffff',
                       color: isSubActive ? '#ffffff' : '#64748b',
-                      border: '1px solid #e2e8f0',
+                      border: isSubActive ? 'none' : '1px solid #e2e8f0',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -348,17 +398,64 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
                   >
                     <SubIcon size={16} />
                   </div>
+
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong style={{ fontSize: '0.8rem', color: isSubActive ? '#170e5e' : '#0f172a', fontWeight: 800 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                      <strong
+                        style={{
+                          fontSize: '0.78rem',
+                          color: isSubActive ? '#170e5e' : '#0f172a',
+                          fontWeight: 800,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
                         {sub.labelAr}
                       </strong>
-                      {isSubActive && <CheckCircleIcon size={13} color="#170e5e" />}
+                      <span
+                        style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          background: isSubActive ? '#170e5e' : '#e2e8f0',
+                          color: isSubActive ? '#ffffff' : '#475569',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {sub.tag}
+                      </span>
                     </div>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginTop: '1px' }}>
-                      {sub.tag}
-                    </span>
+
+                    <p
+                      style={{
+                        fontSize: '0.7rem',
+                        color: '#64748b',
+                        margin: '2px 0 0',
+                        lineHeight: 1.3,
+                        textAlign: 'right',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={sub.descriptionAr}
+                    >
+                      {sub.descriptionAr}
+                    </p>
                   </div>
+
+                  <div
+                    style={{
+                      width: '14px',
+                      height: '14px',
+                      borderRadius: '50%',
+                      border: isSubActive ? '4.5px solid #170e5e' : '1.5px solid #cbd5e1',
+                      background: '#ffffff',
+                      flexShrink: 0,
+                      transition: 'all 0.12s ease',
+                    }}
+                  />
                 </div>
               );
             })}
@@ -370,7 +467,8 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
       <div
         className="wizard-footer"
         style={{
-          marginTop: '16px',
+          marginTop: '8px',
+          paddingTop: '8px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -382,17 +480,18 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
           className="btn-wizard-back"
           onClick={onBack}
           style={{
-            padding: '10px 22px',
+            padding: '9px 20px',
             borderRadius: '8px',
             background: '#ffffff',
             border: '1px solid #cbd5e1',
             color: '#475569',
-            fontSize: '0.88rem',
+            fontSize: '0.84rem',
             fontWeight: 700,
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
+            transition: 'all 0.15s ease',
           }}
         >
           <span>&rarr;</span>
@@ -403,18 +502,23 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
           type="button"
           onClick={onNext}
           style={{
-            padding: '11px 30px',
+            padding: '10px 28px',
             borderRadius: '8px',
             background: '#170e5e',
             color: '#ffffff',
-            fontSize: '0.92rem',
+            fontSize: '0.88rem',
             fontWeight: 800,
             border: 'none',
             cursor: 'pointer',
             boxShadow: '0 2px 8px rgba(23, 14, 94, 0.25)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.15s ease',
           }}
         >
-          تأكيد واكتمال التهيئة
+          <span>تأكيد واكتمال التهيئة</span>
+          <CheckCircleIcon size={16} color="#ffffff" />
         </button>
       </div>
     </div>

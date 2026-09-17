@@ -124,18 +124,23 @@ export function PrintingSettingsTab({
   savedKitchenPrinter,
   posKitchenPrinterEnabled,
 }: PrintingTabProps) {
-  const industry = String(settings?.businessIndustry || form.watch('businessIndustry') || 'general').toLowerCase();
+  const rawActivity = String(form.watch('businessIndustry') || settings?.businessIndustry || (settings as any)?.activityType || 'general').trim().toLowerCase();
+  const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || Boolean(form.watch('contractingModuleEnabled'));
+  const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن' || Boolean(form.watch('maritimeFreightModuleEnabled'));
+  const isImportVertical = rawActivity === 'import_export' || Boolean(form.watch('importModuleEnabled'));
+  const isServicesVertical = rawActivity === 'services' || Boolean(form.watch('servicesModuleEnabled'));
+  const isManufacturingVertical = rawActivity === 'manufacturing' || Boolean(form.watch('manufacturingModuleEnabled'));
+  const isNonPosVertical = isContractingVertical || isMaritimeVertical || isServicesVertical || isImportVertical || isManufacturingVertical;
   const isPosModuleEnabled = Boolean(form.watch('posModuleEnabled') ?? settings?.posModuleEnabled ?? true);
-  const isNonPosVertical = ['contracting', 'maritime', 'services'].includes(industry) || (industry === 'import_export' && !isPosModuleEnabled);
   const showPosSettings = isPosModuleEnabled && !isNonPosVertical;
-  const isRestaurantVertical = ['restaurant', 'cafe'].includes(industry) || Boolean(form.watch('restaurantModuleEnabled'));
+  const isRestaurantVertical = ['restaurant', 'cafe'].includes(rawActivity) || Boolean(form.watch('restaurantModuleEnabled'));
 
   return (
     <div style={{ display: activeTab === 'printing' ? 'block' : 'none' }}>
       {/* ===== 1. إعدادات الإيصال ونمط الفاتورة العامة ===== */}
       <FormSection
-        title="إعدادات الإيصال ونمط الفاتورة العامة"
-        description="تحديد مقاس الورق وشكل الترقيم والتصميم والنصوص المطبوعة على الفاتورة."
+        title={isNonPosVertical ? "إعدادات نماذج المطبوعات والوثائق الرسمية" : "إعدادات الإيصال ونمط الفاتورة العامة"}
+        description={isNonPosVertical ? "تحديد مقاس الورق (A4 القياسي للمشاريع والوثائق)، نمط الترقيم وتذييل المطبوعات الرسمية." : "تحديد مقاس الورق وشكل الترقيم والتصميم والنصوص المطبوعة على الفاتورة."}
       >
         <div className="document-prototype-grid compact-grid-2">
           <div className="field">
@@ -143,10 +148,17 @@ export function PrintingSettingsTab({
             <CustomSelect
               value={form.watch('paperSize') || (isNonPosVertical ? 'a4' : 'receipt')}
               onChange={(val) => form.setValue('paperSize', val as any, { shouldDirty: true, shouldValidate: true })}
-              options={[
-                { value: 'receipt', label: 'إيصال حراري (Receipt 80mm)' },
-                { value: 'a4', label: 'ورق كبير قياسي (A4)' },
-              ]}
+              options={
+                isNonPosVertical
+                  ? [
+                      { value: 'a4', label: 'ورق قياسي للمشاريع والوثائق (A4)' },
+                      { value: 'receipt', label: 'إيصال حراري (Receipt 80mm)' },
+                    ]
+                  : [
+                      { value: 'receipt', label: 'إيصال حراري (Receipt 80mm)' },
+                      { value: 'a4', label: 'ورق كبير قياسي (A4)' },
+                    ]
+              }
               disabled={disabled}
             />
           </div>
@@ -311,27 +323,29 @@ export function PrintingSettingsTab({
 
           {/* العمود الثاني (يسار): الأصناف والعروض + الإجماليات + التذييل والنمط */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {/* 3. الأصناف وعروض التخفيض */}
-            <div style={groupCardStyle}>
-              <div style={groupHeaderStyle}>
-                <span style={groupHeaderBadgeStyle}>3</span>
-                <strong style={groupHeaderTitleStyle}>الأصناف وعروض التخفيض</strong>
+            {/* 3. الأصناف وعروض التخفيض (لنقاط البيع والتجزئة) */}
+            {showPosSettings && (
+              <div style={groupCardStyle}>
+                <div style={groupHeaderStyle}>
+                  <span style={groupHeaderBadgeStyle}>3</span>
+                  <strong style={groupHeaderTitleStyle}>الأصناف وعروض التخفيض</strong>
+                </div>
+                <div className="settings-print-options-grid" style={checkboxGridStyle}>
+                  <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
+                    <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemOffers')} disabled={disabled} />
+                    إظهار عروض الأصناف (عرض: X بدلاً من Y)
+                  </label>
+                  <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
+                    <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDiscountBreakdown')} disabled={disabled} />
+                    تفصيل سطور الخصومات في الإجماليات
+                  </label>
+                  <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
+                    <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowSavingsBanner')} disabled={disabled} />
+                    إظهار شريط إجمالي التوفير بالفاتورة
+                  </label>
+                </div>
               </div>
-              <div className="settings-print-options-grid" style={checkboxGridStyle}>
-                <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
-                  <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemOffers')} disabled={disabled} />
-                  إظهار عروض الأصناف (عرض: X بدلاً من Y)
-                </label>
-                <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
-                  <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDiscountBreakdown')} disabled={disabled} />
-                  تفصيل سطور الخصومات في الإجماليات
-                </label>
-                <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
-                  <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowSavingsBanner')} disabled={disabled} />
-                  إظهار شريط إجمالي التوفير بالفاتورة
-                </label>
-              </div>
-            </div>
+            )}
 
             {/* 4. الإجماليات والملخص */}
             <div style={groupCardStyle}>
@@ -410,10 +424,15 @@ export function PrintingSettingsTab({
 
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label>نوع شيت المطبخ المطلوب</label>
-              <select className="purchase-prototype-field-input" {...form.register('posKitchenPrinterMode')} disabled={disabled || !posKitchenPrinterEnabled}>
-                <option value="detailed">إيصال مطبخ مفصل (شامل قائمة الأصناف والإضافات)</option>
-                <option value="mini">إيصال مصغر لتوفير الورق (رقم الطلب فقط لمناداة العميل)</option>
-              </select>
+              <CustomSelect
+                value={form.watch('posKitchenPrinterMode') || 'detailed'}
+                onChange={(val) => form.setValue('posKitchenPrinterMode', val as any, { shouldDirty: true, shouldValidate: true })}
+                options={[
+                  { value: 'detailed', label: 'إيصال مطبخ مفصل (شامل قائمة الأصناف والإضافات)' },
+                  { value: 'mini', label: 'إيصال مصغر لتوفير الورق (رقم الطلب فقط لمناداة العميل)' },
+                ]}
+                disabled={disabled || !posKitchenPrinterEnabled}
+              />
             </div>
 
             {typeof window !== 'undefined' && (window as any).electronPrinter && (
@@ -424,28 +443,30 @@ export function PrintingSettingsTab({
               >
                 <div className="field">
                   <label>طابعة الكاشير المباشرة (الريسيت)</label>
-                  <select className="purchase-prototype-field-input" {...form.register('posElectronCashierPrinter')} disabled={disabled}>
-                    <option value="">- الطباعة العادية (نافذة المتصفح) -</option>
-                    {savedCashierPrinter && !systemPrinters.some(p => p.name === savedCashierPrinter) && (
-                      <option value={savedCashierPrinter}>{savedCashierPrinter}</option>
-                    )}
-                    {systemPrinters.map(p => (
-                      <option key={p.name} value={p.name}>{p.displayName || p.name}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={form.watch('posElectronCashierPrinter') || ''}
+                    onChange={(val) => form.setValue('posElectronCashierPrinter', val, { shouldDirty: true, shouldValidate: true })}
+                    options={[
+                      { value: '', label: '- الطباعة العادية (نافذة المتصفح) -' },
+                      ...(savedCashierPrinter && !systemPrinters.some((p: any) => p.name === savedCashierPrinter) ? [{ value: savedCashierPrinter, label: savedCashierPrinter }] : []),
+                      ...systemPrinters.map((p: any) => ({ value: p.name, label: p.displayName || p.name })),
+                    ]}
+                    disabled={disabled}
+                  />
                 </div>
 
                 <div className="field">
                   <label>طابعة المطبخ المباشرة (KOT)</label>
-                  <select className="purchase-prototype-field-input" {...form.register('posElectronKitchenPrinter')} disabled={disabled || !posKitchenPrinterEnabled}>
-                    <option value="">- الطباعة العادية (نافذة المتصفح) -</option>
-                    {savedKitchenPrinter && !systemPrinters.some(p => p.name === savedKitchenPrinter) && (
-                      <option value={savedKitchenPrinter}>{savedKitchenPrinter}</option>
-                    )}
-                    {systemPrinters.map(p => (
-                      <option key={p.name} value={p.name}>{p.displayName || p.name}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={form.watch('posElectronKitchenPrinter') || ''}
+                    onChange={(val) => form.setValue('posElectronKitchenPrinter', val, { shouldDirty: true, shouldValidate: true })}
+                    options={[
+                      { value: '', label: '- الطباعة العادية (نافذة المتصفح) -' },
+                      ...(savedKitchenPrinter && !systemPrinters.some((p: any) => p.name === savedKitchenPrinter) ? [{ value: savedKitchenPrinter, label: savedKitchenPrinter }] : []),
+                      ...systemPrinters.map((p: any) => ({ value: p.name, label: p.displayName || p.name })),
+                    ]}
+                    disabled={disabled || !posKitchenPrinterEnabled}
+                  />
                 </div>
 
                 <div className="muted small" style={{ gridColumn: '1 / -1' }}>

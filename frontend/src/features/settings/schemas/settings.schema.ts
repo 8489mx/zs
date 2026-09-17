@@ -133,6 +133,26 @@ export const settingsFormSchema = z.object({
   posTerminalName: z.string().optional().default('جهاز الكاشير الرئيسي (EDC)'),
   posTerminalIp: z.string().optional().default('192.168.1.150'),
   posTerminalPort: z.coerce.number().int().min(1).max(65535).optional().default(8080),
+
+  // Contracting & Projects Dedicated Settings
+  contractingRetentionPercent: z.coerce.number().min(0).max(100).default(5),
+  contractingAdvanceRecoveryMode: z.enum(['proportional', 'fixed']).default('proportional'),
+  contractingDefaultProfitMargin: z.coerce.number().min(0).max(100).default(15),
+  contractingDefaultOverhead: z.coerce.number().min(0).max(100).default(7),
+  contractingDefaultWaste: z.coerce.number().min(0).max(100).default(5),
+  contractingRequireBoqLinkForIssue: z.boolean().default(false),
+
+  // Maritime Logistics Dedicated Settings
+  maritimeDemurrageFreeDays: z.coerce.number().min(0).max(120).default(14),
+  maritimeDefaultCurrency: z.enum(['USD', 'EUR', 'EGP']).default('USD'),
+
+  // Import / Export Dedicated Settings
+  importLandedCostMethod: z.enum(['by_value', 'by_weight', 'by_volume', 'by_quantity']).default('by_value'),
+  importAutoLinkBankExpenses: z.enum(['auto_link', 'manual']).default('auto_link'),
+
+  // Services & Maintenance Dedicated Settings
+  servicesBillingMethod: z.enum(['deliverable', 'subscription', 'hourly']).default('deliverable'),
+  servicesContractRenewalNoticeDays: z.coerce.number().min(0).max(180).default(30),
 });
 
 export const branchFormSchema = z.object({

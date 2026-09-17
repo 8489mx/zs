@@ -11,10 +11,11 @@
   display: flex;
   flex-direction: row-reverse;
   width: 100%;
-  max-width: 1180px;
+  max-width: 1260px;
   min-height: 560px;
   background: transparent;
-  gap: 40px;
+  gap: 36px;
+  align-items: center;
 }
 
 .onboarding-card {
@@ -22,7 +23,7 @@
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
-  padding: 36px 40px;
+  padding: 30px 34px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -68,7 +69,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 40px;
+  margin-bottom: 22px;
   position: relative;
   padding: 0 20px;
 }
@@ -90,7 +91,7 @@
   top: 50%;
   right: 30px;
   height: 3px;
-  background: #170c5c;
+  background: #059669;
   transform: translateY(-50%);
   z-index: 2;
   transition: width 0.4s ease;
@@ -113,9 +114,9 @@
 }
 
 .wizard-step-node.active {
-  background: #170c5c;
+  background: #170e5e;
   color: #fff;
-  box-shadow: 0 0 0 4px rgba(23, 12, 92, 0.1);
+  box-shadow: 0 0 0 4px rgba(23, 14, 94, 0.12);
 }
 
 .wizard-step-node.completed {
@@ -192,9 +193,9 @@
 }
 
 .size-pill.selected {
-  background: #f3f0ff;
-  border-color: #170c5c;
-  color: #170c5c;
+  background: #eef2ff;
+  border-color: #170e5e;
+  color: #170e5e;
 }
 
 /* File Upload Fake */
@@ -246,10 +247,10 @@
 }
 
 .industry-card.selected {
-  border-color: #170c5c;
-  background: #f3f0ff;
-  color: #170c5c;
-  box-shadow: 0 4px 12px rgba(23, 12, 92, 0.08);
+  border-color: #170e5e;
+  background: #eef2ff;
+  color: #170e5e;
+  box-shadow: 0 4px 12px rgba(23, 14, 94, 0.08);
 }
 
 .industry-icon {

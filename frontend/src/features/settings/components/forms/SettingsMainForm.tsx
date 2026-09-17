@@ -148,6 +148,26 @@ export const SETTINGS_FIELD_METADATA: Record<
 
   managerPin: { tab: 'sales_inventory', label: 'الرمز السري للمدير (PIN)' },
   autoBackup: { tab: 'general', label: 'النسخ الاحتياطي التلقائي' },
+
+  // Contracting Dedicated Metadata
+  contractingRetentionPercent: { tab: 'sales_inventory', label: 'نسبة ضمان الأعمال المحتجزة (Retention %)' },
+  contractingAdvanceRecoveryMode: { tab: 'sales_inventory', label: 'طريقة استقطاع الدفعة المقدمة' },
+  contractingDefaultProfitMargin: { tab: 'sales_inventory', label: 'هامش الربح الافتراضي في المقايسة (%)' },
+  contractingDefaultOverhead: { tab: 'sales_inventory', label: 'المصاريف الإدارية والعمومية الافتراضية (%)' },
+  contractingDefaultWaste: { tab: 'sales_inventory', label: 'نسبة الهالك التقديري الافتراضي للخامات (%)' },
+  contractingRequireBoqLinkForIssue: { tab: 'sales_inventory', label: 'إلزام ربط إذن الصرف بمشروع وبند مقايسة' },
+
+  // Maritime Dedicated Metadata
+  maritimeDemurrageFreeDays: { tab: 'sales_inventory', label: 'أيام السماح للحاويات (Demurrage Free Days)' },
+  maritimeDefaultCurrency: { tab: 'sales_inventory', label: 'عملة تسعير النولون الافتراضية' },
+
+  // Import / Export Dedicated Metadata
+  importLandedCostMethod: { tab: 'sales_inventory', label: 'أساس توزيع تكلفة الاستيراد (Landed Cost)' },
+  importAutoLinkBankExpenses: { tab: 'sales_inventory', label: 'ربط المصاريف البنكية والاعتمادات المستندية' },
+
+  // Services Dedicated Metadata
+  servicesBillingMethod: { tab: 'sales_inventory', label: 'نمط احتساب فواتير الخدمات' },
+  servicesContractRenewalNoticeDays: { tab: 'sales_inventory', label: 'فترة السماح لتجديد عقود الخدمات (أيام)' },
 };
 
 export function SettingsMainForm({ settings, branches, locations, canManageSettings, setupMode = false, onSetupAdvance, onUpdateBranch }: SettingsMainFormProps) {
@@ -272,6 +292,18 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       posTerminalName: 'جهاز الكاشير الرئيسي (EDC)',
       posTerminalIp: '192.168.1.150',
       posTerminalPort: 8080,
+      contractingRetentionPercent: 5,
+      contractingAdvanceRecoveryMode: 'proportional',
+      contractingDefaultProfitMargin: 15,
+      contractingDefaultOverhead: 7,
+      contractingDefaultWaste: 5,
+      contractingRequireBoqLinkForIssue: false,
+      maritimeDemurrageFreeDays: 14,
+      maritimeDefaultCurrency: 'USD',
+      importLandedCostMethod: 'by_value',
+      importAutoLinkBankExpenses: 'auto_link',
+      servicesBillingMethod: 'deliverable',
+      servicesContractRenewalNoticeDays: 30,
     },
   });
 
@@ -284,7 +316,27 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const currentBranchId = form.watch('currentBranchId');
 
   const clothingModuleEnabled = form.watch('clothingModuleEnabled');
-          const canNavigateAway = useUnsavedChangesGuard(form.formState.isDirty && !mutation.isPending);
+  const canNavigateAway = useUnsavedChangesGuard(form.formState.isDirty && !mutation.isPending);
+
+  const rawActivity = String(form.watch('businessIndustry') || tenant?.activityType || tenant?.pillar || settings?.activityType || (settings as any)?.businessIndustry || 'retail_general').trim().toLowerCase();
+  const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || Boolean(form.watch('contractingModuleEnabled'));
+  const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن' || Boolean(form.watch('maritimeFreightModuleEnabled'));
+  const isImportVertical = rawActivity === 'import_export' || Boolean(form.watch('importModuleEnabled'));
+  const isServicesVertical = rawActivity === 'services' || Boolean(form.watch('servicesModuleEnabled'));
+
+  const salesInventoryTabLabel = isContractingVertical
+    ? 'ضوابط المقاولات والمشاريع'
+    : isMaritimeVertical
+    ? 'ضوابط الشحن والعمليات الملاحية'
+    : isImportVertical
+    ? 'ضوابط الاستيراد والرسائل الجمركية'
+    : isServicesVertical
+    ? 'ضوابط الخدمات وعقود الصيانة'
+    : 'البيع وقواعد المخزون';
+
+  const printingTabLabel = isContractingVertical || isMaritimeVertical || isServicesVertical
+    ? 'نماذج المطبوعات والترويسة'
+    : 'الطباعة والإيصالات';
 
   const resolvedBranchId = SINGLE_STORE_MODE ? (currentBranchId || settings?.currentBranchId || branches[0]?.id || '') : currentBranchId;
   const visibleLocations = useMemo(() => locations, [locations]);
@@ -307,7 +359,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         if (printers && Array.isArray(printers)) {
           setSystemPrinters(printers);
         }
-      });
+      }).catch(() => undefined);
     }
   }, []);
 
@@ -483,6 +535,18 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       posTerminalName: settings.posTerminalName || 'جهاز الكاشير الرئيسي (EDC)',
       posTerminalIp: settings.posTerminalIp || '192.168.1.150',
       posTerminalPort: Number(settings.posTerminalPort || 8080),
+      contractingRetentionPercent: Number((settings as any).contractingRetentionPercent ?? 5),
+      contractingAdvanceRecoveryMode: ((settings as any).contractingAdvanceRecoveryMode as any) || 'proportional',
+      contractingDefaultProfitMargin: Number((settings as any).contractingDefaultProfitMargin ?? 15),
+      contractingDefaultOverhead: Number((settings as any).contractingDefaultOverhead ?? 7),
+      contractingDefaultWaste: Number((settings as any).contractingDefaultWaste ?? 5),
+      contractingRequireBoqLinkForIssue: (settings as any).contractingRequireBoqLinkForIssue === true,
+      maritimeDemurrageFreeDays: Number((settings as any).maritimeDemurrageFreeDays ?? 14),
+      maritimeDefaultCurrency: (['EGP', 'USD', 'EUR'].includes((settings as any).maritimeDefaultCurrency) ? (settings as any).maritimeDefaultCurrency : 'USD') as 'EGP' | 'USD' | 'EUR',
+      importLandedCostMethod: ((settings as any).importLandedCostMethod as any) || 'by_value',
+      importAutoLinkBankExpenses: ((settings as any).importAutoLinkBankExpenses as any) || 'auto_link',
+      servicesBillingMethod: ((settings as any).servicesBillingMethod as any) || 'deliverable',
+      servicesContractRenewalNoticeDays: Number((settings as any).servicesContractRenewalNoticeDays ?? 30),
     });
   }, [settings, form, branches]);
 
@@ -980,9 +1044,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         <div className="settings-tabs" style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', marginBottom: '16px', overflowX: 'auto' }}>
           {[
             { id: 'general', label: 'عام' },
-            { id: 'sales_inventory', label: 'البيع وقواعد المخزون' },
+            { id: 'sales_inventory', label: salesInventoryTabLabel },
             { id: 'modules', label: 'تخصيص المنظومة والنشاط' },
-            { id: 'printing', label: 'الطباعة والإيصالات' },
+            { id: 'printing', label: printingTabLabel },
           ].map(tab => (
             <button
               key={tab.id}

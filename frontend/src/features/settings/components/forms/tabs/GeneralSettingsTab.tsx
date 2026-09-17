@@ -9,6 +9,7 @@ import { applyAccentColorToDocument } from '@/lib/theme';
 import { ShieldCheckIcon } from '@/shared/components/icons/AppIcons';
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin } from '@/app/router/access';
+import { CustomSelect } from '@/shared/ui/custom-select';
 
 function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null) {
   const norm = String(rawActivity || pillar || 'retail_general').trim().toLowerCase();
@@ -245,6 +246,36 @@ export function GeneralSettingsTab({
   }, [accentColor]);
 
   const rawAct = String(businessIndustry || tenant?.activityType || tenant?.pillar || 'retail_general').trim().toLowerCase();
+  const isContractingVertical = rawAct === 'contracting' || rawAct === 'construction' || rawAct === 'مقاولات' || Boolean(form.watch('contractingModuleEnabled'));
+  const isMaritimeVertical = rawAct === 'maritime_freight' || rawAct === 'maritime' || rawAct === 'freight' || rawAct === 'shipping' || rawAct === 'شحن' || Boolean(form.watch('maritimeFreightModuleEnabled'));
+  const isImportVertical = rawAct === 'import_export' || Boolean(form.watch('importModuleEnabled'));
+  const isServicesVertical = rawAct === 'services' || Boolean(form.watch('servicesModuleEnabled'));
+  const isNonPosVertical = isContractingVertical || isMaritimeVertical || isServicesVertical || isImportVertical;
+
+  const storeNameLabel = isContractingVertical
+    ? 'اسم شركة المقاولات / المؤسسة'
+    : isMaritimeVertical
+    ? 'اسم شركة الشحن والتوكيلات الملاحية'
+    : isImportVertical
+    ? 'اسم شركة الاستيراد والتصدير'
+    : isServicesVertical
+    ? 'اسم المكتب / الشركة الاستشارية والخدمية'
+    : 'اسم النشاط / المتجر';
+
+  const storeNamePlaceholder = isContractingVertical
+    ? 'مثال: شركة المقاولات والإنشاءات الحديثة'
+    : isMaritimeVertical
+    ? 'مثال: شركة الملاحة والخدمات اللوجستية'
+    : isImportVertical
+    ? 'مثال: المجموعة الدولية للاستيراد والتصدير'
+    : isServicesVertical
+    ? 'مثال: المجموعة الاستشارية للأعمال'
+    : 'مثال: محلات رجب العطار';
+
+  const locationFieldLabel = isContractingVertical
+    ? 'مخزن الموقع / التشوين الافتراضي'
+    : 'مكان الاستلام الافتراضي';
+
   const info = getPillarBadgeInfo(rawAct, tenant?.pillar);
 
   return (
@@ -408,10 +439,10 @@ export function GeneralSettingsTab({
 
           {/* Form Fields */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <RequiredField label="اسم النشاط / المتجر" error={form.formState.errors.storeName?.message}>
+            <RequiredField label={storeNameLabel} error={form.formState.errors.storeName?.message}>
               <input
                 className="purchase-prototype-field-input"
-                placeholder="مثال: محلات رجب العطار"
+                placeholder={storeNamePlaceholder}
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
@@ -593,39 +624,39 @@ export function GeneralSettingsTab({
             )}
 
             {/* Receiving Location & Cashier Mode Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <RequiredField label="مكان الاستلام الافتراضي" error={form.formState.errors.currentLocationId?.message}>
+            <div style={{ display: 'grid', gridTemplateColumns: isNonPosVertical ? '1fr' : '1fr 1fr', gap: '10px' }}>
+              <RequiredField label={locationFieldLabel} error={form.formState.errors.currentLocationId?.message}>
                 {visibleLocations.length === 0 ? (
                   <div style={{ padding: '6px 8px', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '0.78rem' }}>
                     لا توجد أماكن مخزون.
                   </div>
                 ) : (
-                  <select
-                    className="purchase-prototype-field-input"
-                    {...form.register('currentLocationId')}
+                  <CustomSelect
+                    value={form.watch('currentLocationId') || ''}
+                    onChange={(val) => form.setValue('currentLocationId', val, { shouldDirty: true, shouldValidate: true })}
+                    options={[
+                      { value: '', label: '-- اختر المخزن --' },
+                      ...visibleLocations.map((loc) => ({ value: String(loc.id), label: loc.name })),
+                    ]}
                     disabled={disabled}
-                    style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                  >
-                    <option value="">-- اختر المخزن --</option>
-                    {visibleLocations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>{loc.name}</option>
-                    ))}
-                  </select>
+                  />
                 )}
               </RequiredField>
 
-              <div className="field">
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>نمط الكاشير الافتراضي</label>
-                <select
-                  className="purchase-prototype-field-input"
-                  {...form.register('defaultPosMode')}
-                  disabled={disabled}
-                  style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                >
-                  <option value="scanner">سكانر باركود</option>
-                  <option value="touch">لمس (تاتش)</option>
-                </select>
-              </div>
+              {!isNonPosVertical && (
+                <div className="field">
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>نمط الكاشير الافتراضي</label>
+                  <CustomSelect
+                    value={form.watch('defaultPosMode') || 'scanner'}
+                    onChange={(val) => form.setValue('defaultPosMode', val as any, { shouldDirty: true, shouldValidate: true })}
+                    options={[
+                      { value: 'scanner', label: 'سكانر باركود' },
+                      { value: 'touch', label: 'لمس (تاتش)' },
+                    ]}
+                    disabled={disabled}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Sales Stock Source (Branch-level stock settings) */}
@@ -644,30 +675,31 @@ export function GeneralSettingsTab({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
                     <label style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>نطاق المخزون</label>
-                    <select
+                    <CustomSelect
                       value={stockMode}
                       disabled={!canManageSettings || branchStockSaving}
-                      onChange={(e) => { setStockMode(e.target.value as any); setBranchStockDirty(true); setBranchStockSaved(false); }}
-                      style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff' }}
-                    >
-                      <option value="single_location">مخزن محدد</option>
-                      <option value="all_operational_locations">كل المخازن التشغيلية</option>
-                    </select>
+                      onChange={(val) => { setStockMode(val as any); setBranchStockDirty(true); setBranchStockSaved(false); }}
+                      options={[
+                        { value: 'single_location', label: 'مخزن محدد' },
+                        { value: 'all_operational_locations', label: 'كل المخازن التشغيلية' },
+                      ]}
+                    />
                   </div>
 
                   <div>
                     <label style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>مخزن البيع الأساسي</label>
-                    <select
+                    <CustomSelect
                       value={defaultStockLocationId}
                       disabled={!canManageSettings || branchStockSaving}
-                      onChange={(e) => { setDefaultStockLocationId(e.target.value); setBranchStockDirty(true); setBranchStockSaved(false); }}
-                      style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff' }}
-                    >
-                      <option value="">-- غير محدد --</option>
-                      {locations.filter((loc) => !loc.branchId || loc.branchId === selectedBranch.id).map((loc) => (
-                        <option key={loc.id} value={loc.id}>{loc.name}</option>
-                      ))}
-                    </select>
+                      onChange={(val) => { setDefaultStockLocationId(val); setBranchStockDirty(true); setBranchStockSaved(false); }}
+                      options={[
+                        { value: '', label: '-- غير محدد --' },
+                        ...locations.filter((loc) => !loc.branchId || loc.branchId === selectedBranch.id).map((loc) => ({
+                          value: String(loc.id),
+                          label: loc.name,
+                        })),
+                      ]}
+                    />
                   </div>
                 </div>
 
