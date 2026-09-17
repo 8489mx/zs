@@ -65,11 +65,6 @@ export function usePosSaleMutation() {
         const legacyPayload = buildLegacyPosSalePayload(input);
         const minimalPayload = buildMinimalPosSalePayload(input);
         const idempotencyKey = crypto.randomUUID();
-
-        if (typeof navigator !== 'undefined' && !navigator.onLine) {
-          const offlineSale = enqueueOfflineSale(input, idempotencyKey);
-          return { id: offlineSale.id, docNo: (offlineSale.payload as any)?.docNo || offlineSale.id, offline: true, ...input };
-        }
         
         try {
           return await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': idempotencyKey });

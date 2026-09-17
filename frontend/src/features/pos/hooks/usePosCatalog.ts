@@ -42,9 +42,6 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
     queryKey: ['products', 'pos', branchId || 'all', locationId || 'all', lookupMode, lookupTerm || '', lookupView || 'all', String(POS_PRODUCT_LOOKUP_LIMIT)] as const,
     queryFn: async () => {
       try {
-        if (typeof navigator !== 'undefined' && !navigator.onLine) {
-          throw new Error('OFFLINE_MODE');
-        }
         const res = await posApi.lookupProducts({
           ...(lookupMode === 'barcode' ? { barcode: lookupTerm } : lookupTerm ? { q: lookupTerm } : {}),
           ...(lookupView ? { view: lookupView } : {}),

@@ -17,7 +17,6 @@ import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features/pos/lib/pos-shell';
 import { ZErpIcon } from '@/shared/components/z-erp-brand';
 import { usePosOfflineSync } from '@/features/pos/hooks/usePosOfflineSync';
-import { APP_NETWORK_STATE_EVENT } from '@/features/pos/lib/pos-offline-sync';
 import {
   openCustomerDisplayWindow,
   openKitchenDisplayWindow,
@@ -139,79 +138,8 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
     previousPendingCountRef.current = pendingCount;
   }, [pendingCount]);
 
-  const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
-
-  useEffect(() => {
-    const onOnline = () => setIsOnline(true);
-    const onOffline = () => setIsOnline(false);
-    const onNetworkEvent = (e: Event) => {
-      const customEvent = e as CustomEvent<{ online?: boolean }>;
-      if (typeof customEvent.detail?.online === 'boolean') {
-        setIsOnline(customEvent.detail.online);
-      }
-    };
-    window.addEventListener('online', onOnline);
-    window.addEventListener('offline', onOffline);
-    window.addEventListener(APP_NETWORK_STATE_EVENT, onNetworkEvent);
-    return () => {
-      window.removeEventListener('online', onOnline);
-      window.removeEventListener('offline', onOffline);
-      window.removeEventListener(APP_NETWORK_STATE_EVENT, onNetworkEvent);
-    };
-  }, []);
-
   return (
     <>
-      {!isOnline && (
-        <div style={{
-          background: '#fffbeb',
-          color: '#92400e',
-          borderBottom: '1px solid #fde68a',
-          padding: '8px 16px',
-          fontSize: '12px',
-          fontWeight: 700,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          direction: 'rtl',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#d97706', display: 'inline-block' }} />
-            <span>وضع عدم الاتصال: انقطع الاتصال بالخادم. المبيعات مستمرة وتُحفظ محلياً بأمان.</span>
-          </div>
-          {offlineQueue.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setIsOfflineQueueModalOpen(true)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#b45309',
-                fontWeight: 800,
-                cursor: 'pointer',
-                textDecoration: 'underline',
-                fontSize: '12px'
-              }}
-            >
-              عرض الفواتير المعلقة ({offlineQueue.length})
-            </button>
-          )}
-        </div>
-      )}
-      {isOnline && isSyncing && (
-        <div style={{
-          background: '#ecfdf5',
-          color: '#065f46',
-          borderBottom: '1px solid #a7f3d0',
-          padding: '6px 16px',
-          fontSize: '12px',
-          fontWeight: 700,
-          textAlign: 'center',
-          direction: 'rtl',
-        }}>
-          تم استعادة الاتصال بالخادم. جاري ترحيل الفواتير المعلقة تلقائياً...
-        </div>
-      )}
       <PageHeader
       title="نقطة البيع"
       badge={(
