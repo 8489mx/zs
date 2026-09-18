@@ -1,4 +1,14 @@
-export type ProjectStatus = 'planning' | 'active' | 'suspended' | 'completed' | 'handed_over';
+export type ProjectStatus =
+  | 'planning'
+  | 'draft'
+  | 'submitted'
+  | 'negotiation'
+  | 'active'
+  | 'suspended'
+  | 'completed'
+  | 'handed_over'
+  | 'lost'
+  | 'cancelled';
 export type ChangeOrderImpactType = 'cost_only' | 'time_only' | 'cost_and_time';
 export type ChangeOrderStatus = 'draft' | 'pending_approval' | 'approved' | 'rejected';
 export type IpcType = 'client' | 'subcontractor';
@@ -27,6 +37,16 @@ export interface ContractingProject {
   costCenterId: number | null;
   projectManager: string | null;
   locationAddress: string | null;
+  consultantName?: string | null;
+  contractRef?: string | null;
+  contractDate?: string | null;
+  lossReason?: string | null;
+  lossNotes?: string | null;
+  competitorPrice?: number | null;
+  revisionNumber?: number;
+  originalTenderId?: number | null;
+  submittedAt?: string | null;
+  awardedAt?: string | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -138,6 +158,69 @@ export interface ContractingSubcontract {
   totalInvoiced?: number;
   totalRetentionHeld?: number;
   remainingCommitment?: number;
+}
+
+export interface ContractingSubcontractor {
+  id: number;
+  name: string;
+  tradeSpecialty: string;
+  phone?: string;
+  mobile?: string;
+  email?: string;
+  address?: string;
+  taxNumber?: string;
+  commercialReg?: string;
+  nationalId?: string;
+  bankName?: string;
+  bankIban?: string;
+  contactPerson?: string;
+  rating: number;
+  status: 'active' | 'suspended' | 'blacklisted';
+  notes?: string;
+  createdAt?: string;
+  subcontractsCount?: number;
+  totalCommitted?: number;
+  totalInvoiced?: number;
+  totalRetentionHeld?: number;
+  totalPaid?: number;
+  netBalance?: number;
+}
+
+export interface ContractingSubcontractorPayment {
+  id: number;
+  paymentNumber: string;
+  paymentDate: string;
+  amount: number;
+  paymentMethod: 'cash' | 'bank_transfer' | 'check';
+  referenceNumber?: string;
+  notes?: string;
+}
+
+export interface SubcontractorLedgerTransaction {
+  id: number;
+  date: string;
+  type: 'invoice' | 'payment' | 'backcharge';
+  refNumber: string;
+  description: string;
+  projectId?: string;
+  credit: number;
+  debit: number;
+  balanceAfter: number;
+  details?: Record<string, any>;
+}
+
+export interface SubcontractorLedgerResponse {
+  subcontractor: ContractingSubcontractor;
+  summary: {
+    totalSubcontracts: number;
+    totalCommitted: number;
+    totalInvoiced: number;
+    totalPaid: number;
+    totalBackcharges: number;
+    totalRetentionHeld: number;
+    netBalanceDue: number;
+  };
+  transactions: SubcontractorLedgerTransaction[];
 }
 
 export interface ContractingSiteDailyLog {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -570,7 +570,54 @@ export function ScheduleGeneratorModal({
     return list;
   };
 
-  const previewTasks = generatePreview();
+  const [customTasks, setCustomTasks] = useState<GeneratedTaskPreview[] | null>(null);
+
+  // إعادة ضبط التعديلات المخصصة عند تغيير إعدادات القالب بالأعلى
+  useEffect(() => {
+    setCustomTasks(null);
+  }, [projectScope, startDate, floorsCount, includeBasement, includeRoof, concreteDaysPerFloor, masonryDaysPerFloor]);
+
+  const previewTasks = customTasks || generatePreview();
+
+  // تعديل مدة النشاط وترحيل تواريخ باقي الأنشطة اللاحقة تلقائياً
+  const handleTaskDurationChange = (index: number, newDuration: number) => {
+    if (newDuration < 1) return;
+    const baseList = customTasks || generatePreview();
+    const target = baseList[index];
+    if (!target) return;
+
+    const oldDuration = target.durationDays;
+    const diff = newDuration - oldDuration;
+    if (diff === 0) return;
+
+    const updated = baseList.map((task, i) => {
+      if (i < index) {
+        return task;
+      }
+      if (i === index) {
+        return {
+          ...task,
+          durationDays: newDuration,
+          endDate: addDays(task.startDate, newDuration),
+        };
+      }
+      // ترحيل تاريخ البداية والنهاية لكافة الأنشطة اللاحقة بنفس فرق الأيام
+      return {
+        ...task,
+        startDate: addDays(task.startDate, diff),
+        endDate: addDays(task.endDate, diff),
+      };
+    });
+
+    setCustomTasks(updated);
+  };
+
+  // تعديل مسمى النشاط يدوياً عند الحاجة
+  const handleTaskNameChange = (index: number, newName: string) => {
+    const baseList = customTasks || generatePreview();
+    const updated = baseList.map((task, i) => (i === index ? { ...task, taskName: newName } : task));
+    setCustomTasks(updated);
+  };
 
   const handleCommitSchedule = async () => {
     if (!projectId) return;
@@ -871,12 +918,37 @@ export function ScheduleGeneratorModal({
 
             {/* Live Schedule Preview Table */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <h4 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                  معاينة الجدول الزمني المولد ({previewTasks.length} نشاط ومرحلة)
-                </h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h4 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                    معاينة الجدول الزمني المولد ({previewTasks.length} نشاط ومرحلة)
+                  </h4>
+                  {customTasks !== null && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomTasks(null)}
+                      title="استعادة مدد وتواريخ القالب القياسي الافتراضية"
+                      style={{
+                        fontSize: 'var(--font-micro)',
+                        color: '#170e5e',
+                        background: '#e0e7ff',
+                        border: '1px solid #c7d2fe',
+                        borderRadius: '6px',
+                        padding: '3px 8px',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <AppIcons.RefreshCw size={11} />
+                      <span>إعادة ضبط المدد للقالب</span>
+                    </button>
+                  )}
+                </div>
                 <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                  تاريخ الانتهاء المتوقع للمشروع: <strong style={{ color: '#170e5e' }}>{previewTasks[previewTasks.length - 1]?.endDate || '-'}</strong>
+                  تاريخ الانتهاء المتوقع للمشروع: <strong style={{ color: '#170e5e', fontSize: '13px' }}>{previewTasks[previewTasks.length - 1]?.endDate || '-'}</strong>
                 </span>
               </div>
 
@@ -885,11 +957,11 @@ export function ScheduleGeneratorModal({
                   <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 1 }}>
                     <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                       <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '80px', textAlign: 'center' }}>WBS</th>
-                      <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '180px' }}>الحزمة الإنشائية</th>
+                      <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '170px' }}>الحزمة الإنشائية</th>
                       <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>بيان النشاط والمرحلة</th>
                       <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '95px', textAlign: 'center' }}>البداية</th>
                       <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '95px', textAlign: 'center' }}>النهاية</th>
-                      <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '70px', textAlign: 'center' }}>المدة</th>
+                      <th style={{ padding: '8px 6px', fontSize: 'var(--font-table-head)', color: '#170e5e', width: '100px', textAlign: 'center' }}>المدة (تعديل)</th>
                       <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '80px', textAlign: 'center' }}>المسار</th>
                     </tr>
                   </thead>
@@ -904,17 +976,72 @@ export function ScheduleGeneratorModal({
                             {t.category}
                           </span>
                         </td>
-                        <td style={{ padding: '8px 10px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#1e293b' }}>
-                          {t.taskName}
+                        <td style={{ padding: '6px 8px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#1e293b' }}>
+                          <input
+                            type="text"
+                            value={t.taskName}
+                            onChange={(e) => handleTaskNameChange(idx, e.target.value)}
+                            title="انقر لتعديل مسمى النشاط"
+                            style={{
+                              width: '100%',
+                              height: '28px',
+                              padding: '0 6px',
+                              border: '1px solid transparent',
+                              borderRadius: '4px',
+                              background: 'transparent',
+                              fontSize: 'var(--font-body)',
+                              fontWeight: 600,
+                              color: '#1e293b',
+                              outline: 'none',
+                              boxSizing: 'border-box',
+                            }}
+                            onFocus={(e) => {
+                              e.target.style.borderColor = '#cbd5e1';
+                              e.target.style.background = '#ffffff';
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = 'transparent';
+                              e.target.style.background = 'transparent';
+                            }}
+                          />
                         </td>
-                        <td style={{ padding: '8px 10px', fontSize: 'var(--font-micro)', color: '#64748b', textAlign: 'center' }}>
+                        <td style={{ padding: '8px 8px', fontSize: 'var(--font-micro)', color: '#64748b', textAlign: 'center', whiteSpace: 'nowrap' }}>
                           {t.startDate}
                         </td>
-                        <td style={{ padding: '8px 10px', fontSize: 'var(--font-micro)', color: '#64748b', textAlign: 'center' }}>
+                        <td style={{ padding: '8px 8px', fontSize: 'var(--font-micro)', color: '#64748b', textAlign: 'center', whiteSpace: 'nowrap' }}>
                           {t.endDate}
                         </td>
-                        <td style={{ padding: '8px 10px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a', textAlign: 'center' }}>
-                          {t.durationDays} يوم
+                        <td style={{ padding: '4px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                            <input
+                              type="number"
+                              min="1"
+                              max="365"
+                              value={t.durationDays}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                if (!isNaN(val) && val >= 1) {
+                                  handleTaskDurationChange(idx, val);
+                                }
+                              }}
+                              title="انقر لتعديل مدة النشاط باليوم وترحيل باقي تواريخ الجدول تلقائياً"
+                              style={{
+                                width: '50px',
+                                height: '28px',
+                                padding: '0 4px',
+                                textAlign: 'center',
+                                borderRadius: '6px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: 'var(--font-body)',
+                                fontWeight: 700,
+                                color: '#170e5e',
+                                background: '#ffffff',
+                                outline: 'none',
+                                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
+                              }}
+                            />
+                            <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#64748b' }}>يوم</span>
+                          </div>
                         </td>
                         <td style={{ padding: '8px 10px', fontSize: 'var(--font-micro)', textAlign: 'center' }}>
                           {t.isCriticalPath ? (

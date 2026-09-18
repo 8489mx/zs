@@ -59,7 +59,7 @@ function getCanSubmitHint(params: {
   if (!params.hasCatalogReady) return 'أضف الأصناف أولًا قبل البيع.';
   if (params.requiresCashierShift && !params.ownOpenShift) return 'افتح وردية كاشير أولًا.';
   if (params.hasCreditWithoutCustomer) return 'البيع الآجل يحتاج اختيار عميل.';
-  if (params.hasDeliveryWithoutRep) return 'يرجى اختيار مندوب التوصيل لإتمام فاتورة الدليفري.';
+  if (params.hasDeliveryWithoutRep) return 'يرجى اختيار مندوب التوصيل لتسجيل عهدة التحصيل عليه.';
   if (params.hasZeroPriceLine) return 'راجع السلة: يوجد صنف بسعر صفر.';
   if ((params as typeof params & { hasDiscountPermissionViolation?: boolean }).hasDiscountPermissionViolation) return 'الخصم يتطلب اعتماد المدير (PIN).';
   if ((params as typeof params & { hasPricePermissionViolation?: boolean }).hasPricePermissionViolation) return 'لا تملك صلاحية تعديل السعر.';
@@ -264,7 +264,8 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   }, [canEditPrice, params.cart, defaultPriceByProductId, productById]);
 
   const isDelivery = params.orderType === 'delivery';
-  const hasDeliveryWithoutRep = isDelivery && (!params.deliveryRepId || Number(params.deliveryRepId) <= 0);
+  const isDeliveryCod = isDelivery && params.collectionStatus === 'cod';
+  const hasDeliveryWithoutRep = isDeliveryCod && (!params.deliveryRepId || Number(params.deliveryRepId) <= 0);
 
   const canSubmitSale = useMemo(() => Boolean(
     params.cart.length

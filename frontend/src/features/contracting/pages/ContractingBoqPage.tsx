@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useContracting } from '../context/ContractingContext';
 import { contractingApi } from '../api/contracting.api';
-import { toast } from '@/shared/components/system-alert';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 import type { ContractingBoqItem } from '../contracting.types';
 import { ContractingBoqTab } from '../components/ContractingBoqTab';
 import { CreateBoqItemModal } from '../components/CreateBoqItemModal';
 
 export function ContractingBoqPage() {
-  const { projects, selectedProjectId, setSelectedProjectId, activeProject, setIsCreateProjectOpen } = useContracting();
+  const { projects, selectedProjectId, setSelectedProjectId, activeProject, setIsCreateProjectOpen, reloadProjects } = useContracting();
   const [items, setItems] = useState<ContractingBoqItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [isCreateBoqItemOpen, setIsCreateBoqItemOpen] = useState(false);
@@ -47,6 +47,24 @@ export function ContractingBoqPage() {
     setIsCreateBoqItemOpen(true);
   };
 
+  const handleAwardProject = async () => {
+    if (!effectiveProjectId) return;
+    const confirmed = await systemConfirm({
+      title: 'اعتماد وترسية العطاء كمشروع تنفيذي ساري',
+      message: `هل أنت متأكد من اعتماد وترسية عطاء "${effectiveProject?.name}" كمشروع رسمي ساري؟ سيتم تحويل حالة المشروع إلى (Active) واعتماد جدول الكميات للبدء في الأعمال الميدانية والمستخلصات.`,
+      confirmText: 'نعم، اعتمد ورسِّ العطاء',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
+    try {
+      await contractingApi.updateProject(effectiveProjectId, { status: 'active' });
+      await reloadProjects();
+      toast.success('تمت ترسية العطاء بنجاح وتحويله لمشروع تنفيذي ساري!');
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر اعتماد العطاء');
+    }
+  };
+
   return (
     <>
       <ContractingBoqTab
@@ -55,8 +73,10 @@ export function ContractingBoqPage() {
         projectId={effectiveProjectId || undefined}
         projectName={effectiveProject?.name}
         clientName={(effectiveProject as any)?.clientName || (effectiveProject as any)?.client}
+        projectStatus={effectiveProject?.status}
         onNewItem={handleOpenNewItem}
         onRefresh={loadBoqItems}
+        onAwardProject={handleAwardProject}
       />
 
       {effectiveProjectId && (

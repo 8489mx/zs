@@ -68,9 +68,13 @@ export function ContractingProvider({ children }: { children: React.ReactNode })
       );
       setKpis(computedKpis);
 
-      // Auto-select first project if none selected yet
+      // Auto-select first project if none selected yet, unless on tender page where user may want fresh estimation
       setSelectedProjectIdState((current) => {
         if (!current && allProjects.length > 0) {
+          const isTenderPage = window.location.pathname.includes('/tender');
+          if (isTenderPage && !projectParam) {
+            return null;
+          }
           return projectParam || allProjects[0].id;
         }
         return current;

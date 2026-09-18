@@ -198,6 +198,7 @@ export interface PrintDocumentOptions {
   autoClose?: boolean;
   documentDirection?: 'rtl' | 'ltr';
   deviceName?: string;
+  hideHeader?: boolean;
 }
 
 export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, options: PrintDocumentOptions = {}) {
@@ -221,11 +222,13 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
     autoClose = false,
     documentDirection = 'rtl',
     deviceName,
+    hideHeader = false,
   } = options;
 
   const branding = resolvePrintSettings();
   const safeSubtitle = sanitizePrintText(subtitle);
   const bodyContent = pageSize === 'receipt' ? bodyHtml : stripLeadingDuplicateHeading(bodyHtml, title);
+  const bodyHasReceiptHeader = hideHeader || /class=["'][^"']*\b(receipt-header|invoice-card|invoice-store-card|receipt-copy-|receipt-theme-|kitchen-items|kitchen-ticket|cash-drawer-receipt|maintenance-receipt)\b/i.test(bodyContent);
   const bodyHasFooter = /class=["'][^"']*\bprint-footer\b|<footer\b/i.test(bodyContent);
   const effectiveFooter = bodyHasFooter
     ? ''
@@ -505,7 +508,8 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
     </head>
     <body class="${pageSize === 'receipt' ? 'receipt-mode' : 'report-mode'}">
       <div class="print-shell">
-        ${pageSize === 'receipt' ? `
+        ${pageSize === 'receipt' ? (
+          bodyHasReceiptHeader ? '' : `
           <div class="receipt-header">
             <div style="font-size: 14px; font-weight: 800; color: #000;">${escapeHtml(branding.brandName || branding.storeName || DEFAULT_STORE_NAME)}</div>
             <div style="font-size: 12.5px; font-weight: 700; margin-top: 2px; color: #000;">${escapeHtml(title)}</div>
@@ -513,7 +517,9 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
             ${headerDetailsHtml ? `<div style="font-size: 9.5px; margin-top: 2px; color: #222;">${headerDetailsHtml}</div>` : ''}
             <div style="font-size: 9.5px; color: #444; margin-top: 2px;">تاريخ الطباعة: ${escapeHtml(printedAt)}</div>
           </div>
-        ` : `
+        `
+        ) : (
+          hideHeader ? '' : `
           <div class="print-header ${layout === 'centered' ? 'centered-layout' : ''}">
             ${layout === 'centered' ? '' : buildBrandPanelHtml(branding)}
             <div class="doc-panel">
@@ -523,7 +529,8 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
               ${headerDetailsHtml ? `<div class="doc-header-details">${headerDetailsHtml}</div>` : ''}
               <div class="doc-meta-chip">تاريخ الطباعة: ${escapeHtml(printedAt)}</div>
             </div>
-          </div>`}
+          </div>`
+        )}
         <div class="print-content">${bodyContent}</div>
         ${effectiveFooter ? `<div class="print-footer">${effectiveFooter}</div>` : ''}
       </div>

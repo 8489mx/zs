@@ -30,13 +30,20 @@ const DELAY_REASONS = [
 
 const QUICK_DAYS = [1, 2, 3, 4, 5, 7, 10, 14, 21, 30];
 
-function addDays(dateStr: string, days: number): string {
+function addDays(dateStr?: string | null, days: number = 0): string {
   if (!dateStr) return '';
   const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
+  if (isNaN(d.getTime())) return String(dateStr);
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
+const getTaskStart = (t: any): string => t?.startDate || t?.start_date || '';
+const getTaskEnd = (t: any): string => t?.endDate || t?.end_date || '';
+const getTaskName = (t: any): string => t?.taskName || t?.task_name || '';
+const getTaskCode = (t: any): string => t?.taskCode || t?.task_code || '';
+const getTaskWbs = (t: any): string => t?.wbsCode || t?.wbs_code || '1.0';
+const getTaskDuration = (t: any): number => Number(t?.durationDays ?? t?.duration_days ?? 1);
 
 export function TaskDelayModal({
   open,
@@ -61,13 +68,14 @@ export function TaskDelayModal({
     if (!task) return [];
     return allTasks
       .filter((t) => t.id !== task.id)
-      .sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+      .sort((a, b) => getTaskStart(a).localeCompare(getTaskStart(b)));
   }, [allTasks, task]);
 
   // Subsequent tasks (tasks starting on or after current task start date)
   const subsequentTasks = useMemo(() => {
     if (!task) return [];
-    return otherTasks.filter((t) => (t.startDate || '') >= (task.startDate || ''));
+    const curStart = getTaskStart(task);
+    return otherTasks.filter((t) => getTaskStart(t) >= curStart);
   }, [otherTasks, task]);
 
   // Filtered other tasks for checklist in Mode 2
@@ -76,39 +84,45 @@ export function TaskDelayModal({
     const q = searchFilter.toLowerCase().trim();
     return otherTasks.filter(
       (t) =>
-        t.taskName.toLowerCase().includes(q) ||
-        (t.taskCode && t.taskCode.toLowerCase().includes(q)) ||
-        (t.wbsCode && t.wbsCode.toLowerCase().includes(q))
+        getTaskName(t).toLowerCase().includes(q) ||
+        getTaskCode(t).toLowerCase().includes(q) ||
+        getTaskWbs(t).toLowerCase().includes(q)
     );
   }, [otherTasks, searchFilter]);
 
   // Calculations for dates before and after
   const newEndDateForCurrent = useMemo(() => {
     if (!task) return '';
-    return addDays(task.endDate, delayDays);
+    const curEnd = getTaskEnd(task);
+    return curEnd ? addDays(curEnd, delayDays) : '';
   }, [task, delayDays]);
 
   const maxEndDateBefore = useMemo(() => {
-    return allTasks.reduce((max, t) => (t.endDate && t.endDate > max ? t.endDate : max), '');
+    return allTasks.reduce((max, t) => {
+      const e = getTaskEnd(t);
+      return e && e > max ? e : max;
+    }, '');
   }, [allTasks]);
 
   const maxEndDateAfter = useMemo(() => {
     if (!task) return maxEndDateBefore;
     let max = maxEndDateBefore;
-    if (newEndDateForCurrent > max) max = newEndDateForCurrent;
+    if (newEndDateForCurrent && newEndDateForCurrent > max) max = newEndDateForCurrent;
 
     if (shiftMode === 'selected_tasks') {
       selectedTaskIds.forEach((id) => {
         const t = allTasks.find((x) => x.id === id);
-        if (t && t.endDate) {
-          const shifted = addDays(t.endDate, delayDays);
+        const e = t ? getTaskEnd(t) : '';
+        if (e) {
+          const shifted = addDays(e, delayDays);
           if (shifted > max) max = shifted;
         }
       });
     } else if (shiftMode === 'all_subsequent') {
       subsequentTasks.forEach((t) => {
-        if (t.endDate) {
-          const shifted = addDays(t.endDate, delayDays);
+        const e = getTaskEnd(t);
+        if (e) {
+          const shifted = addDays(e, delayDays);
           if (shifted > max) max = shifted;
         }
       });
@@ -155,14 +169,19 @@ export function TaskDelayModal({
 
       // 1. Update current task
       const updatedNotes = task.notes ? `${task.notes}\n${delayNote}` : delayNote;
-      const newDuration = (Number(task.durationDays) || 0) + delayDays;
+      const curDur = getTaskDuration(task);
+      const newDuration = curDur + delayDays;
 
-      await contractingApi.updateScheduleTask(task.id, {
-        endDate: newEndDateForCurrent,
+      const currentTaskPayload: any = {
         durationDays: newDuration,
         status: 'delayed',
         notes: updatedNotes,
-      });
+      };
+      if (newEndDateForCurrent) {
+        currentTaskPayload.endDate = newEndDateForCurrent;
+      }
+
+      await contractingApi.updateScheduleTask(task.id, currentTaskPayload);
 
       // 2. Identify tasks to shift
       let tasksToShift: ContractingScheduleTask[] = [];
@@ -179,13 +198,16 @@ export function TaskDelayModal({
           const chunk = tasksToShift.slice(i, i + chunkSize);
           await Promise.all(
             chunk.map((t) => {
-              const shiftNote = `[تم ترحيل المواعيد +${delayDays} يوم تبعاً لتأخير البند ${task.taskCode}]`;
+              const shiftNote = `[تم ترحيل المواعيد +${delayDays} يوم تبعاً لتأخير البند ${getTaskCode(task)}]`;
               const nNotes = t.notes ? `${t.notes}\n${shiftNote}` : shiftNote;
-              return contractingApi.updateScheduleTask(t.id, {
-                startDate: addDays(t.startDate, delayDays),
-                endDate: addDays(t.endDate, delayDays),
+              const tStart = getTaskStart(t);
+              const tEnd = getTaskEnd(t);
+              const tPayload: any = {
                 notes: nNotes,
-              });
+              };
+              if (tStart) tPayload.startDate = addDays(tStart, delayDays);
+              if (tEnd) tPayload.endDate = addDays(tEnd, delayDays);
+              return contractingApi.updateScheduleTask(t.id, tPayload);
             })
           );
           setProgressCount(Math.min(i + chunkSize, tasksToShift.length));
@@ -193,7 +215,7 @@ export function TaskDelayModal({
       }
 
       // 4. Update project end date if project is extended
-      if (projectId && maxEndDateAfter > maxEndDateBefore) {
+      if (projectId && maxEndDateAfter && maxEndDateAfter > maxEndDateBefore) {
         try {
           await contractingApi.updateProject(projectId, {
             expectedEndDate: maxEndDateAfter,
@@ -205,7 +227,7 @@ export function TaskDelayModal({
 
       toast.success(
         shiftMode === 'current_only'
-          ? `تم تمديد مدة النشاط ${task.taskCode} بمقدار ${delayDays} يوم بنجاح`
+          ? `تم تمديد مدة النشاط ${getTaskCode(task)} بمقدار ${delayDays} يوم بنجاح`
           : `تم ترحيل النشاط وعدد ${tasksToShift.length} نشاط لاحق بمقدار ${delayDays} يوم بنجاح`
       );
 
@@ -226,7 +248,7 @@ export function TaskDelayModal({
       open={open}
       onClose={onClose}
       title="إثبات تأخير وترحيل مواعيد النشاط والجدول الزمني"
-      subtitle={`النشاط: ${task.taskName} (${task.taskCode}) | WBS: ${task.wbsCode} | المدة الحالية: ${task.durationDays} يوم`}
+      subtitle={`النشاط: ${getTaskName(task)} (${getTaskCode(task)}) | WBS: ${getTaskWbs(task)} | المدة الحالية: ${getTaskDuration(task)} يوم`}
       maxWidth="860px"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
@@ -553,10 +575,10 @@ export function TaskDelayModal({
                       </label>
 
                       <div style={{ fontSize: 'var(--font-micro)', color: isChecked ? '#166534' : '#64748b' }}>
-                        <span>من {t.startDate} إلى {t.endDate}</span>
+                        <span>من {getTaskStart(t) || '-'} إلى {getTaskEnd(t) || '-'}</span>
                         {isChecked && (
                           <span style={{ marginInlineStart: '6px', fontWeight: 700 }}>
-                            ➔ ستصبح إلى: {addDays(t.endDate, delayDays)}
+                            ➔ ستصبح إلى: {addDays(getTaskEnd(t), delayDays)}
                           </span>
                         )}
                       </div>
@@ -578,10 +600,10 @@ export function TaskDelayModal({
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px' }}>
               <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>نهاية البند الحالي المعدلة</div>
               <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#c2410c', marginTop: '2px' }}>
-                {newEndDateForCurrent} (بدلاً من {task.endDate})
+                {newEndDateForCurrent || '-'} (بدلاً من {getTaskEnd(task) || '-'})
               </div>
               <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                المدة الجديدة: {(Number(task.durationDays) || 0) + delayDays} يوم (+{delayDays})
+                المدة الجديدة: {getTaskDuration(task) + delayDays} يوم (+{delayDays})
               </div>
             </div>
 

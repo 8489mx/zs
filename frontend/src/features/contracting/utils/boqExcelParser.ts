@@ -16,6 +16,7 @@
  */
 
 import * as XLSX from 'xlsx';
+import { matchEngineeringConstant } from './engineeringMasterPricingCore';
 
 export interface RawSheetInfo {
   name: string;
@@ -25,6 +26,7 @@ export interface RawSheetInfo {
 
 export interface ColumnMapping {
   itemCodeCol: number;
+  itemNameCol?: number;
   descriptionCol: number;
   categoryCol: number;
   unitCol: number;
@@ -55,6 +57,10 @@ export interface ParsedBoqItemResult {
   status: BoqRowStatus;
   warningMessage?: string;
   validationError?: string;
+  isAutoPriced?: boolean;
+  sourceFileName?: string;
+  sourceSheetName?: string;
+  matchedConstantCode?: string;
 }
 
 export interface WorkbookParseResult {
@@ -97,8 +103,22 @@ export function cleanNumber(val: any): number {
   let s = String(val).trim();
   if (!s) return 0;
   s = normalizeArabicDigits(s);
-  // Remove thousand commas and extraneous characters except digits, minus, and decimal point
-  s = s.replace(/,/g, '').replace(/[^\d.-]/g, '');
+
+  // If multiple space-separated number chunks exist (e.g., '9.300.000 9.300.000'), pick the last valid number
+  const parts = s.split(/\s+/).filter((p) => /\d/.test(p));
+  if (parts.length > 1) {
+    s = parts[parts.length - 1];
+  }
+
+  // Remove thousand commas
+  s = s.replace(/,/g, '');
+  // If multiple dots exist (e.g., 9.300.000 or 15.633.960), treat as thousand separators
+  const dotCount = (s.match(/\./g) || []).length;
+  if (dotCount > 1) {
+    s = s.replace(/\./g, '');
+  }
+  // Remove extraneous characters except digits, minus, and decimal point
+  s = s.replace(/[^\d.-]/g, '');
   const num = parseFloat(s);
   if (isNaN(num)) return 0;
   return Math.round((num + Number.EPSILON) * 10000) / 10000;
@@ -110,37 +130,64 @@ export function cleanNumber(val: any): number {
 
 export function normalizeUnit(rawUnit: string): string {
   if (!rawUnit) return '';
-  const u = rawUnit.trim().toLowerCase();
-
-  // Cubic meter
-  if (/^(m3|m³|cum|cu\.m|m\^3|م3|م³|متر مكعب|م\.م|متر3)$/i.test(u)) return 'm3';
-
-  // Square meter
-  if (/^(m2|m²|sqm|sq\.m|m\^2|م2|م²|متر مربع|متر مسطح|م\.متر|متر2)$/i.test(u)) return 'm2';
-
-  // Linear meter
-  if (/^(lm|m|r\.m|rm|ml|linear meter|م\.ط|متر طولي|م\/ط|متر)$/i.test(u)) return 'm';
-
-  // Item / Piece / Number
-  if (/^(pcs|pc|ea|each|nos|no|no\.|nr|item|عدد|حبه|حبة|قطعة|راس|رأس|بند)$/i.test(u)) return 'item';
+  const raw = rawUnit.trim();
+  const u = raw.toLowerCase();
+  const stripped = u.replace(/[\.\s_\/-]/g, '');
 
   // Lump sum
-  if (/^(ls|lump sum|lumpsum|sum|job|مقطوعية|جملة|مقطوع|بالمقطوع)$/i.test(u)) return 'ls';
+  if (
+    /^(ls|lumpsum|sum|job|مقطوعية|جملة|مقطوع|بالمقطوع)$/i.test(stripped) ||
+    /^(l\.s|l\.s\.|l\/s|lump\s*sum|مقطوعية|جملة|مقطوع|بالمقطوع)$/i.test(u)
+  ) {
+    return 'ls';
+  }
+
+  // Cubic meter
+  if (
+    /^(m3|cum|cumtr|م3|مترمكعب|مم)$/i.test(stripped) ||
+    /^(m3|m³|cum|cu\.m|m\^3|م3|م³|متر مكعب|م\.م|متر3)$/i.test(u)
+  ) {
+    return 'm3';
+  }
+
+  // Square meter
+  if (
+    /^(m2|sqm|sqmtr|م2|مترمربع|مترمسطح|ممتر)$/i.test(stripped) ||
+    /^(m2|m²|sqm|sq\.m|m\^2|م2|م²|متر مربع|متر مسطح|م\.متر|متر2)$/i.test(u)
+  ) {
+    return 'm2';
+  }
+
+  // Linear meter
+  if (
+    /^(lm|m|rm|ml|linearmeter|مط|مترطولي|متر)$/i.test(stripped) ||
+    /^(lm|m|r\.m|rm|ml|linear meter|م\.ط|متر طولي|م\/ط|متر)$/i.test(u)
+  ) {
+    return 'm';
+  }
+
+  // Item / Piece / Number
+  if (
+    /^(pcs|pc|ea|each|nos|no|nr|item|عدد|حبه|حبة|قطعة|راس|رأس|بند)$/i.test(stripped) ||
+    /^(pcs|pc|ea|each|nos|no|no\.|nr|item|عدد|حبه|حبة|قطعة|راس|رأس|بند)$/i.test(u)
+  ) {
+    return 'item';
+  }
 
   // Weight
-  if (/^(kg|kilo|كجم|كيلو|كيلوجرام)$/i.test(u)) return 'kg';
-  if (/^(ton|tonne|طن)$/i.test(u)) return 'ton';
+  if (/^(kg|kilo|كجم|كيلو|كيلوجرام)$/i.test(stripped) || /^(kg|kilo|كجم|كيلو|كيلوجرام)$/i.test(u)) return 'kg';
+  if (/^(ton|tonne|طن)$/i.test(stripped) || /^(ton|tonne|طن)$/i.test(u)) return 'ton';
 
   // Sets / Points
-  if (/^(set|طقم|مجموعة)$/i.test(u)) return 'set';
-  if (/^(point|pt|نقطة|مخرج)$/i.test(u)) return 'point';
+  if (/^(set|طقم|مجموعة)$/i.test(stripped) || /^(set|طقم|مجموعة)$/i.test(u)) return 'set';
+  if (/^(point|pt|نقطة|مخرج)$/i.test(stripped) || /^(point|pt|نقطة|مخرج)$/i.test(u)) return 'point';
 
   // Time / Trips
-  if (/^(day|يوم|يومية)$/i.test(u)) return 'day';
-  if (/^(month|شهر)$/i.test(u)) return 'month';
-  if (/^(trip|نقلة|مشوار)$/i.test(u)) return 'trip';
+  if (/^(day|يوم|يومية)$/i.test(stripped) || /^(day|يوم|يومية)$/i.test(u)) return 'day';
+  if (/^(month|شهر)$/i.test(stripped) || /^(month|شهر)$/i.test(u)) return 'month';
+  if (/^(trip|نقلة|مشوار)$/i.test(stripped) || /^(trip|نقلة|مشوار)$/i.test(u)) return 'trip';
 
-  return rawUnit.trim();
+  return raw;
 }
 
 // ----------------------------------------------------------------------
@@ -151,16 +198,43 @@ export function classifyTradeFromDescription(desc: string): string {
   if (!desc) return 'general';
   const text = desc.toLowerCase();
 
-  // HVAC & Firefighting (Checked before plumbing to avoid pump/pipe collisions)
+  // 1. Low Current & Smart Security (CCTV, Fire Alarm, Data, Sound, Intercom)
   if (
-    /تكييف|تهوية|دكت|إطفاء|اطفاء|رشاشات|حريق|إنذار|انذار|مروحة|صاج|تشيلر|مكافحة|hvac|chiller|duct|air conditioning|firefighting|fire fighting|sprinkler|fire alarm|ventilation|exhaust/i.test(
+    /تيار خفيف|انذار حريق|إنذار حريق|إنذار|انذار|كواسر|كاسر زجاج|كاميرات|مراقبة|شبكة معلومات|مخرج داتا|انتركم|إنتركم|صوتيات|اذاعة داخلية|إخلاء صوتي|low current|light current|fire alarm|cctv|ip camera|smoke detector|heat detector|manual call|call point|call station|sounder|strobe|control module|monitor module|isolator module|voice evacuation|loudspeaker|intercom|patch cord|cat\.?6|cat\.?6a|rj45|data outlet|it rack/i.test(
       text
     )
   ) {
-    return 'hvac_firefighting';
+    return 'low_current';
   }
 
-  // Civil & Concrete
+  // 2. Fire Fighting & Suppression (Sprinklers, Extinguishers, Hydrants, Foam, Clean Agent)
+  if (
+    /إطفاء|اطفاء|رشاشات|حريق|مكافحة|طفاية|طفايات|صندوق حريق|هوز ريل|fm200|novec|co2|firefighting|fire fighting|fire protection|fire suppression|sprinkler|fire hose|fire search|fhc|hydrant|siamese|seamless|schedule 40|astm a53|astm a\s*53|hdpe fire|nrs|os&y|osy|tie-in|tie in/i.test(
+      text
+    )
+  ) {
+    return 'fire_fighting';
+  }
+
+  // 3. HVAC & Ventilation (High priority to capture A/C units, chillers, fans, ducts, copper refrigeration pipes before general plumbing)
+  if (
+    /تكييف|تهوية|دكت|صاج|تشيلر|شيلر|فان كويل|مكيف|مروحة|مراوح|مواسير نحاس|نحاس تكييف|خط سحب|خط طرد|نحاس وتبريد|hvac|chiller|duct|air conditioning|air conditioner|a\/c|split\s*unit|high\s*wall|ventilation|exhaust\s*fan|centrifugal|fcu|ahu|vrf|vrv|\bcfm\b|smacna|refrigerant|refrigeration|copper\s*pipes?|copper\s*cabling|copper\s*tubing|suction\s*line/i.test(
+      text
+    )
+  ) {
+    return 'hvac';
+  }
+
+  // 4. Electrical & Power Infrastructure
+  if (
+    /كهرباء|كهربائى|كهربائي|إنارة|انارة|كابلات|كابل|جهد متوسط|جهد منخفض|أكشاك|كشك محول|محول|موزع|لوحة توزيع|لوحة التوزيع|قاطع|قواطع|باسبار|بطاريات|شاحن|تأريض|نظام أرض|إلكترود|بيلر|بيلرات|عدايات|xlpe|\bsta\b|switchgear|transformer|electrical|cable|wires?|panel|switches|lighting|breaker|conduit|earthing|pillar|ك\s*ف\s*أ|ك\.ف\.أ|\bkva\b|\bmva\b|امبير|أمبير/i.test(
+      text
+    )
+  ) {
+    return 'electrical_power';
+  }
+
+  // 5. Civil & Concrete
   if (
     /خرسانة|مسلحة|عادية|حفر|ردم|إحلال|احلال|أساسات|اساسات|قواعد|أعمدة|اعمدة|سقف|كمرات|ميد|بيتون|حدادة|نجارة مسلحة|سملات|لبشة|بياض عزل خرسانة|concrete|rebar|excavation|backfill|footing|foundation|column|slab|beam|earthwork|formwork/i.test(
       text
@@ -169,7 +243,7 @@ export function classifyTradeFromDescription(desc: string): string {
     return 'civil_concrete';
   }
 
-  // Finishing & Architecture
+  // 6. Finishing & Architecture
   if (
     /بياض|محارة|دهان|دهانات|سيراميك|بورسلين|رخام|جرانيت|طوب|مباني|جبس|جبسوم بورد|أبواب|ابواب|شبابيك|ألومنيوم|الومنيوم|عزل|أرضيات|ارضيات|واجهات|نجارة معمارية|ديكور|plaster|paint|painting|ceramic|porcelain|marble|granite|brick|block|masonry|gypsum|door|window|aluminum|insulation|finishing|flooring|cladding|waterproof|membrane|bitumen|polystyrene|extruded|screed/i.test(
       text
@@ -178,25 +252,46 @@ export function classifyTradeFromDescription(desc: string): string {
     return 'architecture_finishes';
   }
 
-  // Plumbing & Sanitary
+  // 7. Plumbing & Sanitary
   if (
-    /صحي|سباكة|مواسير|تغذية|صرف|حمام|مرحاض|خلاط|محبس|طلمبة|مضخة|بيارات|غرف تفتيش|بالوعة|سيفون|شبكة مياه|plumbing|sanitary|drainage|water supply|pipe|piping|valve|pump|sewerage|manhole/i.test(
+    /صحي|سباكة|مواسير|تغذية|صرف|حمام|مرحاض|خلاط|طلمبة|مضخة|بيارات|غرف تفتيش|بالوعة|سيفون|شبكة مياه|شاور|حوض|مغسلة|بانيو|سخان|خزان|جروهي|ديورافيت|ايديال|gebrit|duravit|grohe|ideal standard|shower|basin|lavatory|wc|water closet|bathtub|urinal|tray|plumbing|sanitary|drainage|water supply|pipe|piping|valve|pump|sewerage|manhole|ppr|upvc/i.test(
       text
     )
   ) {
     return 'plumbing_sanitary';
   }
 
-  // Electrical & Power
-  if (
-    /كهرباء|إنارة|انارة|كابلات|أسلاك|اسلاك|لوحة توزيع|قاطع|مفتاح|بريزة|كشاف|سبوت|تأريض|محول|مولد|electrical|cable|wire|panel|switch|socket|lighting|breaker|conduit|transformer|earthing/i.test(
-      text
-    )
-  ) {
+  return 'general';
+}
+
+// ----------------------------------------------------------------------
+// 3.1 Sheet-Level Trade Scope Detector
+// ----------------------------------------------------------------------
+
+export function detectSheetTradeScope(sheetName = '', titleText = ''): string | null {
+  const combined = `${sheetName} ${titleText}`.toLowerCase();
+  if (/\b(lc\b|lc\s*boq|light\s*current|low\s*current|تيار\s*خفيف|انذار|إنذار)/i.test(combined)) {
+    return 'low_current';
+  }
+  if (/\b(elec\b|elec\s*boq|electrical|كهربا|كهرباء|power|قوى)/i.test(combined)) {
     return 'electrical_power';
   }
-
-  return 'general';
+  if (/\b(hvac|تكييف|تهوية|duct|صاج|تبريد)/i.test(combined)) {
+    return 'hvac';
+  }
+  if (/\b(plumb|plumbing|sanitary|صحي|سباكة|تغذية|صرف)/i.test(combined)) {
+    return 'plumbing_sanitary';
+  }
+  if (/\b(fire|fighting|ff\b|مكافحة|اطفاء|إطفاء)/i.test(combined)) {
+    return 'fire_fighting';
+  }
+  if (/\b(civil|concrete|خرسان|مدني|أساسات|قواعد)/i.test(combined)) {
+    return 'civil_concrete';
+  }
+  if (/\b(arch|finishes|تشطيب|معمار|دهانات|أرضيات)/i.test(combined)) {
+    return 'architecture_finishes';
+  }
+  return null;
 }
 
 // ----------------------------------------------------------------------
@@ -267,7 +362,7 @@ export function isSectionHeaderRow(
 // 5. Column Alias Dictionaries
 // ----------------------------------------------------------------------
 
-const COLUMN_ALIASES = {
+export const COLUMN_ALIASES = {
   description: [
     'بيان',
     'أعمال',
@@ -444,11 +539,14 @@ const COLUMN_ALIASES = {
   ],
 };
 
-function testCellMatches(cellStr: string, aliases: string[]): boolean {
+export function testCellMatches(cellStr: string, aliases: string[]): boolean {
   if (!cellStr) return false;
   const clean = cellStr.trim().toLowerCase().replace(/[\s_()/-]/g, '');
   return aliases.some((alias) => {
     const cleanAlias = alias.toLowerCase().replace(/[\s_()/-]/g, '');
+    if (cleanAlias.length <= 2) {
+      return clean === cleanAlias;
+    }
     return clean === cleanAlias || clean.includes(cleanAlias);
   });
 }
@@ -499,8 +597,25 @@ export function detectHeaderRow(matrix: any[][]): { headerRowIdx: number; mappin
       const cell = cleanString(row[c]);
       if (!cell) continue;
 
-      // Description is key
-      if (currentMapping.descriptionCol === -1 && testCellMatches(cell, COLUMN_ALIASES.description)) {
+      // Item Name vs Description
+      const isExplicitDesc = /^(description|desc|item description|work description|بيان الأعمال|بيان الاعمال|المواصفات|شرح)$/i.test(cell);
+      const isItemName = /^(item name|اسم البند|اسم الصنف|item title)$/i.test(cell);
+
+      if (isExplicitDesc) {
+        if (currentMapping.descriptionCol !== -1 && currentMapping.itemNameCol === undefined) {
+          currentMapping.itemNameCol = currentMapping.descriptionCol;
+        }
+        currentMapping.descriptionCol = c;
+        rowScore += 7;
+      } else if (isItemName) {
+        if (currentMapping.descriptionCol === -1) {
+          currentMapping.descriptionCol = c;
+          currentMapping.itemNameCol = c;
+        } else {
+          currentMapping.itemNameCol = c;
+        }
+        rowScore += 6;
+      } else if (currentMapping.descriptionCol === -1 && testCellMatches(cell, COLUMN_ALIASES.description)) {
         currentMapping.descriptionCol = c;
         rowScore += 6;
       }
@@ -557,13 +672,15 @@ export function detectHeaderRow(matrix: any[][]): { headerRowIdx: number; mappin
     }
   }
 
-  // Fallback: If description column wasn't detected by header name,
-  // find the text column with the longest average string length in data rows
-  if (bestMapping.descriptionCol === -1 && matrix.length > bestRowIdx + 1) {
-    const colLengths: Record<number, { sum: number; count: number }> = {};
-    const sampleRows = matrix.slice(bestRowIdx + 1, Math.min(matrix.length, bestRowIdx + 15));
+  // Fallback & Refinement:
+  const sampleDataRows = matrix.slice(bestRowIdx + 1, Math.min(matrix.length, bestRowIdx + 20));
 
-    sampleRows.forEach((r) => {
+  // If description column wasn't detected by header name,
+  // find the text column with the longest average string length in data rows
+  if (bestMapping.descriptionCol === -1 && sampleDataRows.length > 0) {
+    const colLengths: Record<number, { sum: number; count: number }> = {};
+
+    sampleDataRows.forEach((r) => {
       if (Array.isArray(r)) {
         r.forEach((cell, cIdx) => {
           const str = cleanString(cell);
@@ -591,6 +708,46 @@ export function detectHeaderRow(matrix: any[][]): { headerRowIdx: number; mappin
     }
   }
 
+  // Refine unitPriceCol if candidate column is completely empty in data rows
+  if (sampleDataRows.length > 0) {
+    const headerRow = matrix[bestRowIdx] || [];
+
+    let currentPriceNumCount = 0;
+    if (bestMapping.unitPriceCol !== -1) {
+      sampleDataRows.forEach((r) => {
+        if (Array.isArray(r) && cleanNumber(r[bestMapping.unitPriceCol]) > 0) {
+          currentPriceNumCount++;
+        }
+      });
+    }
+
+    // If current unitPriceCol is empty or has 0 numbers, search for alternative price column with numbers
+    if (currentPriceNumCount === 0) {
+      for (let c = 0; c < headerRow.length; c++) {
+        if (
+          c === bestMapping.descriptionCol ||
+          c === bestMapping.qtyCol ||
+          c === bestMapping.unitCol ||
+          c === bestMapping.totalPriceCol
+        ) {
+          continue;
+        }
+        const cell = cleanString(headerRow[c]);
+        const isPriceAlias = testCellMatches(cell, COLUMN_ALIASES.unitPrice);
+        if (isPriceAlias) {
+          let numCount = 0;
+          sampleDataRows.forEach((r) => {
+            if (Array.isArray(r) && cleanNumber(r[c]) > 0) numCount++;
+          });
+          if (numCount > 0) {
+            bestMapping.unitPriceCol = c;
+            break;
+          }
+        }
+      }
+    }
+  }
+
   return { headerRowIdx: bestRowIdx, mapping: bestMapping };
 }
 
@@ -601,10 +758,14 @@ export function detectHeaderRow(matrix: any[][]): { headerRowIdx: number; mappin
 export function extractBoqRows(
   matrix: any[][],
   headerRowIdx: number,
-  mapping: ColumnMapping
+  mapping: ColumnMapping,
+  sheetTradeHint?: string,
+  sourceFileName?: string,
+  sourceSheetName?: string
 ): ParsedBoqItemResult[] {
   const results: ParsedBoqItemResult[] = [];
   const startRow = headerRowIdx + 1;
+  let currentParentContext = '';
 
   for (let r = startRow; r < matrix.length; r++) {
     const row = matrix[r];
@@ -615,7 +776,16 @@ export function extractBoqRows(
     if (!hasData) continue;
 
     // 1. Description
-    const descRaw = mapping.descriptionCol >= 0 ? cleanString(row[mapping.descriptionCol]) : '';
+    const nameRaw = mapping.itemNameCol !== undefined && mapping.itemNameCol >= 0 ? cleanString(row[mapping.itemNameCol]) : '';
+    let descRaw = mapping.descriptionCol >= 0 ? cleanString(row[mapping.descriptionCol]) : '';
+
+    if (nameRaw && descRaw && mapping.itemNameCol !== mapping.descriptionCol) {
+      if (!descRaw.toLowerCase().includes(nameRaw.toLowerCase())) {
+        descRaw = `${nameRaw} — ${descRaw}`;
+      }
+    } else if (nameRaw && !descRaw) {
+      descRaw = nameRaw;
+    }
 
     // If description matches total/summary row, skip it completely
     if (isSummaryOrTotalRow(descRaw)) {
@@ -631,8 +801,23 @@ export function extractBoqRows(
       codeRaw = `BOQ-${String(results.length + 1).padStart(3, '0')}`;
     }
 
-    // 3. Numbers
-    const contractQty = mapping.qtyCol >= 0 ? cleanNumber(row[mapping.qtyCol]) : 0;
+    // 3. Raw Quantity and Unit with Smart Swapping (Handles L.S in Qty column and 1 in Unit column)
+    const rawQtyCell = mapping.qtyCol >= 0 ? cleanString(row[mapping.qtyCol]) : '';
+    const rawUnitCell = mapping.unitCol >= 0 ? cleanString(row[mapping.unitCol]) : '';
+
+    const isQtyUnitLike = /^(l\.s|ls|l\/s|lump\s*sum|job|مقطوعية|جملة|m|m2|m3|م\.ط|م2|م3|no|nos|pcs|عدد|طقم|set)$/i.test(rawQtyCell);
+    const isUnitNumLike = rawUnitCell !== '' && !isNaN(Number(normalizeArabicDigits(rawUnitCell).replace(/,/g, '')));
+
+    let contractQty = 0;
+    let rawUnit = '';
+    if (isQtyUnitLike && isUnitNumLike) {
+      contractQty = cleanNumber(rawUnitCell);
+      rawUnit = rawQtyCell;
+    } else {
+      contractQty = cleanNumber(rawQtyCell);
+      rawUnit = rawUnitCell;
+    }
+
     const unitPrice = mapping.unitPriceCol >= 0 ? cleanNumber(row[mapping.unitPriceCol]) : 0;
     const estimatedUnitCost = mapping.estimatedCostCol >= 0 ? cleanNumber(row[mapping.estimatedCostCol]) : 0;
 
@@ -641,23 +826,13 @@ export function extractBoqRows(
       totalPrice = cleanNumber(row[mapping.totalPriceCol]);
     }
 
-    // 4. Unit
-    const rawUnit = mapping.unitCol >= 0 ? cleanString(row[mapping.unitCol]) : '';
+    // 4. Unit Normalization
     let unit = normalizeUnit(rawUnit);
     if (!unit && contractQty > 0) {
       unit = 'm3'; // Default fallback for quantifiable items with missing unit
     }
 
-    // 5. Category
-    let category = mapping.categoryCol >= 0 ? cleanString(row[mapping.categoryCol]) : '';
-    if (!category || category === 'general') {
-      category = classifyTradeFromDescription(descRaw);
-    }
-
-    // 6. Notes
-    const notes = mapping.notesCol >= 0 ? cleanString(row[mapping.notesCol]) : undefined;
-
-    // 7. Validation & Status (Zero-Blocker Tender Mode)
+    // 5. Section Header & Preamble Detection
     const isSectionHeader = isSectionHeaderRow(descRaw, contractQty, unitPrice, rawUnit);
     const isPreamble =
       !isSectionHeader &&
@@ -665,10 +840,52 @@ export function extractBoqRows(
       unitPrice <= 0 &&
       (!rawUnit || rawUnit.trim() === '');
 
+    const isNoteRow = /^(note|notes|ملاحظة|ملاحظات|تنبيه|conditions)/i.test(codeRaw.trim()) || /^(note:|ملاحظة:)/i.test(descRaw.trim());
+
+    if (isSectionHeader || (isPreamble && !isNoteRow)) {
+      if (descRaw.length > 5 && !isNoteRow) {
+        currentParentContext = descRaw;
+      }
+    } else if (!isPreamble) {
+      // Sub-item: Check if it should inherit or merge parent context for completeness
+      const isSubItemCode = /^[a-z0-9]$/i.test(codeRaw.trim()) || /^[0-9]+\.[0-9]+(\.[0-9]+)*$/i.test(codeRaw.trim()) || /^BOQ-[0-9]+$/i.test(codeRaw.trim());
+      const isShortDesc = descRaw.length < 50;
+      
+      if (currentParentContext && (isSubItemCode && isShortDesc) && !descRaw.toLowerCase().includes(currentParentContext.toLowerCase().slice(0, 15))) {
+        descRaw = `${currentParentContext} — ${descRaw}`;
+      }
+    }
+
+    // 6. Category / Trade Classification (Uses Sheet-Level Hint or Keyword Classifier)
+    let category = mapping.categoryCol >= 0 ? cleanString(row[mapping.categoryCol]) : '';
+    if (!category || category === 'general') {
+      if (sheetTradeHint) {
+        category = sheetTradeHint;
+      } else {
+        category = classifyTradeFromDescription(descRaw);
+      }
+    } else if (sheetTradeHint) {
+      category = sheetTradeHint;
+    }
+    if (category === 'general') {
+      const matched = matchEngineeringConstant(descRaw, codeRaw);
+      if (matched?.trade) {
+        category = matched.trade;
+      }
+    }
+
+    // 7. Notes
+    const notes = mapping.notesCol >= 0 ? cleanString(row[mapping.notesCol]) : undefined;
+
     let isValid = true;
     let status: BoqRowStatus = 'ready';
     let warningMessage: string | undefined;
     let validationError: string | undefined;
+    let finalUnitPrice = unitPrice;
+    let finalEstimatedCost = estimatedUnitCost;
+    let finalTotalPrice = totalPrice;
+    let isAutoPriced = false;
+    let matchedConstantCode: string | undefined;
 
     if (!descRaw || descRaw.length < 2) {
       isValid = false;
@@ -681,22 +898,48 @@ export function extractBoqRows(
     } else if (isPreamble) {
       isValid = true;
       status = 'unpriced';
-      warningMessage = 'ديباجة ومواصفات عامة (بدون كمية وسعر)';
-    } else if (contractQty <= 0 && unitPrice <= 0) {
-      isValid = true;
-      status = 'unpriced';
-      warningMessage = 'غير مسعر وكمية صفرية (بند مبدئي للمناقصة)';
-    } else if (unitPrice <= 0) {
-      isValid = true;
-      status = 'unpriced';
-      warningMessage = 'غير مسعر (بند مناقصة للتسعير لاحقاً)';
-    } else if (contractQty <= 0) {
-      isValid = true;
-      status = 'zero_qty';
-      warningMessage = 'كمية تعاقدية مبدئية: 0';
+      warningMessage = 'ديباجات وشروط عامة للمقايسة (بدون حصر أو كميات)';
     } else {
-      isValid = true;
-      status = 'ready';
+      // Check for master library match for proactive auto-pricing
+      const matched = matchEngineeringConstant(descRaw, codeRaw);
+      if (matched) {
+        matchedConstantCode = matched.itemCode;
+        if (finalUnitPrice <= 0 && matched.suggestedUnitPrice > 0) {
+          finalUnitPrice = matched.suggestedUnitPrice;
+          finalEstimatedCost = matched.directCost;
+          finalTotalPrice = contractQty * finalUnitPrice;
+          isAutoPriced = true;
+        }
+      }
+
+      // If estimated unit cost was not in the Excel file, compute baseline direct cost from constant or standard markup
+      if (finalEstimatedCost <= 0 && finalUnitPrice > 0) {
+        const matched = matchEngineeringConstant(descRaw, codeRaw);
+        if (matched?.directCost && matched.directCost > 0) {
+          finalEstimatedCost = matched.directCost;
+        } else {
+          finalEstimatedCost = Math.round((finalUnitPrice / 1.30) * 100) / 100;
+        }
+      }
+
+      if (contractQty <= 0 && finalUnitPrice <= 0) {
+        isValid = true;
+        status = 'unpriced';
+        warningMessage = 'غير مسعر وكمية صفرية (بند مبدئي للمناقصة)';
+      } else if (finalUnitPrice <= 0) {
+        isValid = true;
+        status = 'unpriced';
+        warningMessage = 'غير مسعر (بند مناقصة للتسعير لاحقاً)';
+      } else if (contractQty <= 0) {
+        isValid = true;
+        status = 'zero_qty';
+        warningMessage = isAutoPriced
+          ? 'تم التسعير آلياً، والكمية التعاقدية المبدئية: 0'
+          : 'كمية تعاقدية مبدئية: 0';
+      } else {
+        isValid = true;
+        status = 'ready';
+      }
     }
 
     results.push({
@@ -707,9 +950,9 @@ export function extractBoqRows(
       category,
       unit,
       contractQty,
-      unitPrice,
-      estimatedUnitCost,
-      totalPrice,
+      unitPrice: finalUnitPrice,
+      estimatedUnitCost: finalEstimatedCost,
+      totalPrice: finalTotalPrice,
       notes: notes || undefined,
       isValid,
       isSectionHeader,
@@ -717,6 +960,10 @@ export function extractBoqRows(
       status,
       warningMessage,
       validationError,
+      isAutoPriced,
+      matchedConstantCode,
+      sourceFileName,
+      sourceSheetName,
     });
   }
 
@@ -733,6 +980,7 @@ export async function parseBoqWorkbook(
 ): Promise<WorkbookParseResult> {
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array' });
+  const fileName = file.name;
 
   if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
     throw new Error('ملف الـ Excel لا يحتوي على أي صفحات عمل (Sheets).');
@@ -786,8 +1034,10 @@ export async function parseBoqWorkbook(
     ? matrix[headerRowIdx].map((h) => cleanString(h))
     : [];
 
-  // 3. Extract Rows
-  const rows = extractBoqRows(matrix, headerRowIdx, mapping);
+  // 3. Extract Rows with Sheet-Level & File-Level Trade Hint
+  const titleText = matrix.slice(0, Math.max(headerRowIdx, 3)).flat().map((c) => cleanString(c)).join(' ');
+  const sheetTradeHint = detectSheetTradeScope(selectedSheet, `${titleText} ${fileName}`) || undefined;
+  const rows = extractBoqRows(matrix, headerRowIdx, mapping, sheetTradeHint, fileName, selectedSheet);
 
   const validRows = rows.filter((r) => r.isValid);
   const unpricedCount = rows.filter((r) => r.status === 'unpriced' && !r.isSectionHeader).length;
@@ -819,14 +1069,17 @@ export function reExtractBoqWithCustomMapping(
   fileBuffer: ArrayBuffer,
   sheetName: string,
   headerRowIdx: number,
-  customMapping: ColumnMapping
+  customMapping: ColumnMapping,
+  fileName?: string
 ): { rows: ParsedBoqItemResult[]; validCount: number; unpricedCount: number; zeroQtyCount: number; sectionHeaderCount: number; invalidCount: number; totalContractValue: number; totalEstimatedCost: number } {
   const workbook = XLSX.read(fileBuffer, { type: 'array' });
   const worksheet = workbook.Sheets[sheetName];
   if (!worksheet) throw new Error(`صفحة العمل ${sheetName} غير موجودة`);
 
   const matrix = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
-  const rows = extractBoqRows(matrix, headerRowIdx, customMapping);
+  const titleText = matrix.slice(0, Math.max(headerRowIdx, 3)).flat().map((c) => cleanString(c)).join(' ');
+  const sheetTradeHint = detectSheetTradeScope(sheetName, `${titleText} ${fileName || ''}`) || undefined;
+  const rows = extractBoqRows(matrix, headerRowIdx, customMapping, sheetTradeHint, fileName, sheetName);
 
   const validRows = rows.filter((r) => r.isValid);
   const unpricedCount = rows.filter((r) => r.status === 'unpriced' && !r.isSectionHeader).length;

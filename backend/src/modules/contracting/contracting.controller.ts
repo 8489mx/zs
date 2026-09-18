@@ -8,6 +8,8 @@ import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.in
 import {
   CreateProjectDto,
   UpdateProjectDto,
+  MarkTenderLostDto,
+  AwardTenderDto,
   CreateBoqItemDto,
   UpdateBoqItemDto,
   CreateChangeOrderDto,
@@ -60,6 +62,9 @@ import {
   CreateSubcontractorBackchargeDto,
   UpdateBackchargeStatusDto,
   CreateEquipmentFuelLogDto,
+  CreateSubcontractorDto,
+  UpdateSubcontractorDto,
+  CreateSubcontractorPaymentDto,
 } from './dto/contracting.dto';
 
 
@@ -105,6 +110,29 @@ export class ContractingController {
   @Delete('projects/:id')
   async deleteProject(@Param('id') id: string, @Req() req: RequestWithAuth) {
     return this.contractingService.deleteProject(req.authContext!, id);
+  }
+
+  @Post('projects/:id/revisions')
+  async createTenderRevision(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.createTenderRevision(req.authContext!, id);
+  }
+
+  @Post('projects/:id/mark-lost')
+  async markTenderLost(
+    @Param('id') id: string,
+    @Body() dto: MarkTenderLostDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.markTenderLost(req.authContext!, id, dto);
+  }
+
+  @Post('projects/:id/award')
+  async awardTender(
+    @Param('id') id: string,
+    @Body() dto: AwardTenderDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.awardTender(req.authContext!, id, dto);
   }
 
   // --------------------------------------------------------------------------
@@ -228,6 +256,67 @@ export class ContractingController {
     @Req() req: RequestWithAuth,
   ) {
     return this.contractingService.createSubcontract(req.authContext!, projectId, dto);
+  }
+
+  // --------------------------------------------------------------------------
+  // 5.1 Subcontractors Master Directory & Financial Ledger
+  // --------------------------------------------------------------------------
+
+  @Get('subcontractors')
+  async getSubcontractors(
+    @Query('search') search?: string,
+    @Query('tradeSpecialty') tradeSpecialty?: string,
+    @Query('status') status?: string,
+    @Req() req?: RequestWithAuth,
+  ) {
+    return this.contractingService.getSubcontractors(req!.authContext!, { search, tradeSpecialty, status });
+  }
+
+  @Get('subcontractors/:id')
+  async getSubcontractorById(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getSubcontractorById(req.authContext!, Number(id));
+  }
+
+  @Post('subcontractors')
+  async createSubcontractor(@Body() dto: CreateSubcontractorDto, @Req() req: RequestWithAuth) {
+    return this.contractingService.createSubcontractor(req.authContext!, dto);
+  }
+
+  @Put('subcontractors/:id')
+  async updateSubcontractor(
+    @Param('id') id: string,
+    @Body() dto: UpdateSubcontractorDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.updateSubcontractor(req.authContext!, Number(id), dto);
+  }
+
+  @Delete('subcontractors/:id')
+  async deleteSubcontractor(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.deleteSubcontractor(req.authContext!, Number(id));
+  }
+
+  @Get('subcontractors/:id/ledger')
+  async getSubcontractorLedger(
+    @Param('id') id: string,
+    @Query('projectId') projectId?: string,
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Req() req?: RequestWithAuth,
+  ) {
+    return this.contractingService.getSubcontractorLedger(req!.authContext!, Number(id), {
+      projectId,
+      fromDate,
+      toDate,
+    });
+  }
+
+  @Post('subcontractors/payments')
+  async createSubcontractorPayment(
+    @Body() dto: CreateSubcontractorPaymentDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.createSubcontractorPayment(req.authContext!, dto);
   }
 
   // --------------------------------------------------------------------------

@@ -500,16 +500,31 @@
 }
 
 .barcode-preview-sheet-thermal {
-  max-width: 290px;
-  width: 290px;
-  background: #ffffff;
+  max-width: 314px;
+  width: 314px;
+  margin: 0 auto;
+  background: #f1f5f9;
   border-radius: 8px;
   border: 1px solid #cbd5e1;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
-  padding: 8px !important;
+  padding: 12px 10px !important;
   display: flex;
   flex-direction: column;
-  gap: 8px !important;
+  gap: 10px !important;
+  align-items: center;
+}
+
+.barcode-preview-thermal-item {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
 
 /* Single High-Fidelity Sticker Preview */
@@ -700,64 +715,86 @@
   height: 100%;
 }
 
-/* Enhanced Single Sticker Card Presentation (1:1 Zoom) */
-.barcode-preview-single-card .barcode-label-card {
+/* Enhanced Single Sticker & Thermal Reel Presentation (WYSIWYG 1:1) */
+.barcode-preview-single-card .barcode-label-card,
+.barcode-preview-thermal-item .barcode-label-card {
   border: none;
-  padding: 12px 14px;
+  padding: 6px 10px;
   background: #ffffff;
+  height: 100% !important;
+  width: 100% !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
 }
 
-.barcode-preview-single-card .barcode-label-store {
-  font-size: 10.5px;
-  font-weight: 700;
+.barcode-preview-single-card .barcode-label-store,
+.barcode-preview-thermal-item .barcode-label-store {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
   color: #475569;
   margin-bottom: 2px;
 }
 
-.barcode-preview-single-card .barcode-label-name {
-  font-size: 14px;
-  font-weight: 900;
+.barcode-preview-single-card .barcode-label-name,
+.barcode-preview-thermal-item .barcode-label-name {
+  font-size: 15.5px !important;
+  font-weight: 900 !important;
   color: #000000;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
-.barcode-preview-single-card .barcode-label-svg {
-  height: 38px;
-  max-height: 44px;
-  margin: 2px 0;
+.barcode-preview-single-card .barcode-label-svg,
+.barcode-preview-thermal-item .barcode-label-svg {
+  height: 88px !important;
+  max-height: 92px !important;
+  margin: 3px 0 !important;
 }
 
-.barcode-preview-single-card .barcode-label-text {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 1.1px;
+.barcode-preview-single-card .has-food-statement .barcode-label-svg,
+.barcode-preview-thermal-item .has-food-statement .barcode-label-svg {
+  height: 62px !important;
+  max-height: 65px !important;
+  margin: 2px 0 !important;
+}
+
+.barcode-preview-single-card .barcode-label-text,
+.barcode-preview-thermal-item .barcode-label-text {
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1.2px;
   color: #000000;
   margin-top: 2px;
 }
 
-.barcode-preview-single-card .barcode-label-bottom-row {
-  margin-top: 5px;
-  padding-top: 5px;
+.barcode-preview-single-card .barcode-label-bottom-row,
+.barcode-preview-thermal-item .barcode-label-bottom-row {
+  margin-top: 4px;
+  padding-top: 4px;
   border-top: 1px dotted #94a3b8;
 }
 
-.barcode-preview-single-card .barcode-label-unit-badge {
-  font-size: 10.5px;
-  font-weight: 800;
-  padding: 2px 7px;
+.barcode-preview-single-card .barcode-label-unit-badge,
+.barcode-preview-thermal-item .barcode-label-unit-badge {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  padding: 2px 7px !important;
   background: #ffffff;
-  border: 1px solid #000000;
+  border: 1.5px solid #000000 !important;
   color: #000000;
 }
 
-.barcode-preview-single-card .barcode-label-sku {
-  font-size: 9.5px;
+.barcode-preview-single-card .barcode-label-sku,
+.barcode-preview-thermal-item .barcode-label-sku {
+  font-size: 10px !important;
   color: #334155;
 }
 
-.barcode-preview-single-card .barcode-label-price {
-  font-size: 16px;
-  font-weight: 900;
+.barcode-preview-single-card .barcode-label-price,
+.barcode-preview-thermal-item .barcode-label-price {
+  font-size: 19px !important;
+  font-weight: 900 !important;
   color: #000000;
 }
 
@@ -808,24 +845,39 @@
   max-width: 100%;
 }
 
-.barcode-preview-single-card .barcode-label-food-statement {
-  font-size: 11px;
-  padding: 4px 8px;
-  gap: 3px;
-  margin: 4px 0;
-  border: 1px solid #000000;
-  background: #ffffff;
+.barcode-preview-single-card .barcode-label-food-statement,
+.barcode-preview-thermal-item .barcode-label-food-statement {
+  font-size: 11.5px !important;
+  padding: 4px 8px !important;
+  gap: 3px !important;
+  margin: 4px 0 !important;
+  border: 1.5px solid #000000 !important;
+  border-radius: 4px !important;
+  background: #ffffff !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
-.barcode-preview-single-card .barcode-label-food-dates {
-  gap: 8px;
-  font-size: 10.5px;
+.barcode-preview-single-card .barcode-label-food-dates,
+.barcode-preview-thermal-item .barcode-label-food-dates {
+  gap: 8px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #000000 !important;
 }
 
-.barcode-preview-single-card .barcode-label-storage-note {
-  font-size: 9.5px;
-  font-weight: 700;
-  color: #000000;
+.barcode-preview-single-card .barcode-label-food-dates span strong,
+.barcode-preview-thermal-item .barcode-label-food-dates span strong {
+  font-weight: 900 !important;
+  color: #000000 !important;
+}
+
+.barcode-preview-single-card .barcode-label-storage-note,
+.barcode-preview-thermal-item .barcode-label-storage-note {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  color: #000000 !important;
+  line-height: 1.2 !important;
 }
 
 /* Live Preview Shelf Label (استيكر الرف التمويني) */
@@ -845,7 +897,8 @@
   overflow: hidden;
 }
 
-.barcode-preview-single-card .barcode-shelf-product-name {
+.barcode-preview-single-card .barcode-shelf-product-name,
+.barcode-preview-thermal-item .barcode-shelf-product-name {
   font-size: 14px;
   line-height: 1.3;
 }
@@ -880,7 +933,8 @@
   line-height: 1;
 }
 
-.barcode-preview-single-card .barcode-shelf-price-amount {
+.barcode-preview-single-card .barcode-shelf-price-amount,
+.barcode-preview-thermal-item .barcode-shelf-price-amount {
   font-size: 22px;
   font-weight: 900;
   letter-spacing: -0.5px;
@@ -893,7 +947,8 @@
   margin-top: 2px;
 }
 
-.barcode-preview-single-card .barcode-shelf-tax-note {
+.barcode-preview-single-card .barcode-shelf-tax-note,
+.barcode-preview-thermal-item .barcode-shelf-tax-note {
   font-size: 9.5px;
   color: #334155;
 }
@@ -905,7 +960,8 @@
   margin-top: 2px;
 }
 
-.barcode-preview-single-card .barcode-shelf-unit-line {
+.barcode-preview-single-card .barcode-shelf-unit-line,
+.barcode-preview-thermal-item .barcode-shelf-unit-line {
   font-size: 10px;
 }
 

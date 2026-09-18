@@ -3470,6 +3470,47 @@ export interface ContractingSubcontractTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface ContractingSubcontractorTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string | null;
+  name: string;
+  trade_specialty: string | null;
+  phone: string | null;
+  mobile: string | null;
+  email: string | null;
+  address: string | null;
+  tax_number: string | null;
+  commercial_reg: string | null;
+  national_id: string | null;
+  bank_name: string | null;
+  bank_iban: string | null;
+  contact_person: string | null;
+  rating: ColumnType<number, number | string | undefined, number | string | undefined>;
+  status: ColumnType<'active' | 'suspended' | 'blacklisted', string | undefined, string | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingSubcontractorPaymentTable {
+  id: Generated<number>;
+  tenant_id: string;
+  project_id: string | null;
+  subcontractor_id: number;
+  subcontract_id: string | null;
+  invoice_id: string | null;
+  payment_number: string;
+  payment_date: string;
+  amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  payment_method: ColumnType<'cash' | 'bank_transfer' | 'check', string | undefined, string | undefined>;
+  reference_number: string | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface ContractingSiteDailyLogTable {
   id: Generated<string>;
   tenant_id: string;
@@ -3573,6 +3614,8 @@ export interface Database {
   contracting_invoices: ContractingInvoiceTable;
   contracting_invoice_items: ContractingInvoiceItemTable;
   contracting_subcontracts: ContractingSubcontractTable;
+  contracting_subcontractors: ContractingSubcontractorTable;
+  contracting_subcontractor_payments: ContractingSubcontractorPaymentTable;
   contracting_site_daily_logs: ContractingSiteDailyLogTable;
   contracting_rfis: ContractingRfiTable;
   contracting_schedule_tasks: ContractingScheduleTaskTable;

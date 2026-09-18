@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { getTextDirection } from '@/lib/arabic-normalization';
 import { contractingApi } from '../api/contracting.api';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
@@ -8,8 +9,35 @@ import { ImportBoqModal } from '../components/ImportBoqModal';
 import { ImportMasterBoqModal } from '../components/ImportMasterBoqModal';
 import { AutoPricingModal } from '../components/AutoPricingModal';
 import { ClientQuotationModal } from '../components/ClientQuotationModal';
+import { MarkTenderLostModal } from '../components/MarkTenderLostModal';
+import { AwardTenderModal } from '../components/AwardTenderModal';
+import { TenderSwitcherModal } from '../components/TenderSwitcherModal';
+import { ContractingWorkflowMapModal } from '../components/ContractingWorkflowMapModal';
 import { BRICK_SIZE_PRESETS } from '../components/TenderEstimatorModal';
 import { useContracting } from '../context/ContractingContext';
+import { matchEngineeringConstant } from '../utils/engineeringMasterPricingCore';
+import { exportPricedBoqWorkbook } from '../utils/originalWorkbookPricer';
+
+const DRAFT_STORAGE_KEY = 'zs_tender_estimator_draft_v2';
+
+const TRADE_LABELS: Record<string, string> = {
+  all: 'كافة البنود والتخصصات',
+  low_current: 'التيار الخفيف والأنظمة الذكية',
+  fire_fighting: 'شبكات مكافحة الحريق',
+  electrical_power: 'الأعمال الكهربائية',
+  plumbing_sanitary: 'الأعمال الصحية والسباكة',
+  hvac: 'التكييف والتهوية',
+  civil_concrete: 'أعمال مدنية وخرسانات',
+  architecture_finishes: 'تشطيبات ومعماري',
+  masonry: 'أعمال المباني',
+  concrete: 'أعمال الخرسانة',
+  plastering: 'أعمال البياض والمحارة',
+  flooring: 'أعمال الأرضيات',
+  finishes: 'أعمال الدهانات والتشطيب',
+  general: 'أعمال عامة ومتنوعة',
+};
+
+
 
 interface TenderItemComponent {
   componentCode: string;
@@ -27,6 +55,9 @@ interface TenderItem {
   unit: string;
   estimatedQty: number;
   trade: string;
+  sourceFileName?: string;
+  sourceSheetName?: string;
+  rawRowIdx?: number;
   components: TenderItemComponent[];
   wastePercent: number;
   overheadPercent: number;
@@ -57,22 +88,26 @@ const formatUnitLabel = (unit?: string, compCode?: string): string => {
 
 export function ContractingTenderPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const projectIdParam = searchParams.get('projectId');
   const { formatCurrency } = useSystemCurrency();
-  const { reloadProjects, setSelectedProjectId } = useContracting();
+  const { reloadProjects, setSelectedProjectId, projects } = useContracting();
 
   // Basic Tender Information
-  const [projectName, setProjectName] = useState('عطاء: مشروع إنشاء وتشطيب متكامل');
-  const [clientName, setClientName] = useState('شركة الأفق للتطوير والاستثمار العقاري');
+  const [projectName, setProjectName] = useState('');
+  const [clientName, setClientName] = useState('');
   const [durationMonths] = useState(8);
   const [globalProfitMargin, setGlobalProfitMargin] = useState(15);
   const [globalOverhead, setGlobalOverhead] = useState(7);
   const [globalWaste, setGlobalWaste] = useState(5);
 
-  // Constants & Loading State
+  // Constants, Items & Trade Filter State
   const [, setLoadingConstants] = useState(true);
   const [engineeringConstants, setEngineeringConstants] = useState<any[]>([]);
   const [items, setItems] = useState<TenderItem[]>([]);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [selectedTradeFilter, setSelectedTradeFilter] = useState<string>('all');
+  const [hasDraftHydrated, setHasDraftHydrated] = useState(false);
 
   // Sub-modals & CAD Form State
   const [isImportBoqOpen, setIsImportBoqOpen] = useState(false);
@@ -96,6 +131,17 @@ export function ContractingTenderPage() {
 
   // Saving / Awarding State
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentProject, setCurrentProject] = useState<any | null>(null);
+  const [isAwardModalOpen, setIsAwardModalOpen] = useState(false);
+  const [isLostModalOpen, setIsLostModalOpen] = useState(false);
+  const [isTenderSwitcherOpen, setIsTenderSwitcherOpen] = useState(false);
+  const [isWorkflowMapOpen, setIsWorkflowMapOpen] = useState(false);
+
+  const tendersUnderStudyCount = useMemo(() => {
+    return (projects || []).filter(
+      (p) => p.status === 'planning' || p.status === 'draft' || p.status === 'submitted' || p.status === 'negotiation'
+    ).length;
+  }, [projects]);
 
   // Dynamic Calculated Brick Rate
   const calculatedBrickRate = useMemo(() => {
@@ -138,48 +184,119 @@ export function ContractingTenderPage() {
       .getEngineeringConstants()
       .then((data) => {
         setEngineeringConstants(data || []);
-        if (items.length === 0 && data && data.length > 0) {
-          const defaultCodes = ['BRK-RED-12', 'CONC-FTG-C30', 'CONC-COL-C35', 'CONC-SLB-C30', 'PLAS-INT-01', 'TILE-FLR-CER', 'PAINT-INT-03'];
-          const initialTenderItems: TenderItem[] = [];
-
-          defaultCodes.forEach((code) => {
-            const found = data.find((c: any) => c.itemCode === code);
-            if (found) {
-              let defQty = 500;
-              if (code === 'BRK-RED-12') defQty = 1200;
-              if (code === 'CONC-FTG-C30') defQty = 180;
-              if (code === 'CONC-COL-C35') defQty = 95;
-              if (code === 'CONC-SLB-C30') defQty = 320;
-              if (code === 'PLAS-INT-01') defQty = 2400;
-              if (code === 'TILE-FLR-CER') defQty = 850;
-              if (code === 'PAINT-INT-03') defQty = 2400;
-
-              initialTenderItems.push({
-                id: `TND-${Math.random().toString(36).slice(2, 9)}`,
-                itemCode: found.itemCode,
-                description: found.itemName,
-                unit: found.unit,
-                estimatedQty: defQty,
-                trade: found.itemCode.startsWith('BRK') ? 'masonry' : found.itemCode.startsWith('CONC') ? 'concrete' : found.itemCode.startsWith('PLAS') ? 'plastering' : found.itemCode.startsWith('TILE') ? 'flooring' : 'finishes',
-                components: found.components || [],
-                wastePercent: found.wastePercent || 5,
-                overheadPercent: found.overheadPercent || 7,
-                profitMarkupPercent: found.profitMarkupPercent || 15,
-                notes: found.notes,
-              });
-            }
-          });
-
-          if (initialTenderItems.length > 0) {
-            setItems(initialTenderItems);
-          }
-        }
       })
       .catch((err) => {
         console.error('Failed to load engineering constants:', err);
       })
       .finally(() => setLoadingConstants(false));
   }, []);
+
+  // Hydrate from backend if projectId is in query, or from localStorage draft
+  useEffect(() => {
+    if (projectIdParam) {
+      let active = true;
+      (async () => {
+        try {
+          const proj = await contractingApi.getProjectById(projectIdParam);
+          if (!active) return;
+          if (proj) {
+            setCurrentProject(proj);
+            setProjectName(proj.name || '');
+            setClientName(proj.clientName || '');
+          }
+          const boqList = await contractingApi.getBoqItems(projectIdParam);
+          if (!active) return;
+          if (boqList && boqList.length > 0) {
+            const loadedItems: TenderItem[] = boqList.map((b: any) => ({
+              id: b.id,
+              itemCode: b.itemCode || `BOQ-${b.id.slice(0, 4)}`,
+              description: b.description || '',
+              unit: b.unit || 'item',
+              estimatedQty: Number(b.revisedQty || b.contractQty || 1),
+              trade: b.category || 'general',
+              components: [
+                {
+                  componentCode: `MAT-${b.itemCode}`,
+                  componentName: `خامات وتوريدات: ${b.description.slice(0, 40)}`,
+                  unit: b.unit || 'item',
+                  qtyPerUnit: 1,
+                  unitRate: Math.round(((b.estimatedUnitCost || b.unitPrice * 0.7) * 0.7) * 100) / 100,
+                  componentType: 'material',
+                },
+                {
+                  componentCode: `LAB-${b.itemCode}`,
+                  componentName: `مصنعيات وتركيب: ${b.description.slice(0, 40)}`,
+                  unit: b.unit || 'item',
+                  qtyPerUnit: 1,
+                  unitRate: Math.round(((b.estimatedUnitCost || b.unitPrice * 0.7) * 0.3) * 100) / 100,
+                  componentType: 'labor',
+                },
+              ],
+              wastePercent: globalWaste,
+              overheadPercent: globalOverhead,
+              profitMarkupPercent: globalProfitMargin,
+              notes: b.notes || '',
+            }));
+            setItems(loadedItems);
+          } else {
+            setItems([]);
+          }
+        } catch (err) {
+          console.error('Failed to load project into tender estimator:', err);
+        } finally {
+          if (active) setHasDraftHydrated(true);
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }
+
+    // Hydrate draft from LocalStorage
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.items && Array.isArray(parsed.items) && parsed.items.length > 0) {
+          setItems(parsed.items);
+          if (parsed.projectName) setProjectName(parsed.projectName);
+          if (parsed.clientName) setClientName(parsed.clientName);
+          if (parsed.globalProfitMargin !== undefined) setGlobalProfitMargin(parsed.globalProfitMargin);
+          if (parsed.globalOverhead !== undefined) setGlobalOverhead(parsed.globalOverhead);
+          if (parsed.globalWaste !== undefined) setGlobalWaste(parsed.globalWaste);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to parse draft from localStorage:', err);
+    } finally {
+      setHasDraftHydrated(true);
+    }
+  }, [projectIdParam]);
+
+  // Auto-Save Draft to localStorage when not editing a persisted project
+  useEffect(() => {
+    if (!hasDraftHydrated || projectIdParam) return;
+    try {
+      if (items.length > 0 || projectName.trim()) {
+        localStorage.setItem(
+          DRAFT_STORAGE_KEY,
+          JSON.stringify({
+            items,
+            projectName,
+            clientName,
+            globalProfitMargin,
+            globalOverhead,
+            globalWaste,
+            savedAt: new Date().toISOString(),
+          })
+        );
+      } else {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      }
+    } catch (err) {
+      console.error('Failed to auto-save tender draft:', err);
+    }
+  }, [items, projectName, clientName, globalProfitMargin, globalOverhead, globalWaste, hasDraftHydrated, projectIdParam]);
 
   // Apply Global Margins to All Items
   const handleApplyGlobalMargins = () => {
@@ -351,6 +468,139 @@ export function ContractingTenderPage() {
     };
   }, [items]);
 
+  // Distinct Source Files / Sheets
+  const availableSourceFiles = useMemo(() => {
+    const fileMap = new Map<string, number>();
+    items.forEach((it) => {
+      const fn = it.sourceFileName || it.sourceSheetName;
+      if (fn) {
+        fileMap.set(fn, (fileMap.get(fn) || 0) + 1);
+      }
+    });
+    return Array.from(fileMap.entries()).map(([fileName, count]) => ({ fileName, count }));
+  }, [items]);
+
+  // Distinct Trades in Current Tender Items
+  const availableTrades = useMemo(() => {
+    const tradeSet = new Set<string>();
+    items.forEach((it) => {
+      if (it.trade) tradeSet.add(it.trade);
+    });
+    return Array.from(tradeSet);
+  }, [items]);
+
+  // Filtered Items for Display by File or Trade
+  const displayedItems = useMemo(() => {
+    if (selectedTradeFilter === 'all') return items;
+    if (selectedTradeFilter.startsWith('file:')) {
+      const targetFile = selectedTradeFilter.replace('file:', '');
+      return items.filter((it) => (it.sourceFileName || it.sourceSheetName) === targetFile);
+    }
+    return items.filter(
+      (it) =>
+        it.trade === selectedTradeFilter ||
+        (selectedTradeFilter === 'fire_fighting' && (it.trade === 'hvac_firefighting' || it.itemCode.startsWith('FF')))
+    );
+  }, [items, selectedTradeFilter]);
+
+  // Active Scope Label
+  const activeScopeLabel = useMemo(() => {
+    if (selectedTradeFilter === 'all') return 'كافة البنود';
+    if (selectedTradeFilter.startsWith('file:')) {
+      return `ملف: ${selectedTradeFilter.replace('file:', '')}`;
+    }
+    return TRADE_LABELS[selectedTradeFilter] || selectedTradeFilter;
+  }, [selectedTradeFilter]);
+
+  // Trade Subtotal
+  const tradeSubtotal = useMemo(() => {
+    return displayedItems.reduce((acc, it) => {
+      const rates = calculateItemRates(it);
+      return acc + rates.totalItemValue;
+    }, 0);
+  }, [displayedItems, globalProfitMargin, globalOverhead, globalWaste]);
+
+  // Export Client Priced BOQ Excel (Preserving original client format or multi-file)
+  const handleExportPricedClientExcel = async () => {
+    if (displayedItems.length === 0 && items.length === 0) {
+      toast.warning('لا توجد بنود لتصديرها');
+      return;
+    }
+
+    try {
+      const targetItems = displayedItems.length > 0 ? displayedItems : items;
+
+      const distinctFiles = Array.from(
+        new Set(targetItems.map((it) => it.sourceFileName).filter(Boolean))
+      ) as string[];
+
+      const exportOptions = {
+        projectName,
+        clientName,
+        scopeLabel: activeScopeLabel,
+        includeCompanyHeader: false,
+      };
+
+      if (distinctFiles.length > 1 && selectedTradeFilter === 'all') {
+        let count = 0;
+        for (const fileName of distinctFiles) {
+          const fileItems = targetItems.filter((it) => it.sourceFileName === fileName);
+          const mapped = fileItems.map((it) => {
+            const rates = calculateItemRates(it);
+            return {
+              rawRowIdx: it.rawRowIdx,
+              itemCode: it.itemCode,
+              description: it.description,
+              unit: it.unit,
+              contractQty: it.estimatedQty,
+              unitPrice: rates.sellingUnitPrice,
+              totalPrice: rates.totalItemValue,
+              category: it.trade,
+              sourceFileName: it.sourceFileName,
+              sourceSheetName: it.sourceSheetName,
+              notes: it.notes,
+            };
+          });
+          await exportPricedBoqWorkbook(fileName, mapped, exportOptions);
+          count++;
+        }
+        toast.success(`تم تصدير ${count} ملفات إكسيل مسعرة بنفس تنسيقات وديباجة العملاء الأصلية بنجاح`);
+      } else {
+        let targetFileName = projectName || 'مقايسة_مسعرة';
+        if (selectedTradeFilter.startsWith('file:')) {
+          targetFileName = selectedTradeFilter.replace('file:', '');
+        } else if (distinctFiles.length === 1) {
+          targetFileName = distinctFiles[0];
+        }
+
+        const mapped = targetItems.map((it) => {
+          const rates = calculateItemRates(it);
+          return {
+            rawRowIdx: it.rawRowIdx,
+            itemCode: it.itemCode,
+            description: it.description,
+            unit: it.unit,
+            contractQty: it.estimatedQty,
+            unitPrice: rates.sellingUnitPrice,
+            totalPrice: rates.totalItemValue,
+            category: it.trade,
+            sourceFileName: it.sourceFileName,
+            sourceSheetName: it.sourceSheetName,
+            notes: it.notes,
+          };
+        });
+
+        await exportPricedBoqWorkbook(targetFileName, mapped, exportOptions);
+        toast.success('تم تصدير شيت العميل الأصلي المسعر بكامل ألوانه وديباجته بنجاح');
+      }
+    } catch (err) {
+      console.error('Failed to export client priced excel:', err);
+      toast.error('حدث خطأ أثناء تصدير شيت العميل المسعر');
+    }
+  };
+
+  const handleExportPricedExcel = handleExportPricedClientExcel;
+
   // Pre-Procurement Consolidated Materials Summary (Consolidated MRP)
   const consolidatedMaterials = useMemo(() => {
     const materialsMap: Record<string, { code: string; name: string; unit: string; totalQty: number; totalCost: number }> = {};
@@ -381,45 +631,174 @@ export function ContractingTenderPage() {
     return Object.values(materialsMap);
   }, [items]);
 
-  // Final Award & Project Creation
-  const handleAwardAndCreateProject = async () => {
+  // Reset / Clear Draft
+  const handleResetDraft = async () => {
+    const confirmed = await systemConfirm({
+      title: 'تفريغ مسودة العطاء والبدء من جديد',
+      message: 'هل أنت متأكد من تفريغ كافة بنود العطاء الحالية والبدء من جديد؟ لن يتم التأثير على المشاريع المحفوظة في قاعدة البيانات.',
+      confirmText: 'نعم، أفرغ وابدأ من جديد',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    setItems([]);
+    setProjectName('');
+    setClientName('');
+    setCurrentProject(null);
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    if (projectIdParam) {
+      searchParams.delete('projectId');
+      setSearchParams(searchParams);
+    }
+    setSelectedProjectId(null);
+    toast.success('تم تفريغ مسودة العطاء بنجاح للبدء من جديد');
+  };
+
+  // Start New Empty Tender
+  const handleStartNewTender = async () => {
+    if (items.length > 0) {
+      const confirmed = await systemConfirm({
+        title: 'تسعير عطاء / مشروع جديد',
+        message: 'هل تريد فتح مسودة تسعير جديدة؟ سيتم الاحتفاظ بالمشاريع والعطاءات السابقة المحفوظة بأمان في قاعدة البيانات.',
+        confirmText: 'نعم، ابدأ تسعير عطاء جديد',
+        variant: 'primary',
+      });
+      if (!confirmed) return;
+    }
+    setItems([]);
+    setProjectName('');
+    setClientName('');
+    setCurrentProject(null);
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    if (projectIdParam) {
+      searchParams.delete('projectId');
+      setSearchParams(searchParams, { replace: true });
+    }
+    setSelectedProjectId(null);
+    toast.success('تم فتح مسودة عطاء جديدة فارغة - جاهز لاستيراد كراسة المقايسة (BOQ)');
+  };
+
+  // Switch Tender from Modal
+  const handleSelectProjectFromSwitcher = (targetId: string) => {
+    setSelectedProjectId(targetId);
+    setSearchParams({ projectId: targetId }, { replace: true });
+  };
+
+  // Submit Bid to Client
+  const handleSubmitBid = async () => {
+    if (!projectIdParam) {
+      toast.warning('يرجى حفظ العطاء أولاً قبل تقديمه للعميل');
+      return;
+    }
+    const confirmed = await systemConfirm({
+      title: 'تقديم العرض المالي للعميل رسمياً',
+      message: 'هل أنت متأكد من تغيير حالة العطاء إلى (تم تقديم العرض - بانتظار رد العميل)؟ سيتم تسجيل تاريخ تقديم العرض واعتماد النسخة للتفاوض.',
+      confirmText: 'نعم، تم تقديم العرض للعميل',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
+    try {
+      await contractingApi.updateProject(projectIdParam, {
+        status: 'submitted',
+        submittedAt: new Date().toISOString(),
+      });
+      setCurrentProject((prev: any) => (prev ? { ...prev, status: 'submitted' } : null));
+      await reloadProjects();
+      toast.success('تم تحديث حالة العطاء إلى (تم تقديم العرض - بانتظار رد العميل)!');
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر تحديث حالة العطاء');
+    }
+  };
+
+  // Create Negotiation Revision (Rev-1, Rev-2...)
+  const handleCreateRevision = async () => {
+    if (!projectIdParam) {
+      toast.warning('يرجى حفظ العطاء أولاً قبل إنشاء مراجعة جديدة');
+      return;
+    }
+    const confirmed = await systemConfirm({
+      title: 'إنشاء مراجعة تفاوضية جديدة (New Revision)',
+      message: 'هل أنت متأكد من إنشاء مراجعة تفاوضية جديدة؟ سيتم نسخ بنود المقايسة وتوليد كود مراجعة جديد مع تجميد النسخة الحالية كمرجع تاريخي.',
+      confirmText: 'نعم، أنشئ مراجعة جديدة',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
+    try {
+      const cloned = await contractingApi.createTenderRevision(projectIdParam);
+      toast.success(`تم إنشاء مراجعة العطاء [${cloned.code}] بنجاح!`);
+      await reloadProjects();
+      setSelectedProjectId(cloned.id);
+      setSearchParams({ projectId: String(cloned.id) }, { replace: true });
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر إنشاء المراجعة');
+    }
+  };
+
+  // Final Award / Save Tender (Planning vs Active)
+  const handleSaveTender = async (targetStatus: 'planning' | 'active') => {
     if (!projectName.trim()) {
-      toast.warning('يرجى كتابة اسم العطاء أو المشروع المقترح');
+      toast.warning('يرجى كتابة اسم العطاء أو المشروع المقترح أولاً');
       return;
     }
     if (items.length === 0) {
-      toast.warning('يرجى إضافة بند واحد على الأقل للعطاء');
+      toast.warning('يرجى إضافة أو استيراد بنود العطاء أولاً');
       return;
     }
 
+    const isAward = targetStatus === 'active';
     const confirmed = await systemConfirm({
-      title: 'اعتماد وترسية العطاء وتأسيس المشروع التعاقدي',
-      message: `هل أنت متأكد من اعتماد العطاء بقيمة تعاقدية إجمالية (${formatCurrency(grandTotals.totalSellingPrice)}) وترسيته كمشروع رسمي؟ سيتم توليد المقايسة SOV وشيتات الحصر وخطة الاحتياجات آلياً.`,
-      confirmText: 'نعم، اعتمد ورسِّ العطاء',
-      variant: 'primary',
+      title: isAward ? 'اعتماد وترسية العطاء كمشروع تنفيذي ساري' : 'حفظ كعطاء قيد الدراسة والتسعير (Planning)',
+      message: isAward
+        ? `هل أنت متأكد من اعتماد العطاء بقيمة تعاقدية إجمالية (${formatCurrency(grandTotals.totalSellingPrice)}) وترسيته كمشروع رسمي ساري؟ سيتم تحويل المقايسة إلى SOV تنفيذي لبدء التوريدات والمستخلصات.`
+        : `هل أنت متأكد من حفظ العطاء بقيمة تقديرية (${formatCurrency(grandTotals.totalSellingPrice)}) تحت قائمة (عطاءات قيد الدراسة والتسعير) لمتابعة المفاوضات وعروض الأسعار مع العميل؟`,
+      confirmText: isAward ? 'نعم، اعتمد ورسِّ العطاء' : 'نعم، احفظ كعطاء قيد الدراسة',
+      variant: isAward ? 'primary' : 'info',
     });
 
     if (!confirmed) return;
 
     setIsSubmitting(true);
     try {
-      const createRes = await contractingApi.createProject({
-        name: projectName.trim(),
-        clientName: clientName.trim() || 'العميل',
-        contractValue: grandTotals.totalSellingPrice,
-        status: 'active',
-        retentionPercent: 5,
-        notes: `تم توليد وترسية هذا المشروع آلياً من منصة دراسة العطاءات وتفكيك الكود (BOM). مدة التنفيذ: ${durationMonths} شهور. التكلفة المباشرة المقدرة: ${grandTotals.totalDirectCost} ج.م.`,
-      });
+      let targetProjectId = projectIdParam;
 
-      const newProjectId = createRes.id;
+      if (!targetProjectId) {
+        const createRes = await contractingApi.createProject({
+          name: projectName.trim(),
+          clientName: clientName.trim() || 'العميل الموقر',
+          contractValue: grandTotals.totalSellingPrice,
+          status: targetStatus,
+          retentionPercent: 5,
+          notes: `تم إنشاء هذا العطاء من منصة دراسة العطاءات وتفكيك الكود (BOM). الحالة: ${isAward ? 'مشروع ساري' : 'عطاء قيد الدراسة والتسعير'}. مدة التنفيذ: ${durationMonths} شهور. التكلفة المباشرة المقدرة: ${grandTotals.totalDirectCost} ج.م.`,
+        });
+        targetProjectId = createRes.id;
+        setSearchParams({ projectId: String(createRes.id) }, { replace: true });
+      } else {
+        await contractingApi.updateProject(targetProjectId, {
+          name: projectName.trim(),
+          clientName: clientName.trim() || 'العميل الموقر',
+          contractValue: grandTotals.totalSellingPrice,
+          status: targetStatus,
+        });
+      }
 
+      // Ensure each item has a unique itemCode within this project to prevent collisions
+      const usedItemCodes = new Set<string>();
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         const rates = calculateItemRates(item);
 
-        const boqRes = await contractingApi.createBoqItem(newProjectId, {
-          itemCode: item.itemCode,
+        let code = (item.itemCode || `ITEM-${String(i + 1).padStart(3, '0')}`).trim();
+        if (usedItemCodes.has(code.toUpperCase())) {
+          let c = 2;
+          while (usedItemCodes.has(`${code}-${c}`.toUpperCase())) {
+            c++;
+          }
+          code = `${code}-${c}`;
+        }
+        usedItemCodes.add(code.toUpperCase());
+
+        const boqRes = await contractingApi.createBoqItem(targetProjectId, {
+          itemCode: code,
           description: item.description,
           category: item.trade || 'general',
           unit: item.unit,
@@ -451,13 +830,19 @@ export function ContractingTenderPage() {
         }
       }
 
-      toast.success('تمت ترسية العطاء وتأسيس المشروع وتوليد مقايسة الكميات بنجاح!');
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
       await reloadProjects();
-      setSelectedProjectId(newProjectId);
-      navigate(`/contracting/boq?projectId=${newProjectId}`);
+      setSelectedProjectId(targetProjectId);
+
+      if (isAward) {
+        toast.success('تمت ترسية العطاء وتأسيس المشروع وتوليد مقايسة الكميات بنجاح!');
+        navigate(`/contracting/boq?projectId=${targetProjectId}`);
+      } else {
+        toast.success('تم حفظ العطاء بنجاح تحت عطاءات قيد الدراسة والتسعير (Planning)!');
+        setSearchParams({ projectId: String(targetProjectId) }, { replace: true });
+      }
     } catch (err: any) {
-      console.error('Failed to award tender project:', err);
-      toast.error(err?.message || 'تعذر ترسية العطاء');
+      toast.error(err?.message || 'حدث خطأ أثناء حفظ العطاء');
     } finally {
       setIsSubmitting(false);
     }
@@ -478,7 +863,90 @@ export function ContractingTenderPage() {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleStartNewTender}
+              style={{
+                height: '36px',
+                padding: '0 14px',
+                borderRadius: '8px',
+                fontWeight: 700,
+                background: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                fontSize: 'var(--font-body)',
+                boxShadow: '0 1px 3px rgba(23, 14, 94, 0.15)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <AppIcons.Plus size={15} />
+              <span>تسعير عطاء جديد</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsTenderSwitcherOpen(true)}
+              style={{
+                height: '36px',
+                padding: '0 12px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                background: '#ffffff',
+                color: '#1e293b',
+                border: '1px solid #cbd5e1',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                fontSize: 'var(--font-body)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <AppIcons.Folder size={15} />
+              <span>العطاءات المحفوظة</span>
+              <span
+                style={{
+                  fontSize: 'var(--font-badge)',
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                  background: '#f1f5f9',
+                  color: '#170e5e',
+                  fontWeight: 700,
+                  border: '1px solid #cbd5e1',
+                }}
+              >
+                {tendersUnderStudyCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsWorkflowMapOpen(true)}
+              style={{
+                height: '36px',
+                padding: '0 12px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                background: '#ffffff',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                fontSize: 'var(--font-body)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <AppIcons.Layers size={15} />
+              <span>خريطة مسار المشروع</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setIsAutoPricingOpen(true)}
@@ -500,6 +968,31 @@ export function ContractingTenderPage() {
             >
               <AppIcons.Calculator size={15} />
               <span>محرك التسعير الآلي</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={items.length === 0}
+              onClick={handleExportPricedExcel}
+              style={{
+                height: '36px',
+                padding: '0 14px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                background: '#ffffff',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: items.length > 0 ? 'pointer' : 'not-allowed',
+                fontSize: 'var(--font-body)',
+                opacity: items.length > 0 ? 1 : 0.6,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <AppIcons.FileSpreadsheet size={15} />
+              <span>تصدير إكسيل مسعر (Excel)</span>
             </button>
 
             <button
@@ -528,6 +1021,280 @@ export function ContractingTenderPage() {
             </button>
           </div>
         </div>
+
+        {/* شريط حالة دورة حياة العطاء وإجراءات التفاوض والترسية */}
+        {projectIdParam && currentProject ? (
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              borderRight: '4px solid #170e5e',
+              borderRadius: '10px',
+              padding: '10px 16px',
+              marginBottom: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', color: '#170e5e', background: '#ffffff', border: '1px solid #cbd5e1', padding: '3px 8px', borderRadius: '4px' }}>
+                {currentProject.code || `PRJ-${currentProject.id}`}
+              </span>
+              <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
+                {currentProject.name}
+              </span>
+              {currentProject.clientName && (
+                <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
+                  (العميل: {currentProject.clientName})
+                </span>
+              )}
+              <span
+                style={{
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  fontSize: 'var(--font-badge)',
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  color: '#1e293b',
+                  border: '1px solid #cbd5e1',
+                }}
+              >
+                {currentProject.status === 'submitted'
+                  ? 'تم تقديم العرض المالي (بانتظار رد العميل)'
+                  : currentProject.status === 'negotiation'
+                  ? `تحت التفاوض والمراجعة (Rev-${currentProject.revisionNumber || 1})`
+                  : currentProject.status === 'lost'
+                  ? 'أرشيف العطاءات غير المرسّاة'
+                  : 'عطاء قيد الدراسة والتسعير (Draft)'}
+              </span>
+              {Number(currentProject.revisionNumber || 0) > 0 && (
+                <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '11px', color: '#475569', background: '#ffffff', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                  Rev-{currentProject.revisionNumber}
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setIsTenderSwitcherOpen(true)}
+                style={{
+                  height: '32px',
+                  padding: '0 10px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                  fontSize: '11.5px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <AppIcons.Folder size={13} />
+                <span>تبديل العطاء</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleStartNewTender}
+                style={{
+                  height: '32px',
+                  padding: '0 10px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  color: '#170e5e',
+                  border: '1px solid #170e5e',
+                  cursor: 'pointer',
+                  fontSize: '11.5px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <AppIcons.Plus size={13} />
+                <span>تسعير عطاء جديد</span>
+              </button>
+
+              {(currentProject.status === 'draft' || currentProject.status === 'planning') && (
+                <button
+                  type="button"
+                  onClick={handleSubmitBid}
+                  style={{
+                    height: '32px',
+                    padding: '0 12px',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    background: '#ffffff',
+                    color: '#334155',
+                    border: '1px solid #cbd5e1',
+                    cursor: 'pointer',
+                    fontSize: '11.5px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <AppIcons.CheckCircle size={13} />
+                  <span>تقديم العرض للعميل</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleCreateRevision}
+                style={{
+                  height: '32px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                  fontSize: '11.5px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <AppIcons.Copy size={13} />
+                <span>إنشاء مراجعة تفاوض (Rev+)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAwardModalOpen(true)}
+                style={{
+                  height: '32px',
+                  padding: '0 14px',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '11.5px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  boxShadow: '0 1px 2px rgba(23, 14, 94, 0.15)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <AppIcons.CheckShield size={14} />
+                <span>اعتماد وترسية العطاء</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsLostModalOpen(true)}
+                style={{
+                  height: '32px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  color: '#64748b',
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                  fontSize: '11.5px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <AppIcons.Archive size={13} />
+                <span>أرشفة (لم يُرسَ)</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRight: '4px solid #64748b',
+              borderRadius: '10px',
+              padding: '10px 16px',
+              marginBottom: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AppIcons.Sliders size={16} style={{ color: '#170e5e' }} />
+              <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
+                مسودة عطاء جديد (جاهزة لإدخال أو سحب كراسة المقايسة BOQ)
+              </span>
+              <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
+                - يمكنك رفع ملف المقايسة وحصر المخططات، ثم حفظ العطاء قيد الدراسة والتسعير.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setIsTenderSwitcherOpen(true)}
+                style={{
+                  height: '32px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  color: '#170e5e',
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                  fontSize: '11.5px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <AppIcons.Folder size={13} />
+                <span>فتح عطاء محفوظ سابقاً ({tendersUnderStudyCount})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsWorkflowMapOpen(true)}
+                style={{
+                  height: '32px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  color: '#475569',
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                  fontSize: '11.5px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <AppIcons.Layers size={13} />
+                <span>خريطة مسار وسيناريوهات المشروع</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Form Inputs Grid - سطر واحد هندسي متناسق بدون التفاف */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', width: '100%', flexWrap: 'nowrap' }}>
@@ -702,8 +1469,35 @@ export function ContractingTenderPage() {
           </button>
         </div>
 
-        <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#64748b' }}>
-          إجمالي بنود العطاء الحالية: <strong style={{ color: '#0f172a' }}>{items.length} بند</strong>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {(items.length > 0 || projectName.trim()) && (
+            <button
+              type="button"
+              onClick={handleResetDraft}
+              style={{
+                height: '32px',
+                padding: '0 12px',
+                borderRadius: '6px',
+                border: '1px solid #fecaca',
+                background: '#fef2f2',
+                color: '#b91c1c',
+                fontSize: '12px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <AppIcons.Trash2 size={13} />
+              <span>تفريغ وبدء عطاء جديد</span>
+            </button>
+          )}
+
+          <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#64748b' }}>
+            إجمالي بنود العطاء الحالية: <strong style={{ color: '#0f172a' }}>{items.length} بند</strong>
+          </div>
         </div>
       </div>
 
@@ -892,121 +1686,308 @@ export function ContractingTenderPage() {
             </div>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-body)', textAlign: 'right' }}>
-              <thead style={{ background: '#f8fafc' }}>
-                <tr>
-                  <th style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>كود البند</th>
-                  <th style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>بيان الأعمال والمواصفات</th>
-                  <th style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>الوحدة</th>
-                  <th style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>الكمية</th>
-                  <th style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>التكلفة المباشرة</th>
-                  <th style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>هامش الربح %</th>
-                  <th style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>سعر الفئة المقترح</th>
-                  <th style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>إجمالي القيمة</th>
-                  <th style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>تفكيك الكود</th>
-                  <th style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>حذف</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => {
-                  const rates = calculateItemRates(item);
-                  const isExpanded = expandedItemId === item.id;
-
-                  return (
-                    <Fragment key={item.id}>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#170e5e' }}>{item.itemCode}</td>
-                        <td style={{ padding: '10px 14px', maxWidth: '320px', color: '#1e293b' }}>{item.description}</td>
-                        <td style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>{formatUnitLabel(item.unit)}</td>
-                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>
-                          <input
-                            type="number"
-                            min="0"
-                            value={item.estimatedQty}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, estimatedQty: val } : it)));
-                            }}
-                            style={{ width: '85px', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', fontWeight: 700 }}
-                          />
-                        </td>
-                        <td style={{ padding: '10px 14px', color: '#64748b' }}>{formatCurrency(rates.directCost)}</td>
-                        <td style={{ padding: '8px 10px', textAlign: 'center' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={item.profitMarkupPercent}
-                              onChange={(e) => {
-                                const val = Number(e.target.value);
-                                setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, profitMarkupPercent: val } : it)));
-                              }}
-                              style={{
-                                width: '50px',
-                                height: '28px',
-                                padding: '0 4px',
-                                textAlign: 'center',
-                                borderRadius: '6px',
-                                border: '1px solid #cbd5e1',
-                                fontSize: '12.5px',
-                                fontWeight: 700,
-                                color: '#15803d',
-                                background: '#ffffff',
-                              }}
-                            />
-                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>%</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '10px 14px', fontWeight: 800, color: '#170e5e' }}>{formatCurrency(rates.sellingUnitPrice)}</td>
-                        <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0f172a' }}>{formatCurrency(rates.totalItemValue)}</td>
-                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+          <div>
+            {/* Trade & File Navigation Tabs & Subtotals */}
+            {(availableSourceFiles.length > 1 || availableTrades.length > 0) && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                  padding: '10px 16px',
+                  background: '#f8fafc',
+                  borderBottom: '1px solid #e2e8f0',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', marginInlineEnd: '4px' }}>
+                    {availableSourceFiles.length > 1 ? 'تبويب ملفات المقايسة:' : 'تصفية حسب التخصص:'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTradeFilter('all')}
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      border: selectedTradeFilter === 'all' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                      background: selectedTradeFilter === 'all' ? '#170e5e' : '#ffffff',
+                      color: selectedTradeFilter === 'all' ? '#ffffff' : '#334155',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    كافة البنود ({items.length})
+                  </button>
+                  {availableSourceFiles.length > 1
+                    ? availableSourceFiles.map(({ fileName, count }) => {
+                        const isSelected = selectedTradeFilter === `file:${fileName}`;
+                        return (
                           <button
+                            key={fileName}
                             type="button"
-                            onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+                            onClick={() => setSelectedTradeFilter(`file:${fileName}`)}
                             style={{
-                              padding: '4px 10px',
-                              borderRadius: '6px',
-                              background: isExpanded ? '#170e5e' : '#ffffff',
-                              color: isExpanded ? '#ffffff' : '#334155',
-                              border: isExpanded ? 'none' : '1px solid #cbd5e1',
-                              fontSize: '11.5px',
+                              padding: '4px 12px',
+                              borderRadius: '20px',
+                              border: isSelected ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                              background: isSelected ? '#170e5e' : '#ffffff',
+                              color: isSelected ? '#ffffff' : '#334155',
+                              fontSize: '12px',
                               fontWeight: 700,
                               cursor: 'pointer',
                               transition: 'all 0.15s ease',
                             }}
                           >
-                            {isExpanded ? 'إغلاق BOM' : 'تفكيك BOM'}
+                            ملف: {fileName} ({count})
                           </button>
-                        </td>
-                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                        );
+                      })
+                    : availableTrades.map((tr) => {
+                        const count = items.filter((it) => it.trade === tr).length;
+                        const label = TRADE_LABELS[tr] || tr;
+                        const isSelected = selectedTradeFilter === tr;
+                        return (
                           <button
+                            key={tr}
                             type="button"
-                            onClick={() => setItems((prev) => prev.filter((it) => it.id !== item.id))}
-                            style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '4px' }}
+                            onClick={() => setSelectedTradeFilter(tr)}
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: '20px',
+                              border: isSelected ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                              background: isSelected ? '#170e5e' : '#ffffff',
+                              color: isSelected ? '#ffffff' : '#334155',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
                           >
-                            <AppIcons.Trash2 size={16} />
+                            {label} ({count})
                           </button>
-                        </td>
-                      </tr>
+                        );
+                      })}
+                </div>
 
-                      {/* Expandable BOM Exploder */}
-                      {isExpanded && (
-                        <tr>
-                          <td colSpan={10} style={{ padding: '14px 20px', background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-                              <div style={{ fontWeight: 700, fontSize: '13px', color: '#170e5e', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <AppIcons.Sliders size={16} />
-                                <span>تفكيك الكود الهندسي وتخصيص استهلاك وأسعار الموارد: [{item.itemCode}] {item.description}</span>
+                {selectedTradeFilter !== 'all' && (
+                  <div style={{ fontSize: '12px', color: '#170e5e', fontWeight: 700 }}>
+                    إجمالي {activeScopeLabel}:{' '}
+                    <strong style={{ fontSize: '13.5px' }}>{formatCurrency(tradeSubtotal)}</strong>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ overflowX: 'auto', width: '100%' }}>
+              <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: 'var(--font-body)', textAlign: 'right' }}>
+                <colgroup>
+                  <col style={{ width: '85px' }} />
+                  <col style={{ width: 'auto', minWidth: '220px' }} />
+                  <col style={{ width: '60px' }} />
+                  <col style={{ width: '85px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '75px' }} />
+                  <col style={{ width: '105px' }} />
+                  <col style={{ width: '115px' }} />
+                  <col style={{ width: '115px' }} />
+                  <col style={{ width: '40px' }} />
+                </colgroup>
+                <thead style={{ background: '#f8fafc' }}>
+                  <tr>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>كود البند</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>بيان الأعمال والمواصفات</th>
+                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>الوحدة</th>
+                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>الكمية</th>
+                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>التكلفة المباشرة</th>
+                    <th style={{ padding: '10px 8px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>هامش الربح %</th>
+                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>سعر الفئة المقترح</th>
+                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>إجمالي القيمة</th>
+                    <th style={{ padding: '10px 8px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>تفكيك الكود</th>
+                    <th style={{ padding: '10px 8px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>حذف</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayedItems.map((item) => {
+                    const rates = calculateItemRates(item);
+                    const isExpanded = expandedItemId === item.id;
+                    const textDir = getTextDirection(item.description);
+
+                    return (
+                      <Fragment key={item.id}>
+                        <tr style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s ease' }}>
+                          <td style={{ padding: '12px 12px', fontWeight: 700, color: '#170e5e', verticalAlign: 'middle', wordBreak: 'break-word', fontSize: '13px' }}>
+                            {item.itemCode}
+                          </td>
+                          <td
+                            style={{
+                              padding: '12px 12px',
+                              whiteSpace: 'normal',
+                              wordBreak: 'break-word',
+                              lineHeight: 1.55,
+                              textAlign: 'justify',
+                              textJustify: 'inter-word',
+                              textAlignLast: textDir === 'rtl' ? 'right' : 'left',
+                              direction: textDir,
+                              color: '#1e293b',
+                              verticalAlign: 'middle',
+                            }}
+                          >
+                            <div style={{ fontWeight: 600, fontSize: '13px' }}>{item.description}</div>
+                            {item.notes && (
+                              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px' }}>
+                                {item.notes}
                               </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', color: '#334155' }}>
-                                  كمية البند: <strong style={{ color: '#0f172a' }}>{item.estimatedQty.toLocaleString()} {formatUnitLabel(item.unit)}</strong>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', verticalAlign: 'middle', fontSize: '12.5px' }}>
+                            {formatUnitLabel(item.unit)}
+                          </td>
+                          <td style={{ padding: '12px 8px', fontWeight: 700, color: '#0f172a', verticalAlign: 'middle', textAlign: 'center' }}>
+                            <input
+                              type="number"
+                              min="0"
+                              value={item.estimatedQty}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, estimatedQty: val } : it)));
+                              }}
+                              style={{
+                                width: '72px',
+                                height: '28px',
+                                padding: '0 4px',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                fontSize: '12.5px',
+                                fontWeight: 700,
+                                textAlign: 'center',
+                                color: '#0f172a',
+                                background: '#ffffff',
+                                boxSizing: 'border-box',
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: '12px 10px', color: '#475569', fontWeight: 600, verticalAlign: 'middle', whiteSpace: 'nowrap', fontSize: '12.5px' }}>
+                            {formatCurrency(rates.directCost)}
+                          </td>
+                          <td style={{ padding: '12px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={item.profitMarkupPercent}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, profitMarkupPercent: val } : it)));
+                                }}
+                                style={{
+                                  width: '44px',
+                                  height: '28px',
+                                  padding: '0 4px',
+                                  textAlign: 'center',
+                                  borderRadius: '6px',
+                                  border: '1px solid #cbd5e1',
+                                  fontSize: '12.5px',
+                                  fontWeight: 700,
+                                  color: '#15803d',
+                                  background: '#ffffff',
+                                  boxSizing: 'border-box',
+                                }}
+                              />
+                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>%</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 10px', fontWeight: 800, color: '#170e5e', verticalAlign: 'middle', whiteSpace: 'nowrap', fontSize: '13px' }}>
+                            {formatCurrency(rates.sellingUnitPrice)}
+                          </td>
+                          <td style={{ padding: '12px 10px', fontWeight: 800, color: '#0f172a', verticalAlign: 'middle', whiteSpace: 'nowrap', fontSize: '13px' }}>
+                            {formatCurrency(rates.totalItemValue)}
+                          </td>
+                          <td style={{ padding: '12px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+                              title={isExpanded ? 'إغلاق شجرة الموارد' : 'شجرة تحليل الموارد والتكلفة (BOM)'}
+                              style={{
+                                height: '28px',
+                                padding: '0 10px',
+                                borderRadius: '6px',
+                                background: isExpanded ? '#170e5e' : '#ffffff',
+                                color: isExpanded ? '#ffffff' : '#170e5e',
+                                border: isExpanded ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                                fontSize: '11.5px',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '5px',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                boxSizing: 'border-box',
+                                boxShadow: isExpanded ? '0 1px 3px rgba(23,14,94,0.2)' : '0 1px 2px rgba(0,0,0,0.03)',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <AppIcons.Sliders size={12} style={{ color: isExpanded ? '#ffffff' : '#170e5e', flexShrink: 0 }} />
+                              <span>{isExpanded ? 'إغلاق' : 'BOM'}</span>
+                            </button>
+                          </td>
+                          <td style={{ padding: '12px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <button
+                              type="button"
+                              title="حذف البند من دراسة العطاء"
+                              onClick={() => setItems((prev) => prev.filter((it) => it.id !== item.id))}
+                              style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '6px',
+                                border: '1px solid transparent',
+                                background: 'transparent',
+                                color: '#94a3b8',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.15s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#dc2626';
+                                e.currentTarget.style.background = '#fef2f2';
+                                e.currentTarget.style.borderColor = '#fecaca';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = '#94a3b8';
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.borderColor = 'transparent';
+                              }}
+                            >
+                              <AppIcons.Trash2 size={15} />
+                            </button>
+                          </td>
+                        </tr>
+
+                        {/* Expandable BOM Exploder */}
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={10} style={{ padding: '14px 18px', background: '#f8fafc', borderBottom: '2px solid #cbd5e1', boxSizing: 'border-box' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px', minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, fontSize: '13px', color: '#170e5e', display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, maxWidth: '650px' }}>
+                                  <AppIcons.Sliders size={16} style={{ flexShrink: 0 }} />
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: textDir }}>
+                                    تفكيك الكود الهندسي وتخصيص الموارد: [{item.itemCode}] {item.description}
+                                  </span>
                                 </div>
-                                <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', color: '#334155' }}>
-                                  التكلفة المباشرة للوحدة: <strong style={{ color: '#170e5e', fontWeight: 800 }}>{formatCurrency(rates.directCost)}</strong>
-                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', color: '#334155' }}>
+                                    كمية البند: <strong style={{ color: '#0f172a' }}>{item.estimatedQty.toLocaleString()} {formatUnitLabel(item.unit)}</strong>
+                                  </div>
+                                  <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', color: '#334155' }}>
+                                    التكلفة المباشرة للوحدة: <strong style={{ color: '#170e5e', fontWeight: 800 }}>{formatCurrency(rates.directCost)}</strong>
+                                  </div>
                                 <button
                                   type="button"
                                   onClick={() => handleAddComponent(item.id)}
@@ -1203,8 +2184,9 @@ export function ContractingTenderPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
 
       {/* 5. Consolidated Pre-Procurement MRP Materials Takeoff */}
       {consolidatedMaterials.length > 0 && (
@@ -1264,14 +2246,90 @@ export function ContractingTenderPage() {
           </div>
         </div>
 
-        <div>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button
             type="button"
             disabled={isSubmitting || items.length === 0}
-            onClick={handleAwardAndCreateProject}
+            onClick={handleExportPricedClientExcel}
+            title="تصدير شيت العميل الأصلي بنفس ألوانه وديباجته وتنسيقاته مع كتابة الأسعار فقط"
             style={{
-              height: '42px',
-              padding: '0 24px',
+              height: '40px',
+              padding: '0 16px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: items.length > 0 && !isSubmitting ? 'pointer' : 'not-allowed',
+              fontSize: '13px',
+              opacity: items.length > 0 && !isSubmitting ? 1 : 0.6,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.Download size={15} />
+            <span>تصدير شيت العميل المسعر (Excel)</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={isSubmitting || items.length === 0}
+            onClick={() => setIsQuotationOpen(true)}
+            style={{
+              height: '40px',
+              padding: '0 16px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: items.length > 0 && !isSubmitting ? 'pointer' : 'not-allowed',
+              fontSize: '13px',
+              opacity: items.length > 0 && !isSubmitting ? 1 : 0.6,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.Printer size={15} />
+            <span>عرض السعر للعميل</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={isSubmitting || items.length === 0}
+            onClick={() => handleSaveTender('planning')}
+            style={{
+              height: '40px',
+              padding: '0 18px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: items.length > 0 && !isSubmitting ? 'pointer' : 'not-allowed',
+              fontSize: '13px',
+              opacity: items.length > 0 && !isSubmitting ? 1 : 0.6,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.Save size={16} />
+            <span>{isSubmitting ? 'جاري الحفظ...' : 'حفظ كعطاء قيد الدراسة (Planning)'}</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={isSubmitting || items.length === 0}
+            onClick={() => handleSaveTender('active')}
+            style={{
+              height: '40px',
+              padding: '0 20px',
               borderRadius: '8px',
               fontWeight: 800,
               background: '#170e5e',
@@ -1282,12 +2340,12 @@ export function ContractingTenderPage() {
               gap: '8px',
               cursor: items.length > 0 && !isSubmitting ? 'pointer' : 'not-allowed',
               boxShadow: '0 2px 6px rgba(23, 14, 94, 0.25)',
-              fontSize: '13.5px',
+              fontSize: '13px',
               opacity: items.length > 0 && !isSubmitting ? 1 : 0.6,
             }}
           >
-            <AppIcons.CheckShield size={18} />
-            <span>{isSubmitting ? 'جاري الترسية وتأسيس المشروع...' : 'اعتماد وترسية العطاء كمشروع رسمي'}</span>
+            <AppIcons.CheckShield size={17} />
+            <span>{isSubmitting ? 'جاري الترسية والتأسيس...' : 'اعتماد وترسية العطاء كمشروع رسمي'}</span>
           </button>
         </div>
       </div>
@@ -1297,16 +2355,56 @@ export function ContractingTenderPage() {
         <ImportBoqModal
           open={isImportBoqOpen}
           projectName={projectName}
+          existingItemCount={items.length}
           onClose={() => setIsImportBoqOpen(false)}
-          onImportItems={(parsedRows) => {
+          onImportItems={(parsedRows, mode = 'append') => {
             const newTenderItems: TenderItem[] = parsedRows.map((r, idx) => {
+              const matchedConstant = matchEngineeringConstant(r.description, r.itemCode, engineeringConstants);
+
               const fallbackCode = `BOQ-${String(items.length + idx + 1).padStart(3, '0')}`;
-              const itemCode = r.itemCode && r.itemCode.trim() ? r.itemCode.trim() : fallbackCode;
-              const unit = r.unit || 'm3';
+              const itemCode = r.itemCode && r.itemCode.trim() ? r.itemCode.trim() : (matchedConstant ? matchedConstant.itemCode : fallbackCode);
+              const unit = r.unit || (matchedConstant ? matchedConstant.unit : 'item');
               const estimatedQty = r.contractQty > 0 ? r.contractQty : 1;
-              const unitCost = r.estimatedUnitCost > 0
-                ? r.estimatedUnitCost
-                : (r.unitPrice > 0 ? Math.round((r.unitPrice / (1 + (globalProfitMargin + globalOverhead + globalWaste) / 100)) * 100) / 100 : 0);
+
+              // Derive components (BOM)
+              let components: TenderItemComponent[] = [];
+              if (matchedConstant?.components && matchedConstant.components.length > 0) {
+                components = matchedConstant.components.map((c: any) => ({
+                  componentCode: c.componentCode || `MAT-${itemCode}`,
+                  componentName: c.componentName || c.name || r.description,
+                  unit: c.unit || unit,
+                  qtyPerUnit: Number(c.qtyPerUnit || 1),
+                  unitRate: Number(c.unitRate || 0),
+                  componentType: c.componentType || 'material',
+                }));
+              } else {
+                const calculatedCost = r.estimatedUnitCost > 0
+                  ? r.estimatedUnitCost
+                  : (r.unitPrice > 0 ? Math.round((r.unitPrice / (1 + (globalProfitMargin + globalOverhead + globalWaste) / 100)) * 100) / 100 : 0);
+
+                components = [
+                  {
+                    componentCode: `MAT-${itemCode}`,
+                    componentName: `خامات وتوريدات: ${r.description.slice(0, 45)}`,
+                    unit,
+                    qtyPerUnit: 1,
+                    unitRate: Math.round(calculatedCost * 0.7 * 100) / 100,
+                    componentType: 'material',
+                  },
+                  {
+                    componentCode: `LAB-${itemCode}`,
+                    componentName: `مصنعيات وتركيب: ${r.description.slice(0, 45)}`,
+                    unit,
+                    qtyPerUnit: 1,
+                    unitRate: Math.round(calculatedCost * 0.3 * 100) / 100,
+                    componentType: 'labor',
+                  },
+                ];
+              }
+
+              const trade = r.category && r.category !== 'general'
+                ? r.category
+                : (matchedConstant?.trade || 'general');
 
               return {
                 id: `TND-${Math.random().toString(36).slice(2, 9)}`,
@@ -1314,35 +2412,26 @@ export function ContractingTenderPage() {
                 description: r.description,
                 unit,
                 estimatedQty,
-                trade: r.category || 'general',
-                components: [
-                  {
-                    componentCode: `MAT-${itemCode}`,
-                    componentName: `خامات وتوريدات: ${r.description.slice(0, 35)}`,
-                    unit,
-                    qtyPerUnit: 1,
-                    unitRate: Math.round(unitCost * 0.7 * 100) / 100,
-                    componentType: 'material',
-                  },
-                  {
-                    componentCode: `LAB-${itemCode}`,
-                    componentName: `مصنعيات وتنفيذ: ${r.description.slice(0, 35)}`,
-                    unit,
-                    qtyPerUnit: 1,
-                    unitRate: Math.round(unitCost * 0.3 * 100) / 100,
-                    componentType: 'labor',
-                  },
-                ],
-                wastePercent: globalWaste,
-                overheadPercent: globalOverhead,
-                profitMarkupPercent: globalProfitMargin,
-                notes: r.notes,
+                trade,
+                sourceFileName: r.sourceFileName,
+                sourceSheetName: r.sourceSheetName,
+                rawRowIdx: r.rawRowIdx,
+                components,
+                wastePercent: matchedConstant?.wastePercent ?? globalWaste,
+                overheadPercent: matchedConstant?.overheadPercent ?? globalOverhead,
+                profitMarkupPercent: matchedConstant?.profitMarkupPercent ?? globalProfitMargin,
+                notes: r.notes || matchedConstant?.notes,
               };
             });
 
-            setItems((prev) => [...prev, ...newTenderItems]);
+            if (mode === 'append' && items.length > 0) {
+              setItems((prev) => [...prev, ...newTenderItems]);
+              toast.success(`تم إلحاق وتفكيك وتسعير ${newTenderItems.length} بند جديد بالمشروع بنجاح`);
+            } else {
+              setItems(newTenderItems);
+              toast.success(`تم استيراد وتفكيك وتسعير ${newTenderItems.length} بند من المقايسة بنجاح`);
+            }
             setIsImportBoqOpen(false);
-            toast.success(`تم استيراد ${newTenderItems.length} بند من ملف المقايسة بنجاح`);
           }}
         />
       )}
@@ -1417,6 +2506,9 @@ export function ContractingTenderPage() {
               itemCode: item.itemCode,
               description: item.description,
               category: item.trade,
+              sourceFileName: item.sourceFileName,
+              sourceSheetName: item.sourceSheetName,
+              rawRowIdx: item.rawRowIdx,
               unit: item.unit,
               contractQty: item.estimatedQty,
               revisedQty: item.estimatedQty,
@@ -1427,6 +2519,63 @@ export function ContractingTenderPage() {
               createdAt: new Date().toISOString(),
             };
           })}
+        />
+      )}
+
+      {/* Mark Tender Lost Modal */}
+      {isLostModalOpen && projectIdParam && (
+        <MarkTenderLostModal
+          open={isLostModalOpen}
+          projectId={projectIdParam}
+          projectCode={currentProject?.code}
+          projectName={projectName}
+          onClose={() => setIsLostModalOpen(false)}
+          onSuccess={async () => {
+            await reloadProjects();
+            setCurrentProject((prev: any) => (prev ? { ...prev, status: 'lost' } : null));
+          }}
+        />
+      )}
+
+      {/* Award Tender Modal */}
+      {isAwardModalOpen && projectIdParam && (
+        <AwardTenderModal
+          open={isAwardModalOpen}
+          projectId={projectIdParam}
+          projectCode={currentProject?.code}
+          projectName={projectName}
+          clientName={clientName}
+          contractValue={grandTotals.totalSellingPrice}
+          initialDownPayment={Math.round(grandTotals.totalSellingPrice * 0.1)}
+          initialRetentionPercent={5}
+          onClose={() => setIsAwardModalOpen(false)}
+          onSuccess={async () => {
+            await reloadProjects();
+            navigate(`/contracting/boq?projectId=${projectIdParam}`);
+          }}
+        />
+      )}
+
+      {/* Tender Switcher Modal */}
+      {isTenderSwitcherOpen && (
+        <TenderSwitcherModal
+          open={isTenderSwitcherOpen}
+          currentProjectId={projectIdParam}
+          onClose={() => setIsTenderSwitcherOpen(false)}
+          onSelectProject={(selectedId) => {
+            handleSelectProjectFromSwitcher(selectedId);
+          }}
+          onNewTender={() => {
+            handleStartNewTender();
+          }}
+        />
+      )}
+
+      {/* Contracting Lifecycle Workflow Map Modal */}
+      {isWorkflowMapOpen && (
+        <ContractingWorkflowMapModal
+          open={isWorkflowMapOpen}
+          onClose={() => setIsWorkflowMapOpen(false)}
         />
       )}
     </div>

@@ -4,6 +4,9 @@ import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { RetentionLedgerModal } from './RetentionLedgerModal';
 import { PaymentHoldsModal } from './PaymentHoldsModal';
 import { CreateIpcInvoiceModal } from './CreateIpcInvoiceModal';
+import { SubcontractorsDirectoryModal } from './SubcontractorsDirectoryModal';
+import { SubcontractorLedgerModal } from './SubcontractorLedgerModal';
+import { RecordSubcontractorPaymentModal } from './RecordSubcontractorPaymentModal';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface ContractingSubcontractsTabProps {
@@ -29,6 +32,12 @@ export function ContractingSubcontractsTab({
   const [isRetentionModalOpen, setIsRetentionModalOpen] = useState(false);
   const [isPaymentHoldsOpen, setIsPaymentHoldsOpen] = useState(false);
   const [selectedSubcontractForIpc, setSelectedSubcontractForIpc] = useState<ContractingSubcontract | null>(null);
+
+  // Subcontractor Master Directory & Ledger & Payments
+  const [isSubcontractorsDirectoryOpen, setIsSubcontractorsDirectoryOpen] = useState(false);
+  const [selectedLedgerSubId, setSelectedLedgerSubId] = useState<number | null>(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedPaymentSubId, setSelectedPaymentSubId] = useState<number | null>(null);
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -67,6 +76,57 @@ export function ContractingSubcontractsTab({
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* دليل وسجل مقاولي الباطن */}
+          <button
+            type="button"
+            onClick={() => setIsSubcontractorsDirectoryOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#170e5e',
+              border: '1px solid #c7d2fe',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+            }}
+          >
+            <AppIcons.Users size={15} />
+            <span>دليل وسجل مقاولي الباطن</span>
+          </button>
+
+          {/* تسجيل صرف دفعة لمقاول */}
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedPaymentSubId(null);
+              setIsPaymentModalOpen(true);
+            }}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#047857',
+              border: '1px solid #a7f3d0',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+            }}
+          >
+            <AppIcons.CreditCard size={15} />
+            <span>صرف دفعة لمقاول</span>
+          </button>
+
           {/* سجل ضمان الأعمال */}
           <button
             type="button"
@@ -209,6 +269,16 @@ export function ContractingSubcontractsTab({
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+              <colgroup>
+                <col style={{ width: '170px' }} />
+                <col style={{ width: '220px' }} />
+                <col style={{ width: '125px' }} />
+                <col style={{ width: '125px' }} />
+                <col style={{ width: '125px' }} />
+                <col style={{ width: '95px' }} />
+                <col style={{ width: '85px' }} />
+                <col style={{ width: '230px' }} />
+              </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                   <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>رقم العقد ومقاول الباطن</th>
@@ -266,31 +336,83 @@ export function ContractingSubcontractsTab({
                         {getStatusBadge(sc.status)}
                       </td>
                       <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                        {project ? (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedSubcontractForIpc(sc)}
-                            style={{
-                              height: '28px',
-                              padding: '0 10px',
-                              borderRadius: '6px',
-                              fontSize: 'var(--font-badge)',
-                              fontWeight: 600,
-                              background: '#170e5e',
-                              color: '#ffffff',
-                              border: 'none',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                            }}
-                          >
-                            <AppIcons.Receipt size={13} />
-                            <span>مستخلص باطن</span>
-                          </button>
-                        ) : (
-                          <span style={{ fontSize: 'var(--font-micro)', color: '#94a3b8' }}>—</span>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          {project && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedSubcontractForIpc(sc)}
+                              title="إصدار مستخلص باطن (IPC)"
+                              style={{
+                                height: '28px',
+                                padding: '0 8px',
+                                borderRadius: '6px',
+                                fontSize: 'var(--font-badge)',
+                                fontWeight: 600,
+                                background: '#170e5e',
+                                color: '#ffffff',
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <AppIcons.Receipt size={13} />
+                              <span>مستخلص</span>
+                            </button>
+                          )}
+                          {sc.subcontractorId ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedLedgerSubId(sc.subcontractorId)}
+                                title="كشف حساب مقاول الباطن وموقف المستحقات"
+                                style={{
+                                  height: '28px',
+                                  padding: '0 8px',
+                                  borderRadius: '6px',
+                                  fontSize: 'var(--font-badge)',
+                                  fontWeight: 600,
+                                  background: '#eff6ff',
+                                  color: '#1d4ed8',
+                                  border: '1px solid #bfdbfe',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <AppIcons.FileText size={13} />
+                                <span>كشف حساب</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedPaymentSubId(sc.subcontractorId);
+                                  setIsPaymentModalOpen(true);
+                                }}
+                                title="صرف دفعة نقدية أو تحويل لمقاول الباطن"
+                                style={{
+                                  height: '28px',
+                                  padding: '0 8px',
+                                  borderRadius: '6px',
+                                  fontSize: 'var(--font-badge)',
+                                  fontWeight: 600,
+                                  background: '#ecfdf5',
+                                  color: '#047857',
+                                  border: '1px solid #a7f3d0',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <AppIcons.CreditCard size={13} />
+                                <span>صرف دفعة</span>
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -331,6 +453,44 @@ export function ContractingSubcontractsTab({
           onClose={() => setSelectedSubcontractForIpc(null)}
           onCreated={() => {
             setSelectedSubcontractForIpc(null);
+            onRefresh?.();
+          }}
+        />
+      )}
+
+      {/* مودال دليل وسجل مقاولي الباطن */}
+      {isSubcontractorsDirectoryOpen && (
+        <SubcontractorsDirectoryModal
+          open={isSubcontractorsDirectoryOpen}
+          projectId={projectId}
+          onClose={() => setIsSubcontractorsDirectoryOpen(false)}
+          onChanged={() => onRefresh?.()}
+        />
+      )}
+
+      {/* مودال كشف حساب مقاول الباطن */}
+      {selectedLedgerSubId && (
+        <SubcontractorLedgerModal
+          open={Boolean(selectedLedgerSubId)}
+          subcontractorId={selectedLedgerSubId}
+          initialProjectId={projectId}
+          onClose={() => setSelectedLedgerSubId(null)}
+        />
+      )}
+
+      {/* مودال صرف دفعة لمقاول الباطن */}
+      {isPaymentModalOpen && (
+        <RecordSubcontractorPaymentModal
+          open={isPaymentModalOpen}
+          initialSubcontractorId={selectedPaymentSubId || undefined}
+          projectId={projectId}
+          onClose={() => {
+            setIsPaymentModalOpen(false);
+            setSelectedPaymentSubId(null);
+          }}
+          onSuccess={() => {
+            setIsPaymentModalOpen(false);
+            setSelectedPaymentSubId(null);
             onRefresh?.();
           }}
         />

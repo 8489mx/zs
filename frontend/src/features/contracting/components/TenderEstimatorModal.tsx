@@ -553,12 +553,23 @@ export function TenderEstimatorModal({
       const newProjectId = String(project.id);
 
       // 2. Insert BOQ Items
+      const usedItemCodes = new Set<string>();
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         const calc = calculateItemRates(item);
 
+        let code = (item.itemCode || `ITEM-${String(i + 1).padStart(3, '0')}`).trim();
+        if (usedItemCodes.has(code.toUpperCase())) {
+          let c = 2;
+          while (usedItemCodes.has(`${code}-${c}`.toUpperCase())) {
+            c++;
+          }
+          code = `${code}-${c}`;
+        }
+        usedItemCodes.add(code.toUpperCase());
+
         const boqItem = await contractingApi.createBoqItem(newProjectId, {
-          itemCode: item.itemCode,
+          itemCode: code,
           description: item.description,
           unit: item.unit,
           contractQty: item.estimatedQty,

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsInt, IsArray, IsBoolean, Min, ValidateNested, IsIn } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsInt, IsArray, IsBoolean, Min, Max, ValidateNested, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateProjectDto {
@@ -9,6 +9,11 @@ export class CreateProjectDto {
   @IsString()
   @IsNotEmpty()
   name!: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['planning', 'draft', 'submitted', 'negotiation', 'active', 'suspended', 'completed', 'handed_over', 'lost', 'cancelled'])
+  status?: 'planning' | 'draft' | 'submitted' | 'negotiation' | 'active' | 'suspended' | 'completed' | 'handed_over' | 'lost' | 'cancelled';
 
   @IsNumber()
   @IsOptional()
@@ -58,18 +63,70 @@ export class CreateProjectDto {
 
   @IsString()
   @IsOptional()
+  consultantName?: string;
+
+  @IsString()
+  @IsOptional()
+  contractRef?: string;
+
+  @IsString()
+  @IsOptional()
+  contractDate?: string;
+
+  @IsString()
+  @IsOptional()
+  lossReason?: string;
+
+  @IsString()
+  @IsOptional()
+  lossNotes?: string;
+
+  @IsNumber()
+  @IsOptional()
+  competitorPrice?: number;
+
+  @IsNumber()
+  @IsOptional()
+  revisionNumber?: number;
+
+  @IsNumber()
+  @IsOptional()
+  originalTenderId?: number;
+
+  @IsString()
+  @IsOptional()
+  submittedAt?: string;
+
+  @IsString()
+  @IsOptional()
+  awardedAt?: string;
+
+  @IsString()
+  @IsOptional()
   notes?: string;
 }
 
 export class UpdateProjectDto {
   @IsString()
   @IsOptional()
-  name?: string;
+  code?: string;
 
   @IsString()
   @IsOptional()
-  @IsIn(['planning', 'active', 'suspended', 'completed', 'handed_over'])
-  status?: 'planning' | 'active' | 'suspended' | 'completed' | 'handed_over';
+  name?: string;
+
+  @IsNumber()
+  @IsOptional()
+  clientId?: number;
+
+  @IsString()
+  @IsOptional()
+  clientName?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['planning', 'draft', 'submitted', 'negotiation', 'active', 'suspended', 'completed', 'handed_over', 'lost', 'cancelled'])
+  status?: 'planning' | 'draft' | 'submitted' | 'negotiation' | 'active' | 'suspended' | 'completed' | 'handed_over' | 'lost' | 'cancelled';
 
   @IsNumber()
   @Min(0)
@@ -116,7 +173,91 @@ export class UpdateProjectDto {
 
   @IsString()
   @IsOptional()
+  consultantName?: string;
+
+  @IsString()
+  @IsOptional()
+  contractRef?: string;
+
+  @IsString()
+  @IsOptional()
+  contractDate?: string;
+
+  @IsString()
+  @IsOptional()
+  lossReason?: string;
+
+  @IsString()
+  @IsOptional()
+  lossNotes?: string;
+
+  @IsNumber()
+  @IsOptional()
+  competitorPrice?: number;
+
+  @IsNumber()
+  @IsOptional()
+  revisionNumber?: number;
+
+  @IsNumber()
+  @IsOptional()
+  originalTenderId?: number;
+
+  @IsString()
+  @IsOptional()
+  submittedAt?: string;
+
+  @IsString()
+  @IsOptional()
+  awardedAt?: string;
+
+  @IsString()
+  @IsOptional()
   notes?: string;
+}
+
+export class MarkTenderLostDto {
+  @IsString()
+  @IsNotEmpty()
+  lossReason!: string;
+
+  @IsString()
+  @IsOptional()
+  lossNotes?: string;
+
+  @IsNumber()
+  @IsOptional()
+  competitorPrice?: number;
+}
+
+export class AwardTenderDto {
+  @IsString()
+  @IsOptional()
+  contractRef?: string;
+
+  @IsString()
+  @IsOptional()
+  contractDate?: string;
+
+  @IsNumber()
+  @IsOptional()
+  downPaymentAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  retentionPercent?: number;
+
+  @IsString()
+  @IsOptional()
+  projectManager?: string;
+
+  @IsString()
+  @IsOptional()
+  consultantName?: string;
+
+  @IsString()
+  @IsOptional()
+  startDate?: string;
 }
 
 export class CreateBoqItemDto {
@@ -1714,5 +1855,171 @@ export class CreateEquipmentFuelLogDto {
   notes?: string;
 }
 
+// 12. Subcontractor Management & Ledger DTOs
+export class CreateSubcontractorDto {
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
 
+  @IsString()
+  @IsOptional()
+  tradeSpecialty?: string;
 
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @IsString()
+  @IsOptional()
+  mobile?: string;
+
+  @IsString()
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsString()
+  @IsOptional()
+  taxNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  commercialReg?: string;
+
+  @IsString()
+  @IsOptional()
+  nationalId?: string;
+
+  @IsString()
+  @IsOptional()
+  bankName?: string;
+
+  @IsString()
+  @IsOptional()
+  bankIban?: string;
+
+  @IsString()
+  @IsOptional()
+  contactPerson?: string;
+
+  @IsNumber()
+  @Min(0)
+  @Max(5)
+  @IsOptional()
+  rating?: number;
+
+  @IsString()
+  @IsIn(['active', 'suspended', 'blacklisted'])
+  @IsOptional()
+  status?: 'active' | 'suspended' | 'blacklisted';
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class UpdateSubcontractorDto {
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  tradeSpecialty?: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @IsString()
+  @IsOptional()
+  mobile?: string;
+
+  @IsString()
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsString()
+  @IsOptional()
+  taxNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  commercialReg?: string;
+
+  @IsString()
+  @IsOptional()
+  nationalId?: string;
+
+  @IsString()
+  @IsOptional()
+  bankName?: string;
+
+  @IsString()
+  @IsOptional()
+  bankIban?: string;
+
+  @IsString()
+  @IsOptional()
+  contactPerson?: string;
+
+  @IsNumber()
+  @Min(0)
+  @Max(5)
+  @IsOptional()
+  rating?: number;
+
+  @IsString()
+  @IsIn(['active', 'suspended', 'blacklisted'])
+  @IsOptional()
+  status?: 'active' | 'suspended' | 'blacklisted';
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class CreateSubcontractorPaymentDto {
+  @IsNumber()
+  subcontractorId!: number;
+
+  @IsString()
+  @IsOptional()
+  projectId?: string;
+
+  @IsString()
+  @IsOptional()
+  subcontractId?: string;
+
+  @IsString()
+  @IsOptional()
+  invoiceId?: string;
+
+  @IsNumber()
+  @Min(0.01)
+  amount!: number;
+
+  @IsString()
+  @IsOptional()
+  paymentDate?: string;
+
+  @IsString()
+  @IsIn(['cash', 'bank_transfer', 'check'])
+  @IsOptional()
+  paymentMethod?: 'cash' | 'bank_transfer' | 'check';
+
+  @IsString()
+  @IsOptional()
+  referenceNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}

@@ -221,14 +221,23 @@ export function ContractingGanttTab({
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+            <table style={{ width: '100%', minWidth: '1060px', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right' }}>
+              <colgroup>
+                <col style={{ width: '110px' }} />
+                <col style={{ width: '310px' }} />
+                <col style={{ width: '130px' }} />
+                <col style={{ width: '75px' }} />
+                <col style={{ width: '190px' }} />
+                <col style={{ width: '110px' }} />
+                <col style={{ width: '135px' }} />
+              </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                   <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الكود و WBS</th>
                   <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>النشاط أو المرحلة</th>
                   <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>البداية والنهاية</th>
                   <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>المدة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', minWidth: '180px' }}>مخطط التقدم الزمني (Gantt)</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>مخطط التقدم الزمني (Gantt)</th>
                   <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الحالة</th>
                   <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>إجراءات</th>
                 </tr>
@@ -247,33 +256,33 @@ export function ContractingGanttTab({
                       }}
                     >
                       <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
-                        <div>{task.taskCode}</div>
-                        <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>WBS: {task.wbsCode}</span>
+                        <div>{task.taskCode || (task as any).task_code}</div>
+                        <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>WBS: {task.wbsCode || (task as any).wbs_code}</span>
                       </td>
 
-                      <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', maxWidth: '280px' }}>
-                        <div style={{ fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span>{task.taskName}</span>
+                      <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', overflow: 'hidden' }}>
+                        <div style={{ fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', lineHeight: 1.45 }}>
+                          <span style={{ wordBreak: 'break-word' }}>{task.taskName || (task as any).task_name}</span>
                           {isCritical && (
-                            <span style={{ fontSize: 'var(--font-micro)', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                            <span style={{ fontSize: 'var(--font-micro)', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
                               مسار حرج CPM
                             </span>
                           )}
                         </div>
-                        {task.assignedTeam && (
-                          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px' }}>
-                            المسؤول: {task.assignedTeam}
+                        {(task.assignedTeam || (task as any).assigned_team) && (
+                          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px', wordBreak: 'break-word' }}>
+                            المسؤول: {task.assignedTeam || (task as any).assigned_team}
                           </div>
                         )}
                       </td>
 
-                      <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#475569' }}>
-                        <div>{task.startDate}</div>
-                        <div style={{ fontSize: 'var(--font-micro)', color: '#94a3b8' }}>إلى {task.endDate}</div>
+                      <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#475569', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontWeight: 600 }}>{task.startDate || (task as any).start_date || '-'}</div>
+                        <div style={{ fontSize: 'var(--font-micro)', color: '#94a3b8', marginTop: '2px' }}>إلى {task.endDate || (task as any).end_date || '-'}</div>
                       </td>
 
-                      <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#0f172a' }}>
-                        {task.durationDays} يوم
+                      <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap' }}>
+                        {task.durationDays ?? (task as any).duration_days ?? 1} يوم
                       </td>
 
                       {/* شريط جانت الزمني المباشر */}

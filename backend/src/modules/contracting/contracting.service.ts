@@ -8,6 +8,8 @@ import { getDailyDocumentPrefix } from '../../common/utils/document-number.util'
 import {
   CreateProjectDto,
   UpdateProjectDto,
+  MarkTenderLostDto,
+  AwardTenderDto,
   CreateBoqItemDto,
   UpdateBoqItemDto,
   CreateChangeOrderDto,
@@ -59,6 +61,9 @@ import {
   CreateSubcontractorBackchargeDto,
   UpdateBackchargeStatusDto,
   CreateEquipmentFuelLogDto,
+  CreateSubcontractorDto,
+  UpdateSubcontractorDto,
+  CreateSubcontractorPaymentDto,
 } from './dto/contracting.dto';
 import {
   ContractingProjectSummary,
@@ -211,7 +216,7 @@ export class ContractingService {
         name: dto.name.trim(),
         client_id: dto.clientId ? Number(dto.clientId) : null,
         client_name: clientName,
-        status: 'planning',
+        status: dto.status || 'planning',
         contract_value: Number(dto.contractValue || 0),
         revised_contract_value: Number(dto.contractValue || 0),
         down_payment_amount: Number(dto.downPaymentAmount || 0),
@@ -226,8 +231,18 @@ export class ContractingService {
         cost_center_id: costCenterId,
         project_manager: dto.projectManager || null,
         location_address: dto.locationAddress || null,
+        consultant_name: dto.consultantName || null,
+        contract_ref: dto.contractRef || null,
+        contract_date: dto.contractDate || null,
+        loss_reason: dto.lossReason || null,
+        loss_notes: dto.lossNotes || null,
+        competitor_price: dto.competitorPrice !== undefined ? Number(dto.competitorPrice) : null,
+        revision_number: dto.revisionNumber !== undefined ? Number(dto.revisionNumber) : 0,
+        original_tender_id: dto.originalTenderId ? Number(dto.originalTenderId) : null,
+        submitted_at: dto.submittedAt ? new Date(dto.submittedAt) : (dto.status === 'submitted' ? new Date() : null),
+        awarded_at: dto.awardedAt ? new Date(dto.awardedAt) : (dto.status === 'active' ? new Date() : null),
         notes: dto.notes || null,
-      })
+      } as any)
       .returningAll()
       .execute();
 
@@ -251,7 +266,20 @@ export class ContractingService {
       updated_at: new Date(),
     };
 
+    if (dto.code !== undefined) updatePayload.code = dto.code ? dto.code.trim() : null;
     if (dto.name !== undefined) updatePayload.name = dto.name.trim();
+    if (dto.clientId !== undefined) updatePayload.client_id = dto.clientId ? Number(dto.clientId) : null;
+    if (dto.clientName !== undefined) {
+      updatePayload.client_name = dto.clientName ? dto.clientName.trim() : '';
+    } else if (dto.clientId) {
+      const client = await (this.db as any)
+        .selectFrom('customers')
+        .select('name')
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', dto.clientId)
+        .executeTakeFirst();
+      if (client) updatePayload.client_name = client.name;
+    }
     if (dto.status !== undefined) updatePayload.status = dto.status;
     if (dto.contractValue !== undefined) {
       updatePayload.contract_value = Number(dto.contractValue);
@@ -267,18 +295,197 @@ export class ContractingService {
     }
     if (dto.downPaymentAmount !== undefined) updatePayload.down_payment_amount = Number(dto.downPaymentAmount);
     if (dto.retentionPercent !== undefined) updatePayload.retention_percent = Number(dto.retentionPercent);
-    if (dto.startDate !== undefined) updatePayload.start_date = dto.startDate;
-    if (dto.expectedEndDate !== undefined) updatePayload.expected_end_date = dto.expectedEndDate;
-    if (dto.actualEndDate !== undefined) updatePayload.actual_end_date = dto.actualEndDate;
+    if (dto.startDate !== undefined) {
+      const s = typeof dto.startDate === 'string' ? dto.startDate.trim() : dto.startDate;
+      updatePayload.start_date = s ? s : null;
+    }
+    if (dto.expectedEndDate !== undefined) {
+      const s = typeof dto.expectedEndDate === 'string' ? dto.expectedEndDate.trim() : dto.expectedEndDate;
+      updatePayload.expected_end_date = s ? s : null;
+    }
+    if (dto.actualEndDate !== undefined) {
+      const s = typeof dto.actualEndDate === 'string' ? dto.actualEndDate.trim() : dto.actualEndDate;
+      updatePayload.actual_end_date = s ? s : null;
+    }
     if (dto.siteLocationId !== undefined) updatePayload.site_location_id = dto.siteLocationId;
     if (dto.costCenterId !== undefined) updatePayload.cost_center_id = dto.costCenterId;
     if (dto.projectManager !== undefined) updatePayload.project_manager = dto.projectManager;
     if (dto.locationAddress !== undefined) updatePayload.location_address = dto.locationAddress;
+    if (dto.consultantName !== undefined) updatePayload.consultant_name = dto.consultantName;
+    if (dto.contractRef !== undefined) updatePayload.contract_ref = dto.contractRef;
+    if (dto.contractDate !== undefined) {
+      const s = typeof dto.contractDate === 'string' ? dto.contractDate.trim() : dto.contractDate;
+      updatePayload.contract_date = s ? s : null;
+    }
+    if (dto.lossReason !== undefined) updatePayload.loss_reason = dto.lossReason;
+    if (dto.lossNotes !== undefined) updatePayload.loss_notes = dto.lossNotes;
+    if (dto.competitorPrice !== undefined) updatePayload.competitor_price = dto.competitorPrice !== null ? Number(dto.competitorPrice) : null;
+    if (dto.revisionNumber !== undefined) updatePayload.revision_number = Number(dto.revisionNumber);
+    if (dto.originalTenderId !== undefined) updatePayload.original_tender_id = dto.originalTenderId ? Number(dto.originalTenderId) : null;
+    if (dto.submittedAt !== undefined) updatePayload.submitted_at = dto.submittedAt ? new Date(dto.submittedAt) : null;
+    if (dto.awardedAt !== undefined) updatePayload.awarded_at = dto.awardedAt ? new Date(dto.awardedAt) : null;
+    if (dto.status === 'active' && !(existing as any).awarded_at && dto.awardedAt === undefined) {
+      updatePayload.awarded_at = new Date();
+    }
+    if (dto.status === 'submitted' && !(existing as any).submitted_at && dto.submittedAt === undefined) {
+      updatePayload.submitted_at = new Date();
+    }
     if (dto.notes !== undefined) updatePayload.notes = dto.notes;
 
     const [updated] = await this.db
       .updateTable('contracting_projects')
       .set(updatePayload)
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    return this.enrichProjectMetrics(tenantId, updated);
+  }
+
+  async createTenderRevision(auth: AuthContext, id: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const existing = await this.db
+      .selectFrom('contracting_projects')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .executeTakeFirst();
+
+    if (!existing) {
+      throw new NotFoundException(`عطاء المقاولات برقم ${id} غير موجود`);
+    }
+
+    const currentRev = Number((existing as any).revision_number || 0);
+    const nextRev = currentRev + 1;
+    const cleanBaseCode = existing.code.replace(/-REV\d+$/i, '');
+    const newCode = `${cleanBaseCode}-REV${nextRev}`;
+    const newName = `${existing.name.replace(/\s*\(مراجعة\s*\d+\)$/i, '')} (مراجعة ${nextRev})`;
+
+    const [cloned] = await this.db
+      .insertInto('contracting_projects')
+      .values({
+        tenant_id: tenantId,
+        code: newCode,
+        name: newName,
+        client_id: existing.client_id,
+        client_name: existing.client_name,
+        status: 'negotiation',
+        contract_value: existing.contract_value,
+        revised_contract_value: existing.revised_contract_value,
+        down_payment_amount: existing.down_payment_amount,
+        down_payment_recovered: 0,
+        retention_percent: existing.retention_percent,
+        retention_total_held: 0,
+        retention_released: 0,
+        start_date: existing.start_date,
+        expected_end_date: existing.expected_end_date,
+        actual_end_date: null,
+        site_location_id: existing.site_location_id,
+        cost_center_id: existing.cost_center_id,
+        project_manager: existing.project_manager,
+        location_address: existing.location_address,
+        notes: `مراجعة تفاوضية ${nextRev} للعطاء الأصلي [${existing.code}]`,
+        revision_number: nextRev as any,
+        original_tender_id: ((existing as any).original_tender_id || existing.id) as any,
+      } as any)
+      .returningAll()
+      .execute();
+
+    // Copy BOQ items
+    const originalBoqItems = await this.db
+      .selectFrom('contracting_boq_items')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', id as any)
+      .execute();
+
+    for (const item of originalBoqItems) {
+      const contractQty = Number(item.contract_qty || 0);
+      const unitPrice = Number(item.unit_price || 0);
+      await this.db
+        .insertInto('contracting_boq_items')
+        .values({
+          tenant_id: tenantId,
+          project_id: cloned.id as any,
+          item_code: item.item_code,
+          description: item.description,
+          category: item.category,
+          unit: item.unit,
+          contract_qty: item.contract_qty,
+          revised_qty: item.revised_qty,
+          unit_price: item.unit_price,
+          total_price: contractQty * unitPrice,
+          estimated_unit_cost: item.estimated_unit_cost,
+          executed_qty: 0,
+          notes: item.notes,
+        })
+        .execute();
+    }
+
+    return this.enrichProjectMetrics(tenantId, cloned);
+  }
+
+  async markTenderLost(auth: AuthContext, id: string, dto: MarkTenderLostDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const existing = await this.db
+      .selectFrom('contracting_projects')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .executeTakeFirst();
+
+    if (!existing) {
+      throw new NotFoundException(`عطاء المقاولات برقم ${id} غير موجود`);
+    }
+
+    const [updated] = await this.db
+      .updateTable('contracting_projects')
+      .set({
+        status: 'lost',
+        loss_reason: dto.lossReason,
+        loss_notes: dto.lossNotes || null,
+        competitor_price: dto.competitorPrice !== undefined ? Number(dto.competitorPrice) : null,
+        updated_at: new Date(),
+      } as any)
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    return this.enrichProjectMetrics(tenantId, updated);
+  }
+
+  async awardTender(auth: AuthContext, id: string, dto: AwardTenderDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const existing = await this.db
+      .selectFrom('contracting_projects')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .executeTakeFirst();
+
+    if (!existing) {
+      throw new NotFoundException(`عطاء المقاولات برقم ${id} غير موجود`);
+    }
+
+    const updatePayload: Record<string, any> = {
+      status: 'active',
+      awarded_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    if (dto.contractRef) updatePayload.contract_ref = dto.contractRef;
+    if (dto.contractDate) updatePayload.contract_date = dto.contractDate;
+    if (dto.downPaymentAmount !== undefined) updatePayload.down_payment_amount = Number(dto.downPaymentAmount);
+    if (dto.retentionPercent !== undefined) updatePayload.retention_percent = Number(dto.retentionPercent);
+    if (dto.projectManager) updatePayload.project_manager = dto.projectManager;
+    if (dto.consultantName) updatePayload.consultant_name = dto.consultantName;
+    if (dto.startDate) updatePayload.start_date = dto.startDate;
+
+    const [updated] = await this.db
+      .updateTable('contracting_projects')
+      .set(updatePayload as any)
       .where('tenant_id', '=', tenantId)
       .where('id', '=', id as any)
       .returningAll()
@@ -350,12 +557,41 @@ export class ContractingService {
     const totalPrice = contractQty * unitPrice;
     const estimatedUnitCost = Number(dto.estimatedUnitCost || 0);
 
+    const baseCode = (dto.itemCode || 'ITEM').trim();
+    let finalCode = baseCode;
+
+    // Check if code already exists in this project to prevent uq_contracting_boq_tenant_proj_code collision
+    const existing = await this.db
+      .selectFrom('contracting_boq_items')
+      .select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .where('item_code', '=', finalCode)
+      .executeTakeFirst();
+
+    if (existing) {
+      let counter = 2;
+      finalCode = `${baseCode}-${counter}`;
+      while (
+        await this.db
+          .selectFrom('contracting_boq_items')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('project_id', '=', projectId as any)
+          .where('item_code', '=', finalCode)
+          .executeTakeFirst()
+      ) {
+        counter++;
+        finalCode = `${baseCode}-${counter}`;
+      }
+    }
+
     const [item] = await this.db
       .insertInto('contracting_boq_items')
       .values({
         tenant_id: tenantId,
         project_id: projectId as any,
-        item_code: dto.itemCode.trim(),
+        item_code: finalCode,
         description: dto.description.trim(),
         category: dto.category || 'general',
         unit: dto.unit || 'm3',
@@ -783,14 +1019,24 @@ export class ContractingService {
     }
 
     if (subId && !subName) {
-      const sup = await (this.db as any)
-        .selectFrom('suppliers')
+      const subc = await (this.db as any)
+        .selectFrom('contracting_subcontractors')
         .select('name')
         .where('tenant_id', '=', tenantId)
         .where('id', '=', subId)
         .executeTakeFirst();
-      if (sup) {
-        subName = sup.name;
+      if (subc) {
+        subName = subc.name;
+      } else {
+        const sup = await (this.db as any)
+          .selectFrom('suppliers')
+          .select('name')
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', subId)
+          .executeTakeFirst();
+        if (sup) {
+          subName = sup.name;
+        }
       }
     }
 
@@ -1371,13 +1617,23 @@ export class ContractingService {
       subcontracts.map(async (sc) => {
         let subcontractorName = '';
         if (sc.subcontractor_id) {
-          const sup = await (this.db as any)
-            .selectFrom('suppliers')
+          const subc = await (this.db as any)
+            .selectFrom('contracting_subcontractors')
             .select('name')
             .where('tenant_id', '=', tenantId)
             .where('id', '=', sc.subcontractor_id)
             .executeTakeFirst();
-          subcontractorName = sup?.name || '';
+          if (subc) {
+            subcontractorName = subc.name;
+          } else {
+            const sup = await (this.db as any)
+              .selectFrom('suppliers')
+              .select('name')
+              .where('tenant_id', '=', tenantId)
+              .where('id', '=', sc.subcontractor_id)
+              .executeTakeFirst();
+            subcontractorName = sup?.name || '';
+          }
         }
 
         const invTotals = await this.db
@@ -1573,15 +1829,87 @@ export class ContractingService {
   // 9. Schedule Tasks & Gantt / CPM
   // ==========================================================================
 
+  private mapScheduleTaskRow(r: any) {
+    if (!r) {
+      return {
+        id: '',
+        projectId: '',
+        taskCode: '',
+        taskName: '',
+        wbsCode: '1.0',
+        startDate: '',
+        endDate: '',
+        durationDays: 1,
+        progressPercent: 0,
+        predecessorId: null,
+        isCriticalPath: false,
+        status: 'not_started',
+        boqItemId: null,
+        assignedTeam: null,
+        notes: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        project_id: '',
+        task_code: '',
+        task_name: '',
+        wbs_code: '1.0',
+        start_date: '',
+        end_date: '',
+        duration_days: 1,
+        progress_percent: 0,
+        predecessor_id: null,
+        is_critical_path: false,
+        boq_item_id: null,
+        assigned_team: null,
+      };
+    }
+    const startDate = r.start_date instanceof Date ? r.start_date.toISOString().slice(0, 10) : (r.start_date ? String(r.start_date).slice(0, 10) : '');
+    const endDate = r.end_date instanceof Date ? r.end_date.toISOString().slice(0, 10) : (r.end_date ? String(r.end_date).slice(0, 10) : '');
+    return {
+      id: String(r.id),
+      projectId: String(r.project_id),
+      taskCode: r.task_code,
+      taskName: r.task_name,
+      wbsCode: r.wbs_code || '1.0',
+      startDate,
+      endDate,
+      durationDays: Number(r.duration_days || 1),
+      progressPercent: Number(r.progress_percent || 0),
+      predecessorId: r.predecessor_id ? String(r.predecessor_id) : null,
+      isCriticalPath: Boolean(r.is_critical_path),
+      status: r.status || 'not_started',
+      boqItemId: r.boq_item_id ? String(r.boq_item_id) : null,
+      assignedTeam: r.assigned_team || null,
+      notes: r.notes || null,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      // Backward-compatibility snake_case access
+      project_id: r.project_id,
+      task_code: r.task_code,
+      task_name: r.task_name,
+      wbs_code: r.wbs_code,
+      start_date: startDate,
+      end_date: endDate,
+      duration_days: r.duration_days,
+      progress_percent: r.progress_percent,
+      predecessor_id: r.predecessor_id,
+      is_critical_path: r.is_critical_path,
+      boq_item_id: r.boq_item_id,
+      assigned_team: r.assigned_team,
+    };
+  }
+
   async getScheduleTasks(auth: AuthContext, projectId: string) {
     const { tenantId } = requireTenantScope(auth);
-    return await this.db
+    const rows = await this.db
       .selectFrom('contracting_schedule_tasks')
       .selectAll()
       .where('tenant_id', '=', tenantId)
       .where('project_id', '=', projectId as any)
       .orderBy('start_date', 'asc')
       .execute();
+
+    return rows.map((r: any) => this.mapScheduleTaskRow(r));
   }
 
   async createScheduleTask(auth: AuthContext, projectId: string, dto: CreateScheduleTaskDto) {
@@ -1599,10 +1927,57 @@ export class ContractingService {
       taskCode = `TSK-${String(count).padStart(3, '0')}`;
     }
 
-    const start = new Date(dto.startDate);
-    const end = new Date(dto.endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const durationDays = dto.durationDays || Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    // Ensure unique task_code within project
+    const existingCode = await this.db
+      .selectFrom('contracting_schedule_tasks')
+      .select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .where('task_code', '=', taskCode)
+      .executeTakeFirst();
+
+    if (existingCode) {
+      const countRes = await this.db
+        .selectFrom('contracting_schedule_tasks')
+        .select(sql<number>`count(*)::int`.as('count'))
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId as any)
+        .executeTakeFirst();
+      let count = (countRes?.count || 0) + 1;
+      let candidate = `TSK-${String(count).padStart(3, '0')}`;
+      while (
+        await this.db
+          .selectFrom('contracting_schedule_tasks')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('project_id', '=', projectId as any)
+          .where('task_code', '=', candidate)
+          .executeTakeFirst()
+      ) {
+        count++;
+        candidate = `TSK-${String(count).padStart(3, '0')}`;
+      }
+      taskCode = candidate;
+    }
+
+    const startStr = (dto.startDate || (dto as any).start_date || new Date().toISOString().slice(0, 10)).trim();
+    let endStr = (dto.endDate || (dto as any).end_date || '').trim();
+
+    let durationDays = Number(dto.durationDays || (dto as any).duration_days || 0);
+    if (!endStr && durationDays > 0) {
+      const s = new Date(startStr);
+      s.setDate(s.getDate() + durationDays);
+      endStr = s.toISOString().slice(0, 10);
+    } else if (!endStr) {
+      endStr = startStr;
+    }
+
+    if (!durationDays) {
+      const start = new Date(startStr);
+      const end = new Date(endStr);
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      durationDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    }
 
     const [task] = await this.db
       .insertInto('contracting_schedule_tasks')
@@ -1610,43 +1985,74 @@ export class ContractingService {
         tenant_id: tenantId,
         project_id: projectId as any,
         task_code: taskCode,
-        task_name: dto.taskName.trim(),
-        wbs_code: dto.wbsCode?.trim() || '1.0',
-        start_date: dto.startDate,
-        end_date: dto.endDate,
+        task_name: (dto.taskName || (dto as any).task_name || '').trim(),
+        wbs_code: (dto.wbsCode || (dto as any).wbs_code)?.trim() || '1.0',
+        start_date: startStr,
+        end_date: endStr,
         duration_days: durationDays,
         progress_percent: dto.progressPercent !== undefined ? Number(dto.progressPercent) : 0,
         predecessor_id: dto.predecessorId ? (dto.predecessorId as any) : null,
-        is_critical_path: Boolean(dto.isCriticalPath),
+        is_critical_path: Boolean(dto.isCriticalPath || (dto as any).is_critical_path),
         status: (dto.status || 'not_started') as any,
         boq_item_id: dto.boqItemId ? (dto.boqItemId as any) : null,
-        assigned_team: dto.assignedTeam || null,
+        assigned_team: dto.assignedTeam || (dto as any).assigned_team || null,
         notes: dto.notes || null,
       })
       .returningAll()
       .execute();
 
-    return task;
+    return this.mapScheduleTaskRow(task);
   }
 
   async updateScheduleTask(auth: AuthContext, id: string, dto: UpdateScheduleTaskDto) {
     const { tenantId } = requireTenantScope(auth);
 
     const updatePayload: any = { updated_at: new Date() };
-    if (dto.taskName !== undefined) updatePayload.task_name = dto.taskName.trim();
-    if (dto.startDate !== undefined) updatePayload.start_date = dto.startDate;
-    if (dto.endDate !== undefined) updatePayload.end_date = dto.endDate;
-    if (dto.durationDays !== undefined) updatePayload.duration_days = dto.durationDays;
-    if (dto.progressPercent !== undefined) {
-      updatePayload.progress_percent = Number(dto.progressPercent);
-      if (Number(dto.progressPercent) >= 100) updatePayload.status = 'completed';
-      else if (Number(dto.progressPercent) > 0) updatePayload.status = 'in_progress';
+    const taskName = dto.taskName !== undefined ? dto.taskName : (dto as any).task_name;
+    if (taskName !== undefined) updatePayload.task_name = String(taskName).trim();
+
+    const rawStartDate = dto.startDate !== undefined ? dto.startDate : (dto as any).start_date;
+    if (rawStartDate !== undefined) {
+      const trimmed = typeof rawStartDate === 'string' ? rawStartDate.trim() : rawStartDate;
+      if (trimmed) {
+        updatePayload.start_date = trimmed;
+      }
     }
-    if (dto.predecessorId !== undefined) updatePayload.predecessor_id = dto.predecessorId || null;
-    if (dto.isCriticalPath !== undefined) updatePayload.is_critical_path = Boolean(dto.isCriticalPath);
+
+    const rawEndDate = dto.endDate !== undefined ? dto.endDate : (dto as any).end_date;
+    if (rawEndDate !== undefined) {
+      const trimmed = typeof rawEndDate === 'string' ? rawEndDate.trim() : rawEndDate;
+      if (trimmed) {
+        updatePayload.end_date = trimmed;
+      }
+    }
+
+    const durationDays = dto.durationDays !== undefined ? dto.durationDays : (dto as any).duration_days;
+    if (durationDays !== undefined && durationDays !== null && durationDays !== '') {
+      updatePayload.duration_days = Number(durationDays);
+    }
+
+    const progressPercent = dto.progressPercent !== undefined ? dto.progressPercent : (dto as any).progress_percent;
+    if (progressPercent !== undefined && progressPercent !== null && progressPercent !== '') {
+      updatePayload.progress_percent = Number(progressPercent);
+      if (Number(progressPercent) >= 100) updatePayload.status = 'completed';
+      else if (Number(progressPercent) > 0) updatePayload.status = 'in_progress';
+    }
+
+    const predecessorId = dto.predecessorId !== undefined ? dto.predecessorId : (dto as any).predecessor_id;
+    if (predecessorId !== undefined) updatePayload.predecessor_id = predecessorId || null;
+
+    const isCriticalPath = dto.isCriticalPath !== undefined ? dto.isCriticalPath : (dto as any).is_critical_path;
+    if (isCriticalPath !== undefined) updatePayload.is_critical_path = Boolean(isCriticalPath);
+
     if (dto.status !== undefined) updatePayload.status = dto.status;
-    if (dto.boqItemId !== undefined) updatePayload.boq_item_id = dto.boqItemId || null;
-    if (dto.assignedTeam !== undefined) updatePayload.assigned_team = dto.assignedTeam || null;
+
+    const boqItemId = dto.boqItemId !== undefined ? dto.boqItemId : (dto as any).boq_item_id;
+    if (boqItemId !== undefined) updatePayload.boq_item_id = boqItemId || null;
+
+    const assignedTeam = dto.assignedTeam !== undefined ? dto.assignedTeam : (dto as any).assigned_team;
+    if (assignedTeam !== undefined) updatePayload.assigned_team = assignedTeam || null;
+
     if (dto.notes !== undefined) updatePayload.notes = dto.notes || null;
 
     const [updated] = await this.db
@@ -1657,7 +2063,7 @@ export class ContractingService {
       .returningAll()
       .execute();
 
-    return updated;
+    return this.mapScheduleTaskRow(updated);
   }
 
   async deleteScheduleTask(auth: AuthContext, id: string) {
@@ -2256,6 +2662,147 @@ export class ContractingService {
           { componentCode: 'LABOR-GYPS', componentName: 'مصنعية فني تركيب جبسوم بورد ومساعد', unit: 'm2', qtyPerUnit: 1.0, unitRate: 95, componentType: 'labor' },
         ]),
         notes: 'أسقف جبسوم بورد مستوية ومستويات شاملة الشاسيه المقاوم للصدأ وشريط الفواصل والمعجون.',
+      },
+      {
+        item_code: 'FF-PIP-STM-65',
+        item_name: 'مواسير سيملس حديد أسود جدول 40 قطر 65 مم (2.5 بوصة) ASTM A53',
+        unit: 'm',
+        waste_percent: 5.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'MAT-FF-PIP-65', componentName: 'مواسير سيملس جدول 40 قطر 65 مم معتمدة', unit: 'm', qtyPerUnit: 1.05, unitRate: 310, componentType: 'material' },
+          { componentCode: 'MAT-FF-FIT-65', componentName: 'لوازم وهناجر ومسامير وفلكسبل 65 مم', unit: 'ls', qtyPerUnit: 1.0, unitRate: 45, componentType: 'material' },
+          { componentCode: 'LAB-FF-PIP-FIT', componentName: 'مصنعية فني ولحام وتركيب مواسير حريق', unit: 'm', qtyPerUnit: 1.0, unitRate: 65, componentType: 'labor' },
+        ]),
+        notes: 'مواسير سيملس غير ملحومة ASTM A53 Gr. B لشبكات مكافحة الحريق مع الاختبار الهيدروستاتيكي.',
+      },
+      {
+        item_code: 'FF-PIP-STM-40',
+        item_name: 'مواسير سيملس حديد أسود جدول 40 قطر 40 مم (1.5 بوصة) ASTM A53',
+        unit: 'm',
+        waste_percent: 5.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'MAT-FF-PIP-40', componentName: 'مواسير سيملس جدول 40 قطر 40 مم معتمدة', unit: 'm', qtyPerUnit: 1.05, unitRate: 155, componentType: 'material' },
+          { componentCode: 'MAT-FF-FIT-40', componentName: 'لوازم وهناجر ومسامير 40 مم', unit: 'ls', qtyPerUnit: 1.0, unitRate: 25, componentType: 'material' },
+          { componentCode: 'LAB-FF-PIP-FIT', componentName: 'مصنعية فني وتركيب مواسير حريق', unit: 'm', qtyPerUnit: 1.0, unitRate: 45, componentType: 'labor' },
+        ]),
+        notes: 'مواسير سيملس 1.5 بوصة لتغذية الرشاشات وصناديق الحريق.',
+      },
+      {
+        item_code: 'FF-PIP-HDP-90',
+        item_name: 'مواسير بولي إيثيلين شبكة حريق HDPE SDR11 PN16 قطر 90 مم',
+        unit: 'm',
+        waste_percent: 4.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'MAT-HDP-PIP-90', componentName: 'مواسير HDPE SDR11 ضغط 16 بار قطر 90 مم', unit: 'm', qtyPerUnit: 1.03, unitRate: 175, componentType: 'material' },
+          { componentCode: 'MAT-HDP-FIT-90', componentName: 'وصلات ولحام كهروحراري Electrofusion', unit: 'ls', qtyPerUnit: 1.0, unitRate: 35, componentType: 'material' },
+          { componentCode: 'LAB-HDP-LAY', componentName: 'مصنعية حفر وفرشة رملية وتركيب واختبار', unit: 'm', qtyPerUnit: 1.0, unitRate: 55, componentType: 'labor' },
+        ]),
+        notes: 'مواسير شبكة حريق خارجية مدفونة HDPE ضغط 16 بار.',
+      },
+      {
+        item_code: 'FF-PIP-HDP-65',
+        item_name: 'مواسير بولي إيثيلين شبكة حريق HDPE SDR11 PN16 قطر 65 مم',
+        unit: 'm',
+        waste_percent: 4.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'MAT-HDP-PIP-65', componentName: 'مواسير HDPE SDR11 ضغط 16 بار قطر 65 مم', unit: 'm', qtyPerUnit: 1.03, unitRate: 130, componentType: 'material' },
+          { componentCode: 'MAT-HDP-FIT-65', componentName: 'وصلات ولحام كهروحراري', unit: 'ls', qtyPerUnit: 1.0, unitRate: 25, componentType: 'material' },
+          { componentCode: 'LAB-HDP-LAY', componentName: 'مصنعية حفر وفرشة وتركيب واختبار', unit: 'm', qtyPerUnit: 1.0, unitRate: 45, componentType: 'labor' },
+        ]),
+        notes: 'مواسير شبكة حريق مدفونة HDPE قطر 65 مم.',
+      },
+      {
+        item_code: 'FF-VLV-NRS-80',
+        item_name: 'محبس سكينة غير صاعد 80 مم NRS Gate Valve وصلة Tie-In',
+        unit: 'item',
+        waste_percent: 2.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'MAT-VLV-NRS-80', componentName: 'محبس سكينة NRS مقاس 80 مم معتمد UL/FM', unit: 'item', qtyPerUnit: 1.0, unitRate: 2800, componentType: 'material' },
+          { componentCode: 'MAT-FLG-SET-80', componentName: 'طقم فلانشات وجوانات ومسامير صلب 80 مم', unit: 'set', qtyPerUnit: 1.0, unitRate: 400, componentType: 'material' },
+          { componentCode: 'LAB-VLV-INST', componentName: 'مصنعية تركيب واختبار المحبس', unit: 'item', qtyPerUnit: 1.0, unitRate: 350, componentType: 'labor' },
+        ]),
+        notes: 'محبس سكينة غير صاعد لنقطة ربط شبكة الحريق الخارجية.',
+      },
+      {
+        item_code: 'FF-VLV-AAV-25',
+        item_name: 'محبس تنفيس وتصريف هواء أوتوماتيكي 25 مم (1 بوصة) Automatic Air Vent',
+        unit: 'item',
+        waste_percent: 2.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'MAT-VLV-AAV-25', componentName: 'هواية أوتوماتيكية سريعة AAV 1 بوصة برونز', unit: 'item', qtyPerUnit: 1.0, unitRate: 650, componentType: 'material' },
+          { componentCode: 'MAT-VLV-BAL-25', componentName: 'محبس عزل كروي نحاس 1 بوصة', unit: 'item', qtyPerUnit: 1.0, unitRate: 150, componentType: 'material' },
+          { componentCode: 'LAB-VLV-SML', componentName: 'مصنعية تركيب واختبار الهواية', unit: 'item', qtyPerUnit: 1.0, unitRate: 120, componentType: 'labor' },
+        ]),
+        notes: 'محبس تصريف هواء أوتوماتيكي عند أعلى نقاط الشبكة.',
+      },
+      {
+        item_code: 'FF-FHC-COMB-02',
+        item_name: 'صندوق حريق تركيبي مزدوج FHC-2 (بكرة 1 بوصة 30م + محبس 1.5 + محبس زاوية + كابينة)',
+        unit: 'item',
+        waste_percent: 2.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'MAT-FHC-CAB-02', componentName: 'كابينة حريق صاج 1.5 مم مدهونة إلكتروستاتيك', unit: 'item', qtyPerUnit: 1.0, unitRate: 3800, componentType: 'material' },
+          { componentCode: 'MAT-FHC-REEL-30', componentName: 'بكرة خرطوم مطاطي 1 بوصة 30م بالقاذف', unit: 'item', qtyPerUnit: 1.0, unitRate: 2800, componentType: 'material' },
+          { componentCode: 'MAT-FHC-VLV-SET', componentName: 'محبس كروي 1.5" + محبس زاوية Angle Valve 1.5"', unit: 'set', qtyPerUnit: 1.0, unitRate: 1600, componentType: 'material' },
+          { componentCode: 'LAB-FHC-INST', componentName: 'مصنعية تثبيت الصندوق وتوصيل الخط واختباره', unit: 'item', qtyPerUnit: 1.0, unitRate: 600, componentType: 'labor' },
+        ]),
+        notes: 'صندوق حريق مجمع مجهز ومعتمد للدفاع المدني والمشاريع السكنية والتجارية.',
+      },
+      {
+        item_code: 'FF-EXT-DRY-06',
+        item_name: 'طفاية حريق يدوية بودرة كيميائية جافة ABC سعة 6 كجم مع الكابينة والحامل',
+        unit: 'item',
+        waste_percent: 2.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'MAT-EXT-DRY-6KG', componentName: 'طفاية بودرة ABC سعة 6 كجم معتمدة بالمانومتر', unit: 'item', qtyPerUnit: 1.0, unitRate: 520, componentType: 'material' },
+          { componentCode: 'MAT-EXT-BRK', componentName: 'حامل تثبيت جداري ومسامير فيشر صلب', unit: 'item', qtyPerUnit: 1.0, unitRate: 40, componentType: 'material' },
+          { componentCode: 'LAB-EXT-INST', componentName: 'مصنعية تركيب وتثبيت واستيكر فحص', unit: 'item', qtyPerUnit: 1.0, unitRate: 90, componentType: 'labor' },
+        ]),
+        notes: 'طفاية حريق يدوية بودرة جافة ABC للأماكن العامة والممرات.',
+      },
+      {
+        item_code: 'FF-EXT-CO2-06',
+        item_name: 'طفاية حريق غاز ثاني أكسيد الكربون CO2 سعة 6 كجم لغرف ولوحات الكهرباء',
+        unit: 'item',
+        waste_percent: 2.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'MAT-EXT-CO2-6KG', componentName: 'طفاية غاز CO2 سعة 6 كجم سيملس بالخرطوم والعدسة', unit: 'item', qtyPerUnit: 1.0, unitRate: 1150, componentType: 'material' },
+          { componentCode: 'MAT-EXT-BRK', componentName: 'حامل تثبيت جداري ثقيل', unit: 'item', qtyPerUnit: 1.0, unitRate: 60, componentType: 'material' },
+          { componentCode: 'LAB-EXT-INST', componentName: 'مصنعية تثبيت واستيكر معايرة', unit: 'item', qtyPerUnit: 1.0, unitRate: 110, componentType: 'labor' },
+        ]),
+        notes: 'طفاية CO2 سعة 6 كجم للمخاطر واللوحات الكهربائية.',
+      },
+      {
+        item_code: 'FF-SYS-FSRCH-01',
+        item_name: 'نظام إطفاء لوحات الكهرباء التلقائي الذاتي Fire Search بأنبوب الاستشعار وشحنة CO2',
+        unit: 'ls',
+        waste_percent: 2.0,
+        overhead_percent: 7.0,
+        profit_markup_percent: 15.0,
+        components_json: JSON.stringify([
+          { componentCode: 'MAT-FSRCH-CYL', componentName: 'أسطوانة غاز CO2/إطفاء مزودة برأس الصمام', unit: 'item', qtyPerUnit: 1.0, unitRate: 3500, componentType: 'material' },
+          { componentCode: 'MAT-FSRCH-TUBE', componentName: 'خرطوم استشعار حراري Sensing Tube وكلبسات تثبيت', unit: 'ls', qtyPerUnit: 1.0, unitRate: 1800, componentType: 'material' },
+          { componentCode: 'LAB-FSRCH-INST', componentName: 'مصنعية فني متخصص لتركيب وبرمجة واختبار النظام', unit: 'ls', qtyPerUnit: 1.0, unitRate: 1200, componentType: 'labor' },
+        ]),
+        notes: 'نظام إطفاء ذاتي للوحات الكهربائية بخرطوم استشعاري حراري.',
       },
     ];
 
@@ -5535,6 +6082,459 @@ export class ContractingService {
       toCompletePerformanceIndex: tcpi,
       healthIndicator,
       sCurvePoints,
+    };
+  }
+
+  // ==========================================================================
+  // 12. Subcontractors Directory & Financial Ledger (إدارة ودليل مقاولي الباطن وكشف الحساب)
+  // ==========================================================================
+
+  async getSubcontractors(auth: AuthContext, query?: { search?: string; tradeSpecialty?: string; status?: string }) {
+    const { tenantId } = requireTenantScope(auth);
+    let q = (this.db as any)
+      .selectFrom('contracting_subcontractors')
+      .selectAll()
+      .where('tenant_id', '=', tenantId);
+
+    if (query?.status) {
+      q = q.where('status', '=', query.status);
+    }
+    if (query?.tradeSpecialty && query.tradeSpecialty !== 'all') {
+      q = q.where('trade_specialty', '=', query.tradeSpecialty);
+    }
+    if (query?.search) {
+      const term = `%${query.search.trim()}%`;
+      q = q.where((eb: any) =>
+        eb.or([
+          eb('name', 'ilike', term),
+          eb('phone', 'ilike', term),
+          eb('mobile', 'ilike', term),
+          eb('trade_specialty', 'ilike', term),
+          eb('tax_number', 'ilike', term),
+        ])
+      );
+    }
+
+    const rows = await q.orderBy('created_at', 'desc').execute();
+
+    return Promise.all(
+      rows.map(async (sub: any) => {
+        const subId = Number(sub.id);
+
+        const commitmentsRes = await (this.db as any)
+          .selectFrom('contracting_subcontracts')
+          .select([
+            sql<number>`count(*)::int`.as('count'),
+            sql<number>`COALESCE(SUM(total_amount), 0)`.as('total_committed'),
+          ])
+          .where('tenant_id', '=', tenantId)
+          .where('subcontractor_id', '=', subId)
+          .executeTakeFirst();
+
+        const invoicesRes = await (this.db as any)
+          .selectFrom('contracting_invoices')
+          .select([
+            sql<number>`COALESCE(SUM(net_payable), 0)`.as('total_invoiced'),
+            sql<number>`COALESCE(SUM(retention_held_amount), 0)`.as('total_retention_held'),
+          ])
+          .where('tenant_id', '=', tenantId)
+          .where('ipc_type', '=', 'subcontractor')
+          .where('subcontractor_id', '=', subId)
+          .where('status', 'in', ['approved', 'paid'])
+          .executeTakeFirst();
+
+        const paymentsRes = await (this.db as any)
+          .selectFrom('contracting_subcontractor_payments')
+          .select(sql<number>`COALESCE(SUM(amount), 0)`.as('total_paid'))
+          .where('tenant_id', '=', tenantId)
+          .where('subcontractor_id', '=', subId)
+          .executeTakeFirst();
+
+        const totalCommitted = Number(commitmentsRes?.total_committed || 0);
+        const subcontractsCount = Number(commitmentsRes?.count || 0);
+        const totalInvoiced = Number(invoicesRes?.total_invoiced || 0);
+        const totalRetentionHeld = Number(invoicesRes?.total_retention_held || 0);
+        const totalPaid = Number(paymentsRes?.total_paid || 0);
+        const netBalance = totalInvoiced - totalPaid;
+
+        return {
+          id: Number(sub.id),
+          name: sub.name,
+          tradeSpecialty: sub.trade_specialty || 'مقاولات عامة',
+          phone: sub.phone || '',
+          mobile: sub.mobile || '',
+          email: sub.email || '',
+          address: sub.address || '',
+          taxNumber: sub.tax_number || '',
+          commercialReg: sub.commercial_reg || '',
+          nationalId: sub.national_id || '',
+          bankName: sub.bank_name || '',
+          bankIban: sub.bank_iban || '',
+          contactPerson: sub.contact_person || '',
+          rating: Number(sub.rating || 5.0),
+          status: sub.status || 'active',
+          notes: sub.notes || '',
+          createdAt: sub.created_at,
+          subcontractsCount,
+          totalCommitted,
+          totalInvoiced,
+          totalRetentionHeld,
+          totalPaid,
+          netBalance,
+        };
+      })
+    );
+  }
+
+  async getSubcontractorById(auth: AuthContext, id: number) {
+    const { tenantId } = requireTenantScope(auth);
+    const sub = await (this.db as any)
+      .selectFrom('contracting_subcontractors')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!sub) {
+      throw new NotFoundException(`مقاول الباطن رقم ${id} غير موجود`);
+    }
+
+    return {
+      id: Number(sub.id),
+      name: sub.name,
+      tradeSpecialty: sub.trade_specialty || 'مقاولات عامة',
+      phone: sub.phone || '',
+      mobile: sub.mobile || '',
+      email: sub.email || '',
+      address: sub.address || '',
+      taxNumber: sub.tax_number || '',
+      commercialReg: sub.commercial_reg || '',
+      nationalId: sub.national_id || '',
+      bankName: sub.bank_name || '',
+      bankIban: sub.bank_iban || '',
+      contactPerson: sub.contact_person || '',
+      rating: Number(sub.rating || 5.0),
+      status: sub.status || 'active',
+      notes: sub.notes || '',
+      createdAt: sub.created_at,
+    };
+  }
+
+  async createSubcontractor(auth: AuthContext, dto: CreateSubcontractorDto) {
+    const { tenantId } = requireTenantScope(auth);
+    if (!dto.name || !dto.name.trim()) {
+      throw new BadRequestException('اسم مقاول الباطن مطلوب');
+    }
+
+    const [sub] = await (this.db as any)
+      .insertInto('contracting_subcontractors')
+      .values({
+        tenant_id: tenantId,
+        name: dto.name.trim(),
+        trade_specialty: dto.tradeSpecialty?.trim() || 'مقاولات عامة',
+        phone: dto.phone?.trim() || null,
+        mobile: dto.mobile?.trim() || null,
+        email: dto.email?.trim() || null,
+        address: dto.address?.trim() || null,
+        tax_number: dto.taxNumber?.trim() || null,
+        commercial_reg: dto.commercialReg?.trim() || null,
+        national_id: dto.nationalId?.trim() || null,
+        bank_name: dto.bankName?.trim() || null,
+        bank_iban: dto.bankIban?.trim() || null,
+        contact_person: dto.contactPerson?.trim() || null,
+        rating: dto.rating !== undefined ? Number(dto.rating) : 5.0,
+        status: dto.status || 'active',
+        notes: dto.notes?.trim() || null,
+      })
+      .returningAll()
+      .execute();
+
+    return {
+      id: Number(sub.id),
+      name: sub.name,
+      tradeSpecialty: sub.trade_specialty,
+      phone: sub.phone,
+      rating: Number(sub.rating || 5.0),
+      status: sub.status,
+    };
+  }
+
+  async updateSubcontractor(auth: AuthContext, id: number, dto: UpdateSubcontractorDto) {
+    const { tenantId } = requireTenantScope(auth);
+    await this.getSubcontractorById(auth, id);
+
+    const updatePayload: Record<string, any> = {
+      updated_at: new Date(),
+    };
+    if (dto.name !== undefined) updatePayload.name = dto.name.trim();
+    if (dto.tradeSpecialty !== undefined) updatePayload.trade_specialty = dto.tradeSpecialty.trim();
+    if (dto.phone !== undefined) updatePayload.phone = dto.phone.trim();
+    if (dto.mobile !== undefined) updatePayload.mobile = dto.mobile.trim();
+    if (dto.email !== undefined) updatePayload.email = dto.email.trim();
+    if (dto.address !== undefined) updatePayload.address = dto.address.trim();
+    if (dto.taxNumber !== undefined) updatePayload.tax_number = dto.taxNumber.trim();
+    if (dto.commercialReg !== undefined) updatePayload.commercial_reg = dto.commercialReg.trim();
+    if (dto.nationalId !== undefined) updatePayload.national_id = dto.nationalId.trim();
+    if (dto.bankName !== undefined) updatePayload.bank_name = dto.bankName.trim();
+    if (dto.bankIban !== undefined) updatePayload.bank_iban = dto.bankIban.trim();
+    if (dto.contactPerson !== undefined) updatePayload.contact_person = dto.contactPerson.trim();
+    if (dto.rating !== undefined) updatePayload.rating = Number(dto.rating);
+    if (dto.status !== undefined) updatePayload.status = dto.status;
+    if (dto.notes !== undefined) updatePayload.notes = dto.notes.trim();
+
+    await (this.db as any)
+      .updateTable('contracting_subcontractors')
+      .set(updatePayload)
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id)
+      .execute();
+
+    return this.getSubcontractorById(auth, id);
+  }
+
+  async deleteSubcontractor(auth: AuthContext, id: number) {
+    const { tenantId } = requireTenantScope(auth);
+    const commitments = await (this.db as any)
+      .selectFrom('contracting_subcontracts')
+      .select(sql<number>`count(*)::int`.as('count'))
+      .where('tenant_id', '=', tenantId)
+      .where('subcontractor_id', '=', id)
+      .executeTakeFirst();
+
+    if (commitments && commitments.count > 0) {
+      await (this.db as any)
+        .updateTable('contracting_subcontractors')
+        .set({ status: 'suspended', updated_at: new Date() })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', id)
+        .execute();
+      return { success: true, message: 'تم إيقاف حساب المقاول لوجود عقود مرتبطة به' };
+    }
+
+    await (this.db as any)
+      .deleteFrom('contracting_subcontractors')
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id)
+      .execute();
+
+    return { success: true, message: 'تم حذف المقاول بنجاح' };
+  }
+
+  async getSubcontractorLedger(auth: AuthContext, subcontractorId: number, query?: { projectId?: string; fromDate?: string; toDate?: string }) {
+    const { tenantId } = requireTenantScope(auth);
+    const sub = await this.getSubcontractorById(auth, subcontractorId);
+
+    let subcontractsQuery = (this.db as any)
+      .selectFrom('contracting_subcontracts')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('subcontractor_id', '=', subcontractorId);
+    if (query?.projectId) {
+      subcontractsQuery = subcontractsQuery.where('project_id', '=', query.projectId);
+    }
+    const subcontracts = await subcontractsQuery.execute();
+    const subcontractIds = subcontracts.map((s: any) => s.id);
+
+    let invQuery = (this.db as any)
+      .selectFrom('contracting_invoices')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('ipc_type', '=', 'subcontractor')
+      .where('subcontractor_id', '=', subcontractorId)
+      .where('status', 'in', ['approved', 'paid']);
+    if (query?.projectId) {
+      invQuery = invQuery.where('project_id', '=', query.projectId);
+    }
+    const invoices = await invQuery.execute();
+
+    let payQuery = (this.db as any)
+      .selectFrom('contracting_subcontractor_payments')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('subcontractor_id', '=', subcontractorId);
+    if (query?.projectId) {
+      payQuery = payQuery.where('project_id', '=', query.projectId);
+    }
+    const payments = await payQuery.execute();
+
+    let backcharges: any[] = [];
+    if (subcontractIds.length > 0) {
+      let bcQuery = (this.db as any)
+        .selectFrom('contracting_subcontractor_backcharges')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('subcontract_id', 'in', subcontractIds)
+        .where('status', 'in', ['approved', 'deducted']);
+      if (query?.projectId) {
+        bcQuery = bcQuery.where('project_id', '=', query.projectId);
+      }
+      backcharges = await bcQuery.execute();
+    }
+
+    const rawTx: Array<{
+      date: string;
+      type: 'invoice' | 'payment' | 'backcharge';
+      refNumber: string;
+      description: string;
+      projectId?: string;
+      credit: number;
+      debit: number;
+      details?: Record<string, any>;
+    }> = [];
+
+    for (const inv of invoices) {
+      const net = Number(inv.net_payable || 0);
+      rawTx.push({
+        date: inv.period_end || (inv.created_at instanceof Date ? inv.created_at.toISOString().split('T')[0] : String(inv.created_at).split('T')[0]),
+        type: 'invoice',
+        refNumber: inv.ipc_number,
+        description: `مستخلص أعمال وتشوينات رقم ${inv.ipc_number}`,
+        projectId: String(inv.project_id),
+        credit: net,
+        debit: 0,
+        details: {
+          currentAmount: Number(inv.current_amount || 0),
+          storedMaterials: Number(inv.stored_materials_amount || 0),
+          advanceRecovery: Number(inv.advance_recovery_amount || 0),
+          retentionHeld: Number(inv.retention_held_amount || 0),
+          otherDeductions: Number(inv.other_deductions || 0),
+          netPayable: net,
+        },
+      });
+    }
+
+    for (const p of payments) {
+      const amt = Number(p.amount || 0);
+      const methodLabel = p.payment_method === 'cash' ? 'نقدي' : p.payment_method === 'check' ? 'شيك' : 'تحويل بنكي';
+      rawTx.push({
+        date: p.payment_date || (p.created_at instanceof Date ? p.created_at.toISOString().split('T')[0] : String(p.created_at).split('T')[0]),
+        type: 'payment',
+        refNumber: p.payment_number,
+        description: `سند صرف دفعة (${methodLabel})${p.reference_number ? ` - م: ${p.reference_number}` : ''}${p.notes ? ` - ${p.notes}` : ''}`,
+        projectId: p.project_id ? String(p.project_id) : undefined,
+        credit: 0,
+        debit: amt,
+        details: {
+          paymentMethod: p.payment_method,
+          referenceNumber: p.reference_number,
+        },
+      });
+    }
+
+    for (const bc of backcharges) {
+      const amt = Number(bc.amount || 0);
+      rawTx.push({
+        date: bc.occurrence_date || (bc.created_at instanceof Date ? bc.created_at.toISOString().split('T')[0] : String(bc.created_at).split('T')[0]),
+        type: 'backcharge',
+        refNumber: bc.voucher_number,
+        description: `خصم تشوينات/مصروفات موقع (${bc.description || 'خصم مباشر'})`,
+        projectId: bc.project_id ? String(bc.project_id) : undefined,
+        credit: 0,
+        debit: amt,
+        details: {
+          category: bc.backcharge_category,
+        },
+      });
+    }
+
+    rawTx.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let runningBalance = 0;
+    const transactions = rawTx.map((tx, idx) => {
+      runningBalance += tx.credit - tx.debit;
+      return {
+        id: idx + 1,
+        date: tx.date,
+        type: tx.type,
+        refNumber: tx.refNumber,
+        description: tx.description,
+        projectId: tx.projectId,
+        credit: tx.credit,
+        debit: tx.debit,
+        balanceAfter: runningBalance,
+        details: tx.details,
+      };
+    });
+
+    let filteredTransactions = transactions;
+    if (query?.fromDate) {
+      filteredTransactions = filteredTransactions.filter((t) => t.date >= query.fromDate!);
+    }
+    if (query?.toDate) {
+      filteredTransactions = filteredTransactions.filter((t) => t.date <= query.toDate!);
+    }
+
+    const totalCommitted = subcontracts.reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0);
+    const totalInvoiced = invoices.reduce((sum: number, inv: any) => sum + Number(inv.net_payable || 0), 0);
+    const totalPaid = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+    const totalBackcharges = backcharges.reduce((sum: number, bc: any) => sum + Number(bc.amount || 0), 0);
+    const totalRetentionHeld = invoices.reduce((sum: number, inv: any) => sum + Number(inv.retention_held_amount || 0), 0);
+    const netBalanceDue = totalInvoiced - totalPaid - totalBackcharges;
+
+    return {
+      subcontractor: sub,
+      summary: {
+        totalSubcontracts: subcontracts.length,
+        totalCommitted,
+        totalInvoiced,
+        totalPaid,
+        totalBackcharges,
+        totalRetentionHeld,
+        netBalanceDue,
+      },
+      transactions: filteredTransactions.reverse(),
+    };
+  }
+
+  async createSubcontractorPayment(auth: AuthContext, dto: CreateSubcontractorPaymentDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const userId = (auth as any).userId || (auth as any).user?.id || null;
+    if (!dto.subcontractorId) {
+      throw new BadRequestException('يجب تحديد مقاول الباطن');
+    }
+    const amount = Number(dto.amount);
+    if (isNaN(amount) || amount <= 0) {
+      throw new BadRequestException('مبلغ الدفعة يجب أن يكون أكبر من الصفر');
+    }
+
+    await this.getSubcontractorById(auth, dto.subcontractorId);
+
+    const prefix = getDailyDocumentPrefix('SPAY');
+    const countRes = await (this.db as any)
+      .selectFrom('contracting_subcontractor_payments')
+      .select(sql<number>`count(*)::int`.as('count'))
+      .where('tenant_id', '=', tenantId)
+      .where('payment_number', 'like', `${prefix}%`)
+      .executeTakeFirst();
+    const count = (countRes?.count || 0) + 1;
+    const paymentNumber = `${prefix}${String(count).padStart(4, '0')}`;
+
+    const [payment] = await (this.db as any)
+      .insertInto('contracting_subcontractor_payments')
+      .values({
+        tenant_id: tenantId,
+        project_id: dto.projectId ? String(dto.projectId) : null,
+        subcontractor_id: dto.subcontractorId,
+        subcontract_id: dto.subcontractId ? String(dto.subcontractId) : null,
+        invoice_id: dto.invoiceId ? String(dto.invoiceId) : null,
+        payment_number: paymentNumber,
+        payment_date: dto.paymentDate || new Date().toISOString().split('T')[0],
+        amount,
+        payment_method: dto.paymentMethod || 'bank_transfer',
+        reference_number: dto.referenceNumber?.trim() || null,
+        notes: dto.notes?.trim() || null,
+        created_by: userId ? Number(userId) : null,
+      })
+      .returningAll()
+      .execute();
+
+    return {
+      id: Number(payment.id),
+      paymentNumber: payment.payment_number,
+      paymentDate: payment.payment_date,
+      amount: Number(payment.amount),
+      paymentMethod: payment.payment_method,
+      referenceNumber: payment.reference_number,
     };
   }
 }

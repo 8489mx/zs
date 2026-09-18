@@ -10,6 +10,7 @@ import { CreateSubcontractModal } from '../components/CreateSubcontractModal';
 import { CreateMaterialRequisitionModal } from '../components/CreateMaterialRequisitionModal';
 import { MaterialSubmittalsModal } from '../components/MaterialSubmittalsModal';
 import { MaterialPriceEscalationModal } from '../components/MaterialPriceEscalationModal';
+import { ProjectMaterialsMrpModal } from '../components/ProjectMaterialsMrpModal';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface ContractingProcurementPageProps {
@@ -43,6 +44,7 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
   // Advanced Global Benchmark Modals (Procore & RIB iTWO)
   const [isSubmittalsModalOpen, setIsSubmittalsModalOpen] = useState(false);
   const [isEscalationsModalOpen, setIsEscalationsModalOpen] = useState(false);
+  const [isMrpModalOpen, setIsMrpModalOpen] = useState(false);
 
   const handleSubTabChange = (tab: 'subcontracts' | 'materials') => {
     setActiveSubTab(tab);
@@ -185,8 +187,31 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
           </button>
         </div>
 
-        {/* أزرار الميزات العالمية: اعتماد المواد MAR وفروق الأسعار */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        {/* أزرار الميزات العالمية: خطة الاحتياجات MRP واعتماد المواد MAR وفروق الأسعار */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setIsMrpModalOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.Package size={15} />
+            <span>خطة الاحتياجات (MRP)</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setIsSubmittalsModalOpen(true)}
@@ -297,6 +322,16 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
         <MaterialPriceEscalationModal
           open={isEscalationsModalOpen}
           onClose={() => setIsEscalationsModalOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+        />
+      )}
+
+      {/* نافذة خطة الاحتياجات من المواد للمشروع (MRP) */}
+      {isMrpModalOpen && effectiveProjectId && (
+        <ProjectMaterialsMrpModal
+          isOpen={isMrpModalOpen}
+          onClose={() => setIsMrpModalOpen(false)}
           projectId={effectiveProjectId}
           projectName={effectiveProject?.name}
         />

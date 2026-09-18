@@ -66,8 +66,9 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
     stableOnClose();
   }, [clearInlineManagerApproval, stableOnClose]);
   const handleConfirmSale = useCallback(() => {
-    if (pos.orderType === 'delivery' && (!pos.deliveryRepId || Number(pos.deliveryRepId) <= 0)) {
-      pos.setSubmitMessage('يرجى اختيار مندوب التوصيل لإتمام فاتورة الدليفري وتسجيل التحصيل عليه.');
+    const isCod = pos.collectionStatus === 'cod';
+    if (pos.orderType === 'delivery' && isCod && (!pos.deliveryRepId || Number(pos.deliveryRepId) <= 0)) {
+      pos.setSubmitMessage('يرجى اختيار مندوب التوصيل لتسجيل عهدة التحصيل عليه (في حالة تحصيل من العميل).');
       return;
     }
     const managerPin = approvedManagerPinRef.current || undefined;
@@ -270,14 +271,14 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
                 )}
               </section>
 
-              {pos.orderType === 'delivery' && (!pos.deliveryRepId || Number(pos.deliveryRepId) <= 0) && (
+              {pos.orderType === 'delivery' && pos.collectionStatus === 'cod' && (!pos.deliveryRepId || Number(pos.deliveryRepId) <= 0) && (
                 <div className="error-box" style={{ margin: '4px 0 0', background: '#fef2f2', border: '1.5px solid #f87171', color: '#b91c1c', padding: '8px 12px', borderRadius: '8px', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                     <line x1="12" y1="9" x2="12" y2="13"/>
                     <line x1="12" y1="17" x2="12.01" y2="17"/>
                   </svg>
-                  <span>يجب اختيار مندوب التوصيل لإتمام فاتورة الدليفري وتسجيل عهدة التحصيل عليه.</span>
+                  <span>يجب اختيار مندوب التوصيل لتسجيل عهدة التحصيل عليه (في حالة تحصيل من العميل).</span>
                 </div>
               )}
             </div>

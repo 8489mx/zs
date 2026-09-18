@@ -78,7 +78,7 @@ export function buildDraftState(initial?: Partial<PosDraftSnapshot>): PosDraftSn
     branchId: initial?.branchId || '',
     locationId: initial?.locationId || '',
     tableNumber: initial?.tableNumber || '',
-    orderType: initial?.orderType || 'takeaway',
+    orderType: (initial?.cart?.length || cPhone || (initial as any)?.onlineOrderId) ? (initial?.orderType || 'takeaway') : 'takeaway',
     onlineOrderId: (initial as any)?.onlineOrderId ? Number((initial as any).onlineOrderId) : undefined,
   };
 }

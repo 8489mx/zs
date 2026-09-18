@@ -897,28 +897,35 @@ export class SalesWriteService {
       if (isDelivery) {
         const rawRepId = (payload as any).deliveryRepId;
         const parsedRepId = rawRepId ? Number(rawRepId) : 0;
-        if (!parsedRepId || Number.isNaN(parsedRepId) || parsedRepId <= 0) {
+        const rawCollectionStatus = (payload as any).collectionStatus;
+        const isCod = rawCollectionStatus === 'cod' || (!rawCollectionStatus && paidAmount + 0.0001 < collectibleTotal);
+
+        if (isCod && (!parsedRepId || Number.isNaN(parsedRepId) || parsedRepId <= 0)) {
           throw new AppError('يجب اختيار مندوب التوصيل لطلبات الدليفري لتسجيل عهدة التحصيل عليه', 'DELIVERY_REP_REQUIRED', 400);
         }
-        const rep = await trx
-          .selectFrom('delivery_representatives')
-          .select(['id', 'name', 'rep_type', 'is_active'])
-          .where('id', '=', parsedRepId)
-          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-          .executeTakeFirst();
-        if (!rep) {
-          throw new AppError('مندوب التوصيل المختار غير موجود', 'DELIVERY_REP_NOT_FOUND', 400);
+
+        if (parsedRepId && !Number.isNaN(parsedRepId) && parsedRepId > 0) {
+          const rep = await trx
+            .selectFrom('delivery_representatives')
+            .select(['id', 'name', 'rep_type', 'is_active'])
+            .where('id', '=', parsedRepId)
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .executeTakeFirst();
+          if (!rep) {
+            throw new AppError('مندوب التوصيل المختار غير موجود', 'DELIVERY_REP_NOT_FOUND', 400);
+          }
+          if (rep.is_active === false) {
+            throw new AppError('مندوب التوصيل المختار غير نشط', 'DELIVERY_REP_INACTIVE', 400);
+          }
+          deliveryRepId = parsedRepId;
+          if (!resolvedDeliveryFeeMode && rep.rep_type === 'store_fleet') {
+            resolvedDeliveryFeeMode = 'store_fleet';
+          }
         }
-        if (rep.is_active === false) {
-          throw new AppError('مندوب التوصيل المختار غير نشط', 'DELIVERY_REP_INACTIVE', 400);
-        }
-        deliveryRepId = parsedRepId;
+
         deliveryStatus = (payload as any).deliveryStatus || 'pending';
         const hasUnpaidAmount = paidAmount + 0.0001 < collectibleTotal;
-        collectionStatus = (payload as any).collectionStatus || (hasUnpaidAmount ? 'pending' : 'collected');
-        if (!resolvedDeliveryFeeMode && rep.rep_type === 'store_fleet') {
-          resolvedDeliveryFeeMode = 'store_fleet';
-        }
+        collectionStatus = rawCollectionStatus || (hasUnpaidAmount ? 'pending' : 'collected');
       }
 
       const isCodDelivery = isDelivery && (collectionStatus === 'cod' || collectionStatus === 'pending' || paidAmount + 0.0001 < collectibleTotal);
@@ -1340,7 +1347,8 @@ export class SalesWriteService {
             .filter((p) => p.paymentChannel !== 'cash')
             .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-          if (nonCashPaidTotal > 0 || payments.length === 0 || effectivePaymentType === 'credit') {
+          const isElectronicPrepaidOrCredit = collectionStatus === 'prepaid_online' || nonCashPaidTotal > 0 || effectivePaymentType === 'credit';
+          if (collectionStatus !== 'prepaid_by_rep' && isElectronicPrepaidOrCredit) {
             const openShift = await trx
               .selectFrom('cashier_shifts')
               .select(['id', 'branch_id', 'location_id'])

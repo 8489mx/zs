@@ -1026,9 +1026,31 @@ export function RotateCcwIcon({ size = 18, color = 'currentColor', strokeWidth =
   );
 }
 
+export function SaveIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+      <polyline points="17 21 17 13 7 13 7 21" />
+      <polyline points="7 3 7 8 15 8" />
+    </svg>
+  );
+}
+
+export function ArchiveIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <polyline points="21 8 21 21 3 21 3 8" />
+      <rect width="22" height="5" x="1" y="3" rx="1" />
+      <line x1="10" x2="14" y1="12" y2="12" />
+    </svg>
+  );
+}
+
 export const SlidersHorizontalIcon = SlidersIcon;
 
 export const AppIcons = {
+  Archive: ArchiveIcon,
+  Save: SaveIcon,
   Phone: PhoneIcon,
   PhoneCall: PhoneCallIcon,
   PhoneIncoming: PhoneIncomingIcon,

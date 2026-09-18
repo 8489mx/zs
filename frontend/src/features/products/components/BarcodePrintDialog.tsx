@@ -970,7 +970,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
               border: '1px solid #e2e8f0',
               padding: '10px',
               display: 'flex',
-              alignItems: 'center',
+              alignItems: previewMode === 'sheet' ? 'flex-start' : 'center',
               justifyContent: 'center',
             }}
           >

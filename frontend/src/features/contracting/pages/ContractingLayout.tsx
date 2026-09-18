@@ -9,7 +9,6 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { CreateProjectModal } from '../components/CreateProjectModal';
 import { TenderEstimatorModal } from '../components/TenderEstimatorModal';
 import { ProjectLifecycleStepper, type ContractingPhaseKey } from '../components/ProjectLifecycleStepper';
-import { SmartNextActionGuide } from '../components/SmartNextActionGuide';
 import { GovernmentLicensesModal } from '../components/GovernmentLicensesModal';
 import { SiteMobilizationModal } from '../components/SiteMobilizationModal';
 import { ScheduleGeneratorModal } from '../components/ScheduleGeneratorModal';
@@ -19,6 +18,7 @@ import { MaterialPriceEscalationModal } from '../components/MaterialPriceEscalat
 import { ProjectEvmMetricsModal } from '../components/ProjectEvmMetricsModal';
 import { SubcontractorBackChargesModal } from '../components/SubcontractorBackChargesModal';
 import { EquipmentFuelLogsModal } from '../components/EquipmentFuelLogsModal';
+import { ContractingWorkflowMapModal } from '../components/ContractingWorkflowMapModal';
 
 import { ContractingProjectsPage } from './ContractingProjectsPage';
 import { ContractingTenderPage } from './ContractingTenderPage';
@@ -47,6 +47,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
   const [isEvmModalOpen, setIsEvmModalOpen] = useState(false);
   const [isBackchargesModalOpen, setIsBackchargesModalOpen] = useState(false);
   const [isFuelLogsModalOpen, setIsFuelLogsModalOpen] = useState(false);
+  const [isWorkflowMapOpen, setIsWorkflowMapOpen] = useState(false);
 
   const {
     projects,
@@ -144,7 +145,10 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button
                 type="button"
-                onClick={() => handleNavigate('tender')}
+                onClick={() => {
+                  setSelectedProjectId(null);
+                  navigate('/contracting/tender');
+                }}
                 style={{
                   height: '36px',
                   padding: '0 14px',
@@ -163,6 +167,28 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
               >
                 <AppIcons.Sliders size={15} />
                 <span>دراسة وتسعير عطاء جديد</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsWorkflowMapOpen(true)}
+                style={{
+                  height: '36px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  fontSize: 'var(--font-body)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <AppIcons.Layers size={15} />
+                <span>خريطة مسار المشروع</span>
               </button>
               <button
                 type="button"
@@ -288,8 +314,8 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
           onOpenTenderEstimator={() => handleNavigate('tender')}
         />
 
-        {/* شريط اختيار المشروع السريع إذا لم نكن في شاشة سجل المشاريع أو دراسة العطاءات */}
-        {currentSubPath !== 'projects' && currentSubPath !== 'tender' && (
+        {/* شريط اختيار المشروع السريع إذا لم نكن في شاشة سجل المشاريع */}
+        {currentSubPath !== 'projects' && (
           <div
             style={{
               display: 'flex',
@@ -337,17 +363,17 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '320px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '340px' }}>
                 <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap' }}>
-                  المشروع النشط:
+                  المشروع أو العطاء النشط:
                 </span>
-                <div style={{ minWidth: '280px', flex: 1 }}>
+                <div style={{ minWidth: '300px', flex: 1 }}>
                   <CustomSelect
                     value={selectedProjectId || ''}
                     options={projects.map((p) => ({
                       value: p.id,
                       label: `[${p.code}] ${p.name}`,
-                      hint: p.clientName || 'العميل',
+                      hint: `${p.status === 'planning' ? 'عطاء قيد الدراسة' : 'مشروع ساري'} - ${p.clientName || 'العميل'}`,
                     }))}
                     onChange={(val) => setSelectedProjectId(val || null)}
                   />
@@ -373,40 +399,6 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
           </div>
         )}
 
-        {/* بطاقة الموجه الذكي للخطوة التالية (Smart Next Action Guide) */}
-        <SmartNextActionGuide
-          phase={getCurrentPhase()}
-          activeProject={activeProject}
-          actions={{
-            openTenderEstimator: () => handleNavigate('tender'),
-            openCreateProject: () => setIsCreateProjectOpen(true),
-            openLicensesModal: () => setIsLicensesModalOpen(true),
-            openMobilizationModal: () => setIsMobilizationModalOpen(true),
-            openScheduleGenerator: () => setIsScheduleGeneratorOpen(true),
-            openMrpModal: () => setIsMrpModalOpen(true),
-            openCreateRequisition: () => handleNavigate('procurement?sub=materials'),
-            openCreateSubcontract: () => handleNavigate('procurement?sub=subcontracts'),
-            openMaterialSubmittalsModal: () => setIsSubmittalsModalOpen(true),
-            openPriceEscalationsModal: () => setIsEscalationsModalOpen(true),
-            openCreateDailyLog: () => handleNavigate('field?sub=daily-logs'),
-            openLaborAttendance: () => handleNavigate('field?sub=daily-logs'),
-            openEquipmentTracking: () => handleNavigate('field?sub=daily-logs'),
-            openFuelLogsModal: () => setIsFuelLogsModalOpen(true),
-            openPettyCash: () => handleNavigate('field?sub=daily-logs'),
-            openCreateRfi: () => handleNavigate('field?sub=rfis'),
-            openWorkInspection: () => handleNavigate('field?sub=rfis'),
-            openCreateIpc: () => handleNavigate('financials?sub=invoices'),
-            openCreateChangeOrder: () => handleNavigate('financials?sub=change-orders'),
-            openEvmMetricsModal: () => setIsEvmModalOpen(true),
-            openBackChargesModal: () => setIsBackchargesModalOpen(true),
-            openRetentionLedger: () => handleNavigate('closeout'),
-            openSnagList: () => handleNavigate('closeout'),
-            openHandoverModal: () => handleNavigate('closeout'),
-            openProfitabilityModal: () => handleNavigate('closeout'),
-            openCostSnapshotModal: () => handleNavigate('boq'),
-            openBoqItemModal: () => handleNavigate('boq'),
-          }}
-        />
 
         {/* تابات بيئة عمل المقاولات المحفوظة بالذاكرة (Keep-Alive) لمنع الهدم وإعادة التحميل والرعشة */}
         {children ? (
@@ -533,6 +525,11 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
             />
           </>
         )}
+
+        <ContractingWorkflowMapModal
+          open={isWorkflowMapOpen}
+          onClose={() => setIsWorkflowMapOpen(false)}
+        />
       </main>
     </div>
   );

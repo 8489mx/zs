@@ -222,6 +222,13 @@ export function usePosWorkspace() {
     }
   }, [settingsQuery.data?.deliveryFeeMode, state.setDeliveryFeeMode]);
 
+  useEffect(() => {
+    const defaultDeliveryFee = Number((settingsQuery.data as any)?.defaultDeliveryFee || 0);
+    if (state.orderType === 'delivery' && defaultDeliveryFee > 0 && (!state.deliveryFee || state.deliveryFee === 0)) {
+      state.setDeliveryFee(defaultDeliveryFee);
+    }
+  }, [settingsQuery.data?.defaultDeliveryFee, state.orderType, state.deliveryFee, state.setDeliveryFee]);
+
   const actions = createPosWorkspaceActions({
     cart: state.cart,
     setCart: state.setCart,

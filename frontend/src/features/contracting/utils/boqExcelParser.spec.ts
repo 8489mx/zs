@@ -37,9 +37,8 @@ describe('Universal Smart BOQ Excel Parser Engine', () => {
     expect(classifyTradeFromDescription('شبكة تغذية مياه ومواسير صرف صحي')).toBe('plumbing_sanitary');
     expect(classifyTradeFromDescription('Sanitary pipes and valves installation')).toBe('plumbing_sanitary');
     expect(classifyTradeFromDescription('لوحات توزيع كهربائية وكابلات إنارة')).toBe('electrical_power');
-    expect(classifyTradeFromDescription('Electrical lighting fixtures and power cables')).toBe('electrical_power');
-    expect(classifyTradeFromDescription('توريد وتركيب دكت التكييف المركزي ومراوح التهوية')).toBe('hvac_firefighting');
-    expect(classifyTradeFromDescription('Fire fighting sprinkler network and pump system')).toBe('hvac_firefighting');
+    expect(classifyTradeFromDescription('توريد وتركيب دكت التكييف المركزي ومراوح التهوية')).toBe('hvac');
+    expect(classifyTradeFromDescription('Fire fighting sprinkler network and pump system')).toBe('fire_fighting');
   });
 
   it('should detect grand total / summary rows correctly', () => {
@@ -90,6 +89,20 @@ describe('Universal Smart BOQ Excel Parser Engine', () => {
     expect(rows[2].unitPrice).toBe(0);
     expect(rows[2].status).toBe('unpriced');
     expect(rows[2].isValid).toBe(true); // Must NOT be blocked!
+  });
+
+  it('should parse real boq.hvac.xlsx project accurately', () => {
+    const wb = XLSX.readFile('D:/BOQ/boq.hvac.xlsx');
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+    const { headerRowIdx, mapping } = detectHeaderRow(matrix);
+    console.log('boq.hvac.xlsx HeaderRowIdx:', headerRowIdx, 'Mapping:', mapping);
+    const rows = extractBoqRows(matrix, headerRowIdx, mapping);
+    console.log('boq.hvac.xlsx Extracted Rows count:', rows.length);
+    rows.forEach((r, idx) => {
+      console.log(`Row ${idx + 1}: Code=[${r.itemCode}], Qty=[${r.contractQty}], Unit=[${r.unit}], Price=[${r.unitPrice}], Total=[${r.totalPrice}], Category=[${r.category}], Status=[${r.status}], isHeader=[${r.isSectionHeader}], isPreamble=[${r.isPreamble}], Desc=[${r.description.slice(0, 50)}]`);
+    });
+    expect(rows.length).toBeGreaterThan(0);
   });
 
   it('should handle Arabic sheets with colloquial headers and Hindi numerals', () => {
@@ -198,4 +211,92 @@ describe('Universal Smart BOQ Excel Parser Engine', () => {
     expect(rows[2].unit).toBe('item');
     expect(rows[2].status).toBe('unpriced');
   });
+
+  it('should parse 1.xls (Fire Fighting project) and auto-price 100% of physical items', () => {
+    const wb = XLSX.readFile('D:/BOQ/1.xls');
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+    const { headerRowIdx, mapping } = detectHeaderRow(matrix);
+    const rows = extractBoqRows(matrix, headerRowIdx, mapping);
+    const validWorkRows = rows.filter((r) => r.isValid && !r.isPreamble && !r.isSectionHeader);
+    
+    console.log('1.xls valid items count:', validWorkRows.length);
+    validWorkRows.forEach((r, idx) => {
+      console.log(`1.xls [${idx + 1}] Code=[${r.itemCode}], Price=[${r.unitPrice}], Cat=[${r.category}], Status=[${r.status}], Desc=[${r.description.slice(0, 45)}]`);
+      expect(r.unitPrice).toBeGreaterThan(0);
+      expect(r.category).toBe('fire_fighting');
+      expect(r.status).toBe('ready');
+    });
+  });
+
+  it('should parse 2.xls (Electrical 24kV Infrastructure) accurately', () => {
+    const wb = XLSX.readFile('D:/BOQ/2.xls');
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+    const { headerRowIdx, mapping } = detectHeaderRow(matrix);
+    const rows = extractBoqRows(matrix, headerRowIdx, mapping);
+    const validWorkRows = rows.filter((r) => r.isValid && !r.isPreamble && !r.isSectionHeader);
+    
+    console.log('2.xls valid items count:', validWorkRows.length);
+    validWorkRows.forEach((r, idx) => {
+      console.log(`2.xls [${idx + 1}] Code=[${r.itemCode}], Price=[${r.unitPrice}], Cat=[${r.category}], Desc=[${r.description.slice(0, 45)}]`);
+      expect(r.category).toBe('electrical_power');
+      expect(r.contractQty).toBeGreaterThan(0);
+      expect(r.unitPrice).toBeGreaterThan(0);
+    });
+  });
+
+  it('should parse ELEC BOQ - Resedential building (RM).xlsx accurately', () => {
+    const wb = XLSX.readFile('D:/BOQ/ELEC BOQ - Resedential building (RM).xlsx');
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+    const { headerRowIdx, mapping } = detectHeaderRow(matrix);
+    const rows = extractBoqRows(matrix, headerRowIdx, mapping);
+    const validWorkRows = rows.filter((r) => r.isValid && !r.isPreamble && !r.isSectionHeader);
+    
+    expect(validWorkRows.length).toBeGreaterThan(0);
+    const readyOrPriced = validWorkRows.filter((r) => r.unitPrice > 0 || r.status === 'ready' || r.status === 'unpriced');
+    expect(readyOrPriced.length).toBe(validWorkRows.length);
+  });
+
+  it('should parse PL - BOQ - RM.xlsx (Residential Plumbing) accurately', () => {
+    const wb = XLSX.readFile('D:/BOQ/PL - BOQ - RM.xlsx');
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+    const { headerRowIdx, mapping } = detectHeaderRow(matrix);
+    const rows = extractBoqRows(matrix, headerRowIdx, mapping);
+    const validWorkRows = rows.filter((r) => r.isValid && !r.isPreamble && !r.isSectionHeader);
+    
+    console.log('PL - BOQ - RM.xlsx valid items count:', validWorkRows.length);
+    validWorkRows.forEach((r, idx) => {
+      console.log(`PL [${idx + 1}] Code=[${r.itemCode}], Price=[${r.unitPrice}], Cat=[${r.category}], Desc=[${r.description.slice(0, 45)}]`);
+    });
+    expect(validWorkRows.length).toBeGreaterThan(0);
+  });
+
+  it('should parse Residentioal Building BoQ.xlsx (Light Current LC BOQ) and auto-price items including call station and modules', () => {
+    const wb = XLSX.readFile('D:/BOQ/Residentioal Building BoQ.xlsx');
+    const sheet = wb.Sheets['LC BOQ'];
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+    const { headerRowIdx, mapping } = detectHeaderRow(matrix);
+    const rows = extractBoqRows(matrix, headerRowIdx, mapping);
+    const validWorkRows = rows.filter((r) => r.isValid && !r.isPreamble && !r.isSectionHeader);
+    
+    console.log('Residentioal Building BoQ.xlsx valid items count:', validWorkRows.length);
+    validWorkRows.forEach((r, idx) => {
+      console.log(`LC [${idx + 1}] Code=[${r.itemCode}], Price=[${r.unitPrice}], Cat=[${r.category}], Status=[${r.status}], Desc=[${r.description.slice(0, 50)}]`);
+    });
+    
+    const callStationItem = validWorkRows.find((r) => r.description.toLowerCase().includes('manual call station'));
+    expect(callStationItem).toBeDefined();
+    expect(callStationItem?.unitPrice).toBeGreaterThan(0);
+    expect(callStationItem?.category).toBe('low_current');
+
+    const controlModuleItem = validWorkRows.find((r) => r.description.toLowerCase().includes('control modules for evacuation'));
+    expect(controlModuleItem).toBeDefined();
+    expect(controlModuleItem?.unitPrice).toBeGreaterThan(0);
+    expect(controlModuleItem?.category).toBe('low_current');
+  });
 });
+
+

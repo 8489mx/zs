@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { contractingApi } from '../api/contracting.api';
-import { suppliersApi } from '@/shared/api/suppliers.api';
-import type { Supplier } from '@/types/domain';
+import type { ContractingSubcontractor } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { CreateSubcontractorModal } from './CreateSubcontractorModal';
 
 interface CreateSubcontractModalProps {
   open: boolean;
@@ -25,8 +25,9 @@ export function CreateSubcontractModal({
 }: CreateSubcontractModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(false);
+  const [subcontractors, setSubcontractors] = useState<ContractingSubcontractor[]>([]);
+  const [isLoadingSubcontractors, setIsLoadingSubcontractors] = useState(false);
+  const [isCreateSubcontractorOpen, setIsCreateSubcontractorOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     subcontractorId: '',
@@ -39,28 +40,30 @@ export function CreateSubcontractModal({
     notes: '',
   });
 
+  const loadSubcontractors = useCallback(async () => {
+    setIsLoadingSubcontractors(true);
+    try {
+      const data = await contractingApi.getSubcontractors();
+      setSubcontractors(data || []);
+    } catch {
+      setSubcontractors([]);
+    } finally {
+      setIsLoadingSubcontractors(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!open) return;
-    setIsLoadingSuppliers(true);
-    suppliersApi.list()
-      .then((data) => {
-        setSuppliers(data || []);
-      })
-      .catch(() => {
-        setSuppliers([]);
-      })
-      .finally(() => {
-        setIsLoadingSuppliers(false);
-      });
-  }, [open]);
+    loadSubcontractors();
+  }, [open, loadSubcontractors]);
 
   const subcontractorOptions = useMemo(() => {
-    return suppliers.map((s) => ({
+    return subcontractors.map((s) => ({
       value: String(s.id),
-      label: s.name + (s.phone ? ` (${s.phone})` : ''),
-      hint: (s as any).taxNumber ? `ضريبي: ${(s as any).taxNumber}` : undefined,
+      label: `${s.name} (${s.tradeSpecialty || 'مقاولات عامة'})`,
+      hint: s.phone ? `هاتف: ${s.phone}` : s.taxNumber ? `ضريبي: ${s.taxNumber}` : undefined,
     }));
-  }, [suppliers]);
+  }, [subcontractors]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -187,14 +190,36 @@ export function CreateSubcontractModal({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px', alignItems: 'start' }}>
-            <Field label="مقاول الباطن (جهة التنفيذ) *">
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>مقاول الباطن (جهة التنفيذ) *</span>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateSubcontractorOpen(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#170e5e',
+                    fontSize: 'var(--font-micro)',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '0 4px',
+                  }}
+                >
+                  <AppIcons.Plus size={12} />
+                  <span>+ مقاول جديد</span>
+                </button>
+              </div>
               <CustomSelect
                 value={formData.subcontractorId}
                 options={subcontractorOptions}
                 onChange={(val) => setFormData({ ...formData, subcontractorId: val })}
-                placeholder={isLoadingSuppliers ? 'جاري جلب سجل الموردين...' : '-- اختر مقاول الباطن --'}
+                placeholder={isLoadingSubcontractors ? 'جاري جلب سجل مقاولي الباطن...' : '-- اختر مقاول الباطن --'}
               />
-            </Field>
+            </div>
 
             <Field label="رقم أمر التكليف / العقد *">
               <input
@@ -295,6 +320,17 @@ export function CreateSubcontractModal({
           </div>
         </div>
       </form>
+
+      <CreateSubcontractorModal
+        open={isCreateSubcontractorOpen}
+        onClose={() => setIsCreateSubcontractorOpen(false)}
+        onSuccess={(created) => {
+          loadSubcontractors();
+          if (created?.id) {
+            setFormData((prev) => ({ ...prev, subcontractorId: String(created.id) }));
+          }
+        }}
+      />
     </StandardDialog>
   );
 }

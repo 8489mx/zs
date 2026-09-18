@@ -668,7 +668,7 @@ export function getInvoiceStyles(compact = false) {
     .receipt-theme-ultra-compact .meta-line:last-child::after { content: ""; margin: 0; }
 
     body.receipt-mode .print-shell { width: 100%; max-width: 100%; padding-top: 0; margin: 0; box-sizing: border-box; }
-    body.receipt-mode .print-header { display: none !important; }
+    body.receipt-mode .print-header, body.receipt-mode .receipt-header { display: none !important; }
     body.receipt-mode .print-title-wrap { min-width: 0; }
   `;
 }

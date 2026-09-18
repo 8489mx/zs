@@ -42,11 +42,13 @@
 - Root grid columns must enforce `grid-template-columns: minmax(0, 1fr);` and child containers must use `min-width: 0;` to strictly prevent wide child tables from expanding the workspace container.
 - Zero-clipping card standard: compact table headers and use `<colgroup>` to guarantee full visibility within the 1280px boundary.
 
-## 7. Strict Stable-Sizing & Anti-Ballooning Modal Standard
+## 7. Strict Stable-Sizing & Anti-Ballooning Modal Standard (دستور ثبات أبعاد النوافذ المنبثقة ومنع التمدد أو الانكماش الفجائي)
 - Modals that fetch data or render lists/KPIs must specify a pre-balanced `minHeight` on `StandardDialog` (e.g. `min(560px, 85vh)`).
 - Never initialize loading state to `false` when fetching on mount; always start with `useState(true)` to prevent the dialog from rendering empty then ballooning.
 - Render centered spinners (`minHeight: 280px+`) during fetch, and guard KPI cards with `—` instead of flashing `0` or `undefined`.
-- Prevent jarring shrink/expansion: dialog must open at its definitive dimensions immediately.
+- **Strict Fixed Container Height on Tabbed Modals:** Modals with tabs/filters must enforce a fixed height on their inner list/table container (e.g. `height: 335px; minHeight: 335px; maxHeight: 335px; boxSizing: border-box;`).
+- **Zero Empty-State Collapse:** When a tab has 0 items, empty states must fill 100% of the internal container height (`display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 335px;`) to prevent the modal from collapsing or ballooning vertically when switching between full and empty tabs.
+- Prevent jarring shrink/expansion: dialog must open and remain at its definitive dimensions across all tabs.
 
 ## 8. Strict Zero-Native-Alert & Zero-Native-Confirm Standard
 - NEVER use raw `window.alert(...)`, `alert(...)`, or `window.confirm(...)`, `confirm(...)` anywhere in UI screens.
@@ -77,4 +79,10 @@
   - Outer dialog shells must NEVER show scrollbars (`overflow: hidden` on root wrapper).
   - Long lists, candidate matches, or order histories must be confined to internal containers with strict `maxHeight` (e.g. `240px - 290px`) and slim scrollbars (`.thin-scrollbar`).
   - Action and confirmation buttons must always remain 100% visible and unclipped without any scrolling.
+
+## 12. Strict Zero Tab-Flicker & Zero Font-Shift Standard (دستور منع رعشة التابات والتنقل اللحظي)
+- **Zero Font-Weight Shifting:** NEVER toggle `fontWeight` between active and inactive tab buttons (e.g. `700` active vs `500` inactive). In Arabic typography, changing font weight alters text width and forces all neighboring tabs to horizontally jerk/flicker ("رعشة أفقية"). Always use a uniform `fontWeight: 600` for both active and inactive tabs, differentiating the active state exclusively through high-contrast colors (e.g. deep royal navy `#170e5e` vs light background `#f8fafc`).
+- **Instant 0ms Switching:** NEVER apply CSS transitions (`transition: all 0.15s ease`) to tab buttons. Tab switching must be immediate (0ms) without any layout delay or color shimmer.
+- **Symmetrical Borders & Box-Sizing:** Enforce `box-sizing: border-box` and consistent 1px borders across all tabs to prevent subpixel layout jumping.
+
 

@@ -97,7 +97,7 @@ function getBarcodeLabelNameFontSize(productName: string, preset: BarcodePrintPr
   const length = Array.from(String(productName || '')).length;
   const isThermal = preset.family === 'thermal';
   const base = isThermal
-    ? (compact ? 10.2 : 12)
+    ? (compact ? 11 : 13.5)
     : (compact || preset.maxLabelsPerPage >= 65 ? 8.2 : preset.maxLabelsPerPage >= 48 ? 9 : 10.5);
   const widthPenalty = Math.max(0, length - Math.floor(preset.labelWidthMm / 2.4)) * 0.16;
   const heightPenalty = preset.labelHeightMm < 25 ? 0.8 : 0;
@@ -137,14 +137,14 @@ export function buildSingleLabelHtml(
   const showSku = customization?.showSku ?? false;
   const skuText = product.styleCode || '';
 
-  // Barcode height scaled proportionally (~28-38% of label height to leave ample room for text)
+  // Barcode height scaled proportionally (~35-44% of label height to leave ample room for text while maximizing scan accuracy)
   const isShelf = preset.isShelfLabel;
   const showFoodStatement = customization?.showFoodStatement ?? false;
   const svgHeightMm = isShelf
     ? Math.max(8, Math.min(13, preset.labelHeightMm * 0.32))
     : showFoodStatement
-    ? Math.max(6.5, Math.min(9.5, preset.labelHeightMm * 0.28))
-    : Math.max(8.5, Math.min(13, preset.labelHeightMm * 0.38));
+    ? Math.max(8, Math.min(12, preset.labelHeightMm * 0.35))
+    : Math.max(10, Math.min(15, preset.labelHeightMm * 0.44));
 
   // Food statement & dates (بطاقة بيان السلع الغذائية والمعبأة وفق القرارات التموينية)
   const showProductionDate = customization?.showProductionDate ?? false;
@@ -176,7 +176,7 @@ export function buildSingleLabelHtml(
   // Layout 1: Regulatory Shelf Edge Label (استيكر الرف التمويني بأسعار بارزة وواضحة جداً)
   if (preset.isShelfLabel) {
     return `
-      <div class="barcode-label-card barcode-label-shelf ${compact ? 'compact' : ''}">
+      <div class="barcode-label-card barcode-label-shelf ${compact ? 'compact' : ''} ${showFoodStatement ? 'has-food-statement' : ''}">
         <div class="barcode-label-header">
           ${showStoreName && storeName ? `<div class="barcode-label-store">${escapeHtml(storeName)}</div>` : ''}
           ${showProductName ? `<div class="barcode-label-name barcode-shelf-product-name" style="font-size:${(nameFontSize + 1.2).toFixed(1)}px" title="${escapeHtml(productName)}">${escapeHtml(productName)}</div>` : ''}
@@ -214,7 +214,7 @@ export function buildSingleLabelHtml(
 
   // Layout 2: Standard Barcode / Packaging Sticker
   return `
-    <div class="barcode-label-card ${compact ? 'compact' : ''}">
+    <div class="barcode-label-card ${compact ? 'compact' : ''} ${showFoodStatement ? 'has-food-statement' : ''}">
       <div class="barcode-label-header">
         ${showStoreName && storeName ? `<div class="barcode-label-store">${escapeHtml(storeName)}</div>` : ''}
         ${showProductName ? `<div class="barcode-label-name" style="font-size:${nameFontSize.toFixed(1)}px" title="${escapeHtml(productName)}">${escapeHtml(productName)}</div>` : ''}
@@ -264,11 +264,11 @@ export function buildBarcodePreviewHtml(options: {
   const activeProduct = options.product;
   const activeUnit = options.unit;
 
-  if (isThermal && options.previewMode === 'single') {
-    const previewWidth = 320;
-    const aspectRatio = preset.labelHeightMm / preset.labelWidthMm;
-    const previewHeight = Math.max(150, Math.min(240, Math.round(previewWidth * aspectRatio)));
+  const previewWidth = 290;
+  const aspectRatio = preset.labelHeightMm / preset.labelWidthMm;
+  const previewHeight = Math.max(140, Math.min(240, Math.round(previewWidth * aspectRatio)));
 
+  if (isThermal && options.previewMode === 'single') {
     return `
       <div class="barcode-preview-single-wrapper">
         <div class="barcode-preview-single-card" style="width:${previewWidth}px;min-height:${previewHeight}px;height:${previewHeight}px;">
@@ -313,16 +313,29 @@ export function buildBarcodePreviewHtml(options: {
     }
     labelItems = flattened
       .slice(0, labelsToRender)
-      .map((it) => buildSingleLabelHtml(it.product, it.unit, preset, isThermal, customization))
+      .map((it) => isThermal
+        ? `<div class="barcode-preview-thermal-item" style="width:${previewWidth}px;height:${previewHeight}px;min-height:${previewHeight}px;">${buildSingleLabelHtml(it.product, it.unit, preset, false, customization)}</div>`
+        : buildSingleLabelHtml(it.product, it.unit, preset, false, customization)
+      )
       .join('');
   } else {
     labelItems = Array.from({ length: labelsToRender }, () =>
-      buildSingleLabelHtml(activeProduct, activeUnit, preset, isThermal, customization)
+      isThermal
+        ? `<div class="barcode-preview-thermal-item" style="width:${previewWidth}px;height:${previewHeight}px;min-height:${previewHeight}px;">${buildSingleLabelHtml(activeProduct, activeUnit, preset, false, customization)}</div>`
+        : buildSingleLabelHtml(activeProduct, activeUnit, preset, false, customization)
     ).join('');
   }
 
+  if (isThermal) {
+    return `
+      <div class="barcode-preview-sheet barcode-preview-sheet-thermal">
+        ${labelItems}
+      </div>
+    `;
+  }
+
   return `
-    <div class="barcode-preview-sheet barcode-preview-sheet-${preset.family}" style="padding:${preset.marginMm}mm;gap:${preset.gapMm}mm;grid-template-columns:repeat(${preset.family === 'sheet' ? preset.columns : 1}, minmax(0, 1fr));">
+    <div class="barcode-preview-sheet barcode-preview-sheet-${preset.family}" style="padding:${preset.marginMm}mm;gap:${preset.gapMm}mm;grid-template-columns:repeat(${preset.columns}, minmax(0, 1fr));">
       ${emptyItems}
       ${labelItems}
     </div>
@@ -450,11 +463,11 @@ export function printBatchBarcodeLabels(
       .barcode-label-missing{font-size:9px;color:#b91c1c;display:flex;align-items:center;justify-content:center;height:100%;}
       
       /* Food Statement - بطاقة بيان التموين: خلفية بيضاء نقية بنسبة 100% بدون أي رمادي وإطار أسود ناصع للطباعة الحرارية */
-      .barcode-label-food-statement{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.3mm;font-size:7.8px;font-weight:700;color:#000;background:#fff;border:0.5px solid #000;border-radius:2px;padding:0.4mm 1mm;margin:0.4mm 0;line-height:1.15;direction:rtl;}
-      .barcode-label-food-dates{display:flex;align-items:center;justify-content:center;gap:1.5mm;width:100%;color:#000;}
+      .barcode-label-food-statement{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.3mm;font-size:${isThermal ? '8.6px' : '7.8px'};font-weight:700;color:#000;background:#fff;border:0.6px solid #000;border-radius:2px;padding:0.4mm 1mm;margin:0.4mm 0;line-height:1.15;direction:rtl;}
+      .barcode-label-food-dates{display:flex;align-items:center;justify-content:center;gap:1.5mm;width:100%;color:#000;font-size:${isThermal ? '8.8px' : '7.8px'};}
       .barcode-label-food-dates span{color:#000;}
       .barcode-label-food-dates span strong{font-weight:900;color:#000;}
-      .barcode-label-storage-note{font-size:6.8px;font-weight:700;color:#000;line-height:1.1;text-align:center;}
+      .barcode-label-storage-note{font-size:${isThermal ? '7.5px' : '6.8px'};font-weight:800;color:#000;line-height:1.1;text-align:center;}
       
       /* Regulatory Shelf Label Styling - استيكر الرف التمويني */
       .barcode-label-shelf{display:flex;flex-direction:column;justify-content:space-between;text-align:start;}

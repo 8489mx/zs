@@ -732,6 +732,9 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
 
   if (pos.orderType !== 'delivery') return null;
 
+  const isRepRequired = pos.collectionStatus === 'cod';
+  const isRepMissing = isRepRequired && !selectedRep;
+
   return (
     <div style={{
       display: 'grid',
@@ -746,11 +749,11 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '8px', alignItems: 'end' }}>
         <div style={{ position: 'relative' }}>
           <label className="field" style={{ margin: 0 }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: !selectedRep ? '#dc2626' : '#64748b', marginBottom: '2px', display: 'block' }}>
-              مندوب التوصيل {!selectedRep ? '*' : ''}
+            <span style={{ fontSize: '12px', fontWeight: 700, color: isRepMissing ? '#dc2626' : '#64748b', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>مندوب التوصيل {isRepRequired ? <span style={{ color: '#dc2626' }}>*</span> : <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: '11px' }}>(اختياري)</span>}</span>
             </span>
             <input
-              placeholder={selectedRep?.name || "-- اختر مندوب التوصيل --"}
+              placeholder={selectedRep?.name || (isRepRequired ? "-- اختر مندوب التوصيل --" : "-- مندوب التوصيل (اختياري) --")}
               value={repSearchOpen ? repSearchQuery : (selectedRep?.name || '')}
               onFocus={() => { setRepSearchOpen(true); setRepSearchQuery(''); }}
               onBlur={() => setTimeout(() => setRepSearchOpen(false), 200)}
@@ -760,8 +763,8 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
                 height: '38px',
                 width: '100%',
                 borderRadius: '6px',
-                border: !selectedRep ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
-                background: !selectedRep ? '#fff5f5' : 'white',
+                border: isRepMissing ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
+                background: isRepMissing ? '#fff5f5' : 'white',
                 fontSize: '13px'
               }}
             />

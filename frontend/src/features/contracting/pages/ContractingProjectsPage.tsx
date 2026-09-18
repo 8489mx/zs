@@ -4,7 +4,7 @@ import { ContractingProjectsTab } from '../components/ContractingProjectsTab';
 import { CashForecastCard } from '../components/CashForecastCard';
 
 export function ContractingProjectsPage() {
-  const { projects, loading, setSelectedProjectId, setIsCreateProjectOpen } = useContracting();
+  const { projects, loading, setSelectedProjectId, setIsCreateProjectOpen, reloadProjects } = useContracting();
   const navigate = useNavigate();
 
   const handleSelectProject = (projectId: string, targetTab: string = 'boq') => {
@@ -24,6 +24,7 @@ export function ContractingProjectsPage() {
         loading={loading}
         onSelectProject={handleSelectProject}
         onNewProject={() => setIsCreateProjectOpen(true)}
+        onRefresh={reloadProjects}
       />
     </div>
   );

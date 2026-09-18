@@ -9,6 +9,9 @@ import {
   ContractingRfi,
   ContractingScheduleTask,
   ContractingMaterialRequisition,
+  ContractingSubcontractor,
+  ContractingSubcontractorPayment,
+  SubcontractorLedgerResponse,
 } from '../contracting.types';
 
 function toQueryString(params?: Record<string, any>): string {
@@ -46,6 +49,34 @@ export const contractingApi = {
   deleteProject: (id: string) =>
     http<{ success: boolean; message: string }>(`/api/contracting/projects/${id}`, {
       method: 'DELETE',
+    }),
+
+  createTenderRevision: (id: string) =>
+    http<ContractingProject>(`/api/contracting/projects/${id}/revisions`, {
+      method: 'POST',
+    }),
+
+  markTenderLost: (id: string, data: { lossReason: string; lossNotes?: string; competitorPrice?: number }) =>
+    http<ContractingProject>(`/api/contracting/projects/${id}/mark-lost`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  awardTender: (
+    id: string,
+    data: {
+      contractRef?: string;
+      contractDate?: string;
+      downPaymentAmount?: number;
+      retentionPercent?: number;
+      projectManager?: string;
+      consultantName?: string;
+      startDate?: string;
+    }
+  ) =>
+    http<ContractingProject>(`/api/contracting/projects/${id}/award`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
 
   // BOQ / Schedule of Values
@@ -126,6 +157,49 @@ export const contractingApi = {
 
   createSubcontract: (projectId: string, data: Partial<ContractingSubcontract>) =>
     http<ContractingSubcontract>(`/api/contracting/projects/${projectId}/subcontracts`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Subcontractor Master Directory & Ledger
+  getSubcontractors: (params?: { search?: string; tradeSpecialty?: string; status?: string }) =>
+    http<ContractingSubcontractor[]>(`/api/contracting/subcontractors${toQueryString(params)}`),
+
+  getSubcontractorById: (id: number) =>
+    http<ContractingSubcontractor>(`/api/contracting/subcontractors/${id}`),
+
+  createSubcontractor: (data: Partial<ContractingSubcontractor>) =>
+    http<ContractingSubcontractor>('/api/contracting/subcontractors', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateSubcontractor: (id: number, data: Partial<ContractingSubcontractor>) =>
+    http<ContractingSubcontractor>(`/api/contracting/subcontractors/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteSubcontractor: (id: number) =>
+    http<{ success: boolean; message: string }>(`/api/contracting/subcontractors/${id}`, {
+      method: 'DELETE',
+    }),
+
+  getSubcontractorLedger: (id: number, params?: { projectId?: string; fromDate?: string; toDate?: string }) =>
+    http<SubcontractorLedgerResponse>(`/api/contracting/subcontractors/${id}/ledger${toQueryString(params)}`),
+
+  createSubcontractorPayment: (data: {
+    subcontractorId: number;
+    projectId?: string;
+    subcontractId?: string;
+    invoiceId?: string;
+    amount: number;
+    paymentDate?: string;
+    paymentMethod?: 'cash' | 'bank_transfer' | 'check';
+    referenceNumber?: string;
+    notes?: string;
+  }) =>
+    http<ContractingSubcontractorPayment>('/api/contracting/subcontractors/payments', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

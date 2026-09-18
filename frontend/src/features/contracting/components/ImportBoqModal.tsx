@@ -10,18 +10,26 @@ import {
   ParsedBoqItemResult,
   ColumnMapping,
 } from '../utils/boqExcelParser';
+import {
+  parseBoqPdf,
+  reExtractBoqPdfWithCustomMapping,
+} from '../utils/boqPdfParser';
+import { registerOriginalWorkbook } from '../utils/originalWorkbookPricer';
 
 interface ImportBoqModalProps {
   open: boolean;
   projectId?: string;
   projectName?: string;
+  existingItemCount?: number;
   onClose: () => void;
   onImported?: () => void;
   onSuccess?: () => void;
-  onImportItems?: (items: ParsedBoqItemResult[]) => void;
+  onImportItems?: (items: ParsedBoqItemResult[], mode: 'append' | 'replace') => void;
 }
 
 const CATEGORY_NAMES: Record<string, string> = {
+  fire_fighting: 'مكافحة وإطفاء الحريق',
+  hvac: 'تكييف وتهوية',
   civil_concrete: 'خرسانة ومدني',
   architecture_finishes: 'تشطيبات ومعماري',
   plumbing_sanitary: 'صحي وتغذية',
@@ -46,14 +54,17 @@ export function ImportBoqModal({
   open,
   projectId,
   projectName,
+  existingItemCount = 0,
   onClose,
   onImported,
   onSuccess,
   onImportItems,
 }: ImportBoqModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importMode, setImportMode] = useState<'append' | 'replace'>('append');
   const [fileName, setFileName] = useState<string>('');
   const [fileBuffer, setFileBuffer] = useState<ArrayBuffer | null>(null);
+  const [pdfMatrix, setPdfMatrix] = useState<string[][] | null>(null);
   const [sheetNames, setSheetNames] = useState<string[]>([]);
   const [selectedSheet, setSelectedSheet] = useState<string>('');
   const [headerRowIndex, setHeaderRowIndex] = useState<number>(0);
@@ -77,6 +88,8 @@ export function ImportBoqModal({
   const [isParsing, setIsParsing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
+
+  const isPdf = Boolean(pdfMatrix) || (Boolean(fileName) && fileName.toLowerCase().endsWith('.pdf'));
 
   const handleDownloadTemplate = async () => {
     const headersList = [
@@ -107,6 +120,7 @@ export function ImportBoqModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const isPdfFile = file.name.toLowerCase().endsWith('.pdf');
     setFileName(file.name);
     setIsParsing(true);
     setGeneralError(null);
@@ -116,7 +130,15 @@ export function ImportBoqModal({
       const buffer = await file.arrayBuffer();
       setFileBuffer(buffer);
 
-      const result = await parseBoqWorkbook(file);
+      let result: any;
+      if (isPdfFile) {
+        const pdfResult = await parseBoqPdf(buffer);
+        setPdfMatrix(pdfResult.rawMatrix);
+        result = pdfResult;
+      } else {
+        setPdfMatrix(null);
+        result = await parseBoqWorkbook(file);
+      }
 
       if (!result.rows || result.rows.length === 0) {
         setGeneralError('الملف فارغ أو لا يحتوي على بنود أعمال صالحة.');
@@ -130,8 +152,18 @@ export function ImportBoqModal({
       setHeaders(result.headers);
       setColumnMapping(result.columnMapping);
       setParsedRows(result.rows);
+
+      if (!isPdfFile && buffer) {
+        registerOriginalWorkbook({
+          fileName: file.name,
+          buffer,
+          sheetName: result.selectedSheet,
+          columnMapping: result.columnMapping,
+          headerRowIndex: result.headerRowIndex,
+        });
+      }
     } catch (err: any) {
-      setGeneralError(err?.message || 'تعذر قراءة محتويات الملف، يرجى التأكد من صيغة Excel أو CSV');
+      setGeneralError(err?.message || 'تعذر قراءة محتويات الملف، يرجى التأكد من صيغة Excel أو CSV أو PDF');
       setParsedRows([]);
     } finally {
       setIsParsing(false);
@@ -155,6 +187,16 @@ export function ImportBoqModal({
       setHeaders(result.headers);
       setColumnMapping(result.columnMapping);
       setParsedRows(result.rows);
+
+      if (!isPdf && fileBuffer) {
+        registerOriginalWorkbook({
+          fileName,
+          buffer: fileBuffer,
+          sheetName: newSheetName,
+          columnMapping: result.columnMapping,
+          headerRowIndex: result.headerRowIndex,
+        });
+      }
     } catch (err: any) {
       setGeneralError(err?.message || `تعذر قراءة صفحة ${newSheetName}`);
     } finally {
@@ -163,19 +205,35 @@ export function ImportBoqModal({
   };
 
   const handleColumnMappingChange = (field: keyof ColumnMapping, newColIdx: number) => {
-    if (!fileBuffer || !selectedSheet) return;
+    if (!fileBuffer) return;
 
     const updatedMapping = { ...columnMapping, [field]: newColIdx };
     setColumnMapping(updatedMapping);
 
-    try {
-      const { rows } = reExtractBoqWithCustomMapping(
-        fileBuffer,
-        selectedSheet,
+    if (!isPdf && fileBuffer) {
+      registerOriginalWorkbook({
+        fileName,
+        buffer: fileBuffer,
+        sheetName: selectedSheet,
+        columnMapping: updatedMapping,
         headerRowIndex,
-        updatedMapping
-      );
-      setParsedRows(rows);
+      });
+    }
+
+    try {
+      if (pdfMatrix) {
+        const { rows } = reExtractBoqPdfWithCustomMapping(pdfMatrix, updatedMapping);
+        setParsedRows(rows);
+      } else if (selectedSheet) {
+        const { rows } = reExtractBoqWithCustomMapping(
+          fileBuffer,
+          selectedSheet,
+          headerRowIndex,
+          updatedMapping,
+          fileName
+        );
+        setParsedRows(rows);
+      }
     } catch (err: any) {
       setGeneralError(err?.message || 'حدث خطأ أثناء إعادة مطابقة الأعمدة');
     }
@@ -313,8 +371,18 @@ export function ImportBoqModal({
     setGeneralError(null);
 
     try {
+      if (!isPdf && fileBuffer && fileName) {
+        registerOriginalWorkbook({
+          fileName,
+          buffer: fileBuffer,
+          sheetName: selectedSheet,
+          columnMapping,
+          headerRowIndex,
+        });
+      }
+
       if (onImportItems) {
-        onImportItems(validRows);
+        onImportItems(validRows, importMode);
         (onImported || onSuccess)?.();
         onClose();
         return;
@@ -350,7 +418,7 @@ export function ImportBoqModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title={onImportItems ? 'استيراد مقايسة العطاء من ملف Excel (BOQ)' : 'استيراد جدول الكميات والمقايسة من ملف Excel'}
+      title={onImportItems ? 'استيراد مقايسة العطاء (Excel / PDF)' : 'استيراد جدول الكميات والمقايسة (Excel / PDF)'}
       subtitle={projectName ? `المشروع: ${projectName}` : 'التعرف الذكي التلقائي على الأعمدة والوحدات باللغتين العربية والإنجليزية'}
       width="min(1280px, 98vw)"
       minHeight="min(600px, 85vh)"
@@ -358,7 +426,15 @@ export function ImportBoqModal({
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={handleImport}
-          submitText={isSubmitting ? 'جاري الاستيراد...' : onImportItems ? `تأكيد إدراج (${validRows.length}) بند في دراسة العطاء` : `تأكيد استيراد (${validRows.length}) بند إلى المقايسة`}
+          submitText={
+            isSubmitting
+              ? 'جاري الاستيراد...'
+              : onImportItems
+                ? importMode === 'append' && existingItemCount > 0
+                  ? `تأكيد إلحاق وإضافة (${validRows.length}) بند بالمشروع`
+                  : `تأكيد إدراج (${validRows.length}) بند في دراسة العطاء`
+                : `تأكيد استيراد (${validRows.length}) بند إلى المقايسة`
+          }
           cancelText="إلغاء"
           submitDisabled={isSubmitting || validRows.length === 0}
         />
@@ -379,10 +455,10 @@ export function ImportBoqModal({
         >
           <div>
             <div style={{ fontWeight: 700, fontSize: 'var(--font-body)', color: '#1e293b' }}>
-              محرك الاستيراد الذكي الشامل (Universal BOQ Importer)
+              محرك الاستيراد الذكي الشامل (Universal BOQ & PDF Importer)
             </div>
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', marginTop: '2px' }}>
-              يدعم أي شيت Excel أو مقايسة استشارية، مع التعرف التلقائي على صف الهيدر، ترجمة الوحدات، وتصنيف الأعمال هندسياً.
+              يدعم ملفات Excel و CSV ومستندات PDF الاستشارية، مع التعرف التلقائي على صف الهيدر، تجميع البنود متعددة الأسطر، ترجمة الوحدات، وتصنيف الأعمال هندسياً.
             </div>
           </div>
           <button
@@ -424,18 +500,22 @@ export function ImportBoqModal({
           <input
             ref={fileInputRef}
             type="file"
-            accept=".xlsx, .xls, .csv"
+            accept=".xlsx, .xls, .csv, .pdf"
             style={{ display: 'none' }}
             onChange={handleFileChange}
           />
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px', color: '#170e5e' }}>
-            <AppIcons.FileSpreadsheet size={36} />
+            {fileName?.toLowerCase().endsWith('.pdf') ? (
+              <AppIcons.FileText size={36} />
+            ) : (
+              <AppIcons.FileSpreadsheet size={36} />
+            )}
           </div>
           <div style={{ fontWeight: 700, fontSize: 'var(--font-body)', color: '#0f172a' }}>
-            {fileName ? `الملف المحدد: ${fileName}` : 'اضغط لاختيار ملف Excel أو CSV لجدول المقايسة'}
+            {fileName ? `الملف المحدد: ${fileName}` : 'اضغط لاختيار ملف Excel أو CSV أو PDF لجدول المقايسة'}
           </div>
           <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', marginTop: '4px' }}>
-            يدعم الملفات بصيغة .xlsx و .xls و .csv (حتى لو كانت الهيدرات في صفوف متأخرة أو باللغة الإنجليزية)
+            يدعم ملفات .xlsx و .xls و .csv و .pdf (مع التعرف التلقائي على الجداول وتجميع البنود متعددة الأسطر)
           </div>
         </div>
 
@@ -541,6 +621,83 @@ export function ImportBoqModal({
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#475569', marginTop: '2px' }}>
                 {totalCostVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mode Selector (Append vs Replace) if existing items exist */}
+        {parsedRows.length > 0 && !isParsing && existingItemCount > 0 && (
+          <div
+            style={{
+              padding: '10px 14px',
+              borderRadius: '8px',
+              background: '#f1f5f9',
+              border: '1px solid #cbd5e1',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AppIcons.Layers size={16} color="#170e5e" />
+              <span style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>
+                طريقة إدراج البنود في دراسة العطاء (يوجد حالياً {existingItemCount} بند سابق):
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <label
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  border: importMode === 'append' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                  background: importMode === 'append' ? '#ffffff' : 'transparent',
+                  color: importMode === 'append' ? '#170e5e' : '#64748b',
+                  fontWeight: 700,
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  boxShadow: importMode === 'append' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+                }}
+              >
+                <input
+                  type="radio"
+                  name="importMode"
+                  checked={importMode === 'append'}
+                  onChange={() => setImportMode('append')}
+                  style={{ accentColor: '#170e5e' }}
+                />
+                <span>➕ إلحاق وإضافة للبنود القائمة (دمج التخصصات)</span>
+              </label>
+
+              <label
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  border: importMode === 'replace' ? '1.5px solid #b91c1c' : '1px solid #cbd5e1',
+                  background: importMode === 'replace' ? '#ffffff' : 'transparent',
+                  color: importMode === 'replace' ? '#b91c1c' : '#64748b',
+                  fontWeight: 700,
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  boxShadow: importMode === 'replace' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+                }}
+              >
+                <input
+                  type="radio"
+                  name="importMode"
+                  checked={importMode === 'replace'}
+                  onChange={() => setImportMode('replace')}
+                  style={{ accentColor: '#b91c1c' }}
+                />
+                <span>🔄 استبدال وتفريغ البنود السابقة</span>
+              </label>
             </div>
           </div>
         )}
@@ -1220,16 +1377,16 @@ export function ImportBoqModal({
                                   width: '100%',
                                   padding: '4px 6px',
                                   borderRadius: '5px',
-                                  border: row.unitPrice === 0 ? '1px solid #f59e0b' : '1px solid #cbd5e1',
-                                  backgroundColor: row.unitPrice === 0 ? '#fffbeb' : '#ffffff',
+                                  border: row.unitPrice === 0 ? '1px solid #f59e0b' : row.isAutoPriced ? '1px solid #10b981' : '1px solid #cbd5e1',
+                                  backgroundColor: row.unitPrice === 0 ? '#fffbeb' : row.isAutoPriced ? '#f0fdf4' : '#ffffff',
                                   fontSize: 'var(--font-subtitle)',
                                   fontWeight: 700,
-                                  color: row.unitPrice === 0 ? '#b45309' : '#0f172a',
+                                  color: row.unitPrice === 0 ? '#b45309' : row.isAutoPriced ? '#15803d' : '#0f172a',
                                   textAlign: 'right',
                                   outline: 'none',
                                   boxSizing: 'border-box',
                                 }}
-                                title={row.unitPrice === 0 ? 'انقر لتسعير البند مباشرة في المقايسة' : 'سعر الفئة التعاقدي'}
+                                title={row.isAutoPriced ? (row.warningMessage || 'تم التسعير التقديري تلقائياً من المكتبة الهندسية') : (row.unitPrice === 0 ? 'انقر لتسعير البند مباشرة في المقايسة' : 'سعر الفئة التعاقدي')}
                               />
                             )}
                           </td>
@@ -1270,6 +1427,24 @@ export function ImportBoqModal({
                               >
                                 <AppIcons.FileText size={12} />
                                 ديباجة
+                              </span>
+                            ) : row.isAutoPriced ? (
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  color: '#15803d',
+                                  background: '#dcfce7',
+                                  padding: '3px 6px',
+                                  borderRadius: '6px',
+                                  fontSize: 'var(--font-micro)',
+                                  fontWeight: 700,
+                                }}
+                                title={row.warningMessage || 'تم التسعير التقديري تلقائياً من المكتبة الهندسية'}
+                              >
+                                <AppIcons.CheckCircle size={12} />
+                                مسعر آلياً
                               </span>
                             ) : row.status === 'ready' ? (
                               <span

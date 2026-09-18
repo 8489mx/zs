@@ -5,7 +5,6 @@ import { toast } from '@/shared/components/system-alert';
 import type { ContractingScheduleTask, ContractingBoqItem } from '../contracting.types';
 import { ContractingGanttTab } from '../components/ContractingGanttTab';
 import { CreateScheduleTaskModal } from '../components/CreateScheduleTaskModal';
-import { ScheduleGeneratorModal } from '../components/ScheduleGeneratorModal';
 import { GovernmentLicensesModal } from '../components/GovernmentLicensesModal';
 import { SiteMobilizationModal } from '../components/SiteMobilizationModal';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -19,7 +18,6 @@ export function ContractingPlanningPage() {
 
   // Modals state
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const [isScheduleGeneratorOpen, setIsScheduleGeneratorOpen] = useState(false);
   const [isLicensesModalOpen, setIsLicensesModalOpen] = useState(false);
   const [isMobilizationModalOpen, setIsMobilizationModalOpen] = useState(false);
 
@@ -91,31 +89,6 @@ export function ContractingPlanningPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {effectiveProjectId && (
-            <button
-              type="button"
-              onClick={() => setIsScheduleGeneratorOpen(true)}
-              style={{
-                height: '36px',
-                padding: '0 14px',
-                borderRadius: '8px',
-                fontWeight: 600,
-                background: '#ffffff',
-                color: '#334155',
-                border: '1px solid #cbd5e1',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer',
-                fontSize: 'var(--font-body)',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <AppIcons.Calendar size={15} />
-              <span>توليد الجدول الزمني الذكي</span>
-            </button>
-          )}
-
           <button
             type="button"
             onClick={() => setIsLicensesModalOpen(true)}
@@ -161,30 +134,6 @@ export function ContractingPlanningPage() {
             <AppIcons.Tool size={15} />
             <span>تجهيزات الموقع (Mobilization)</span>
           </button>
-
-          <button
-            type="button"
-            onClick={handleOpenNewTask}
-            style={{
-              height: '36px',
-              padding: '0 16px',
-              borderRadius: '8px',
-              fontWeight: 700,
-              background: '#170e5e',
-              color: '#ffffff',
-              border: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              fontSize: 'var(--font-body)',
-              boxShadow: '0 1px 3px rgba(23, 14, 94, 0.15)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <AppIcons.Plus size={15} />
-            <span>إضافة نشاط جديد</span>
-          </button>
         </div>
       </div>
 
@@ -209,14 +158,6 @@ export function ContractingPlanningPage() {
             existingTasks={tasks}
             onClose={() => setIsCreateTaskOpen(false)}
             onCreated={loadData}
-          />
-
-          <ScheduleGeneratorModal
-            open={isScheduleGeneratorOpen}
-            projectId={effectiveProjectId}
-            projectName={effectiveProject?.name}
-            onClose={() => setIsScheduleGeneratorOpen(false)}
-            onSuccess={loadData}
           />
 
           <GovernmentLicensesModal
