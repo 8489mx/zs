@@ -47,6 +47,7 @@ export class SalesController {
 
   @Post('sales/:id/cancel')
   @RequirePermissions('canEditInvoices')
+  @UseInterceptors(IdempotencyInterceptor)
   cancelSale(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { reason?: string; managerPin?: string },

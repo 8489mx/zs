@@ -214,23 +214,33 @@ export class FiscalYearService {
       );
     }
 
-    const inserted = await this.db
-      .insertInto('accounting_fiscal_years')
-      .values({
-        tenant_id: tenantId,
-        name,
-        code: dto.code ? String(dto.code).trim() : null,
-        start_date: startDate as any,
-        end_date: endDate as any,
-        status: 'open',
-        net_profit_loss: 0,
-        total_revenue: 0,
-        total_expense: 0,
-        created_at: sql`NOW()` as any,
-        updated_at: sql`NOW()` as any,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    // The overlap SELECT above is only for a friendly message; it races with concurrent creates.
+    // accounting_fiscal_years_no_overlap (EXCLUDE ... USING gist) is the actual guarantee.
+    let inserted;
+    try {
+      inserted = await this.db
+        .insertInto('accounting_fiscal_years')
+        .values({
+          tenant_id: tenantId,
+          name,
+          code: dto.code ? String(dto.code).trim() : null,
+          start_date: startDate as any,
+          end_date: endDate as any,
+          status: 'open',
+          net_profit_loss: 0,
+          total_revenue: 0,
+          total_expense: 0,
+          created_at: sql`NOW()` as any,
+          updated_at: sql`NOW()` as any,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    } catch (error: any) {
+      if (error?.code === '23P01' || String(error?.constraint || '') === 'accounting_fiscal_years_no_overlap') {
+        throw new BadRequestException('توجد سنة مالية أخرى تتداخل مع هذه الفترة. يرجى مراجعة التواريخ.');
+      }
+      throw error;
+    }
 
     return {
       ...inserted,
@@ -514,6 +524,49 @@ export class FiscalYearService {
 
     // 2. Execute within transaction
     const closingEntryResult = await this.db.transaction().execute(async (trx) => {
+      // The preview above (balances, proposed lines, canClose) was computed OUTSIDE this transaction.
+      // Two things can have changed since: another admin may have closed the year, and new entries
+      // may have been posted inside the period — which would be silently left out of the closing
+      // entry, leaving revenue/expense accounts un-zeroed and retained earnings wrong.
+      const lockedFy = await trx
+        .selectFrom('accounting_fiscal_years')
+        .select(['id', 'status'])
+        .where('id', '=', fy.id)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!lockedFy) throw new NotFoundException('السنة المالية غير موجودة.');
+      if (lockedFy.status === 'closed') throw new BadRequestException('هذه السنة المالية مقفلة بالفعل.');
+
+      const startDateStr = this.formatDate(fy.start_date);
+      const verify = await (trx as any)
+        .selectFrom('journal_entry_lines as jel')
+        .innerJoin('journal_entries as je', 'je.id', 'jel.journal_entry_id')
+        .innerJoin('accounting_accounts as a', 'a.id', 'jel.account_id')
+        .select([
+          sql<number>`COALESCE(SUM(CASE WHEN a.account_type = 'revenue' THEN jel.credit - jel.debit ELSE 0 END), 0)`.as('revenue'),
+          sql<number>`COALESCE(SUM(CASE WHEN a.account_type = 'expense' THEN jel.debit - jel.credit ELSE 0 END), 0)`.as('expense'),
+        ])
+        .where('je.tenant_id', '=', tenantId)
+        .where('je.status', '=', 'posted')
+        .where('je.source_type', '!=', 'fiscal_year_closing')
+        .where('je.entry_date', '>=', startDateStr as any)
+        .where('je.entry_date', '<=', endDate as any)
+        .executeTakeFirst();
+
+      const liveRevenue = this.toMoney(verify?.revenue || 0);
+      const liveExpense = this.toMoney(verify?.expense || 0);
+
+      if (
+        Math.abs(liveRevenue - this.toMoney(preview.totalRevenue)) > 0.01 ||
+        Math.abs(liveExpense - this.toMoney(preview.totalExpense)) > 0.01
+      ) {
+        throw new BadRequestException(
+          'تم ترحيل حركات مالية داخل هذه السنة بعد إعداد المعاينة، فأصبحت أرقام الإقفال غير محدّثة. يرجى إعادة المعاينة ثم الإقفال.',
+        );
+      }
+
       let createdJournalEntryId: number | null = null;
 
       if (preview.proposedClosingLines.length > 0) {
@@ -617,6 +670,9 @@ export class FiscalYearService {
         .where('id', '=', 1)
         .executeTakeFirst();
 
+      // Locking the period is not optional: a year closed but still writable is the whole failure
+      // this step exists to prevent. If the tenant has no settings row yet, create it rather than
+      // silently skipping the lock.
       if (currentSettings) {
         const curLock = currentSettings.lock_date_all
           ? this.formatDate(currentSettings.lock_date_all)
@@ -633,6 +689,22 @@ export class FiscalYearService {
             .where('id', '=', 1)
             .execute();
         }
+      } else {
+        await trx
+          .insertInto('accounting_settings')
+          .values({
+            id: 1,
+            tenant_id: tenantId,
+            lock_date_all: endDate as any,
+            updated_at: sql`NOW()` as any,
+          } as any)
+          .onConflict((oc) =>
+            oc.columns(['tenant_id', 'id']).doUpdateSet({
+              lock_date_all: endDate as any,
+              updated_at: sql`NOW()` as any,
+            } as any),
+          )
+          .execute();
       }
 
       return {

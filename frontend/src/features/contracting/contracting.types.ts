@@ -109,8 +109,18 @@ export interface ContractingInvoiceItem {
   completionPercent: number;
   currentTotal: number;
   cumulativeTotal: number;
+  wirId?: string | null;
+  claimedQty?: number;
+  certifiedQty?: number;
+  varianceReason?: string | null;
+  progressStage?: string | null;
+  stageWeightPct?: number | null;
+  changeOrderId?: string | null;
   notes?: string | null;
 }
+
+export type SubcontractType = 'supply_and_apply' | 'labor_only' | 'supply_only' | 'labor_plus_consumables';
+export type PaymentLinkageMode = 'independent' | 'pay_when_paid' | 'pay_when_certified';
 
 export interface ContractingInvoice {
   id: string;
@@ -130,6 +140,26 @@ export interface ContractingInvoice {
   advanceRecoveryAmount: number;
   retentionHeldAmount: number;
   otherDeductions: number;
+  grossWorkDoneAmount?: number;
+  escalationAmount?: number;
+  mosAddedAmount?: number;
+  mosReleasedAmount?: number;
+  mosBalanceAmount?: number;
+  backchargeAmount?: number;
+  ldAmount?: number;
+  materialExcessAmount?: number;
+  sharedResourceAmount?: number;
+  directPaymentAmount?: number;
+  carriedForwardDebitIn?: number;
+  taxableBaseAmount?: number;
+  vatAmount?: number;
+  whtAmount?: number;
+  socialInsuranceAmount?: number;
+  claimedAmount?: number;
+  certifiedAmount?: number;
+  certificationDueDate?: string | null;
+  paymentDueDate?: string | null;
+  calcEngineVersion?: string;
   netPayable: number;
   status: IpcStatus;
   journalEntryId?: number | null;
@@ -147,9 +177,27 @@ export interface ContractingSubcontract {
   subcontractorId: number;
   subcontractorName?: string;
   contractNumber: string;
+  contractType?: SubcontractType;
   scopeOfWork: string;
   totalAmount: number;
   retentionPercent: number;
+  advancePct?: number;
+  advanceAmount?: number;
+  advanceRecoveryStartPct?: number;
+  advanceRecoveryEndPct?: number;
+  retentionLimitPct?: number;
+  penaltyPerDay?: number;
+  ldCapPct?: number;
+  liabilityCapAmount?: number;
+  whtRate?: number;
+  socialInsurancePct?: number;
+  paymentLinkageMode?: PaymentLinkageMode;
+  paymentTermsDays?: number;
+  tailReservePct?: number;
+  wastageAllowancePct?: number;
+  mosAdmissiblePct?: number;
+  mosCapPct?: number;
+  dlpMonths?: number;
   startDate?: string | null;
   endDate?: string | null;
   status: SubcontractStatus;
@@ -620,6 +668,10 @@ export interface BoqProfitabilityItem {
   contractRevenue: number;
   estimatedCost: number;
   actualCost: number;
+  directLaborCost?: number;
+  directMaterialCost?: number;
+  directEquipmentCost?: number;
+  allocatedIndirectCost?: number;
   projectedProfit: number;
   profitMarginPercent: number;
   realizedProfit: number;
@@ -1052,6 +1104,187 @@ export interface ContractingProjectEvmMetrics {
     actualCumulative: number;
   }[];
 }
+
+// 17. Bank Guarantees & Gateway G1 (خطابات الضمان البنكية والبوابة الرقابية)
+export type GuaranteeType =
+  | 'advance_payment'
+  | 'performance'
+  | 'retention'
+  | 'maintenance'
+  | 'bid_bond';
+
+export type GuaranteeStatus =
+  | 'active'
+  | 'expired'
+  | 'released'
+  | 'confiscated_invoked'
+  | 'cancelled';
+
+export interface ContractingGuarantee {
+  id: string;
+  projectId: string;
+  projectName?: string | null;
+  projectCode?: string | null;
+  subcontractId?: string | null;
+  subcontractNumber?: string | null;
+  subcontractTitle?: string | null;
+  subcontractorId?: number | null;
+  subcontractorName?: string | null;
+  guaranteeNumber: string;
+  guaranteeType: GuaranteeType;
+  issuingBank: string;
+  amount: number;
+  currency: string;
+  issueDate: string;
+  expiryDate: string;
+  claimExpiryDate?: string | null;
+  reductionSchedule?: any;
+  status: GuaranteeStatus;
+  documentUrl?: string | null;
+  notes?: string | null;
+  daysRemaining?: number;
+  alertTier?: 'critical_t7' | 'warning_t30' | 'info_t60' | 'expired' | 'healthy';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GuaranteeExpiryAlert {
+  guaranteeId: string;
+  guaranteeNumber: string;
+  guaranteeType: GuaranteeType;
+  issuingBank: string;
+  amount: number;
+  expiryDate: string;
+  daysRemaining: number;
+  alertTier: 'critical_t7' | 'warning_t30' | 'info_t60' | 'expired';
+  alertMessageAr: string;
+}
+
+// =============================================================================
+// Track 1: Field Indirect Cost Allocation Types (AACE RP 10S-90 / 34R-05)
+// =============================================================================
+
+export type CostPoolType = 'labor_care' | 'labor_burden' | 'equipment_shared' | 'site_supervision' | 'custom';
+export type DriverType = 'labor_days' | 'labor_cost' | 'equipment_hours' | 'direct_effort' | 'manual_ratio';
+
+export interface CostPool {
+  id: string;
+  projectId: string;
+  poolCode: string;
+  poolName: string;
+  poolType: CostPoolType;
+  driverType: DriverType;
+  description?: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface IndirectExpense {
+  id: string;
+  projectId: string;
+  poolId: string;
+  poolCode: string;
+  poolName: string;
+  poolType: CostPoolType;
+  driverType: DriverType;
+  batchId?: string | null;
+  mobilizationExpenseId?: string | null;
+  expenseTitle: string;
+  grossAmount: number;
+  recoveredAmount: number;
+  netAmount: number;
+  expenseDate: string;
+  voucherRef?: string | null;
+  createdAt: string;
+}
+
+export interface AllocationBatch {
+  id: string;
+  projectId: string;
+  batchNumber: string;
+  periodStart: string;
+  periodEnd: string;
+  status: 'draft' | 'posted' | 'reversed';
+  totalGrossExpenses: number;
+  totalRecoveredBackcharges: number;
+  totalNetPoolCost: number;
+  totalAllocatedAmount: number;
+  deferredInAmount: number;
+  deferredOutAmount: number;
+  postedAt?: string | null;
+  postedBy?: string | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface ItemAllocationDetail {
+  boqItemId: string;
+  boqCode: string;
+  driverQty: number;
+  allocationRatio: number;
+  allocatedAmount: number;
+}
+
+export interface PoolAllocationResult {
+  poolId: string;
+  poolCode: string;
+  poolName: string;
+  poolType: CostPoolType;
+  driverType: DriverType;
+  grossExpenseAmount: number;
+  recoveredBackchargeAmount: number;
+  deferredInAmount: number;
+  netPoolCost: number;
+  totalDriverQty: number;
+  ratePerDriverUnit: number;
+  deferredOutAmount: number;
+  allocatedAmountTotal: number;
+  allocations: ItemAllocationDetail[];
+}
+
+export interface BoqItemAggregatedSummary {
+  boqItemId: string;
+  boqCode: string;
+  allocatedByPool: Record<string, number>;
+  totalAllocatedIndirectCost: number;
+}
+
+export interface BatchAllocationSummary {
+  totalGrossExpense: number;
+  totalRecoveredBackcharge: number;
+  totalDeferredIn: number;
+  totalNetCost: number;
+  totalAllocated: number;
+  totalDeferredOut: number;
+  poolSummaries: PoolAllocationResult[];
+  boqItemSummaries: BoqItemAggregatedSummary[];
+}
+
+export interface CreateCostPoolPayload {
+  poolCode: string;
+  poolName: string;
+  poolType: CostPoolType;
+  driverType: DriverType;
+  description?: string;
+}
+
+export interface CreateIndirectExpensePayload {
+  poolId: string;
+  expenseTitle: string;
+  grossAmount: number;
+  recoveredAmount?: number;
+  expenseDate?: string;
+  voucherRef?: string;
+  mobilizationExpenseId?: string;
+}
+
+export interface CreateAllocationBatchPayload {
+  periodStart: string;
+  periodEnd: string;
+  deferredInAmount?: number;
+  notes?: string;
+}
+
 
 
 

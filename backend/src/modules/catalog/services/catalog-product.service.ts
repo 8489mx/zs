@@ -1550,6 +1550,22 @@ export class CatalogProductService {
         await this.replaceProductRelations(trx, productId, draft, actor);
         if (initialStockQty > 0) {
           await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: resolvedLocationId, qty: initialStockQty, ...this.tenantFields(actor) }).execute();
+          // Opening balance must appear in the perpetual ledger, otherwise rebuilding stock from
+          // stock_movements starts from zero and disagrees with products.stock_qty forever.
+          await trx.insertInto('stock_movements').values({
+            product_id: productId,
+            movement_type: 'opening_balance',
+            qty: initialStockQty,
+            before_qty: 0,
+            after_qty: initialStockQty,
+            reason: 'opening_balance',
+            note: 'رصيد افتتاحي عند إنشاء الصنف',
+            reference_type: 'product',
+            reference_id: productId,
+            location_id: resolvedLocationId,
+            created_by: actor.userId,
+            ...this.tenantFields(actor),
+          } as any).execute();
         }
       }
     });

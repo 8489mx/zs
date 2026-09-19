@@ -512,15 +512,30 @@ export class StorefrontService {
             discountAmount = Math.min(subtotal, Number(coupon.discount_value));
           }
 
-          // Increment coupon usage
-          await this.db
+          // Claim one use ATOMICALLY.
+          //
+          // The previous read-modify-write (`times_used = read_value + 1`) was a lost update: two
+          // concurrent checkouts both read N and both wrote N+1, so a coupon capped at N uses could
+          // be redeemed many more times. The usage_limit check above also ran on an unlocked read,
+          // so it could not stop the overrun either.
+          //
+          // Incrementing in a single conditional statement makes the database enforce the cap: the
+          // WHERE clause re-tests the limit against the live row, and a zero-row result means
+          // another checkout took the last use while we were deciding.
+          const claim = await this.db
             .updateTable('storefront_coupons')
             .set({
-              times_used: Number(coupon.times_used || 0) + 1,
+              times_used: sql`times_used + 1`,
               updated_at: new Date(),
             })
             .where('id', '=', coupon.id)
-            .execute();
+            .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            .where(sql<boolean>`(usage_limit IS NULL OR times_used < usage_limit)`)
+            .executeTakeFirst();
+
+          if (Number(claim?.numUpdatedRows || 0) === 0) {
+            throw new BadRequestException('تم استنفاد عدد مرات استخدام كوبون الخصم.');
+          }
         }
       }
     }
@@ -634,7 +649,7 @@ export class StorefrontService {
             total: totalAmount,
             paid_amount: 0,
             status: 'posted',
-            note: `طلب ذاتي من الطاولة (${dto.tableNumber}) بالـ QR 📲`,
+            note: `طلب ذاتي من الطاولة (${dto.tableNumber}) بالـ QR`,
             branch_id: branchId,
             order_type: 'dine_in',
             table_number: String(dto.tableNumber).trim(),
@@ -698,7 +713,7 @@ export class StorefrontService {
     const notesPart = dto.customerNotes ? `\nملاحظات: ${dto.customerNotes}` : '';
     const zonePart = deliveryZoneName ? `\nالمنطقة: ${deliveryZoneName}` : '';
     const discountPart = discountAmount > 0 ? `\nالخصم (${appliedCouponCode}): -${discountAmount.toFixed(0)} ج` : '';
-    const shippingText = deliveryFee === 0 ? 'شحن مجاني 🎉' : `شامل التوصيل ${deliveryFee} ج`;
+    const shippingText = deliveryFee === 0 ? 'شحن مجاني' : `شامل التوصيل ${deliveryFee} ج`;
 
     const whatsappMessage = encodeURIComponent(
       `مرحباً، أود متابعة طلبي من متجركم:\n` +

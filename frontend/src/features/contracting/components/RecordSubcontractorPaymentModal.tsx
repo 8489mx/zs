@@ -7,6 +7,7 @@ import type { ContractingSubcontractor } from '../contracting.types';
 import { toast } from '@/shared/components/system-alert';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { useContracting } from '../context/ContractingContext';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface RecordSubcontractorPaymentModalProps {
   open: boolean;
@@ -38,6 +39,7 @@ export function RecordSubcontractorPaymentModal({
     amount: '',
     paymentDate: new Date().toISOString().split('T')[0],
     paymentMethod: 'bank_transfer' as 'cash' | 'bank_transfer' | 'check',
+    paymentCategory: 'progress' as 'progress' | 'advance' | 'operational_advance',
     referenceNumber: '',
     notes: '',
   });
@@ -64,6 +66,7 @@ export function RecordSubcontractorPaymentModal({
         amount: '',
         paymentDate: new Date().toISOString().split('T')[0],
         paymentMethod: 'bank_transfer',
+        paymentCategory: 'progress',
         referenceNumber: '',
         notes: '',
       });
@@ -95,7 +98,9 @@ export function RecordSubcontractorPaymentModal({
         paymentMethod: formData.paymentMethod,
         referenceNumber: formData.referenceNumber.trim() || undefined,
         notes: formData.notes.trim() || undefined,
-      });
+        isAdvancePayment: formData.paymentCategory === 'advance',
+        paymentCategory: formData.paymentCategory,
+      } as any);
       toast.success('تم تسجيل سند الصرف وخصم الدفعة من حساب المقاول بنجاح');
       onSuccess?.();
       onClose();
@@ -123,6 +128,12 @@ export function RecordSubcontractorPaymentModal({
     { value: 'bank_transfer', label: 'تحويل بنكي / إيداع' },
     { value: 'cash', label: 'نقدي (من عهدة / خزينة الموقع)' },
     { value: 'check', label: 'شيك بنكي' },
+  ];
+
+  const paymentCategoryOptions = [
+    { value: 'progress', label: 'دفعة جارية تحت الحساب (Progress Payment)' },
+    { value: 'advance', label: 'دفعة مقدمة تعاقدية (Advance Payment - خاضعة لضمان بنكي G1)' },
+    { value: 'operational_advance', label: 'سلفة تشغيلية نقدية للموقع (Operational Advance - معفاة من G1)' },
   ];
 
   return (
@@ -181,6 +192,14 @@ export function RecordSubcontractorPaymentModal({
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <Field label="طبيعة وسياق الدفعة *">
+            <CustomSelect
+              value={formData.paymentCategory}
+              onChange={(val) => setFormData({ ...formData, paymentCategory: val as any })}
+              options={paymentCategoryOptions}
+            />
+          </Field>
+
           <Field label="المشروع الإنشائي">
             <CustomSelect
               value={formData.projectId}
@@ -189,6 +208,31 @@ export function RecordSubcontractorPaymentModal({
               placeholder="اختر المشروع (اختياري)..."
             />
           </Field>
+        </div>
+
+        {formData.paymentCategory === 'advance' && (
+          <div
+            style={{
+              padding: '10px 14px',
+              borderRadius: '8px',
+              background: '#eff6ff',
+              color: '#1e40af',
+              border: '1px solid #bfdbfe',
+              fontSize: 'var(--font-subtitle)',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <AppIcons.ShieldCheck size={18} />
+            <span>
+              <strong>بوابة الاعتماد الرقابية G1 مفعلة:</strong> سيتم التحقق الفوري من وجود وسريان خطاب ضمان الدفعة المقدمة البنكي للمقاول وتغطية كامل المبلغ قبل الموافقة على الصرف.
+            </span>
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
 
           <Field label={`مبلغ الدفعة (${currencySymbol}) *`}>
             <input

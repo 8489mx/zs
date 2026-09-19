@@ -10,6 +10,7 @@ import { TransactionHelper } from '../../../database/helpers/transaction.helper'
 import { Database } from '../../../database/database.types';
 import { CreateBomDto, CreateWorkOrderDto, CompleteWorkOrderDto, UpsertWorkCenterDto, CreateWoOperationDto, CreateUnbuildOrderDto, CreateMtoWorkOrderDto } from '../dto/manufacturing.dto';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 
 @Injectable()
 export class ManufacturingService {
@@ -492,7 +493,13 @@ export class ManufacturingService {
         .execute();
 
       // Update finished good average cost_price
-      const finishedProduct = await trx.selectFrom('products').select(['stock_qty', 'cost_price']).where('id', '=', Number(wo.finished_product_id)).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+      const finishedProduct = await trx
+        .selectFrom('products')
+        .select(['stock_qty', 'cost_price'])
+        .where('id', '=', Number(wo.finished_product_id))
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .forUpdate()
+        .executeTakeFirst();
       if (finishedProduct) {
         const oldStock = Number(finishedProduct.stock_qty || 0);
         const oldCost = Number(finishedProduct.cost_price || 0);
@@ -635,7 +642,7 @@ export class ManufacturingService {
 
   async createUnbuildOrder(payload: CreateUnbuildOrderDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
-    const unbuildNumber = `UB-${Date.now().toString().slice(-6)}`;
+    let unbuildNumber = '';
     let unbuildId = 0;
 
     await this.tx.runInTransaction(this.db, async (trx) => {
@@ -684,6 +691,30 @@ export class ManufacturingService {
       const qtyToUnbuild = Number(payload.quantity);
       const bomQty = Number(bom.quantity || 1);
 
+      // Insert unbuild order first with temporary number to acquire identity
+      const tempUnbuildNumber = `UB-TMP-${Date.now()}`;
+      const inserted = await trx
+        .insertInto('manufacturing_unbuild_orders')
+        .values({
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          unbuild_number: tempUnbuildNumber,
+          product_id: payload.productId,
+          product_name: product.name,
+          bom_id: payload.bomId,
+          quantity: qtyToUnbuild,
+          warehouse_id: locationId || 0,
+          status: 'completed',
+          total_cost: 0,
+          notes: payload.notes || null,
+          created_by: auth.userId ? Number(auth.userId) : null,
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
+      unbuildId = Number(inserted.id);
+      unbuildNumber = formatDailyDocumentNumber('UB', unbuildId);
+
       const fgStockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(payload.productId), branchId: null, locationId };
       const fgStockChange = await applyStockDelta(trx, {
         ...fgStockScope,
@@ -701,7 +732,7 @@ export class ManufacturingService {
         reason: 'تفكيك منتج تام',
         note: `أمر تفكيك #${unbuildNumber}`,
         reference_type: 'manufacturing_unbuild_order',
-        reference_id: 0,
+        reference_id: unbuildId,
         location_id: locationId,
         created_by: auth.userId,
         tenant_id: scope.tenantId,
@@ -731,7 +762,7 @@ export class ManufacturingService {
           reason: 'استرجاع مواد خام من تفكيك',
           note: `أمر تفكيك #${unbuildNumber} - استرجاع ${line.component_name}`,
           reference_type: 'manufacturing_unbuild_order',
-          reference_id: 0,
+          reference_id: unbuildId,
           location_id: compLoc,
           created_by: auth.userId,
           tenant_id: scope.tenantId,
@@ -739,29 +770,18 @@ export class ManufacturingService {
         }).execute();
       }
 
-      const inserted = await trx
-        .insertInto('manufacturing_unbuild_orders')
-        .values({
-          tenant_id: scope.tenantId,
-          account_id: scope.accountId,
+      await trx
+        .updateTable('manufacturing_unbuild_orders')
+        .set({
           unbuild_number: unbuildNumber,
-          product_id: payload.productId,
-          product_name: product.name,
-          bom_id: payload.bomId,
-          quantity: qtyToUnbuild,
-          warehouse_id: locationId || 0,
-          status: 'completed',
           total_cost: totalRecoveredCost,
-          notes: payload.notes || null,
-          created_by: auth.userId ? Number(auth.userId) : null,
+          updated_at: sql`NOW()`,
         } as any)
-        .returning('id')
-        .executeTakeFirstOrThrow();
-
-      unbuildId = Number(inserted.id);
+        .where('id', '=', unbuildId)
+        .execute();
     });
 
-    await this.audit.log('أمر تفكيك منتج', `تم تفكيك ${payload.quantity} من المنتج #${payload.productId} بنجاح`, auth);
+    await this.audit.log('أمر تفكيك منتج', `تم تفكيك ${payload.quantity} من المنتج #${payload.productId} بنجاح (${unbuildNumber})`, auth);
     return { ok: true, unbuildId, unbuildNumber, message: 'تم تفكيك المنتج واسترجاع المواد الخام للمخزن بنجاح' };
   }
 

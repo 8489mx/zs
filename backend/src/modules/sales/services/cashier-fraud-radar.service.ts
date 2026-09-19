@@ -5,8 +5,40 @@ import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { WhatsAppGatewayService } from '../../settings/services/whatsapp-gateway.service';
+import { AUDIT_EVENT_CODES } from '../../../core/audit/audit.service';
 
 export type RiskLevel = 'low' | 'medium' | 'high';
+
+/**
+ * Detection keys off `audit_logs.event_code`, never off the human-facing Arabic `action` text —
+ * rewording a log message must not silently blind the radar.
+ * The legacy text predicates below are kept ONLY to classify rows written before event_code existed
+ * and that the backfill could not reach; new detections must extend the code list, not the text list.
+ */
+const RADAR_EVENT_CODES = [
+  AUDIT_EVENT_CODES.POS_CART_ITEM_REMOVED,
+  AUDIT_EVENT_CODES.POS_DRAFT_SALE_CANCELLED,
+  AUDIT_EVENT_CODES.POS_DISCOUNT_OVERRIDE,
+  AUDIT_EVENT_CODES.POS_SALE_RETURN,
+] as const;
+
+type RadarLogRow = { event_code?: string | null; action?: string | null };
+
+function classifyRadarEvent(row: RadarLogRow): 'cart_remove' | 'draft_cancel' | 'discount_override' | 'sale_return' | null {
+  const code = String(row.event_code || '');
+  if (code === AUDIT_EVENT_CODES.POS_CART_ITEM_REMOVED) return 'cart_remove';
+  if (code === AUDIT_EVENT_CODES.POS_DRAFT_SALE_CANCELLED) return 'draft_cancel';
+  if (code === AUDIT_EVENT_CODES.POS_DISCOUNT_OVERRIDE) return 'discount_override';
+  if (code === AUDIT_EVENT_CODES.POS_SALE_RETURN) return 'sale_return';
+
+  // Legacy rows only (no event_code).
+  const action = String(row.action || '');
+  if (action.includes('حذف عنصر من السلة')) return 'cart_remove';
+  if (action.includes('إلغاء/حذف فاتورة')) return 'draft_cancel';
+  if (action.includes('خصم')) return 'discount_override';
+  if (action.includes('مرتجع')) return 'sale_return';
+  return null;
+}
 
 export interface CashierRiskProfile {
   cashierId: number;
@@ -79,15 +111,22 @@ export class CashierFraudRadarService {
     // 2. Fetch security audit logs for the period
     const auditRows = await this.db
       .selectFrom('audit_logs')
-      .select(['id', 'action', 'details', 'created_by', 'created_at'])
+      .select(['id', 'action', 'event_code', 'details', 'created_by', 'created_at'])
       .where('tenant_id', '=', scope.tenantId)
       .where(sql<boolean>`created_at >= ${sql.raw(timeSql)}`)
       .where((eb) =>
         eb.or([
-          eb('action', 'like', '%حذف عنصر من السلة%'),
-          eb('action', 'like', '%إلغاء/حذف فاتورة%'),
-          eb('action', 'like', '%خصم%'),
-          eb('action', 'like', '%مرتجع%'),
+          eb('event_code', 'in', [...RADAR_EVENT_CODES]),
+          // Legacy rows without event_code (see note above).
+          eb.and([
+            eb('event_code', 'is', null),
+            eb.or([
+              eb('action', 'like', '%حذف عنصر من السلة%'),
+              eb('action', 'like', '%إلغاء/حذف فاتورة%'),
+              eb('action', 'like', '%خصم%'),
+              eb('action', 'like', '%مرتجع%'),
+            ]),
+          ]),
         ]),
       )
       .execute();
@@ -149,16 +188,16 @@ export class CashierFraudRadarService {
       }
 
       totalSuspiciousEvents++;
-      const actionText = String(log.action || '');
       const createdStr = log.created_at ? new Date(log.created_at).toISOString() : undefined;
 
-      if (actionText.includes('حذف عنصر من السلة')) {
+      const kind = classifyRadarEvent(log);
+      if (kind === 'cart_remove') {
         stats.cartVoids++;
         stats.lastSuspiciousAt = createdStr;
-      } else if (actionText.includes('إلغاء/حذف فاتورة')) {
+      } else if (kind === 'draft_cancel') {
         stats.draftCancels++;
         stats.lastSuspiciousAt = createdStr;
-      } else if (actionText.includes('خصم')) {
+      } else if (kind === 'discount_override') {
         stats.discountOverrides++;
         stats.lastSuspiciousAt = createdStr;
       }
@@ -251,6 +290,7 @@ export class CashierFraudRadarService {
       .select([
         'a.id',
         'a.action',
+        'a.event_code',
         'a.details',
         'a.created_by',
         'a.created_at',
@@ -259,9 +299,16 @@ export class CashierFraudRadarService {
       .where('a.tenant_id', '=', scope.tenantId)
       .where((eb) =>
         eb.or([
-          eb('a.action', 'like', '%حذف عنصر من السلة%'),
-          eb('a.action', 'like', '%إلغاء/حذف فاتورة%'),
-          eb('a.action', 'like', '%خصم%'),
+          eb('a.event_code', 'in', [...RADAR_EVENT_CODES]),
+          // Legacy rows without event_code (see note at top of file).
+          eb.and([
+            eb('a.event_code', 'is', null),
+            eb.or([
+              eb('a.action', 'like', '%حذف عنصر من السلة%'),
+              eb('a.action', 'like', '%إلغاء/حذف فاتورة%'),
+              eb('a.action', 'like', '%خصم%'),
+            ]),
+          ]),
         ]),
       )
       .orderBy('a.id', 'desc')
@@ -269,10 +316,10 @@ export class CashierFraudRadarService {
       .execute();
 
     return auditRows.map((row) => {
+      const kind = classifyRadarEvent(row);
       let eventType: FraudRadarEventItem['eventType'] = 'cart_remove';
-      const action = String(row.action || '');
-      if (action.includes('إلغاء')) eventType = 'draft_cancel';
-      else if (action.includes('خصم')) eventType = 'discount_override';
+      if (kind === 'draft_cancel') eventType = 'draft_cancel';
+      else if (kind === 'discount_override') eventType = 'discount_override';
 
       let amount: number | undefined;
       const match = String(row.details || '').match(/(?:الإجمالي|المبلغ|القيمة):\s*([\d.]+)/);
@@ -285,7 +332,7 @@ export class CashierFraudRadarService {
         cashierId: Number(row.created_by || 0),
         cashierName: row.cashier_name || `مستخدم #${row.created_by || 0}`,
         eventType,
-        eventTitle: action,
+        eventTitle: String(row.action || ''),
         details: row.details || '',
         amount,
         createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
@@ -309,7 +356,12 @@ export class CashierFraudRadarService {
         .select(sql<number>`COUNT(id)`.as('cnt'))
         .where('tenant_id', '=', tenantId)
         .where('created_by', '=', cashierId)
-        .where('action', 'like', '%حذف عنصر من السلة%')
+        .where((eb) =>
+          eb.or([
+            eb('event_code', '=', AUDIT_EVENT_CODES.POS_CART_ITEM_REMOVED),
+            eb.and([eb('event_code', 'is', null), eb('action', 'like', '%حذف عنصر من السلة%')]),
+          ]),
+        )
         .where(sql<boolean>`created_at >= NOW() - INTERVAL '60 MINUTES'`)
         .executeTakeFirst();
 

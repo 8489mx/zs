@@ -4,8 +4,9 @@ import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AccountingService } from '../../accounting/accounting.service';
+import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { KYSELY_DB } from '../../../database/database.constants';
-import { getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
+import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
 
 export interface SettlementCalculateInput {
   employeeId: number;
@@ -34,6 +35,7 @@ export class EndOfServiceService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly accountingService: AccountingService,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   /**
@@ -135,7 +137,20 @@ export class EndOfServiceService {
       gratuityPercentage = 100;
     }
 
-    const gratuityAmount = Number(((baseGratuity * gratuityPercentage) / 100).toFixed(2));
+    let gratuityAmount = 0;
+    if (lawType === 'saudi' && reason === 'resignation') {
+      if (serviceYearsDecimal >= 2 && serviceYearsDecimal < 5) {
+        gratuityAmount = Number((baseGratuity / 3).toFixed(2));
+      } else if (serviceYearsDecimal >= 5 && serviceYearsDecimal < 10) {
+        gratuityAmount = Number(((baseGratuity * 2) / 3).toFixed(2));
+      } else if (serviceYearsDecimal >= 10) {
+        gratuityAmount = Number(baseGratuity.toFixed(2));
+      } else {
+        gratuityAmount = 0;
+      }
+    } else {
+      gratuityAmount = Number(((baseGratuity * gratuityPercentage) / 100).toFixed(2));
+    }
 
     // Leave Encashment
     const empAny = employee as any;
@@ -236,85 +251,88 @@ export class EndOfServiceService {
     // Calculate full breakdown
     const calc = await this.calculateSettlementPreview(dto, auth);
 
-    // Generate settlement number: EOS-YYMMDD-XXXX
-    const prefix = getDailyDocumentPrefix('EOS');
-    const countRes = await (this.db as any)
-      .selectFrom('hr_end_of_service_settlements')
-      .select(sql<number>`COUNT(*)::int`.as('count'))
-      .where('tenant_id', '=', tenantId)
-      .where('settlement_no', 'like', `${prefix}%`)
-      .executeTakeFirst();
-    const seq = ((countRes?.count || 0) + 1).toString().padStart(4, '0');
-    const settlementNo = `${prefix}${seq}`;
+    return await this.db.transaction().execute(async (trx) => {
+      // Temporary settlement number for collision-proof generation
+      const tempNo = `EOS-TMP-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 
-    // Insert record
-    const [inserted] = await (this.db as any)
-      .insertInto('hr_end_of_service_settlements')
-      .values({
-        tenant_id: tenantId,
-        settlement_no: settlementNo,
-        employee_id: dto.employeeId,
-        settlement_date: dto.settlementDate || new Date().toISOString().slice(0, 10),
-        hire_date: calc.employee.hireDate,
-        termination_date: dto.terminationDate,
-        contract_type: dto.contractType || 'unspecified',
-        termination_reason: dto.terminationReason,
-        law_type: dto.lawType || 'saudi',
-        service_years: calc.servicePeriod.totalYearsDecimal,
-        service_months: calc.servicePeriod.months,
-        service_days: calc.servicePeriod.days,
-        last_basic_salary: calc.salaries.basicSalary,
-        last_total_salary: calc.salaries.totalSalary,
-        gratuity_percentage: calc.gratuity.gratuityPercentage,
-        gratuity_amount: calc.gratuity.gratuityAmount,
-        remaining_leave_days: calc.leaveEncashment.remainingLeaveDays,
-        leave_encashment_amount: calc.leaveEncashment.leaveEncashmentAmount,
-        pending_salary_amount: calc.pendingSalaryAmount,
-        notice_period_amount: calc.noticePeriodAmount,
-        other_entitlements_amount: calc.customEntitlements,
-        unpaid_loans_deduction: calc.unpaidLoansDeduction,
-        assets_deduction: calc.assetsDeduction,
-        other_deductions: calc.otherDeductions,
-        net_settlement_amount: calc.netSettlementAmount,
-        custody_cleared: dto.custodyCleared ?? false,
-        clearance_checklist: JSON.stringify(dto.clearanceChecklist || []),
-        clearance_notes: dto.clearanceNotes || null,
-        status: 'draft',
-        notes: dto.notes || null,
-        created_by: auth.userId ? Number(auth.userId) : null,
-      })
-      .returningAll()
-      .execute();
-
-    // If confirmed termination requested, terminate employee and end contract
-    if (dto.confirmTermination) {
-      await this.db
-        .updateTable('hr_employees')
-        .set({
-          status: 'terminated',
-          end_of_service_date: dto.terminationDate as any,
-          end_of_service_reason: dto.terminationReason,
-          updated_by: auth.userId ? Number(auth.userId) : null,
-          updated_at: new Date() as any,
+      // Insert record
+      const [inserted] = await (trx as any)
+        .insertInto('hr_end_of_service_settlements')
+        .values({
+          tenant_id: tenantId,
+          settlement_no: tempNo,
+          employee_id: dto.employeeId,
+          settlement_date: dto.settlementDate || new Date().toISOString().slice(0, 10),
+          hire_date: calc.employee.hireDate,
+          termination_date: dto.terminationDate,
+          contract_type: dto.contractType || 'unspecified',
+          termination_reason: dto.terminationReason,
+          law_type: dto.lawType || 'saudi',
+          service_years: calc.servicePeriod.totalYearsDecimal,
+          service_months: calc.servicePeriod.months,
+          service_days: calc.servicePeriod.days,
+          last_basic_salary: calc.salaries.basicSalary,
+          last_total_salary: calc.salaries.totalSalary,
+          gratuity_percentage: calc.gratuity.gratuityPercentage,
+          gratuity_amount: calc.gratuity.gratuityAmount,
+          remaining_leave_days: calc.leaveEncashment.remainingLeaveDays,
+          leave_encashment_amount: calc.leaveEncashment.leaveEncashmentAmount,
+          pending_salary_amount: calc.pendingSalaryAmount,
+          notice_period_amount: calc.noticePeriodAmount,
+          other_entitlements_amount: calc.customEntitlements,
+          unpaid_loans_deduction: calc.unpaidLoansDeduction,
+          assets_deduction: calc.assetsDeduction,
+          other_deductions: calc.otherDeductions,
+          net_settlement_amount: calc.netSettlementAmount,
+          custody_cleared: dto.custodyCleared ?? false,
+          clearance_checklist: JSON.stringify(dto.clearanceChecklist || []),
+          clearance_notes: dto.clearanceNotes || null,
+          status: 'draft',
+          notes: dto.notes || null,
+          created_by: auth.userId ? Number(auth.userId) : null,
         })
-        .where('id', '=', dto.employeeId)
-        .where('tenant_id', '=', tenantId)
+        .returningAll()
         .execute();
 
-      await sql`
-        UPDATE hr_employment_contracts
-        SET status = 'ended',
-            end_date = ${dto.terminationDate},
-            updated_by = ${auth.userId ? Number(auth.userId) : null},
-            updated_at = NOW()
-        WHERE employee_id = ${dto.employeeId} AND status = 'active' AND tenant_id = ${tenantId}
-      `.execute(this.db);
-    }
+      // Canonical collision-proof document numbering based on unique returned ID
+      const settlementNo = formatDailyDocumentNumber('EOS', Number(inserted.id));
+      await (trx as any)
+        .updateTable('hr_end_of_service_settlements')
+        .set({ settlement_no: settlementNo })
+        .where('id', '=', inserted.id)
+        .execute();
+      inserted.settlement_no = settlementNo;
 
-    return {
-      ok: true,
-      settlement: inserted,
-    };
+      // If confirmed termination requested, terminate employee and end contract
+      if (dto.confirmTermination) {
+        await trx
+          .updateTable('hr_employees')
+          .set({
+            status: 'terminated',
+            end_of_service_date: dto.terminationDate as any,
+            end_of_service_reason: dto.terminationReason,
+            updated_by: auth.userId ? Number(auth.userId) : null,
+            updated_at: new Date() as any,
+          })
+          .where('id', '=', dto.employeeId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+
+        await sql`
+          UPDATE hr_employment_contracts
+          SET status = 'ended',
+              end_date = ${dto.terminationDate},
+              updated_by = ${auth.userId ? Number(auth.userId) : null},
+              updated_at = NOW()
+          WHERE employee_id = ${dto.employeeId} AND status = 'active' AND tenant_id = ${tenantId}
+        `.execute(trx);
+      }
+
+      return {
+        ok: true,
+        settlement: inserted,
+      };
+    });
   }
 
   /**
@@ -430,150 +448,147 @@ export class EndOfServiceService {
   async postAccountingEntry(id: number, payload: { treasuryAccountId?: number; notes?: string }, auth: AuthContext) {
     const { tenantId } = requireTenantScope(auth);
 
-    const settlement = await (this.db as any)
-      .selectFrom('hr_end_of_service_settlements')
-      .selectAll()
-      .where('id', '=', id)
-      .where('tenant_id', '=', tenantId)
-      .executeTakeFirst();
-
-    if (!settlement) {
-      throw new NotFoundException('المخالصة غير موجودة');
-    }
-
-    if (settlement.journal_entry_id) {
-      throw new BadRequestException('تم ترحيل قيد هذه المخالصة مسبقاً برقم قيد مرتبط');
-    }
-
-    // Lookup standard accounting accounts
-    // 1. Indemnity / Salaries Expense (Debit)
-    const expenseAccount = await (this.db as any)
-      .selectFrom('accounting_accounts')
-      .select(['id', 'code', 'name_ar'])
-      .where('tenant_id', '=', tenantId)
-      .where((eb: any) => eb.or([
-        eb('code', '=', '5110'),
-        eb('code', '=', '5150'),
-        eb('code', 'like', '51%'),
-      ]))
-      .orderBy('id', 'asc')
-      .executeTakeFirst();
-
-    // 2. Loans Receivable (Credit if loan deduction > 0)
-    const loanAccount = await (this.db as any)
-      .selectFrom('accounting_accounts')
-      .select(['id', 'code', 'name_ar'])
-      .where('tenant_id', '=', tenantId)
-      .where((eb: any) => eb.or([
-        eb('code', '=', '1140'),
-        eb('name_ar', 'like', '%سلف%'),
-      ]))
-      .executeTakeFirst();
-
-    // 3. Cash / Bank or Salaries Payable (Credit)
-    let paymentAccount = null;
-    if (payload.treasuryAccountId) {
-      paymentAccount = await (this.db as any)
-        .selectFrom('accounting_accounts')
-        .select(['id', 'code', 'name_ar'])
-        .where('id', '=', payload.treasuryAccountId)
+    return await this.db.transaction().execute(async (trx) => {
+      const settlement = await (trx as any)
+        .selectFrom('hr_end_of_service_settlements')
+        .selectAll()
+        .where('id', '=', id)
         .where('tenant_id', '=', tenantId)
+        .forUpdate()
         .executeTakeFirst();
-    }
 
-    if (!paymentAccount) {
-      paymentAccount = await (this.db as any)
-        .selectFrom('accounting_accounts')
-        .select(['id', 'code', 'name_ar'])
+      if (!settlement) {
+        throw new NotFoundException('المخالصة غير موجودة');
+      }
+
+      if (settlement.journal_entry_id || settlement.status === 'posted') {
+        throw new BadRequestException('تم ترحيل قيد هذه المخالصة مسبقاً برقم قيد مرتبط');
+      }
+
+      // Custody clearance gate: If employee has unreturned assets, custody must be cleared or deducted
+      const unreturnedAssets = await (trx as any)
+        .selectFrom('hr_employee_assets')
+        .selectAll()
+        .where('employee_id', '=', settlement.employee_id)
         .where('tenant_id', '=', tenantId)
-        .where((eb: any) => eb.or([
-          eb('code', '=', '2140'), // رواتب مستحقة
-          eb('code', '=', '1110'), // خزينة
-          eb('is_cash_bank', '=', true),
-        ]))
-        .orderBy('id', 'asc')
-        .executeTakeFirst();
-    }
+        .where('status', 'not in', ['returned', 'lost', 'damaged', 'cancelled'])
+        .execute();
 
-    if (!expenseAccount || !paymentAccount) {
-      throw new BadRequestException('تعذر العثور على حسابات الرواتب أو الخزينة الافتراضية في شجرة الحسابات');
-    }
+      if (unreturnedAssets.length > 0 && !settlement.custody_cleared && !(Number(settlement.assets_deduction || 0) > 0)) {
+        throw new BadRequestException('لا يمكن ترحيل مخالصة موظف لديه عهد غير مستردة دون إخلاء طرف للعهدة أو استقطاع قيمتها');
+      }
 
-    const netAmount = Number(settlement.net_settlement_amount || 0);
-    const gratuity = Number(settlement.gratuity_amount || 0);
-    const leavePay = Number(settlement.leave_encashment_amount || 0);
-    const pendingSalary = Number(settlement.pending_salary_amount || 0);
-    const loansDeduction = Number(settlement.unpaid_loans_deduction || 0);
+      // Post 1-Click Accounting Journal Entry via AccountingPostingService
+      const postingRes = await this.accountingPosting.postEndOfServiceSettlement(
+        trx,
+        id,
+        payload.treasuryAccountId || null,
+        auth,
+      );
 
-    const totalDebit = gratuity + leavePay + pendingSalary;
+      const entryId = postingRes.journalEntryId;
 
-    const lines: any[] = [];
+      // Update employee loans in hr_employee_loans if loan deductions are present
+      const loansDeduction = Number(settlement.unpaid_loans_deduction || 0);
+      if (loansDeduction > 0) {
+        let remainingLoanDeduction = loansDeduction;
+        const activeLoans = await sql<Record<string, unknown>>`
+          SELECT * FROM hr_employee_loans
+          WHERE employee_id = ${settlement.employee_id}
+            AND tenant_id = ${tenantId}
+            AND status IN ('approved', 'disbursed', 'paid', 'partially_repaid')
+            AND remaining_amount > 0
+          ORDER BY id ASC
+          FOR UPDATE
+        `.execute(trx);
 
-    // Debit: Total Entitlements
-    lines.push({
-      accountId: expenseAccount.id,
-      description: `استحقاق مخالصة ومكافأة نهاية خدمة #${settlement.settlement_no}`,
-      debit: totalDebit,
-      credit: 0,
-      partnerType: 'none',
-      partnerId: null,
+        for (const loan of activeLoans.rows) {
+          if (remainingLoanDeduction <= 0) break;
+          const loanId = Number(loan.id);
+          const remainingBalance = Number(loan.remaining_amount || 0);
+          const toDeduct = Math.min(remainingBalance, remainingLoanDeduction);
+          const newPaid = Number((Number(loan.paid_amount || 0) + toDeduct).toFixed(2));
+          const newRemaining = Number((remainingBalance - toDeduct).toFixed(2));
+          const newStatus = newRemaining <= 0 ? 'repaid' : 'partially_repaid';
+
+          await sql`
+            UPDATE hr_employee_loans
+            SET paid_amount = ${newPaid},
+                remaining_amount = ${newRemaining},
+                status = ${newStatus},
+                updated_by = ${auth.userId ? Number(auth.userId) : null},
+                updated_at = NOW()
+            WHERE id = ${loanId} AND tenant_id = ${tenantId}
+          `.execute(trx);
+
+          // Deduct from loan installments
+          let remainingInstallmentDeduction = toDeduct;
+          const installments = await sql<Record<string, unknown>>`
+            SELECT id, amount, paid_amount
+            FROM hr_employee_loan_installments
+            WHERE loan_id = ${loanId} AND status <> 'paid'
+            ORDER BY installment_no ASC
+          `.execute(trx);
+
+          for (const inst of installments.rows) {
+            if (remainingInstallmentDeduction <= 0) break;
+            const instId = Number(inst.id);
+            const instAmount = Number(inst.amount || 0);
+            const alreadyPaid = Number(inst.paid_amount || 0);
+            const due = Math.max(0, instAmount - alreadyPaid);
+            if (due <= 0) continue;
+            const applied = Math.min(due, remainingInstallmentDeduction);
+            const updatedPaid = Number((alreadyPaid + applied).toFixed(2));
+            const instStatus = updatedPaid + 0.005 >= instAmount ? 'paid' : 'partial';
+
+            await sql`
+              UPDATE hr_employee_loan_installments
+              SET paid_amount = ${updatedPaid},
+                  status = ${instStatus},
+                  paid_at = CASE WHEN ${instStatus} = 'paid' THEN NOW() ELSE paid_at END,
+                  updated_at = NOW()
+              WHERE id = ${instId}
+            `.execute(trx);
+
+            remainingInstallmentDeduction = Number((remainingInstallmentDeduction - applied).toFixed(2));
+          }
+
+          // Record in hr_employee_ledger
+          await sql`
+            INSERT INTO hr_employee_ledger (
+              employee_id, entry_type, amount, balance_after, note, repayment_method,
+              reference_type, reference_id, created_by, tenant_id
+            ) VALUES (
+              ${settlement.employee_id}, 'loan_repayment', ${-toDeduct}, ${newRemaining},
+              ${'تسوية سلف بمخالصة نهاية الخدمة #' + settlement.settlement_no},
+              'salary_deduction', 'hr_end_of_service_settlement', ${id},
+              ${auth.userId ? Number(auth.userId) : null}, ${tenantId}
+            )
+          `.execute(trx);
+
+          remainingLoanDeduction = Number((remainingLoanDeduction - toDeduct).toFixed(2));
+        }
+      }
+
+      // Update settlement record
+      await (trx as any)
+        .updateTable('hr_end_of_service_settlements')
+        .set({
+          journal_entry_id: entryId,
+          status: 'posted',
+          treasury_or_bank_account_id: payload.treasuryAccountId || null,
+          updated_by: auth.userId ? Number(auth.userId) : null,
+          updated_at: new Date(),
+        })
+        .where('id', '=', id)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      return {
+        ok: true,
+        journalEntryId: entryId,
+      };
     });
-
-    // Credit: Loan deduction (if any)
-    if (loansDeduction > 0 && loanAccount) {
-      lines.push({
-        accountId: loanAccount.id,
-        description: `تسوية سلف مستحقة للموظف بمخالصة #${settlement.settlement_no}`,
-        debit: 0,
-        credit: loansDeduction,
-        partnerType: 'none',
-        partnerId: null,
-      });
-    }
-
-    // Credit: Net payable amount
-    const creditPayment = loansDeduction > 0 && loanAccount ? netAmount : totalDebit;
-    lines.push({
-      accountId: paymentAccount.id,
-      description: `صرف مستحقات مخالصة نهاية الخدمة #${settlement.settlement_no}`,
-      debit: 0,
-      credit: creditPayment,
-      partnerType: 'none',
-      partnerId: null,
-    });
-
-    // Post Journal Entry through Accounting Service
-    const entryRes = await this.accountingService.createManualJournalEntry(
-      {
-        entryDate: String(settlement.settlement_date).slice(0, 10),
-        description: `قيد تصفية ومخالصة نهاية خدمة #${settlement.settlement_no}`,
-        reference: settlement.settlement_no,
-        lines,
-      },
-      auth
-    );
-
-    const entryId = Number((entryRes as any)?.entry?.id || (entryRes as any)?.id);
-
-    // Update settlement record
-    await (this.db as any)
-      .updateTable('hr_end_of_service_settlements')
-      .set({
-        journal_entry_id: entryId,
-        status: 'posted',
-        treasury_or_bank_account_id: paymentAccount.id,
-        updated_by: auth.userId ? Number(auth.userId) : null,
-        updated_at: new Date(),
-      })
-      .where('id', '=', id)
-      .where('tenant_id', '=', tenantId)
-      .execute();
-
-    return {
-      ok: true,
-      journalEntryId: entryId,
-      entryNo: (entryRes as any)?.entry?.entryNo,
-    };
   }
 
   /**
@@ -582,27 +597,30 @@ export class EndOfServiceService {
   async deleteSettlement(id: number, auth: AuthContext) {
     const { tenantId } = requireTenantScope(auth);
 
-    const row = await (this.db as any)
-      .selectFrom('hr_end_of_service_settlements')
-      .select(['id', 'status', 'journal_entry_id'])
-      .where('id', '=', id)
-      .where('tenant_id', '=', tenantId)
-      .executeTakeFirst();
+    return await this.db.transaction().execute(async (trx) => {
+      const row = await (trx as any)
+        .selectFrom('hr_end_of_service_settlements')
+        .select(['id', 'status', 'journal_entry_id'])
+        .where('id', '=', id)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirst();
 
-    if (!row) {
-      throw new NotFoundException('المخالصة غير موجودة');
-    }
+      if (!row) {
+        throw new NotFoundException('المخالصة غير موجودة');
+      }
 
-    if (row.journal_entry_id || row.status === 'posted') {
-      throw new BadRequestException('لا يمكن حذف مخالصة تم ترحيل قيدها المحاسبي');
-    }
+      if (row.journal_entry_id || row.status === 'posted') {
+        throw new BadRequestException('لا يمكن حذف مخالصة تم ترحيل قيدها المحاسبي');
+      }
 
-    await (this.db as any)
-      .deleteFrom('hr_end_of_service_settlements')
-      .where('id', '=', id)
-      .where('tenant_id', '=', tenantId)
-      .execute();
+      await (trx as any)
+        .deleteFrom('hr_end_of_service_settlements')
+        .where('id', '=', id)
+        .where('tenant_id', '=', tenantId)
+        .execute();
 
-    return { ok: true };
+      return { ok: true };
+    });
   }
 }

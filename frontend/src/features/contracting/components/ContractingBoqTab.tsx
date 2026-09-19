@@ -19,6 +19,7 @@ import { ClientMilestonesModal } from './ClientMilestonesModal';
 import { EquipmentTrackingModal } from './EquipmentTrackingModal';
 import { SuppliersDirectoryModal } from './SuppliersDirectoryModal';
 import { TenderEstimatorModal } from './TenderEstimatorModal';
+import { FieldIndirectCostModal } from './FieldIndirectCostModal';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { systemConfirm } from '@/shared/components/system-alert';
 
@@ -83,6 +84,7 @@ export function ContractingBoqTab({
   const [isQuotationOpen, setIsQuotationOpen] = useState(false);
   const [isMrpOpen, setIsMrpOpen] = useState(false);
   const [isProfitabilityOpen, setIsProfitabilityOpen] = useState(false);
+  const [isIndirectCostOpen, setIsIndirectCostOpen] = useState(false);
   const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
   const [takeoffItem, setTakeoffItem] = useState<ContractingBoqItem | null>(null);
   const [isMobilizationOpen, setIsMobilizationOpen] = useState(false);
@@ -530,6 +532,32 @@ export function ContractingBoqTab({
             >
               <AppIcons.TrendingUp size={14} />
               <span>تحليل أرباح وخسائر البنود</span>
+            </button>
+          )}
+
+          {/* محرك توزيع المصاريف غير المباشرة */}
+          {projectId && (
+            <button
+              type="button"
+              onClick={() => setIsIndirectCostOpen(true)}
+              style={{
+                height: '32px',
+                padding: '0 12px',
+                borderRadius: '6px',
+                fontWeight: 600,
+                background: '#eff6ff',
+                color: '#1d4ed8',
+                border: '1px solid #bfdbfe',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                fontSize: 'var(--font-body)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <AppIcons.Sliders size={14} />
+              <span>توزيع غير المباشر (AACE)</span>
             </button>
           )}
 
@@ -1252,6 +1280,19 @@ export function ContractingBoqTab({
           onClose={() => setIsTenderEstimatorOpen(false)}
           initialProjectId={projectId}
           onProjectCreated={() => {
+            if (onRefresh) onRefresh();
+          }}
+        />
+      )}
+
+      {/* مودال محرك توزيع المصاريف غير المباشرة للموقع */}
+      {isIndirectCostOpen && projectId && (
+        <FieldIndirectCostModal
+          open={isIndirectCostOpen}
+          projectId={projectId}
+          projectName={projectName}
+          onClose={() => setIsIndirectCostOpen(false)}
+          onChanged={() => {
             if (onRefresh) onRefresh();
           }}
         />

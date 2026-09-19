@@ -398,6 +398,37 @@ export class IpcItemInputDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  wirId?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  claimedQty?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  certifiedQty?: number;
+
+  @IsString()
+  @IsOptional()
+  varianceReason?: string;
+
+  @IsString()
+  @IsOptional()
+  progressStage?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  stageWeightPct?: number;
+
+  @IsString()
+  @IsOptional()
+  changeOrderId?: string;
 }
 
 export class CreateIpcInvoiceDto {
@@ -436,6 +467,10 @@ export class CreateIpcInvoiceDto {
   @IsOptional()
   advanceRecoveryPercent?: number;
 
+  @IsBoolean()
+  @IsOptional()
+  advanceRecoveryOverride?: boolean;
+
   @IsNumber()
   @Min(0)
   @IsOptional()
@@ -445,6 +480,83 @@ export class CreateIpcInvoiceDto {
   @Min(0)
   @IsOptional()
   otherDeductions?: number;
+
+  @IsNumber()
+  @IsOptional()
+  grossWorkDoneAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  escalationAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  mosAddedAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  mosReleasedAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  backchargeAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  ldAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  materialExcessAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  sharedResourceAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  directPaymentAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  carriedForwardDebitIn?: number;
+
+  @IsNumber()
+  @IsOptional()
+  whtAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  socialInsuranceAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  claimedAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  vatAmount?: number;
+
+  @IsString()
+  @IsOptional()
+  certificationDueDate?: string;
+
+  @IsString()
+  @IsOptional()
+  paymentDueDate?: string;
+
+  @IsArray()
+  @IsOptional()
+  itemizedDeductions?: Array<{
+    deductionType: string;
+    sourceTable?: string;
+    sourceId?: string;
+    amount: number;
+    vatTreatment?: string;
+    debitNoteRef?: string;
+    noticeRef?: string;
+    description?: string;
+  }>;
 
   @IsString()
   @IsOptional()
@@ -465,6 +577,10 @@ export class CreateSubcontractDto {
   contractNumber?: string;
 
   @IsString()
+  @IsOptional()
+  contractType?: 'supply_and_apply' | 'labor_only' | 'supply_only' | 'labor_plus_consumables';
+
+  @IsString()
   @IsNotEmpty()
   scopeOfWork!: string;
 
@@ -476,6 +592,90 @@ export class CreateSubcontractDto {
   @Min(0)
   @IsOptional()
   retentionPercent?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  advancePct?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  advanceAmount?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  advanceRecoveryStartPct?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  advanceRecoveryEndPct?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  retentionLimitPct?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  penaltyPerDay?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  ldCapPct?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  liabilityCapAmount?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  whtRate?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  socialInsurancePct?: number;
+
+  @IsString()
+  @IsOptional()
+  paymentLinkageMode?: 'independent' | 'pay_when_paid' | 'pay_when_certified';
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  paymentTermsDays?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  tailReservePct?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  wastageAllowancePct?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  mosAdmissiblePct?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  mosCapPct?: number;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  dlpMonths?: number;
 
   @IsString()
   @IsOptional()
@@ -2022,4 +2222,212 @@ export class CreateSubcontractorPaymentDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isAdvancePayment?: boolean;
+
+  @IsString()
+  @IsIn(['advance', 'progress', 'retention', 'operational_advance'])
+  @IsOptional()
+  paymentCategory?: 'advance' | 'progress' | 'retention' | 'operational_advance';
 }
+
+export class CreateGuaranteeDto {
+  @IsString()
+  @IsNotEmpty()
+  projectId!: string;
+
+  @IsString()
+  @IsOptional()
+  subcontractId?: string;
+
+  @IsNumber()
+  @IsOptional()
+  subcontractorId?: number;
+
+  @IsString()
+  @IsNotEmpty()
+  guaranteeNumber!: string;
+
+  @IsString()
+  @IsIn(['advance_payment', 'performance', 'retention', 'maintenance', 'bid_bond'])
+  guaranteeType!: 'advance_payment' | 'performance' | 'retention' | 'maintenance' | 'bid_bond';
+
+  @IsString()
+  @IsNotEmpty()
+  issuingBank!: string;
+
+  @IsNumber()
+  @Min(0.01)
+  amount!: number;
+
+  @IsString()
+  @IsOptional()
+  currency?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  issueDate!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  expiryDate!: string;
+
+  @IsString()
+  @IsOptional()
+  claimExpiryDate?: string;
+
+  @IsOptional()
+  reductionSchedule?: any;
+
+  @IsString()
+  @IsOptional()
+  documentUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class UpdateGuaranteeDto {
+  @IsString()
+  @IsOptional()
+  issuingBank?: string;
+
+  @IsNumber()
+  @Min(0.01)
+  @IsOptional()
+  amount?: number;
+
+  @IsString()
+  @IsOptional()
+  currency?: string;
+
+  @IsString()
+  @IsOptional()
+  claimExpiryDate?: string;
+
+  @IsOptional()
+  reductionSchedule?: any;
+
+  @IsString()
+  @IsOptional()
+  documentUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class ExtendGuaranteeDto {
+  @IsString()
+  @IsNotEmpty()
+  newExpiryDate!: string;
+
+  @IsString()
+  @IsOptional()
+  newClaimExpiryDate?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class ReleaseGuaranteeDto {
+  @IsString()
+  @IsNotEmpty()
+  releaseDate!: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class InvokeGuaranteeDto {
+  @IsString()
+  @IsNotEmpty()
+  invocationDate!: string;
+
+  @IsNumber()
+  @Min(0.01)
+  @IsOptional()
+  invokedAmount?: number;
+
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
+}
+
+export class CreateCostPoolDto {
+  @IsString()
+  @IsNotEmpty()
+  poolCode!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  poolName!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  poolType!: 'labor_care' | 'labor_burden' | 'equipment_shared' | 'site_supervision' | 'custom';
+
+  @IsString()
+  @IsNotEmpty()
+  driverType!: 'labor_days' | 'labor_cost' | 'equipment_hours' | 'direct_effort' | 'manual_ratio';
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+}
+
+export class CreateIndirectExpenseDto {
+  @IsString()
+  @IsNotEmpty()
+  poolId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  expenseTitle!: string;
+
+  @IsNumber()
+  @Min(0.01)
+  grossAmount!: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  recoveredAmount?: number;
+
+  @IsString()
+  @IsOptional()
+  expenseDate?: string;
+
+  @IsString()
+  @IsOptional()
+  voucherRef?: string;
+
+  @IsString()
+  @IsOptional()
+  mobilizationExpenseId?: string;
+}
+
+export class CreateAllocationBatchDto {
+  @IsString()
+  @IsNotEmpty()
+  periodStart!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  periodEnd!: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  deferredInAmount?: number;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+

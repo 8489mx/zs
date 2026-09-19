@@ -310,18 +310,19 @@ export class DeliveryRepsService {
     actor: AuthContext,
     payload?: { signatureDataUrl?: string; proofPhotoUrl?: string; gpsLat?: number; gpsLng?: number; notes?: string }
   ): Promise<Record<string, unknown>> {
-    const sale = await this.db
-      .selectFrom('sales')
-      .select(['id', 'total', 'delivery_fee', 'delivery_fee_mode', 'delivery_status', 'delivery_rep_id', 'collection_status', 'customer_id'])
-      .where('id', '=', saleId)
-      .where(this.tenantPredicate(actor))
-      .executeTakeFirst();
-
-    if (!sale) throw new AppError('Order not found', 'ORDER_NOT_FOUND', 404);
-    if (!sale.delivery_rep_id) throw new AppError('Order is not assigned to a delivery rep', 'NOT_ASSIGNED', 400);
-    if (sale.delivery_status === 'settled') throw new AppError('Order is already settled', 'ALREADY_SETTLED', 400);
-
     await this.db.transaction().execute(async (trx) => {
+      const sale = await trx
+        .selectFrom('sales')
+        .select(['id', 'total', 'delivery_fee', 'delivery_fee_mode', 'delivery_status', 'delivery_rep_id', 'collection_status', 'customer_id'])
+        .where('id', '=', saleId)
+        .where(this.tenantPredicate(actor))
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!sale) throw new AppError('Order not found', 'ORDER_NOT_FOUND', 404);
+      if (!sale.delivery_rep_id) throw new AppError('Order is not assigned to a delivery rep', 'NOT_ASSIGNED', 400);
+      if (sale.delivery_status === 'settled') throw new AppError('Order is already settled', 'ALREADY_SETTLED', 400);
+
       let shiftId: number | null = null;
       let branchId: number | null = null;
       let locationId: number | null = null;
@@ -684,38 +685,41 @@ export class DeliveryRepsService {
     tenantId: string,
     payload?: { signatureDataUrl?: string; proofPhotoUrl?: string; gpsLat?: number; gpsLng?: number; notes?: string }
   ): Promise<Record<string, unknown>> {
-    const sale = await this.db
-      .selectFrom('sales')
-      .select(['id', 'delivery_rep_id', 'delivery_status', 'tenant_id'])
-      .where('id', '=', saleId)
-      .where('tenant_id', '=', tenantId)
-      .executeTakeFirst();
+    await this.db.transaction().execute(async (trx) => {
+      const sale = await trx
+        .selectFrom('sales')
+        .select(['id', 'delivery_rep_id', 'delivery_status', 'tenant_id'])
+        .where('id', '=', saleId)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirst();
 
-    if (!sale) throw new AppError('الطلب غير موجود', 'ORDER_NOT_FOUND', 404);
-    if (Number(sale.delivery_rep_id) !== Number(repId)) {
-      throw new AppError('هذا الطلب غير مسند إلى هذا المندوب', 'NOT_ASSIGNED', 403);
-    }
-    if (sale.delivery_status === 'settled') {
-      throw new AppError('تمت تسوية هذا الطلب مسبقاً', 'ALREADY_SETTLED', 400);
-    }
+      if (!sale) throw new AppError('الطلب غير موجود', 'ORDER_NOT_FOUND', 404);
+      if (Number(sale.delivery_rep_id) !== Number(repId)) {
+        throw new AppError('هذا الطلب غير مسند إلى هذا المندوب', 'NOT_ASSIGNED', 403);
+      }
+      if (sale.delivery_status === 'settled') {
+        throw new AppError('تمت تسوية هذا الطلب مسبقاً', 'ALREADY_SETTLED', 400);
+      }
 
-    const updateData: Record<string, any> = {
-      delivery_status: 'settled',
-      settled_at: sql`NOW()`,
-      updated_at: sql`NOW()`,
-    };
-    if (payload?.signatureDataUrl) updateData.delivery_signature = payload.signatureDataUrl;
-    if (payload?.proofPhotoUrl) updateData.delivery_photo_url = payload.proofPhotoUrl;
-    if (payload?.gpsLat !== undefined && payload?.gpsLat !== null) updateData.delivery_gps_lat = payload.gpsLat;
-    if (payload?.gpsLng !== undefined && payload?.gpsLng !== null) updateData.delivery_gps_lng = payload.gpsLng;
-    if (payload?.notes) updateData.delivery_notes = payload.notes;
+      const updateData: Record<string, any> = {
+        delivery_status: 'settled',
+        settled_at: sql`NOW()`,
+        updated_at: sql`NOW()`,
+      };
+      if (payload?.signatureDataUrl) updateData.delivery_signature = payload.signatureDataUrl;
+      if (payload?.proofPhotoUrl) updateData.delivery_photo_url = payload.proofPhotoUrl;
+      if (payload?.gpsLat !== undefined && payload?.gpsLat !== null) updateData.delivery_gps_lat = payload.gpsLat;
+      if (payload?.gpsLng !== undefined && payload?.gpsLng !== null) updateData.delivery_gps_lng = payload.gpsLng;
+      if (payload?.notes) updateData.delivery_notes = payload.notes;
 
-    await this.db
-      .updateTable('sales')
-      .set(updateData)
-      .where('id', '=', saleId)
-      .where('tenant_id', '=', tenantId)
-      .execute();
+      await trx
+        .updateTable('sales')
+        .set(updateData)
+        .where('id', '=', saleId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+    });
 
     return { ok: true, message: 'تم تأكيد تسليم الشحنة بنجاح' };
   }

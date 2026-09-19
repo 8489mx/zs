@@ -50,6 +50,7 @@ export function CreateIpcInvoiceModal({
 
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
+  const [enableAdvRecoveryOverride, setEnableAdvRecoveryOverride] = useState(false);
   const [advRecoveryPercent, setAdvRecoveryPercent] = useState('10');
   const [retentionPercent, setRetentionPercent] = useState(String(project.retentionPercent || 5));
   const [otherDeductions, setOtherDeductions] = useState('0');
@@ -116,10 +117,35 @@ export function CreateIpcInvoiceModal({
 
   const periodGrossTotal = currentWorkTotal + storedMaterialsTotal;
 
-  const advDeduction = (periodGrossTotal * Number(advRecoveryPercent || 0)) / 100;
-  const retDeduction = (periodGrossTotal * Number(retentionPercent || 0)) / 100;
+  // Estimation preview for holdbacks
+  let estimatedAdvDeduction = 0;
+  if (enableAdvRecoveryOverride) {
+    estimatedAdvDeduction = (currentWorkTotal * Number(advRecoveryPercent || 0)) / 100;
+  } else {
+    const advAmount = ipcType === 'subcontractor'
+      ? Number(selectedSubcontract?.advanceAmount || 0)
+      : Number(project.downPaymentAmount || 0);
+    const totalVal = ipcType === 'subcontractor'
+      ? Number(selectedSubcontract?.totalAmount || 0)
+      : Number(project.contractValue || 0);
+    const startPct = ipcType === 'subcontractor'
+      ? Number(selectedSubcontract?.advanceRecoveryStartPct ?? 10)
+      : 10;
+    const endPct = ipcType === 'subcontractor'
+      ? Number(selectedSubcontract?.advanceRecoveryEndPct ?? 80)
+      : 80;
+
+    if (advAmount > 0 && totalVal > 0 && endPct > startPct) {
+      const cumWork = previousWorkTotal + currentWorkTotal;
+      const prog = cumWork / totalVal;
+      const factor = Math.min(1, Math.max(0, (prog - startPct / 100) / (endPct / 100 - startPct / 100)));
+      estimatedAdvDeduction = Math.max(0, advAmount * factor);
+    }
+  }
+
+  const retDeduction = (currentWorkTotal * Number(retentionPercent || 0)) / 100;
   const otherDed = Number(otherDeductions || 0);
-  const netPayable = Math.max(0, periodGrossTotal - advDeduction - retDeduction - otherDed);
+  const netPayable = Math.max(0, periodGrossTotal - estimatedAdvDeduction - retDeduction - otherDed);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -141,7 +167,8 @@ export function CreateIpcInvoiceModal({
         subcontractorId: ipcType === 'subcontractor' ? selectedSubcontract?.subcontractorId : undefined,
         periodStart: periodStart || undefined,
         periodEnd: periodEnd || undefined,
-        advanceRecoveryPercent: Number(advRecoveryPercent || 0),
+        advanceRecoveryOverride: enableAdvRecoveryOverride ? true : undefined,
+        advanceRecoveryPercent: enableAdvRecoveryOverride ? Number(advRecoveryPercent || 0) : undefined,
         retentionPercent: Number(retentionPercent || 5),
         otherDeductions: otherDed,
         notes: notes.trim() || undefined,
@@ -321,7 +348,7 @@ export function CreateIpcInvoiceModal({
             <span>1. فترة المستخلص ونسب الاستقطاع التعاقدي (Billing Period & Retentions)</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1.6fr 1fr', gap: '10px', alignItems: 'start' }}>
             <Field label="عن الفترة من">
               <input
                 type="date"
@@ -338,17 +365,53 @@ export function CreateIpcInvoiceModal({
               />
             </Field>
 
-            <Field label="استقطاع الدفعة المقدمة %">
-              <input
-                type="number"
-                min="0"
-                max="50"
-                dir="ltr"
-                value={advRecoveryPercent}
-                onChange={(e) => setAdvRecoveryPercent(e.target.value)}
-                style={{ fontWeight: 600 }}
-              />
-            </Field>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#334155' }}>
+                  استرداد الدفعة المقدمة
+                </span>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: '#170e5e', cursor: 'pointer', fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={enableAdvRecoveryOverride}
+                    onChange={(e) => setEnableAdvRecoveryOverride(e.target.checked)}
+                    style={{ width: '13px', height: '13px', cursor: 'pointer' }}
+                  />
+                  <span>تجاوز يدوي</span>
+                </label>
+              </div>
+              {enableAdvRecoveryOverride ? (
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="any"
+                  dir="ltr"
+                  value={advRecoveryPercent}
+                  onChange={(e) => setAdvRecoveryPercent(e.target.value)}
+                  placeholder="نسبة يدوية %"
+                  style={{ fontWeight: 600, borderColor: '#170e5e' }}
+                />
+              ) : (
+                <div style={{
+                  height: '33px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0 8px',
+                  background: '#f1f5f9',
+                  border: '1px dashed #94a3b8',
+                  borderRadius: '6px',
+                  fontSize: '0.73rem',
+                  color: '#475569',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }} title="يُحسب آلياً وفق نافذة العقد التعاقدية (Bounded Window)">
+                  آلياً وفق نافذة العقد التعاقدية
+                </div>
+              )}
+            </div>
 
             <Field label="استقطاع ضمان أعمال %">
               <input
@@ -555,8 +618,8 @@ export function CreateIpcInvoiceModal({
 
             <div>
               <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>استقطاع دفعة مقدمة:</span>
-              <span style={{ fontSize: '0.84rem', color: advDeduction > 0 ? '#dc2626' : '#64748b', fontWeight: 700 }}>
-                {advDeduction > 0 ? `- ${advDeduction.toLocaleString('ar-EG')}` : '0'} {currencySymbol}
+              <span style={{ fontSize: '0.84rem', color: estimatedAdvDeduction > 0 ? '#dc2626' : '#64748b', fontWeight: 700 }}>
+                {estimatedAdvDeduction > 0 ? `- ${estimatedAdvDeduction.toLocaleString('ar-EG')}` : '0'} {currencySymbol}
               </span>
             </div>
 

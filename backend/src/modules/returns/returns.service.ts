@@ -624,6 +624,17 @@ export class ReturnsService {
     for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, purchaseItemId: line.purchaseItemId }, auth);
     if (purchase.payment_type === 'credit' && purchase.supplier_id) await this.addSupplierLedgerEntry(trx, Number(purchase.supplier_id), -total, 'purchase_return', 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
     else await this.addTreasuryTransaction(trx, 'purchase_return_refund', total, 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
+
+    try {
+      await this.accountingPosting.postPurchaseReturn(trx, returnDocumentId, auth);
+    } catch (error) {
+      throw new AppError(
+        error instanceof Error ? error.message : 'Failed to post accounting journal for purchase return',
+        'PURCHASE_RETURN_ACCOUNTING_POST_FAILED',
+        500,
+      );
+    }
+
     return [returnDocumentId];
   }
 }

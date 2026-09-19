@@ -4,7 +4,6 @@ import {
   purchaseOrdersApi,
   type PurchaseOrderRecord,
   type CreatePurchaseOrderPayload,
-  type ReceivePurchaseOrderPayload,
 } from '../api/purchase-orders.api';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
@@ -16,7 +15,8 @@ import { useAppToolbar } from '@/stores/toolbar-store';
 import { PurchaseOrdersTable } from '../components/PurchaseOrdersTable';
 import { CreatePurchaseOrderModal } from '../components/CreatePurchaseOrderModal';
 import { PurchaseOrderDetailsModal } from '../components/PurchaseOrderDetailsModal';
-import { ReceivePurchaseOrderModal } from '../components/ReceivePurchaseOrderModal';
+import { GoodsReceiptModal } from '../components/GoodsReceiptModal';
+import { GoodsReceiptsListModal } from '../components/GoodsReceiptsListModal';
 import { toast } from '@/shared/components/system-alert';
 
 export function PurchaseOrdersPage() {
@@ -29,7 +29,7 @@ export function PurchaseOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrderRecord | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
-  const [receiveItems, setReceiveItems] = useState<Array<{ itemId: number; productId: number; productName: string; quantity: number; receivedQuantity: number; toReceive: number }>>([]);
+  const [isGrnListOpen, setIsGrnListOpen] = useState(false);
 
   const { data: suppliersData } = useQuery({
     queryKey: ['suppliers-list-for-po'],
@@ -85,22 +85,6 @@ export function PurchaseOrdersPage() {
     },
   });
 
-  const receiveMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: ReceivePurchaseOrderPayload }) =>
-      purchaseOrdersApi.receive(id, payload),
-    onSuccess: (res) => {
-      toast.success(res.message);
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders-list'] });
-      if (selectedOrder?.id) {
-        queryClient.invalidateQueries({ queryKey: ['purchase-order-details', selectedOrder.id] });
-      }
-      setIsReceiveModalOpen(false);
-    },
-    onError: (err: any) => {
-      toast.error(err?.message || 'فشل استلام البضاعة');
-    },
-  });
-
   const convertMutation = useMutation({
     mutationFn: (id: number) => purchaseOrdersApi.convertToBill(id),
     onSuccess: (res) => {
@@ -141,39 +125,7 @@ export function PurchaseOrdersPage() {
 
   const openReceiveModal = (order: PurchaseOrderRecord) => {
     setSelectedOrder(order);
-    const itms = (order as any).items || orderDetailsData?.items || [];
-    setReceiveItems(
-      itms.map((it: any) => ({
-        itemId: it.id,
-        productId: it.product_id || it.productId,
-        productName: it.product_name || it.productName,
-        quantity: Number(it.quantity),
-        receivedQuantity: Number(it.received_quantity || 0),
-        toReceive: Math.max(0, Number(it.quantity) - Number(it.received_quantity || 0)),
-      }))
-    );
     setIsReceiveModalOpen(true);
-  };
-
-  const handleConfirmReceive = () => {
-    if (!selectedOrder?.id) return;
-    const toSubmit = receiveItems
-      .filter((it) => it.toReceive > 0)
-      .map((it) => ({
-        itemId: it.itemId,
-        productId: it.productId,
-        quantityToReceive: it.toReceive,
-      }));
-
-    if (!toSubmit.length) {
-      toast.warning('يرجى تحديد كميات مستلمة أكبر من الصفر');
-      return;
-    }
-
-    receiveMutation.mutate({
-      id: selectedOrder.id,
-      payload: { items: toSubmit },
-    });
   };
 
   const orders = data?.orders || [];
@@ -195,6 +147,13 @@ export function PurchaseOrdersPage() {
               >
                 <PlusIcon className="w-4 h-4" />
                 <span>+ أمر شراء جديد</span>
+              </Button>
+              <Button
+                onClick={() => setIsGrnListOpen(true)}
+                variant="secondary"
+                style={{ borderColor: '#0284c7', color: '#0284c7', fontWeight: 700 }}
+              >
+                سجل أذون الاستلام (GRN)
               </Button>
               <Button
                 onClick={async () => {
@@ -339,18 +298,33 @@ export function PurchaseOrdersPage() {
         onDelete={(id) => deleteMutation.mutate(id)}
       />
 
-      <ReceivePurchaseOrderModal
-        order={selectedOrder}
+      <GoodsReceiptModal
         open={isReceiveModalOpen}
         onClose={() => setIsReceiveModalOpen(false)}
-        receiveItems={receiveItems}
-        onChangeItemReceive={(idx, val) => {
-          const copy = [...receiveItems];
-          copy[idx].toReceive = val;
-          setReceiveItems(copy);
+        purchaseOrderId={selectedOrder?.id}
+        poDocNo={selectedOrder?.order_number}
+        supplierId={Number(selectedOrder?.supplier_id || 0)}
+        supplierName={selectedOrder?.supplier_name || 'مورد عام'}
+        locationId={Number(selectedOrder?.warehouse_id || 1)}
+        initialItems={(selectedOrder?.items || orderDetailsData?.items || []).map((it: any) => ({
+          purchaseOrderItemId: it.id,
+          productId: Number(it.product_id || it.productId),
+          productName: it.product_name || it.productName,
+          orderedQty: Math.max(0, Number(it.quantity) - Number(it.received_quantity || 0)),
+          unitCost: Number(it.unit_cost || it.unitCost || 0),
+          unitName: it.unit_name || it.unitName,
+        }))}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['purchase-orders-list'] });
+          if (selectedOrder?.id) {
+            queryClient.invalidateQueries({ queryKey: ['purchase-order-details', selectedOrder.id] });
+          }
         }}
-        onConfirm={handleConfirmReceive}
-        isPending={receiveMutation.isPending}
+      />
+
+      <GoodsReceiptsListModal
+        open={isGrnListOpen}
+        onClose={() => setIsGrnListOpen(false)}
       />
     </div>
   );

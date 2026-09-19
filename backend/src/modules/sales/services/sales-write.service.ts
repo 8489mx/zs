@@ -4,7 +4,7 @@ import { AppError } from '../../../common/errors/app-error';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
 import { applyStockDelta, previewConsumableStockQty, previewAssignedLocationStockQty } from '../../../common/utils/location-stock-ledger';
-import { AuditService } from '../../../core/audit/audit.service';
+import { AuditService, AUDIT_EVENT_CODES } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../../database/database.constants';
@@ -112,6 +112,26 @@ export class SalesWriteService {
       .where('is_active', '=', true)
       .orderBy('id', 'desc')
       .execute();
+  }
+
+  /**
+   * Takes the canonical first lock for a product's stock mutation.
+   * applyStockDelta locks products before product_location_stock; every stock path must do the same
+   * or concurrent sales/purchases/transfers deadlock on inverted lock order.
+   */
+  private async lockProductRow(
+    trx: Kysely<Database> | Transaction<Database>,
+    productId: number,
+    scope: { tenantId: string; accountId: string },
+  ): Promise<void> {
+    if (!(Number(productId) > 0)) return;
+    await trx
+      .selectFrom('products')
+      .select('id')
+      .where('id', '=', Number(productId))
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .forUpdate()
+      .executeTakeFirst();
   }
 
   private async getAllowNegativeStockSales(trx: Kysely<Database> | Transaction<Database>, tenantId: string): Promise<boolean> {
@@ -497,7 +517,7 @@ export class SalesWriteService {
         typeof payload.cartItemsCount === 'number' ? `عدد العناصر: ${payload.cartItemsCount}` : '',
         payload.note ? `ملاحظة: ${payload.note}` : '',
       ].filter(Boolean);
-      await this.audit.log('حدث أمني - حذف عنصر من السلة', detailsParts.join(' | '), auth);
+      await this.audit.log('حدث أمني - حذف عنصر من السلة', detailsParts.join(' | '), auth, { eventCode: AUDIT_EVENT_CODES.POS_CART_ITEM_REMOVED });
       detailInfo = payload.productName ? `${payload.productName} (كمية: ${payload.qty || 1})` : (payload.note || 'حذف صنف من السلة');
     } else {
       const cancelDetailsParts = [
@@ -506,7 +526,7 @@ export class SalesWriteService {
         typeof payload.cartItemsCount === 'number' ? `عدد العناصر: ${payload.cartItemsCount}` : '',
         payload.note ? `ملاحظة: ${payload.note}` : '',
       ].filter(Boolean);
-      await this.audit.log('حدث أمني - إلغاء/حذف فاتورة', cancelDetailsParts.join(' | '), auth);
+      await this.audit.log('حدث أمني - إلغاء/حذف فاتورة', cancelDetailsParts.join(' | '), auth, { eventCode: AUDIT_EVENT_CODES.POS_DRAFT_SALE_CANCELLED });
       detailInfo = `إلغاء فاتورة بقيمة ${payload.total || 0} ج.م`;
     }
 
@@ -1014,7 +1034,13 @@ export class SalesWriteService {
 
       await this.autoProduceShortfall(trx, autoProduceItems, id, normalized.branchId, normalized.locationId, scope, auth);
 
-      for (const item of preparedItems) {
+      // Deadlock prevention: stock rows (products + product_location_stock) must always be
+      // locked in a deterministic global order. Client-supplied item order is arbitrary, so two
+      // concurrent sales carrying the same products in opposite order would deadlock (SQLSTATE 40P01).
+      // Sorting by productId enforces one canonical lock order across all concurrent transactions.
+      const stockOrderedItems = [...preparedItems].sort((a, b) => Number(a.productId || 0) - Number(b.productId || 0));
+
+      for (const item of stockOrderedItems) {
         const itemSerials = Array.isArray(item.serials) ? item.serials : [];
         const insertedLine = await trx
           .insertInto('sale_items')
@@ -1076,6 +1102,12 @@ export class SalesWriteService {
         let remainingQty = item.requiredQty;
         let allocationOrder = 1;
         const allocations = [];
+
+        // Lock-order normalization: applyStockDelta (and therefore purchases, transfers and
+        // production) always locks products BEFORE product_location_stock. Taking the location rows
+        // first here would invert that order and deadlock against those flows (ABBA). Acquiring the
+        // product row up front makes the global order products -> product_location_stock everywhere.
+        await this.lockProductRow(trx, item.productId, scope);
 
         for (const loc of eligibleLocations) {
           if (remainingQty <= 0) break;
@@ -1169,6 +1201,9 @@ export class SalesWriteService {
               let modRemainingQty = modifierQty;
               let modAllocationOrder = 1;
               const modAllocations = [];
+
+              // Same canonical lock order as the parent item (products -> product_location_stock).
+              await this.lockProductRow(trx, Number(mod.productId), scope);
 
               for (const loc of eligibleLocations) {
                 if (modRemainingQty <= 0) break;
@@ -1822,7 +1857,10 @@ export class SalesWriteService {
 
       await this.autoProduceShortfall(trx, autoProduceItems, saleId, normalized.branchId, normalized.locationId, scope, auth);
 
-      for (const item of preparedItems) {
+      // Deadlock prevention: identical canonical lock ordering as createSale (see note there).
+      const stockOrderedItems = [...preparedItems].sort((a, b) => Number(a.productId || 0) - Number(b.productId || 0));
+
+      for (const item of stockOrderedItems) {
         const itemSerials = Array.isArray(item.serials) ? item.serials : [];
         const insertedLine = await trx.insertInto('sale_items').values({
           sale_id: saleId,
@@ -1870,6 +1908,12 @@ export class SalesWriteService {
         let remainingQty = item.requiredQty;
         let allocationOrder = 1;
         const allocations = [];
+
+        // Lock-order normalization: applyStockDelta (and therefore purchases, transfers and
+        // production) always locks products BEFORE product_location_stock. Taking the location rows
+        // first here would invert that order and deadlock against those flows (ABBA). Acquiring the
+        // product row up front makes the global order products -> product_location_stock everywhere.
+        await this.lockProductRow(trx, item.productId, scope);
 
         for (const loc of eligibleLocations) {
           if (remainingQty <= 0) break;
@@ -1960,6 +2004,9 @@ export class SalesWriteService {
               let modRemainingQty = modifierQty;
               let modAllocationOrder = 1;
               const modAllocations = [];
+
+              // Same canonical lock order as the parent item (products -> product_location_stock).
+              await this.lockProductRow(trx, Number(mod.productId), scope);
 
               for (const loc of eligibleLocations) {
                 if (modRemainingQty <= 0) break;
@@ -2073,7 +2120,10 @@ export class SalesWriteService {
     if (!managerPin) throw new AppError('رمز اعتماد المدير مطلوب لإلغاء الفاتورة.', 'MANAGER_AUTH_REQUIRED', 400);
     await this.authz.authorizeDiscountOverride(managerPin, auth, this.db);
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const sale = await trx.selectFrom('sales').selectAll().where('id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+      // forUpdate is mandatory here: without the row lock two concurrent cancel requests both read
+      // status='posted', both pass the guard below, and stock is restored twice while the sale
+      // journal is reversed twice. The lock serializes them so the second one hits the guard.
+      const sale = await trx.selectFrom('sales').selectAll().where('id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
       if (!sale) throw new AppError('Sale not found', 'SALE_NOT_FOUND', 404);
       if (sale.status === 'cancelled') throw new AppError('Sale already cancelled', 'SALE_ALREADY_CANCELLED', 400);
 

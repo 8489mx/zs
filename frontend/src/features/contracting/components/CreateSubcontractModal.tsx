@@ -3,7 +3,7 @@ import { StandardDialog, StandardDialogFooter } from '@/shared/components/Standa
 import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { contractingApi } from '../api/contracting.api';
-import type { ContractingSubcontractor } from '../contracting.types';
+import type { ContractingSubcontractor, SubcontractType, PaymentLinkageMode } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { CreateSubcontractorModal } from './CreateSubcontractorModal';
 
@@ -32,9 +32,19 @@ export function CreateSubcontractModal({
   const [formData, setFormData] = useState({
     subcontractorId: '',
     contractNumber: '',
+    contractType: 'supply_and_apply' as SubcontractType,
     scopeOfWork: '',
     totalAmount: '',
+    advancePct: '0',
+    advanceRecoveryStartPct: '10',
+    advanceRecoveryEndPct: '80',
     retentionPercent: '5',
+    retentionLimitPct: '5',
+    penaltyPerDay: '0',
+    ldCapPct: '10',
+    paymentLinkageMode: 'independent' as PaymentLinkageMode,
+    wastageAllowancePct: '5',
+    tailReservePct: '10',
     startDate: '',
     endDate: '',
     notes: '',
@@ -65,6 +75,19 @@ export function CreateSubcontractModal({
     }));
   }, [subcontractors]);
 
+  const contractTypeOptions = useMemo(() => [
+    { value: 'supply_and_apply', label: 'توريد وتركيب (شامل المواد والمصنعية)' },
+    { value: 'labor_only', label: 'مصنعية فقط (المواد من المقاول الرئيسي)' },
+    { value: 'supply_only', label: 'توريد خامات ومهمات فقط' },
+    { value: 'labor_plus_consumables', label: 'مصنعية ومواد استهلاكية' },
+  ], []);
+
+  const paymentLinkageOptions = useMemo(() => [
+    { value: 'independent', label: 'مستقل (حسب اعتماد نسب إنجاز الموقع)' },
+    { value: 'pay_when_paid', label: 'مشروط بتحصيل مستخلص المالك (Pay-When-Paid)' },
+    { value: 'pay_when_certified', label: 'مشروط باعتماد استشاري المالك (Back-to-Back)' },
+  ], []);
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!formData.subcontractorId) {
@@ -85,15 +108,32 @@ export function CreateSubcontractModal({
       return;
     }
 
+    const recStart = Number(formData.advanceRecoveryStartPct || 10);
+    const recEnd = Number(formData.advanceRecoveryEndPct || 80);
+    if (recEnd <= recStart) {
+      setErrorMsg('نسبة إتمام استرداد الدفعة المقدمة يجب أن تكون أكبر من نسبة بدء الاسترداد (نافذة Bounded Recovery)');
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
       await contractingApi.createSubcontract(projectId, {
         subcontractorId: Number(formData.subcontractorId),
         contractNumber: formData.contractNumber.trim(),
+        contractType: formData.contractType,
         scopeOfWork: formData.scopeOfWork.trim(),
         totalAmount: val,
+        advancePct: Number(formData.advancePct || 0),
+        advanceRecoveryStartPct: recStart,
+        advanceRecoveryEndPct: recEnd,
         retentionPercent: Number(formData.retentionPercent || 5),
+        retentionLimitPct: Number(formData.retentionLimitPct || 5),
+        penaltyPerDay: Number(formData.penaltyPerDay || 0),
+        ldCapPct: Number(formData.ldCapPct || 10),
+        paymentLinkageMode: formData.paymentLinkageMode,
+        wastageAllowancePct: Number(formData.wastageAllowancePct || 5),
+        tailReservePct: Number(formData.tailReservePct || 10),
         startDate: formData.startDate || undefined,
         endDate: formData.endDate || undefined,
         notes: formData.notes.trim() || undefined,
@@ -233,11 +273,165 @@ export function CreateSubcontractModal({
           </div>
         </div>
 
-        {/* 2. القيمة المالية ونسب الاستقطاع والمدد */}
+        {/* 2. شروط التعاقد والتحكم المالي (FIDIC Contract Conditions) */}
+        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+            <AppIcons.FileText size={15} />
+            <span>2. شروط التعاقد والتحكم المالي (FIDIC Contract Terms & Safeguards)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr', gap: '10px', marginBottom: '8px' }}>
+            <div>
+              <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                نوع التعاقد والمسؤولية *
+              </span>
+              <CustomSelect
+                value={formData.contractType}
+                options={contractTypeOptions}
+                onChange={(val) => setFormData({ ...formData, contractType: val as SubcontractType })}
+              />
+            </div>
+
+            <div>
+              <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                نمط الدفع والربط المالي (Payment Linkage)
+              </span>
+              <CustomSelect
+                value={formData.paymentLinkageMode}
+                options={paymentLinkageOptions}
+                onChange={(val) => setFormData({ ...formData, paymentLinkageMode: val as PaymentLinkageMode })}
+              />
+            </div>
+          </div>
+
+          {/* شروط الدفعة المقدمة ونافذة الاسترداد التعاقدية (Bounded Window) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', alignItems: 'start', marginTop: '6px' }}>
+            <Field label="الدفعة المقدمة %">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="any"
+                dir="ltr"
+                value={formData.advancePct}
+                onChange={(e) => setFormData({ ...formData, advancePct: e.target.value })}
+                placeholder="0"
+                style={{ fontWeight: 600 }}
+              />
+            </Field>
+
+            <Field label="بدء استرداد المقدمة عند %">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="any"
+                dir="ltr"
+                value={formData.advanceRecoveryStartPct}
+                onChange={(e) => setFormData({ ...formData, advanceRecoveryStartPct: e.target.value })}
+                placeholder="10"
+                style={{ fontWeight: 600 }}
+                title="نسبة الإنجاز التي يبدأ عندها استقطاع الدفعة المقدمة (افتراضي 10%)"
+              />
+            </Field>
+
+            <Field label="إتمام استرداد المقدمة عند %">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="any"
+                dir="ltr"
+                value={formData.advanceRecoveryEndPct}
+                onChange={(e) => setFormData({ ...formData, advanceRecoveryEndPct: e.target.value })}
+                placeholder="80"
+                style={{ fontWeight: 600 }}
+                title="نسبة الإنجاز التي ينتهي عندها استرداد كامل الدفعة المقدمة (افتراضي 80%)"
+              />
+            </Field>
+
+            <Field label="غرامة التأخير اليومية (ج.م/يوم)">
+              <input
+                type="number"
+                min="0"
+                step="any"
+                dir="ltr"
+                value={formData.penaltyPerDay}
+                onChange={(e) => setFormData({ ...formData, penaltyPerDay: e.target.value })}
+                placeholder="0.00"
+                style={{ fontWeight: 600 }}
+              />
+            </Field>
+          </div>
+
+          {/* محددات الضمان والهالك وحجز التسليم النهائي */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', alignItems: 'start', marginTop: '6px' }}>
+            <Field label="احتجاز الذيل والتسليم % (Tail Reserve)">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="any"
+                dir="ltr"
+                value={formData.tailReservePct}
+                onChange={(e) => setFormData({ ...formData, tailReservePct: e.target.value })}
+                placeholder="10"
+                style={{ fontWeight: 600 }}
+              />
+            </Field>
+
+            <Field label={formData.contractType === 'labor_only' ? 'نسبة الهالك المسموحة % (إلزامي)' : 'نسبة هالك المواد %'}>
+              <input
+                type="number"
+                min="0"
+                max="50"
+                step="any"
+                dir="ltr"
+                value={formData.wastageAllowancePct}
+                onChange={(e) => setFormData({ ...formData, wastageAllowancePct: e.target.value })}
+                placeholder="5"
+                style={{
+                  fontWeight: 600,
+                  borderColor: formData.contractType === 'labor_only' ? '#170e5e' : undefined,
+                }}
+              />
+            </Field>
+
+            <Field label="سقف حجز الضمان % (Retention Cap)">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="any"
+                dir="ltr"
+                value={formData.retentionLimitPct}
+                onChange={(e) => setFormData({ ...formData, retentionLimitPct: e.target.value })}
+                placeholder="5"
+                style={{ fontWeight: 600 }}
+              />
+            </Field>
+
+            <Field label="سقف غرامات التأخير % (LD Cap)">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="any"
+                dir="ltr"
+                value={formData.ldCapPct}
+                onChange={(e) => setFormData({ ...formData, ldCapPct: e.target.value })}
+                placeholder="10"
+                style={{ fontWeight: 600 }}
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* 3. القيمة المالية ونسب الاستقطاع والمدد */}
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Calculator size={15} />
-            <span>2. القيمة المالية والضمان والمواعيد (Financials & Schedule)</span>
+            <span>3. القيمة المالية والضمان والمواعيد (Financials & Schedule)</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr', gap: '10px', alignItems: 'start' }}>

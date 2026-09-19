@@ -8,11 +8,12 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { PurchasePaymentScheduleCard } from '@/features/purchases/components/PurchasePaymentScheduleCard';
 import { resolveRequestUrl } from '@/lib/http';
-import { purchasesApi } from '@/features/purchases/api/purchases.api';
 import { sharedProductsApi } from '@/shared/api/products';
 import { queryKeys } from '@/app/query-keys';
 import type { BarcodePrintItem } from '@/lib/barcode-labels';
 import { PurchaseLandedCostsModal } from './PurchaseLandedCostsModal';
+import { GoodsReceiptModal } from './GoodsReceiptModal';
+import { ThreeWayMatchModal } from './ThreeWayMatchModal';
 
 const LazyBarcodePrintDialog = lazy(() =>
   import('@/features/products/components/BarcodePrintDialog').then((module) => ({
@@ -31,10 +32,8 @@ interface PurchaseDetailCardProps {
 
 export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCancel, onPrint, onRefresh }: PurchaseDetailCardProps) {
   const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [showThreeWayMatchModal, setShowThreeWayMatchModal] = useState(false);
   const [showLandedCostsModal, setShowLandedCostsModal] = useState(false);
-  const [receivingItems, setReceivingItems] = useState<{ [itemId: string]: number }>({});
-  const [isSubmittingGrn, setIsSubmittingGrn] = useState(false);
-  const [grnError, setGrnError] = useState('');
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
 
   const productsQuery = useQuery({
@@ -66,46 +65,6 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
 
   if (isLoading) return <FormSection title="تفاصيل الفاتورة" className="purchase-detail-card"><div className="muted">جاري تحميل تفاصيل الفاتورة...</div></FormSection>;
   if (!purchase) return <FormSection title="تفاصيل الفاتورة" className="purchase-detail-card"><div className="muted">اختر فاتورة من الجدول لعرض التفاصيل.</div></FormSection>;
-
-  const openReceiveModal = () => {
-    const initial: { [itemId: string]: number } = {};
-    (purchase.items || []).forEach((item) => {
-      const remaining = Math.max(0, Number(item.qty || 0) - Number(item.receivedQty || 0));
-      initial[item.id] = remaining;
-    });
-    setReceivingItems(initial);
-    setGrnError('');
-    setShowReceiveModal(true);
-  };
-
-  const handleConfirmGrn = async () => {
-    try {
-      setIsSubmittingGrn(true);
-      setGrnError('');
-      const payload = Object.entries(receivingItems).map(([itemId, qty]) => ({
-        itemId: Number(itemId),
-        receivedQty: Number(qty) || 0,
-      })).filter((x) => x.receivedQty > 0);
-
-      if (payload.length === 0) {
-        setGrnError('الرجاء إدخال كميات صالحة للاستلام');
-        setIsSubmittingGrn(false);
-        return;
-      }
-
-      await purchasesApi.receiveGoods(purchase.id, payload);
-      setShowReceiveModal(false);
-      if (onRefresh) {
-        onRefresh();
-      } else {
-        window.location.reload();
-      }
-    } catch (err: any) {
-      setGrnError(err?.message || 'تعذر إتمام الاستلام المخزني');
-    } finally {
-      setIsSubmittingGrn(false);
-    }
-  };
 
   const isMatched = purchase.matchedStatus === 'matched' || (!purchase.matchedStatus && purchase.status === 'posted');
   const isCancelled = purchase.status === 'cancelled';
@@ -231,11 +190,18 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
           gap: '8px',
           marginBottom: '14px',
         }}>
+          <Button
+            variant="primary"
+            style={{ fontSize: '12.5px', padding: '7px 8px', justifyContent: 'center', background: '#0284c7', borderColor: '#0284c7' }}
+            onClick={() => setShowThreeWayMatchModal(true)}
+          >
+            فحص واعتماد المطابقة (3-Way Match)
+          </Button>
           {!isMatched && (
             <Button
               variant="primary"
               style={{ fontSize: '12.5px', padding: '7px 8px', justifyContent: 'center', background: '#059669', borderColor: '#059669' }}
-              onClick={openReceiveModal}
+              onClick={() => setShowReceiveModal(true)}
             >
               استلام بضاعة (GRN)
             </Button>
@@ -355,103 +321,39 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
 
       <PurchasePaymentScheduleCard purchase={purchase} />
 
-      {/* Interactive Modal for Goods Receipt (GRN) */}
       {showReceiveModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1050,
-          padding: '16px',
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            maxWidth: '560px',
-            width: '100%',
-            padding: '24px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-          }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-              إثبات استلام بضاعة مخزني (GRN)
-            </h3>
-            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
-              حدد الكميات المستلمة فعلياً في المخزن لتحديث الأرصدة والمخزون وإكمال المطابقة الثلاثية.
-            </p>
+        <GoodsReceiptModal
+          open={showReceiveModal}
+          onClose={() => setShowReceiveModal(false)}
+          purchaseOrderId={purchase.purchaseOrderId ? Number(purchase.purchaseOrderId) : null}
+          poDocNo={purchase.poDocNo || purchase.docNo}
+          supplierId={Number(purchase.supplierId || 0)}
+          supplierName={purchase.supplierName || 'مورد عام'}
+          locationId={Number(purchase.locationId || 1)}
+          initialItems={(purchase.items || []).map((item) => ({
+            purchaseOrderItemId: item.purchaseOrderItemId ? Number(item.purchaseOrderItemId) : undefined,
+            productId: Number(item.productId),
+            productName: item.name,
+            orderedQty: Number(item.qty || 0),
+            unitCost: Number(item.cost || 0),
+            unitName: item.unitName,
+          }))}
+          onSuccess={() => {
+            if (onRefresh) onRefresh();
+          }}
+        />
+      )}
 
-            {grnError && (
-              <div style={{ background: '#fee2e2', color: '#991b1b', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '14px' }}>
-                {grnError}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-              {(purchase.items || []).map((item) => {
-                const ordered = Number(item.qty || 0);
-                const currentReceived = Number(item.receivedQty || 0);
-                const remaining = Math.max(0, ordered - currentReceived);
-                return (
-                  <div key={item.id} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 12px',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '10px',
-                    background: '#f8fafc',
-                  }}>
-                    <div>
-                      <strong style={{ fontSize: '13.5px', color: '#0f172a' }}>{item.name}</strong>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>
-                        المطلوب: {ordered} | المستلم سابقاً: {currentReceived} | المتبقي: {remaining}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>استلام:</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max={remaining}
-                        value={receivingItems[item.id] ?? remaining}
-                        onChange={(e) => {
-                          const val = Number(e.target.value);
-                          setReceivingItems((prev) => ({ ...prev, [item.id]: val }));
-                        }}
-                        style={{
-                          width: '75px',
-                          padding: '6px 10px',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '6px',
-                          fontSize: '13px',
-                          textAlign: 'center',
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <Button variant="secondary" onClick={() => setShowReceiveModal(false)} disabled={isSubmittingGrn}>
-                إلغاء
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleConfirmGrn}
-                disabled={isSubmittingGrn}
-                style={{ background: '#059669', borderColor: '#059669' }}
-              >
-                {isSubmittingGrn ? 'جاري الاستلام والتحديث...' : 'تأكيد الاستلام المخزني'}
-              </Button>
-            </div>
-          </div>
-        </div>
+      {showThreeWayMatchModal && (
+        <ThreeWayMatchModal
+          open={showThreeWayMatchModal}
+          onClose={() => setShowThreeWayMatchModal(false)}
+          purchaseId={Number(purchase.id)}
+          docNo={purchase.docNo}
+          onSuccess={() => {
+            if (onRefresh) onRefresh();
+          }}
+        />
       )}
 
       {showLandedCostsModal && (

@@ -181,6 +181,12 @@ export const posApi = {
       }
     }
   },
+  // Resolves what actually happened to a previously submitted sale for a given idempotency key.
+  // Used by the offline sync recovery path so a stale reservation is never resubmitted blindly.
+  getSaleOperationStatus: async (idempotencyKey: string) =>
+    http<{ status: string; documentId?: string | null; response?: unknown; retryAfterMs?: number }>(
+      `/api/operations/${encodeURIComponent('POST:/api/sales')}/${encodeURIComponent(idempotencyKey)}/status`,
+    ),
   listHeldDrafts: async () => unwrapArray<HeldPosDraft>(await http<HeldPosDraft[] | { heldSales: HeldPosDraft[] }>('/api/held-sales'), 'heldSales'),
   saveHeldDraft: async (payload: unknown) => unwrapEntity<HeldPosDraft>(await http<HeldPosDraft | { draft: HeldPosDraft }>('/api/held-sales', { method: 'POST', body: JSON.stringify(payload) }), 'draft'),
   deleteHeldDraft: async (draftId: string) => http(`/api/held-sales/${draftId}`, { method: 'DELETE' }),

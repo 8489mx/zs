@@ -10,6 +10,27 @@ let retryCount = 0;
 const RETRY_INTERVALS = [30000, 60000, 120000, 120000, 120000];
 let retryTimeout: ReturnType<typeof setTimeout> | null = null;
 
+type StaleSaleResolution = 'committed' | 'safe_to_retry' | 'needs_manual_review';
+
+/**
+ * A stale idempotency reservation means the first attempt may or may not have posted the invoice.
+ * Asking the server which of the two happened is the only way to retry without risking a duplicate.
+ */
+async function resolveStaleOfflineSale(idempotencyKey: string): Promise<StaleSaleResolution> {
+  try {
+    const result = await posApi.getSaleOperationStatus(idempotencyKey);
+    const status = String(result?.status || '');
+    // Already posted server-side, or a document was produced: the queue entry is done.
+    if (status === 'committed' || result?.documentId) return 'committed';
+    // The server never recorded the attempt, or recorded it as failed: resending is safe.
+    if (status === 'not_found' || status === 'failed') return 'safe_to_retry';
+    return 'needs_manual_review';
+  } catch {
+    // If we cannot confirm, we must not guess: a duplicate invoice is worse than a delayed one.
+    return 'needs_manual_review';
+  }
+}
+
 export function usePosOfflineSync() {
   const [offlineQueue, setOfflineQueue] = useState<OfflinePosSale[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -50,17 +71,35 @@ export function usePosOfflineSync() {
             await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': sale.id });
             removeOfflineSale(sale.id);
           } catch (initialError: any) {
-            const isStaleOrConflict =
-              initialError?.status === 422 ||
-              initialError?.status === 409 ||
-              String(initialError?.message || '').includes('manual recovery') ||
-              String(initialError?.message || '').includes('processing');
+            // NEVER mint a fresh idempotency key for the same offline sale. sale.id IS the stable
+            // idempotency key; replacing it makes the server treat the retry as a brand-new sale and
+            // the invoice is posted twice (stock deducted twice, revenue and cash doubled).
+            const isProcessing =
+              initialError?.status === 409 || String(initialError?.message || '').includes('processing');
+            const needsRecovery =
+              initialError?.status === 422 || String(initialError?.message || '').includes('manual recovery');
 
-            if (isStaleOrConflict) {
-              // Stale idempotency reservation in backend: retry immediately with fresh recovery key
-              const recoveryKey = crypto.randomUUID();
-              await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': recoveryKey });
-              removeOfflineSale(sale.id);
+            if (isProcessing) {
+              // The original request for this key is still executing server-side. Leave it queued and
+              // let the backoff timer retry later with the SAME key, which the server will answer from
+              // its committed result once the first attempt finishes.
+              updateOfflineSaleStatus(sale.id, 'pending', 'جارٍ ترحيل الفاتورة على الخادم — ستتم إعادة المحاولة تلقائياً');
+            } else if (needsRecovery) {
+              // A stale reservation means the first attempt may or may not have committed. Resubmitting
+              // blindly risks a duplicate invoice, so ask the server what actually happened.
+              const resolved = await resolveStaleOfflineSale(sale.id);
+              if (resolved === 'committed') {
+                removeOfflineSale(sale.id);
+              } else if (resolved === 'safe_to_retry') {
+                await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': sale.id });
+                removeOfflineSale(sale.id);
+              } else {
+                updateOfflineSaleStatus(
+                  sale.id,
+                  'failed',
+                  'تعذر تأكيد ترحيل الفاتورة على الخادم. يلزم مراجعة يدوية قبل إعادة الإرسال لتفادي التكرار',
+                );
+              }
             } else {
               throw initialError;
             }

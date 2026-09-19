@@ -55,19 +55,21 @@ export class PricingService {
     const changedRows = fullPreview.rows.filter((row) => !row.skipped && row.changed);
     if (!changedRows.length) throw new AppError('لا توجد تغييرات قابلة للتطبيق بعد المعاينة.', 'PRICING_NO_EFFECTIVE_CHANGES', 400);
     const preview = this.paginatePreviewRows(fullPreview.rows, payload.paging, fullPreview.summary);
+    // Canonical lock order: Sort ascending by productId (Invariant #13)
+    const sortedChangedRows = [...changedRows].sort((a, b) => a.productId - b.productId);
     const runId = await this.db.transaction().execute(async (trx) => {
       const insertedRun = await trx.insertInto('price_change_runs').values({
         filters_json: JSON.stringify(payload.filters || {}),
         operation_json: JSON.stringify({ operation: payload.operation, targets: payload.targets, rounding: payload.rounding }),
         options_json: JSON.stringify(payload.options || {}),
         summary_json: JSON.stringify(fullPreview.summary || {}),
-        affected_count: changedRows.length,
+        affected_count: sortedChangedRows.length,
         status: 'applied',
         created_by: actor.userId,
         ...this.tenantFields(actor),
       }).returning('id').executeTakeFirstOrThrow();
       const runIdValue = Number(insertedRun.id);
-      await trx.insertInto('price_change_items').values(changedRows.map((row) => ({
+      await trx.insertInto('price_change_items').values(sortedChangedRows.map((row) => ({
         run_id: runIdValue,
         product_id: row.productId,
         old_retail_price: row.retailPriceBefore,
@@ -78,12 +80,12 @@ export class PricingService {
         has_customer_price: row.hasCustomerPrice,
         ...this.tenantFields(actor),
       } as any))).execute();
-      for (const row of changedRows) {
+      for (const row of sortedChangedRows) {
         await trx.updateTable('products').set({ retail_price: row.retailPriceAfter, wholesale_price: row.wholesalePriceAfter, updated_at: sql`NOW()` }).where('id', '=', row.productId).where(this.tenantPredicate(actor)).execute();
       }
       return runIdValue;
     });
-    await this.audit.log('موجة تسعير', `تم تنفيذ موجة تسعير رقم #${runId} على ${changedRows.length} صنف بواسطة ${actor.username}`, actor);
+    await this.audit.log('موجة تسعير', `تم تنفيذ موجة تسعير رقم #${runId} على ${sortedChangedRows.length} صنف بواسطة ${actor.username}`, actor);
     return { ok: true, runId, preview };
   }
 
@@ -94,14 +96,18 @@ export class PricingService {
   }
 
   async undo(runId: number, actor: AuthContext): Promise<Record<string, unknown>> {
-    const run = await this.db.selectFrom('price_change_runs').select(['id', 'status']).where('id', '=', runId).where(this.tenantPredicate(actor)).executeTakeFirst();
-    if (!run) throw new AppError('موجة التسعير غير موجودة.', 'PRICING_RUN_NOT_FOUND', 404);
-    if (run.status !== 'applied') throw new AppError('لا يمكن التراجع عن هذه الموجة.', 'PRICING_RUN_UNDO_FORBIDDEN', 400);
-    const latestApplied = await this.db.selectFrom('price_change_runs').select(['id']).where('status', '=', 'applied').where(this.tenantPredicate(actor)).orderBy('id', 'desc').executeTakeFirst();
-    if (!latestApplied || Number(latestApplied.id) !== runId) throw new AppError('التراجع متاح فقط لآخر موجة تسعير مطبقة.', 'PRICING_RUN_NOT_LATEST', 400);
-    const items = await this.db.selectFrom('price_change_items').select(['product_id', 'old_retail_price', 'old_wholesale_price']).where('run_id', '=', runId).where(this.tenantPredicate(actor)).execute() as RunItemRow[];
     await this.db.transaction().execute(async (trx) => {
-      for (const item of items) {
+      const run = await trx.selectFrom('price_change_runs').select(['id', 'status']).where('id', '=', runId).where(this.tenantPredicate(actor)).forUpdate().executeTakeFirst();
+      if (!run) throw new AppError('موجة التسعير غير موجودة.', 'PRICING_RUN_NOT_FOUND', 404);
+      if (run.status !== 'applied') throw new AppError('لا يمكن التراجع عن هذه الموجة.', 'PRICING_RUN_UNDO_FORBIDDEN', 400);
+
+      const latestApplied = await trx.selectFrom('price_change_runs').select(['id']).where('status', '=', 'applied').where(this.tenantPredicate(actor)).orderBy('id', 'desc').forUpdate().executeTakeFirst();
+      if (!latestApplied || Number(latestApplied.id) !== runId) throw new AppError('التراجع متاح فقط لآخر موجة تسعير مطبقة.', 'PRICING_RUN_NOT_LATEST', 400);
+
+      const items = await trx.selectFrom('price_change_items').select(['product_id', 'old_retail_price', 'old_wholesale_price']).where('run_id', '=', runId).where(this.tenantPredicate(actor)).execute() as RunItemRow[];
+      const sortedItems = [...items].sort((a, b) => Number(a.product_id) - Number(b.product_id));
+
+      for (const item of sortedItems) {
         await trx.updateTable('products').set({ retail_price: Number(item.old_retail_price || 0), wholesale_price: Number(item.old_wholesale_price || 0), updated_at: sql`NOW()` }).where('id', '=', Number(item.product_id)).where(this.tenantPredicate(actor)).execute();
       }
       await trx.updateTable('price_change_runs').set({ status: 'undone', undone_at: sql`NOW()`, undone_by: actor.userId }).where('id', '=', runId).where(this.tenantPredicate(actor)).execute();
@@ -109,6 +115,7 @@ export class PricingService {
     await this.audit.log('تراجع موجة تسعير', `تم التراجع عن موجة التسعير رقم #${runId} بواسطة ${actor.username}`, actor);
     return { ok: true, runId };
   }
+
 
   async bulkSetProfiles(payload: PricingBulkSetProfileDto, actor: AuthContext): Promise<Record<string, unknown>> {
     const productIds = Array.from(new Set((payload.productIds || []).map((id) => Number(id)).filter((id) => id > 0)));

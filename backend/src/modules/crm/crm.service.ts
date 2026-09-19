@@ -325,18 +325,27 @@ export class CrmService {
   async deleteDeal(id: number, auth: AuthContext) {
     const scope = requireTenantScope(auth);
 
-    const deleted = await this.db
-      .deleteFrom('crm_deals')
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .executeTakeFirst();
+    return await this.db.transaction().execute(async (trx) => {
+      await trx
+        .deleteFrom('crm_activities')
+        .where('deal_id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
 
-    if (!deleted || Number(deleted.numDeletedRows) === 0) {
-      throw new NotFoundException('الفرصة البيعية غير موجودة.');
-    }
+      const deleted = await trx
+        .deleteFrom('crm_deals')
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .executeTakeFirst();
 
-    return { ok: true, message: 'تم حذف الفرصة البيعية وسجلاتها بنجاح.' };
+      if (!deleted || Number(deleted.numDeletedRows) === 0) {
+        throw new NotFoundException('الفرصة البيعية غير موجودة.');
+      }
+
+      return { ok: true, message: 'تم حذف الفرصة البيعية وسجلاتها بنجاح.' };
+    });
   }
+
 
   async addActivity(dealId: number, input: CreateActivityInput, auth: AuthContext) {
     const scope = requireTenantScope(auth);
@@ -482,90 +491,94 @@ export class CrmService {
   async convertToCustomer(dealId: number, auth: AuthContext) {
     const scope = requireTenantScope(auth);
 
-    const deal = await this.db
-      .selectFrom('crm_deals')
-      .selectAll()
-      .where('id', '=', dealId)
-      .where('tenant_id', '=', scope.tenantId)
-      .executeTakeFirst();
-
-    if (!deal) {
-      throw new NotFoundException('الفرصة البيعية غير موجودة.');
-    }
-
-    let customerId = deal.customer_id ? Number(deal.customer_id) : null;
-
-    if (!customerId) {
-      const phone = String(deal.contact_phone || '').trim();
-      // Check if customer already exists by phone
-      if (phone) {
-        const existingCust = await this.db
-          .selectFrom('customers')
-          .select(['id'])
-          .where('tenant_id', '=', scope.tenantId)
-          .where('phone', '=', phone)
-          .executeTakeFirst();
-        if (existingCust) {
-          customerId = Number(existingCust.id);
-        }
-      }
-
-      // If still no customer, create new
-      if (!customerId) {
-        const customerName = String(deal.contact_name || deal.company_name || deal.title).trim();
-        const createdCustomer = await this.db
-          .insertInto('customers')
-          .values({
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-            name: customerName,
-            phone: phone || '',
-            company_name: deal.company_name || '',
-            address: '',
-            balance: 0,
-            customer_type: 'cash',
-            credit_limit: 0,
-            store_credit_balance: 0,
-            tax_number: '',
-            is_active: true,
-          } as any)
-          .returning(['id'])
-          .executeTakeFirstOrThrow();
-
-        customerId = Number(createdCustomer.id);
-      }
-
-      // Update deal with customerId, set stage to won
-      await this.db
-        .updateTable('crm_deals')
-        .set({
-          customer_id: customerId,
-          stage: 'won',
-          probability: 100,
-          updated_at: sql`NOW()`,
-        } as any)
+    return await this.db.transaction().execute(async (trx) => {
+      const deal = await trx
+        .selectFrom('crm_deals')
+        .selectAll()
         .where('id', '=', dealId)
         .where('tenant_id', '=', scope.tenantId)
-        .execute();
+        .forUpdate()
+        .executeTakeFirst();
 
-      // Add conversion activity
-      await this.db
-        .insertInto('crm_activities')
-        .values({
-          tenant_id: scope.tenantId,
-          deal_id: dealId,
-          activity_type: 'converted',
-          summary: `تم تحويل الفرصة بنجاح إلى عميل مسجل برقم #${customerId} وتم وسم الصفقة كـ [تم التعاقد / فوز].`,
-          created_by: auth.userId ? Number(auth.userId) : null,
-        } as any)
-        .execute();
-    }
+      if (!deal) {
+        throw new NotFoundException('الفرصة البيعية غير موجودة.');
+      }
 
-    return {
-      ok: true,
-      customerId,
-      dealId,
-      message: 'تم تحويل الفرصة إلى عميل مسجل بنجاح.',
-    };
+      let customerId = deal.customer_id ? Number(deal.customer_id) : null;
+
+      if (!customerId) {
+        const phone = String(deal.contact_phone || '').trim();
+        // Check if customer already exists by phone
+        if (phone) {
+          const existingCust = await trx
+            .selectFrom('customers')
+            .select(['id'])
+            .where('tenant_id', '=', scope.tenantId)
+            .where('phone', '=', phone)
+            .executeTakeFirst();
+          if (existingCust) {
+            customerId = Number(existingCust.id);
+          }
+        }
+
+        // If still no customer, create new
+        if (!customerId) {
+          const customerName = String(deal.contact_name || deal.company_name || deal.title).trim();
+          const createdCustomer = await trx
+            .insertInto('customers')
+            .values({
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+              name: customerName,
+              phone: phone || '',
+              company_name: deal.company_name || '',
+              address: '',
+              balance: 0,
+              customer_type: 'cash',
+              credit_limit: 0,
+              store_credit_balance: 0,
+              tax_number: '',
+              is_active: true,
+            } as any)
+            .returning(['id'])
+            .executeTakeFirstOrThrow();
+
+          customerId = Number(createdCustomer.id);
+        }
+
+        // Update deal with customerId, set stage to won
+        await trx
+          .updateTable('crm_deals')
+          .set({
+            customer_id: customerId,
+            stage: 'won',
+            probability: 100,
+            updated_at: sql`NOW()`,
+          } as any)
+          .where('id', '=', dealId)
+          .where('tenant_id', '=', scope.tenantId)
+          .execute();
+
+        // Add conversion activity
+        await trx
+          .insertInto('crm_activities')
+          .values({
+            tenant_id: scope.tenantId,
+            deal_id: dealId,
+            activity_type: 'converted',
+            summary: `تم تحويل الفرصة بنجاح إلى عميل مسجل برقم #${customerId} وتم وسم الصفقة كـ [تم التعاقد / فوز].`,
+            created_by: auth.userId ? Number(auth.userId) : null,
+          } as any)
+          .execute();
+      }
+
+      return {
+        ok: true,
+        customerId,
+        dealId,
+        message: 'تم تحويل الفرصة إلى عميل مسجل بنجاح.',
+      };
+    });
   }
 }
+

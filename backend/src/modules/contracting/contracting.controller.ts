@@ -65,6 +65,14 @@ import {
   CreateSubcontractorDto,
   UpdateSubcontractorDto,
   CreateSubcontractorPaymentDto,
+  CreateGuaranteeDto,
+  UpdateGuaranteeDto,
+  ExtendGuaranteeDto,
+  ReleaseGuaranteeDto,
+  InvokeGuaranteeDto,
+  CreateCostPoolDto,
+  CreateIndirectExpenseDto,
+  CreateAllocationBatchDto,
 } from './dto/contracting.dto';
 
 
@@ -1111,6 +1119,141 @@ export class ContractingController {
   @Get('projects/:projectId/evm-metrics')
   async getProjectEvmMetrics(@Param('projectId') projectId: string, @Req() req: RequestWithAuth) {
     return this.contractingService.getProjectEvmMetrics(req.authContext!, projectId);
+  }
+
+  // --------------------------------------------------------------------------
+  // 38. Bank Guarantees & Gateway G1 (خطابات الضمان البنكية والبوابة الرقابية)
+  // --------------------------------------------------------------------------
+
+  @Get('guarantees')
+  async getGuarantees(
+    @Query('projectId') projectId: string,
+    @Query('subcontractId') subcontractId: string,
+    @Query('subcontractorId') subcontractorId: string,
+    @Query('status') status: string,
+    @Query('guaranteeType') guaranteeType: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.getGuarantees(req.authContext!, {
+      projectId,
+      subcontractId,
+      subcontractorId: subcontractorId ? Number(subcontractorId) : undefined,
+      status,
+      guaranteeType,
+    });
+  }
+
+  @Get('guarantees/alerts')
+  async getGuaranteeExpiryAlerts(
+    @Query('projectId') projectId: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.getGuaranteeExpiryAlerts(req.authContext!, projectId);
+  }
+
+  @Get('guarantees/:id')
+  async getGuaranteeById(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getGuaranteeById(req.authContext!, id);
+  }
+
+  @Post('guarantees')
+  async createGuarantee(@Body() dto: CreateGuaranteeDto, @Req() req: RequestWithAuth) {
+    return this.contractingService.createGuarantee(req.authContext!, dto);
+  }
+
+  @Put('guarantees/:id')
+  async updateGuarantee(
+    @Param('id') id: string,
+    @Body() dto: UpdateGuaranteeDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.updateGuarantee(req.authContext!, id, dto);
+  }
+
+  @Post('guarantees/:id/extend')
+  async extendGuarantee(
+    @Param('id') id: string,
+    @Body() dto: ExtendGuaranteeDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.extendGuarantee(req.authContext!, id, dto);
+  }
+
+  @Post('guarantees/:id/release')
+  async releaseGuarantee(
+    @Param('id') id: string,
+    @Body() dto: ReleaseGuaranteeDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.releaseGuarantee(req.authContext!, id, dto);
+  }
+
+  @Post('guarantees/:id/invoke')
+  async invokeGuarantee(
+    @Param('id') id: string,
+    @Body() dto: InvokeGuaranteeDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.invokeGuarantee(req.authContext!, id, dto);
+  }
+
+  // --------------------------------------------------------------------------
+  // 40. Field Indirect Costs & Cost Pools (أوعية التكاليف والمصاريف غير المباشرة)
+  // --------------------------------------------------------------------------
+
+  @Get('projects/:projectId/cost-pools')
+  async getCostPools(@Param('projectId') projectId: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getCostPools(req.authContext!, projectId);
+  }
+
+  @Post('projects/:projectId/cost-pools')
+  async createCostPool(
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateCostPoolDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.createCostPool(req.authContext!, projectId, dto);
+  }
+
+  @Get('projects/:projectId/indirect-expenses')
+  async getIndirectExpenses(
+    @Param('projectId') projectId: string,
+    @Query('poolId') poolId: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.getIndirectExpenses(req.authContext!, projectId, poolId);
+  }
+
+  @Post('projects/:projectId/indirect-expenses')
+  async createIndirectExpense(
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateIndirectExpenseDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.createIndirectExpense(req.authContext!, projectId, dto);
+  }
+
+  @Get('projects/:projectId/allocation-batches')
+  async getAllocationBatches(@Param('projectId') projectId: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.getAllocationBatches(req.authContext!, projectId);
+  }
+
+  @Post('projects/:projectId/allocation-batches/preview')
+  async previewBatchAllocation(
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateAllocationBatchDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.previewBatchAllocation(req.authContext!, projectId, dto);
+  }
+
+  @Post('projects/:projectId/allocation-batches')
+  async postBatchAllocation(
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateAllocationBatchDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.postBatchAllocation(req.authContext!, projectId, dto);
   }
 }
 

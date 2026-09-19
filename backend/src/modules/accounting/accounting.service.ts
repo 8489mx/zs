@@ -864,6 +864,29 @@ export class AccountingService {
     };
   }
 
+  /**
+   * A reversal entry is dated CURRENT_DATE. Verify that date is not inside a locked period, using
+   * the same inclusive comparison as insertPostedJournal so both paths agree on what "locked" means.
+   */
+  private async assertPeriodOpenForReversal(trx: any, tenantId: string): Promise<void> {
+    const settings = await trx
+      .selectFrom('accounting_settings')
+      .select(['lock_date_all'])
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', 1)
+      .executeTakeFirst();
+
+    const lockAll = settings?.lock_date_all ? String(settings.lock_date_all).slice(0, 10) : '';
+    if (!lockAll) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    if (today <= lockAll) {
+      throw new BadRequestException(
+        `الفترة المحاسبية مقفلة نهائياً حتى تاريخ ${lockAll}. لا يمكن ترحيل قيد عكسي داخل فترة مغلقة.`,
+      );
+    }
+  }
+
   async reverseJournalEntry(entryId: number, reason: string, auth: AuthContext): Promise<{ ok: boolean; message: string; reversalEntryId: number; reversalEntryNo: string }> {
     this.assertAccountingAccess(auth);
     const scope = requireTenantScope(auth);
@@ -905,6 +928,25 @@ export class AccountingService {
     }
 
     const result = await this.db.transaction().execute(async (trx) => {
+      // Re-read the original under a row lock. The guards above ran on an unlocked read, so two
+      // concurrent reversal requests would both see reversed_by_entry_id = NULL, both pass, and the
+      // entry would be reversed twice — doubling the reversal's effect on the ledger.
+      const lockedEntry = await trx
+        .selectFrom('journal_entries')
+        .select(['id', 'status', 'reversed_by_entry_id'])
+        .where('id', '=', entryId)
+        .where('tenant_id', '=', scope.tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!lockedEntry) throw new NotFoundException('القيد اليومي غير موجود');
+      if (lockedEntry.status !== 'posted') throw new BadRequestException('لا يمكن عكس قيد غير مرحل أو تم إلغاؤه مسبقاً');
+      if (lockedEntry.reversed_by_entry_id) throw new BadRequestException('تم عكس هذا القيد بالفعل مسبقاً');
+
+      // A reversal is a new posting and must respect the period lock like any other. Without this,
+      // reversing into a closed fiscal year silently rewrites that year's balances after sign-off.
+      await this.assertPeriodOpenForReversal(trx, scope.tenantId);
+
       const tempEntryNo = `JE-REV-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
       const inserted = await trx
         .insertInto('journal_entries')
@@ -1819,6 +1861,7 @@ export class AccountingService {
     const hasTransactions = await this.db.selectFrom('journal_entry_lines')
       .select('id')
       .where('account_id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
       .limit(1)
       .executeTakeFirst();
       
@@ -1878,6 +1921,7 @@ export class AccountingService {
     const hasTransactions = await this.db.selectFrom('journal_entry_lines')
       .select('id')
       .where('account_id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
       .limit(1)
       .executeTakeFirst();
       
@@ -2094,6 +2138,7 @@ export class AccountingService {
         .selectAll()
         .where('id', '=', id)
         .where('tenant_id', '=', scope.tenantId)
+        .forUpdate()
         .executeTakeFirst();
 
       if (!asset) {
@@ -2990,62 +3035,147 @@ export class AccountingService {
   async reconcileMatch(dto: ReconcileMatchDto, auth: AuthContext): Promise<any> {
     this.assertAccountingAccess(auth);
 
-    // Update statement line
-    await (this.db as any)
-      .updateTable('bank_statement_lines')
-      .set({
-        is_reconciled: true,
-        matched_journal_line_id: dto.journalLineId,
-        reconciled_at: new Date(),
-      })
-      .where('id', '=', dto.statementLineId)
-      .where(this.tenantPredicate(auth))
-      .execute();
+    return this.db.transaction().execute(async (trx: any) => {
+      // 1. Lock and fetch statement line
+      const sLine = await trx
+        .selectFrom('bank_statement_lines as bsl')
+        .innerJoin('bank_statements as bs', 'bs.id', 'bsl.statement_id')
+        .where('bsl.id', '=', dto.statementLineId)
+        .where(this.tenantPredicate(auth, 'bsl'))
+        .select([
+          'bsl.id',
+          'bsl.amount',
+          'bsl.is_reconciled',
+          'bsl.statement_id',
+          'bs.account_id as statement_account_id',
+        ])
+        .forUpdate()
+        .executeTakeFirst();
 
-    // Update journal line
-    await (this.db as any)
-      .updateTable('journal_entry_lines')
-      .set({
-        is_reconciled: true,
-        reconciled_at: new Date(),
-      })
-      .where('id', '=', dto.journalLineId)
-      .where(this.tenantPredicate(auth))
-      .execute();
+      if (!sLine) {
+        throw new NotFoundException('سطر كشف الحساب غير موجود.');
+      }
+      if (sLine.is_reconciled) {
+        throw new BadRequestException('سطر كشف الحساب البنكي مطابق بالفعل.');
+      }
 
-    return { success: true, message: 'تمت مطابقة السطر البنكي مع القيد المحاسبي بنجاح.' };
+      // 2. Lock and fetch journal entry line
+      const glLine = await trx
+        .selectFrom('journal_entry_lines as jel')
+        .innerJoin('journal_entries as je', 'je.id', 'jel.journal_entry_id')
+        .where('jel.id', '=', dto.journalLineId)
+        .where(this.tenantPredicate(auth, 'jel'))
+        .select([
+          'jel.id',
+          'jel.account_id',
+          'jel.debit',
+          'jel.credit',
+          'jel.is_reconciled',
+          'je.status as journal_status',
+        ])
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!glLine) {
+        throw new NotFoundException('سطر القيد المحاسبي غير موجود.');
+      }
+      if (glLine.journal_status !== 'posted') {
+        throw new BadRequestException('لا يمكن مطابقة قيد محاسبي غير مرحل.');
+      }
+      if (glLine.is_reconciled) {
+        throw new BadRequestException('سطر القيد المحاسبي مطابق بالفعل مع حركة بنكية أخرى.');
+      }
+
+      // 3. Ensure GL line belongs to the bank account of this statement
+      if (Number(glLine.account_id) !== Number(sLine.statement_account_id)) {
+        throw new BadRequestException('لا يمكن مطابقة سطر كشف الحساب مع قيد لحساب مالي مختلف.');
+      }
+
+      // 4. Mathematical validation: net journal amount must match statement line amount within 0.01 tolerance
+      const netJournalAmount = Number(glLine.debit || 0) - Number(glLine.credit || 0);
+      const statementAmount = Number(sLine.amount || 0);
+      if (Math.abs(statementAmount - netJournalAmount) > 0.01) {
+        throw new BadRequestException(
+          `عدم تطابق في المبلغ: سطر كشف الحساب (${statementAmount.toFixed(2)}) لا يتطابق مع القيد المحاسبي (${netJournalAmount.toFixed(2)}).`
+        );
+      }
+
+      const now = new Date();
+
+      // 5. Update statement line
+      await trx
+        .updateTable('bank_statement_lines')
+        .set({
+          is_reconciled: true,
+          matched_journal_line_id: dto.journalLineId,
+          reconciled_at: now,
+        })
+        .where('id', '=', dto.statementLineId)
+        .where(this.tenantPredicate(auth))
+        .execute();
+
+      // 6. Update journal line
+      await trx
+        .updateTable('journal_entry_lines')
+        .set({
+          is_reconciled: true,
+          reconciled_at: now,
+        })
+        .where('id', '=', dto.journalLineId)
+        .where(this.tenantPredicate(auth))
+        .execute();
+
+      return { success: true, message: 'تمت مطابقة السطر البنكي مع القيد المحاسبي بنجاح.' };
+    });
   }
 
   async unreconcileMatch(statementLineId: number, auth: AuthContext): Promise<any> {
     this.assertAccountingAccess(auth);
 
-    const line = await (this.db as any)
-      .selectFrom('bank_statement_lines')
-      .select(['id', 'matched_journal_line_id'])
-      .where('id', '=', statementLineId)
-      .where(this.tenantPredicate(auth))
-      .executeTakeFirst();
+    return this.db.transaction().execute(async (trx: any) => {
+      const line = await trx
+        .selectFrom('bank_statement_lines')
+        .select(['id', 'matched_journal_line_id', 'is_reconciled'])
+        .where('id', '=', statementLineId)
+        .where(this.tenantPredicate(auth))
+        .forUpdate()
+        .executeTakeFirst();
 
-    if (!line) throw new NotFoundException('سطر كشف الحساب غير موجود.');
+      if (!line) throw new NotFoundException('سطر كشف الحساب غير موجود.');
+      if (!line.is_reconciled && !line.matched_journal_line_id) {
+        return { success: true, message: 'السطر غير مطابق بالفعل.' };
+      }
 
-    if (line.matched_journal_line_id) {
-      await (this.db as any)
-        .updateTable('journal_entry_lines')
-        .set({ is_reconciled: false, reconciled_at: null })
-        .where('id', '=', line.matched_journal_line_id)
+      if (line.matched_journal_line_id) {
+        const glLine = await trx
+          .selectFrom('journal_entry_lines')
+          .select(['id'])
+          .where('id', '=', line.matched_journal_line_id)
+          .where(this.tenantPredicate(auth))
+          .forUpdate()
+          .executeTakeFirst();
+
+        if (glLine) {
+          await trx
+            .updateTable('journal_entry_lines')
+            .set({ is_reconciled: false, reconciled_at: null })
+            .where('id', '=', line.matched_journal_line_id)
+            .where(this.tenantPredicate(auth))
+            .execute();
+        }
+      }
+
+      await trx
+        .updateTable('bank_statement_lines')
+        .set({ is_reconciled: false, matched_journal_line_id: null, reconciled_at: null })
+        .where('id', '=', statementLineId)
         .where(this.tenantPredicate(auth))
         .execute();
-    }
 
-    await (this.db as any)
-      .updateTable('bank_statement_lines')
-      .set({ is_reconciled: false, matched_journal_line_id: null, reconciled_at: null })
-      .where('id', '=', statementLineId)
-      .where(this.tenantPredicate(auth))
-      .execute();
-
-    return { success: true, message: 'تم إلغاء المطابقة وإعادة السطر للحركات المعلقة.' };
+      return { success: true, message: 'تم إلغاء المطابقة وإعادة السطر للحركات المعلقة.' };
+    });
   }
+
 
   async createBankFeeAdjustment(dto: CreateBankFeeAdjustmentDto, auth: AuthContext): Promise<any> {
     this.assertAccountingAccess(auth);

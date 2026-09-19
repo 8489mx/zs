@@ -22,6 +22,7 @@ import {
 } from './maritime-defaults.data';
 import { MaritimeMailService } from './maritime-mail.service';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
+import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 
 @Injectable()
 export class MaritimeFreightService {
@@ -470,60 +471,58 @@ export class MaritimeFreightService {
       .where('inquiry_number', 'like', `${prefix}%`)
       .executeTakeFirst();
 
-    let nextSeq = Number(countResult?.count || 0) + 1;
-    let candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
-    while (
-      await this.db
-        .selectFrom('maritime_inquiries')
-        .select('id')
-        .where('tenant_id', '=', tenantId)
-        .where('inquiry_number', '=', candidate)
-        .executeTakeFirst()
-    ) {
-      nextSeq++;
-      candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
-    }
-    return candidate;
+    const nextSeq = Number(countResult?.count || 0) + 1;
+    return formatDailyDocumentNumber('INQ', nextSeq);
   }
 
   async createInquiry(auth: AuthContext, dto: CreateMaritimeInquiryDto) {
     const { tenantId } = requireTenantScope(auth);
-    const inquiryNumber = await this.generateNextInquiryNumber(tenantId);
 
-    const [inquiry] = await this.db
-      .insertInto('maritime_inquiries')
-      .values({
-        tenant_id: tenantId,
-        inquiry_number: inquiryNumber,
-        customer_id: dto.customerId ? Number(dto.customerId) : null,
-        customer_name: dto.customerName,
-        customer_phone: dto.customerPhone || null,
-        customer_email: dto.customerEmail || null,
-        direction: dto.direction || 'import',
-        pol_code: dto.polCode.toUpperCase(),
-        pol_name: dto.polName,
-        pod_code: dto.podCode.toUpperCase(),
-        pod_name: dto.podName,
-        incoterm: dto.incoterm || 'FOB',
-        cargo_mode: dto.cargoMode || 'FCL',
-        container_type: dto.containerType || '40HC',
-        container_count: dto.containerCount || 1,
-        commodity_description: dto.commodityDescription || '',
-        cargo_nature: dto.cargoNature || 'general',
-        gross_weight_kg: Number(dto.grossWeightKg || 0),
-        cbm: Number(dto.cbm || 0),
-        cargo_ready_date: dto.cargoReadyDate || null,
-        target_delivery_date: dto.targetDeliveryDate || null,
-        target_free_days: dto.targetFreeDays || 14,
-        payment_term: dto.paymentTerm || 'prepaid',
-        status: 'received',
-        notes: dto.notes || null,
-        created_by: auth.userId ? Number(auth.userId) : null,
-      })
-      .returningAll()
-      .execute();
+    return await this.db.transaction().execute(async (trx) => {
+      const tempNumber = `INQ-TMP-${crypto.randomUUID()}`;
+      const [inquiry] = await trx
+        .insertInto('maritime_inquiries')
+        .values({
+          tenant_id: tenantId,
+          inquiry_number: tempNumber,
+          customer_id: dto.customerId ? Number(dto.customerId) : null,
+          customer_name: dto.customerName,
+          customer_phone: dto.customerPhone || null,
+          customer_email: dto.customerEmail || null,
+          direction: dto.direction || 'import',
+          pol_code: dto.polCode.toUpperCase(),
+          pol_name: dto.polName,
+          pod_code: dto.podCode.toUpperCase(),
+          pod_name: dto.podName,
+          incoterm: dto.incoterm || 'FOB',
+          cargo_mode: dto.cargoMode || 'FCL',
+          container_type: dto.containerType || '40HC',
+          container_count: dto.containerCount || 1,
+          commodity_description: dto.commodityDescription || '',
+          cargo_nature: dto.cargoNature || 'general',
+          gross_weight_kg: Number(dto.grossWeightKg || 0),
+          cbm: Number(dto.cbm || 0),
+          cargo_ready_date: dto.cargoReadyDate || null,
+          target_delivery_date: dto.targetDeliveryDate || null,
+          target_free_days: dto.targetFreeDays || 14,
+          payment_term: dto.paymentTerm || 'prepaid',
+          status: 'received',
+          notes: dto.notes || null,
+          created_by: auth.userId ? Number(auth.userId) : null,
+        })
+        .returningAll()
+        .execute();
 
-    return inquiry;
+      const finalNumber = formatDailyDocumentNumber('INQ', Number(inquiry.id));
+      const [updated] = await trx
+        .updateTable('maritime_inquiries')
+        .set({ inquiry_number: finalNumber })
+        .where('id', '=', inquiry.id)
+        .returningAll()
+        .execute();
+
+      return updated;
+    });
   }
 
   async getInquiries(auth: AuthContext, filters?: { status?: string; search?: string }) {
@@ -619,25 +618,12 @@ export class MaritimeFreightService {
       .where('rfq_number', 'like', `${prefix}%`)
       .executeTakeFirst();
 
-    let nextSeq = Number(countResult?.count || 0) + 1;
-    let candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
-    while (
-      await this.db
-        .selectFrom('maritime_rfqs')
-        .select('id')
-        .where('tenant_id', '=', tenantId)
-        .where('rfq_number', '=', candidate)
-        .executeTakeFirst()
-    ) {
-      nextSeq++;
-      candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
-    }
-    return candidate;
+    const nextSeq = Number(countResult?.count || 0) + 1;
+    return formatDailyDocumentNumber('RFQ', nextSeq);
   }
 
   async createRfq(auth: AuthContext, dto: CreateMaritimeRfqDto) {
     const { tenantId } = requireTenantScope(auth);
-    const rfqNumber = await this.generateNextRfqNumber(tenantId);
     const pipelineConfig = await this.getTenantPipelineConfig(tenantId);
 
     const urgency = dto.urgencyLevel || 'standard';
@@ -653,56 +639,67 @@ export class MaritimeFreightService {
       cutOffDate = new Date(Date.now() + hours * 3600 * 1000);
     }
 
-    const [rfq] = await this.db
-      .insertInto('maritime_rfqs')
-      .values({
-        tenant_id: tenantId,
-        rfq_number: rfqNumber,
-        inquiry_id: dto.inquiryId ? String(dto.inquiryId) : null,
-        customer_id: dto.customerId ? Number(dto.customerId) : null,
-        customer_name: dto.customerName || null,
-        customer_phone: dto.customerPhone || null,
-        customer_email: dto.customerEmail || null,
-        direction: dto.direction || 'import',
-        pol_code: dto.polCode.toUpperCase(),
-        pol_name: dto.polName,
-        pod_code: dto.podCode.toUpperCase(),
-        pod_name: dto.podName,
-        incoterm: dto.incoterm || 'FOB',
-        cargo_mode: dto.cargoMode || 'FCL',
-        container_type: dto.containerType || '40HC',
-        container_count: dto.containerCount || 1,
-        commodity_description: dto.commodityDescription || '',
-        cargo_nature: dto.cargoNature || 'general',
-        cargo_ready_date: dto.cargoReadyDate || null,
-        target_free_days: dto.targetFreeDays || 14,
-        payment_term: dto.paymentTerm || 'prepaid',
-        target_line_ids: JSON.stringify(dto.targetLineIds || []),
-        status: 'draft',
-        notes: dto.notes || null,
-        urgency_level: urgency,
-        cut_off_deadline: cutOffDate ? cutOffDate.toISOString() : null,
-        auto_awarded: false,
-        target_rate_max: dto.targetRateMax ? Number(dto.targetRateMax) : null,
-        created_by: auth.userId ? Number(auth.userId) : null,
-      })
-      .returningAll()
-      .execute();
-
-    if (dto.inquiryId) {
-      await this.db
-        .updateTable('maritime_inquiries')
-        .set({
-          status: 'rfq_created',
-          rfq_id: String(rfq.id),
-          updated_at: sql`NOW()`,
+    return await this.db.transaction().execute(async (trx) => {
+      const tempNumber = `RFQ-TMP-${crypto.randomUUID()}`;
+      const [rfq] = await trx
+        .insertInto('maritime_rfqs')
+        .values({
+          tenant_id: tenantId,
+          rfq_number: tempNumber,
+          inquiry_id: dto.inquiryId ? String(dto.inquiryId) : null,
+          customer_id: dto.customerId ? Number(dto.customerId) : null,
+          customer_name: dto.customerName || null,
+          customer_phone: dto.customerPhone || null,
+          customer_email: dto.customerEmail || null,
+          direction: dto.direction || 'import',
+          pol_code: dto.polCode.toUpperCase(),
+          pol_name: dto.polName,
+          pod_code: dto.podCode.toUpperCase(),
+          pod_name: dto.podName,
+          incoterm: dto.incoterm || 'FOB',
+          cargo_mode: dto.cargoMode || 'FCL',
+          container_type: dto.containerType || '40HC',
+          container_count: dto.containerCount || 1,
+          commodity_description: dto.commodityDescription || '',
+          cargo_nature: dto.cargoNature || 'general',
+          cargo_ready_date: dto.cargoReadyDate || null,
+          target_free_days: dto.targetFreeDays || 14,
+          payment_term: dto.paymentTerm || 'prepaid',
+          target_line_ids: JSON.stringify(dto.targetLineIds || []),
+          status: 'draft',
+          notes: dto.notes || null,
+          urgency_level: urgency,
+          cut_off_deadline: cutOffDate ? cutOffDate.toISOString() : null,
+          auto_awarded: false,
+          target_rate_max: dto.targetRateMax ? Number(dto.targetRateMax) : null,
+          created_by: auth.userId ? Number(auth.userId) : null,
         })
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', dto.inquiryId as any)
+        .returningAll()
         .execute();
-    }
 
-    return rfq;
+      const finalNumber = formatDailyDocumentNumber('RFQ', Number(rfq.id));
+      const [updatedRfq] = await trx
+        .updateTable('maritime_rfqs')
+        .set({ rfq_number: finalNumber })
+        .where('id', '=', rfq.id)
+        .returningAll()
+        .execute();
+
+      if (dto.inquiryId) {
+        await trx
+          .updateTable('maritime_inquiries')
+          .set({
+            status: 'rfq_created',
+            rfq_id: String(rfq.id),
+            updated_at: sql`NOW()`,
+          })
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', dto.inquiryId as any)
+          .execute();
+      }
+
+      return updatedRfq;
+    });
   }
 
   async getRfqs(auth: AuthContext, filters?: { status?: string; search?: string }) {
@@ -1308,25 +1305,12 @@ export class MaritimeFreightService {
       .where('quotation_number', 'like', `${prefix}%`)
       .executeTakeFirst();
 
-    let nextSeq = Number(countResult?.count || 0) + 1;
-    let candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
-    while (
-      await this.db
-        .selectFrom('maritime_quotations')
-        .select('id')
-        .where('tenant_id', '=', tenantId)
-        .where('quotation_number', '=', candidate)
-        .executeTakeFirst()
-    ) {
-      nextSeq++;
-      candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
-    }
-    return candidate;
+    const nextSeq = Number(countResult?.count || 0) + 1;
+    return formatDailyDocumentNumber('QUO', nextSeq);
   }
 
   async createQuotation(auth: AuthContext, dto: CreateMaritimeQuotationDto) {
     const { tenantId } = requireTenantScope(auth);
-    const quotationNumber = await this.generateNextQuotationNumber(tenantId);
 
     const baseCost = Number(dto.baseCost || 0);
     const marginType = dto.marginType || 'fixed';
@@ -1341,48 +1325,59 @@ export class MaritimeFreightService {
     }
     const finalTotalLocal = finalTotal * exchangeRate;
 
-    const [quote] = await this.db
-      .insertInto('maritime_quotations')
-      .values({
-        tenant_id: tenantId,
-        quotation_number: quotationNumber,
-        inquiry_id: dto.inquiryId ? String(dto.inquiryId) : null,
-        rfq_id: dto.rfqId || null,
-        bid_id: dto.bidId || null,
-        customer_id: dto.customerId || null,
-        customer_name: dto.customerName,
-        customer_phone: dto.customerPhone || null,
-        customer_email: dto.customerEmail || null,
-        payment_term: dto.paymentTerm || 'prepaid',
-        base_cost: baseCost,
-        currency: dto.currency || 'USD',
-        margin_type: marginType,
-        margin_value: marginValue,
-        final_total: finalTotal,
-        exchange_rate: exchangeRate,
-        final_total_local: finalTotalLocal,
-        valid_until: dto.validUntil || null,
-        status: 'draft',
-        notes: dto.notes || null,
-        created_by: auth.userId ? Number(auth.userId) : null,
-      })
-      .returningAll()
-      .execute();
-
-    if (dto.inquiryId) {
-      await this.db
-        .updateTable('maritime_inquiries')
-        .set({
-          status: 'quoted',
-          quotation_id: String(quote.id),
-          updated_at: sql`NOW()`,
+    return await this.db.transaction().execute(async (trx) => {
+      const tempNumber = `QUO-TMP-${crypto.randomUUID()}`;
+      const [quote] = await trx
+        .insertInto('maritime_quotations')
+        .values({
+          tenant_id: tenantId,
+          quotation_number: tempNumber,
+          inquiry_id: dto.inquiryId ? String(dto.inquiryId) : null,
+          rfq_id: dto.rfqId || null,
+          bid_id: dto.bidId || null,
+          customer_id: dto.customerId || null,
+          customer_name: dto.customerName,
+          customer_phone: dto.customerPhone || null,
+          customer_email: dto.customerEmail || null,
+          payment_term: dto.paymentTerm || 'prepaid',
+          base_cost: baseCost,
+          currency: dto.currency || 'USD',
+          margin_type: marginType,
+          margin_value: marginValue,
+          final_total: finalTotal,
+          exchange_rate: exchangeRate,
+          final_total_local: finalTotalLocal,
+          valid_until: dto.validUntil || null,
+          status: 'draft',
+          notes: dto.notes || null,
+          created_by: auth.userId ? Number(auth.userId) : null,
         })
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', dto.inquiryId as any)
+        .returningAll()
         .execute();
-    }
 
-    return quote;
+      const finalNumber = formatDailyDocumentNumber('QUO', Number(quote.id));
+      const [updatedQuote] = await trx
+        .updateTable('maritime_quotations')
+        .set({ quotation_number: finalNumber })
+        .where('id', '=', quote.id)
+        .returningAll()
+        .execute();
+
+      if (dto.inquiryId) {
+        await trx
+          .updateTable('maritime_inquiries')
+          .set({
+            status: 'quoted',
+            quotation_id: String(quote.id),
+            updated_at: sql`NOW()`,
+          })
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', dto.inquiryId as any)
+          .execute();
+      }
+
+      return updatedQuote;
+    });
   }
 
   async getQuotations(auth: AuthContext, filters?: { status?: string; search?: string }) {
@@ -1433,156 +1428,160 @@ export class MaritimeFreightService {
       .where('job_number', 'like', `${prefix}%`)
       .executeTakeFirst();
 
-    let nextSeq = Number(countResult?.count || 0) + 1;
-    let candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
-    while (
-      await this.db
-        .selectFrom('maritime_jobs')
-        .select('id')
-        .where('tenant_id', '=', tenantId)
-        .where('job_number', '=', candidate)
-        .executeTakeFirst()
-    ) {
-      nextSeq++;
-      candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
-    }
-    return candidate;
+    const nextSeq = Number(countResult?.count || 0) + 1;
+    return formatDailyDocumentNumber('JOB', nextSeq);
   }
 
   async createJob(auth: AuthContext, dto: CreateMaritimeJobDto) {
     const { tenantId } = requireTenantScope(auth);
-    const jobNumber = await this.generateNextJobNumber(tenantId);
     const trackingToken = crypto.randomBytes(16).toString('hex');
 
-    // 1. Automatically create an Accounting Cost Center under dimension = 'project'
-    let costCenterId: string | null = null;
-    try {
-      const [costCenter] = await this.db
-        .insertInto('cost_centers')
+    return await this.db.transaction().execute(async (trx) => {
+      const tempNumber = `JOB-TMP-${crypto.randomUUID()}`;
+
+      // 1. Insert Job record first with tempNumber
+      const [job] = await trx
+        .insertInto('maritime_jobs')
         .values({
           tenant_id: tenantId,
-          code: jobNumber,
-          name: `شحنة بحرية: ${jobNumber} - ${dto.customerName}`,
-          dimension: 'project',
-          is_active: true,
-          description: `مركز تكلفة تلقائي للعملية الملاحية ${jobNumber} (${dto.polName} إلى ${dto.podName})`,
+          job_number: tempNumber,
+          inquiry_id: dto.inquiryId ? String(dto.inquiryId) : null,
+          quotation_id: dto.quotationId ? String(dto.quotationId) : null,
+          rfq_id: dto.rfqId ? String(dto.rfqId) : null,
+          customer_id: dto.customerId ? Number(dto.customerId) : null,
+          customer_name: dto.customerName,
+          direction: dto.direction || 'import',
+          payment_term: dto.paymentTerm || 'prepaid',
+          shipping_line_id: dto.shippingLineId ? String(dto.shippingLineId) : null,
+          shipping_line_name: dto.shippingLineName,
+          booking_number: dto.bookingNumber || null,
+          vessel_name: dto.vesselName || null,
+          voyage_number: dto.voyageNumber || null,
+          pol_code: dto.polCode.toUpperCase(),
+          pol_name: dto.polName,
+          pod_code: dto.podCode.toUpperCase(),
+          pod_name: dto.podName,
+          etd: dto.etd || null,
+          eta: dto.eta || null,
+          port_cut_off: dto.portCutOff ? new Date(dto.portCutOff) : null,
+          bl_type: dto.blType || 'original',
+          mbl_number: dto.mblNumber || null,
+          hbl_number: dto.hblNumber || null,
+          shipper_details: dto.shipperDetails || null,
+          consignee_details: dto.consigneeDetails || null,
+          notify_party: dto.notifyParty || null,
+          milestone_status: 'BOOK',
+          cost_center_id: null,
+          tracking_token: trackingToken,
+          delivery_address: dto.deliveryAddress || null,
+          status: 'active',
+          notes: dto.notes || null,
+          created_by: auth.userId ? Number(auth.userId) : null,
         })
-        .returning('id')
+        .returningAll()
         .execute();
-      if (costCenter) {
-        costCenterId = String(costCenter.id);
-      }
-    } catch (err: any) {
-      this.logger.warn(`Could not auto-create cost center for ${jobNumber}: ${err?.message}`);
-    }
 
-    // 2. Insert Job record
-    const [job] = await this.db
-      .insertInto('maritime_jobs')
-      .values({
-        tenant_id: tenantId,
-        job_number: jobNumber,
-        inquiry_id: dto.inquiryId ? String(dto.inquiryId) : null,
-        quotation_id: dto.quotationId ? String(dto.quotationId) : null,
-        rfq_id: dto.rfqId ? String(dto.rfqId) : null,
-        customer_id: dto.customerId ? Number(dto.customerId) : null,
-        customer_name: dto.customerName,
-        direction: dto.direction || 'import',
-        payment_term: dto.paymentTerm || 'prepaid',
-        shipping_line_id: dto.shippingLineId ? String(dto.shippingLineId) : null,
-        shipping_line_name: dto.shippingLineName,
-        booking_number: dto.bookingNumber || null,
-        vessel_name: dto.vesselName || null,
-        voyage_number: dto.voyageNumber || null,
-        pol_code: dto.polCode.toUpperCase(),
-        pol_name: dto.polName,
-        pod_code: dto.podCode.toUpperCase(),
-        pod_name: dto.podName,
-        etd: dto.etd || null,
-        eta: dto.eta || null,
-        port_cut_off: dto.portCutOff ? new Date(dto.portCutOff) : null,
-        bl_type: dto.blType || 'original',
-        mbl_number: dto.mblNumber || null,
-        hbl_number: dto.hblNumber || null,
-        shipper_details: dto.shipperDetails || null,
-        consignee_details: dto.consigneeDetails || null,
-        notify_party: dto.notifyParty || null,
-        milestone_status: 'BOOK',
-        cost_center_id: costCenterId,
-        tracking_token: trackingToken,
-        delivery_address: dto.deliveryAddress || null,
-        status: 'active',
-        notes: dto.notes || null,
-        created_by: auth.userId ? Number(auth.userId) : null,
-      })
-      .returningAll()
-      .execute();
+      const finalJobNumber = formatDailyDocumentNumber('JOB', Number(job.id));
 
-    // 3. Add initial DCSA milestone
-    await this.db
-      .insertInto('maritime_job_milestones')
-      .values({
-        tenant_id: tenantId,
-        job_id: String(job.id),
-        milestone_key: 'BOOK',
-        milestone_title: 'تأكيد الحجز الملاحي (Booking Confirmed)',
-        location: dto.polName,
-        notes: `تم فتح أمر التشغيل وتأكيد الحجز بنجاح برقم ${dto.bookingNumber || jobNumber}`,
-        recorded_by: auth.userId ? Number(auth.userId) : null,
-      })
-      .execute();
-
-    // 4. If containers provided, insert them
-    if (dto.containers && dto.containers.length > 0) {
-      for (const c of dto.containers) {
-        await this.db
-          .insertInto('maritime_containers')
+      // 2. Automatically create an Accounting Cost Center under dimension = 'project'
+      let costCenterId: string | null = null;
+      try {
+        const [costCenter] = await trx
+          .insertInto('cost_centers')
           .values({
             tenant_id: tenantId,
-            job_id: String(job.id),
-            container_number: c.containerNumber.toUpperCase(),
-            container_type: c.containerType || '40HC',
-            seal_number: c.sealNumber || null,
-            gross_weight_kg: Number(c.grossWeightKg || 0),
-            cbm: Number(c.cbm || 0),
-            free_days: Number(c.freeDays || 14),
-            deposit_amount: Number(c.depositAmount || 0),
-            deposit_currency: c.depositCurrency || 'EGP',
-            deposit_status: Number(c.depositAmount || 0) > 0 ? 'held_by_line' : 'not_required',
+            code: finalJobNumber,
+            name: `شحنة بحرية: ${finalJobNumber} - ${dto.customerName}`,
+            dimension: 'project',
+            is_active: true,
+            description: `مركز تكلفة تلقائي للعملية الملاحية ${finalJobNumber} (${dto.polName} إلى ${dto.podName})`,
           })
+          .returning('id')
+          .execute();
+        if (costCenter) {
+          costCenterId = String(costCenter.id);
+        }
+      } catch (err: any) {
+        this.logger.warn(`Could not auto-create cost center for ${finalJobNumber}: ${err?.message}`);
+      }
+
+      // 3. Update job with final job number and cost center
+      const [updatedJob] = await trx
+        .updateTable('maritime_jobs')
+        .set({
+          job_number: finalJobNumber,
+          cost_center_id: costCenterId,
+        })
+        .where('id', '=', job.id)
+        .returningAll()
+        .execute();
+
+      // 4. Add initial DCSA milestone
+      await trx
+        .insertInto('maritime_job_milestones')
+        .values({
+          tenant_id: tenantId,
+          job_id: String(job.id),
+          milestone_key: 'BOOK',
+          milestone_title: 'تأكيد الحجز الملاحي (Booking Confirmed)',
+          location: dto.polName,
+          notes: `تم فتح أمر التشغيل وتأكيد الحجز بنجاح برقم ${dto.bookingNumber || finalJobNumber}`,
+          recorded_by: auth.userId ? Number(auth.userId) : null,
+        })
+        .execute();
+
+      // 5. If containers provided, insert them
+      if (dto.containers && dto.containers.length > 0) {
+        for (const c of dto.containers) {
+          await trx
+            .insertInto('maritime_containers')
+            .values({
+              tenant_id: tenantId,
+              job_id: String(job.id),
+              container_number: c.containerNumber.toUpperCase(),
+              container_type: c.containerType || '40HC',
+              seal_number: c.sealNumber || null,
+              gross_weight_kg: Number(c.grossWeightKg || 0),
+              cbm: Number(c.cbm || 0),
+              free_days: Number(c.freeDays || 14),
+              deposit_amount: Number(c.depositAmount || 0),
+              deposit_currency: c.depositCurrency || 'EGP',
+              deposit_status: Number(c.depositAmount || 0) > 0 ? 'held_by_line' : 'not_required',
+            })
+            .execute();
+        }
+      }
+
+      // 6. If linked to quotation, update quotation
+      if (dto.quotationId) {
+        await trx
+          .updateTable('maritime_quotations')
+          .set({
+            status: 'converted_to_job',
+            converted_job_id: String(job.id),
+            updated_at: sql`NOW()`,
+          })
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', dto.quotationId as any)
           .execute();
       }
-    }
 
-    // 5. If linked to quotation, update quotation
-    if (dto.quotationId) {
-      await this.db
-        .updateTable('maritime_quotations')
-        .set({
-          status: 'converted_to_job',
-          converted_job_id: String(job.id),
-          updated_at: sql`NOW()`,
-        })
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', dto.quotationId as any)
-        .execute();
-    }
+      // 7. If linked to inquiry, update inquiry
+      if (dto.inquiryId) {
+        await trx
+          .updateTable('maritime_inquiries')
+          .set({
+            status: 'converted_to_job',
+            job_id: String(job.id),
+            updated_at: sql`NOW()`,
+          })
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', dto.inquiryId as any)
+          .execute();
+      }
 
-    // 6. If linked to inquiry, update inquiry
-    if (dto.inquiryId) {
-      await this.db
-        .updateTable('maritime_inquiries')
-        .set({
-          status: 'converted_to_job',
-          job_id: String(job.id),
-          updated_at: sql`NOW()`,
-        })
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', dto.inquiryId as any)
-        .execute();
-    }
-
-    return job;
+      return updatedJob;
+    });
   }
 
   async autoConvertQuotationToJob(auth: AuthContext, quotationId: string) {

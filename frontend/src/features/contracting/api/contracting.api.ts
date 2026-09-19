@@ -716,7 +716,90 @@ export const contractingApi = {
   // 16. Earned Value Management (EVM) & S-Curve Metrics
   getProjectEvmMetrics: (projectId: string) =>
     http<import('../contracting.types').ContractingProjectEvmMetrics>(`/api/contracting/projects/${projectId}/evm-metrics`),
+
+  // 17. Bank Guarantees & Gateway G1 (خطابات الضمان البنكية والبوابة الرقابية)
+  getGuarantees: (params?: { projectId?: string; subcontractId?: string; subcontractorId?: number; status?: string; guaranteeType?: string }) =>
+    http<import('../contracting.types').ContractingGuarantee[]>(`/api/contracting/guarantees${toQueryString(params)}`),
+
+  getGuaranteeExpiryAlerts: (projectId?: string) =>
+    http<import('../contracting.types').GuaranteeExpiryAlert[]>(`/api/contracting/guarantees/alerts${toQueryString({ projectId })}`),
+
+  getGuaranteeById: (id: string) =>
+    http<import('../contracting.types').ContractingGuarantee>(`/api/contracting/guarantees/${id}`),
+
+  createGuarantee: (data: any) =>
+    http<import('../contracting.types').ContractingGuarantee>('/api/contracting/guarantees', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateGuarantee: (id: string, data: any) =>
+    http<import('../contracting.types').ContractingGuarantee>(`/api/contracting/guarantees/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  extendGuarantee: (id: string, data: { newExpiryDate: string; newClaimExpiryDate?: string; notes?: string }) =>
+    http<import('../contracting.types').ContractingGuarantee>(`/api/contracting/guarantees/${id}/extend`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  releaseGuarantee: (id: string, data: { releaseDate: string; notes?: string }) =>
+    http<import('../contracting.types').ContractingGuarantee>(`/api/contracting/guarantees/${id}/release`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  invokeGuarantee: (id: string, data: { invocationDate: string; invokedAmount?: number; reason: string }) =>
+    http<import('../contracting.types').ContractingGuarantee>(`/api/contracting/guarantees/${id}/invoke`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 17. Field Indirect Cost Allocation (Track 1 - AACE RP 10S-90 / 34R-05)
+  getCostPools: (projectId: string) =>
+    http<import('../contracting.types').CostPool[]>(`/api/contracting/projects/${projectId}/cost-pools`),
+
+  createCostPool: (projectId: string, data: import('../contracting.types').CreateCostPoolPayload) =>
+    http<import('../contracting.types').CostPool>(`/api/contracting/projects/${projectId}/cost-pools`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getIndirectExpenses: (projectId: string, poolId?: string) =>
+    http<import('../contracting.types').IndirectExpense[]>(
+      `/api/contracting/projects/${projectId}/indirect-expenses${poolId ? `?poolId=${poolId}` : ''}`,
+    ),
+
+  createIndirectExpense: (projectId: string, data: import('../contracting.types').CreateIndirectExpensePayload) =>
+    http<import('../contracting.types').IndirectExpense>(`/api/contracting/projects/${projectId}/indirect-expenses`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getAllocationBatches: (projectId: string) =>
+    http<import('../contracting.types').AllocationBatch[]>(`/api/contracting/projects/${projectId}/allocation-batches`),
+
+  previewBatchAllocation: (projectId: string, data: import('../contracting.types').CreateAllocationBatchPayload) =>
+    http<import('../contracting.types').BatchAllocationSummary>(
+      `/api/contracting/projects/${projectId}/allocation-batches/preview`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+
+  postBatchAllocation: (projectId: string, data: import('../contracting.types').CreateAllocationBatchPayload) =>
+    http<{ batch: import('../contracting.types').AllocationBatch; summary: import('../contracting.types').BatchAllocationSummary }>(
+      `/api/contracting/projects/${projectId}/allocation-batches`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
 };
+
 
 
 

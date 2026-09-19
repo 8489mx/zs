@@ -17,10 +17,12 @@ import { PurchaseOrdersService } from './services/purchase-orders.service';
 import { PurchaseOrdersController } from './controllers/purchase-orders.controller';
 import { PurchaseRfqsService } from './services/purchase-rfqs.service';
 import { PurchaseRfqsController } from './controllers/purchase-rfqs.controller';
+import { GoodsReceiptService } from './services/goods-receipt.service';
+import { GoodsReceiptController } from './controllers/goods-receipt.controller';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule],
-  controllers: [PurchaseOrdersController, PurchaseRfqsController, PurchasesController],
+  controllers: [PurchaseOrdersController, PurchaseRfqsController, GoodsReceiptController, PurchasesController],
   providers: [
     PurchasesService,
     PurchasesFinanceService,
@@ -32,7 +34,16 @@ import { PurchaseRfqsController } from './controllers/purchase-rfqs.controller';
     PurchaseLandedCostsService,
     PurchaseOrdersService,
     PurchaseRfqsService,
+    GoodsReceiptService,
   ],
-  exports: [PurchasesService, PurchasesReorderService, MarginProtectionService, PurchaseLandedCostsService, PurchaseOrdersService, PurchaseRfqsService],
+  exports: [
+    PurchasesService,
+    PurchasesReorderService,
+    MarginProtectionService,
+    PurchaseLandedCostsService,
+    PurchaseOrdersService,
+    PurchaseRfqsService,
+    GoodsReceiptService,
+  ],
 })
 export class PurchasesModule {}

@@ -110,6 +110,10 @@ export interface AccountingAccountTable {
   is_payable: boolean;
   is_inventory: boolean;
   is_tax: boolean;
+  /** IAS 21: only monetary items are retranslated at the closing rate. */
+  is_monetary?: boolean;
+  /** Foreign currency this account is denominated in, when it is a monetary FX account. */
+  revaluation_currency?: string | null;
   description_ar: string;
   sort_order: number;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -149,7 +153,7 @@ export interface JournalEntryLineTable {
   description: string;
   debit: number;
   credit: number;
-  partner_type: 'none' | 'customer' | 'supplier';
+  partner_type: 'none' | 'customer' | 'supplier' | 'employee';
   partner_id: number | null;
   branch_id: number | null;
   location_id: number | null;
@@ -214,6 +218,7 @@ export interface AuditLogTable {
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   action: string;
+  event_code?: string | null;
   details: string;
   target_tenant_id: string | null;
   created_by: number | null;
@@ -562,6 +567,8 @@ export interface StockMovementTable {
 }
 
 export interface StockTransferTable {
+  has_transit_variance?: boolean;
+  transit_variance_journal_entry_id?: number | null;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
@@ -590,6 +597,11 @@ export interface StockTransferItemTable {
   product_id: number;
   product_name: string;
   qty: number;
+  /** Transit loss tracking: received_qty may be less than dispatched_qty (shrinkage in transit). */
+  dispatched_qty?: ColumnType<number, number | undefined, number | undefined>;
+  received_qty?: ColumnType<number, number | undefined, number | undefined>;
+  variance_qty?: ColumnType<number, number | undefined, number | undefined>;
+  variance_reason?: string | null;
 }
 
 export interface StockCountSessionTable {
@@ -852,6 +864,11 @@ export interface CashierShiftTable {
   expected_cash: number | null;
   counted_cash: number | null;
   variance?: number | null;
+  variance_resolution?: string | null;
+  variance_journal_entry_id?: number | null;
+  variance_charged_to_user_id?: number | null;
+  variance_approved_by?: number | null;
+  variance_approved_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
   close_note?: string | null;
   branch_id: number | null;
   location_id: number | null;
@@ -1178,6 +1195,10 @@ export interface PurchaseTable {
   landed_cost_allocation_method?: 'value' | 'qty' | 'equal' | null;
   landed_cost_notes?: string | null;
   landed_cost_applied_at?: Date | null;
+  /** Link back to the originating purchase order; required for the price leg of three-way match. */
+  po_id?: number | null;
+  grn_id?: number | null;
+  three_way_match_status?: string;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -3022,8 +3043,8 @@ export interface CostCenterAllocationTable {
 export interface CostCenterAllocationSplitTable {
   id: Generated<string>;
   tenant_id: string;
-  allocation_id: string;
-  cost_center_id: string;
+  allocation_id: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  cost_center_id: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   percentage: ColumnType<number, number | string | undefined, number | string | undefined>;
   notes: string | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
@@ -3425,6 +3446,29 @@ export interface ContractingInvoiceTable {
   advance_recovery_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
   retention_held_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
   other_deductions: ColumnType<number, number | string | undefined, number | string | undefined>;
+  gross_work_done_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  escalation_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  mos_added_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  mos_released_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  mos_balance_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  backcharge_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  ld_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  material_excess_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  shared_resource_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  direct_payment_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  carried_forward_debit_in?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  carried_forward_debit_out?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  taxable_base_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  vat_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  wht_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  social_insurance_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  claimed_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  certified_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  certification_due_date?: string | null;
+  payment_due_date?: string | null;
+  linked_client_invoice_id?: string | null;
+  calc_engine_version?: string;
+  calc_inputs_snapshot?: any;
   net_payable: ColumnType<number, number | string | undefined, number | string | undefined>;
   status: ColumnType<'draft' | 'under_review' | 'approved' | 'paid', string | undefined, string | undefined>;
   journal_entry_id: number | null;
@@ -3440,16 +3484,23 @@ export interface ContractingInvoiceItemTable {
   tenant_id: string;
   invoice_id: string;
   boq_item_id: string | null;
+  wir_id?: string | null;
   description: string;
   unit: string;
   unit_price: ColumnType<number, number | string | undefined, number | string | undefined>;
   previous_qty: ColumnType<number, number | string | undefined, number | string | undefined>;
   current_qty: ColumnType<number, number | string | undefined, number | string | undefined>;
+  claimed_qty?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  certified_qty?: ColumnType<number, number | string | undefined, number | string | undefined>;
   stored_materials_qty: ColumnType<number, number | string | undefined, number | string | undefined>;
   cumulative_qty: ColumnType<number, number | string | undefined, number | string | undefined>;
   completion_percent: ColumnType<number, number | string | undefined, number | string | undefined>;
   current_total: ColumnType<number, number | string | undefined, number | string | undefined>;
   cumulative_total: ColumnType<number, number | string | undefined, number | string | undefined>;
+  variance_reason?: string | null;
+  progress_stage?: string | null;
+  stage_weight_pct?: ColumnType<number | null, number | string | null | undefined, number | string | null | undefined>;
+  change_order_id?: string | null;
   notes: string | null;
 }
 
@@ -3459,15 +3510,55 @@ export interface ContractingSubcontractTable {
   project_id: string;
   subcontractor_id: number;
   contract_number: string;
+  contract_type?: ColumnType<'supply_and_apply' | 'labor_only' | 'supply_only' | 'labor_plus_consumables', string | undefined, string | undefined>;
   scope_of_work: string;
   total_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
   retention_percent: ColumnType<number, number | string | undefined, number | string | undefined>;
+  advance_pct?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  advance_amount?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  advance_recovery_start_pct?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  advance_recovery_end_pct?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  retention_limit_pct?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  penalty_per_day?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  ld_cap_pct?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  liability_cap_amount?: ColumnType<number | null, number | string | null | undefined, number | string | null | undefined>;
+  wht_rate?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  social_insurance_pct?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  payment_linkage_mode?: ColumnType<'independent' | 'pay_when_paid' | 'pay_when_certified', string | undefined, string | undefined>;
+  payment_terms_days?: number;
+  tail_reserve_pct?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  wastage_allowance_pct?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  mos_admissible_pct?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  mos_cap_pct?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  assignment_permitted?: boolean;
+  dlp_months?: number;
+  revised_contract_sum?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  revised_completion_date?: string | null;
+  approved_eot_days?: number;
+  baseline_frozen_at?: Date | null;
   start_date: string | null;
   end_date: string | null;
   status: ColumnType<'active' | 'completed' | 'terminated', string | undefined, string | undefined>;
   notes: string | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingIpcDeductionTable {
+  id: Generated<string>;
+  tenant_id: string;
+  invoice_id: string;
+  deduction_type: string;
+  source_table: string | null;
+  source_id: string | null;
+  amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  vat_treatment: string;
+  debit_note_ref: string | null;
+  notice_ref: string | null;
+  approved_by: string | null;
+  approved_at: Date | null;
+  description: string;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
 export interface ContractingSubcontractorTable {
@@ -3504,6 +3595,8 @@ export interface ContractingSubcontractorPaymentTable {
   payment_date: string;
   amount: ColumnType<number, number | string | undefined, number | string | undefined>;
   payment_method: ColumnType<'cash' | 'bank_transfer' | 'check', string | undefined, string | undefined>;
+  payment_category: ColumnType<'advance' | 'progress' | 'retention' | 'operational_advance', string | undefined, string | undefined>;
+  status: ColumnType<'completed' | 'cancelled', string | undefined, string | undefined>;
   reference_number: string | null;
   notes: string | null;
   created_by: number | null;
@@ -3589,6 +3682,28 @@ export interface ContractingMaterialRequisitionTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface ContractingGuaranteeTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  subcontract_id: string | null;
+  subcontractor_id: string | null;
+  guarantee_number: string;
+  guarantee_type: ColumnType<'advance_payment' | 'performance' | 'retention' | 'maintenance' | 'bid_bond', string | undefined, string | undefined>;
+  issuing_bank: string;
+  amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  currency: string;
+  issue_date: string;
+  expiry_date: string;
+  claim_expiry_date: string | null;
+  reduction_schedule: ColumnType<any, any | undefined, any | undefined>;
+  status: ColumnType<'active' | 'expired' | 'released' | 'confiscated_invoked' | 'cancelled', string | undefined, string | undefined>;
+  document_url: string | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface Database {
   tamper_audit_logs: TamperAuditLogTable;
   approval_rules: ApprovalRuleTable;
@@ -3616,6 +3731,7 @@ export interface Database {
   contracting_subcontracts: ContractingSubcontractTable;
   contracting_subcontractors: ContractingSubcontractorTable;
   contracting_subcontractor_payments: ContractingSubcontractorPaymentTable;
+  contracting_guarantees: ContractingGuaranteeTable;
   contracting_site_daily_logs: ContractingSiteDailyLogTable;
   contracting_rfis: ContractingRfiTable;
   contracting_schedule_tasks: ContractingScheduleTaskTable;

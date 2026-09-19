@@ -114,8 +114,13 @@ export class InventoryController {
 
   @Post('stock-transfers/:id/receive')
   @RequirePermissions('canAdjustInventory')
-  receiveTransfer(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.inventoryService.receiveStockTransfer(id, req.authContext!);
+  receiveTransfer(
+    @Param('id', ParseIntPipe) id: number,
+    // Optional per-line received quantities; omitting them means "received exactly what was sent".
+    @Body() body: { items?: Array<{ itemId: number; receivedQty: number }> },
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.inventoryService.receiveStockTransfer(id, req.authContext!, body);
   }
 
   @Post('stock-transfers/:id/cancel')

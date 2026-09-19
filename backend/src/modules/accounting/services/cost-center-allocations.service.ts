@@ -34,7 +34,7 @@ export class CostCenterAllocationsService {
     if (allocations.length === 0) return [];
 
     const allocationIds = allocations.map((a) => String(a.id));
-    const splits = await (this.db as any)
+    const splits = await this.db
       .selectFrom('cost_center_allocation_splits as ccas')
       .leftJoin('cost_centers as cc', 'cc.id', 'ccas.cost_center_id')
       .select([
@@ -47,7 +47,7 @@ export class CostCenterAllocationsService {
         'cc.code as cost_center_code',
       ])
       .where('ccas.tenant_id', '=', tenantId)
-      .where('ccas.allocation_id', 'in', allocationIds)
+      .where('ccas.allocation_id', 'in', allocationIds as any)
       .execute();
 
     const splitsMap = new Map<string, any[]>();
@@ -188,7 +188,7 @@ export class CostCenterAllocationsService {
 
     if (!allocation) throw new NotFoundException('مصفوفة التوزيع غير موجودة.');
 
-    const splits = await (this.db as any)
+    const splits = await this.db
       .selectFrom('cost_center_allocation_splits as ccas')
       .leftJoin('cost_centers as cc', 'cc.id', 'ccas.cost_center_id')
       .select([
@@ -198,7 +198,7 @@ export class CostCenterAllocationsService {
         'cc.code as cost_center_code',
       ])
       .where('ccas.tenant_id', '=', tenantId)
-      .where('ccas.allocation_id', '=', allocationId)
+      .where('ccas.allocation_id', '=', allocationId as any)
       .execute();
 
     const splitResults = splits.map((s: any) => {

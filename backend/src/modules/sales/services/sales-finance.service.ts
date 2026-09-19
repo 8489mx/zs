@@ -81,4 +81,69 @@ export class SalesFinanceService {
       } as any)
       .execute();
   }
+
+  async addCustomerPaymentLedgerEntry(
+    queryable: DbOrTx,
+    customerId: number,
+    amount: number,
+    note: string,
+    referenceType: string,
+    referenceId: number,
+    auth: AuthContext,
+    branchId?: number | null,
+    locationId?: number | null,
+  ): Promise<void> {
+    const updatedCustomer = await queryable
+      .updateTable('customers')
+      .set({ balance: sql`COALESCE(balance, 0) + ${amount}`, updated_at: sql`NOW()` })
+      .where('id', '=', customerId)
+      .where(this.tenantPredicate(auth))
+      .returning(['balance'])
+      .executeTakeFirstOrThrow();
+    const nextBalance = Number(updatedCustomer.balance).toFixed(2);
+    await queryable
+      .insertInto('customer_ledger')
+      .values({
+        customer_id: customerId,
+        entry_type: 'customer_payment',
+        amount,
+        balance_after: Number(nextBalance),
+        note,
+        reference_type: referenceType,
+        reference_id: referenceId,
+        branch_id: branchId || null,
+        location_id: locationId || null,
+        created_by: auth.userId,
+        ...this.tenantFields(auth),
+      } as any)
+      .execute();
+  }
+
+  async addTreasuryPaymentTransaction(
+    queryable: DbOrTx,
+    txnType: string,
+    amount: number,
+    note: string,
+    referenceType: string,
+    referenceId: number,
+    auth: AuthContext,
+    branchId?: number | null,
+    locationId?: number | null,
+  ): Promise<void> {
+    await queryable
+      .insertInto('treasury_transactions')
+      .values({
+        txn_type: txnType,
+        amount,
+        note,
+        reference_type: referenceType,
+        reference_id: referenceId,
+        created_by: auth.userId,
+        branch_id: branchId || null,
+        location_id: locationId || null,
+        ...this.tenantFields(auth),
+      } as any)
+      .execute();
+  }
 }
+

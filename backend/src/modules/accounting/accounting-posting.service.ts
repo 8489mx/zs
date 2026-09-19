@@ -13,7 +13,7 @@ type JournalLineDraft = {
   description: string;
   debit: number;
   credit: number;
-  partnerType: 'none' | 'customer' | 'supplier';
+  partnerType: 'none' | 'customer' | 'supplier' | 'employee';
   partnerId: number | null;
   branchId: number | null;
   locationId: number | null;
@@ -1230,11 +1230,12 @@ export class AccountingPostingService {
     const existing = await this.getExistingPurchaseJournal(queryable, purchaseId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
 
-    const purchase = await queryable
+    const purchase = await (queryable as any)
       .selectFrom('purchases')
       .select([
         'id', 'doc_no', 'payment_type', 'subtotal', 'discount', 'tax_amount', 'total',
         'branch_id', 'location_id', 'created_by', 'created_at', 'supplier_id',
+        'grn_id', 'three_way_match_status',
       ])
       .where('id', '=', purchaseId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
@@ -1269,17 +1270,101 @@ export class AccountingPostingService {
     const payableCredit = purchase.payment_type === 'credit' ? total : 0;
     const cashOrBankCredit = purchase.payment_type === 'credit' ? 0 : total;
 
-    if (inventoryDebit > 0) {
+    // Check if this purchase is linked to a posted GRN (3-Way Matching)
+    let linkedGrn: { id: number; doc_no: string; grni_journal_entry_id: number | null } | undefined;
+    if (purchase.grn_id) {
+      linkedGrn = await (queryable as any)
+        .selectFrom('goods_receipt_notes')
+        .select(['id', 'doc_no', 'grni_journal_entry_id'])
+        .where('id', '=', Number(purchase.grn_id))
+        .where('tenant_id', '=', scope.tenantId)
+        .where('status', '=', 'posted')
+        .executeTakeFirst();
+    }
+
+    const grniAccount = await queryable
+      .selectFrom('accounting_accounts')
+      .select(['id'])
+      .where('tenant_id', '=', scope.tenantId)
+      .where('code', '=', '2125')
+      .where('is_active', '=', true)
+      .executeTakeFirst();
+
+    const ppvAccount = await queryable
+      .selectFrom('accounting_accounts')
+      .select(['id'])
+      .where('tenant_id', '=', scope.tenantId)
+      .where('code', '=', '5190')
+      .where('is_active', '=', true)
+      .executeTakeFirst();
+
+    if (linkedGrn && grniAccount) {
+      // Goods already received via GRN! Clear GRNI (2125) and route price variance to PPV (5190)
+      const grnLines = await (queryable as any)
+        .selectFrom('goods_receipt_lines')
+        .select(['accepted_qty', 'unit_cost'])
+        .where('grn_id', '=', linkedGrn.id)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+      const grniBookedAmount = this.toMoney(
+        grnLines.reduce((sum: number, l: any) => sum + (Number(l.accepted_qty || 0) * Number(l.unit_cost || 0)), 0),
+      );
+
+      const netInvoiceAmount = this.toMoney(Math.max(0, total - taxAmount));
+      const priceVariance = this.toMoney(netInvoiceAmount - grniBookedAmount);
+
       this.addLine(lines, {
-        accountId: Number(settings.inventory_account_id || 0),
-        description: 'إثبات تكلفة شراء للمخزون',
-        debit: inventoryDebit,
+        accountId: Number(grniAccount.id),
+        description: `تصفية استحقاق بضاعة مستلمة GRNI - إذن رقم ${linkedGrn.doc_no}`,
+        debit: grniBookedAmount,
         credit: 0,
-        partnerType: 'none',
-        partnerId: null,
+        partnerType: purchase.supplier_id ? 'supplier' : 'none',
+        partnerId: purchase.supplier_id ? Number(purchase.supplier_id) : null,
         branchId,
         locationId,
       });
+
+      if (Math.abs(priceVariance) > 0.0001 && ppvAccount) {
+        if (priceVariance > 0) {
+          // Unfavorable variance (invoice cost > GRN cost) -> Debit PPV (Expense)
+          this.addLine(lines, {
+            accountId: Number(ppvAccount.id),
+            description: `فروق أسعار شراء غير مواتية PPV - فاتورة ${purchase.doc_no}`,
+            debit: priceVariance,
+            credit: 0,
+            partnerType: 'none',
+            partnerId: null,
+            branchId,
+            locationId,
+          });
+        } else {
+          // Favorable variance (invoice cost < GRN cost) -> Credit PPV (Gain)
+          this.addLine(lines, {
+            accountId: Number(ppvAccount.id),
+            description: `فروق أسعار شراء مواتية PPV - فاتورة ${purchase.doc_no}`,
+            debit: 0,
+            credit: Math.abs(priceVariance),
+            partnerType: 'none',
+            partnerId: null,
+            branchId,
+            locationId,
+          });
+        }
+      }
+    } else {
+      // Direct purchase without prior GRN -> Dr. Inventory Asset (1140)
+      if (inventoryDebit > 0) {
+        this.addLine(lines, {
+          accountId: Number(settings.inventory_account_id || 0),
+          description: 'إثبات تكلفة شراء للمخزون',
+          debit: inventoryDebit,
+          credit: 0,
+          partnerType: 'none',
+          partnerId: null,
+          branchId,
+          locationId,
+        });
+      }
     }
 
     if (taxAmount > 0) {
@@ -1351,6 +1436,159 @@ export class AccountingPostingService {
       branchId,
       locationId,
       createdBy: purchase.created_by ? Number(purchase.created_by) : auth.userId,
+      postedBy: auth.userId,
+      lines: normalizedLines,
+    });
+
+    return { posted: true, journalEntryId: entryId };
+  }
+
+  async postPurchaseReturn(queryable: DbOrTx, returnId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+    const existing = await queryable
+      .selectFrom('journal_entries')
+      .select(['id', 'status'])
+      .where('source_type', '=', 'purchase_return')
+      .where('source_id', '=', returnId)
+      .where('tenant_id', '=', scope.tenantId)
+      .where('status', 'in', ['draft', 'posted'])
+      .orderBy('id', 'desc')
+      .executeTakeFirst();
+    if (existing) {
+      this.logger.warn(`Skipping duplicate purchase return journal for return ${returnId}; existing entry ${existing.id}`);
+      return { posted: false, journalEntryId: Number(existing.id) };
+    }
+
+    const returnDocument = await queryable
+      .selectFrom('return_documents')
+      .selectAll()
+      .where('id', '=', returnId)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .executeTakeFirst();
+
+    if (!returnDocument || returnDocument.return_type !== 'purchase') {
+      this.logger.warn(`Purchase return document ${returnId} not found or not a purchase return; skipping accounting post`);
+      return { posted: false, journalEntryId: null };
+    }
+
+    const purchase = returnDocument.invoice_id
+      ? await queryable
+        .selectFrom('purchases')
+        .select(['id', 'doc_no', 'payment_type', 'supplier_id', 'tax_amount', 'total'])
+        .where('id', '=', Number(returnDocument.invoice_id))
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst()
+      : null;
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    if (!settings) throw new Error(`Accounting settings missing while posting purchase return ${returnId}`);
+
+    const total = this.toMoney(returnDocument.total);
+    const originalPurchaseTotal = Number(purchase?.total || 0);
+    const originalPurchaseTax = Number(purchase?.tax_amount || 0);
+    const taxRatio = originalPurchaseTotal > 0 && originalPurchaseTax > 0 ? (originalPurchaseTax / originalPurchaseTotal) : 0;
+    const taxAmount = this.toMoney(total * taxRatio);
+    const netReturnAmount = this.toMoney(Math.max(0, total - taxAmount));
+    const supplierPartnerId = purchase?.supplier_id ? Number(purchase?.supplier_id) : null;
+    const lines: JournalLineDraft[] = [];
+    const branchId = returnDocument.branch_id ? Number(returnDocument.branch_id) : null;
+    const locationId = returnDocument.location_id ? Number(returnDocument.location_id) : null;
+    const invoiceNo = purchase?.doc_no || returnDocument.doc_no || `ZP-${returnDocument.invoice_id || ''}`;
+
+    // Dr. Supplier Payable (2110) or Cash/Bank
+    const originalPaymentType = String(purchase?.payment_type || '').trim().toLowerCase();
+    const refundMethod = String(returnDocument.refund_method || '').trim().toLowerCase();
+
+    if (total > 0) {
+      if (originalPaymentType === 'credit') {
+        this.addLine(lines, {
+          accountId: Number(settings.supplier_payable_account_id || 0),
+          description: `تخفيض مديونية مورد من مردودات مشتريات فاتورة رقم ${invoiceNo}`,
+          debit: total,
+          credit: 0,
+          partnerType: supplierPartnerId ? 'supplier' : 'none',
+          partnerId: supplierPartnerId,
+          branchId,
+          locationId,
+        });
+      } else if (refundMethod === 'cash') {
+        this.addLine(lines, {
+          accountId: Number(settings.cash_account_id || 0),
+          description: `استرداد نقدي من مورد لمرتجع فاتورة رقم ${invoiceNo}`,
+          debit: total,
+          credit: 0,
+          partnerType: 'none',
+          partnerId: null,
+          branchId,
+          locationId,
+        });
+      } else {
+        this.addLine(lines, {
+          accountId: Number(settings.bank_account_id || 0),
+          description: `استرداد بنكي من مورد لمرتجع فاتورة رقم ${invoiceNo}`,
+          debit: total,
+          credit: 0,
+          partnerType: 'none',
+          partnerId: null,
+          branchId,
+          locationId,
+        });
+      }
+    }
+
+    // Cr. Inventory Asset (1140)
+    if (netReturnAmount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.inventory_account_id || 0),
+        description: `تخفيض المخزون من مردودات مشتريات فاتورة رقم ${invoiceNo}`,
+        debit: 0,
+        credit: netReturnAmount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId,
+        locationId,
+      });
+    }
+
+    // Cr. Purchase Tax (1180) (Reversing Input VAT)
+    if (taxAmount > 0 && Number(settings.purchase_tax_account_id || 0) > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.purchase_tax_account_id),
+        description: `عكس ضريبة مشتريات من مردودات فاتورة رقم ${invoiceNo}`,
+        debit: 0,
+        credit: taxAmount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId,
+        locationId,
+      });
+    }
+
+    const accountMap = await this.getActiveAccountMap(queryable, scope.tenantId, lines.map((line) => line.accountId));
+    for (const line of lines) {
+      if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting purchase return ${returnId}`);
+      if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting purchase return ${returnId}`);
+      if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting purchase return ${returnId}`);
+    }
+
+    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+      throw new Error(`Unbalanced purchase return journal for return ${returnId}: debit=${totalDebit} credit=${totalCredit}`);
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'purchase_return',
+      sourceId: returnId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
+      entryDate: returnDocument.created_at ? new Date(returnDocument.created_at) : new Date(),
+      description: `قيد مردودات مشتريات للفاتورة رقم ${invoiceNo}`,
+      branchId,
+      locationId,
+      createdBy: returnDocument.created_by ? Number(returnDocument.created_by) : auth.userId,
       postedBy: auth.userId,
       lines: normalizedLines,
     });
@@ -1850,6 +2088,23 @@ export class AccountingPostingService {
       const knownAccounts: Record<string, { name_ar: string; name_en: string; type: string; group: string; balance: string }> = {
         '5400': { name_ar: 'مصاريف صناعية غير مباشرة محملة', name_en: 'Manufacturing Overhead', type: 'expense', group: 'expenses', balance: 'debit' },
         '1140': { name_ar: 'مخزون بضاعة ومواد خام', name_en: 'Inventory', type: 'asset', group: 'current_assets', balance: 'debit' },
+        '1135': { name_ar: 'ذمم مدينة - أمناء الصناديق', name_en: 'Cashier Receivable', type: 'asset', group: 'current_assets', balance: 'debit' },
+        '1122': { name_ar: 'أوراق قبض في الخزينة', name_en: 'Notes Receivable in Safe', type: 'asset', group: 'current_assets', balance: 'debit' },
+        '1121': { name_ar: 'أوراق قبض برسم التحصيل', name_en: 'Notes Receivable Under Collection', type: 'asset', group: 'current_assets', balance: 'debit' },
+        '2135': { name_ar: 'أوراق دفع', name_en: 'Notes Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
+        '2125': { name_ar: 'أمانات ضريبة الخصم والإضافة', name_en: 'Withholding Tax Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
+        '1155': { name_ar: 'ضرائب مخصومة لدى الغير', name_en: 'Withholding Tax Receivable', type: 'asset', group: 'current_assets', balance: 'debit' },
+        '6800': { name_ar: 'مصاريف بنكية', name_en: 'Bank Fees', type: 'expense', group: 'operating_expenses', balance: 'debit' },
+        '1110': { name_ar: 'الخزينة', name_en: 'Cash', type: 'asset', group: 'cash_bank', balance: 'debit' },
+        '1120': { name_ar: 'البنك', name_en: 'Bank', type: 'asset', group: 'cash_bank', balance: 'debit' },
+        '1130': { name_ar: 'العملاء', name_en: 'Accounts Receivable', type: 'asset', group: 'receivable', balance: 'debit' },
+        '2110': { name_ar: 'الموردون', name_en: 'Accounts Payable', type: 'liability', group: 'payable', balance: 'credit' },
+        '2120': { name_ar: 'ضريبة مبيعات مستحقة', name_en: 'Sales VAT Payable', type: 'liability', group: 'tax', balance: 'credit' },
+        '7100': { name_ar: 'إيرادات أخرى', name_en: 'Other Income', type: 'revenue', group: 'income', balance: 'credit' },
+        '7200': { name_ar: 'خسائر أو فروق تسوية', name_en: 'Adjustment Losses', type: 'expense', group: 'operating_expenses', balance: 'debit' },
+        '6200': { name_ar: 'الرواتب والأجور ومكافأة نهاية الخدمة', name_en: 'Salaries, Wages & EOS', type: 'expense', group: 'operating_expenses', balance: 'debit' },
+        '2140': { name_ar: 'رواتب ومستحقات مستحقة الدفع', name_en: 'Payroll & Settlements Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
+        '1160': { name_ar: 'سلف وقروض العاملين', name_en: 'Employee Advances & Loans', type: 'asset', group: 'current_assets', balance: 'debit' },
       };
       const known = knownAccounts[code];
       if (known) {
@@ -2216,6 +2471,29 @@ export class AccountingPostingService {
     }
   }
 
+  /**
+   * Cash shortage tolerance per shift. Shortages at or below it are absorbed as an operating
+   * expense; anything above becomes a receivable on the custodian. Defaults to 0 (no tolerance),
+   * so the stricter treatment applies unless a tenant explicitly configures otherwise.
+   */
+  private async getCashierShortageTolerance(queryable: DbOrTx, tenantId: string): Promise<number> {
+    try {
+      const row = await queryable
+        .selectFrom('settings')
+        .select('value')
+        .where('tenant_id', '=', tenantId)
+        .where('key', '=', 'cashierShortageTolerance')
+        .executeTakeFirst();
+      if (!row?.value) return 0;
+      let raw: unknown = row.value;
+      try { raw = JSON.parse(String(row.value)); } catch { /* plain scalar */ }
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    } catch {
+      return 0;
+    }
+  }
+
   async postCashierShiftVariance(queryable: DbOrTx, shiftId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
@@ -2237,18 +2515,36 @@ export class AccountingPostingService {
     const branchId = shift.branch_id ? Number(shift.branch_id) : null;
     const locationId = shift.location_id ? Number(shift.location_id) : null;
 
+    // Shortages up to the configured tolerance are an operating cost of running a till.
+    // Beyond it, the shortage is a debt of the custodian and must sit on a receivable in their name,
+    // not be silently written off to expense.
+    const shortageTolerance = await this.getCashierShortageTolerance(queryable, scope.tenantId);
+    let resolution: 'within_tolerance' | 'charged_to_cashier' | 'surplus_recognized';
+    let chargedToUserId: number | null = null;
+
     if (variance < 0) {
-       // Shortage
-       const shortageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7200');
        const amount = Math.abs(variance);
-       this.addLine(lines, { accountId: shortageAccountId, description: `عجز وردية رقم #${shiftId}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+       const custodianId = shift.opened_by ? Number(shift.opened_by) : null;
+       const chargeToCashier = amount > shortageTolerance && custodianId !== null && custodianId > 0;
+
+       if (chargeToCashier) {
+         const receivableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1135');
+         this.addLine(lines, { accountId: receivableAccountId, description: `عجز وردية رقم #${shiftId} محمّل على أمين الصندوق`, debit: amount, credit: 0, partnerType: 'employee', partnerId: custodianId, branchId, locationId });
+         resolution = 'charged_to_cashier';
+         chargedToUserId = custodianId;
+       } else {
+         const shortageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7200');
+         this.addLine(lines, { accountId: shortageAccountId, description: `عجز وردية رقم #${shiftId} ضمن حد التسامح`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+         resolution = 'within_tolerance';
+       }
        this.addLine(lines, { accountId: cashAccountId, description: `عجز وردية نقدية`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
     } else {
-       // Overage
+       // Overage. Never netted against another shift's shortage: it lands on its own income account.
        const overageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100');
        const amount = variance;
        this.addLine(lines, { accountId: cashAccountId, description: `زيادة وردية رقم #${shiftId}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
        this.addLine(lines, { accountId: overageAccountId, description: `زيادة وردية نقدية`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+       resolution = 'surplus_recognized';
     }
 
     try {
@@ -2265,6 +2561,20 @@ export class AccountingPostingService {
         postedBy: auth.userId,
         lines,
       });
+
+      await queryable
+        .updateTable('cashier_shifts')
+        .set({
+          variance_resolution: resolution,
+          variance_journal_entry_id: entryId,
+          variance_charged_to_user_id: chargedToUserId,
+          variance_approved_by: auth.userId ?? null,
+          variance_approved_at: sql`NOW()`,
+        } as any)
+        .where('id', '=', shiftId)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+
       return { posted: true, journalEntryId: entryId };
     } catch (e: any) {
       if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
@@ -2749,6 +3059,912 @@ export class AccountingPostingService {
     });
 
     return { posted: true, journalEntryId: entryId };
+  }
+
+  async postPdcChequeReceive(queryable: DbOrTx, chequeId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const cheque = await queryable
+      .selectFrom('accounting_cheques')
+      .selectAll()
+      .where('id', '=', chequeId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!cheque) return { posted: false, journalEntryId: null };
+    const amount = this.toMoney(cheque.amount);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    const notesInSafeId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let customerArId = Number(settings?.customer_receivable_account_id || 0);
+    if (!(customerArId > 0)) customerArId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
+
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: notesInSafeId,
+      description: `ورقة قبض في الخزينة - شيك #${cheque.cheque_number} (${cheque.bank_name})`,
+      debit: amount,
+      credit: 0,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: null,
+      locationId: null,
+    });
+    this.addLine(lines, {
+      accountId: customerArId,
+      description: `استلام شيك قبض #${cheque.cheque_number} من ${cheque.partner_name}`,
+      debit: 0,
+      credit: amount,
+      partnerType: cheque.partner_id ? 'customer' : 'none',
+      partnerId: cheque.partner_id ? Number(cheque.partner_id) : null,
+      branchId: null,
+      locationId: null,
+    });
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'pdc_cheque_receive',
+        sourceId: chequeId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: cheque.issue_date ? new Date(cheque.issue_date) : new Date(),
+        description: `قيد استلام ورقة قبض #${cheque.cheque_number} من ${cheque.partner_name}`,
+        branchId: null,
+        locationId: null,
+        createdBy: cheque.created_by ? Number(cheque.created_by) : auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && (e.constraint?.includes('idx_journal_entries_pdc_and_wht_uniq') || e.constraint?.includes('idx_journal_entries_round1_uniq'))) {
+        const existing = await queryable
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('source_type', '=', 'pdc_cheque_receive')
+          .where('source_id', '=', chequeId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postPdcChequeDeposit(queryable: DbOrTx, chequeId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const cheque = await queryable
+      .selectFrom('accounting_cheques')
+      .selectAll()
+      .where('id', '=', chequeId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!cheque) return { posted: false, journalEntryId: null };
+    const amount = this.toMoney(cheque.amount);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    const notesUnderCollId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1121');
+    const notesInSafeId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
+
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: notesUnderCollId,
+      description: `ورقة قبض برسم التحصيل - شيك #${cheque.cheque_number}`,
+      debit: amount,
+      credit: 0,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: null,
+      locationId: null,
+    });
+    this.addLine(lines, {
+      accountId: notesInSafeId,
+      description: `إيداع شيك قبض #${cheque.cheque_number} للتحصيل`,
+      debit: 0,
+      credit: amount,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: null,
+      locationId: null,
+    });
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'pdc_cheque_deposit',
+        sourceId: chequeId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: cheque.deposit_date ? new Date(cheque.deposit_date) : new Date(),
+        description: `قيد إيداع ورقة قبض برسم التحصيل #${cheque.cheque_number}`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && (e.constraint?.includes('idx_journal_entries_pdc_and_wht_uniq') || e.constraint?.includes('idx_journal_entries_round1_uniq'))) {
+        const existing = await queryable
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('source_type', '=', 'pdc_cheque_deposit')
+          .where('source_id', '=', chequeId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postPdcChequeCollect(queryable: DbOrTx, chequeId: number, bankAccountId: number | null, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const cheque = await queryable
+      .selectFrom('accounting_cheques')
+      .selectAll()
+      .where('id', '=', chequeId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!cheque) return { posted: false, journalEntryId: null };
+    const amount = this.toMoney(cheque.amount);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    // Debit Bank account
+    let debitBankId = bankAccountId && Number(bankAccountId) > 0 ? Number(bankAccountId) : Number(cheque.deposit_bank_id || 0);
+    if (!(debitBankId > 0)) {
+      const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+      debitBankId = Number(settings?.bank_account_id || 0);
+      if (!(debitBankId > 0)) debitBankId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1120');
+    }
+
+    // Credit account: was it under collection or in safe?
+    const wasUnderCollection = cheque.deposit_date || cheque.status === 'under_collection';
+    const creditAccountId = wasUnderCollection
+      ? await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1121')
+      : await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
+
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: debitBankId,
+      description: `تحصيل ورقة قبض #${cheque.cheque_number} في البنك`,
+      debit: amount,
+      credit: 0,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: null,
+      locationId: null,
+    });
+    this.addLine(lines, {
+      accountId: creditAccountId,
+      description: `إقفال ورقة قبض #${cheque.cheque_number} بعد التحصيل`,
+      debit: 0,
+      credit: amount,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: null,
+      locationId: null,
+    });
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'pdc_cheque_collect',
+        sourceId: chequeId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: cheque.cleared_date ? new Date(cheque.cleared_date) : new Date(),
+        description: `قيد تحصيل ورقة قبض #${cheque.cheque_number} بحساب البنك`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && (e.constraint?.includes('idx_journal_entries_pdc_and_wht_uniq') || e.constraint?.includes('idx_journal_entries_round1_uniq'))) {
+        const existing = await queryable
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('source_type', '=', 'pdc_cheque_collect')
+          .where('source_id', '=', chequeId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postPdcChequeBounce(queryable: DbOrTx, chequeId: number, bouncedFee: number, bankAccountId: number | null, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const cheque = await queryable
+      .selectFrom('accounting_cheques')
+      .selectAll()
+      .where('id', '=', chequeId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!cheque) return { posted: false, journalEntryId: null };
+    const amount = this.toMoney(cheque.amount);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let customerArId = Number(settings?.customer_receivable_account_id || 0);
+    if (!(customerArId > 0)) customerArId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
+
+    const wasUnderCollection = cheque.deposit_date || cheque.status === 'under_collection';
+    const creditAccountId = wasUnderCollection
+      ? await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1121')
+      : await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
+
+    const lines: JournalLineDraft[] = [];
+    // Restore Customer balance
+    this.addLine(lines, {
+      accountId: customerArId,
+      description: `ارتداد شيك #${cheque.cheque_number} - إعادة المديونية للعميل ${cheque.partner_name}`,
+      debit: amount,
+      credit: 0,
+      partnerType: cheque.partner_id ? 'customer' : 'none',
+      partnerId: cheque.partner_id ? Number(cheque.partner_id) : null,
+      branchId: null,
+      locationId: null,
+    });
+    this.addLine(lines, {
+      accountId: creditAccountId,
+      description: `إلغاء ورقة قبض مرتدة #${cheque.cheque_number}`,
+      debit: 0,
+      credit: amount,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: null,
+      locationId: null,
+    });
+
+    // Bank fee for bounced cheque if any
+    const fee = this.toMoney(bouncedFee);
+    if (fee > 0) {
+      const bankFeeId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6800');
+      let bankId = bankAccountId && Number(bankAccountId) > 0 ? Number(bankAccountId) : Number(cheque.deposit_bank_id || 0);
+      if (!(bankId > 0)) {
+        bankId = Number(settings?.bank_account_id || 0);
+        if (!(bankId > 0)) bankId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1120');
+      }
+      this.addLine(lines, {
+        accountId: bankFeeId,
+        description: `عمولة ومصاريف ارتداد شيك #${cheque.cheque_number}`,
+        debit: fee,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+      this.addLine(lines, {
+        accountId: bankId,
+        description: `خصم مصاريف بنكية لشيك مرتد #${cheque.cheque_number}`,
+        debit: 0,
+        credit: fee,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+    }
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'pdc_cheque_bounce',
+        sourceId: chequeId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: cheque.bounced_date ? new Date(cheque.bounced_date) : new Date(),
+        description: `قيد ارتداد ورقة قبض #${cheque.cheque_number} للعميل ${cheque.partner_name}`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && (e.constraint?.includes('idx_journal_entries_pdc_and_wht_uniq') || e.constraint?.includes('idx_journal_entries_round1_uniq'))) {
+        const existing = await queryable
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('source_type', '=', 'pdc_cheque_bounce')
+          .where('source_id', '=', chequeId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postPdcChequeEndorse(queryable: DbOrTx, chequeId: number, supplierId: number | null, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const cheque = await queryable
+      .selectFrom('accounting_cheques')
+      .selectAll()
+      .where('id', '=', chequeId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!cheque) return { posted: false, journalEntryId: null };
+    const amount = this.toMoney(cheque.amount);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let supplierApId = Number(settings?.supplier_payable_account_id || 0);
+    if (!(supplierApId > 0)) supplierApId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2110');
+
+    const notesInSafeId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
+    const targetSupplierId = supplierId || cheque.endorsed_to_supplier_id;
+
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: supplierApId,
+      description: `تظهير ورقة قبض #${cheque.cheque_number} سداداً لمستحقات المورد`,
+      debit: amount,
+      credit: 0,
+      partnerType: targetSupplierId ? 'supplier' : 'none',
+      partnerId: targetSupplierId ? Number(targetSupplierId) : null,
+      branchId: null,
+      locationId: null,
+    });
+    this.addLine(lines, {
+      accountId: notesInSafeId,
+      description: `خروج ورقة قبض #${cheque.cheque_number} من الخزينة بالتظهير`,
+      debit: 0,
+      credit: amount,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: null,
+      locationId: null,
+    });
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'pdc_cheque_endorse',
+        sourceId: chequeId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد تظهير ورقة قبض #${cheque.cheque_number} للمورد`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && (e.constraint?.includes('idx_journal_entries_pdc_and_wht_uniq') || e.constraint?.includes('idx_journal_entries_round1_uniq'))) {
+        const existing = await queryable
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('source_type', '=', 'pdc_cheque_endorse')
+          .where('source_id', '=', chequeId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postPdcChequeIssue(queryable: DbOrTx, chequeId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const cheque = await queryable
+      .selectFrom('accounting_cheques')
+      .selectAll()
+      .where('id', '=', chequeId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!cheque) return { posted: false, journalEntryId: null };
+    const amount = this.toMoney(cheque.amount);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let supplierApId = Number(settings?.supplier_payable_account_id || 0);
+    if (!(supplierApId > 0)) supplierApId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2110');
+
+    const notesPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2135');
+
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: supplierApId,
+      description: `إصدار ورقة دفع #${cheque.cheque_number} للمورد ${cheque.partner_name}`,
+      debit: amount,
+      credit: 0,
+      partnerType: cheque.partner_id ? 'supplier' : 'none',
+      partnerId: cheque.partner_id ? Number(cheque.partner_id) : null,
+      branchId: null,
+      locationId: null,
+    });
+    this.addLine(lines, {
+      accountId: notesPayableId,
+      description: `ورقة دفع مصدرة #${cheque.cheque_number} للمورد ${cheque.partner_name}`,
+      debit: 0,
+      credit: amount,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: null,
+      locationId: null,
+    });
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'pdc_cheque_issue',
+        sourceId: chequeId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: cheque.issue_date ? new Date(cheque.issue_date) : new Date(),
+        description: `قيد إصدار ورقة دفع #${cheque.cheque_number} للمورد ${cheque.partner_name}`,
+        branchId: null,
+        locationId: null,
+        createdBy: cheque.created_by ? Number(cheque.created_by) : auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && (e.constraint?.includes('idx_journal_entries_pdc_and_wht_uniq') || e.constraint?.includes('idx_journal_entries_round1_uniq'))) {
+        const existing = await queryable
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('source_type', '=', 'pdc_cheque_issue')
+          .where('source_id', '=', chequeId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postPdcChequeClear(queryable: DbOrTx, chequeId: number, bankAccountId: number | null, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const cheque = await queryable
+      .selectFrom('accounting_cheques')
+      .selectAll()
+      .where('id', '=', chequeId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!cheque) return { posted: false, journalEntryId: null };
+    const amount = this.toMoney(cheque.amount);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    const notesPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2135');
+
+    let bankId = bankAccountId && Number(bankAccountId) > 0 ? Number(bankAccountId) : Number(cheque.deposit_bank_id || 0);
+    if (!(bankId > 0)) {
+      const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+      bankId = Number(settings?.bank_account_id || 0);
+      if (!(bankId > 0)) bankId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1120');
+    }
+
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: notesPayableId,
+      description: `صرف وإقفال ورقة دفع #${cheque.cheque_number}`,
+      debit: amount,
+      credit: 0,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: null,
+      locationId: null,
+    });
+    this.addLine(lines, {
+      accountId: bankId,
+      description: `خصم ورقة دفع منصرفة #${cheque.cheque_number} من حساب البنك`,
+      debit: 0,
+      credit: amount,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: null,
+      locationId: null,
+    });
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'pdc_cheque_clear',
+        sourceId: chequeId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: cheque.cleared_date ? new Date(cheque.cleared_date) : new Date(),
+        description: `قيد صرف ورقة دفع #${cheque.cheque_number} من البنك`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && (e.constraint?.includes('idx_journal_entries_pdc_and_wht_uniq') || e.constraint?.includes('idx_journal_entries_round1_uniq'))) {
+        const existing = await queryable
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('source_type', '=', 'pdc_cheque_clear')
+          .where('source_id', '=', chequeId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postPdcChequePayableBounce(queryable: DbOrTx, chequeId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const cheque = await queryable
+      .selectFrom('accounting_cheques')
+      .selectAll()
+      .where('id', '=', chequeId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!cheque) return { posted: false, journalEntryId: null };
+    const amount = this.toMoney(cheque.amount);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    const notesPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2135');
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let supplierApId = Number(settings?.supplier_payable_account_id || 0);
+    if (!(supplierApId > 0)) supplierApId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2110');
+
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: notesPayableId,
+      description: `إلغاء ورقة دفع مرتدة #${cheque.cheque_number}`,
+      debit: amount,
+      credit: 0,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: null,
+      locationId: null,
+    });
+    this.addLine(lines, {
+      accountId: supplierApId,
+      description: `إعادة مديونية المورد ${cheque.partner_name} بسبب ارتداد شيك #${cheque.cheque_number}`,
+      debit: 0,
+      credit: amount,
+      partnerType: cheque.partner_id ? 'supplier' : 'none',
+      partnerId: cheque.partner_id ? Number(cheque.partner_id) : null,
+      branchId: null,
+      locationId: null,
+    });
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'pdc_cheque_payable_bounce',
+        sourceId: chequeId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: cheque.bounced_date ? new Date(cheque.bounced_date) : new Date(),
+        description: `قيد ارتداد ورقة دفع #${cheque.cheque_number} وإعادة المديونية للمورد ${cheque.partner_name}`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && (e.constraint?.includes('idx_journal_entries_pdc_and_wht_uniq') || e.constraint?.includes('idx_journal_entries_round1_uniq'))) {
+        const existing = await queryable
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('source_type', '=', 'pdc_cheque_payable_bounce')
+          .where('source_id', '=', chequeId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postWithholdingTaxRemittance(queryable: DbOrTx, transactionId: number, paymentMethod: 'bank' | 'cash', auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const tx = await queryable
+      .selectFrom('withholding_tax_transactions')
+      .selectAll()
+      .where('id', '=', transactionId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!tx) return { posted: false, journalEntryId: null };
+    const taxAmount = this.toMoney(tx.tax_amount);
+    if (taxAmount <= 0) return { posted: false, journalEntryId: null };
+
+    const lines: JournalLineDraft[] = [];
+    if (tx.direction === 'payable') {
+      // WHT deducted from supplier and now paid to tax authority
+      const whtPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2125');
+      let paymentAccountId = paymentMethod === 'cash'
+        ? await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1110')
+        : await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1120');
+
+      this.addLine(lines, {
+        accountId: whtPayableId,
+        description: `سداد ضريبة خصم وإضافة نموذج 41 - فاتورة #${tx.invoice_number}`,
+        debit: taxAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+      this.addLine(lines, {
+        accountId: paymentAccountId,
+        description: `سداد وتوريد ضريبة الخصم والإضافة لمصلحة الضرائب (${paymentMethod === 'cash' ? 'نقداً' : 'بنكياً'})`,
+        debit: 0,
+        credit: taxAmount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+    } else {
+      // WHT deducted by customer from our invoice, now credited/cleared
+      const whtReceivableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1155');
+      const vatPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2120');
+
+      this.addLine(lines, {
+        accountId: vatPayableId,
+        description: `مقاصة ضريبة خصم وإضافة مع ضريبة المبيعات - فاتورة #${tx.invoice_number}`,
+        debit: taxAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+      this.addLine(lines, {
+        accountId: whtReceivableId,
+        description: `إقفال ضريبة مخصومة لدى الغير - فاتورة #${tx.invoice_number}`,
+        debit: 0,
+        credit: taxAmount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+    }
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'withholding_tax_remittance',
+        sourceId: transactionId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد سداد وتوريد ضريبة الخصم والإضافة - معاملة #${transactionId} (${tx.partner_name})`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && (e.constraint?.includes('idx_journal_entries_pdc_and_wht_uniq') || e.constraint?.includes('idx_journal_entries_round1_uniq'))) {
+        const existing = await queryable
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('source_type', '=', 'withholding_tax_remittance')
+          .where('source_id', '=', transactionId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postEndOfServiceSettlement(queryable: DbOrTx, settlementId: number, treasuryAccountId: number | null, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const settlement = await queryable
+      .selectFrom('hr_end_of_service_settlements')
+      .selectAll()
+      .where('id', '=', settlementId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!settlement) {
+      throw new AppError('End of service settlement not found', 'HR_EOS_NOT_FOUND', 404);
+    }
+
+    const existing = await queryable
+      .selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', '=', 'hr_end_of_service_settlement')
+      .where('source_id', '=', settlementId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const gratuity = this.toMoney(settlement.gratuity_amount || 0);
+    const leavePay = this.toMoney(settlement.leave_encashment_amount || 0);
+    const pendingSalary = this.toMoney(settlement.pending_salary_amount || 0);
+    const noticePeriod = this.toMoney(settlement.notice_period_amount || 0);
+    const otherEntitlements = this.toMoney(settlement.other_entitlements_amount || 0);
+    const totalEntitlements = this.toMoney(gratuity + leavePay + pendingSalary + noticePeriod + otherEntitlements);
+
+    const unpaidLoans = this.toMoney(settlement.unpaid_loans_deduction || 0);
+    const assetsDeduction = this.toMoney(settlement.assets_deduction || 0);
+    const otherDeductions = this.toMoney(settlement.other_deductions || 0);
+
+    if (totalEntitlements <= 0) {
+      throw new AppError('Cannot post end of service settlement with zero entitlements', 'HR_EOS_ZERO_VALUE', 400);
+    }
+
+    // Absorption invariant: Deductions cannot exceed total entitlements in the settlement payout.
+    // Any excess deductions remain as uncollected employee debts.
+    let remainingPool = totalEntitlements;
+
+    const appliedAssets = Math.min(assetsDeduction, remainingPool);
+    remainingPool = this.toMoney(remainingPool - appliedAssets);
+
+    const appliedOther = Math.min(otherDeductions, remainingPool);
+    remainingPool = this.toMoney(remainingPool - appliedOther);
+
+    const appliedLoans = Math.min(unpaidLoans, remainingPool);
+    remainingPool = this.toMoney(remainingPool - appliedLoans);
+
+    const netPayable = remainingPool;
+
+    const expenseAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6200'); // Salaries & EOS Expense
+    const advancesAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1160'); // Employee Advances
+    const otherIncomeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100'); // Other Income / Custody Recovery
+
+    let paymentAccountId: number;
+    if (treasuryAccountId && Number(treasuryAccountId) > 0) {
+      paymentAccountId = Number(treasuryAccountId);
+    } else {
+      const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+      paymentAccountId = Number(settings?.cash_account_id || 0);
+      if (!(paymentAccountId > 0)) {
+        paymentAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1110');
+      }
+    }
+
+    const lines: JournalLineDraft[] = [];
+
+    // 1. Debit: Total Entitlements
+    this.addLine(lines, {
+      accountId: expenseAccountId,
+      description: `استحقاق مخالصة ومكافأة نهاية خدمة #${settlement.settlement_no}`,
+      debit: totalEntitlements,
+      credit: 0,
+      partnerType: 'employee',
+      partnerId: Number(settlement.employee_id),
+      branchId: null,
+      locationId: null,
+    });
+
+    // 2. Credit: Loan deduction (if any)
+    if (appliedLoans > 0) {
+      this.addLine(lines, {
+        accountId: advancesAccountId,
+        description: `تسوية سلف مستحقة للموظف بمخالصة #${settlement.settlement_no}`,
+        debit: 0,
+        credit: appliedLoans,
+        partnerType: 'employee',
+        partnerId: Number(settlement.employee_id),
+        branchId: null,
+        locationId: null,
+      });
+    }
+
+    // 3. Credit: Asset / Custody deduction (if any)
+    if (appliedAssets > 0) {
+      this.addLine(lines, {
+        accountId: otherIncomeAccountId,
+        description: `استرداد وتسوية عهدة بمخالصة #${settlement.settlement_no}`,
+        debit: 0,
+        credit: appliedAssets,
+        partnerType: 'employee',
+        partnerId: Number(settlement.employee_id),
+        branchId: null,
+        locationId: null,
+      });
+    }
+
+    // 4. Credit: Other deductions (if any)
+    if (appliedOther > 0) {
+      this.addLine(lines, {
+        accountId: otherIncomeAccountId,
+        description: `استقطاعات أخرى بمخالصة #${settlement.settlement_no}`,
+        debit: 0,
+        credit: appliedOther,
+        partnerType: 'employee',
+        partnerId: Number(settlement.employee_id),
+        branchId: null,
+        locationId: null,
+      });
+    }
+
+    // 5. Credit: Net settlement payable / payout
+    if (netPayable > 0) {
+      this.addLine(lines, {
+        accountId: paymentAccountId,
+        description: `صرف مستحقات مخالصة نهاية الخدمة #${settlement.settlement_no}`,
+        debit: 0,
+        credit: netPayable,
+        partnerType: 'employee',
+        partnerId: Number(settlement.employee_id),
+        branchId: null,
+        locationId: null,
+      });
+    }
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'hr_end_of_service_settlement',
+        sourceId: settlementId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: settlement.settlement_date ? new Date(settlement.settlement_date) : new Date(),
+        description: `قيد تصفية ومخالصة نهاية خدمة #${settlement.settlement_no}`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && (e.constraint?.includes('idx_journal_entries_hr_eos_uniq') || e.constraint?.includes('idx_journal_entries_round1_uniq'))) {
+        const existingId = await queryable
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('source_type', '=', 'hr_end_of_service_settlement')
+          .where('source_id', '=', settlementId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existingId?.id || 0) };
+      }
+      throw e;
+    }
   }
 
 }

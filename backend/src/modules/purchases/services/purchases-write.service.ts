@@ -421,6 +421,7 @@ export class PurchasesWriteService {
                     updated_at: sql`NOW()`,
                   } as any)
                   .where('id', '=', Number(existingBatch.id))
+                  .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
                   .execute();
               } else {
                 await trx
@@ -832,6 +833,36 @@ export class PurchasesWriteService {
     return this.buildPurchaseMutationResponse(purchaseId, auth);
   }
 
+  /**
+   * Blocks payment while any unpaid invoice from this supplier is failing three-way match.
+   * 'override_approved' passes: the override already went through its own authority check.
+   */
+  private async assertNoBlockingThreeWayMatch(trx: any, supplierId: number, tenantId: string): Promise<void> {
+    const blocking = await trx
+      .selectFrom('purchases')
+      .select(['doc_no', 'three_way_match_status'])
+      .where('tenant_id', '=', tenantId)
+      .where('supplier_id', '=', supplierId)
+      .where('status', '!=', 'cancelled')
+      .where('three_way_match_status', 'in', [
+        'quantity_mismatch',
+        'price_mismatch',
+        'tolerance_exceeded',
+        'unmatched_grn',
+        'service_rejected',
+      ])
+      .limit(1)
+      .executeTakeFirst();
+
+    if (blocking) {
+      throw new AppError(
+        `لا يمكن السداد: فاتورة المورد رقم (${blocking.doc_no || '—'}) لم تجتز المطابقة الثلاثية (الحالة: ${blocking.three_way_match_status}). يلزم معالجة الفرق أو اعتماد تجاوز موثق أولاً.`,
+        'THREE_WAY_MATCH_BLOCKING',
+        400,
+      );
+    }
+  }
+
   async createSupplierPayment(payload: CreateSupplierPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const paymentResult = await this.tx.runInTransaction(this.db, async (trx) => {
@@ -842,6 +873,12 @@ export class PurchasesWriteService {
       const currentBalance = Number(supplier.balance || 0);
       if (!(currentBalance > 0)) throw new AppError('Supplier has no outstanding balance', 'SUPPLIER_NO_BALANCE', 400);
       if (amount > currentBalance + 0.0001) throw new AppError('Supplier payment cannot exceed outstanding balance', 'SUPPLIER_OVERPAYMENT', 400);
+
+      // Gateway: three-way match must not be blocking.
+      // The match previously only wrote a status label on the invoice; nothing consulted it, so an
+      // invoice flagged quantity_mismatch (billed more than was received) was paid without friction.
+      await this.assertNoBlockingThreeWayMatch(trx, supplier.id, scope.tenantId);
+
       const { branchId, locationId } = normalizePurchaseScope(payload);
 
       const insert = await trx

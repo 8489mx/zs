@@ -4,8 +4,10 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
+import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
 import { CreatePurchaseOrderDto, UpdatePurchaseOrderDto, ReceivePurchaseOrderDto } from '../dto/purchase-order.dto';
 import { PurchasesWriteService } from './purchases-write.service';
+import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -124,7 +126,15 @@ export class PurchaseOrdersService {
       throw new BadRequestException('يجب إضافة صنف واحد على الأقل في أمر الشراء');
     }
 
-    const orderNumber = `PO-${Date.now().toString().slice(-6)}`;
+    const prefix = getDailyDocumentPrefix('PO');
+    const countRow = await this.db
+      .selectFrom('purchase_orders')
+      .select(sql<number>`count(*)::int`.as('count'))
+      .where('tenant_id', '=', scope.tenantId)
+      .where('order_number', 'like', `${prefix}%`)
+      .executeTakeFirst();
+    const seq = Number(countRow?.count || 0) + 1;
+    const orderNumber = formatDailyDocumentNumber('PO', seq);
 
     const insertedOrder = await this.db
       .insertInto('purchase_orders')
@@ -218,10 +228,11 @@ export class PurchaseOrdersService {
         updated_at: new Date(),
       })
       .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
       .execute();
 
     if (payload.items && payload.items.length > 0) {
-      await this.db.deleteFrom('purchase_order_items').where('purchase_order_id', '=', id).execute();
+      await this.db.deleteFrom('purchase_order_items').where('purchase_order_id', '=', id).where('tenant_id', '=', scope.tenantId).execute();
       for (const item of payload.items) {
         await this.db
           .insertInto('purchase_order_items')
@@ -269,6 +280,7 @@ export class PurchaseOrdersService {
       .updateTable('purchase_orders')
       .set({ status: 'confirmed', updated_at: new Date() })
       .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
       .execute();
 
     return { success: true, message: 'تم اعتماد أمر الشراء بنجاح وإرساله للمورد' };
@@ -276,75 +288,124 @@ export class PurchaseOrdersService {
 
   async receiveGoods(id: number, payload: ReceivePurchaseOrderDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    const order = await this.db
-      .selectFrom('purchase_orders')
-      .selectAll()
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .where('account_id', '=', scope.accountId)
-      .executeTakeFirst();
 
-    if (!order) {
-      throw new NotFoundException('أمر الشراء غير موجود');
-    }
+    return await this.db.transaction().execute(async (trx) => {
+      const order = await trx
+        .selectFrom('purchase_orders')
+        .selectAll()
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId)
+        .forUpdate()
+        .executeTakeFirst();
 
-    if (order.status === 'cancelled' || order.status === 'converted_to_bill') {
-      throw new BadRequestException('لا يمكن استلام بضاعة لأمر شراء مغلق أو ملغي');
-    }
+      if (!order) {
+        throw new NotFoundException('أمر الشراء غير موجود');
+      }
 
-    const items = await this.db
-      .selectFrom('purchase_order_items')
-      .selectAll()
-      .where('purchase_order_id', '=', id)
-      .execute();
+      if (order.status === 'cancelled' || order.status === 'converted_to_bill') {
+        throw new BadRequestException('لا يمكن استلام بضاعة لأمر شراء مغلق أو ملغي');
+      }
 
-    for (const receipt of payload.items) {
-      const item = items.find((i) => i.id === receipt.itemId);
-      if (!item) continue;
-
-      const newReceived = Number(item.received_quantity || 0) + Number(receipt.quantityToReceive || 0);
-
-      await this.db
-        .updateTable('purchase_order_items')
-        .set({ received_quantity: newReceived })
-        .where('id', '=', receipt.itemId)
+      const items = await trx
+        .selectFrom('purchase_order_items')
+        .selectAll()
+        .where('purchase_order_id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .forUpdate()
         .execute();
 
-      // Update product stock directly in products table
-      await this.db
-        .updateTable('products')
-        .set((eb) => ({
-          stock_qty: eb('stock_qty', '+', receipt.quantityToReceive),
-          updated_at: new Date(),
-        }))
-        .where('id', '=', item.product_id)
+      for (const receipt of payload.items) {
+        const item = items.find((i) => i.id === receipt.itemId);
+        if (!item) continue;
+
+        const qtyToReceive = Number(receipt.quantityToReceive || 0);
+        if (qtyToReceive <= 0) continue;
+
+        const newReceived = Number(item.received_quantity || 0) + qtyToReceive;
+
+        if (newReceived > Number(item.quantity)) {
+          throw new BadRequestException(
+            `الكمية المستلمة لا يمكن أن تتجاوز الكمية المطلوبة (${item.quantity}) للصنف ${item.product_name || item.product_id}`,
+          );
+        }
+
+        await trx
+          .updateTable('purchase_order_items')
+          .set({ received_quantity: newReceived })
+          .where('id', '=', receipt.itemId)
+          .where('tenant_id', '=', scope.tenantId)
+          .execute();
+
+        // Route through the shared stock ledger. Writing products.stock_qty and
+        // product_location_stock by hand skipped the canonical lock order (products before
+        // product_location_stock) and deadlocked against concurrent sales, and it produced
+        // stock_movements rows whose before/after balances were hardcoded 0 / qtyToReceive.
+        const receiveLocationId = order.warehouse_id ? Number(order.warehouse_id) : null;
+        // purchase_orders has no branch_id; derive it from the receiving location.
+        const receiveLoc = receiveLocationId
+          ? await trx.selectFrom("stock_locations").select("branch_id").where("id", "=", receiveLocationId).where("tenant_id", "=", scope.tenantId).executeTakeFirst()
+          : null;
+        const receiveBranchId = receiveLoc?.branch_id != null ? Number(receiveLoc.branch_id) : null;
+
+        const stockChange = await applyStockDelta(trx, {
+          productId: Number(item.product_id),
+          delta: qtyToReceive,
+          branchId: receiveBranchId,
+          locationId: receiveLocationId,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          allowNegative: true, // a receipt only adds
+        });
+
+        // Record formal stock movement with real running balances.
+        await trx
+          .insertInto('stock_movements')
+          .values({
+            product_id: item.product_id,
+            movement_type: 'purchase_order_receipt',
+            qty: qtyToReceive,
+            before_qty: stockChange.scopeBefore,
+            after_qty: stockChange.scopeAfter,
+            reason: 'purchase_order_receipt',
+            note: `استلام بضاعة أمر شراء PO #${order.order_number}`,
+            reference_type: 'purchase_order',
+            reference_id: id,
+            branch_id: receiveBranchId,
+            location_id: receiveLocationId,
+            created_by: auth.userId,
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+          } as any)
+          .execute();
+      }
+
+      // Determine overall status
+      const updatedItems = await trx
+        .selectFrom('purchase_order_items')
+        .selectAll()
+        .where('purchase_order_id', '=', id)
         .where('tenant_id', '=', scope.tenantId)
         .execute();
-    }
 
-    // Determine overall status
-    const updatedItems = await this.db
-      .selectFrom('purchase_order_items')
-      .selectAll()
-      .where('purchase_order_id', '=', id)
-      .execute();
+      const allReceived = updatedItems.every((i) => Number(i.received_quantity) >= Number(i.quantity));
+      const anyReceived = updatedItems.some((i) => Number(i.received_quantity) > 0);
 
-    const allReceived = updatedItems.every((i) => Number(i.received_quantity) >= Number(i.quantity));
-    const anyReceived = updatedItems.some((i) => Number(i.received_quantity) > 0);
+      const newStatus = allReceived ? 'received' : anyReceived ? 'partially_received' : 'confirmed';
 
-    const newStatus = allReceived ? 'received' : anyReceived ? 'partially_received' : 'confirmed';
+      await trx
+        .updateTable('purchase_orders')
+        .set({ status: newStatus, updated_at: new Date() })
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
 
-    await this.db
-      .updateTable('purchase_orders')
-      .set({ status: newStatus, updated_at: new Date() })
-      .where('id', '=', id)
-      .execute();
-
-    return {
-      success: true,
-      status: newStatus,
-      message: allReceived ? 'تم استلام كامل كمية أمر الشراء في المخزن' : 'تم تسجيل الاستلام الجزئي للبضاعة',
-    };
+      return {
+        success: true,
+        status: newStatus,
+        message: allReceived ? 'تم استلام كامل كمية أمر الشراء في المخزن' : 'تم تسجيل الاستلام الجزئي للبضاعة',
+      };
+    });
   }
 
   async convertToBill(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -369,6 +430,7 @@ export class PurchaseOrdersService {
       .selectFrom('purchase_order_items')
       .selectAll()
       .where('purchase_order_id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
       .execute();
 
     if (!items.length) {
@@ -425,6 +487,7 @@ export class PurchaseOrdersService {
         updated_at: new Date(),
       })
       .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
       .execute();
 
     return {
@@ -456,6 +519,7 @@ export class PurchaseOrdersService {
       .updateTable('purchase_orders')
       .set({ status: 'cancelled', updated_at: new Date() })
       .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
       .execute();
 
     return { success: true, message: 'تم إلغاء أمر الشراء بنجاح' };
@@ -479,8 +543,8 @@ export class PurchaseOrdersService {
       throw new BadRequestException('يمكن حذف أوامر الشراء المسودة أو الملغاة فقط');
     }
 
-    await this.db.deleteFrom('purchase_order_items').where('purchase_order_id', '=', id).execute();
-    await this.db.deleteFrom('purchase_orders').where('id', '=', id).execute();
+    await this.db.deleteFrom('purchase_order_items').where('purchase_order_id', '=', id).where('tenant_id', '=', scope.tenantId).execute();
+    await this.db.deleteFrom('purchase_orders').where('id', '=', id).where('tenant_id', '=', scope.tenantId).execute();
 
     return { success: true, message: 'تم حذف أمر الشراء بنجاح' };
   }

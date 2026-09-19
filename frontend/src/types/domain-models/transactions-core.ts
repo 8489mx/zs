@@ -73,6 +73,7 @@ export interface PurchaseItem {
   unitName: string;
   unitMultiplier: number;
   receivedQty?: number;
+  purchaseOrderItemId?: string | number | null;
 }
 
 export interface Purchase {
@@ -91,6 +92,8 @@ export interface Purchase {
   status: string;
   lifecycleStatus?: string;
   matchedStatus?: string;
+  purchaseOrderId?: string | number | null;
+  poDocNo?: string | null;
   createdBy: string;
   branchId: string;
   branchName: string;

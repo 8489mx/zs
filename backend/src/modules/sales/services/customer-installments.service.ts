@@ -6,6 +6,9 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
+import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
+import { SalesFinanceService } from './sales-finance.service';
+import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import {
   CreateInstallmentPlanDto,
   PayInstallmentDto,
@@ -17,6 +20,8 @@ export class CustomerInstallmentsService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly tx: TransactionHelper,
+    private readonly salesFinance: SalesFinanceService,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   private tenantScope(auth: AuthContext) {
@@ -66,17 +71,17 @@ export class CustomerInstallmentsService {
     const installmentCount = Math.max(1, Math.floor(Number(dto.installmentCount) || 1));
     const monthlyAmount = this.roundCurrency(totalWithInterest / installmentCount);
 
-    const planNumber = `INST-${Date.now().toString().slice(-6)}`;
     const startDate = dto.startDate ? new Date(dto.startDate) : new Date();
 
     return await this.tx.runInTransaction(this.db, async (trx: Kysely<Database>) => {
-      // Create plan
-      const plan = await trx
+      // 1. Insert temporary plan to obtain collision-proof identity (Invariant #10 & #13)
+      const tempNumber = `INST-TMP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const inserted = await trx
         .insertInto('customer_installment_plans')
         .values({
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-          plan_number: planNumber,
+          plan_number: tempNumber,
           sale_id: dto.saleId ? Number(dto.saleId) : null,
           customer_id: Number(dto.customerId),
           total_amount: totalAmount,
@@ -93,6 +98,18 @@ export class CustomerInstallmentsService {
           branch_id: dto.branchId ? Number(dto.branchId) : null,
           created_by: auth.userId || null,
         } as any)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      const planId = Number(inserted.id);
+      const planNumber = formatDailyDocumentNumber('INST', planId, startDate);
+
+      // Update plan with authoritative daily document number
+      const plan = await trx
+        .updateTable('customer_installment_plans')
+        .set({ plan_number: planNumber, updated_at: sql`NOW()` })
+        .where('id', '=', planId)
+        .where(this.tenantPredicate(auth))
         .returningAll()
         .executeTakeFirstOrThrow();
 
@@ -115,7 +132,7 @@ export class CustomerInstallmentsService {
         installmentsToInsert.push({
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-          plan_id: Number(plan.id),
+          plan_id: planId,
           sale_id: dto.saleId ? Number(dto.saleId) : null,
           customer_id: Number(dto.customerId),
           installment_number: i,
@@ -133,9 +150,9 @@ export class CustomerInstallmentsService {
         .values(installmentsToInsert as any)
         .execute();
 
-      // If there is a down payment, record in customer payments / ledger
+      // If there is a down payment, record in customer payments, subledger, treasury, and accounting
       if (downPayment > 0) {
-        await trx
+        const insertedPayment = await trx
           .insertInto('customer_payments')
           .values({
             tenant_id: scope.tenantId,
@@ -146,14 +163,48 @@ export class CustomerInstallmentsService {
             branch_id: dto.branchId ? Number(dto.branchId) : null,
             created_by: auth.userId || null,
           } as any)
-          .execute();
+          .returning('id')
+          .executeTakeFirstOrThrow();
+
+        const paymentId = Number(insertedPayment.id);
+        const branchId = dto.branchId ? Number(dto.branchId) : null;
+        const fullDesc = `دفعة مقدمة لخطة تقسيط #${planNumber}`;
+
+        // 1. Customer Subledger & Balance
+        await this.salesFinance.addCustomerPaymentLedgerEntry(
+          trx,
+          Number(dto.customerId),
+          -downPayment,
+          fullDesc,
+          'customer_payment',
+          paymentId,
+          auth,
+          branchId,
+          null,
+        );
+
+        // 2. Treasury Transaction
+        await this.salesFinance.addTreasuryPaymentTransaction(
+          trx,
+          'customer_payment',
+          downPayment,
+          fullDesc,
+          'customer_payment',
+          paymentId,
+          auth,
+          branchId,
+          null,
+        );
+
+        // 3. General Ledger Double-Entry Posting
+        await this.accountingPosting.postCustomerPayment(trx, paymentId, auth);
       }
 
       // Return plan with generated installments
       const installments = await trx
         .selectFrom('customer_installments')
         .selectAll()
-        .where('plan_id', '=', Number(plan.id))
+        .where('plan_id', '=', planId)
         .where(this.tenantPredicate(auth))
         .orderBy('installment_number', 'asc')
         .execute();
@@ -165,6 +216,7 @@ export class CustomerInstallmentsService {
       };
     });
   }
+
 
   async listPlans(query: { customerId?: number; status?: string; search?: string }, auth: AuthContext) {
     let q = this.db
@@ -421,11 +473,13 @@ export class CustomerInstallmentsService {
     }
 
     return await this.tx.runInTransaction(this.db, async (trx: Kysely<Database>) => {
+      // 1. Pessimistic lock on the installment row (Invariant #13)
       const installment = await trx
         .selectFrom('customer_installments')
         .selectAll()
         .where('id', '=', Number(installmentId))
         .where(this.tenantPredicate(auth))
+        .forUpdate()
         .executeTakeFirst();
 
       if (!installment) {
@@ -435,6 +489,15 @@ export class CustomerInstallmentsService {
       if (installment.status === 'paid') {
         throw new AppError('Installment is already fully paid', 'ALREADY_PAID', 400);
       }
+
+      // 2. Pessimistic lock on the parent plan
+      const plan = await trx
+        .selectFrom('customer_installment_plans')
+        .selectAll()
+        .where('id', '=', Number(installment.plan_id))
+        .where(this.tenantPredicate(auth))
+        .forUpdate()
+        .executeTakeFirst();
 
       const currentPaid = Number(installment.paid_amount || 0);
       const totalRequired = Number(installment.amount || 0);
@@ -450,10 +513,29 @@ export class CustomerInstallmentsService {
 
       const newPaidAmount = this.roundCurrency(currentPaid + payAmount);
       const newStatus = newPaidAmount >= totalRequired ? 'paid' : 'partially_paid';
-      const receiptNo = dto.receiptNo || `REC-${Date.now().toString().slice(-6)}`;
       const paymentMethod = dto.paymentMethod || 'cash';
 
-      // Update installment
+      // 3. Insert customer payment first to get identity for document numbering (Invariant #10 & #13)
+      const insertedPayment = await trx
+        .insertInto('customer_payments')
+        .values({
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          customer_id: Number(installment.customer_id),
+          amount: payAmount,
+          note: `سداد قسط رقم ${installment.installment_number} لخطة ${plan?.plan_number || ''}`,
+          branch_id: plan?.branch_id ? Number(plan.branch_id) : null,
+          created_by: auth.userId || null,
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
+      const paymentId = Number(insertedPayment.id);
+      const receiptNo = dto.receiptNo || formatDailyDocumentNumber('REC', paymentId);
+      const branchId = plan?.branch_id ? Number(plan.branch_id) : null;
+      const fullDesc = `سداد قسط رقم ${installment.installment_number} (إيصال #${receiptNo})`;
+
+      // 4. Update installment with authoritative receipt number and status
       const updatedInstallment = await trx
         .updateTable('customer_installments')
         .set({
@@ -469,21 +551,36 @@ export class CustomerInstallmentsService {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      // Record in customer_payments
-      await trx
-        .insertInto('customer_payments')
-        .values({
-          tenant_id: scope.tenantId,
-          account_id: scope.accountId,
-          customer_id: Number(installment.customer_id),
-          amount: payAmount,
-          note: `سداد قسط رقم ${installment.installment_number} (إيصال #${receiptNo})`,
-          branch_id: null,
-          created_by: auth.userId || null,
-        } as any)
-        .execute();
+      // 5. Customer Subledger & Balance update
+      await this.salesFinance.addCustomerPaymentLedgerEntry(
+        trx,
+        Number(installment.customer_id),
+        -payAmount,
+        fullDesc,
+        'customer_payment',
+        paymentId,
+        auth,
+        branchId,
+        null,
+      );
 
-      // Check if all installments for this plan are completed
+      // 6. Treasury Transaction
+      await this.salesFinance.addTreasuryPaymentTransaction(
+        trx,
+        'customer_payment',
+        payAmount,
+        fullDesc,
+        'customer_payment',
+        paymentId,
+        auth,
+        branchId,
+        null,
+      );
+
+      // 7. General Ledger Double-Entry Posting
+      await this.accountingPosting.postCustomerPayment(trx, paymentId, auth);
+
+      // 8. Check if all installments for this plan are completed
       const remainingUnpaid = await trx
         .selectFrom('customer_installments')
         .select([sql<number>`COALESCE(COUNT(*), 0)`.as('count')])
@@ -523,6 +620,7 @@ export class CustomerInstallmentsService {
       };
     });
   }
+
 
   async getSummaryMetrics(auth: AuthContext) {
     const todayStr = new Date().toISOString().split('T')[0];

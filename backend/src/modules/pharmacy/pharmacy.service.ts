@@ -7,6 +7,7 @@ import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { normalizeArabicSearch } from '../../common/utils/arabic-search.util';
+import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { UpsertDrugDto } from './dto/upsert-drug.dto';
 import { UpsertBatchDto } from './dto/upsert-batch.dto';
 import { UpsertPrescriptionDto } from './dto/upsert-prescription.dto';
@@ -313,7 +314,7 @@ export class PharmacyService {
       }
 
       // 2. Insert Batch entry
-      const batchNo = line.batchNumber || `B-${Date.now().toString().slice(-6)}`;
+      const batchNo = line.batchNumber || formatDailyDocumentNumber('BATCH', drugId);
       await this.db
         .insertInto('pharmacy_batches')
         .values({
@@ -679,6 +680,50 @@ export class PharmacyService {
     return batch;
   }
 
+  /**
+   * FEFO (First Expired, First Out) Batch Allocation Engine
+   * Retrieves batches ordered by ascending expiry date (earliest expiry first)
+   * to ensure perishable pharmaceuticals are dispensed before shelf life expires.
+   */
+  async getBatchesFEFO(
+    auth: AuthContext,
+    params: {
+      drugId?: number;
+      productId?: number;
+      excludeExpired?: boolean;
+      minQuantity?: number;
+    },
+  ) {
+    const scope = requireTenantScope(auth);
+    let query = this.db
+      .selectFrom('pharmacy_batches')
+      .where('tenant_id', '=', scope.tenantId)
+      .where('status', '=', 'active');
+
+    if (params.drugId) {
+      query = query.where('drug_id', '=', params.drugId);
+    }
+    if (params.productId) {
+      query = query.where('product_id', '=', params.productId);
+    }
+    if (params.minQuantity !== undefined) {
+      query = query.where('quantity', '>=', params.minQuantity);
+    } else {
+      query = query.where('quantity', '>', 0);
+    }
+
+    if (params.excludeExpired) {
+      const todayYm = new Date().toISOString().slice(0, 7); // YYYY-MM
+      query = query.where('expiry_date', '>=', todayYm);
+    }
+
+    return await query
+      .selectAll()
+      .orderBy('expiry_date', 'asc')
+      .orderBy('id', 'asc')
+      .execute();
+  }
+
   // -------------------------------------------------------------
   // 5. PRESCRIPTIONS & MEDICAL INSURANCE
   // -------------------------------------------------------------
@@ -744,7 +789,7 @@ export class PharmacyService {
   async upsertPrescription(auth: AuthContext, dto: UpsertPrescriptionDto) {
     const scope = requireTenantScope(auth);
 
-    const rxNo = dto.prescriptionNo || `RX-${Date.now().toString().slice(-6)}`;
+    const initialRxNo = dto.prescriptionNo || 'PENDING_RX';
     const itemsJsonStr = dto.items ? JSON.stringify(dto.items) : '[]';
 
     if (dto.id) {
@@ -780,7 +825,7 @@ export class PharmacyService {
       .values({
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
-        prescription_no: rxNo,
+        prescription_no: initialRxNo,
         customer_name: dto.customerName,
         customer_phone: dto.customerPhone ?? null,
         doctor_name: dto.doctorName ?? null,
@@ -800,6 +845,17 @@ export class PharmacyService {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+
+    const rxNo = dto.prescriptionNo || formatDailyDocumentNumber('RX', Number(rx.id));
+    if (!dto.prescriptionNo) {
+      await this.db
+        .updateTable('pharmacy_prescriptions')
+        .set({ prescription_no: rxNo })
+        .where('id', '=', rx.id)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+      rx.prescription_no = rxNo;
+    }
 
     // Record cash revenue for patient cash payment (excluding insurance portion)
     const patientCash = Number(dto.patientAmount || dto.totalAmount || 0);

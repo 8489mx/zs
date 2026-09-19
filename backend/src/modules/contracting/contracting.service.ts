@@ -4,7 +4,10 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
-import { getDailyDocumentPrefix } from '../../common/utils/document-number.util';
+import {
+  getDailyDocumentPrefix,
+  formatDailyDocumentNumber,
+} from '../../common/utils/document-number.util';
 import {
   CreateProjectDto,
   UpdateProjectDto,
@@ -64,6 +67,14 @@ import {
   CreateSubcontractorDto,
   UpdateSubcontractorDto,
   CreateSubcontractorPaymentDto,
+  CreateGuaranteeDto,
+  UpdateGuaranteeDto,
+  ExtendGuaranteeDto,
+  ReleaseGuaranteeDto,
+  InvokeGuaranteeDto,
+  CreateCostPoolDto,
+  CreateIndirectExpenseDto,
+  CreateAllocationBatchDto,
 } from './dto/contracting.dto';
 import {
   ContractingProjectSummary,
@@ -77,6 +88,21 @@ import {
   ContractingEquipmentFuelLog,
   ContractingProjectEvmMetrics,
 } from './contracting.types';
+import { computeIpc } from './ipc-calculation.engine';
+import {
+  assertAdvancePaymentGate,
+  checkIpcGuaranteeInterlocking,
+  evaluateGuaranteeExpiryAlerts,
+  BankGuarantee,
+} from './guarantee-gateway.engine';
+import {
+  computePoolAllocation,
+  computeBatchAllocation,
+  reconcileAllocationInvariants,
+  CostPoolInput,
+  BoqDriverMetricsInput,
+  BatchAllocationSummary,
+} from './field-indirect-allocation.engine';
 
 @Injectable()
 export class ContractingService {
@@ -970,51 +996,44 @@ export class ContractingService {
 
       return {
         boq_item_id: item.boqItemId ? (item.boqItemId as any) : null,
+        wir_id: item.wirId ? (item.wirId as any) : null,
         description: item.description.trim(),
         unit: item.unit || 'm3',
         unit_price: unitPrice,
         previous_qty: prevQty,
         current_qty: currQty,
+        claimed_qty: item.claimedQty !== undefined ? Number(item.claimedQty) : currQty,
+        certified_qty: item.certifiedQty !== undefined ? Number(item.certifiedQty) : currQty,
         stored_materials_qty: storedQty,
         cumulative_qty: cumQty,
         completion_percent: 0,
         current_total: currAmount,
         cumulative_total: prevAmount + currAmount + storedAmount,
+        variance_reason: item.varianceReason || null,
+        progress_stage: item.progressStage || null,
+        stage_weight_pct: item.stageWeightPct !== undefined ? Number(item.stageWeightPct) : null,
+        change_order_id: item.changeOrderId ? (item.changeOrderId as any) : null,
         notes: item.notes || null,
       };
     });
 
     const cumulativeAmount = previousTotal + currentTotal + storedMaterialsTotal;
 
-    // Deductions
-    const advRecoveryPercent = dto.advanceRecoveryPercent !== undefined
-      ? Number(dto.advanceRecoveryPercent)
-      : (Number(project.down_payment_amount) > 0 ? 10.0 : 0.0);
-
-    const retentionPercent = dto.retentionPercent !== undefined
-      ? Number(dto.retentionPercent)
-      : Number(project.retention_percent || 5.0);
-
-    const workThisPeriod = currentTotal + storedMaterialsTotal;
-    const advanceRecoveryAmount = (workThisPeriod * advRecoveryPercent) / 100;
-    const retentionHeldAmount = (workThisPeriod * retentionPercent) / 100;
-    const otherDeductions = Number(dto.otherDeductions || 0);
-
-    const netPayable = Math.max(0, workThisPeriod - advanceRecoveryAmount - retentionHeldAmount - otherDeductions);
-
+    // Resolve Subcontract & Subcontractor details first
     let subId = dto.subcontractorId ? Number(dto.subcontractorId) : null;
     let subName = dto.subcontractorName || '';
     const subcontractId = dto.subcontractId ? Number(dto.subcontractId) : null;
 
-    if (subcontractId && !subId) {
-      const subc = await this.db
+    let subcontract: any = null;
+    if (subcontractId) {
+      subcontract = await this.db
         .selectFrom('contracting_subcontracts')
-        .select(['subcontractor_id'])
+        .selectAll()
         .where('tenant_id', '=', tenantId)
         .where('id', '=', subcontractId as any)
         .executeTakeFirst();
-      if (subc) {
-        subId = Number(subc.subcontractor_id);
+      if (subcontract && !subId) {
+        subId = Number(subcontract.subcontractor_id);
       }
     }
 
@@ -1027,20 +1046,157 @@ export class ContractingService {
         .executeTakeFirst();
       if (subc) {
         subName = subc.name;
-      } else {
-        const sup = await (this.db as any)
-          .selectFrom('suppliers')
-          .select('name')
-          .where('tenant_id', '=', tenantId)
-          .where('id', '=', subId)
-          .executeTakeFirst();
-        if (sup) {
-          subName = sup.name;
-        }
       }
     }
 
-    // Insert Invoice Header
+    // Cumulative history from previous invoices
+    let prevInvoicesQuery = this.db
+      .selectFrom('contracting_invoices')
+      .select([
+        sql<number>`coalesce(sum(gross_work_done_amount), 0)::float`.as('total_gross_work_done'),
+        sql<number>`coalesce(sum(advance_recovery_amount), 0)::float`.as('total_advance_recovered'),
+        sql<number>`coalesce(sum(retention_held_amount), 0)::float`.as('total_retention_held'),
+      ])
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .where('ipc_type', '=', ipcType);
+
+    if (subcontractId) {
+      prevInvoicesQuery = prevInvoicesQuery.where('subcontract_id', '=', subcontractId as any);
+    } else if (subId) {
+      prevInvoicesQuery = prevInvoicesQuery.where('subcontractor_id', '=', subId);
+    }
+
+    const prevAgg = await prevInvoicesQuery.executeTakeFirst();
+    const previousGrossWorkDoneFromDb = Number(prevAgg?.total_gross_work_done || 0);
+    const previousAdvanceRecovered = Number(prevAgg?.total_advance_recovered || 0);
+    const previousRetentionHeld = Number(prevAgg?.total_retention_held || 0);
+
+    // Auto carry-forward negative debit balance from preceding invoice if not explicitly passed
+    let carriedForwardDebitIn = Number(dto.carriedForwardDebitIn || 0);
+    if (carriedForwardDebitIn === 0) {
+      let lastInvoiceQuery = this.db
+        .selectFrom('contracting_invoices')
+        .select(['carried_forward_debit_out'])
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId as any)
+        .where('ipc_type', '=', ipcType)
+        .orderBy('created_at', 'desc')
+        .limit(1);
+
+      if (subcontractId) {
+        lastInvoiceQuery = lastInvoiceQuery.where('subcontract_id', '=', subcontractId as any);
+      } else if (subId) {
+        lastInvoiceQuery = lastInvoiceQuery.where('subcontractor_id', '=', subId);
+      }
+      const lastInv = await lastInvoiceQuery.executeTakeFirst();
+      if (lastInv && Number(lastInv.carried_forward_debit_out) > 0) {
+        carriedForwardDebitIn = Number(lastInv.carried_forward_debit_out);
+      }
+    }
+
+    // =========================================================================
+    // Standard 4-Layer IPC Calculation Engine (FIDIC / MRICS Compliant)
+    // =========================================================================
+
+    // Layer 1: Gross Certified Work Inputs
+    const grossWorkDone = currentTotal; // GWD
+    const escalationAmount = Number(dto.escalationAmount || 0);
+    const mosAdded = Number(dto.mosAddedAmount || (storedMaterialsTotal > 0 ? storedMaterialsTotal : 0));
+    const mosReleased = Number(dto.mosReleasedAmount || 0);
+
+    // Layer 2: Contractual Holdbacks Parameters
+    let contractValue = 0;
+    let advanceTotal = 0;
+    let recoveryStartPct = 10;
+    let recoveryEndPct = 80;
+    let retentionRate = 0.05;
+    let retentionCap = 0;
+
+    if (ipcType === 'subcontractor' && subcontract) {
+      contractValue = Number(subcontract.total_amount || 0);
+      advanceTotal = Number(subcontract.advance_amount || (contractValue * (Number(subcontract.advance_pct || 0) / 100)));
+      recoveryStartPct = Number(subcontract.advance_recovery_start_pct ?? 10);
+      recoveryEndPct = Number(subcontract.advance_recovery_end_pct ?? 80);
+      retentionRate = dto.retentionPercent !== undefined
+        ? Number(dto.retentionPercent) / 100
+        : Number(subcontract.retention_percent ?? 5) / 100;
+      if (Number(subcontract.retention_limit_pct) > 0) {
+        retentionCap = (contractValue * Number(subcontract.retention_limit_pct)) / 100;
+      } else {
+        retentionCap = (contractValue * retentionRate);
+      }
+    } else {
+      contractValue = Number(project.contract_value || 0);
+      advanceTotal = Number(project.down_payment_amount || 0);
+      recoveryStartPct = 10;
+      recoveryEndPct = 80;
+      retentionRate = dto.retentionPercent !== undefined
+        ? Number(dto.retentionPercent) / 100
+        : Number(project.retention_percent ?? 5) / 100;
+      retentionCap = Number((project as any).retention_limit || (contractValue * retentionRate));
+    }
+
+    // Execute Central FIDIC 4-Layer IPC Calculation Engine (Single Source of Truth)
+    const ipcResult = computeIpc(
+      {
+        contractValue,
+        advanceTotal,
+        advanceRecoveryStartPct: recoveryStartPct,
+        advanceRecoveryEndPct: recoveryEndPct,
+        retentionRate,
+        retentionCap,
+        ldCapPct: subcontract ? Number(subcontract.ld_cap_pct || 10) : 10,
+      },
+      {
+        previousGrossWorkDone: previousGrossWorkDoneFromDb,
+        previousAdvanceRecovered,
+        previousRetentionHeld,
+        carriedForwardDebitIn,
+      },
+      {
+        grossWorkDone,
+        escalationAmount,
+        mosAdded,
+        mosReleased,
+        vatAmount: Number(dto.vatAmount || 0),
+      },
+      {
+        advanceRecoveryOverride: dto.advanceRecoveryOverride,
+        advanceRecoveryPercent: dto.advanceRecoveryPercent !== undefined ? Number(dto.advanceRecoveryPercent) : undefined,
+        backchargeAmount: dto.backchargeAmount !== undefined ? Number(dto.backchargeAmount) : undefined,
+        ldAmount: dto.ldAmount !== undefined ? Number(dto.ldAmount) : undefined,
+        materialExcessAmount: dto.materialExcessAmount !== undefined ? Number(dto.materialExcessAmount) : undefined,
+        sharedResourceAmount: dto.sharedResourceAmount !== undefined ? Number(dto.sharedResourceAmount) : undefined,
+        directPaymentAmount: dto.directPaymentAmount !== undefined ? Number(dto.directPaymentAmount) : undefined,
+        socialInsuranceAmount: dto.socialInsuranceAmount !== undefined ? Number(dto.socialInsuranceAmount) : undefined,
+        whtAmount: dto.whtAmount !== undefined ? Number(dto.whtAmount) : undefined,
+        otherDeductions: dto.otherDeductions !== undefined ? Number(dto.otherDeductions) : undefined,
+        itemizedDeductions: dto.itemizedDeductions,
+      }
+    );
+
+    // IPC GUARANTEE INTERLOCKING ENFORCEMENT:
+    // If unrecovered advance balance exists on this contract/project, check guarantee validity
+    const unrecoveredAdvanceBefore = Math.max(0, advanceTotal - previousAdvanceRecovered);
+    if (unrecoveredAdvanceBefore > 0) {
+      const activeGuarantees = await this.getGuaranteesRaw(tenantId, {
+        projectId: projectId ? String(projectId) : undefined,
+        subcontractId: subcontractId ? String(subcontractId) : undefined,
+      });
+      const interlocking = checkIpcGuaranteeInterlocking({
+        subcontractId: subcontractId ? String(subcontractId) : undefined,
+        projectId: String(projectId),
+        unrecoveredAdvanceBalance: unrecoveredAdvanceBefore,
+        invoiceDate: dto.periodEnd || new Date().toISOString().split('T')[0],
+        activeGuarantees,
+      });
+      if (interlocking.isBlocked) {
+        throw new BadRequestException(interlocking.blockReason);
+      }
+    }
+
+    // Insert Invoice Header with Phase 0 decomposed fields
     const [invoice] = await this.db
       .insertInto('contracting_invoices')
       .values({
@@ -1058,17 +1214,43 @@ export class ContractingService {
         current_amount: currentTotal,
         stored_materials_amount: storedMaterialsTotal,
         cumulative_amount: cumulativeAmount,
-        advance_recovery_amount: advanceRecoveryAmount,
-        retention_held_amount: retentionHeldAmount,
-        other_deductions: otherDeductions,
-        net_payable: netPayable,
+        advance_recovery_amount: ipcResult.advanceRecoveryAmount,
+        retention_held_amount: ipcResult.retentionHeldAmount,
+        other_deductions: ipcResult.otherDeductions,
+        gross_work_done_amount: grossWorkDone,
+        escalation_amount: escalationAmount,
+        mos_added_amount: mosAdded,
+        mos_released_amount: mosReleased,
+        mos_balance_amount: ipcResult.mosBalance,
+        backcharge_amount: ipcResult.backchargeAmount,
+        ld_amount: ipcResult.ldAmount,
+        material_excess_amount: ipcResult.materialExcessAmount,
+        shared_resource_amount: ipcResult.sharedResourceAmount,
+        direct_payment_amount: ipcResult.directPaymentAmount,
+        carried_forward_debit_in: carriedForwardDebitIn,
+        carried_forward_debit_out: ipcResult.carriedForwardDebitOut,
+        taxable_base_amount: ipcResult.taxableBaseAmount,
+        vat_amount: ipcResult.vatAmount,
+        wht_amount: ipcResult.whtAmount,
+        social_insurance_amount: ipcResult.socialInsuranceAmount,
+        claimed_amount: Number(dto.claimedAmount || currentTotal),
+        certified_amount: currentTotal,
+        certification_due_date: dto.certificationDueDate || null,
+        payment_due_date: dto.paymentDueDate || null,
+        calc_engine_version: 'v2_phased_4layer',
+        calc_inputs_snapshot: {
+          ...ipcResult.calcInputsSnapshot,
+          calculatedAt: new Date().toISOString(),
+          engineVersion: 'v2_phased_4layer',
+        },
+        net_payable: ipcResult.netPayable,
         status: 'draft',
         notes: dto.notes || null,
       })
       .returningAll()
       .execute();
 
-    // Insert Invoice Line Items
+    // Insert Invoice Line Items with WIR and stage tracking
     if (processedItems.length > 0) {
       await this.db
         .insertInto('contracting_invoice_items')
@@ -1077,6 +1259,29 @@ export class ContractingService {
             ...pi,
             tenant_id: tenantId,
             invoice_id: invoice.id,
+          }))
+        )
+        .execute();
+    }
+
+    // Insert Itemized Deductions if provided
+    if (dto.itemizedDeductions && dto.itemizedDeductions.length > 0) {
+      await (this.db as any)
+        .insertInto('contracting_ipc_deductions')
+        .values(
+          dto.itemizedDeductions.map((ded) => ({
+            tenant_id: tenantId,
+            invoice_id: invoice.id,
+            deduction_type: ded.deductionType,
+            source_table: ded.sourceTable || null,
+            source_id: ded.sourceId || null,
+            amount: Number(ded.amount || 0),
+            vat_treatment: ded.vatTreatment || 'none',
+            debit_note_ref: ded.debitNoteRef || null,
+            notice_ref: ded.noticeRef || null,
+            approved_by: auth.userId ? String(auth.userId) : null,
+            approved_at: new Date(),
+            description: ded.description || '',
           }))
         )
         .execute();
@@ -1100,6 +1305,46 @@ export class ContractingService {
 
     if (invoice.status === 'approved' || invoice.status === 'paid') {
       return this.getInvoiceById(auth, id);
+    }
+
+    // IPC GUARANTEE INTERLOCKING ENFORCEMENT:
+    if (invoice.ipc_type === 'subcontractor' && invoice.subcontract_id) {
+      const subcontract = await (this.db as any)
+        .selectFrom('contracting_subcontracts')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', invoice.subcontract_id as any)
+        .executeTakeFirst();
+
+      if (subcontract) {
+        const advTotal = Number(subcontract.advance_amount || 0);
+        const priorRecoveredRow = await (this.db as any)
+          .selectFrom('contracting_invoices')
+          .select(sql<number>`COALESCE(SUM(advance_recovery_amount), 0)::numeric`.as('recovered'))
+          .where('tenant_id', '=', tenantId)
+          .where('subcontract_id', '=', invoice.subcontract_id as any)
+          .where('status', 'in', ['approved', 'paid'])
+          .where('id', '!=', invoice.id as any)
+          .executeTakeFirst();
+        const priorRecovered = Number(priorRecoveredRow?.recovered || 0);
+        const unrecBalance = Math.max(0, advTotal - priorRecovered);
+        if (unrecBalance > 0) {
+          const activeGuarantees = await this.getGuaranteesRaw(tenantId, {
+            subcontractId: String(invoice.subcontract_id),
+            projectId: String(invoice.project_id),
+          });
+          const interlocking = checkIpcGuaranteeInterlocking({
+            subcontractId: String(invoice.subcontract_id),
+            projectId: String(invoice.project_id),
+            unrecoveredAdvanceBalance: unrecBalance,
+            invoiceDate: invoice.period_end ? (typeof invoice.period_end === 'string' ? invoice.period_end : new Date(invoice.period_end).toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
+            activeGuarantees,
+          });
+          if (interlocking.isBlocked) {
+            throw new BadRequestException(interlocking.blockReason);
+          }
+        }
+      }
     }
 
     // 1. Mark as approved
@@ -1667,9 +1912,24 @@ export class ContractingService {
           subcontractorId: Number(sc.subcontractor_id),
           subcontractorName,
           contractNumber: sc.contract_number,
+          contractType: (sc as any).contract_type || 'supply_and_apply',
           scopeOfWork: sc.scope_of_work,
           totalAmount,
           retentionPercent: Number(sc.retention_percent || 0),
+          advancePct: Number((sc as any).advance_pct || 0),
+          advanceAmount: Number((sc as any).advance_amount || 0),
+          advanceRecoveryStartPct: Number((sc as any).advance_recovery_start_pct || 10),
+          advanceRecoveryEndPct: Number((sc as any).advance_recovery_end_pct || 80),
+          retentionLimitPct: Number((sc as any).retention_limit_pct || 5),
+          penaltyPerDay: Number((sc as any).penalty_per_day || 0),
+          ldCapPct: Number((sc as any).ld_cap_pct || 10),
+          paymentLinkageMode: (sc as any).payment_linkage_mode || 'independent',
+          paymentTermsDays: Number((sc as any).payment_terms_days || 30),
+          tailReservePct: Number((sc as any).tail_reserve_pct || 10),
+          wastageAllowancePct: Number((sc as any).wastage_allowance_pct || 5),
+          mosAdmissiblePct: Number((sc as any).mos_admissible_pct || 0),
+          mosCapPct: Number((sc as any).mos_cap_pct || 15),
+          dlpMonths: Number((sc as any).dlp_months || 12),
           startDate: sc.start_date ? String(sc.start_date) : null,
           endDate: sc.end_date ? String(sc.end_date) : null,
           status: sc.status,
@@ -1699,6 +1959,10 @@ export class ContractingService {
       contractNumber = `${prefix}${String(count).padStart(4, '0')}`;
     }
 
+    const totalAmount = Number(dto.totalAmount || 0);
+    const advancePct = Number(dto.advancePct || 0);
+    const advanceAmount = dto.advanceAmount !== undefined ? Number(dto.advanceAmount) : (totalAmount * advancePct) / 100;
+
     const [sub] = await this.db
       .insertInto('contracting_subcontracts')
       .values({
@@ -1706,9 +1970,27 @@ export class ContractingService {
         project_id: projectId as any,
         subcontractor_id: dto.subcontractorId,
         contract_number: contractNumber,
+        contract_type: (dto.contractType || 'supply_and_apply') as any,
         scope_of_work: dto.scopeOfWork.trim(),
-        total_amount: Number(dto.totalAmount || 0),
+        total_amount: totalAmount,
         retention_percent: dto.retentionPercent !== undefined ? Number(dto.retentionPercent) : 5.0,
+        advance_pct: advancePct,
+        advance_amount: advanceAmount,
+        advance_recovery_start_pct: dto.advanceRecoveryStartPct !== undefined ? Number(dto.advanceRecoveryStartPct) : 10.0,
+        advance_recovery_end_pct: dto.advanceRecoveryEndPct !== undefined ? Number(dto.advanceRecoveryEndPct) : 80.0,
+        retention_limit_pct: dto.retentionLimitPct !== undefined ? Number(dto.retentionLimitPct) : 5.0,
+        penalty_per_day: Number(dto.penaltyPerDay || 0),
+        ld_cap_pct: dto.ldCapPct !== undefined ? Number(dto.ldCapPct) : 10.0,
+        liability_cap_amount: dto.liabilityCapAmount !== undefined ? Number(dto.liabilityCapAmount) : null,
+        wht_rate: Number(dto.whtRate || 0),
+        social_insurance_pct: Number(dto.socialInsurancePct || 0),
+        payment_linkage_mode: (dto.paymentLinkageMode || 'independent') as any,
+        payment_terms_days: Number(dto.paymentTermsDays || 30),
+        tail_reserve_pct: Number(dto.tailReservePct || 10.0),
+        wastage_allowance_pct: Number(dto.wastageAllowancePct || 5.0),
+        mos_admissible_pct: Number(dto.mosAdmissiblePct || 0),
+        mos_cap_pct: Number(dto.mosCapPct || 15.0),
+        dlp_months: Number(dto.dlpMonths || 12),
         start_date: dto.startDate || null,
         end_date: dto.endDate || null,
         status: 'active',
@@ -1717,6 +1999,20 @@ export class ContractingService {
       .returningAll()
       .execute();
 
+    return sub;
+  }
+
+  async getSubcontractById(auth: AuthContext, id: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const sub = await (this.db as any)
+      .selectFrom('contracting_subcontracts')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .executeTakeFirst();
+    if (!sub) {
+      throw new NotFoundException(`عقد مقاول الباطن برقم ${id} غير موجود`);
+    }
     return sub;
   }
 
@@ -3794,7 +4090,18 @@ export class ContractingService {
 
       const contractRevenue = Number(it.total_price || it.totalPrice || contractQty * unitPrice);
       const estimatedCost = contractQty * estimatedUnitCost;
-      const actualCost = actualMatCostByBoq.get(String(it.id)) || (executedQty * estimatedUnitCost);
+
+      // True operational actual costs (Direct Labor + Direct Material + Direct Equipment + Allocated Site Indirects)
+      const allocatedIndirect = Number(it.allocated_indirect_cost || it.allocatedIndirectCost || 0);
+      const directLabor = Number(it.direct_labor_cost || it.directLaborCost || 0);
+      const directMaterial = actualMatCostByBoq.get(String(it.id)) || Number(it.direct_material_cost || it.directMaterialCost || 0);
+      const directEquipment = Number(it.direct_equipment_cost || it.directEquipmentCost || 0);
+
+      const hasTrueActuals = (allocatedIndirect + directLabor + directMaterial + directEquipment) > 0;
+      const actualCost = hasTrueActuals
+        ? Math.round((allocatedIndirect + directLabor + directMaterial + directEquipment) * 1000) / 1000
+        : (executedQty * estimatedUnitCost);
+
       const earnedRevenue = executedQty * unitPrice;
 
       const projectedProfit = contractRevenue - estimatedCost;
@@ -3826,6 +4133,10 @@ export class ContractingService {
         contractRevenue,
         estimatedCost,
         actualCost,
+        directLaborCost: directLabor,
+        directMaterialCost: directMaterial,
+        directEquipmentCost: directEquipment,
+        allocatedIndirectCost: allocatedIndirect,
         projectedProfit,
         profitMarginPercent,
         realizedProfit,
@@ -6406,16 +6717,25 @@ export class ContractingService {
     for (const p of payments) {
       const amt = Number(p.amount || 0);
       const methodLabel = p.payment_method === 'cash' ? 'نقدي' : p.payment_method === 'check' ? 'شيك' : 'تحويل بنكي';
+      const catLabel =
+        p.payment_category === 'advance'
+          ? 'دفعة مقدمة'
+          : p.payment_category === 'retention'
+          ? 'إفراج محجوز ضمان'
+          : p.payment_category === 'operational_advance'
+          ? 'سلفة تشغيلية'
+          : 'دفعة جارية تحت الحساب';
       rawTx.push({
         date: p.payment_date || (p.created_at instanceof Date ? p.created_at.toISOString().split('T')[0] : String(p.created_at).split('T')[0]),
         type: 'payment',
         refNumber: p.payment_number,
-        description: `سند صرف دفعة (${methodLabel})${p.reference_number ? ` - م: ${p.reference_number}` : ''}${p.notes ? ` - ${p.notes}` : ''}`,
+        description: `سند صرف ${catLabel} (${methodLabel})${p.reference_number ? ` - م: ${p.reference_number}` : ''}${p.notes ? ` - ${p.notes}` : ''}`,
         projectId: p.project_id ? String(p.project_id) : undefined,
         credit: 0,
         debit: amt,
         details: {
           paymentMethod: p.payment_method,
+          paymentCategory: p.payment_category,
           referenceNumber: p.reference_number,
         },
       });
@@ -6499,6 +6819,76 @@ export class ContractingService {
 
     await this.getSubcontractorById(auth, dto.subcontractorId);
 
+    // Fetch subcontract details if subcontractId is specified
+    let subcontract: any = null;
+    if (dto.subcontractId) {
+      subcontract = await (this.db as any)
+        .selectFrom('contracting_subcontracts')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', String(dto.subcontractId))
+        .executeTakeFirst();
+    }
+
+    // Calculate prior advance disbursements against this subcontract or project (Invariant G1-C)
+    let priorAdvanceDisbursed = 0;
+    if (dto.subcontractId) {
+      const priorRes = await (this.db as any)
+        .selectFrom('contracting_subcontractor_payments')
+        .select(sql<number>`COALESCE(SUM(amount), 0)::numeric`.as('total'))
+        .where('tenant_id', '=', tenantId)
+        .where('subcontract_id', '=', String(dto.subcontractId))
+        .where('payment_category', '=', 'advance')
+        .where('status', '!=', 'cancelled')
+        .executeTakeFirst();
+      priorAdvanceDisbursed = Number(priorRes?.total || 0);
+    } else if (dto.projectId) {
+      const priorRes = await (this.db as any)
+        .selectFrom('contracting_subcontractor_payments')
+        .select(sql<number>`COALESCE(SUM(amount), 0)::numeric`.as('total'))
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', String(dto.projectId))
+        .where('payment_category', '=', 'advance')
+        .where('status', '!=', 'cancelled')
+        .executeTakeFirst();
+      priorAdvanceDisbursed = Number(priorRes?.total || 0);
+    }
+
+    // Objective Server-Side Substantive Inference:
+    // A payment not linked to an invoice, on a contract with an unspent contractual advance,
+    // is substantively an advance payment regardless of user dropdown silence (unless explicitly declared operational_advance or retention)
+    const userDeclaredAdvance = dto.isAdvancePayment === true || dto.paymentCategory === 'advance';
+    const isOperationalAdvance = dto.paymentCategory === 'operational_advance';
+    const isSubstantivelyAdvance =
+      userDeclaredAdvance ||
+      (!dto.invoiceId &&
+       !isOperationalAdvance &&
+       dto.paymentCategory !== 'retention' &&
+       subcontract &&
+       Number(subcontract.advance_pct) > 0 &&
+       priorAdvanceDisbursed < Number(subcontract.advance_amount));
+
+    // GATEWAY G1 ENFORCEMENT (With Cumulative Invariant G1-C Protection):
+    if (isSubstantivelyAdvance) {
+      const activeGuarantees = await this.getGuaranteesRaw(tenantId, {
+        projectId: dto.projectId ? String(dto.projectId) : (subcontract?.project_id ? String(subcontract.project_id) : undefined),
+        subcontractId: dto.subcontractId ? String(dto.subcontractId) : undefined,
+        status: 'active',
+      });
+      assertAdvancePaymentGate({
+        subcontractId: dto.subcontractId,
+        projectId: dto.projectId ? String(dto.projectId) : (subcontract?.project_id ? String(subcontract.project_id) : ''),
+        requestedDisbursementAmount: amount,
+        priorAdvanceDisbursedAgainstGuarantee: priorAdvanceDisbursed,
+        disbursementDate: dto.paymentDate || new Date().toISOString().split('T')[0],
+        activeGuarantees,
+      });
+    }
+
+    const finalPaymentCategory = isSubstantivelyAdvance
+      ? 'advance'
+      : (dto.paymentCategory || (dto.invoiceId ? 'progress' : 'progress'));
+
     const prefix = getDailyDocumentPrefix('SPAY');
     const countRes = await (this.db as any)
       .selectFrom('contracting_subcontractor_payments')
@@ -6513,7 +6903,7 @@ export class ContractingService {
       .insertInto('contracting_subcontractor_payments')
       .values({
         tenant_id: tenantId,
-        project_id: dto.projectId ? String(dto.projectId) : null,
+        project_id: dto.projectId ? String(dto.projectId) : (subcontract?.project_id ? String(subcontract.project_id) : null),
         subcontractor_id: dto.subcontractorId,
         subcontract_id: dto.subcontractId ? String(dto.subcontractId) : null,
         invoice_id: dto.invoiceId ? String(dto.invoiceId) : null,
@@ -6521,6 +6911,8 @@ export class ContractingService {
         payment_date: dto.paymentDate || new Date().toISOString().split('T')[0],
         amount,
         payment_method: dto.paymentMethod || 'bank_transfer',
+        payment_category: finalPaymentCategory,
+        status: 'completed',
         reference_number: dto.referenceNumber?.trim() || null,
         notes: dto.notes?.trim() || null,
         created_by: userId ? Number(userId) : null,
@@ -6534,10 +6926,774 @@ export class ContractingService {
       paymentDate: payment.payment_date,
       amount: Number(payment.amount),
       paymentMethod: payment.payment_method,
+      paymentCategory: payment.payment_category,
       referenceNumber: payment.reference_number,
     };
   }
+
+  // ==========================================================================
+  // 38. Bank Guarantees & Gateway G1 Lifecycle Management (خطابات الضمان البنكية)
+  // ==========================================================================
+
+  async getGuaranteesRaw(
+    tenantId: string,
+    filters: { projectId?: string; subcontractId?: string; status?: string } = {}
+  ): Promise<BankGuarantee[]> {
+    let query = (this.db as any)
+      .selectFrom('contracting_guarantees')
+      .selectAll()
+      .where('tenant_id', '=', tenantId);
+
+    if (filters.projectId) {
+      query = query.where('project_id', '=', String(filters.projectId));
+    }
+    if (filters.subcontractId) {
+      query = query.where('subcontract_id', '=', String(filters.subcontractId));
+    }
+    if (filters.status) {
+      query = query.where('status', '=', filters.status);
+    }
+
+    const rows = await query.orderBy('expiry_date', 'asc').execute();
+    return rows.map((r: any) => ({
+      id: String(r.id),
+      tenant_id: String(r.tenant_id),
+      project_id: String(r.project_id),
+      subcontract_id: r.subcontract_id ? String(r.subcontract_id) : null,
+      subcontractor_id: r.subcontractor_id ? String(r.subcontractor_id) : null,
+      guarantee_number: r.guarantee_number,
+      guarantee_type: r.guarantee_type,
+      issuing_bank: r.issuing_bank,
+      amount: Number(r.amount),
+      currency: r.currency || 'EGP',
+      issue_date: typeof r.issue_date === 'string' ? r.issue_date : new Date(r.issue_date).toISOString().split('T')[0],
+      expiry_date: typeof r.expiry_date === 'string' ? r.expiry_date : new Date(r.expiry_date).toISOString().split('T')[0],
+      claim_expiry_date: r.claim_expiry_date
+        ? (typeof r.claim_expiry_date === 'string' ? r.claim_expiry_date : new Date(r.claim_expiry_date).toISOString().split('T')[0])
+        : null,
+      reduction_schedule: r.reduction_schedule,
+      status: r.status,
+    }));
+  }
+
+  async getGuarantees(
+    auth: AuthContext,
+    query: {
+      projectId?: string;
+      subcontractId?: string;
+      subcontractorId?: number;
+      status?: string;
+      guaranteeType?: string;
+    } = {}
+  ) {
+    const { tenantId } = requireTenantScope(auth);
+    let q = (this.db as any)
+      .selectFrom('contracting_guarantees as g')
+      .leftJoin('contracting_projects as p', 'p.id', 'g.project_id')
+      .leftJoin('contracting_subcontracts as s', 's.id', 'g.subcontract_id')
+      .leftJoin('contracting_subcontractors as sub', 'sub.id', 'g.subcontractor_id')
+      .select([
+        'g.id',
+        'g.tenant_id',
+        'g.project_id',
+        'p.name as project_name',
+        'p.code as project_code',
+        'g.subcontract_id',
+        's.contract_number as subcontract_number',
+        's.title as subcontract_title',
+        'g.subcontractor_id',
+        'sub.name as subcontractor_name',
+        'g.guarantee_number',
+        'g.guarantee_type',
+        'g.issuing_bank',
+        'g.amount',
+        'g.currency',
+        'g.issue_date',
+        'g.expiry_date',
+        'g.claim_expiry_date',
+        'g.reduction_schedule',
+        'g.status',
+        'g.document_url',
+        'g.notes',
+        'g.created_at',
+        'g.updated_at',
+      ])
+      .where('g.tenant_id', '=', tenantId);
+
+    if (query.projectId) {
+      q = q.where('g.project_id', '=', String(query.projectId));
+    }
+    if (query.subcontractId) {
+      q = q.where('g.subcontract_id', '=', String(query.subcontractId));
+    }
+    if (query.subcontractorId) {
+      q = q.where('g.subcontractor_id', '=', Number(query.subcontractorId));
+    }
+    if (query.status) {
+      q = q.where('g.status', '=', query.status);
+    }
+    if (query.guaranteeType) {
+      q = q.where('g.guarantee_type', '=', query.guaranteeType);
+    }
+
+    const rows = await q.orderBy('g.expiry_date', 'asc').execute();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    return rows.map((r: any) => {
+      const expDate = new Date(r.expiry_date);
+      const diffMs = expDate.getTime() - new Date(todayStr).getTime();
+      const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+      let alertTier: 'critical_t7' | 'warning_t30' | 'info_t60' | 'expired' | 'healthy' = 'healthy';
+      if (r.status === 'active') {
+        if (daysRemaining < 0) alertTier = 'expired';
+        else if (daysRemaining <= 7) alertTier = 'critical_t7';
+        else if (daysRemaining <= 30) alertTier = 'warning_t30';
+        else if (daysRemaining <= 60) alertTier = 'info_t60';
+      }
+
+      return {
+        id: String(r.id),
+        projectId: String(r.project_id),
+        projectName: r.project_name || null,
+        projectCode: r.project_code || null,
+        subcontractId: r.subcontract_id ? String(r.subcontract_id) : null,
+        subcontractNumber: r.subcontract_number || null,
+        subcontractTitle: r.subcontract_title || null,
+        subcontractorId: r.subcontractor_id ? Number(r.subcontractor_id) : null,
+        subcontractorName: r.subcontractor_name || null,
+        guaranteeNumber: r.guarantee_number,
+        guaranteeType: r.guarantee_type,
+        issuingBank: r.issuing_bank,
+        amount: Number(r.amount),
+        currency: r.currency || 'EGP',
+        issueDate: typeof r.issue_date === 'string' ? r.issue_date : new Date(r.issue_date).toISOString().split('T')[0],
+        expiryDate: typeof r.expiry_date === 'string' ? r.expiry_date : new Date(r.expiry_date).toISOString().split('T')[0],
+        claimExpiryDate: r.claim_expiry_date
+          ? (typeof r.claim_expiry_date === 'string' ? r.claim_expiry_date : new Date(r.claim_expiry_date).toISOString().split('T')[0])
+          : null,
+        reductionSchedule: r.reduction_schedule,
+        status: r.status,
+        documentUrl: r.document_url || null,
+        notes: r.notes || null,
+        daysRemaining,
+        alertTier,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      };
+    });
+  }
+
+  async getGuaranteeById(auth: AuthContext, id: string) {
+    const list = await this.getGuarantees(auth);
+    const found = list.find((g: any) => g.id === id);
+    if (!found) {
+      throw new NotFoundException(`خطاب الضمان برقم ${id} غير موجود`);
+    }
+    return found;
+  }
+
+  async createGuarantee(auth: AuthContext, dto: CreateGuaranteeDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const amount = Number(dto.amount);
+    if (isNaN(amount) || amount <= 0) {
+      throw new BadRequestException('قيمة خطاب الضمان يجب أن تكون أكبر من الصفر');
+    }
+
+    if (dto.issueDate > dto.expiryDate) {
+      throw new BadRequestException('تاريخ انتهاء الضمان يجب أن يكون بعد تاريخ الإصدار');
+    }
+
+    await this.getProjectById(auth, dto.projectId);
+
+    if (dto.subcontractId) {
+      await this.getSubcontractById(auth, dto.subcontractId);
+    }
+
+    if (dto.subcontractorId) {
+      await this.getSubcontractorById(auth, dto.subcontractorId);
+    }
+
+    const [inserted] = await (this.db as any)
+      .insertInto('contracting_guarantees')
+      .values({
+        tenant_id: tenantId,
+        project_id: dto.projectId,
+        subcontract_id: dto.subcontractId ? String(dto.subcontractId) : null,
+        subcontractor_id: dto.subcontractorId ? Number(dto.subcontractorId) : null,
+        guarantee_number: dto.guaranteeNumber.trim(),
+        guarantee_type: dto.guaranteeType,
+        issuing_bank: dto.issuingBank.trim(),
+        amount,
+        currency: dto.currency || 'EGP',
+        issue_date: dto.issueDate,
+        expiry_date: dto.expiryDate,
+        claim_expiry_date: dto.claimExpiryDate || null,
+        reduction_schedule: dto.reductionSchedule ? JSON.stringify(dto.reductionSchedule) : null,
+        status: 'active',
+        document_url: dto.documentUrl?.trim() || null,
+        notes: dto.notes?.trim() || null,
+      })
+      .returningAll()
+      .execute();
+
+    return this.getGuaranteeById(auth, String(inserted.id));
+  }
+
+  async updateGuarantee(auth: AuthContext, id: string, dto: UpdateGuaranteeDto) {
+    const { tenantId } = requireTenantScope(auth);
+    await this.getGuaranteeById(auth, id);
+
+    const updates: any = {
+      updated_at: new Date(),
+    };
+
+    if (dto.issuingBank !== undefined) updates.issuing_bank = dto.issuingBank.trim();
+    if (dto.amount !== undefined) {
+      const amt = Number(dto.amount);
+      if (isNaN(amt) || amt <= 0) throw new BadRequestException('قيمة خطاب الضمان يجب أن تكون أكبر من الصفر');
+      updates.amount = amt;
+    }
+    if (dto.currency !== undefined) updates.currency = dto.currency;
+    if (dto.claimExpiryDate !== undefined) updates.claim_expiry_date = dto.claimExpiryDate || null;
+    if (dto.reductionSchedule !== undefined) updates.reduction_schedule = JSON.stringify(dto.reductionSchedule);
+    if (dto.documentUrl !== undefined) updates.document_url = dto.documentUrl?.trim() || null;
+    if (dto.notes !== undefined) updates.notes = dto.notes?.trim() || null;
+
+    await (this.db as any)
+      .updateTable('contracting_guarantees')
+      .set(updates)
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id)
+      .execute();
+
+    return this.getGuaranteeById(auth, id);
+  }
+
+  async extendGuarantee(auth: AuthContext, id: string, dto: ExtendGuaranteeDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const existing = await this.getGuaranteeById(auth, id);
+
+    if (dto.newExpiryDate <= existing.issueDate) {
+      throw new BadRequestException('تاريخ التمديد يجب أن يكون بعد تاريخ إصدار خطاب الضمان');
+    }
+
+    const noteAppend = dto.notes ? ` | تمديد حتى ${dto.newExpiryDate}: ${dto.notes}` : ` | تمديد بنكي حتى ${dto.newExpiryDate}`;
+    const combinedNotes = existing.notes ? `${existing.notes}${noteAppend}` : noteAppend.replace(/^ \| /, '');
+
+    await (this.db as any)
+      .updateTable('contracting_guarantees')
+      .set({
+        expiry_date: dto.newExpiryDate,
+        claim_expiry_date: dto.newClaimExpiryDate || existing.claimExpiryDate,
+        status: 'active',
+        notes: combinedNotes,
+        updated_at: new Date(),
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id)
+      .execute();
+
+    return this.getGuaranteeById(auth, id);
+  }
+
+  async releaseGuarantee(auth: AuthContext, id: string, dto: ReleaseGuaranteeDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const existing = await this.getGuaranteeById(auth, id);
+
+    const noteAppend = dto.notes ? ` | إفراج بتاريخ ${dto.releaseDate}: ${dto.notes}` : ` | تم الإفراج ورد أصل الخطاب بتاريخ ${dto.releaseDate}`;
+    const combinedNotes = existing.notes ? `${existing.notes}${noteAppend}` : noteAppend.replace(/^ \| /, '');
+
+    await (this.db as any)
+      .updateTable('contracting_guarantees')
+      .set({
+        status: 'released',
+        notes: combinedNotes,
+        updated_at: new Date(),
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id)
+      .execute();
+
+    return this.getGuaranteeById(auth, id);
+  }
+
+  async invokeGuarantee(auth: AuthContext, id: string, dto: InvokeGuaranteeDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const existing = await this.getGuaranteeById(auth, id);
+
+    if (existing.status !== 'active') {
+      throw new BadRequestException(`لا يمكن تسييل أو مصادرة خطاب ضمان بحالة (${existing.status})`);
+    }
+
+    const noteAppend = ` | تسييل/مصادرة بتاريخ ${dto.invocationDate} بمبلغ (${dto.invokedAmount || existing.amount} ${existing.currency}). السبب: ${dto.reason}`;
+    const combinedNotes = existing.notes ? `${existing.notes}${noteAppend}` : noteAppend.replace(/^ \| /, '');
+
+    await (this.db as any)
+      .updateTable('contracting_guarantees')
+      .set({
+        status: 'confiscated_invoked',
+        notes: combinedNotes,
+        updated_at: new Date(),
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id)
+      .execute();
+
+    return this.getGuaranteeById(auth, id);
+  }
+
+  async getGuaranteeExpiryAlerts(auth: AuthContext, projectId?: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const rawGuarantees = await this.getGuaranteesRaw(tenantId, { projectId });
+    const todayStr = new Date().toISOString().split('T')[0];
+    return evaluateGuaranteeExpiryAlerts(rawGuarantees, todayStr);
+  }
+
+  // ==========================================================================
+  // Track 1: Field Indirect Costs & Distributables Allocation (AACE RP 10S-90 / 34R-05)
+  // ==========================================================================
+
+  async initializeDefaultCostPools(auth: AuthContext, projectId: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const existing = await (this.db as any)
+      .selectFrom('contracting_cost_pools')
+      .select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .execute();
+
+    if (existing.length > 0) return;
+
+    const defaults = [
+      {
+        pool_code: 'P1_LABOR_CARE',
+        pool_name: 'سكن وإعاشة وانتقالات العمالة',
+        pool_type: 'labor_care',
+        driver_type: 'labor_days',
+        description: 'إيجار سكن العمال والمشرفين، الوجبات والإعاشة، وحافلات النقل الميدانية',
+      },
+      {
+        pool_code: 'P2_LABOR_BURDEN',
+        pool_name: 'أعباء وتأمينات ومزايا العمالة',
+        pool_type: 'labor_burden',
+        driver_type: 'labor_cost',
+        description: 'التأمينات الاجتماعية، رسوم الإقامات، تصاريح العمل، وتذاكر السفر الميدانية',
+      },
+      {
+        pool_code: 'P3_EQUIP_SHARED',
+        pool_name: 'المعدات العامة ومولدات الموقع والمحروقات',
+        pool_type: 'equipment_shared',
+        driver_type: 'equipment_hours',
+        description: 'مولدات الكهرباء المشتركة، أبراج الإنارة، صهاريج المياه، والوقود المشترك',
+      },
+      {
+        pool_code: 'P4_SITE_SUPERVISION',
+        pool_name: 'إدارة وإشراف الموقع وكرفانات المهندسين',
+        pool_type: 'site_supervision',
+        driver_type: 'direct_effort',
+        description: 'رواتب الجهاز الهندسي بالموقع، كرفان الإدارة، تراخيص مؤقتة، وأمن وحراسة',
+      },
+    ];
+
+    for (const d of defaults) {
+      await (this.db as any)
+        .insertInto('contracting_cost_pools')
+        .values({
+          tenant_id: tenantId,
+          project_id: projectId as any,
+          pool_code: d.pool_code,
+          pool_name: d.pool_name,
+          pool_type: d.pool_type,
+          driver_type: d.driver_type,
+          description: d.description,
+          is_active: true,
+        })
+        .execute();
+    }
+  }
+
+  async getCostPools(auth: AuthContext, projectId: string) {
+    const { tenantId } = requireTenantScope(auth);
+    await this.initializeDefaultCostPools(auth, projectId);
+
+    const pools = await (this.db as any)
+      .selectFrom('contracting_cost_pools')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .orderBy('pool_code', 'asc')
+      .execute();
+
+    return pools.map((p: any) => ({
+      id: String(p.id),
+      projectId: String(p.project_id),
+      poolCode: p.pool_code,
+      poolName: p.pool_name,
+      poolType: p.pool_type,
+      driverType: p.driver_type,
+      description: p.description,
+      isActive: Boolean(p.is_active),
+      createdAt: p.created_at,
+    }));
+  }
+
+  async createCostPool(auth: AuthContext, projectId: string, dto: CreateCostPoolDto) {
+    const { tenantId } = requireTenantScope(auth);
+    await this.getProjectById(auth, projectId);
+
+    const [inserted] = await (this.db as any)
+      .insertInto('contracting_cost_pools')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectId as any,
+        pool_code: dto.poolCode.trim().toUpperCase(),
+        pool_name: dto.poolName.trim(),
+        pool_type: dto.poolType,
+        driver_type: dto.driverType,
+        description: dto.description || null,
+        is_active: true,
+      })
+      .returningAll()
+      .execute();
+
+    return {
+      id: String(inserted.id),
+      projectId: String(inserted.project_id),
+      poolCode: inserted.pool_code,
+      poolName: inserted.pool_name,
+      poolType: inserted.pool_type,
+      driverType: inserted.driver_type,
+      description: inserted.description,
+      isActive: Boolean(inserted.is_active),
+      createdAt: inserted.created_at,
+    };
+  }
+
+  async getIndirectExpenses(auth: AuthContext, projectId: string, poolId?: string) {
+    const { tenantId } = requireTenantScope(auth);
+    let query = (this.db as any)
+      .selectFrom('contracting_indirect_expenses as ie')
+      .innerJoin('contracting_cost_pools as cp', 'cp.id', 'ie.pool_id')
+      .select([
+        'ie.id',
+        'ie.project_id',
+        'ie.pool_id',
+        'ie.batch_id',
+        'ie.mobilization_expense_id',
+        'ie.expense_title',
+        'ie.gross_amount',
+        'ie.recovered_amount',
+        'ie.net_amount',
+        'ie.expense_date',
+        'ie.voucher_ref',
+        'ie.created_at',
+        'cp.pool_code',
+        'cp.pool_name',
+        'cp.pool_type',
+        'cp.driver_type',
+      ])
+      .where('ie.tenant_id', '=', tenantId)
+      .where('ie.project_id', '=', projectId as any);
+
+    if (poolId) {
+      query = query.where('ie.pool_id', '=', poolId as any);
+    }
+
+    const rows = await query.orderBy('ie.expense_date', 'desc').execute();
+
+    return rows.map((r: any) => ({
+      id: String(r.id),
+      projectId: String(r.project_id),
+      poolId: String(r.pool_id),
+      poolCode: r.pool_code,
+      poolName: r.pool_name,
+      poolType: r.pool_type,
+      driverType: r.driver_type,
+      batchId: r.batch_id ? String(r.batch_id) : null,
+      mobilizationExpenseId: r.mobilization_expense_id ? String(r.mobilization_expense_id) : null,
+      expenseTitle: r.expense_title,
+      grossAmount: Number(r.gross_amount || 0),
+      recoveredAmount: Number(r.recovered_amount || 0),
+      netAmount: Number(r.net_amount || 0),
+      expenseDate: r.expense_date,
+      voucherRef: r.voucher_ref,
+      createdAt: r.created_at,
+    }));
+  }
+
+  async createIndirectExpense(auth: AuthContext, projectId: string, dto: CreateIndirectExpenseDto) {
+    const { tenantId } = requireTenantScope(auth);
+    await this.getProjectById(auth, projectId);
+
+    const gross = Number(dto.grossAmount || 0);
+    const recovered = Number(dto.recoveredAmount || 0);
+    const net = Math.round(Math.max(0, gross - recovered) * 1000) / 1000;
+
+    const [inserted] = await (this.db as any)
+      .insertInto('contracting_indirect_expenses')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectId as any,
+        pool_id: dto.poolId as any,
+        expense_title: dto.expenseTitle.trim(),
+        gross_amount: gross,
+        recovered_amount: recovered,
+        net_amount: net,
+        expense_date: dto.expenseDate || new Date().toISOString().split('T')[0],
+        voucher_ref: dto.voucherRef || null,
+        mobilization_expense_id: dto.mobilizationExpenseId ? (dto.mobilizationExpenseId as any) : null,
+      })
+      .returningAll()
+      .execute();
+
+    return inserted;
+  }
+
+  async getAllocationBatches(auth: AuthContext, projectId: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const batches = await (this.db as any)
+      .selectFrom('contracting_allocation_batches')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .orderBy('period_start', 'desc')
+      .execute();
+
+    return batches.map((b: any) => ({
+      id: String(b.id),
+      projectId: String(b.project_id),
+      batchNumber: b.batch_number,
+      periodStart: b.period_start,
+      periodEnd: b.period_end,
+      status: b.status,
+      totalGrossExpenses: Number(b.total_gross_expenses || 0),
+      totalRecoveredBackcharges: Number(b.total_recovered_backcharges || 0),
+      totalNetPoolCost: Number(b.total_net_pool_cost || 0),
+      totalAllocatedAmount: Number(b.total_allocated_amount || 0),
+      deferredInAmount: Number(b.deferred_in_amount || 0),
+      deferredOutAmount: Number(b.deferred_out_amount || 0),
+      postedAt: b.posted_at,
+      postedBy: b.posted_by,
+      notes: b.notes,
+      createdAt: b.created_at,
+    }));
+  }
+
+  async previewBatchAllocation(auth: AuthContext, projectId: string, dto: CreateAllocationBatchDto): Promise<BatchAllocationSummary> {
+    const { tenantId } = requireTenantScope(auth);
+    const pools = await this.getCostPools(auth, projectId);
+    const boqItems = await this.getBoqItems(auth, projectId);
+
+    // Fetch unallocated or in-period indirect expenses
+    const expenses = await (this.db as any)
+      .selectFrom('contracting_indirect_expenses')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .where((eb: any) =>
+        eb.or([
+          eb('batch_id', 'is', null),
+          eb.and([
+            eb('expense_date', '>=', dto.periodStart),
+            eb('expense_date', '<=', dto.periodEnd),
+          ]),
+        ])
+      )
+      .execute();
+
+    // Map expenses by pool
+    const poolExpenseMap = new Map<string, { gross: number; recovered: number }>();
+    for (const exp of expenses) {
+      const pId = String(exp.pool_id);
+      const curr = poolExpenseMap.get(pId) || { gross: 0, recovered: 0 };
+      curr.gross += Number(exp.gross_amount || 0);
+      curr.recovered += Number(exp.recovered_amount || 0);
+      poolExpenseMap.set(pId, curr);
+    }
+
+    // Prepare CostPoolInput array
+    const poolInputs: CostPoolInput[] = pools.map((p: any) => {
+      const exp = poolExpenseMap.get(p.id) || { gross: 0, recovered: 0 };
+      return {
+        poolId: p.id,
+        poolCode: p.poolCode,
+        poolName: p.poolName,
+        poolType: p.poolType,
+        driverType: p.driverType,
+        grossExpenseAmount: exp.gross,
+        recoveredBackchargeAmount: exp.recovered,
+        deferredInAmount: p.poolCode === 'P1_LABOR_CARE' ? Number(dto.deferredInAmount || 0) : 0,
+      };
+    });
+
+    // Fetch labor attendance driver metrics in period
+    const attendanceRecords = await (this.db as any)
+      .selectFrom('contracting_labor_attendance_records')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .where('attendance_date', '>=', dto.periodStart)
+      .where('attendance_date', '<=', dto.periodEnd)
+      .execute();
+
+    const laborMetricsByBoq = new Map<string, { days: number; cost: number }>();
+    for (const att of attendanceRecords) {
+      if (att.boq_item_id) {
+        const idStr = String(att.boq_item_id);
+        const curr = laborMetricsByBoq.get(idStr) || { days: 0, cost: 0 };
+        curr.days += att.status === 'present' ? 1 : att.status === 'half_day' ? 0.5 : 0;
+        curr.cost += Number(att.total_payable || 0);
+        laborMetricsByBoq.set(idStr, curr);
+      }
+    }
+
+    // Fetch equipment fuel/meter logs driver metrics in period
+    const equipmentLogs = await (this.db as any)
+      .selectFrom('contracting_equipment_fuel_logs')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .where('log_date', '>=', dto.periodStart)
+      .where('log_date', '<=', dto.periodEnd)
+      .execute();
+
+    const equipMetricsByBoq = new Map<string, { hours: number; cost: number }>();
+    for (const eq of equipmentLogs) {
+      if (eq.boq_item_id) {
+        const idStr = String(eq.boq_item_id);
+        const curr = equipMetricsByBoq.get(idStr) || { hours: 0, cost: 0 };
+        curr.hours += Number(eq.operating_hours || 0);
+        curr.cost += Number(eq.fuel_cost_total || 0);
+        equipMetricsByBoq.set(idStr, curr);
+      }
+    }
+
+    // Prepare BoqDriverMetricsInput array
+    const boqDrivers: BoqDriverMetricsInput[] = (boqItems as any[]).map((it) => {
+      const idStr = String(it.id);
+      const labor = laborMetricsByBoq.get(idStr) || { days: 0, cost: 0 };
+      const equip = equipMetricsByBoq.get(idStr) || { hours: 0, cost: 0 };
+
+      return {
+        boqItemId: idStr,
+        boqCode: it.item_code || it.itemCode || `BOQ-${idStr}`,
+        description: it.description || '',
+        laborDays: labor.days,
+        laborCost: labor.cost,
+        equipmentHours: equip.hours,
+        directEquipmentCost: equip.cost,
+        directMaterialCost: 0, // Material cost strictly NOT used as driver!
+      };
+    });
+
+    // Run pure calculation engine
+    return computeBatchAllocation(poolInputs, boqDrivers);
+  }
+
+  async postBatchAllocation(auth: AuthContext, projectId: string, dto: CreateAllocationBatchDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const summary = await this.previewBatchAllocation(auth, projectId, dto);
+
+    // Count existing batches to format YYMMDD document number (Rule 10)
+    const existingCountRes = await (this.db as any)
+      .selectFrom('contracting_allocation_batches')
+      .select((eb: any) => eb.fn.count('id').as('cnt'))
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    const count = Number(existingCountRes?.cnt || 0);
+    const batchNumber = formatDailyDocumentNumber('ALLOC', count + 1);
+
+    // Insert batch
+    const [batch] = await (this.db as any)
+      .insertInto('contracting_allocation_batches')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectId as any,
+        batch_number: batchNumber,
+        period_start: dto.periodStart,
+        period_end: dto.periodEnd,
+        status: 'posted',
+        total_gross_expenses: summary.totalGrossExpense,
+        total_recovered_backcharges: summary.totalRecoveredBackcharge,
+        total_net_pool_cost: summary.totalNetCost,
+        total_allocated_amount: summary.totalAllocated,
+        deferred_in_amount: summary.totalDeferredIn,
+        deferred_out_amount: summary.totalDeferredOut,
+        posted_at: new Date(),
+        posted_by: auth.username || 'system',
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .execute();
+
+    // Link expenses to batch
+    await (this.db as any)
+      .updateTable('contracting_indirect_expenses')
+      .set({ batch_id: batch.id })
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .where('batch_id', 'is', null)
+      .where('expense_date', '>=', dto.periodStart)
+      .where('expense_date', '<=', dto.periodEnd)
+      .execute();
+
+    // Insert itemized allocations
+    for (const pool of summary.poolSummaries) {
+      for (const alloc of pool.allocations) {
+        if (alloc.allocatedAmount > 0 || alloc.driverQty > 0) {
+          await (this.db as any)
+            .insertInto('contracting_boq_indirect_allocations')
+            .values({
+              tenant_id: tenantId,
+              project_id: projectId as any,
+              batch_id: batch.id,
+              pool_id: pool.poolId as any,
+              boq_item_id: alloc.boqItemId as any,
+              driver_type: pool.driverType,
+              driver_qty: alloc.driverQty,
+              total_pool_driver_qty: pool.totalDriverQty,
+              allocation_ratio: alloc.allocationRatio,
+              pool_net_cost: pool.netPoolCost,
+              allocated_amount: alloc.allocatedAmount,
+            })
+            .execute();
+        }
+      }
+    }
+
+    // Update BOQ items' allocated_indirect_cost & total_actual_cost
+    for (const itemSummary of summary.boqItemSummaries) {
+      if (itemSummary.totalAllocatedIndirectCost > 0) {
+        await (this.db as any)
+          .updateTable('contracting_boq_items')
+          .set({
+            allocated_indirect_cost: sql`COALESCE(allocated_indirect_cost, 0) + ${itemSummary.totalAllocatedIndirectCost}`,
+            total_actual_cost: sql`COALESCE(direct_labor_cost, 0) + COALESCE(direct_material_cost, 0) + COALESCE(direct_equipment_cost, 0) + COALESCE(allocated_indirect_cost, 0) + ${itemSummary.totalAllocatedIndirectCost}`,
+            updated_at: new Date(),
+          })
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', itemSummary.boqItemId as any)
+          .execute();
+      }
+    }
+
+    return {
+      batch: {
+        id: String(batch.id),
+        batchNumber: batch.batch_number,
+        periodStart: batch.period_start,
+        periodEnd: batch.period_end,
+        status: batch.status,
+        totalNetPoolCost: Number(batch.total_net_pool_cost),
+        totalAllocatedAmount: Number(batch.total_allocated_amount),
+        deferredOutAmount: Number(batch.deferred_out_amount),
+      },
+      summary,
+    };
+  }
 }
+
 
 
 

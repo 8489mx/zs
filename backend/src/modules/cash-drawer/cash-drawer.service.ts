@@ -175,7 +175,7 @@ export class CashDrawerService {
     await this.assertCurrentUserPassword(approvalSecret, auth);
   }
 
-  private async computeShiftCashDrawerMovements(shiftId: number, auth: AuthContext): Promise<{
+  private async computeShiftCashDrawerMovements(shiftId: number, auth: AuthContext, queryable?: Kysely<Database>): Promise<{
     cashInTotal: number;
     deliveryCashInTotal: number;
     manualCashInTotal: number;
@@ -201,7 +201,7 @@ export class CashDrawerService {
         and tt.reference_id = ${shiftId}
         and tt.return_document_id is null
         and coalesce(tt.txn_type, '') not in ('supplier_payment_schedule', 'supplier_payment')
-    `.execute(this.db);
+    `.execute(queryable ?? this.db);
     const row = result.rows?.[0] || {};
     return {
       cashInTotal: this.toMoney(row.cash_in_total || 0),
@@ -212,7 +212,7 @@ export class CashDrawerService {
     };
   }
 
-  private async computeShiftSupplierPaymentsTotal(shift: ShiftRow, auth: AuthContext): Promise<number> {
+  private async computeShiftSupplierPaymentsTotal(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<number> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
     if (!(openerId > 0) || !shift.created_at) return 0;
     const shiftId = Number(shift.id || 0);
@@ -236,11 +236,11 @@ export class CashDrawerService {
             and tt.reference_id = ${shiftId}
         ), 0)
       ) as total
-    `.execute(this.db);
+    `.execute(queryable ?? this.db);
     return this.toMoney(result.rows?.[0]?.total || 0);
   }
 
-  private async computeShiftExpensesTotal(shift: ShiftRow, auth: AuthContext): Promise<number> {
+  private async computeShiftExpensesTotal(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<number> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
     if (!(openerId > 0) || !shift.created_at) return 0;
     const result = await sql<{ total?: number | string | null }>`
@@ -251,11 +251,11 @@ export class CashDrawerService {
         and (${shift.closed_at || null}::timestamptz is null or (e.expense_date <= ${shift.closed_at || null} and e.created_at <= ${shift.closed_at || null}))
         and (${shift.branch_id || null}::int is null or e.branch_id is null or e.branch_id = ${Number(shift.branch_id || 0) || null})
         and (${shift.location_id || null}::int is null or e.location_id is null or e.location_id = ${Number(shift.location_id || 0) || null})
-    `.execute(this.db);
+    `.execute(queryable ?? this.db);
     return this.toMoney(result.rows?.[0]?.total || 0);
   }
 
-  private async computeShiftServiceBreakdown(shift: ShiftRow, auth: AuthContext): Promise<ShiftServiceBreakdown> {
+  private async computeShiftServiceBreakdown(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<ShiftServiceBreakdown> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
     if (!(openerId > 0) || !shift.created_at) return { serviceCashTotal: 0, serviceCardTotal: 0, serviceTotal: 0 };
     const result = await sql<{ service_cash_total?: number | string | null; service_card_total?: number | string | null; service_total?: number | string | null }>`
@@ -268,12 +268,12 @@ export class CashDrawerService {
         and (${shift.closed_at || null}::timestamptz is null or (s.service_date <= ${shift.closed_at || null} and s.created_at <= ${shift.closed_at || null}))
         and (${shift.branch_id || null}::int is null or s.branch_id is null or s.branch_id = ${Number(shift.branch_id || 0) || null})
         and (${shift.location_id || null}::int is null or s.location_id is null or s.location_id = ${Number(shift.location_id || 0) || null})
-    `.execute(this.db);
+    `.execute(queryable ?? this.db);
     const row = result.rows?.[0] || {};
     return { serviceCashTotal: this.toMoney(row.service_cash_total || 0), serviceCardTotal: this.toMoney(row.service_card_total || 0), serviceTotal: this.toMoney(row.service_total || 0) };
   }
 
-  private async computeShiftSalesBreakdown(shift: ShiftRow, auth: AuthContext): Promise<ShiftSalesBreakdown> {
+  private async computeShiftSalesBreakdown(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<ShiftSalesBreakdown> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
     const empty: ShiftSalesBreakdown = {
       cashSalesTotal: 0,
@@ -325,7 +325,7 @@ export class CashDrawerService {
              coalesce(sum(case when payment_channel = 'wallet' then 1 else 0 end), 0)::int as wallet_operation_count,
              coalesce(sum(case when payment_channel = 'instapay' then 1 else 0 end), 0)::int as instapay_operation_count
       from payment_rows
-    `.execute(this.db);
+    `.execute(queryable ?? this.db);
     const row = result.rows?.[0] || {};
     const shiftSalesTotal = this.toMoney(row.shift_sales_total || 0);
     const deliverySalesTotal = this.toMoney(row.delivery_sales_total || 0);
@@ -354,23 +354,23 @@ export class CashDrawerService {
     };
   }
 
-  private async computeShiftSaleReturnTotals(shift: ShiftRow, auth: AuthContext): Promise<ShiftSaleReturnTotals> {
+  private async computeShiftSaleReturnTotals(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<ShiftSaleReturnTotals> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
     if (!(openerId > 0) || !shift.created_at) return { saleReturnCashRefundTotal: 0, saleReturnCardRefundTotal: 0, saleReturnTotal: 0 };
-    const result = await sql<any>`select coalesce(sum(case when rd.refund_method = 'cash' then rd.total else 0 end), 0) as sale_return_cash_refund_total, coalesce(sum(case when rd.refund_method = 'card' then rd.total else 0 end), 0) as sale_return_card_refund_total, coalesce(sum(rd.total), 0) as sale_return_total from return_documents rd where rd.tenant_id = ${scope.tenantId} and rd.return_type = 'sale' and rd.created_by = ${openerId} and rd.created_at >= ${shift.created_at} and (${shift.closed_at || null}::timestamptz is null or rd.created_at <= ${shift.closed_at || null}) and (${shift.branch_id || null}::int is null or rd.branch_id is null or rd.branch_id = ${Number(shift.branch_id || 0) || null}) and (${shift.location_id || null}::int is null or rd.location_id is null or rd.location_id = ${Number(shift.location_id || 0) || null})`.execute(this.db);
+    const result = await sql<any>`select coalesce(sum(case when rd.refund_method = 'cash' then rd.total else 0 end), 0) as sale_return_cash_refund_total, coalesce(sum(case when rd.refund_method = 'card' then rd.total else 0 end), 0) as sale_return_card_refund_total, coalesce(sum(rd.total), 0) as sale_return_total from return_documents rd where rd.tenant_id = ${scope.tenantId} and rd.return_type = 'sale' and rd.created_by = ${openerId} and rd.created_at >= ${shift.created_at} and (${shift.closed_at || null}::timestamptz is null or rd.created_at <= ${shift.closed_at || null}) and (${shift.branch_id || null}::int is null or rd.branch_id is null or rd.branch_id = ${Number(shift.branch_id || 0) || null}) and (${shift.location_id || null}::int is null or rd.location_id is null or rd.location_id = ${Number(shift.location_id || 0) || null})`.execute(queryable ?? this.db);
     const row = result.rows?.[0] || {};
     return { saleReturnCashRefundTotal: this.toMoney(row.sale_return_cash_refund_total || 0), saleReturnCardRefundTotal: this.toMoney(row.sale_return_card_refund_total || 0), saleReturnTotal: this.toMoney(row.sale_return_total || 0) };
   }
 
-  private async computeShiftExpectedCashFromShift(shift: ShiftRow, auth: AuthContext, salesBreakdown?: ShiftSalesBreakdown, serviceBreakdown?: ShiftServiceBreakdown): Promise<number> {
+  private async computeShiftExpectedCashFromShift(shift: ShiftRow, auth: AuthContext, salesBreakdown?: ShiftSalesBreakdown, serviceBreakdown?: ShiftServiceBreakdown, queryable?: Kysely<Database>): Promise<number> {
     const shiftId = Number(shift.id || 0);
     if (!(shiftId > 0)) return this.toMoney(shift.opening_cash || 0);
-    const movements = await this.computeShiftCashDrawerMovements(shiftId, auth);
-    const breakdown = salesBreakdown || await this.computeShiftSalesBreakdown(shift, auth);
-    const services = serviceBreakdown || await this.computeShiftServiceBreakdown(shift, auth);
-    const saleReturnTotals = await this.computeShiftSaleReturnTotals(shift, auth);
-    const supplierPaymentsTotal = await this.computeShiftSupplierPaymentsTotal(shift, auth);
-    const expensesTotal = await this.computeShiftExpensesTotal(shift, auth);
+    const movements = await this.computeShiftCashDrawerMovements(shiftId, auth, queryable);
+    const breakdown = salesBreakdown || await this.computeShiftSalesBreakdown(shift, auth, queryable);
+    const services = serviceBreakdown || await this.computeShiftServiceBreakdown(shift, auth, queryable);
+    const saleReturnTotals = await this.computeShiftSaleReturnTotals(shift, auth, queryable);
+    const supplierPaymentsTotal = await this.computeShiftSupplierPaymentsTotal(shift, auth, queryable);
+    const expensesTotal = await this.computeShiftExpensesTotal(shift, auth, queryable);
     const netDrawerMovement = movements.cashInTotal - movements.cashOutTotal;
     return this.toMoney(Number(shift.opening_cash || 0) + netDrawerMovement + breakdown.cashSalesTotal + services.serviceCashTotal - saleReturnTotals.saleReturnCashRefundTotal - supplierPaymentsTotal - expensesTotal);
   }
@@ -656,9 +656,27 @@ export class CashDrawerService {
     const note = String(payload.note || '').trim();
     assertCashDrawerAmount(amount); assertCashDrawerNote(note);
     const signedAmount = toSignedCashDrawerAmount(movementType, amount);
-    await sql`insert into treasury_transactions (txn_type, amount, note, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id) values (${movementType}, ${signedAmount}, ${`وردية ${shift.doc_no || shift.id}: ${note}`}, 'cashier_shift', ${shiftId}, ${shift.branch_id ? Number(shift.branch_id) : null}, ${shift.location_id ? Number(shift.location_id) : null}, ${auth.userId}, ${scope.tenantId}, ${scope.accountId})`.execute(this.db);
-    const expectedCash = await this.computeShiftExpectedCash(shiftId, auth);
-    await sql`update cashier_shifts set expected_cash = ${expectedCash} where tenant_id = ${scope.tenantId} and id = ${shiftId}`.execute(this.db);
+
+    // The drawer movement and the expected_cash recomputation must be atomic and serialized on the
+    // shift row. Without the lock, two concurrent movements interleave as insert/insert/compute/compute
+    // and the second UPDATE overwrites the first with a stale figure (lost update). Re-checking the
+    // status under the lock also closes the window where a movement lands on a shift being closed.
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const lockedShift = await trx
+        .selectFrom('cashier_shifts')
+        .selectAll()
+        .where('id', '=', shiftId)
+        .where('tenant_id', '=', scope.tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!lockedShift) throw new AppError('الوردية غير موجودة', 'SHIFT_NOT_FOUND', 404);
+      if (String(lockedShift.status || 'open') !== 'open') throw new AppError('لا يمكن تسجيل حركة على وردية مغلقة', 'SHIFT_CLOSED', 400);
+
+      await sql`insert into treasury_transactions (txn_type, amount, note, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id) values (${movementType}, ${signedAmount}, ${`وردية ${shift.doc_no || shift.id}: ${note}`}, 'cashier_shift', ${shiftId}, ${shift.branch_id ? Number(shift.branch_id) : null}, ${shift.location_id ? Number(shift.location_id) : null}, ${auth.userId}, ${scope.tenantId}, ${scope.accountId})`.execute(trx);
+      const expectedCash = await this.computeShiftExpectedCashFromShift(lockedShift as ShiftRow, auth, undefined, undefined, trx);
+      await sql`update cashier_shifts set expected_cash = ${expectedCash} where tenant_id = ${scope.tenantId} and id = ${shiftId}`.execute(trx);
+    });
+
     const listing = await this.listCashierShifts({}, auth);
     return { ok: true, cashierShifts: listing.cashierShifts, pagination: listing.pagination, summary: listing.summary };
   }
@@ -697,7 +715,9 @@ export class CashDrawerService {
       if (!lockedShift) throw new AppError('الوردية غير موجودة', 'SHIFT_NOT_FOUND', 404);
       if (String(lockedShift.status || 'open') !== 'open') throw new AppError('الوردية مغلقة بالفعل', 'SHIFT_ALREADY_CLOSED', 400);
 
-      const expectedCash = await this.computeShiftExpectedCashFromShift(lockedShift, auth);
+      // Compute on the transaction, not on the pool: reading via this.db uses a separate connection
+      // that cannot see anything written in this transaction, and reads outside the row lock taken above.
+      const expectedCash = await this.computeShiftExpectedCashFromShift(lockedShift as ShiftRow, auth, undefined, undefined, trx);
       const variance = computeCashDrawerVariance(countedCash, expectedCash);
       if (!isBlindCloseCashier && Math.abs(variance) >= 0.01) assertCashDrawerNote(note);
 

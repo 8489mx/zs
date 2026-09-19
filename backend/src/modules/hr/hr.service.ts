@@ -1540,17 +1540,29 @@ export class HrService {
     const baseSalary = money(item.base_salary);
     const allowanceAmount = Number((money(item.compensation_allowance) + adjustments.allowance).toFixed(2));
     const deductionAmount = Number((money(item.compensation_deduction) + adjustments.deduction).toFixed(2));
-    const loanDeductionAmount = money(item.loan_deduction_amount);
+    const scheduledLoanDeduction = money(item.loan_deduction_amount);
     const grossPay = Number((baseSalary + allowanceAmount).toFixed(2));
+
+    // Same deduction-priority rule as the full payroll build: the loan installment may only take
+    // what remains after other deductions, otherwise the loan is credited money never withheld.
+    const payAvailableForLoan = Number(Math.max(0, grossPay - deductionAmount).toFixed(2));
+    const loanDeductionAmount = Number(Math.min(scheduledLoanDeduction, payAvailableForLoan).toFixed(2));
+    const deferredLoanDeduction = Number((scheduledLoanDeduction - loanDeductionAmount).toFixed(2));
+
     const rawNetPay = Number((grossPay - deductionAmount - loanDeductionAmount).toFixed(2));
     const capped = rawNetPay < 0;
     const netPay = Math.max(0, rawNetPay);
-    const notes = capped && !clean(item.notes).includes('Net pay capped at zero')
-      ? combineNotes(clean(item.notes), 'Net pay capped at zero')
-      : clean(item.notes);
+    const extraNotes = [
+      deferredLoanDeduction > 0
+        ? `تم تأجيل ${deferredLoanDeduction} من قسط القرض لعدم كفاية صافي الأجر`
+        : '',
+      capped && !clean(item.notes).includes('Net pay capped at zero') ? 'Net pay capped at zero' : '',
+    ].filter(Boolean);
+    const notes = extraNotes.length ? combineNotes(clean(item.notes), ...extraNotes) : clean(item.notes);
     await sql`
       UPDATE hr_payroll_run_items
       SET allowance_amount = ${allowanceAmount}, deduction_amount = ${deductionAmount}, gross_pay = ${grossPay},
+          loan_deduction_amount = ${loanDeductionAmount},
           net_pay = ${netPay}, notes = ${notes}, updated_at = NOW()
       WHERE id = ${itemId}
     `.execute(db);
@@ -1699,11 +1711,26 @@ export class HrService {
         throw new AppError('Asset deduction exceeds available pay', 'HR_PAYROLL_ASSET_DEDUCTION_EXCEEDS_AVAILABLE_PAY', 400);
       }
 
-      const rawNetPay = Number((grossPay - deductionAmount - loanDeduction.amount).toFixed(2));
+      // Deduction priority: statutory and contractual deductions come first; the loan installment is
+      // the discretionary item and may only take what is actually left.
+      //
+      // Previously the scheduled installment was recorded in full and net pay was simply clamped to
+      // zero, but settlePayrollLoanDeductions then credited the loan by that FULL amount — so the
+      // company forgave money it never withheld. The shortfall is now deferred instead, which keeps
+      // the loan balance equal to what was really collected.
+      const payAvailableForLoan = Number(Math.max(0, grossPay - deductionAmount).toFixed(2));
+      const scheduledLoanDeduction = Number(loanDeduction.amount || 0);
+      const appliedLoanDeduction = Number(Math.min(scheduledLoanDeduction, payAvailableForLoan).toFixed(2));
+      const deferredLoanDeduction = Number((scheduledLoanDeduction - appliedLoanDeduction).toFixed(2));
+
+      const rawNetPay = Number((grossPay - deductionAmount - appliedLoanDeduction).toFixed(2));
       const netPay = Math.max(0, rawNetPay);
       const generatedNotes = [
         baseSalary > 0 ? '' : 'Missing salary data',
         ...loanDeduction.notes,
+        deferredLoanDeduction > 0
+          ? `تم تأجيل ${deferredLoanDeduction} من قسط القرض لعدم كفاية صافي الأجر (المستقطع فعلياً ${appliedLoanDeduction} من أصل ${scheduledLoanDeduction})`
+          : '',
         rawNetPay < 0 ? 'Net pay capped at zero' : '',
       ].filter(Boolean);
       const notes = combineNotes(clean(existingItem?.notes), ...generatedNotes);
@@ -1711,7 +1738,7 @@ export class HrService {
         await sql`
           UPDATE hr_payroll_run_items
           SET contract_id = ${toId(employee.contract_id)}, base_salary = ${baseSalary}, allowance_amount = ${allowanceAmount},
-              deduction_amount = ${deductionAmount}, loan_deduction_amount = ${loanDeduction.amount},
+              deduction_amount = ${deductionAmount}, loan_deduction_amount = ${appliedLoanDeduction},
               asset_recovery_deduction_amount = ${assetRecoveryDeductionAmount}, gross_pay = ${grossPay},
               net_pay = ${netPay}, status = ${itemStatus}, notes = ${notes}, updated_at = NOW()
           WHERE id = ${itemId}
@@ -1724,7 +1751,7 @@ export class HrService {
           )
           VALUES (
             ${runId}, ${employeeId}, ${toId(employee.contract_id)}, ${baseSalary}, ${allowanceAmount}, ${deductionAmount},
-            ${loanDeduction.amount}, ${assetRecoveryDeductionAmount}, ${grossPay}, ${netPay}, ${itemStatus}, ${notes}, ${tenantId}, ${accountId}
+            ${appliedLoanDeduction}, ${assetRecoveryDeductionAmount}, ${grossPay}, ${netPay}, ${itemStatus}, ${notes}, ${tenantId}, ${accountId}
           )
         `.execute(db);
       }

@@ -5,6 +5,8 @@ import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { DeliveryRepsService } from './delivery-reps.service';
+import { applyStockDelta } from '../../common/utils/location-stock-ledger';
+import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 
 export interface VanStockItem {
   productId: number;
@@ -46,6 +48,76 @@ export class VanSalesService {
 
   private get anyDb(): any {
     return this.db as any;
+  }
+
+  /**
+   * Single entry point for every van stock movement.
+   *
+   * Van sales previously wrote `product_location_stock` with raw `qty + n` / `qty - n` statements
+   * and never touched `products.stock_qty` or `stock_movements`. Two consequences:
+   *  - the global stock counter drifted from the sum of location balances on every load, sale and
+   *    return, so any report reading products.stock_qty showed phantom quantities;
+   *  - none of it appeared in the perpetual inventory ledger, so van movements were invisible to
+   *    stock audits and to cost reconstruction.
+   *
+   * Routing through applyStockDelta also restores the canonical lock order
+   * (products before product_location_stock) that the raw writes bypassed.
+   */
+  private async moveVanStock(
+    trx: Kysely<Database>,
+    params: {
+      productId: number;
+      delta: number;
+      locationId: number;
+      branchId?: number | null;
+      tenantId: string;
+      accountId: string;
+      userId?: number | null;
+      movementType: string;
+      note: string;
+      referenceType: string;
+      referenceId: number;
+      /** Location-to-location moves leave company-wide stock unchanged. */
+      skipGlobalUpdate?: boolean;
+      unitCost?: number;
+    },
+  ): Promise<{ scopeBefore: number; scopeAfter: number }> {
+    const change = await applyStockDelta(trx, {
+      productId: params.productId,
+      delta: params.delta,
+      branchId: params.branchId ?? null,
+      locationId: params.locationId,
+      tenantId: params.tenantId,
+      accountId: params.accountId,
+      // A van transfer keeps total stock constant; only outright sales/write-offs change it.
+      skipGlobalUpdate: params.skipGlobalUpdate ?? true,
+      errorCode: 'INSUFFICIENT_VAN_STOCK',
+      errorMessage: 'رصيد غير كافٍ لتنفيذ حركة سيارة التوزيع',
+    });
+
+    await (trx as any)
+      .insertInto('stock_movements')
+      .values({
+        tenant_id: params.tenantId,
+        account_id: params.accountId,
+        product_id: params.productId,
+        movement_type: params.movementType,
+        qty: params.delta,
+        before_qty: change.scopeBefore,
+        after_qty: change.scopeAfter,
+        unit_cost: params.unitCost ?? 0,
+        total_cost: Number((Math.abs(params.delta) * (params.unitCost ?? 0)).toFixed(4)),
+        reason: params.movementType,
+        note: params.note,
+        reference_type: params.referenceType,
+        reference_id: params.referenceId,
+        branch_id: params.branchId ?? null,
+        location_id: params.locationId,
+        created_by: params.userId ?? null,
+      })
+      .execute();
+
+    return { scopeBefore: change.scopeBefore, scopeAfter: change.scopeAfter };
   }
 
   /**
@@ -340,43 +412,35 @@ export class VanSalesService {
           );
         }
 
-        // Deduct source
-        await trxAny
-          .updateTable('product_location_stock')
-          .set({ qty: sql`qty - ${qty}` })
-          .where('product_id', '=', pid)
-          .where('location_id', '=', sourceLocId)
-          .where('tenant_id', '=', tenantId)
-          .execute();
+        // Loading a van is a location-to-location move: the company's total stock is unchanged, so
+        // both legs skip the global counter. Raw qty +/- writes were used here before, which never
+        // touched products.stock_qty or stock_movements at all — the global balance drifted away
+        // from the sum of locations on every trip, with no entry in the perpetual ledger.
+        await this.moveVanStock(trx, {
+          productId: pid,
+          delta: -qty,
+          locationId: sourceLocId,
+          tenantId,
+          accountId,
+          userId: null,
+          movementType: 'van_load_out',
+          note: `تحميل سيارة توزيع - خروج من المستودع`,
+          referenceType: 'van_sales_trip',
+          referenceId: 0,
+        });
 
-        // Credit van stock
-        const vanStock = await trxAny
-          .selectFrom('product_location_stock')
-          .select(['id', 'qty'])
-          .where('product_id', '=', pid)
-          .where('location_id', '=', vanLoc.id)
-          .where('tenant_id', '=', tenantId)
-          .forUpdate()
-          .executeTakeFirst();
-
-        if (vanStock) {
-          await trxAny
-            .updateTable('product_location_stock')
-            .set({ qty: sql`qty + ${qty}` })
-            .where('id', '=', vanStock.id)
-            .execute();
-        } else {
-          await trxAny
-            .insertInto('product_location_stock')
-            .values({
-              product_id: pid,
-              location_id: vanLoc.id,
-              qty,
-              tenant_id: tenantId,
-              account_id: accountId,
-            })
-            .execute();
-        }
+        await this.moveVanStock(trx, {
+          productId: pid,
+          delta: qty,
+          locationId: vanLoc.id,
+          tenantId,
+          accountId,
+          userId: null,
+          movementType: 'van_load_in',
+          note: `تحميل سيارة توزيع - دخول للسيارة`,
+          referenceType: 'van_sales_trip',
+          referenceId: 0,
+        });
 
         const prod = await trxAny.selectFrom('products').select(['retail_price']).where('id', '=', pid).executeTakeFirst();
         const price = Number(prod?.retail_price || 0);
@@ -487,7 +551,7 @@ export class VanSalesService {
       if (cust) customerName = cust.name;
     }
 
-    const docNo = `VAN-${Date.now().toString().slice(-6)}`;
+    let docNo = '';
     let totalSale = 0;
     let createdSaleId = 0;
 
@@ -519,13 +583,24 @@ export class VanSalesService {
           );
         }
 
-        await trxAny
-          .updateTable('product_location_stock')
-          .set({ qty: sql`qty - ${qty}` })
-          .where('id', '=', vanStock.id)
-          .execute();
-
         const prod = await trxAny.selectFrom('products').select(['name', 'cost_price', 'retail_price']).where('id', '=', pid).executeTakeFirst();
+
+        // A van sale leaves the company for good, so unlike a load it DOES reduce global stock.
+        await this.moveVanStock(trx, {
+          productId: pid,
+          delta: -qty,
+          locationId: vanLocId,
+          tenantId,
+          accountId,
+          userId: null,
+          movementType: 'van_sale',
+          note: 'بيع من سيارة التوزيع',
+          referenceType: 'van_sales_trip',
+          referenceId: Number(trip?.id || 0),
+          skipGlobalUpdate: false,
+          unitCost: Number(prod?.cost_price || 0),
+        });
+
         const unitPrice = item.unitPrice ? Number(item.unitPrice) : Number(prod?.retail_price || 0);
         const lineTotal = unitPrice * qty;
         totalSale += lineTotal;
@@ -539,10 +614,11 @@ export class VanSalesService {
         });
       }
 
+      const tempDocNo = `TMP-VAN-${Date.now()}`;
       const insertedSale = await trxAny
         .insertInto('sales')
         .values({
-          doc_no: docNo,
+          doc_no: tempDocNo,
           total: totalSale,
           subtotal: totalSale,
           status: 'completed',
@@ -560,6 +636,13 @@ export class VanSalesService {
         .executeTakeFirstOrThrow();
 
       createdSaleId = Number(insertedSale.id);
+      docNo = formatDailyDocumentNumber('VAN', createdSaleId);
+
+      await trxAny
+        .updateTable('sales')
+        .set({ doc_no: docNo })
+        .where('id', '=', createdSaleId)
+        .execute();
 
       for (const it of saleItemRecords) {
         await trxAny
@@ -658,7 +741,7 @@ export class VanSalesService {
     const cust = await this.anyDb.selectFrom('customers').select(['id', 'name']).where('id', '=', payload.customerId).where('tenant_id', '=', tenantId).executeTakeFirst();
     if (!cust) throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
 
-    const receiptNo = `COL-${Date.now().toString().slice(-6)}`;
+    let receiptNo = '';
     let finalBalance = 0;
 
     await this.db.transaction().execute(async (trx) => {
@@ -673,15 +756,25 @@ export class VanSalesService {
         .executeTakeFirst();
       finalBalance = Number(updatedCust?.balance || 0);
 
-      await trxAny
+      const insertedPayment = await trxAny
         .insertInto('customer_payments')
         .values({
           customer_id: payload.customerId,
           amount: amount,
-          note: payload.notes || `سند تحصيل نقدي ميداني بواسطة المندوب (#${receiptNo})`,
+          note: payload.notes || `سند تحصيل نقدي ميداني بواسطة المندوب`,
           tenant_id: tenantId,
           account_id: accountId,
         })
+        .returning(['id'])
+        .executeTakeFirstOrThrow();
+
+      receiptNo = formatDailyDocumentNumber('COL', Number(insertedPayment.id));
+      const finalNote = payload.notes || `سند تحصيل نقدي ميداني بواسطة المندوب (#${receiptNo})`;
+
+      await trxAny
+        .updateTable('customer_payments')
+        .set({ note: finalNote })
+        .where('id', '=', insertedPayment.id)
         .execute();
 
       await trxAny
@@ -691,7 +784,7 @@ export class VanSalesService {
           entry_type: 'payment',
           amount: -amount,
           balance_after: finalBalance,
-          note: payload.notes || `سند تحصيل نقدي ميداني بواسطة المندوب (#${receiptNo})`,
+          note: finalNote,
           reference_type: 'van_collection',
           reference_id: payload.tripId,
           van_trip_id: payload.tripId,
@@ -745,7 +838,7 @@ export class VanSalesService {
       .executeTakeFirstOrThrow();
 
     const vanLocId = Number(trip.van_location_id);
-    const returnDocNo = `RET-${Date.now().toString().slice(-6)}`;
+    let returnDocNo = '';
     let totalReturned = 0;
 
     await this.db.transaction().execute(async (trx) => {
@@ -758,13 +851,22 @@ export class VanSalesService {
 
         totalReturned += price * qty;
 
-        await trxAny
-          .updateTable('product_location_stock')
-          .set({ qty: sql`qty + ${qty}` })
-          .where('product_id', '=', pid)
-          .where('location_id', '=', vanLocId)
-          .where('tenant_id', '=', tenantId)
-          .execute();
+        // A customer return brings goods back into the company, so it DOES raise global stock —
+        // the mirror image of the van sale that removed it.
+        await this.moveVanStock(trx, {
+          productId: pid,
+          delta: qty,
+          locationId: vanLocId,
+          tenantId,
+          accountId,
+          userId: null,
+          movementType: 'van_sale_return',
+          note: `مرتجع عميل إلى سيارة التوزيع`,
+          referenceType: 'van_sales_trip',
+          referenceId: Number(trip.id),
+          skipGlobalUpdate: false,
+          unitCost: price,
+        });
       }
 
       const updatedCust = await trxAny
@@ -776,20 +878,29 @@ export class VanSalesService {
         .executeTakeFirst();
       const balanceAfter = Number(updatedCust?.balance || 0);
 
-      await trxAny
+      const insertedLedger = await trxAny
         .insertInto('customer_ledger')
         .values({
           customer_id: payload.customerId,
           entry_type: 'return',
           amount: -totalReturned,
           balance_after: balanceAfter,
-          note: payload.notes || `مرتجع بضاعة ميداني بواسطة المندوب (#${returnDocNo})`,
+          note: payload.notes || `مرتجع بضاعة ميداني بواسطة المندوب`,
           reference_type: 'van_return',
           reference_id: payload.tripId,
           van_trip_id: payload.tripId,
           tenant_id: tenantId,
           account_id: accountId,
         })
+        .returning(['id'])
+        .executeTakeFirstOrThrow();
+
+      returnDocNo = formatDailyDocumentNumber('RET', Number(insertedLedger.id));
+
+      await trxAny
+        .updateTable('customer_ledger')
+        .set({ note: payload.notes || `مرتجع بضاعة ميداني بواسطة المندوب (#${returnDocNo})` })
+        .where('id', '=', insertedLedger.id)
         .execute();
 
       await trxAny
@@ -864,19 +975,33 @@ export class VanSalesService {
           const qty = Number(rem.qty);
           if (qty <= 0) continue;
 
-          await trxAny
-            .updateTable('product_location_stock')
-            .set({ qty: 0 })
-            .where('id', '=', rem.id)
-            .execute();
+          // Settling a trip returns unsold goods from the van to the source warehouse: a pure
+          // location-to-location move, so both legs leave the global counter untouched.
+          await this.moveVanStock(trx, {
+            productId: Number(rem.product_id),
+            delta: -qty,
+            locationId: Number(trip.van_location_id),
+            tenantId,
+            accountId,
+            userId: null,
+            movementType: 'van_unload_out',
+            note: 'تصفية رحلة - خروج من السيارة',
+            referenceType: 'van_sales_trip',
+            referenceId: Number(trip.id),
+          });
 
-          await trxAny
-            .updateTable('product_location_stock')
-            .set({ qty: sql`qty + ${qty}` })
-            .where('product_id', '=', rem.product_id)
-            .where('location_id', '=', Number(trip.source_warehouse_id))
-            .where('tenant_id', '=', tenantId)
-            .execute();
+          await this.moveVanStock(trx, {
+            productId: Number(rem.product_id),
+            delta: qty,
+            locationId: Number(trip.source_warehouse_id),
+            tenantId,
+            accountId,
+            userId: null,
+            movementType: 'van_unload_in',
+            note: 'تصفية رحلة - عودة للمستودع',
+            referenceType: 'van_sales_trip',
+            referenceId: Number(trip.id),
+          });
 
           unloadedItemsCount++;
         }

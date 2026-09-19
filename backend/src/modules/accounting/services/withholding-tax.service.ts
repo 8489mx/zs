@@ -3,6 +3,7 @@ import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { AccountingPostingService } from '../accounting-posting.service';
 
 export interface WithholdingTaxRecord {
   id: number;
@@ -79,7 +80,10 @@ export interface ExtractFromPurchasesDto {
 
 @Injectable()
 export class WithholdingTaxService {
-  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
+  constructor(
+    @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly accountingPostingService: AccountingPostingService,
+  ) {}
 
   private toMoney(value: unknown): number {
     const n = Number(value || 0);
@@ -405,57 +409,75 @@ export class WithholdingTaxService {
   ): Promise<WithholdingTaxRecord> {
     const tenantId = String(auth.tenantId || '');
 
-    const existing = await (this.db as any)
-      .selectFrom('withholding_tax_transactions')
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id)
-      .selectAll()
-      .executeTakeFirst();
+    return this.db.transaction().execute(async (trx: any) => {
+      const existing = await trx
+        .selectFrom('withholding_tax_transactions')
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', id)
+        .selectAll()
+        .forUpdate()
+        .executeTakeFirst();
 
-    if (!existing) {
-      throw new NotFoundException('معاملة الخصم والإضافة غير موجودة');
-    }
+      if (!existing) {
+        throw new NotFoundException('معاملة الخصم والإضافة غير موجودة');
+      }
 
-    const updated = await (this.db as any)
-      .updateTable('withholding_tax_transactions')
-      .set({
-        status: dto.status,
-        payment_reference: dto.payment_reference || existing.payment_reference,
-        updated_at: sql`CURRENT_TIMESTAMP`,
-      })
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id)
-      .returningAll()
-      .executeTakeFirstOrThrow();
+      let paymentRef = dto.payment_reference || existing.payment_reference;
 
-    return {
-      id: updated.id,
-      tenant_id: updated.tenant_id,
-      direction: updated.direction,
-      source_type: updated.source_type,
-      source_id: updated.source_id,
-      invoice_number: updated.invoice_number,
-      invoice_date: this.formatDate(updated.invoice_date),
-      partner_type: updated.partner_type,
-      partner_id: updated.partner_id,
-      partner_name: updated.partner_name,
-      tax_id_number: updated.tax_id_number,
-      file_number: updated.file_number,
-      tax_office_code: updated.tax_office_code,
-      partner_address: updated.partner_address,
-      wht_type: updated.wht_type,
-      wht_rate: Number(updated.wht_rate),
-      base_amount: this.toMoney(updated.base_amount),
-      tax_amount: this.toMoney(updated.tax_amount),
-      quarter: updated.quarter,
-      tax_year: updated.tax_year,
-      status: updated.status,
-      payment_reference: updated.payment_reference,
-      notes: updated.notes,
-      created_by: updated.created_by,
-      created_at: updated.created_at ? new Date(updated.created_at).toISOString() : '',
-      updated_at: updated.updated_at ? new Date(updated.updated_at).toISOString() : '',
-    };
+      // When transitioning to 'paid', post remittance journal entry
+      if (dto.status === 'paid' && existing.status !== 'paid') {
+        const postRes = await this.accountingPostingService.postWithholdingTaxRemittance(
+          trx,
+          id,
+          'bank',
+          auth,
+        );
+        if (postRes.posted && postRes.journalEntryId) {
+          paymentRef = paymentRef || `JE-${postRes.journalEntryId}`;
+        }
+      }
+
+      const updated = await trx
+        .updateTable('withholding_tax_transactions')
+        .set({
+          status: dto.status,
+          payment_reference: paymentRef,
+          updated_at: sql`CURRENT_TIMESTAMP`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', id)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      return {
+        id: updated.id,
+        tenant_id: updated.tenant_id,
+        direction: updated.direction,
+        source_type: updated.source_type,
+        source_id: updated.source_id,
+        invoice_number: updated.invoice_number,
+        invoice_date: this.formatDate(updated.invoice_date),
+        partner_type: updated.partner_type,
+        partner_id: updated.partner_id,
+        partner_name: updated.partner_name,
+        tax_id_number: updated.tax_id_number,
+        file_number: updated.file_number,
+        tax_office_code: updated.tax_office_code,
+        partner_address: updated.partner_address,
+        wht_type: updated.wht_type,
+        wht_rate: Number(updated.wht_rate),
+        base_amount: this.toMoney(updated.base_amount),
+        tax_amount: this.toMoney(updated.tax_amount),
+        quarter: updated.quarter,
+        tax_year: updated.tax_year,
+        status: updated.status,
+        payment_reference: updated.payment_reference,
+        notes: updated.notes,
+        created_by: updated.created_by,
+        created_at: updated.created_at ? new Date(updated.created_at).toISOString() : '',
+        updated_at: updated.updated_at ? new Date(updated.updated_at).toISOString() : '',
+      };
+    });
   }
 
   /**
@@ -464,27 +486,30 @@ export class WithholdingTaxService {
   async deleteTransaction(auth: AuthContext, id: number): Promise<{ success: boolean }> {
     const tenantId = String(auth.tenantId || '');
 
-    const existing = await (this.db as any)
-      .selectFrom('withholding_tax_transactions')
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id)
-      .selectAll()
-      .executeTakeFirst();
+    return this.db.transaction().execute(async (trx: any) => {
+      const existing = await trx
+        .selectFrom('withholding_tax_transactions')
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', id)
+        .selectAll()
+        .forUpdate()
+        .executeTakeFirst();
 
-    if (!existing) {
-      throw new NotFoundException('المعاملة غير موجودة');
-    }
+      if (!existing) {
+        throw new NotFoundException('المعاملة غير موجودة');
+      }
 
-    if (existing.status === 'paid') {
-      throw new BadRequestException('لا يمكن حذف معاملة تم سدادها وتوريدها للضرائب بالفعل');
-    }
+      if (existing.status === 'paid') {
+        throw new BadRequestException('لا يمكن حذف معاملة تم سدادها وتوريدها للضرائب بالفعل');
+      }
 
-    await (this.db as any)
-      .deleteFrom('withholding_tax_transactions')
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id)
-      .execute();
+      await trx
+        .deleteFrom('withholding_tax_transactions')
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', id)
+        .execute();
 
-    return { success: true };
+      return { success: true };
+    });
   }
 }

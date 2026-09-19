@@ -219,6 +219,7 @@ export class PaymentAllocationService {
             .select(['id', 'amount'])
             .where('id', '=', dto.paymentId)
             .where('tenant_id', '=', scope.tenantId)
+            .forUpdate()
             .executeTakeFirst();
 
           if (!payment) throw new NotFoundException('سند التحصيل غير موجود');
@@ -243,6 +244,7 @@ export class PaymentAllocationService {
             .select(['id', 'amount'])
             .where('id', '=', dto.paymentId)
             .where('tenant_id', '=', scope.tenantId)
+            .forUpdate()
             .executeTakeFirst();
 
           if (!payment) throw new NotFoundException('سند السداد غير موجود');
@@ -277,6 +279,7 @@ export class PaymentAllocationService {
             .select(['id', 'total', 'paid_amount'])
             .where('id', '=', item.invoiceId)
             .where('tenant_id', '=', scope.tenantId)
+            .forUpdate()
             .executeTakeFirst();
 
           if (!sale) throw new NotFoundException(`فاتورة المبيعات ${item.invoiceId} غير موجودة`);
@@ -304,6 +307,7 @@ export class PaymentAllocationService {
             .select(['id', 'total', 'paid_amount'])
             .where('id', '=', item.invoiceId)
             .where('tenant_id', '=', scope.tenantId)
+            .forUpdate()
             .executeTakeFirst();
 
           if (!purchase) throw new NotFoundException(`فاتورة المشتريات ${item.invoiceId} غير موجودة`);

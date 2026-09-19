@@ -73,34 +73,41 @@ export function BoqProfitabilityModal({
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }} dir="rtl">
         {/* ملخص المؤشرات المالية للبنود */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-          <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
+          <div style={{ padding: '10px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
             <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>إجمالي قيمة التعاقد</span>
-            <strong style={{ display: 'block', fontSize: '1.15rem', color: '#1e293b', marginTop: '4px' }}>
+            <strong style={{ display: 'block', fontSize: '1.05rem', color: '#1e293b', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(summary?.totalProjectRevenue || 0)}
             </strong>
           </div>
 
-          <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>التكلفة المقدرة للمقايسة</span>
-            <strong style={{ display: 'block', fontSize: '1.15rem', color: '#475569', marginTop: '4px' }}>
+          <div style={{ padding: '10px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>التكلفة التقديرية للمقايسة</span>
+            <strong style={{ display: 'block', fontSize: '1.05rem', color: '#475569', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(summary?.totalProjectEstimatedCost || 0)}
             </strong>
           </div>
 
-          <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0' }}>
+          <div style={{ padding: '10px', borderRadius: '8px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#1e40af' }}>التكلفة الفعلية الشاملة (Direct + Indirect)</span>
+            <strong style={{ display: 'block', fontSize: '1.05rem', color: '#1d4ed8', marginTop: '2px' }}>
+              {loading ? '—' : formatCurrency(summary?.totalProjectActualCost || 0)}
+            </strong>
+          </div>
+
+          <div style={{ padding: '10px', borderRadius: '8px', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0' }}>
             <span style={{ fontSize: 'var(--font-micro)', color: '#065f46' }}>صافي الربح المتوقع الإجمالي</span>
-            <strong style={{ display: 'block', fontSize: '1.2rem', color: '#047857', marginTop: '4px' }}>
+            <strong style={{ display: 'block', fontSize: '1.05rem', color: '#047857', marginTop: '2px' }}>
               {loading ? '—' : `${formatCurrency(summary?.totalProjectProfit || 0)} (${summary?.overallMarginPercent || 0}%)`}
             </strong>
           </div>
 
-          <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: (summary?.lossMakingItemsCount || 0) > 0 ? '#fef2f2' : '#f8fafc', border: (summary?.lossMakingItemsCount || 0) > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0' }}>
+          <div style={{ padding: '10px', borderRadius: '8px', backgroundColor: (summary?.lossMakingItemsCount || 0) > 0 ? '#fef2f2' : '#f8fafc', border: (summary?.lossMakingItemsCount || 0) > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0' }}>
             <span style={{ fontSize: 'var(--font-micro)', color: (summary?.lossMakingItemsCount || 0) > 0 ? '#b91c1c' : '#64748b' }}>
               البنود الخاسرة أو المتعثرة
             </span>
-            <strong style={{ display: 'block', fontSize: '1.2rem', color: (summary?.lossMakingItemsCount || 0) > 0 ? '#dc2626' : '#1e293b', marginTop: '4px' }}>
-              {loading ? '—' : `${summary?.lossMakingItemsCount || 0} بند`}
+            <strong style={{ display: 'block', fontSize: '1.05rem', color: (summary?.lossMakingItemsCount || 0) > 0 ? '#b91c1c' : '#475569', marginTop: '2px' }}>
+              {loading ? '—' : summary?.lossMakingItemsCount || 0}
             </strong>
           </div>
         </div>
@@ -228,16 +235,22 @@ export function BoqProfitabilityModal({
                   <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>بيان الأعمال</th>
                   <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الكمية</th>
                   <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>سعر البيع ({currencySymbol})</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>التكلفة التقديرية ({currencySymbol})</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الربح المتوقع ({currencySymbol})</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>هامش الربح %</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>التقديري</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المباشر الفعلي</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#1e40af' }}>غير المباشر الموزع</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>التكلفة الكلية الفعلية</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الربح المحقق</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الهامش %</th>
                   <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>حالة البند</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredItems.map((item) => (
-                  <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '8px 10px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#64748b' }}>
+                {filteredItems.map((item) => {
+                  const directActual = (item.directLaborCost || 0) + (item.directMaterialCost || 0) + (item.directEquipmentCost || 0);
+                  const indirectAllocated = item.allocatedIndirectCost || 0;
+                  return (
+                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px 10px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#64748b' }}>
                         {item.itemCode}
                       </td>
                       {(() => {
@@ -273,15 +286,24 @@ export function BoqProfitabilityModal({
                       <td style={{ padding: '8px 10px', fontSize: 'var(--font-body)', color: '#64748b' }}>
                         {formatCurrency(item.estimatedUnitCost)}
                       </td>
+                      <td style={{ padding: '8px 10px', fontSize: 'var(--font-body)', color: directActual > 0 ? '#0f172a' : '#94a3b8' }}>
+                        {directActual > 0 ? formatCurrency(directActual) : '—'}
+                      </td>
+                      <td style={{ padding: '8px 10px', fontSize: 'var(--font-body)', fontWeight: 600, color: indirectAllocated > 0 ? '#2563eb' : '#94a3b8' }}>
+                        {indirectAllocated > 0 ? formatCurrency(indirectAllocated) : '—'}
+                      </td>
+                      <td style={{ padding: '8px 10px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
+                        {formatCurrency(item.actualCost)}
+                      </td>
                       <td
                         style={{
                           padding: '8px 10px',
                           fontSize: 'var(--font-body)',
                           fontWeight: 700,
-                          color: item.projectedProfit >= 0 ? '#047857' : '#dc2626',
+                          color: item.realizedProfit >= 0 ? '#047857' : '#dc2626',
                         }}
                       >
-                        {formatCurrency(item.projectedProfit)}
+                        {formatCurrency(item.realizedProfit)}
                       </td>
                       <td
                         style={{
@@ -311,7 +333,8 @@ export function BoqProfitabilityModal({
                         </span>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
               </tbody>
             </table>
           )}

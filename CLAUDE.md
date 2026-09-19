@@ -5,6 +5,18 @@
 > 1. `SAAS_ELECTRON_ISOLATION_CONSTITUTION.md` (Architectural Safety Constitution)
 > 2. `GEMINI.md` (Project Guidelines & Arabic UI Constitution)
 > 3. `SYSTEM_CAPABILITIES.md` (Feature Inventory & Capabilities Registry)
+> 4. `ARCHITECTURE_INVARIANTS.md` (**Architecture Invariants & Audit Ledger** — forbidden patterns,
+>    single-source-of-truth engines, enforced invariants, migration ledger, audit phase status).
+>    **Read §2 and §3 of that file before writing any financial, stock, or accounting code.**
+
+---
+
+## 0. Documentation Duty (إلزامي بعد كل إصلاح)
+After completing ANY phase of the audit, or any structural fix, you MUST — before reporting done:
+1. Update `ARCHITECTURE_INVARIANTS.md`: new invariants, newly forbidden patterns, migration ledger,
+   phase status table, and the open-items list.
+2. Update `SYSTEM_CAPABILITIES.md` for any capability whose behaviour or status changed.
+This is what lets the next session (Claude, another AI, or a human) resume without re-deriving context.
 
 ---
 

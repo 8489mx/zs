@@ -163,13 +163,21 @@ export class InventoryTransferService {
     return transferId as Record<string, unknown>;
   }
 
-  async receiveStockTransfer(transferId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+  async receiveStockTransfer(transferId: number, auth: AuthContext, receiptPayload?: { items?: Array<{ itemId: number; receivedQty: number }> }): Promise<Record<string, unknown>> {
     const scope = this.tenantScope(auth);
     const result = await this.tx.runInTransaction(this.db, async (trx) => {
       const transfer = await trx.selectFrom('stock_transfers').selectAll().where('id', '=', transferId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!transfer) throw new AppError('Transfer not found', 'TRANSFER_NOT_FOUND', 404);
       if ((transfer.status || 'sent') !== 'sent') throw new AppError('Only sent transfers can be received', 'TRANSFER_STATUS_INVALID', 400);
-      const items = await trx.selectFrom('stock_transfer_items').select(['product_id', 'qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+      const items = await trx.selectFrom('stock_transfer_items').select(['id', 'product_id', 'qty', 'dispatched_qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+
+      // Transit loss: the destination may receive less than was dispatched. Anything short is
+      // written off from the in-transit location instead of being stranded there forever, which is
+      // what happened when the item carried a single `qty` and receiving had to match it exactly.
+      const receivedByItemId = new Map<number, number>();
+      for (const r of receiptPayload?.items || []) {
+        if (r?.itemId != null) receivedByItemId.set(Number(r.itemId), Math.max(0, Number(r.receivedQty || 0)));
+      }
 
       let inTransitLocationId: number | null = null;
       const inTransitRow = await trx.selectFrom('stock_locations').select('id').where('location_type', '=', 'in_transit').where('tenant_id', '=', scope.tenantId).executeTakeFirst();
@@ -182,22 +190,59 @@ export class InventoryTransferService {
         else throw new AppError('No branch stock location found for destination branch', 'DESTINATION_LOCATION_NOT_FOUND', 400);
       }
 
+      let anyVariance = false;
+
       if (effectiveToLocationId) {
         for (const item of items) {
-          const qty = Number(item.qty || 0);
+          const dispatched = Number(item.dispatched_qty || item.qty || 0);
+          const received = receivedByItemId.has(Number(item.id))
+            ? Math.min(receivedByItemId.get(Number(item.id))!, dispatched)
+            : dispatched;
+          const shortfall = Number((dispatched - received).toFixed(3));
+          if (shortfall > 0.0001) anyVariance = true;
 
           if (inTransitLocationId) {
+            // The FULL dispatched quantity leaves transit: what arrived goes to the destination,
+            // what did not arrived is written off below. Leaving the shortfall in transit would
+            // quietly accumulate phantom stock in a location nobody counts.
             const transitScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), locationId: inTransitLocationId, branchId: null };
-            const transitChange = await applyStockDelta(trx, { ...transitScope, delta: -qty, skipGlobalUpdate: true, errorCode: 'TRANSIT_STOCK_ERROR', errorMessage: 'Transit error' });
-            await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_transit_out', qty: -qty, before_qty: transitChange.scopeBefore, after_qty: transitChange.scopeAfter, reason: 'transfer_receive', note: `Out of transit for TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
+            const transitChange = await applyStockDelta(trx, { ...transitScope, delta: -dispatched, skipGlobalUpdate: true, errorCode: 'TRANSIT_STOCK_ERROR', errorMessage: 'Transit error' });
+            await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_transit_out', qty: -dispatched, before_qty: transitChange.scopeBefore, after_qty: transitChange.scopeAfter, reason: 'transfer_receive', note: `Out of transit for TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
           }
 
-          const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), branchId: transfer.to_branch_id, locationId: effectiveToLocationId };
-          const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, skipGlobalUpdate: true, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
-          await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_receive', qty: qty, before_qty: toChange.scopeBefore, after_qty: toChange.scopeAfter, reason: 'transfer_receive', note: `Received transfer TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: transfer.to_branch_id, location_id: effectiveToLocationId, ...this.tenantFields(auth) }).execute();
+          if (received > 0.0001) {
+            const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), branchId: transfer.to_branch_id, locationId: effectiveToLocationId };
+            const toChange = await applyStockDelta(trx, { ...toScope, delta: received, skipGlobalUpdate: true, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
+            await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_receive', qty: received, before_qty: toChange.scopeBefore, after_qty: toChange.scopeAfter, reason: 'transfer_receive', note: `Received transfer TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: transfer.to_branch_id, location_id: effectiveToLocationId, ...this.tenantFields(auth) }).execute();
+          }
+
+          if (shortfall > 0.0001) {
+            // Shrinkage: the goods left the source and never arrived, so company-wide stock really
+            // does fall. This is the one leg of a transfer that touches the global counter.
+            await applyStockDelta(trx, {
+              tenantId: scope.tenantId,
+              accountId: scope.accountId,
+              productId: Number(item.product_id),
+              locationId: null,
+              branchId: null,
+              delta: -shortfall,
+              allowNegative: true,
+              errorCode: 'TRANSIT_SHRINKAGE_ERROR',
+              errorMessage: 'Transit shrinkage error',
+              skipGlobalUpdate: false,
+            });
+            await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_transit_loss', qty: -shortfall, before_qty: 0, after_qty: 0, reason: 'transit_shrinkage', note: `فاقد نقل للتحويل TR-${transferId}: أُرسل ${dispatched} واستُلم ${received}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
+          }
+
+          await trx
+            .updateTable('stock_transfer_items')
+            .set({ dispatched_qty: dispatched, received_qty: received, variance_qty: shortfall } as any)
+            .where('id', '=', Number(item.id))
+            .where(this.tenantPredicate(auth))
+            .execute();
         }
       }
-      await trx.updateTable('stock_transfers').set({ status: 'received', to_location_id: effectiveToLocationId, received_by: auth.userId, received_at: sql`NOW()`, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+      await trx.updateTable('stock_transfers').set({ status: 'received', to_location_id: effectiveToLocationId, received_by: auth.userId, received_at: sql`NOW()`, has_transit_variance: anyVariance, updated_at: sql`NOW()` } as any).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
 
       await this.audit.logWithExecutor(trx, 'استلام تحويل مخزون', `تم استلام التحويل TR-${transferId}`, auth);
 

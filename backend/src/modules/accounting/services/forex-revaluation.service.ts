@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../../database/kysely';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
+import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 
 export interface ExecuteForexRevaluationDto {
   periodDate: string;
@@ -70,36 +71,20 @@ export class ForexRevaluationService {
 
     const bookRate = Number(currentRateRow?.exchange_rate || closingRate);
 
-    // Fetch monetary accounts related to banks, cash treasuries, or foreign partners
-    // Typically cash & bank accounts (1200 series) or foreign receivables / payables
-    const accounts = await (this.db as any)
+    // IAS 21 §23: retranslate MONETARY items only, and only those denominated in this currency.
+    // The previous selection matched on a `name` column and a `type` column that do not exist on
+    // accounting_accounts (the real columns are name_ar/name_en and account_type), and joined a
+    // `treasuries` table that does not exist in the schema at all — so every call threw at runtime.
+    // `(this.db as any)` hid all three errors from the compiler.
+    // Fuzzy name matching also cannot distinguish monetary from non-monetary items: an account
+    // named "مخزون بضاعة USD" would have been revalued, which is a material misstatement.
+    const accounts = await this.db
       .selectFrom('accounting_accounts')
-      .selectAll()
+      .select(['id', 'code', 'name_ar', 'name_en', 'account_type', 'normal_balance'])
       .where('tenant_id', '=', tenantId)
       .where('is_active', '=', true)
-      .where((eb: any) =>
-        eb.or([
-          eb('name', 'ilike', `%${currencyCode}%`),
-          eb('name', 'ilike', `%دولار%`),
-          eb('name', 'ilike', `%عملة أجنبية%`),
-          eb('name', 'ilike', `%حساب أجنبي%`),
-          eb('type', '=', 'bank_cash'),
-        ])
-      )
-      .execute();
-
-    // If no specific accounts tagged with foreign, also check treasuries
-    const treasuries = await (this.db as any)
-      .selectFrom('treasuries')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .where((eb: any) =>
-        eb.or([
-          eb('currency', '=', currencyCode),
-          eb('name', 'ilike', `%${currencyCode}%`),
-          eb('name', 'ilike', `%دولار%`),
-        ])
-      )
+      .where('is_monetary', '=', true)
+      .where('revaluation_currency', '=', currencyCode)
       .execute();
 
     const lines: any[] = [];
@@ -109,7 +94,7 @@ export class ForexRevaluationService {
     // Process accounts
     for (const acc of accounts) {
       // Calculate foreign balance from account entries or balance
-      const balanceRes = await (this.db as any)
+      const balanceRes = await this.db
         .selectFrom('journal_entry_lines as l')
         .innerJoin('journal_entries as h', 'h.id', 'l.journal_entry_id')
         .select([
@@ -118,7 +103,7 @@ export class ForexRevaluationService {
         .where('l.tenant_id', '=', tenantId)
         .where('l.account_id', '=', acc.id)
         .where('h.status', '=', 'posted')
-        .where('h.entry_date', '<=', dto.periodDate)
+        .where('h.entry_date', '<=', dto.periodDate as any)
         .executeTakeFirst();
 
       const localBalance = Number(balanceRes?.balance || 0);
@@ -131,33 +116,9 @@ export class ForexRevaluationService {
         lines.push({
           accountId: acc.id,
           accountCode: acc.code,
-          accountName: acc.name,
+          accountName: acc.name_ar || acc.name_en,
           foreignBalance,
           bookLocalValue: localBalance,
-          revaluedLocalValue: revaluedLocal,
-          unrealizedDifference: diff,
-        });
-
-        totalForeign += foreignBalance;
-        totalUnrealizedGainLoss += diff;
-      }
-    }
-
-    // Process foreign treasuries if not already covered
-    for (const tr of treasuries) {
-      const alreadyIn = lines.some((l) => l.accountName === tr.name);
-      if (!alreadyIn && Number(tr.current_balance || 0) > 0) {
-        const foreignBalance = Number(tr.current_balance);
-        const bookLocal = Math.round(foreignBalance * bookRate * 100) / 100;
-        const revaluedLocal = Math.round(foreignBalance * closingRate * 100) / 100;
-        const diff = Math.round((revaluedLocal - bookLocal) * 100) / 100;
-
-        lines.push({
-          accountId: tr.account_id || tr.id,
-          accountCode: tr.code || `TR-${tr.id}`,
-          accountName: tr.name,
-          foreignBalance,
-          bookLocalValue: bookLocal,
           revaluedLocalValue: revaluedLocal,
           unrealizedDifference: diff,
         });
@@ -188,15 +149,15 @@ export class ForexRevaluationService {
 
     // Find or locate Forex Gain/Loss account in chart of accounts
     // Standard COA: 4400 / 4800 for Gain, 5400 / 5800 for Loss
-    let gainLossAccount = await (this.db as any)
+    let gainLossAccount = await this.db
       .selectFrom('accounting_accounts')
       .selectAll()
       .where('tenant_id', '=', tenantId)
       .where((eb: any) =>
         eb.or([
-          eb('name', 'ilike', '%فروق عملة%'),
-          eb('name', 'ilike', '%فروق تقييم%'),
-          eb('name', 'ilike', '%أرباح وخسائر فروق العملة%'),
+          eb('name_ar', 'ilike', '%فروق عملة%'),
+          eb('name_ar', 'ilike', '%فروق تقييم%'),
+          eb('name_ar', 'ilike', '%أرباح وخسائر فروق العملة%'),
           eb('code', 'in', ['4400', '4800', '5400', '5800']),
         ])
       )
@@ -204,11 +165,13 @@ export class ForexRevaluationService {
 
     if (!gainLossAccount) {
       // Fallback: pick other income / expense account
-      gainLossAccount = await (this.db as any)
+      gainLossAccount = await this.db
         .selectFrom('accounting_accounts')
         .selectAll()
         .where('tenant_id', '=', tenantId)
-        .where('type', 'in', ['revenue', 'expense'])
+        // Column is account_type, not type; the previous `type` reference threw at runtime.
+        .where('account_type', 'in', ['revenue', 'expense'])
+        .where('is_active', '=', true)
         .executeTakeFirst();
     }
 
@@ -285,7 +248,7 @@ export class ForexRevaluationService {
 
       const entryId = Number(insertedEntry.id);
       createdEntryId = entryId;
-      entryNo = `FX-${dto.currencyCode}-${new Date(dto.periodDate).getFullYear()}-${String(entryId).padStart(6, '0')}`;
+      entryNo = formatDailyDocumentNumber(`FX-${dto.currencyCode}`, entryId, new Date(dto.periodDate));
 
       await this.db
         .updateTable('journal_entries')

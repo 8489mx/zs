@@ -7,21 +7,36 @@ import { requireTenantScope } from '../auth/utils/tenant-boundary';
 
 type AuditActor = Pick<AuthContext, 'userId' | 'tenantId' | 'accountId'>;
 
+/** Stable event codes consumed by detection logic (fraud radar, alerting). */
+export const AUDIT_EVENT_CODES = {
+  POS_CART_ITEM_REMOVED: 'POS_CART_ITEM_REMOVED',
+  POS_DRAFT_SALE_CANCELLED: 'POS_DRAFT_SALE_CANCELLED',
+  POS_DISCOUNT_OVERRIDE: 'POS_DISCOUNT_OVERRIDE',
+  POS_SALE_RETURN: 'POS_SALE_RETURN',
+} as const;
+
+export type AuditEventCode = (typeof AUDIT_EVENT_CODES)[keyof typeof AUDIT_EVENT_CODES];
+
+type AuditLogOptions = { targetTenantId?: string; eventCode?: AuditEventCode | string };
+
 @Injectable()
 export class AuditService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
-  async log(action: string, details: string, actor: AuditActor, options?: { targetTenantId?: string }): Promise<void> {
+  async log(action: string, details: string, actor: AuditActor, options?: AuditLogOptions): Promise<void> {
     await this.logWithExecutor(this.db, action, details, actor, options);
   }
 
-  async logWithExecutor(executor: Kysely<Database>, action: string, details: string, actor: AuditActor, options?: { targetTenantId?: string }): Promise<void> {
+  async logWithExecutor(executor: Kysely<Database>, action: string, details: string, actor: AuditActor, options?: AuditLogOptions): Promise<void> {
     const scope = requireTenantScope(actor as AuthContext);
     await executor
       .insertInto('audit_logs')
       .values({
         action,
         details,
+        // Stable machine-readable discriminator. Detection logic must key off this, never off the
+        // human-facing `action` text, which is free to be reworded or translated.
+        event_code: options?.eventCode ?? null,
         target_tenant_id: options?.targetTenantId ?? null,
         created_by: actor.userId ?? null,
         tenant_id: scope.tenantId,

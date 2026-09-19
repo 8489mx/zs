@@ -8,6 +8,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { applyStockDelta } from '../../common/utils/location-stock-ledger';
+import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { UpsertTradeInDto } from './dto/upsert-tradein.dto';
 import { normalizeArabicSearch } from '../../common/utils/arabic-search.util';
 
@@ -134,17 +135,6 @@ export class TradeInService {
   async createTransaction(payload: UpsertTradeInDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
     const result = await this.tx.runInTransaction(this.db, async (trx) => {
-      const countRes = await trx
-        .selectFrom('trade_in_transactions')
-        .select((eb) => eb.fn.count('id').as('count'))
-        .where('tenant_id', '=', scope.tenantId)
-        .executeTakeFirst();
-      const nextNum = Number(countRes?.count || 0) + 1;
-      const year = new Date().getFullYear();
-      const docNo = `TRD-${year}-${String(nextNum).padStart(4, '0')}`;
-
-      let targetProductId = payload.createdProductId ?? null;
-
       const conditionState = payload.deviceConditionState || 'used';
       const stateSuffixMap: Record<string, string> = {
         new_sealed: '(جديد متبرشم)',
@@ -162,6 +152,50 @@ export class TradeInService {
       const conditionTag = conditionLabelMap[conditionState] || 'مستعمل';
       const rawNotes = payload.deviceConditionNotes?.trim() || '';
       const formattedConditionNotes = `[الحالة: ${conditionTag}] ${rawNotes}`.trim();
+
+      // Insert transaction placeholder to obtain atomic sequence ID
+      const insertedTxn = await trx
+        .insertInto('trade_in_transactions')
+        .values({
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          doc_no: 'PENDING_TRD',
+          seller_name: payload.sellerName.trim(),
+          seller_phone: payload.sellerPhone.trim(),
+          seller_national_id: payload.sellerNationalId.trim(),
+          device_brand: payload.deviceBrand?.trim() ?? null,
+          device_model: payload.deviceModel.trim(),
+          serial_number: payload.serialNumber.trim(),
+          imei_2: payload.imei2?.trim() ?? null,
+          device_condition_notes: formattedConditionNotes,
+          agreed_purchase_price: payload.agreedPurchasePrice,
+          transaction_type: payload.transactionType ?? 'cash_purchase',
+          created_product_id: payload.createdProductId ?? null,
+          sale_id: payload.saleId ?? null,
+          payment_method: payload.paymentMethod ?? 'cash',
+          signature_data: payload.signatureData ?? null,
+          branch_id: payload.branchId ?? null,
+          location_id: payload.locationId ?? null,
+          notes: payload.notes?.trim() ?? null,
+        })
+        .returning('id')
+        .executeTakeFirst();
+
+      if (!insertedTxn?.id) {
+        throw new AppError('تعذر تسجيل عملية الشراء', 'CREATE_TRADEIN_FAILED', 400);
+      }
+
+      const txnId = Number(insertedTxn.id);
+      const docNo = formatDailyDocumentNumber('TRD', txnId);
+
+      await trx
+        .updateTable('trade_in_transactions')
+        .set({ doc_no: docNo })
+        .where('id', '=', txnId)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+
+      let targetProductId = payload.createdProductId ?? null;
 
       // If autoAddToInventory is requested, find or create the product in catalog
       if (payload.autoAddToInventory && !targetProductId) {
@@ -206,7 +240,7 @@ export class TradeInService {
               reason: 'شراء جهاز مستعمل',
               note: `شراء مستعمل إيصال ${docNo}`,
               reference_type: 'trade_in',
-              reference_id: 0,
+              reference_id: txnId,
               branch_id: payload.branchId ?? null,
               location_id: payload.locationId ?? null,
               created_by: auth.userId ? Number(auth.userId) : null,
@@ -258,7 +292,7 @@ export class TradeInService {
                 reason: 'شراء جهاز مستعمل',
                 note: `شراء مستعمل إيصال ${docNo}`,
                 reference_type: 'trade_in',
-                reference_id: 0,
+                reference_id: txnId,
                 branch_id: payload.branchId ?? null,
                 location_id: payload.locationId ?? null,
                 created_by: auth.userId ? Number(auth.userId) : null,
@@ -268,52 +302,15 @@ export class TradeInService {
               .execute();
           }
         }
-      }
 
-      const insertedTxn = await trx
-        .insertInto('trade_in_transactions')
-        .values({
-          tenant_id: scope.tenantId,
-          account_id: scope.accountId,
-          doc_no: docNo,
-          seller_name: payload.sellerName.trim(),
-          seller_phone: payload.sellerPhone.trim(),
-          seller_national_id: payload.sellerNationalId.trim(),
-          device_brand: payload.deviceBrand?.trim() ?? null,
-          device_model: payload.deviceModel.trim(),
-          serial_number: payload.serialNumber.trim(),
-          imei_2: payload.imei2?.trim() ?? null,
-          device_condition_notes: formattedConditionNotes,
-          agreed_purchase_price: payload.agreedPurchasePrice,
-          transaction_type: payload.transactionType ?? 'cash_purchase',
-          created_product_id: targetProductId,
-          sale_id: payload.saleId ?? null,
-          payment_method: payload.paymentMethod ?? 'cash',
-          signature_data: payload.signatureData ?? null,
-          branch_id: payload.branchId ?? null,
-          location_id: payload.locationId ?? null,
-          notes: payload.notes?.trim() ?? null,
-        })
-        .returning('id')
-        .executeTakeFirst();
-
-      if (!insertedTxn?.id) {
-        throw new AppError('تعذر تسجيل عملية الشراء', 'CREATE_TRADEIN_FAILED', 400);
-      }
-
-      const txnId = Number(insertedTxn.id);
-
-      // Backfill reference_id for trade-in stock movement
-      if (targetProductId) {
-        await trx
-          .updateTable('stock_movements')
-          .set({ reference_id: txnId })
-          .where('tenant_id', '=', scope.tenantId)
-          .where('movement_type', '=', 'tradein_in')
-          .where('reference_type', '=', 'trade_in')
-          .where('reference_id', '=', 0)
-          .where('product_id', '=', targetProductId)
-          .execute();
+        if (targetProductId) {
+          await trx
+            .updateTable('trade_in_transactions')
+            .set({ created_product_id: targetProductId })
+            .where('id', '=', txnId)
+            .where('tenant_id', '=', scope.tenantId)
+            .execute();
+        }
       }
 
       // If a product ID was linked or auto-created, automatically register the IMEI in product_serials

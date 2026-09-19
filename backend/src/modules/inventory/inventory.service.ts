@@ -70,8 +70,8 @@ export class InventoryService {
     return this.transferService.internalTransferCategory(payload, auth);
   }
 
-  receiveStockTransfer(transferId: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.transferService.receiveStockTransfer(transferId, auth);
+  receiveStockTransfer(transferId: number, auth: AuthContext, receiptPayload?: { items?: Array<{ itemId: number; receivedQty: number }> }): Promise<Record<string, unknown>> {
+    return this.transferService.receiveStockTransfer(transferId, auth, receiptPayload);
   }
 
   cancelStockTransfer(transferId: number, auth: AuthContext): Promise<Record<string, unknown>> {

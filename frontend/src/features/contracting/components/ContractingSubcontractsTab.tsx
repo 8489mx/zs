@@ -7,6 +7,7 @@ import { CreateIpcInvoiceModal } from './CreateIpcInvoiceModal';
 import { SubcontractorsDirectoryModal } from './SubcontractorsDirectoryModal';
 import { SubcontractorLedgerModal } from './SubcontractorLedgerModal';
 import { RecordSubcontractorPaymentModal } from './RecordSubcontractorPaymentModal';
+import { GuaranteesDirectoryModal } from './GuaranteesDirectoryModal';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface ContractingSubcontractsTabProps {
@@ -38,6 +39,10 @@ export function ContractingSubcontractsTab({
   const [selectedLedgerSubId, setSelectedLedgerSubId] = useState<number | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedPaymentSubId, setSelectedPaymentSubId] = useState<number | null>(null);
+
+  // Bank Guarantees & Gateway G1
+  const [isGuaranteesDirectoryOpen, setIsGuaranteesDirectoryOpen] = useState(false);
+  const [selectedSubcontractIdForGuarantees, setSelectedSubcontractIdForGuarantees] = useState<string | undefined>(undefined);
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -125,6 +130,33 @@ export function ContractingSubcontractsTab({
           >
             <AppIcons.CreditCard size={15} />
             <span>صرف دفعة لمقاول</span>
+          </button>
+
+          {/* خطابات الضمان البنكية والبوابة الرقابية G1 */}
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedSubcontractIdForGuarantees(undefined);
+              setIsGuaranteesDirectoryOpen(true);
+            }}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#1e40af',
+              border: '1px solid #bfdbfe',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+            }}
+          >
+            <AppIcons.CheckShield size={15} />
+            <span>خطابات الضمان البنكية (G1)</span>
           </button>
 
           {/* سجل ضمان الأعمال */}
@@ -410,6 +442,31 @@ export function ContractingSubcontractsTab({
                                 <AppIcons.CreditCard size={13} />
                                 <span>صرف دفعة</span>
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedSubcontractIdForGuarantees(sc.id);
+                                  setIsGuaranteesDirectoryOpen(true);
+                                }}
+                                title="خطابات الضمان البنكية للعقد (G1)"
+                                style={{
+                                  height: '28px',
+                                  padding: '0 8px',
+                                  borderRadius: '6px',
+                                  fontSize: 'var(--font-badge)',
+                                  fontWeight: 600,
+                                  background: '#eff6ff',
+                                  color: '#1e40af',
+                                  border: '1px solid #bfdbfe',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <AppIcons.ShieldCheck size={13} />
+                                <span>الضمانات</span>
+                              </button>
                             </>
                           ) : null}
                         </div>
@@ -491,6 +548,23 @@ export function ContractingSubcontractsTab({
           onSuccess={() => {
             setIsPaymentModalOpen(false);
             setSelectedPaymentSubId(null);
+            onRefresh?.();
+          }}
+        />
+      )}
+
+      {/* مودال سجل خطابات الضمان البنكية والبوابة الرقابية G1 */}
+      {isGuaranteesDirectoryOpen && projectId && (
+        <GuaranteesDirectoryModal
+          open={isGuaranteesDirectoryOpen}
+          projectId={projectId}
+          projectName={projectName}
+          subcontractId={selectedSubcontractIdForGuarantees}
+          onClose={() => {
+            setIsGuaranteesDirectoryOpen(false);
+            setSelectedSubcontractIdForGuarantees(undefined);
+          }}
+          onChanged={() => {
             onRefresh?.();
           }}
         />

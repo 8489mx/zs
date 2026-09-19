@@ -1,4 +1,5 @@
 import { AppError } from '../../../common/errors/app-error';
+import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 
 type CashDrawerQuery = Record<string, unknown>;
 type CashDrawerMappedRow = Record<string, unknown>;
@@ -277,7 +278,9 @@ export function mapCashDrawerShiftRow(row: CashDrawerShiftSource): CashDrawerMap
   };
 }
 
-export function buildCashDrawerShiftDocNo(shiftId: number): string { return `SHIFT-${shiftId}`; }
+export function buildCashDrawerShiftDocNo(shiftId: number, date: Date = new Date()): string {
+  return formatDailyDocumentNumber('SHIFT', shiftId, date);
+}
 
 export function normalizeShiftOpenPayload(payload: { openingCash?: number; note?: string; branchId?: number | string | null; locationId?: number | string | null; }): { openingCash: number; note: string; branchId: number | null; locationId: number | null; } {
   return { openingCash: Number(payload.openingCash || 0), note: String(payload.note || '').trim(), branchId: payload.branchId ? Number(payload.branchId) : null, locationId: payload.locationId ? Number(payload.locationId) : null };
