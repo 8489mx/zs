@@ -17,6 +17,8 @@ import { EquipmentTrackingModal } from '../components/EquipmentTrackingModal';
 import { EquipmentFuelLogsModal } from '../components/EquipmentFuelLogsModal';
 import { LaborAttendanceModal } from '../components/LaborAttendanceModal';
 import { PettyCashModal } from '../components/PettyCashModal';
+import { DocumentRegisterModal } from '../components/DocumentRegisterModal';
+import { MeetingMinutesModal } from '../components/MeetingMinutesModal';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface ContractingFieldPageProps {
@@ -53,6 +55,8 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
   const [isFuelLogsModalOpen, setIsFuelLogsModalOpen] = useState(false);
   const [isLaborModalOpen, setIsLaborModalOpen] = useState(false);
   const [isPettyCashModalOpen, setIsPettyCashModalOpen] = useState(false);
+  const [isDocumentRegisterOpen, setIsDocumentRegisterOpen] = useState(false);
+  const [isMeetingMinutesOpen, setIsMeetingMinutesOpen] = useState(false);
 
   const handleSubTabChange = (tab: 'daily-logs' | 'rfis') => {
     setActiveSubTab(tab);
@@ -213,6 +217,52 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
           >
             <AppIcons.CheckCircle size={15} />
             <span>استلام الأعمال (WIR)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsDocumentRegisterOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 12px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.FileText size={15} />
+            <span>سجل المخططات والمستندات</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsMeetingMinutesOpen(true)}
+            style={{
+              height: '36px',
+              padding: '0 12px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: 'var(--font-body)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AppIcons.Users size={15} />
+            <span>محاضر الاجتماعات</span>
           </button>
 
           <button
@@ -378,6 +428,26 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
         <WorkInspectionModal
           open={isWirModalOpen}
           onClose={() => setIsWirModalOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+        />
+      )}
+
+      {/* مودال سجل المخططات والمستندات ومراجعاتها */}
+      {isDocumentRegisterOpen && effectiveProjectId && (
+        <DocumentRegisterModal
+          open={isDocumentRegisterOpen}
+          onClose={() => setIsDocumentRegisterOpen(false)}
+          projectId={effectiveProjectId}
+          projectName={effectiveProject?.name}
+        />
+      )}
+
+      {/* مودال محاضر الاجتماعات وبنود المتابعة */}
+      {isMeetingMinutesOpen && effectiveProjectId && (
+        <MeetingMinutesModal
+          open={isMeetingMinutesOpen}
+          onClose={() => setIsMeetingMinutesOpen(false)}
           projectId={effectiveProjectId}
           projectName={effectiveProject?.name}
         />

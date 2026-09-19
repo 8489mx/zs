@@ -328,9 +328,34 @@ export interface ContractingScheduleTask {
   status: ScheduleTaskStatus;
   boqItemId?: string | null;
   assignedTeam?: string | null;
+  plannedManpowerCount?: number;
+  plannedEquipmentCount?: number;
+  resourceTrade?: string | null;
   notes?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ResourceLoadingWeek {
+  weekStart: string;
+  weekEnd: string;
+  totalManpower: number;
+  totalEquipment: number;
+  taskCount: number;
+}
+
+export interface ResourceLoadingTradeBreakdown {
+  trade: string;
+  manpower: number;
+  equipment: number;
+}
+
+export interface ResourceLoadingHistogram {
+  projectId: string;
+  weeks: ResourceLoadingWeek[];
+  tradeBreakdown: ResourceLoadingTradeBreakdown[];
+  peakManpowerWeek: ResourceLoadingWeek | null;
+  peakEquipmentWeek: ResourceLoadingWeek | null;
 }
 
 export interface ContractingMaterialRequisition {
@@ -626,13 +651,19 @@ export interface CashForecastBucket {
 export interface ContractingCashForecast {
   projectId?: string;
   totalCurrentCashPosition: number;
+  forecastBasis?: 'due_date' | 'percentage_estimate';
   buckets: CashForecastBucket[];
+  undated?: CashForecastBucket & { period: 'undated' };
   upcomingCommitmentsSummary: {
     pendingSubcontractorIpcs: number;
-    pendingSupplierInvoices: number;
-    upcomingWages: number;
+    // null = not yet linked to this forecast (supplier payables/payroll are not
+    // scoped to a contracting project today) — distinct from a real zero balance.
+    pendingSupplierInvoices: number | null;
+    upcomingWages: number | null;
     upcomingLicenseRenewals: number;
   };
+  totalExpectedInflow?: number;
+  totalExpectedOutflow?: number;
 }
 
 export interface ProjectMaterialRequirementItem {
@@ -1282,6 +1313,126 @@ export interface CreateAllocationBatchPayload {
   periodStart: string;
   periodEnd: string;
   deferredInAmount?: number;
+  notes?: string;
+}
+
+// Document Register (Drawing/Document Control)
+export type DocumentType = 'drawing' | 'specification' | 'contract' | 'correspondence' | 'method_statement' | 'other';
+export type DocumentStatus = 'draft' | 'for_review' | 'approved' | 'superseded' | 'void';
+export type DocumentReviewStatus = 'for_review' | 'approved' | 'approved_as_noted' | 'revise_resubmit' | 'rejected' | 'superseded';
+export type DocumentRecipientRole = 'internal' | 'consultant' | 'owner' | 'subcontractor' | 'authority' | 'other';
+export type DocumentDistributionMethod = 'email' | 'whatsapp' | 'hand' | 'portal' | 'other';
+
+export interface ContractingDocument {
+  id: string;
+  projectId: string;
+  docNumber: string;
+  title: string;
+  discipline: string;
+  docType: DocumentType;
+  currentRevisionId: string | null;
+  status: DocumentStatus;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContractingDocumentRevision {
+  id: string;
+  documentId: string;
+  revCode: string;
+  fileRef?: string | null;
+  reviewStatus: DocumentReviewStatus;
+  issuedDate: string;
+  reviewedBy?: string | null;
+  reviewDate?: string | null;
+  reviewComments?: string | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface ContractingDocumentDistribution {
+  id: string;
+  revisionId: string;
+  recipientName: string;
+  recipientRole: DocumentRecipientRole;
+  distributionMethod: DocumentDistributionMethod;
+  distributedAt: string;
+  acknowledgedAt?: string | null;
+}
+
+export interface ContractingDocumentDetail {
+  document: ContractingDocument;
+  revisions: ContractingDocumentRevision[];
+  distributions: ContractingDocumentDistribution[];
+}
+
+export interface CreateContractingDocumentPayload {
+  title: string;
+  discipline?: string;
+  docType?: DocumentType;
+  notes?: string;
+  revCode?: string;
+  fileRef?: string;
+}
+
+// Meeting Minutes
+export interface MeetingAttendee {
+  name: string;
+  company?: string;
+  role?: string;
+}
+
+export interface ContractingMeetingMinute {
+  id: string;
+  projectId: string;
+  minuteNumber: string;
+  meetingType: string;
+  meetingDate: string;
+  location?: string | null;
+  attendees: MeetingAttendee[];
+  agenda?: string | null;
+  summary?: string | null;
+  preparedBy?: string | null;
+  status: 'draft' | 'issued';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContractingMeetingActionItem {
+  id: string;
+  minuteId: string;
+  description: string;
+  ownerName?: string | null;
+  dueDate?: string | null;
+  status: 'open' | 'closed';
+  linkedRfiId?: string | null;
+  linkedChangeOrderId?: string | null;
+  closedAt?: string | null;
+  notes?: string | null;
+}
+
+export interface ContractingMeetingMinuteDetail {
+  minute: ContractingMeetingMinute;
+  actionItems: ContractingMeetingActionItem[];
+}
+
+export interface CreateMeetingMinutePayload {
+  meetingType?: string;
+  meetingDate?: string;
+  location?: string;
+  attendees?: MeetingAttendee[];
+  agenda?: string;
+  summary?: string;
+  preparedBy?: string;
+}
+
+export interface CreateMeetingActionItemPayload {
+  description: string;
+  ownerName?: string;
+  dueDate?: string;
+  linkedRfiId?: string;
+  linkedChangeOrderId?: string;
   notes?: string;
 }
 

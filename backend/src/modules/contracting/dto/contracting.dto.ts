@@ -809,6 +809,20 @@ export class CreateScheduleTaskDto {
   @IsOptional()
   assignedTeam?: string;
 
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  plannedManpowerCount?: number;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  plannedEquipmentCount?: number;
+
+  @IsString()
+  @IsOptional()
+  resourceTrade?: string;
+
   @IsString()
   @IsOptional()
   notes?: string;
@@ -856,6 +870,20 @@ export class UpdateScheduleTaskDto {
   @IsString()
   @IsOptional()
   assignedTeam?: string;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  plannedManpowerCount?: number;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  plannedEquipmentCount?: number;
+
+  @IsString()
+  @IsOptional()
+  resourceTrade?: string;
 
   @IsString()
   @IsOptional()
@@ -2425,6 +2453,156 @@ export class CreateAllocationBatchDto {
   @Min(0)
   @IsOptional()
   deferredInAmount?: number;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+// Document Register DTOs (Drawing/Document Control — Procore/Autodesk Build benchmark)
+export class CreateContractingDocumentDto {
+  @IsString()
+  @IsNotEmpty()
+  title!: string;
+
+  @IsString()
+  @IsOptional()
+  discipline?: string;
+
+  @IsString()
+  @IsIn(['drawing', 'specification', 'contract', 'correspondence', 'method_statement', 'other'])
+  @IsOptional()
+  docType?: 'drawing' | 'specification' | 'contract' | 'correspondence' | 'method_statement' | 'other';
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  // First revision, created together with the document
+  @IsString()
+  @IsOptional()
+  revCode?: string;
+
+  @IsString()
+  @IsOptional()
+  fileRef?: string;
+}
+
+export class CreateContractingDocumentRevisionDto {
+  @IsString()
+  @IsNotEmpty()
+  revCode!: string;
+
+  @IsString()
+  @IsOptional()
+  fileRef?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class UpdateContractingDocumentRevisionStatusDto {
+  @IsString()
+  @IsIn(['for_review', 'approved', 'approved_as_noted', 'revise_resubmit', 'rejected', 'superseded'])
+  reviewStatus!: 'for_review' | 'approved' | 'approved_as_noted' | 'revise_resubmit' | 'rejected' | 'superseded';
+
+  @IsString()
+  @IsOptional()
+  reviewedBy?: string;
+
+  @IsString()
+  @IsOptional()
+  reviewComments?: string;
+}
+
+export class DistributeContractingDocumentDto {
+  @IsString()
+  @IsNotEmpty()
+  recipientName!: string;
+
+  @IsString()
+  @IsIn(['internal', 'consultant', 'owner', 'subcontractor', 'authority', 'other'])
+  @IsOptional()
+  recipientRole?: 'internal' | 'consultant' | 'owner' | 'subcontractor' | 'authority' | 'other';
+
+  @IsString()
+  @IsIn(['email', 'whatsapp', 'hand', 'portal', 'other'])
+  @IsOptional()
+  distributionMethod?: 'email' | 'whatsapp' | 'hand' | 'portal' | 'other';
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+// Meeting Minutes DTOs
+export class MeetingAttendeeDto {
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @IsString()
+  @IsOptional()
+  company?: string;
+
+  @IsString()
+  @IsOptional()
+  role?: string;
+}
+
+export class CreateMeetingMinuteDto {
+  @IsString()
+  @IsOptional()
+  meetingType?: string;
+
+  @IsString()
+  @IsOptional()
+  meetingDate?: string;
+
+  @IsString()
+  @IsOptional()
+  location?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MeetingAttendeeDto)
+  @IsOptional()
+  attendees?: MeetingAttendeeDto[];
+
+  @IsString()
+  @IsOptional()
+  agenda?: string;
+
+  @IsString()
+  @IsOptional()
+  summary?: string;
+
+  @IsString()
+  @IsOptional()
+  preparedBy?: string;
+}
+
+export class CreateMeetingActionItemDto {
+  @IsString()
+  @IsNotEmpty()
+  description!: string;
+
+  @IsString()
+  @IsOptional()
+  ownerName?: string;
+
+  @IsString()
+  @IsOptional()
+  dueDate?: string;
+
+  @IsString()
+  @IsOptional()
+  linkedRfiId?: string;
+
+  @IsString()
+  @IsOptional()
+  linkedChangeOrderId?: string;
 
   @IsString()
   @IsOptional()

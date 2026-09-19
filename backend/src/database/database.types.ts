@@ -3243,6 +3243,37 @@ export interface MaritimeRfqBidTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface MaritimeRateCardTable {
+  id: Generated<string>;
+  tenant_id: string;
+  shipping_line_id: string | null;
+  carrier_name: string;
+  pol_code: string;
+  pol_name: string;
+  pod_code: string;
+  pod_name: string;
+  cargo_mode: string;
+  container_type: string;
+  ocean_freight: ColumnType<number, number | string | undefined, number | string | undefined>;
+  currency: string;
+  thc_origin: ColumnType<number, number | string | undefined, number | string | undefined>;
+  thc_destination: ColumnType<number, number | string | undefined, number | string | undefined>;
+  baf_charges: ColumnType<number, number | string | undefined, number | string | undefined>;
+  other_charges: ColumnType<number, number | string | undefined, number | string | undefined>;
+  total_freight_cost: ColumnType<number, number | string | undefined, number | string | undefined>;
+  transit_time_days: number;
+  free_days: number;
+  valid_from: string;
+  valid_until: string;
+  source: 'manual' | 'carrier_bid';
+  source_bid_id: string | null;
+  status: 'active' | 'expired' | 'draft';
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface MaritimeQuotationTable {
   id: Generated<string>;
   tenant_id: string;
@@ -3351,6 +3382,41 @@ export interface MaritimeContainerTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface MaritimeCustomsDeclarationTable {
+  id: Generated<string>;
+  tenant_id: string;
+  job_id: string;
+  declaration_number: string | null;
+  declaration_type: 'import' | 'export';
+  customs_authority: string | null;
+  broker_name: string | null;
+  submitted_date: string | null;
+  cleared_date: string | null;
+  status: 'pending' | 'submitted' | 'cleared' | 'held' | 'rejected';
+  total_customs_value: ColumnType<number, number | string | undefined, number | string | undefined>;
+  total_duty_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  currency: string;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeCustomsDeclarationItemTable {
+  id: Generated<string>;
+  tenant_id: string;
+  declaration_id: string;
+  hs_code: string;
+  commodity_description: string;
+  quantity: ColumnType<number, number | string | undefined, number | string | undefined>;
+  unit: string;
+  customs_value: ColumnType<number, number | string | undefined, number | string | undefined>;
+  duty_rate_percent: ColumnType<number, number | string | undefined, number | string | undefined>;
+  duty_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
 export interface MaritimeJobMilestoneTable {
   id: Generated<string>;
   tenant_id: string;
@@ -3386,6 +3452,87 @@ export interface ContractingProjectTable {
   cost_center_id: number | null;
   project_manager: string | null;
   location_address: string | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingDocumentTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  doc_number: string;
+  title: string;
+  discipline: string;
+  doc_type: 'drawing' | 'specification' | 'contract' | 'correspondence' | 'method_statement' | 'other';
+  current_revision_id: string | null;
+  status: 'draft' | 'for_review' | 'approved' | 'superseded' | 'void';
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingDocumentRevisionTable {
+  id: Generated<string>;
+  tenant_id: string;
+  document_id: string;
+  rev_code: string;
+  file_ref: string | null;
+  review_status: 'for_review' | 'approved' | 'approved_as_noted' | 'revise_resubmit' | 'rejected' | 'superseded';
+  issued_date: string;
+  reviewed_by: string | null;
+  review_date: string | null;
+  review_comments: string | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingDocumentDistributionTable {
+  id: Generated<string>;
+  tenant_id: string;
+  document_id: string;
+  revision_id: string;
+  recipient_name: string;
+  recipient_role: 'internal' | 'consultant' | 'owner' | 'subcontractor' | 'authority' | 'other';
+  distribution_method: 'email' | 'whatsapp' | 'hand' | 'portal' | 'other';
+  distributed_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  acknowledged_at: ColumnType<Date, string | Date | undefined, string | Date | undefined> | null;
+  notes: string | null;
+  created_by: number | null;
+}
+
+export interface ContractingMeetingMinuteTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  minute_number: string;
+  meeting_type: string;
+  meeting_date: string;
+  location: string | null;
+  attendees: ColumnType<unknown, string | undefined, string | undefined>;
+  agenda: string | null;
+  summary: string | null;
+  prepared_by: string | null;
+  status: 'draft' | 'issued';
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ContractingMeetingActionItemTable {
+  id: Generated<string>;
+  tenant_id: string;
+  minute_id: string;
+  description: string;
+  owner_name: string | null;
+  due_date: string | null;
+  status: 'open' | 'closed';
+  linked_rfi_id: string | null;
+  linked_change_order_id: string | null;
+  closed_at: ColumnType<Date, string | Date | undefined, string | Date | undefined> | null;
   notes: string | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
@@ -3657,6 +3804,9 @@ export interface ContractingScheduleTaskTable {
   status: ColumnType<'not_started' | 'in_progress' | 'completed' | 'delayed', string | undefined, string | undefined>;
   boq_item_id: string | null;
   assigned_team: string | null;
+  planned_manpower_count: ColumnType<number, number | undefined, number | undefined>;
+  planned_equipment_count: ColumnType<number, number | undefined, number | undefined>;
+  resource_trade: string | null;
   notes: string | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
@@ -3720,11 +3870,19 @@ export interface Database {
   maritime_inquiries: MaritimeInquiryTable;
   maritime_rfqs: MaritimeRfqTable;
   maritime_rfq_bids: MaritimeRfqBidTable;
+  maritime_rate_cards: MaritimeRateCardTable;
+  maritime_customs_declarations: MaritimeCustomsDeclarationTable;
+  maritime_customs_declaration_items: MaritimeCustomsDeclarationItemTable;
   maritime_quotations: MaritimeQuotationTable;
   maritime_jobs: MaritimeJobTable;
   maritime_containers: MaritimeContainerTable;
   maritime_job_milestones: MaritimeJobMilestoneTable;
   contracting_projects: ContractingProjectTable;
+  contracting_documents: ContractingDocumentTable;
+  contracting_document_revisions: ContractingDocumentRevisionTable;
+  contracting_document_distributions: ContractingDocumentDistributionTable;
+  contracting_meeting_minutes: ContractingMeetingMinuteTable;
+  contracting_meeting_action_items: ContractingMeetingActionItemTable;
   contracting_boq_items: ContractingBoqItemTable;
   contracting_change_orders: ContractingChangeOrderTable;
   contracting_invoices: ContractingInvoiceTable;

@@ -42,6 +42,9 @@ export function CreateScheduleTaskModal({
     status: 'not_started',
     boqItemId: '',
     assignedTeam: '',
+    plannedManpowerCount: '',
+    plannedEquipmentCount: '',
+    resourceTrade: '',
     notes: '',
   });
 
@@ -92,6 +95,9 @@ export function CreateScheduleTaskModal({
         status: formData.status as any,
         boqItemId: formData.boqItemId || undefined,
         assignedTeam: formData.assignedTeam.trim() || undefined,
+        plannedManpowerCount: formData.plannedManpowerCount ? Number(formData.plannedManpowerCount) : undefined,
+        plannedEquipmentCount: formData.plannedEquipmentCount ? Number(formData.plannedEquipmentCount) : undefined,
+        resourceTrade: formData.resourceTrade.trim() || undefined,
         notes: formData.notes.trim() || undefined,
       });
       onCreated?.();
@@ -238,6 +244,35 @@ export function CreateScheduleTaskModal({
                 value={formData.assignedTeam}
                 onChange={(e) => setFormData({ ...formData, assignedTeam: e.target.value })}
                 placeholder="مثال: طاقم الخرسانات..."
+              />
+            </Field>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: '10px', marginTop: '8px' }}>
+            <Field label="عدد العمالة المخططة">
+              <input
+                type="number"
+                min={0}
+                value={formData.plannedManpowerCount}
+                onChange={(e) => setFormData({ ...formData, plannedManpowerCount: e.target.value })}
+                placeholder="0"
+              />
+            </Field>
+            <Field label="عدد المعدات المخططة">
+              <input
+                type="number"
+                min={0}
+                value={formData.plannedEquipmentCount}
+                onChange={(e) => setFormData({ ...formData, plannedEquipmentCount: e.target.value })}
+                placeholder="0"
+              />
+            </Field>
+            <Field label="التخصص/الحرفة (لتقرير تحميل الموارد)">
+              <input
+                type="text"
+                value={formData.resourceTrade}
+                onChange={(e) => setFormData({ ...formData, resourceTrade: e.target.value })}
+                placeholder="مثال: حدادة مسلحة، تشطيبات..."
               />
             </Field>
           </div>

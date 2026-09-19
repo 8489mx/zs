@@ -559,4 +559,129 @@ export const maritimeApi = {
       method: 'POST',
       body: JSON.stringify({ milestone, phone }),
     }),
+
+  // Rate Management (Contract/Tariff Rate Cards)
+  listRateCards: (params?: { polCode?: string; podCode?: string; containerType?: string; status?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.polCode) qs.set('polCode', params.polCode);
+    if (params?.podCode) qs.set('podCode', params.podCode);
+    if (params?.containerType) qs.set('containerType', params.containerType);
+    if (params?.status) qs.set('status', params.status);
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return http<MaritimeRateCard[]>(`/api/maritime-freight/rate-cards${query}`);
+  },
+
+  findBestRate: (polCode: string, podCode: string, containerType?: string) => {
+    const qs = new URLSearchParams({ polCode, podCode });
+    if (containerType) qs.set('containerType', containerType);
+    return http<MaritimeRateCard[]>(`/api/maritime-freight/rate-cards/best?${qs.toString()}`);
+  },
+
+  createRateCard: (data: Partial<MaritimeRateCard>) =>
+    http<MaritimeRateCard>('/api/maritime-freight/rate-cards', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  createRateCardFromBid: (bidId: string, validUntil: string) =>
+    http<MaritimeRateCard>(`/api/maritime-freight/bids/${bidId}/save-as-rate-card`, {
+      method: 'POST',
+      body: JSON.stringify({ validUntil }),
+    }),
+
+  updateRateCardStatus: (id: string, status: 'active' | 'expired' | 'draft') =>
+    http<MaritimeRateCard>(`/api/maritime-freight/rate-cards/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    }),
+
+  deleteRateCard: (id: string) =>
+    http<{ success: boolean }>(`/api/maritime-freight/rate-cards/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // Customs Declarations (HS Codes & Duty Tracking)
+  listCustomsDeclarations: (jobId: string) =>
+    http<MaritimeCustomsDeclaration[]>(`/api/maritime-freight/jobs/${jobId}/customs-declarations`),
+
+  getCustomsDeclarationDetail: (id: string) =>
+    http<{ declaration: MaritimeCustomsDeclaration; items: MaritimeCustomsDeclarationItem[] }>(`/api/maritime-freight/customs-declarations/${id}`),
+
+  createCustomsDeclaration: (jobId: string, data: any) =>
+    http<{ declaration: MaritimeCustomsDeclaration; items: MaritimeCustomsDeclarationItem[] }>(`/api/maritime-freight/jobs/${jobId}/customs-declarations`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  addCustomsDeclarationItem: (declarationId: string, data: any) =>
+    http<MaritimeCustomsDeclarationItem>(`/api/maritime-freight/customs-declarations/${declarationId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateCustomsDeclarationStatus: (id: string, status: string, declarationNumber?: string) =>
+    http<MaritimeCustomsDeclaration>(`/api/maritime-freight/customs-declarations/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, declarationNumber }),
+    }),
 };
+
+export interface MaritimeCustomsDeclaration {
+  id: string;
+  jobId: string;
+  declarationNumber: string | null;
+  declarationType: 'import' | 'export';
+  customsAuthority: string | null;
+  brokerName: string | null;
+  submittedDate: string | null;
+  clearedDate: string | null;
+  status: 'pending' | 'submitted' | 'cleared' | 'held' | 'rejected';
+  totalCustomsValue: number;
+  totalDutyAmount: number;
+  currency: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MaritimeCustomsDeclarationItem {
+  id: string;
+  declarationId: string;
+  hsCode: string;
+  commodityDescription: string;
+  quantity: number;
+  unit: string;
+  customsValue: number;
+  dutyRatePercent: number;
+  dutyAmount: number;
+  notes: string | null;
+}
+
+export interface MaritimeRateCard {
+  id: string;
+  shippingLineId: string | null;
+  carrierName: string;
+  polCode: string;
+  polName: string;
+  podCode: string;
+  podName: string;
+  cargoMode: string;
+  containerType: string;
+  oceanFreight: number;
+  currency: string;
+  thcOrigin: number;
+  thcDestination: number;
+  bafCharges: number;
+  otherCharges: number;
+  totalFreightCost: number;
+  transitTimeDays: number;
+  freeDays: number;
+  validFrom: string;
+  validUntil: string;
+  source: 'manual' | 'carrier_bid';
+  sourceBidId: string | null;
+  status: 'active' | 'expired' | 'draft';
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

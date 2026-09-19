@@ -29,12 +29,14 @@ export function CashForecastCard({ projectId }: CashForecastCardProps) {
 
   if (!forecast) return null;
 
-  const fmt = (n: number) => Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const fmt = (n: number | null | undefined) =>
+    n === null || n === undefined ? 'غير متاح' : Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   const PERIOD_LABELS: Record<string, string> = {
     '30_days': '30 يوماً',
-    '60_days': '60 يوماً',
-    '90_days': '90 يوماً',
+    '60_days': '31-60 يوماً',
+    '90_days': '61-90 يوماً',
+    'beyond_90_days': 'بعد 90 يوماً',
   };
 
   return (

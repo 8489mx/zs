@@ -251,6 +251,9 @@ export const contractingApi = {
       method: 'DELETE',
     }),
 
+  getResourceLoadingHistogram: (projectId: string) =>
+    http<import('../contracting.types').ResourceLoadingHistogram>(`/api/contracting/projects/${projectId}/resource-loading`),
+
   // Material Requisitions (أذون صرف الخامات)
   getMaterialRequisitions: (projectId: string) =>
     http<ContractingMaterialRequisition[]>(`/api/contracting/projects/${projectId}/material-requisitions`),
@@ -798,6 +801,68 @@ export const contractingApi = {
         body: JSON.stringify(data),
       },
     ),
+
+  // 41. Document Register (سجل المخططات والمستندات)
+  listDocuments: (projectId: string) =>
+    http<import('../contracting.types').ContractingDocument[]>(`/api/contracting/projects/${projectId}/documents`),
+
+  getDocumentDetail: (id: string) =>
+    http<import('../contracting.types').ContractingDocumentDetail>(`/api/contracting/documents/${id}`),
+
+  createDocument: (projectId: string, data: import('../contracting.types').CreateContractingDocumentPayload) =>
+    http<{ document: import('../contracting.types').ContractingDocument; revision: import('../contracting.types').ContractingDocumentRevision }>(
+      `/api/contracting/projects/${projectId}/documents`,
+      { method: 'POST', body: JSON.stringify(data) },
+    ),
+
+  addDocumentRevision: (documentId: string, data: { revCode: string; fileRef?: string; notes?: string }) =>
+    http<import('../contracting.types').ContractingDocumentRevision>(`/api/contracting/documents/${documentId}/revisions`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateDocumentRevisionStatus: (
+    revisionId: string,
+    data: { reviewStatus: import('../contracting.types').DocumentReviewStatus; reviewedBy?: string; reviewComments?: string },
+  ) =>
+    http<import('../contracting.types').ContractingDocumentRevision>(`/api/contracting/document-revisions/${revisionId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  distributeDocument: (
+    revisionId: string,
+    data: { recipientName: string; recipientRole?: import('../contracting.types').DocumentRecipientRole; distributionMethod?: import('../contracting.types').DocumentDistributionMethod; notes?: string },
+  ) =>
+    http<import('../contracting.types').ContractingDocumentDistribution>(`/api/contracting/document-revisions/${revisionId}/distribute`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 42. Meeting Minutes & Action Items (محاضر الاجتماعات وبنود المتابعة)
+  listMeetingMinutes: (projectId: string) =>
+    http<import('../contracting.types').ContractingMeetingMinute[]>(`/api/contracting/projects/${projectId}/meeting-minutes`),
+
+  getMeetingMinuteDetail: (id: string) =>
+    http<import('../contracting.types').ContractingMeetingMinuteDetail>(`/api/contracting/meeting-minutes/${id}`),
+
+  createMeetingMinute: (projectId: string, data: import('../contracting.types').CreateMeetingMinutePayload) =>
+    http<import('../contracting.types').ContractingMeetingMinute>(`/api/contracting/projects/${projectId}/meeting-minutes`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  addMeetingActionItem: (minuteId: string, data: import('../contracting.types').CreateMeetingActionItemPayload) =>
+    http<import('../contracting.types').ContractingMeetingActionItem>(`/api/contracting/meeting-minutes/${minuteId}/action-items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateMeetingActionItemStatus: (actionItemId: string, status: 'open' | 'closed') =>
+    http<import('../contracting.types').ContractingMeetingActionItem>(`/api/contracting/meeting-action-items/${actionItemId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    }),
 };
 
 

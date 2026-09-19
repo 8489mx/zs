@@ -5,6 +5,7 @@ import { useMaritime } from '../context/MaritimeContext';
 import { MaritimeRfqTab } from '../components/MaritimeRfqTab';
 import { CarrierBidEntryModal } from '../components/CarrierBidEntryModal';
 import { DispatchRfqModal } from '../components/DispatchRfqModal';
+import { RateCardsModal } from '../components/RateCardsModal';
 
 export function MaritimeRfqsPage() {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ export function MaritimeRfqsPage() {
 
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
   const [selectedRfqForDispatch, setSelectedRfqForDispatch] = useState<MaritimeRfq | null>(null);
+
+  const [isRateCardsOpen, setIsRateCardsOpen] = useState(false);
 
   const loadRfqs = useCallback(async () => {
     try {
@@ -54,10 +57,13 @@ export function MaritimeRfqsPage() {
         rfqs={rfqs}
         loading={loading}
         onOpenCreate={() => setIsCreateRfqOpen(true)}
+        onOpenRateCards={() => setIsRateCardsOpen(true)}
         onSelectRfqForMatrix={handleSelectRfqForMatrix}
         onOpenAddBid={handleOpenAddBid}
         onDispatchEmails={handleOpenDispatchModal}
       />
+
+      <RateCardsModal open={isRateCardsOpen} onClose={() => setIsRateCardsOpen(false)} />
 
       <CarrierBidEntryModal
         open={isAddBidOpen}

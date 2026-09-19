@@ -5513,4 +5513,26 @@
   - **O11** (لا اختبار للإصلاحات الأمنية): جناح جديد `test/critical/phase12-billing-security-hardening.spec.ts` (4 اختبارات: XPay/Paymob/Stripe fail-closed، توقيع صحيح، Replay Protection) — الآن 31 جناحاً في `test:critical`، 100% نجاح.
 * **بنود مفتوحة متبقية عمداً (قرارات واعية، ليست إهمالاً):** O2 (نطاق `tenant_id` يحتاج مسحاً دقيقاً موضعاً بموضع)، O5 (صيغة تخفيض سقف الضمان قرار تعاقدي غير موثَّق — اختراعها بلا مصدر حقيقة أخطر من تركها)، O6/O7/O8 (ميزات معمارية بحجم مشروع فرعي)، O9 (17+ موضع ترقيم يحتاج مراجعة فردية لكل جدول)، O12 (تغيير معماري في 6 مواضع)، وبقية O15 (اختبار Guard/رمز RFQ العام يحتاج بنية اختبار HTTP/DB غير متوفرة بالنمط الخفيف الحالي). راجع `ARCHITECTURE_INVARIANTS.md` القسم 8 للتفصيل الكامل والمبررات.
 
+## 159. إغلاق فجوات موديول المقاولات مقارنة بمعايير Procore/CMiC/Primavera (Tier-1 Contracting ERP Gap-Closing)
+* **حالة الإغلاق:** 🟢 ثلاث فجوات من خمس أُغلقت بالكامل (Backend + Frontend + هجرات + تحقق)، وفجوتان مؤجَّلتان بقرار واعٍ (راجع `ARCHITECTURE_INVARIANTS.md` O16, O17).
+* **معيار المقارنة الدولي:** Procore Document Management, CMiC Meeting Minutes, Primavera P6 Resource Histogram — بحث فعلي وليس افتراضاً.
+* **الميزات المُنجزة:**
+  1. **سجل المخططات والمستندات (Document Register):** `backend/src/database/migrations/2040000000120_contracting_document_register_and_meeting_minutes.ts` — 3 جداول (مستند → مراجعات بتاريخ كامل بلا استبدال → سجل توزيع). خدمات: `createDocument`, `addDocumentRevision`, `updateDocumentRevisionStatus`, `distributeDocument` في `contracting.service.ts` (القسم 41). واجهة: `DocumentRegisterModal.tsx` مربوطة بزر في `ContractingFieldPage.tsx`.
+  2. **محاضر الاجتماعات (Meeting Minutes):** نفس الهجرة — جدولا `contracting_meeting_minutes` و`contracting_meeting_action_items` (بنود متابعة قابلة للربط بـRFI/أمر تغيير). خدمات القسم 42. واجهة: `MeetingMinutesModal.tsx`.
+  3. **التدفق النقدي المتوقع الحقيقي:** `getCashForecast` في `contracting.service.ts` أُعيد بناؤه بالكامل — تجميع بحسب `payment_due_date` الفعلي (0-30/31-60/61-90/+90 يوماً + دلو "بلا تاريخ") بدل نسب 50/30/20% العشوائية القديمة؛ الحقول غير المربوطة (`pendingSupplierInvoices`, `upcomingWages`) تُعرض الآن `null`/"غير متاح" بدل صفر مضلِّل.
+  4. **الجدولة المحمّلة بالموارد (Resource-Loaded Schedule):** `backend/src/database/migrations/2040000000121_contracting_schedule_resource_loading.ts` يضيف `planned_manpower_count`/`planned_equipment_count`/`resource_trade` لكل مهمة جدولية؛ `getResourceLoadingHistogram` يبني تقرير Histogram أسبوعي (ذروة العمالة/المعدات + توزيع التخصصات). واجهة: `ResourceLoadingModal.tsx` مربوطة بزر في `ContractingGanttTab.tsx`.
+* **اكتشاف جانبي:** `contracting.service.ts` يحوي 172 استخدام لـ`(this.db as any)` — خرق للقاعدة F3 الموثَّقة في `ARCHITECTURE_INVARIANTS.md`؛ لم يُمس (دين تقني موروث سابق لهذه الجلسة، كل الكود الجديد Typed بالكامل) — مسجَّل كـO16.
+* **فحص الجودة والسلامة البرمجية:** `npx tsc --noEmit` (Backend + Frontend) نظيف؛ `npm run test:critical` (31 جناح) 100%؛ الهجرتان 120 و121 نُفِّذتا بنجاح، وتحقَّقت قيود الـSchema (تفرد رمز المراجعة، CHECK على الحالات) بإدخال بيانات فعلية عبر سكربت مؤقت.
+* **بند مفتوح متعمَّد:** بوابة تعاون خارجية (استشاري/مالك يراجعون بأنفسهم) — لم تُبنَ عمداً، قرار أمني يستحق جلسة تصميم مستقلة (O17).
+
+## 160. إغلاق فجوات موديول اللوجستيات والشحن البحري مقارنة بـCargoWise/GoFreight (Freight Forwarding Gap-Closing)
+* **حالة الإغلاق:** 🟢 فجوتان من أربع أُغلقتا بالكامل (Rate Management + Customs)، وفجوتان مؤجَّلتان بقرار واعٍ (تكامل EDI/AIS حي يحتاج اشتراكات مدفوعة من العميل — O18؛ بوابة حجز ذاتي تحتاج سطح مصادقة جديد — O19).
+* **معيار المقارنة الدولي:** CargoWise Rate Management, Customs & Compliance modules — بحث فعلي.
+* **الميزات المُنجزة:**
+  1. **إدارة التعرفات والعقود (Rate Management):** `backend/src/database/migrations/2040000000122_maritime_rate_cards.ts` (+ إصلاح تفرد في `2040000000123`) — جدول `maritime_rate_cards` بالناقل/المسار/الحاوية/الصلاحية. خدمات `listRateCards`, `findBestRate` (أرخص تعرفة سارية فورية)، `createRateCard`, `createRateCardFromBid` (تحويل عرض RFQ فائز لتعرفة قابلة لإعادة الاستخدام)، `updateRateCardStatus`, `deleteRateCard` في `maritime-freight.service.ts`. واجهة: `RateCardsModal.tsx` مربوطة بزر "تعرفات وعقود الأسعار" في صفحة RFQ.
+  2. **البيانات الجمركية وأكواد HS (Customs Declarations):** `backend/src/database/migrations/2040000000124_maritime_customs_declarations.ts` — جدولا `maritime_customs_declarations` → `maritime_customs_declaration_items` (كود HS، قيمة جمركية، نسبة/مبلغ رسم محسوب آلياً). خدمات القسم المخصص في `maritime-freight.service.ts`. واجهة: `CustomsDeclarationModal.tsx` مربوطة بكارت "البيان الجمركي" في تبويب المستندات بـ`JobDetailsModal.tsx`. **نطاق متعمَّد:** تسجيل داخلي فقط، لا تقديم حي لبوابة جمركية حكومية (O18).
+* **درس مُستخلص:** فهرس تفرد خاطئ في الهجرة الأولى (كان يمنع ناقلين مختلفين من تسعير نفس المسار في نفس اليوم) اكتُشف بسكربت SQL فعلي فور الهجرة وأُصلح بهجرة تصحيحية فورية — راجع `ARCHITECTURE_INVARIANTS.md` القسم 5-ب للتفصيل الكامل.
+* **فحص الجودة والسلامة البرمجية:** `npx tsc --noEmit` (Backend + Frontend) نظيف؛ `npm run test:critical` (31 جناح) 100%؛ الهجرات 122-124 نُفِّذت بنجاح، وتحقَّقت قيود الـSchema (تفرد التعرفة، CHECK على نسبة الرسم والحالات) بسكربتات SQL فعلية.
+* **بنود مفتوحة متعمَّدة:** O18 (EDI/AIS حي)، O19 (بوابة حجز ذاتي).
+
 

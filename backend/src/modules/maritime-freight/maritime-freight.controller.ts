@@ -12,6 +12,8 @@ import { SubmitMaritimeBidDto } from './dto/submit-bid.dto';
 import { CreateMaritimeQuotationDto } from './dto/create-quotation.dto';
 import { CreateMaritimeJobDto } from './dto/create-job.dto';
 import { UpdateMaritimeContainerDto } from './dto/update-container.dto';
+import { CreateRateCardDto, UpdateRateCardStatusDto } from './dto/rate-card.dto';
+import { CreateCustomsDeclarationDto, CreateCustomsDeclarationItemDto, UpdateCustomsDeclarationStatusDto } from './dto/customs-declaration.dto';
 import { DcsaMilestoneKey } from './maritime-freight.types';
 
 @Controller(['maritime-freight', 'api/maritime-freight'])
@@ -383,5 +385,99 @@ export class MaritimeFreightController {
   @Post('pipeline/trigger')
   async triggerPipeline(@Req() req: RequestWithAuth) {
     return this.freightService.processAutomatedPipelineForTenant(req.authContext!);
+  }
+
+  // --------------------------------------------------------------------------
+  // Rate Management (Contract/Tariff Rate Cards)
+  // --------------------------------------------------------------------------
+
+  @Get('rate-cards')
+  async listRateCards(
+    @Query('polCode') polCode: string | undefined,
+    @Query('podCode') podCode: string | undefined,
+    @Query('containerType') containerType: string | undefined,
+    @Query('status') status: string | undefined,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.listRateCards(req.authContext!, { polCode, podCode, containerType, status });
+  }
+
+  @Get('rate-cards/best')
+  async findBestRate(
+    @Query('polCode') polCode: string,
+    @Query('podCode') podCode: string,
+    @Query('containerType') containerType: string | undefined,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.findBestRate(req.authContext!, polCode, podCode, containerType);
+  }
+
+  @Post('rate-cards')
+  async createRateCard(@Body() dto: CreateRateCardDto, @Req() req: RequestWithAuth) {
+    return this.freightService.createRateCard(req.authContext!, dto);
+  }
+
+  @Post('bids/:id/save-as-rate-card')
+  async createRateCardFromBid(
+    @Param('id') id: string,
+    @Body('validUntil') validUntil: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.createRateCardFromBid(req.authContext!, id, validUntil);
+  }
+
+  @Put('rate-cards/:id/status')
+  async updateRateCardStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateRateCardStatusDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.updateRateCardStatus(req.authContext!, id, dto);
+  }
+
+  @Delete('rate-cards/:id')
+  async deleteRateCard(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.freightService.deleteRateCard(req.authContext!, id);
+  }
+
+  // --------------------------------------------------------------------------
+  // Customs Declarations (HS Codes & Duty Tracking)
+  // --------------------------------------------------------------------------
+
+  @Get('jobs/:jobId/customs-declarations')
+  async listCustomsDeclarations(@Param('jobId') jobId: string, @Req() req: RequestWithAuth) {
+    return this.freightService.listCustomsDeclarations(req.authContext!, jobId);
+  }
+
+  @Get('customs-declarations/:id')
+  async getCustomsDeclarationDetail(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.freightService.getCustomsDeclarationDetail(req.authContext!, id);
+  }
+
+  @Post('jobs/:jobId/customs-declarations')
+  async createCustomsDeclaration(
+    @Param('jobId') jobId: string,
+    @Body() dto: CreateCustomsDeclarationDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.createCustomsDeclaration(req.authContext!, jobId, dto);
+  }
+
+  @Post('customs-declarations/:id/items')
+  async addCustomsDeclarationItem(
+    @Param('id') id: string,
+    @Body() dto: CreateCustomsDeclarationItemDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.addCustomsDeclarationItem(req.authContext!, id, dto);
+  }
+
+  @Put('customs-declarations/:id/status')
+  async updateCustomsDeclarationStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateCustomsDeclarationStatusDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.updateCustomsDeclarationStatus(req.authContext!, id, dto);
   }
 }

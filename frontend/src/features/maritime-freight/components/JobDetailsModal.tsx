@@ -8,6 +8,7 @@ import { maritimeApi, MaritimeJob, MaritimeContainer } from '../api/maritime-fre
 import { DCSA_STANDARD_MILESTONES, DcsaMilestoneKey } from '../maritime-freight.types';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { printOceanBillOfLading, printDeliveryOrder, printArrivalNotice } from '../utils/maritime-documents';
+import { CustomsDeclarationModal } from './CustomsDeclarationModal';
 
 interface JobDetailsModalProps {
   open: boolean;
@@ -29,6 +30,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
   const [showEditVoyage, setShowEditVoyage] = useState(false);
   const [showAddContainer, setShowAddContainer] = useState(false);
   const [editingContainer, setEditingContainer] = useState<MaritimeContainer | null>(null);
+  const [showCustomsModal, setShowCustomsModal] = useState(false);
 
   // Financial Posting Modals State
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
@@ -1420,6 +1422,46 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       <span>طباعة إشعار الوصول (Arrival Notice)</span>
                     </button>
                   </div>
+
+                  {/* 4. البيان الجمركي Customs Declaration */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#170e5e' }}>
+                          البيان الجمركي (Customs Declaration)
+                        </div>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#fef3c7', color: '#92400e' }}>
+                          تخليص جمركي
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
+                        تسجيل بنود الأكواد الجمركية (HS Codes) والقيمة المصرح بها ونسبة ومبلغ الرسوم الجمركية لكل صنف، ومتابعة حالة التخليص.
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomsModal(true)}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        background: '#170e5e',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <AppIcons.FileText size={16} />
+                      <span>إدارة البيان الجمركي وأكواد HS</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -2509,6 +2551,15 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             )}
           </div>
         </StandardDialog>
+      )}
+
+      {showCustomsModal && job && (
+        <CustomsDeclarationModal
+          open={showCustomsModal}
+          onClose={() => setShowCustomsModal(false)}
+          jobId={job.id}
+          jobNumber={job.job_number}
+        />
       )}
     </>
   );

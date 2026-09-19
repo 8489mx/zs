@@ -5,6 +5,7 @@ import { systemConfirm } from '@/shared/components/system-alert';
 import { contractingApi } from '../api/contracting.api';
 import { ScheduleGeneratorModal } from './ScheduleGeneratorModal';
 import { TaskDelayModal } from './TaskDelayModal';
+import { ResourceLoadingModal } from './ResourceLoadingModal';
 
 interface ContractingGanttTabProps {
   tasks: ContractingScheduleTask[];
@@ -25,6 +26,7 @@ export function ContractingGanttTab({
 }: ContractingGanttTabProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [showGeneratorModal, setShowGeneratorModal] = useState(false);
+  const [showResourceLoadingModal, setShowResourceLoadingModal] = useState(false);
   const [selectedDelayTask, setSelectedDelayTask] = useState<ContractingScheduleTask | null>(null);
 
   // Metrics
@@ -113,6 +115,30 @@ export function ContractingGanttTab({
             >
               <AppIcons.Calendar size={15} />
               <span>توليد الجدول الزمني الذكي للأدوار</span>
+            </button>
+          )}
+          {projectId && (
+            <button
+              type="button"
+              onClick={() => setShowResourceLoadingModal(true)}
+              style={{
+                height: '36px',
+                padding: '0 14px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                background: '#ffffff',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                fontSize: 'var(--font-body)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <AppIcons.Users size={15} />
+              <span>تحميل الموارد الأسبوعي</span>
             </button>
           )}
           <button
@@ -416,6 +442,15 @@ export function ContractingGanttTab({
             setSelectedDelayTask(null);
             onTaskUpdated();
           }}
+        />
+      )}
+
+      {projectId && (
+        <ResourceLoadingModal
+          open={showResourceLoadingModal}
+          onClose={() => setShowResourceLoadingModal(false)}
+          projectId={projectId}
+          projectName={projectName}
         />
       )}
     </div>

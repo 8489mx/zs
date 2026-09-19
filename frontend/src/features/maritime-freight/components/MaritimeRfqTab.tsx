@@ -4,6 +4,7 @@ interface MaritimeRfqTabProps {
   rfqs: MaritimeRfq[];
   loading: boolean;
   onOpenCreate?: () => void;
+  onOpenRateCards?: () => void;
   onSelectRfqForMatrix: (rfq: MaritimeRfq) => void;
   onOpenAddBid: (rfq: MaritimeRfq) => void;
   onDispatchEmails: (rfq: MaritimeRfq) => void;
@@ -18,6 +19,7 @@ export function MaritimeRfqTab({
   rfqs,
   loading,
   onOpenCreate,
+  onOpenRateCards,
   onSelectRfqForMatrix,
   onOpenAddBid,
   onDispatchEmails,
@@ -55,6 +57,24 @@ export function MaritimeRfqTab({
           <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0', padding: '3px 10px', borderRadius: '12px' }}>
             {rfqs.length} طلب تسعير
           </span>
+          {onOpenRateCards && (
+            <button
+              type="button"
+              onClick={onOpenRateCards}
+              style={{
+                padding: '6px 12px',
+                background: '#ffffff',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              تعرفات وعقود الأسعار
+            </button>
+          )}
           {onOpenCreate && (
             <button
               type="button"

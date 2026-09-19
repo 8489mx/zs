@@ -75,6 +75,12 @@ import {
   CreateCostPoolDto,
   CreateIndirectExpenseDto,
   CreateAllocationBatchDto,
+  CreateContractingDocumentDto,
+  CreateContractingDocumentRevisionDto,
+  UpdateContractingDocumentRevisionStatusDto,
+  DistributeContractingDocumentDto,
+  CreateMeetingMinuteDto,
+  CreateMeetingActionItemDto,
 } from './dto/contracting.dto';
 import {
   ContractingProjectSummary,
@@ -2142,6 +2148,9 @@ export class ContractingService {
         status: 'not_started',
         boqItemId: null,
         assignedTeam: null,
+        plannedManpowerCount: 0,
+        plannedEquipmentCount: 0,
+        resourceTrade: null,
         notes: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -2176,6 +2185,9 @@ export class ContractingService {
       status: r.status || 'not_started',
       boqItemId: r.boq_item_id ? String(r.boq_item_id) : null,
       assignedTeam: r.assigned_team || null,
+      plannedManpowerCount: Number(r.planned_manpower_count || 0),
+      plannedEquipmentCount: Number(r.planned_equipment_count || 0),
+      resourceTrade: r.resource_trade || null,
       notes: r.notes || null,
       createdAt: r.created_at,
       updatedAt: r.updated_at,
@@ -2292,6 +2304,9 @@ export class ContractingService {
         status: (dto.status || 'not_started') as any,
         boq_item_id: dto.boqItemId ? (dto.boqItemId as any) : null,
         assigned_team: dto.assignedTeam || (dto as any).assigned_team || null,
+        planned_manpower_count: dto.plannedManpowerCount !== undefined ? Number(dto.plannedManpowerCount) : 0,
+        planned_equipment_count: dto.plannedEquipmentCount !== undefined ? Number(dto.plannedEquipmentCount) : 0,
+        resource_trade: dto.resourceTrade || null,
         notes: dto.notes || null,
       })
       .returningAll()
@@ -2349,6 +2364,10 @@ export class ContractingService {
     const assignedTeam = dto.assignedTeam !== undefined ? dto.assignedTeam : (dto as any).assigned_team;
     if (assignedTeam !== undefined) updatePayload.assigned_team = assignedTeam || null;
 
+    if (dto.plannedManpowerCount !== undefined) updatePayload.planned_manpower_count = Number(dto.plannedManpowerCount);
+    if (dto.plannedEquipmentCount !== undefined) updatePayload.planned_equipment_count = Number(dto.plannedEquipmentCount);
+    if (dto.resourceTrade !== undefined) updatePayload.resource_trade = dto.resourceTrade || null;
+
     if (dto.notes !== undefined) updatePayload.notes = dto.notes || null;
 
     const [updated] = await this.db
@@ -2371,6 +2390,88 @@ export class ContractingService {
       .execute();
 
     return { success: true, message: 'تم حذف المهمة الجدولية بنجاح' };
+  }
+
+  /**
+   * Resource-loaded schedule (Primavera P6 / MS Project style weekly histogram):
+   * sums planned manpower and equipment across every task whose date range
+   * overlaps each week of the project schedule, so over-allocation (too many
+   * trades on site the same week) becomes visible instead of only existing as
+   * a free-text "assigned team" label with no aggregable count.
+   */
+  async getResourceLoadingHistogram(auth: AuthContext, projectId: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const tasks = await this.db
+      .selectFrom('contracting_schedule_tasks')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .orderBy('start_date', 'asc')
+      .execute();
+
+    const activeTasks = tasks.filter((t) => Number(t.planned_manpower_count || 0) > 0 || Number(t.planned_equipment_count || 0) > 0);
+
+    if (activeTasks.length === 0) {
+      return { projectId, weeks: [], tradeBreakdown: [], peakManpowerWeek: null, peakEquipmentWeek: null };
+    }
+
+    const allStarts = tasks.map((t) => new Date(t.start_date).getTime());
+    const allEnds = tasks.map((t) => new Date(t.end_date).getTime());
+    const scheduleStart = new Date(Math.min(...allStarts));
+    const scheduleEnd = new Date(Math.max(...allEnds));
+
+    // Snap to the start of the week (Saturday, matching the region's work week) for stable buckets.
+    const weekStart = new Date(scheduleStart);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const weeks: { weekStart: string; weekEnd: string; totalManpower: number; totalEquipment: number; taskCount: number }[] = [];
+    const cursor = new Date(weekStart);
+    const maxWeeks = 260; // 5-year safety cap so a bad date range can't loop forever
+    let guard = 0;
+    while (cursor.getTime() <= scheduleEnd.getTime() && guard < maxWeeks) {
+      const wStart = new Date(cursor);
+      const wEnd = new Date(cursor);
+      wEnd.setDate(wEnd.getDate() + 6);
+
+      let totalManpower = 0;
+      let totalEquipment = 0;
+      let taskCount = 0;
+      for (const t of activeTasks) {
+        const tStart = new Date(t.start_date).getTime();
+        const tEnd = new Date(t.end_date).getTime();
+        if (tStart <= wEnd.getTime() && tEnd >= wStart.getTime()) {
+          totalManpower += Number(t.planned_manpower_count || 0);
+          totalEquipment += Number(t.planned_equipment_count || 0);
+          taskCount += 1;
+        }
+      }
+
+      weeks.push({
+        weekStart: wStart.toISOString().slice(0, 10),
+        weekEnd: wEnd.toISOString().slice(0, 10),
+        totalManpower,
+        totalEquipment,
+        taskCount,
+      });
+
+      cursor.setDate(cursor.getDate() + 7);
+      guard += 1;
+    }
+
+    const tradeMap = new Map<string, { manpower: number; equipment: number }>();
+    for (const t of activeTasks) {
+      const trade = t.resource_trade || 'غير محدد';
+      const entry = tradeMap.get(trade) || { manpower: 0, equipment: 0 };
+      entry.manpower += Number(t.planned_manpower_count || 0);
+      entry.equipment += Number(t.planned_equipment_count || 0);
+      tradeMap.set(trade, entry);
+    }
+    const tradeBreakdown = Array.from(tradeMap.entries()).map(([trade, v]) => ({ trade, ...v }));
+
+    const peakManpowerWeek = weeks.reduce((peak, w) => (!peak || w.totalManpower > peak.totalManpower ? w : peak), null as (typeof weeks)[number] | null);
+    const peakEquipmentWeek = weeks.reduce((peak, w) => (!peak || w.totalEquipment > peak.totalEquipment ? w : peak), null as (typeof weeks)[number] | null);
+
+    return { projectId, weeks, tradeBreakdown, peakManpowerWeek, peakEquipmentWeek };
   }
 
   // ==========================================================================
@@ -3883,8 +3984,45 @@ export class ContractingService {
     };
   }
 
+  /**
+   * Buckets a set of dated amounts into 0-30 / 31-60 / 61-90 / beyond-90 windows
+   * from `referenceDate`. Rows without a real due date fall into `undated`
+   * rather than being silently split by a guessed percentage.
+   */
+  private bucketByDueDate(
+    rows: { amount: number; dueDate: string | null }[],
+    referenceDate: Date,
+  ): { d30: number; d60: number; d90: number; beyond: number; undated: number } {
+    const result = { d30: 0, d60: 0, d90: 0, beyond: 0, undated: 0 };
+    const refTime = referenceDate.getTime();
+    for (const row of rows) {
+      if (!row.dueDate) {
+        result.undated += row.amount;
+        continue;
+      }
+      const dueTime = new Date(row.dueDate).getTime();
+      const daysOut = Math.ceil((dueTime - refTime) / (1000 * 60 * 60 * 24));
+      if (daysOut <= 30) result.d30 += row.amount;
+      else if (daysOut <= 60) result.d60 += row.amount;
+      else if (daysOut <= 90) result.d90 += row.amount;
+      else result.beyond += row.amount;
+    }
+    return result;
+  }
+
+  /**
+   * Real time-phased cash-flow forecast (replaces the earlier fixed 50/30/20%
+   * heuristic split): inflows/outflows are bucketed by each IPC's actual
+   * `payment_due_date`, not by a guessed distribution — a project with all
+   * pending IPCs due in 10 days now correctly shows a 30-day crunch instead of
+   * an evenly-smeared forecast. Rows without a due date are surfaced
+   * separately (`undated`) instead of being silently folded into a bucket.
+   */
   async getCashForecast(auth: AuthContext, query?: { projectId?: string }) {
     const { tenantId } = requireTenantScope(auth);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     // Inflows: Approved but un-paid client IPC invoices
     let clientIpcsQuery = (this.db as any)
       .selectFrom('contracting_invoices')
@@ -3898,8 +4036,12 @@ export class ContractingService {
     }
     const pendingClientIpcs = await clientIpcsQuery.execute();
     const totalExpectedInflow = pendingClientIpcs.reduce((acc: number, r: any) => acc + Number(r.net_payable || 0), 0);
+    const inflowBuckets = this.bucketByDueDate(
+      pendingClientIpcs.map((r: any) => ({ amount: Number(r.net_payable || 0), dueDate: r.payment_due_date || r.certification_due_date || null })),
+      today,
+    );
 
-    // Outflows: Subcontractor IPCs + Active Petty Cash + Government Licenses Fees
+    // Outflows: Subcontractor IPCs + Government Licenses Fees
     let subIpcsQuery = (this.db as any)
       .selectFrom('contracting_invoices')
       .selectAll()
@@ -3912,42 +4054,49 @@ export class ContractingService {
     }
     const pendingSubIpcs = await subIpcsQuery.execute();
     const totalPendingSubIpcs = pendingSubIpcs.reduce((acc: number, r: any) => acc + Number(r.net_payable || 0), 0);
+    const subIpcOutflowBuckets = this.bucketByDueDate(
+      pendingSubIpcs.map((r: any) => ({ amount: Number(r.net_payable || 0), dueDate: r.payment_due_date || null })),
+      today,
+    );
 
     const licenses = await this.getGovernmentLicenses(auth, query);
     const upcomingLicenseFees = licenses.reduce((acc: number, l: any) => acc + Number(l.feeAmount || 0), 0);
+    const licenseBuckets = this.bucketByDueDate(
+      licenses.map((l: any) => ({ amount: Number(l.feeAmount || 0), dueDate: l.expiryDate || null })),
+      today,
+    );
+
+    const buildBucket = (period: string, label: string, inflow: number, subOut: number, licenseOut: number) => ({
+      period,
+      label,
+      expectedInflows: Math.round(inflow),
+      expectedOutflows: Math.round(subOut + licenseOut),
+      netCashFlow: Math.round(inflow - (subOut + licenseOut)),
+    });
 
     return {
       projectId: query?.projectId || 'all',
       totalCurrentCashPosition: 0,
+      forecastBasis: 'due_date' as const,
       buckets: [
-        {
-          period: '30_days',
-          label: 'خلال 30 يوماً',
-          expectedInflows: Math.round(totalExpectedInflow * 0.5),
-          expectedOutflows: Math.round((totalPendingSubIpcs * 0.6) + (upcomingLicenseFees * 0.5)),
-          netCashFlow: Math.round((totalExpectedInflow * 0.5) - ((totalPendingSubIpcs * 0.6) + (upcomingLicenseFees * 0.5))),
-        },
-        {
-          period: '60_days',
-          label: 'خلال 60 يوماً',
-          expectedInflows: Math.round(totalExpectedInflow * 0.3),
-          expectedOutflows: Math.round((totalPendingSubIpcs * 0.25) + (upcomingLicenseFees * 0.3)),
-          netCashFlow: Math.round((totalExpectedInflow * 0.3) - ((totalPendingSubIpcs * 0.25) + (upcomingLicenseFees * 0.3))),
-        },
-        {
-          period: '90_days',
-          label: 'خلال 90 يوماً',
-          expectedInflows: Math.round(totalExpectedInflow * 0.2),
-          expectedOutflows: Math.round((totalPendingSubIpcs * 0.15) + (upcomingLicenseFees * 0.2)),
-          netCashFlow: Math.round((totalExpectedInflow * 0.2) - ((totalPendingSubIpcs * 0.15) + (upcomingLicenseFees * 0.2))),
-        },
+        buildBucket('30_days', 'خلال 30 يوماً', inflowBuckets.d30, subIpcOutflowBuckets.d30, licenseBuckets.d30),
+        buildBucket('60_days', 'من 31 إلى 60 يوماً', inflowBuckets.d60, subIpcOutflowBuckets.d60, licenseBuckets.d60),
+        buildBucket('90_days', 'من 61 إلى 90 يوماً', inflowBuckets.d90, subIpcOutflowBuckets.d90, licenseBuckets.d90),
+        buildBucket('beyond_90_days', 'بعد 90 يوماً', inflowBuckets.beyond, subIpcOutflowBuckets.beyond, licenseBuckets.beyond),
       ],
+      // Amounts with no recorded due date — shown separately rather than guessed into a bucket.
+      undated: buildBucket('undated', 'بلا تاريخ استحقاق مسجل', inflowBuckets.undated, subIpcOutflowBuckets.undated, licenseBuckets.undated),
       upcomingCommitmentsSummary: {
         pendingSubcontractorIpcs: totalPendingSubIpcs,
-        pendingSupplierInvoices: 0,
-        upcomingWages: 0,
+        // Supplier payables (purchases module) and payroll are not yet linked to a specific
+        // contracting project and are intentionally left out rather than estimated — see
+        // ARCHITECTURE_INVARIANTS.md open items for the cash-flow forecast follow-up.
+        pendingSupplierInvoices: null,
+        upcomingWages: null,
         upcomingLicenseRenewals: upcomingLicenseFees,
       },
+      totalExpectedInflow: Math.round(totalExpectedInflow),
+      totalExpectedOutflow: Math.round(totalPendingSubIpcs + upcomingLicenseFees),
     };
   }
 
@@ -7691,6 +7840,458 @@ export class ContractingService {
       },
       summary,
     };
+  }
+
+  // ==========================================================================
+  // 41. Document Register (Drawing/Document Control — Procore/Autodesk Build Benchmark)
+  // ==========================================================================
+
+  private mapDocumentRow(row: any) {
+    return {
+      id: String(row.id),
+      projectId: String(row.project_id),
+      docNumber: row.doc_number,
+      title: row.title,
+      discipline: row.discipline,
+      docType: row.doc_type,
+      currentRevisionId: row.current_revision_id ? String(row.current_revision_id) : null,
+      status: row.status,
+      notes: row.notes,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private mapRevisionRow(row: any) {
+    return {
+      id: String(row.id),
+      documentId: String(row.document_id),
+      revCode: row.rev_code,
+      fileRef: row.file_ref,
+      reviewStatus: row.review_status,
+      issuedDate: row.issued_date,
+      reviewedBy: row.reviewed_by,
+      reviewDate: row.review_date,
+      reviewComments: row.review_comments,
+      notes: row.notes,
+      createdAt: row.created_at,
+    };
+  }
+
+  async listDocuments(auth: AuthContext, projectId: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const rows = await this.db
+      .selectFrom('contracting_documents')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId)
+      .orderBy('created_at', 'desc')
+      .execute();
+    return rows.map((r) => this.mapDocumentRow(r));
+  }
+
+  async getDocumentDetail(auth: AuthContext, documentId: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const doc = await this.db
+      .selectFrom('contracting_documents')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', documentId)
+      .executeTakeFirst();
+    if (!doc) throw new NotFoundException(`المستند برقم ${documentId} غير موجود`);
+
+    const revisions = await this.db
+      .selectFrom('contracting_document_revisions')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('document_id', '=', documentId)
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    const revisionIds = revisions.map((r) => String(r.id));
+    const distributions = revisionIds.length
+      ? await this.db
+          .selectFrom('contracting_document_distributions')
+          .selectAll()
+          .where('tenant_id', '=', tenantId)
+          .where('revision_id', 'in', revisionIds)
+          .orderBy('distributed_at', 'desc')
+          .execute()
+      : [];
+
+    return {
+      document: this.mapDocumentRow(doc),
+      revisions: revisions.map((r) => this.mapRevisionRow(r)),
+      distributions: distributions.map((d) => ({
+        id: String(d.id),
+        revisionId: String(d.revision_id),
+        recipientName: d.recipient_name,
+        recipientRole: d.recipient_role,
+        distributionMethod: d.distribution_method,
+        distributedAt: d.distributed_at,
+        acknowledgedAt: d.acknowledged_at,
+        notes: d.notes,
+      })),
+    };
+  }
+
+  async createDocument(auth: AuthContext, projectId: string, dto: CreateContractingDocumentDto) {
+    const { tenantId } = requireTenantScope(auth);
+
+    return this.db.transaction().execute(async (trx) => {
+      const tempDocNumber = `DRG-TMP-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const inserted = await trx
+        .insertInto('contracting_documents')
+        .values({
+          tenant_id: tenantId,
+          project_id: projectId,
+          doc_number: tempDocNumber,
+          title: dto.title,
+          discipline: dto.discipline || 'architectural',
+          doc_type: dto.docType || 'drawing',
+          status: 'draft',
+          notes: dto.notes || null,
+          created_by: auth.userId ? Number(auth.userId) : null,
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
+      const documentId = String(inserted.id);
+      const prefix = getDailyDocumentPrefix('DRG');
+      const docNumber = `${prefix}${String(inserted.id).padStart(4, '0')}`;
+
+      await trx
+        .updateTable('contracting_documents')
+        .set({ doc_number: docNumber, updated_at: new Date() })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', documentId)
+        .execute();
+
+      const revisionRow = await trx
+        .insertInto('contracting_document_revisions')
+        .values({
+          tenant_id: tenantId,
+          document_id: documentId,
+          rev_code: dto.revCode || 'A',
+          file_ref: dto.fileRef || null,
+          review_status: 'for_review',
+          issued_date: new Date().toISOString().slice(0, 10),
+          created_by: auth.userId ? Number(auth.userId) : null,
+        } as any)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      await trx
+        .updateTable('contracting_documents')
+        .set({ current_revision_id: String(revisionRow.id), status: 'for_review', updated_at: new Date() })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', documentId)
+        .execute();
+
+      return {
+        document: this.mapDocumentRow({ ...(await trx.selectFrom('contracting_documents').selectAll().where('id', '=', documentId).executeTakeFirstOrThrow()) }),
+        revision: this.mapRevisionRow(revisionRow),
+      };
+    });
+  }
+
+  async addDocumentRevision(auth: AuthContext, documentId: string, dto: CreateContractingDocumentRevisionDto) {
+    const { tenantId } = requireTenantScope(auth);
+
+    return this.db.transaction().execute(async (trx) => {
+      const doc = await trx
+        .selectFrom('contracting_documents')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', documentId)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!doc) throw new NotFoundException(`المستند برقم ${documentId} غير موجود`);
+
+      // Prior revision, if still open for review, is implicitly superseded by the new one.
+      if (doc.current_revision_id) {
+        await trx
+          .updateTable('contracting_document_revisions')
+          .set({ review_status: 'superseded', updated_at: new Date() })
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', doc.current_revision_id)
+          .where('review_status', '=', 'for_review')
+          .execute();
+      }
+
+      const revisionRow = await trx
+        .insertInto('contracting_document_revisions')
+        .values({
+          tenant_id: tenantId,
+          document_id: documentId,
+          rev_code: dto.revCode,
+          file_ref: dto.fileRef || null,
+          review_status: 'for_review',
+          issued_date: new Date().toISOString().slice(0, 10),
+          notes: dto.notes || null,
+          created_by: auth.userId ? Number(auth.userId) : null,
+        } as any)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      await trx
+        .updateTable('contracting_documents')
+        .set({ current_revision_id: String(revisionRow.id), status: 'for_review', updated_at: new Date() })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', documentId)
+        .execute();
+
+      return this.mapRevisionRow(revisionRow);
+    });
+  }
+
+  async updateDocumentRevisionStatus(auth: AuthContext, revisionId: string, dto: UpdateContractingDocumentRevisionStatusDto) {
+    const { tenantId } = requireTenantScope(auth);
+
+    return this.db.transaction().execute(async (trx) => {
+      const revision = await trx
+        .selectFrom('contracting_document_revisions')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', revisionId)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!revision) throw new NotFoundException(`مراجعة المستند برقم ${revisionId} غير موجودة`);
+
+      const updated = await trx
+        .updateTable('contracting_document_revisions')
+        .set({
+          review_status: dto.reviewStatus,
+          reviewed_by: dto.reviewedBy || null,
+          review_date: new Date().toISOString().slice(0, 10),
+          review_comments: dto.reviewComments || null,
+          updated_at: new Date(),
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', revisionId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      // Reflect terminal outcomes back onto the parent document's headline status.
+      if (['approved', 'approved_as_noted'].includes(dto.reviewStatus)) {
+        await trx
+          .updateTable('contracting_documents')
+          .set({ status: 'approved', updated_at: new Date() })
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', revision.document_id)
+          .execute();
+      } else if (dto.reviewStatus === 'revise_resubmit' || dto.reviewStatus === 'rejected') {
+        await trx
+          .updateTable('contracting_documents')
+          .set({ status: 'draft', updated_at: new Date() })
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', revision.document_id)
+          .execute();
+      }
+
+      return this.mapRevisionRow(updated);
+    });
+  }
+
+  async distributeDocument(auth: AuthContext, revisionId: string, dto: DistributeContractingDocumentDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const revision = await this.db
+      .selectFrom('contracting_document_revisions')
+      .select(['id', 'document_id'])
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', revisionId)
+      .executeTakeFirst();
+    if (!revision) throw new NotFoundException(`مراجعة المستند برقم ${revisionId} غير موجودة`);
+
+    const row = await this.db
+      .insertInto('contracting_document_distributions')
+      .values({
+        tenant_id: tenantId,
+        document_id: revision.document_id,
+        revision_id: revisionId,
+        recipient_name: dto.recipientName,
+        recipient_role: dto.recipientRole || 'internal',
+        distribution_method: dto.distributionMethod || 'email',
+        notes: dto.notes || null,
+        created_by: auth.userId ? Number(auth.userId) : null,
+      } as any)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return {
+      id: String(row.id),
+      revisionId: String(row.revision_id),
+      recipientName: row.recipient_name,
+      recipientRole: row.recipient_role,
+      distributionMethod: row.distribution_method,
+      distributedAt: row.distributed_at,
+      acknowledgedAt: row.acknowledged_at,
+    };
+  }
+
+  // ==========================================================================
+  // 42. Meeting Minutes & Action Items
+  // ==========================================================================
+
+  private mapMeetingMinuteRow(row: any) {
+    let attendees: any[] = [];
+    try {
+      attendees = typeof row.attendees === 'string' ? JSON.parse(row.attendees) : (row.attendees || []);
+    } catch {
+      attendees = [];
+    }
+    return {
+      id: String(row.id),
+      projectId: String(row.project_id),
+      minuteNumber: row.minute_number,
+      meetingType: row.meeting_type,
+      meetingDate: row.meeting_date,
+      location: row.location,
+      attendees,
+      agenda: row.agenda,
+      summary: row.summary,
+      preparedBy: row.prepared_by,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private mapActionItemRow(row: any) {
+    return {
+      id: String(row.id),
+      minuteId: String(row.minute_id),
+      description: row.description,
+      ownerName: row.owner_name,
+      dueDate: row.due_date,
+      status: row.status,
+      linkedRfiId: row.linked_rfi_id ? String(row.linked_rfi_id) : null,
+      linkedChangeOrderId: row.linked_change_order_id ? String(row.linked_change_order_id) : null,
+      closedAt: row.closed_at,
+      notes: row.notes,
+    };
+  }
+
+  async listMeetingMinutes(auth: AuthContext, projectId: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const rows = await this.db
+      .selectFrom('contracting_meeting_minutes')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId)
+      .orderBy('meeting_date', 'desc')
+      .execute();
+    return rows.map((r) => this.mapMeetingMinuteRow(r));
+  }
+
+  async getMeetingMinuteDetail(auth: AuthContext, minuteId: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const minute = await this.db
+      .selectFrom('contracting_meeting_minutes')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', minuteId)
+      .executeTakeFirst();
+    if (!minute) throw new NotFoundException(`محضر الاجتماع برقم ${minuteId} غير موجود`);
+
+    const actionItems = await this.db
+      .selectFrom('contracting_meeting_action_items')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('minute_id', '=', minuteId)
+      .orderBy('created_at', 'asc')
+      .execute();
+
+    return {
+      minute: this.mapMeetingMinuteRow(minute),
+      actionItems: actionItems.map((a) => this.mapActionItemRow(a)),
+    };
+  }
+
+  async createMeetingMinute(auth: AuthContext, projectId: string, dto: CreateMeetingMinuteDto) {
+    const { tenantId } = requireTenantScope(auth);
+
+    return this.db.transaction().execute(async (trx) => {
+      const tempNumber = `MOM-TMP-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const inserted = await trx
+        .insertInto('contracting_meeting_minutes')
+        .values({
+          tenant_id: tenantId,
+          project_id: projectId,
+          minute_number: tempNumber,
+          meeting_type: dto.meetingType || 'site_progress',
+          meeting_date: dto.meetingDate || new Date().toISOString().slice(0, 10),
+          location: dto.location || null,
+          attendees: JSON.stringify(dto.attendees || []),
+          agenda: dto.agenda || null,
+          summary: dto.summary || null,
+          prepared_by: dto.preparedBy || null,
+          status: 'draft',
+          created_by: auth.userId ? Number(auth.userId) : null,
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
+      const prefix = getDailyDocumentPrefix('MOM');
+      const minuteNumber = `${prefix}${String(inserted.id).padStart(4, '0')}`;
+
+      const finalRow = await trx
+        .updateTable('contracting_meeting_minutes')
+        .set({ minute_number: minuteNumber, updated_at: new Date() })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', String(inserted.id))
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      return this.mapMeetingMinuteRow(finalRow);
+    });
+  }
+
+  async addMeetingActionItem(auth: AuthContext, minuteId: string, dto: CreateMeetingActionItemDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const minute = await this.db
+      .selectFrom('contracting_meeting_minutes')
+      .select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', minuteId)
+      .executeTakeFirst();
+    if (!minute) throw new NotFoundException(`محضر الاجتماع برقم ${minuteId} غير موجود`);
+
+    const row = await this.db
+      .insertInto('contracting_meeting_action_items')
+      .values({
+        tenant_id: tenantId,
+        minute_id: minuteId,
+        description: dto.description,
+        owner_name: dto.ownerName || null,
+        due_date: dto.dueDate || null,
+        status: 'open',
+        linked_rfi_id: dto.linkedRfiId || null,
+        linked_change_order_id: dto.linkedChangeOrderId || null,
+        notes: dto.notes || null,
+      } as any)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return this.mapActionItemRow(row);
+  }
+
+  async updateMeetingActionItemStatus(auth: AuthContext, actionItemId: string, status: 'open' | 'closed') {
+    const { tenantId } = requireTenantScope(auth);
+    const updated = await this.db
+      .updateTable('contracting_meeting_action_items')
+      .set({
+        status,
+        closed_at: status === 'closed' ? new Date() : null,
+        updated_at: new Date(),
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', actionItemId)
+      .returningAll()
+      .executeTakeFirst();
+
+    if (!updated) throw new NotFoundException(`بند المتابعة برقم ${actionItemId} غير موجود`);
+    return this.mapActionItemRow(updated);
   }
 }
 
