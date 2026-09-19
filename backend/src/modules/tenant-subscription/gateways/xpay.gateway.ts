@@ -105,17 +105,23 @@ export class XPayGatewayService implements IPaymentGateway {
     };
   }
 
-  async verifyAndParseWebhook(headers: Record<string, any>, body: any): Promise<WebhookValidationResult> {
+  async verifyAndParseWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer): Promise<WebhookValidationResult> {
     const signature = headers['x-xpay-signature'] || headers['x-signature'] || '';
-    
-    let isValid = true;
+
+    // Fail-closed: without a configured secret or a signature to check, the webhook is untrusted.
+    let isValid = false;
     if (this.webhookSecret && signature) {
       try {
-        const computed = crypto.createHmac('sha256', this.webhookSecret).update(JSON.stringify(body)).digest('hex');
-        isValid = crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(computed));
+        const payload = rawBody ? rawBody : Buffer.from(JSON.stringify(body));
+        const computed = crypto.createHmac('sha256', this.webhookSecret).update(payload).digest('hex');
+        const sigBuf = Buffer.from(String(signature));
+        const computedBuf = Buffer.from(computed);
+        isValid = sigBuf.length === computedBuf.length && crypto.timingSafeEqual(sigBuf, computedBuf);
       } catch {
         isValid = false;
       }
+    } else {
+      this.logger.warn('XPay webhook rejected: XPAY_WEBHOOK_SECRET is not configured or signature header missing.');
     }
 
     const data = body?.data || body;

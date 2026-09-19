@@ -37,5 +37,5 @@ export type WebhookValidationResult = {
 export interface IPaymentGateway {
   readonly gatewayName: 'xpay' | 'paymob' | 'stripe' | 'fawry';
   initiatePayment(input: PaymentInitiateInput): Promise<PaymentInitiateResult>;
-  verifyAndParseWebhook(headers: Record<string, any>, body: any): Promise<WebhookValidationResult>;
+  verifyAndParseWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer): Promise<WebhookValidationResult>;
 }

@@ -641,10 +641,12 @@ export class MaritimeFreightService {
 
     return await this.db.transaction().execute(async (trx) => {
       const tempNumber = `RFQ-TMP-${crypto.randomUUID()}`;
+      const publicQuoteToken = crypto.randomBytes(16).toString('hex');
       const [rfq] = await trx
         .insertInto('maritime_rfqs')
         .values({
           tenant_id: tenantId,
+          public_quote_token: publicQuoteToken,
           rfq_number: tempNumber,
           inquiry_id: dto.inquiryId ? String(dto.inquiryId) : null,
           customer_id: dto.customerId ? Number(dto.customerId) : null,
@@ -930,7 +932,7 @@ export class MaritimeFreightService {
         }
       }
 
-      const magicLinkUrl = `${process.env.APP_PUBLIC_URL || 'https://app.z-systems.io'}/portal/carrier-quote/${rfq.id}?carrier=${encodeURIComponent(carrier.code)}`;
+      const magicLinkUrl = `${process.env.APP_PUBLIC_URL || 'https://app.z-systems.io'}/portal/carrier-quote/${rfq.id}?carrier=${encodeURIComponent(carrier.code)}&token=${encodeURIComponent(rfq.public_quote_token || '')}`;
 
       const introHtml = customMailConfig?.emailIntroTemplate?.trim()
         ? `<p>${replacePlaceholders(customMailConfig.emailIntroTemplate, carrier.name_en || carrier.name_ar || 'Carrier').replace(/\n/g, '<br>')}</p>`
@@ -2304,16 +2306,26 @@ export class MaritimeFreightService {
   // --------------------------------------------------------------------------
   // 9. Public Carrier Quote Portal (Magic Links)
   // --------------------------------------------------------------------------
-  async getPublicRfqForQuote(rfqId: string, carrierCode?: string) {
+  // `id` is a sequential, tenant-shared BIGINT — never trust it alone on a public
+  // route. Every public quote/bid link must also carry the per-RFQ secret token.
+  private assertValidPublicQuoteToken<T extends { public_quote_token: string | null }>(
+    rfq: T | undefined,
+    token?: string,
+  ): asserts rfq is T {
+    const cleanToken = String(token || '').trim();
+    if (!rfq || !rfq.public_quote_token || !cleanToken || rfq.public_quote_token !== cleanToken) {
+      throw new NotFoundException('RFQ not found or invalid link');
+    }
+  }
+
+  async getPublicRfqForQuote(rfqId: string, token: string, carrierCode?: string) {
     const rfq = await this.db
       .selectFrom('maritime_rfqs')
       .selectAll()
       .where('id', '=', rfqId as any)
       .executeTakeFirst();
 
-    if (!rfq) {
-      throw new NotFoundException('RFQ not found or invalid link');
-    }
+    this.assertValidPublicQuoteToken(rfq, token);
 
     let carrier: any = null;
     if (carrierCode) {
@@ -2379,9 +2391,7 @@ export class MaritimeFreightService {
       .where('id', '=', rfqId as any)
       .executeTakeFirst();
 
-    if (!rfq) {
-      throw new NotFoundException('RFQ not found or invalid link');
-    }
+    this.assertValidPublicQuoteToken(rfq, dto?.token);
 
     const oceanFreight = Number(dto.oceanFreight || 0);
     const thcOrigin = Number(dto.thcOrigin || 0);

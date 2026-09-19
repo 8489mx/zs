@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
+import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
 
 export interface MobileAttendanceUser {
   employeeId: number;
@@ -40,6 +41,8 @@ export function calculateDistanceMeters(
 
 @Injectable()
 export class MobileAttendanceService {
+  private readonly loginLimiter = new LoginAttemptLimiter();
+
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
   private get anyDb(): any {
@@ -68,6 +71,25 @@ export class MobileAttendanceService {
       throw new AppError('رقم الهاتف ورمز الدخول السريع (PIN) مطلوبان', 'INVALID_CREDENTIALS', 400);
     }
 
+    const rateLimitKey = `mobile-punch:${rawPhone.toLowerCase()}:${(companyScope || '').toLowerCase()}`;
+    this.loginLimiter.assertNotLocked(rateLimitKey);
+
+    try {
+      return await this.employeeLoginInternal(rawPhone, pinCode, companyScope, rateLimitKey);
+    } catch (error) {
+      if (error instanceof AppError && error.code === 'UNAUTHORIZED_EMPLOYEE') {
+        this.loginLimiter.recordFailure(rateLimitKey);
+      }
+      throw error;
+    }
+  }
+
+  private async employeeLoginInternal(
+    rawPhone: string,
+    pinCode: string,
+    companyScope: string | undefined,
+    rateLimitKey: string,
+  ) {
     const cleanDigits = rawPhone.replace(/\D/g, '');
     const cleanNoCountry = cleanDigits.startsWith('20')
       ? cleanDigits.slice(2)
@@ -201,6 +223,7 @@ export class MobileAttendanceService {
     };
 
     const token = this.generateToken(employeeUser);
+    this.loginLimiter.recordSuccess(rateLimitKey);
 
     return {
       token,
@@ -496,6 +519,7 @@ export class MobileAttendanceService {
         updated_at: new Date(),
       })
       .where('id', '=', branchId)
+      .where('tenant_id', '=', tenantId)
       .execute();
 
     return { ok: true, message: 'تم تحديث النطاق الجغرافي للفرع بنجاح' };

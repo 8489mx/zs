@@ -5,9 +5,8 @@ import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
-import { CreatePurchaseOrderDto, UpdatePurchaseOrderDto, ReceivePurchaseOrderDto } from '../dto/purchase-order.dto';
+import { CreatePurchaseOrderDto, UpdatePurchaseOrderDto } from '../dto/purchase-order.dto';
 import { PurchasesWriteService } from './purchases-write.service';
-import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -286,127 +285,12 @@ export class PurchaseOrdersService {
     return { success: true, message: 'تم اعتماد أمر الشراء بنجاح وإرساله للمورد' };
   }
 
-  async receiveGoods(id: number, payload: ReceivePurchaseOrderDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const scope = requireTenantScope(auth);
-
-    return await this.db.transaction().execute(async (trx) => {
-      const order = await trx
-        .selectFrom('purchase_orders')
-        .selectAll()
-        .where('id', '=', id)
-        .where('tenant_id', '=', scope.tenantId)
-        .where('account_id', '=', scope.accountId)
-        .forUpdate()
-        .executeTakeFirst();
-
-      if (!order) {
-        throw new NotFoundException('أمر الشراء غير موجود');
-      }
-
-      if (order.status === 'cancelled' || order.status === 'converted_to_bill') {
-        throw new BadRequestException('لا يمكن استلام بضاعة لأمر شراء مغلق أو ملغي');
-      }
-
-      const items = await trx
-        .selectFrom('purchase_order_items')
-        .selectAll()
-        .where('purchase_order_id', '=', id)
-        .where('tenant_id', '=', scope.tenantId)
-        .forUpdate()
-        .execute();
-
-      for (const receipt of payload.items) {
-        const item = items.find((i) => i.id === receipt.itemId);
-        if (!item) continue;
-
-        const qtyToReceive = Number(receipt.quantityToReceive || 0);
-        if (qtyToReceive <= 0) continue;
-
-        const newReceived = Number(item.received_quantity || 0) + qtyToReceive;
-
-        if (newReceived > Number(item.quantity)) {
-          throw new BadRequestException(
-            `الكمية المستلمة لا يمكن أن تتجاوز الكمية المطلوبة (${item.quantity}) للصنف ${item.product_name || item.product_id}`,
-          );
-        }
-
-        await trx
-          .updateTable('purchase_order_items')
-          .set({ received_quantity: newReceived })
-          .where('id', '=', receipt.itemId)
-          .where('tenant_id', '=', scope.tenantId)
-          .execute();
-
-        // Route through the shared stock ledger. Writing products.stock_qty and
-        // product_location_stock by hand skipped the canonical lock order (products before
-        // product_location_stock) and deadlocked against concurrent sales, and it produced
-        // stock_movements rows whose before/after balances were hardcoded 0 / qtyToReceive.
-        const receiveLocationId = order.warehouse_id ? Number(order.warehouse_id) : null;
-        // purchase_orders has no branch_id; derive it from the receiving location.
-        const receiveLoc = receiveLocationId
-          ? await trx.selectFrom("stock_locations").select("branch_id").where("id", "=", receiveLocationId).where("tenant_id", "=", scope.tenantId).executeTakeFirst()
-          : null;
-        const receiveBranchId = receiveLoc?.branch_id != null ? Number(receiveLoc.branch_id) : null;
-
-        const stockChange = await applyStockDelta(trx, {
-          productId: Number(item.product_id),
-          delta: qtyToReceive,
-          branchId: receiveBranchId,
-          locationId: receiveLocationId,
-          tenantId: scope.tenantId,
-          accountId: scope.accountId,
-          allowNegative: true, // a receipt only adds
-        });
-
-        // Record formal stock movement with real running balances.
-        await trx
-          .insertInto('stock_movements')
-          .values({
-            product_id: item.product_id,
-            movement_type: 'purchase_order_receipt',
-            qty: qtyToReceive,
-            before_qty: stockChange.scopeBefore,
-            after_qty: stockChange.scopeAfter,
-            reason: 'purchase_order_receipt',
-            note: `استلام بضاعة أمر شراء PO #${order.order_number}`,
-            reference_type: 'purchase_order',
-            reference_id: id,
-            branch_id: receiveBranchId,
-            location_id: receiveLocationId,
-            created_by: auth.userId,
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-          } as any)
-          .execute();
-      }
-
-      // Determine overall status
-      const updatedItems = await trx
-        .selectFrom('purchase_order_items')
-        .selectAll()
-        .where('purchase_order_id', '=', id)
-        .where('tenant_id', '=', scope.tenantId)
-        .execute();
-
-      const allReceived = updatedItems.every((i) => Number(i.received_quantity) >= Number(i.quantity));
-      const anyReceived = updatedItems.some((i) => Number(i.received_quantity) > 0);
-
-      const newStatus = allReceived ? 'received' : anyReceived ? 'partially_received' : 'confirmed';
-
-      await trx
-        .updateTable('purchase_orders')
-        .set({ status: newStatus, updated_at: new Date() })
-        .where('id', '=', id)
-        .where('tenant_id', '=', scope.tenantId)
-        .execute();
-
-      return {
-        success: true,
-        status: newStatus,
-        message: allReceived ? 'تم استلام كامل كمية أمر الشراء في المخزن' : 'تم تسجيل الاستلام الجزئي للبضاعة',
-      };
-    });
-  }
+  // `receiveGoods` was removed here (O3 audit finding): it wrote stock directly via
+  // applyStockDelta but never created a `goods_receipt_notes` row, never posted a GRNI
+  // journal entry, and never ran `computeThreeWayMatch` — a live bypass of the hardened
+  // three-way-match/accounting pipeline, with zero frontend callers. The real, hardened
+  // receiving flow is `convertToBill` below followed by
+  // `purchases.service.ts:receivePurchaseGoods` (GRN/GRNI/3-way-match backed).
 
   async convertToBill(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);

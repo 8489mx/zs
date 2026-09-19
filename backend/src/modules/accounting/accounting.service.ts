@@ -1890,7 +1890,26 @@ export class AccountingService {
         }
       }
     }
-    
+
+    // IAS 21 monetary/revaluation-currency metadata (O1): safe to change regardless of
+    // is_system or transaction history — it never touches identity or posted balances,
+    // only which accounts forex-revaluation.previewRevaluation() picks up.
+    if (dto.isMonetary !== undefined) {
+      updateData.is_monetary = dto.isMonetary;
+      if (!dto.isMonetary) {
+        // A non-monetary account can never legitimately carry a revaluation currency.
+        updateData.revaluation_currency = null;
+      }
+    }
+    if (dto.revaluationCurrency !== undefined) {
+      const cleanCurrency = String(dto.revaluationCurrency || '').trim().toUpperCase() || null;
+      const willBeMonetary = dto.isMonetary !== undefined ? dto.isMonetary : Boolean(existing.is_monetary);
+      if (cleanCurrency && !willBeMonetary) {
+        throw new BadRequestException('لا يمكن تحديد عملة إعادة التقييم لحساب غير نقدي (is_monetary = false)');
+      }
+      updateData.revaluation_currency = cleanCurrency;
+    }
+
     if (Object.keys(updateData).length > 0) {
       await this.db.updateTable('accounting_accounts')
         .set({ ...updateData, updated_at: sql`NOW()` })

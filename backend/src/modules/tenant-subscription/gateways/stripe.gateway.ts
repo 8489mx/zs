@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { IPaymentGateway, PaymentInitiateInput, PaymentInitiateResult, WebhookValidationResult } from './payment-gateway.interface';
 
 @Injectable()
@@ -69,13 +70,49 @@ export class StripeGatewayService implements IPaymentGateway {
     };
   }
 
-  async verifyAndParseWebhook(headers: Record<string, any>, body: any): Promise<WebhookValidationResult> {
+  private verifySignature(rawBody: Buffer | undefined, signatureHeader: string): boolean {
+    if (!this.webhookSecret || !signatureHeader || !rawBody) return false;
+
+    const parts = String(signatureHeader).split(',').reduce<Record<string, string>>((acc, part) => {
+      const [key, value] = part.split('=');
+      if (key && value) acc[key.trim()] = value.trim();
+      return acc;
+    }, {});
+    const timestamp = parts['t'];
+    const providedSig = parts['v1'];
+    if (!timestamp || !providedSig) return false;
+
+    // Reject stale events (replay protection), matching Stripe's default 5-minute tolerance.
+    const timestampSeconds = Number(timestamp);
+    if (!Number.isFinite(timestampSeconds) || Math.abs(Date.now() / 1000 - timestampSeconds) > 300) {
+      return false;
+    }
+
+    try {
+      const signedPayload = `${timestamp}.${rawBody.toString('utf8')}`;
+      const computed = crypto.createHmac('sha256', this.webhookSecret).update(signedPayload).digest('hex');
+      const providedBuf = Buffer.from(providedSig);
+      const computedBuf = Buffer.from(computed);
+      return providedBuf.length === computedBuf.length && crypto.timingSafeEqual(providedBuf, computedBuf);
+    } catch {
+      return false;
+    }
+  }
+
+  async verifyAndParseWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer): Promise<WebhookValidationResult> {
     const event = body;
     const isSuccessful = event?.type === 'checkout.session.completed' || event?.type === 'payment_intent.succeeded';
     const session = event?.data?.object || {};
 
+    // Fail-closed: without a configured secret or a valid signature, the webhook is untrusted.
+    const signatureHeader = headers['stripe-signature'] || headers['Stripe-Signature'] || '';
+    const isValid = this.verifySignature(rawBody, signatureHeader);
+    if (!isValid) {
+      this.logger.warn('Stripe webhook rejected: missing/invalid signature or STRIPE_WEBHOOK_SECRET not configured.');
+    }
+
     return {
-      isValid: true,
+      isValid,
       isSuccessful,
       transactionReference: session?.id || `STRIPE-HOOK-${Date.now()}`,
       amount: Number(session?.amount_total || 0) / 100,

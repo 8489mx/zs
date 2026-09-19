@@ -101,7 +101,12 @@ async function bootstrap(): Promise<void> {
 
   const configService = app.get(ConfigService);
 
-  app.use(json({ limit: '50mb' }));
+  app.use(json({
+    limit: '50mb',
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf;
+    },
+  }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires

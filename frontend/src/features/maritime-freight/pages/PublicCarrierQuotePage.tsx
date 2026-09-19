@@ -47,6 +47,7 @@ export function PublicCarrierQuotePage() {
   const { rfqId } = useParams<{ rfqId: string }>();
   const [searchParams] = useSearchParams();
   const carrierCode = searchParams.get('carrier') || '';
+  const quoteToken = searchParams.get('token') || '';
 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -74,7 +75,10 @@ export function PublicCarrierQuotePage() {
     setLoading(true);
     setErrorMsg(null);
 
-    const qs = carrierCode ? `?carrier=${encodeURIComponent(carrierCode)}` : '';
+    const qsParams = new URLSearchParams();
+    if (carrierCode) qsParams.set('carrier', carrierCode);
+    if (quoteToken) qsParams.set('token', quoteToken);
+    const qs = qsParams.toString() ? `?${qsParams.toString()}` : '';
     http<PublicRfqData>(`/api/public/carrier-quote/rfq/${rfqId}${qs}`)
       .then((res) => {
         setData(res);
@@ -93,7 +97,7 @@ export function PublicCarrierQuotePage() {
       .finally(() => {
         setLoading(false);
       });
-  }, [rfqId, carrierCode]);
+  }, [rfqId, carrierCode, quoteToken]);
 
   const totalFreight = (Number(oceanFreight) || 0) +
     (Number(thcOrigin) || 0) +
@@ -114,6 +118,7 @@ export function PublicCarrierQuotePage() {
       await http(`/api/public/carrier-quote/rfq/${rfqId}/bid`, {
         method: 'POST',
         body: JSON.stringify({
+          token: quoteToken,
           shippingLineName: carrierName || data?.carrier?.name_en || 'Carrier Desk',
           shippingLineId: data?.carrier?.id,
           oceanFreight,

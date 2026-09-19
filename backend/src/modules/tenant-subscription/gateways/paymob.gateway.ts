@@ -142,7 +142,8 @@ export class PaymobGatewayService implements IPaymentGateway {
     const obj = body?.obj || body;
     const hmac = headers['hmac'] || '';
 
-    let isValid = true;
+    // Fail-closed: without a configured secret or an hmac to check, the webhook is untrusted.
+    let isValid = false;
     if (this.hmacSecret && hmac) {
       const concatenated = [
         obj.amount_cents,
@@ -168,7 +169,15 @@ export class PaymobGatewayService implements IPaymentGateway {
       ].join('');
 
       const computed = crypto.createHmac('sha512', this.hmacSecret).update(concatenated).digest('hex');
-      isValid = hmac.toLowerCase() === computed.toLowerCase();
+      try {
+        const hmacBuf = Buffer.from(String(hmac).toLowerCase());
+        const computedBuf = Buffer.from(computed.toLowerCase());
+        isValid = hmacBuf.length === computedBuf.length && crypto.timingSafeEqual(hmacBuf, computedBuf);
+      } catch {
+        isValid = false;
+      }
+    } else {
+      this.logger.warn('Paymob webhook rejected: PAYMOB_HMAC_SECRET is not configured or hmac query param missing.');
     }
 
     const isSuccessful = obj.success === true && obj.pending === false;

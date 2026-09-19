@@ -32,9 +32,9 @@ export class PaymentManagerService {
     return gateway.initiatePayment(input);
   }
 
-  async processWebhook(gatewayName: string, headers: Record<string, any>, body: any): Promise<Record<string, unknown>> {
+  async processWebhook(gatewayName: string, headers: Record<string, any>, body: any, rawBody?: Buffer): Promise<Record<string, unknown>> {
     const gateway = this.getGateway(gatewayName);
-    const result: WebhookValidationResult = await gateway.verifyAndParseWebhook(headers, body);
+    const result: WebhookValidationResult = await gateway.verifyAndParseWebhook(headers, body, rawBody);
 
     if (!result.isValid) {
       this.logger.warn(`Invalid webhook signature from ${gatewayName}`);

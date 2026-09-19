@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
+import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
 
 export interface PortalEmployeeUser {
   employeeId: number;
@@ -22,6 +23,8 @@ export interface PortalEmployeeUser {
 
 @Injectable()
 export class EmployeePortalService {
+  private readonly loginLimiter = new LoginAttemptLimiter();
+
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
   private get anyDb(): any {
@@ -96,6 +99,24 @@ export class EmployeePortalService {
       throw new AppError('يرجى إدخال رقم الهاتف المحمول ورمز الدخول السري (PIN)', 'INVALID_CREDENTIALS', 400);
     }
 
+    const rateLimitKey = `employee-portal:${rawIdentifier.toLowerCase()}:${(payload?.companyCode || payload?.tenantId || '').toLowerCase()}`;
+    this.loginLimiter.assertNotLocked(rateLimitKey);
+
+    try {
+      return await this.loginInternal(payload, rawIdentifier, rawPin);
+    } catch (error) {
+      if (error instanceof AppError && ['EMPLOYEE_NOT_FOUND', 'INVALID_PIN', 'NO_ACTIVE_EMPLOYEES'].includes(error.code)) {
+        this.loginLimiter.recordFailure(rateLimitKey);
+      }
+      throw error;
+    }
+  }
+
+  private async loginInternal(
+    payload: { identifier: string; pinCode: string; companyCode?: string; tenantId?: string },
+    rawIdentifier: string,
+    rawPin: string,
+  ): Promise<{ token: string; employee: PortalEmployeeUser }> {
     const cleanDigits = rawIdentifier.replace(/\D/g, '');
     const cleanNoCountry = cleanDigits.startsWith('20')
       ? cleanDigits.slice(2)
@@ -193,19 +214,16 @@ export class EmployeePortalService {
       matched = matchedEmployees[0];
       const storedPin = String(matched.pin_code || '').trim();
       if (!storedPin) {
-        if (rawPin !== '1234' && rawPin !== cleanDigits.slice(-4)) {
-          throw new AppError('لم يتم تعيين رمز PIN بعد للموظف. استخدم الرمز الافتراضي 1234 أو راجع إدارة الموارد البشرية', 'DEFAULT_PIN_REQUIRED', 401);
-        }
-      } else if (storedPin !== rawPin) {
+        throw new AppError('لم يتم تعيين رمز الدخول السري (PIN) لهذا الموظف بعد. يرجى مراجعة إدارة الموارد البشرية لتعيينه', 'INVALID_PIN', 401);
+      }
+      if (storedPin !== rawPin) {
         throw new AppError('رمز الدخول السري (PIN) غير صحيح', 'INVALID_PIN', 401);
       }
     } else {
       // Multiple matches across tenants (e.g. employee code 001 exists in both Ragab and Mahmoud)
       const validPinMatches = matchedEmployees.filter((emp: any) => {
         const storedPin = String(emp.pin_code || '').trim();
-        if (!storedPin) {
-          return rawPin === '1234' || (cleanDigits.length >= 4 && rawPin === cleanDigits.slice(-4));
-        }
+        if (!storedPin) return false;
         return storedPin === rawPin;
       });
 
@@ -262,6 +280,9 @@ export class EmployeePortalService {
       tenantId: matched.tenant_id,
       accountId: matched.account_id,
     };
+
+    const rateLimitKey = `employee-portal:${rawIdentifier.toLowerCase()}:${(payload?.companyCode || payload?.tenantId || '').toLowerCase()}`;
+    this.loginLimiter.recordSuccess(rateLimitKey);
 
     const token = this.generateToken(employeeUser);
     return { token, employee: employeeUser };

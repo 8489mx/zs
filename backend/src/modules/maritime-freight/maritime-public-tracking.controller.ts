@@ -18,9 +18,10 @@ export class MaritimePublicTrackingController {
   @Get('rfq/:id')
   async getPublicRfqForQuote(
     @Param('id') id: string,
+    @Query('token') token?: string,
     @Query('carrier') carrier?: string,
   ) {
-    return this.freightService.getPublicRfqForQuote(id, carrier);
+    return this.freightService.getPublicRfqForQuote(id, token || '', carrier);
   }
 
   @Post('rfq/:id/bid')

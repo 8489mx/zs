@@ -224,6 +224,13 @@ export class UpdateAccountDto {
 
   @IsOptional()
   isActive?: boolean;
+
+  @IsOptional()
+  isMonetary?: boolean;
+
+  @IsOptional()
+  @IsString()
+  revaluationCurrency?: string | null;
 }
 
 export class GenerateCodeQueryDto {

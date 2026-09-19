@@ -8,12 +8,15 @@ import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { UpsertDeliveryRepDto } from './dto/upsert-delivery-rep.dto';
+import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
 
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { SalesFinanceService } from '../sales/services/sales-finance.service';
 
 @Injectable()
 export class DeliveryRepsService {
+  private readonly driverLoginLimiter = new LoginAttemptLimiter();
+
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly audit: AuditService,
@@ -495,6 +498,26 @@ export class DeliveryRepsService {
       throw new AppError('رقم الهاتف ورمز الدخول السريع (PIN) مطلوبان', 'INVALID_CREDENTIALS', 400);
     }
 
+    const rateLimitKey = `driver-portal:${rawPhone.toLowerCase()}:${String(companyScope || '').toLowerCase()}`;
+    this.driverLoginLimiter.assertNotLocked(rateLimitKey);
+
+    try {
+      return await this.driverLoginInternal(payload, rawPhone, pinCode, companyScope, rateLimitKey);
+    } catch (error) {
+      if (error instanceof AppError && ['UNAUTHORIZED_DRIVER'].includes(error.code)) {
+        this.driverLoginLimiter.recordFailure(rateLimitKey);
+      }
+      throw error;
+    }
+  }
+
+  private async driverLoginInternal(
+    payload: { phone: string; pinCode: string; companyCode?: string; tenantId?: string },
+    rawPhone: string,
+    pinCode: string,
+    companyScope: string | undefined,
+    rateLimitKey: string,
+  ): Promise<{ token: string; rep: Record<string, unknown> }> {
     const cleanDigits = rawPhone.replace(/\D/g, '');
     const cleanNoCountry = cleanDigits.startsWith('20') ? cleanDigits.slice(2) : (cleanDigits.startsWith('0') ? cleanDigits.slice(1) : cleanDigits);
 
@@ -602,6 +625,7 @@ export class DeliveryRepsService {
     const payloadEncoded = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
     const signature = createHmac('sha256', tokenSecret).update(payloadEncoded).digest('base64url');
     const token = `${payloadEncoded}.${signature}`;
+    this.driverLoginLimiter.recordSuccess(rateLimitKey);
 
     return {
       token,

@@ -31,11 +31,3 @@ export interface UpdatePurchaseOrderDto extends Partial<CreatePurchaseOrderDto> 
   status?: 'draft' | 'confirmed' | 'partially_received' | 'received' | 'converted_to_bill' | 'cancelled';
 }
 
-export interface ReceivePurchaseOrderDto {
-  warehouseId?: number;
-  items: {
-    itemId: number;
-    productId: number;
-    quantityToReceive: number;
-  }[];
-}

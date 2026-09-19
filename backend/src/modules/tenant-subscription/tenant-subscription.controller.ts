@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Headers, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
@@ -12,6 +12,20 @@ export class TenantSubscriptionController {
     private readonly service: TenantSubscriptionService,
     private readonly paymentManager: PaymentManagerService,
   ) {}
+
+  /**
+   * السماح بمحاكاة الدفع (Sandbox) فقط عندما لا توجد مفاتيح بوابة حقيقية مُفعّلة على الإطلاق.
+   * إن كانت أي بوابة حقيقية مُهيأة، فهذا يعني أن بيئة الإنتاج تعتمد دفعاً فعلياً،
+   * ويجب ألا يبقى مسار المحاكاة قابلاً للاستدعاء المباشر لتفادي تجاوز الدفع.
+   */
+  private assertSandboxGatewayUsable(): void {
+    const hasXpay = Boolean(process.env.XPAY_API_KEY?.trim() && process.env.XPAY_COMMUNITY_ID?.trim());
+    const hasPaymob = Boolean(process.env.PAYMOB_API_KEY?.trim() && process.env.PAYMOB_INTEGRATION_ID?.trim());
+    const hasStripe = Boolean(process.env.STRIPE_SECRET_KEY?.trim());
+    if (hasXpay || hasPaymob || hasStripe) {
+      throw new ForbiddenException('بوابة الدفع التجريبية (Sandbox) معطلة لأن مفاتيح دفع حقيقية مُفعّلة على هذه البيئة.');
+    }
+  }
 
   @Get('me')
   @UseGuards(SessionAuthGuard)
@@ -36,7 +50,9 @@ export class TenantSubscriptionController {
    * Rendered when live payment gateway keys (XPay/Paymob) are not configured.
    */
   @Get('sandbox-checkout')
-  sandboxCheckout(@Query() query: any, @Res() res: Response) {
+  @UseGuards(SessionAuthGuard)
+  sandboxCheckout(@Query() query: any, @Req() req: RequestWithAuth, @Res() res: Response) {
+    this.assertSandboxGatewayUsable();
     const gateway = String(query.gateway || 'xpay').toUpperCase();
     const amount = Number(query.amount || 0).toLocaleString('ar-EG');
     const currency = query.currency || 'EGP';
@@ -44,7 +60,8 @@ export class TenantSubscriptionController {
     const businessName = query.businessName || 'المتجر الرئيسي';
     const ref = query.ref || `SANDBOX-${Date.now()}`;
     const redirectUrl = query.redirectUrl || '/settings/subscription';
-    const tenantId = query.tenantId || '';
+    // معرّف المستأجر يُشتق دائماً من الجلسة الموثّقة، لا من مُعامل الرابط، لمنع محاولة عرض/تمرير معرّف مستأجر آخر.
+    const tenantId = req.authContext!.tenantId;
     const planId = query.planId || '';
     const duration = query.duration || '12';
 
@@ -261,9 +278,13 @@ export class TenantSubscriptionController {
    * Complete Sandbox Payment
    */
   @Post('sandbox-checkout/complete')
-  async completeSandboxCheckout(@Body() body: any, @Res() res: Response) {
+  @UseGuards(SessionAuthGuard)
+  async completeSandboxCheckout(@Body() body: any, @Req() req: RequestWithAuth, @Res() res: Response) {
+    this.assertSandboxGatewayUsable();
     const gateway = String(body.gateway || 'xpay').toLowerCase();
-    const tenantId = String(body.tenantId || '').trim();
+    // لا يُوثق بمعرّف المستأجر القادم من جسم الطلب إطلاقاً — يُشتق حصراً من الجلسة الموثّقة
+    // لمنع أي مستخدم من "دفع" باقة لمستأجر آخر غير مستأجره.
+    const tenantId = String(req.authContext!.tenantId || '').trim();
     const planId = Number(body.planId) || undefined;
     const durationMonths = Number(body.duration) || 12;
     const amount = Number(body.amount) || 0;
@@ -329,7 +350,9 @@ export class TenantSubscriptionController {
     @Param('gateway') gateway: string,
     @Headers() headers: Record<string, any>,
     @Body() body: any,
+    @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
-    return this.paymentManager.processWebhook(gateway, headers, body);
+    const rawBody: Buffer | undefined = (req as any).rawBody;
+    return this.paymentManager.processWebhook(gateway, headers, body, rawBody);
   }
 }

@@ -70,15 +70,6 @@ export interface CreatePurchaseOrderPayload {
   }>;
 }
 
-export interface ReceivePurchaseOrderPayload {
-  warehouseId?: number;
-  items: Array<{
-    itemId: number;
-    productId: number;
-    quantityToReceive: number;
-  }>;
-}
-
 export interface PurchaseOrderSummaryResponse {
   orders: PurchaseOrderRecord[];
   summary: {
@@ -120,12 +111,6 @@ export const purchaseOrdersApi = {
   confirm: (id: number) =>
     http<{ success: boolean; message: string }>(`/api/purchase-orders/${id}/confirm`, {
       method: 'POST',
-    }),
-
-  receive: (id: number, data: ReceivePurchaseOrderPayload) =>
-    http<{ success: boolean; status: string; message: string }>(`/api/purchase-orders/${id}/receive`, {
-      method: 'POST',
-      body: JSON.stringify(data),
     }),
 
   convertToBill: (id: number) =>
