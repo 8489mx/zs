@@ -441,16 +441,31 @@ export class SettingsService {
     const code = String(payload.code || '').trim();
     if (!name) throw new AppError('Branch name is required', 'BRANCH_NAME_REQUIRED', 400);
 
-    if (actor.role !== 'super_admin') {
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
+    const isPlatformTenant = scope.tenantId === 'zs' || scope.tenantId === 'default' || scope.tenantId === 'dev-tenant' || (platformTenantId && scope.tenantId === platformTenantId);
+    const isPlatformAdmin = actor.role === 'super_admin' && isPlatformTenant;
+
+    if (!isPlatformAdmin) {
       const activeBranches = await this.db.selectFrom('branches').select(['id']).where(this.tenantPredicate(actor)).where('is_active', '=', true).execute();
-      const tenant = await this.db.selectFrom('tenants').select(['id', 'plan_id', 'extra_features']).where('id', '=', scope.tenantId).executeTakeFirst();
+      const tenant = await this.db.selectFrom('tenants').select(['id', 'plan_id', 'extra_features', 'status']).where('id', '=', scope.tenantId).executeTakeFirst();
       const planFeatures = await this.getPlanFeatures(scope.tenantId, tenant?.plan_id as any);
       const extraFeatures = Array.isArray(tenant?.extra_features) ? tenant?.extra_features : typeof tenant?.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [];
       const allFeatures = new Set([...planFeatures, ...extraFeatures]);
       
       const hasMultiBranch = allFeatures.has('multi_branch') || allFeatures.has('branches') || allFeatures.has('inventory');
-      if (!hasMultiBranch && activeBranches.length >= 1) {
-        throw new AppError('وصلت للحد الأقصى المسموح به في باقتك (فرع واحد). يرجى ترقية الباقة لإضافة فروع جديدة.', 'PLAN_LIMIT_REACHED', 403);
+      
+      const activeSub = await this.db
+        .selectFrom('tenant_subscriptions as s')
+        .leftJoin('saas_plans as p', 'p.id', 's.plan_id')
+        .select(['p.max_branches'])
+        .where('s.tenant_id', '=', scope.tenantId)
+        .where('s.status', 'in', ['active', 'past_due'])
+        .orderBy('s.created_at', 'desc')
+        .executeTakeFirst();
+
+      const maxBranches = activeSub?.max_branches ?? (hasMultiBranch ? (tenant?.plan_id === 'plan_pro' ? 3 : 999) : (tenant?.status === 'trial' ? 2 : 1));
+      if (activeBranches.length >= maxBranches) {
+        throw new AppError(`وصلت للحد الأقصى المسموح به في باقتك (${maxBranches} فرع). يرجى ترقية الباقة لإضافة فروع جديدة.`, 'PLAN_LIMIT_REACHED', 403);
       }
     }
 

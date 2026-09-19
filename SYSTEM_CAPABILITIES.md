@@ -5473,3 +5473,26 @@
 * **فحص الجودة والسلامة البرمجية:**
   - جناح الاختبارات الحاسم `npm run test:critical` (29 جناح اختبار): **اجتياز بنسبة 100% بنجاح تام (Exit code 0)**.
 
+---
+
+## 157. منصة SaaS السحابية وحوكمة المشتركين وعزل المنصة المركزية وحراسة الباقات (Phase 11: Cloud SaaS Platform, Multi-Tenant Governance & Plan Enforcement)
+* **حالة الموديول العامة:** 🟢 مكتمل ومحكم 100% (Phase 11 Production-Ready & Invariant-Audited).
+* **المعايير الهندسية والتشغيلية المعتمدة:** Rule 8 Strict Multi-Tenant Isolation / Double-Check Platform Isolation (`role === 'super_admin' && isPlatformTenant`) / Constitutional Invariant `PLATFORM_TENANT_ID` Immunity / Plan Quota Guards (Users & Branches) / Immediate Tenant Cache Invalidation / Unified Audit Event Codes (`AUDIT_EVENT_CODES.SAAS_*`) / 0 Emojis Policy.
+* **المسارات في الكود:**
+  - `backend/src/core/audit/audit.service.ts`:
+    - إضافة 14 كود حدث ثابت لإدارة المشتركين السحابيين (`SAAS_TENANT_TRIAL_CREATED`, `SAAS_TENANT_ACTIVATED`, `SAAS_TENANT_SUSPENDED`, `SAAS_TENANT_EXPIRED`, `SAAS_TENANT_TRIAL_EXTENDED`, `SAAS_TENANT_DELETED`, `SAAS_TENANT_PLAN_UPDATED`, `SAAS_TENANT_SLUG_UPDATED`, `SAAS_TENANT_PASSWORD_RESET`, `SAAS_TENANT_OWNER_UNLOCKED`, `SAAS_SUBSCRIPTION_RENEWED`, `SAAS_PAYMENT_RECORDED`, `SAAS_IMPERSONATION_STARTED`, `SAAS_IMPERSONATION_ENDED`).
+  - `backend/src/modules/saas-admin/saas-admin.service.ts`:
+    1. استيراد واستخدام `AUDIT_EVENT_CODES` في كافة عمليات تسجيل التدقيق بدلاً من النصوص الوصفية العشوائية لتمكين الكشف الآلي من قراءتها.
+    2. تحصين دالتي `updateTenantPlan` و `updateTenantSlug` بفرض فحص العزل المزدوج الصارم `this.assertPlatformAccess(auth)` لمنع أي مستخدم محلي برتبة `super_admin` من التلاعب بالباقات والمعرفات.
+    3. فرض حماية دستورية لمنصة الإدارة المركزية `assertNotPlatformTenantTarget(id)` لمنع حذف أو تعطيل أو تعديل باقة منصة `zs`.
+    4. تفعيل إبطال كاش المستأجر فورياً `this.authCache.invalidateTenant(id)` عند حذف المستأجر أو تعديل باقته أو معرّفه (Slug) لضمان عدم استمرار الجلسات المفتوحة.
+  - `backend/src/modules/users/users.service.ts`:
+    - حراسة حد المستخدمين الأقصى (`max_users`) بربطه مباشرة بجدول `saas_plans` من خلال اشتراك المستأجر النشط في `tenant_subscriptions`، وحظر إنشاء أي مستخدم يتجاوز السقف المحدد في الباقة.
+  - `backend/src/modules/settings/settings.service.ts`:
+    - تحصين دالة إنشاء الفروع `createBranch` بفرض فحص العزل المزدوج `isPlatformAdmin`، وربط سقف الفروع بالحد الأقصى الفعلي للباقة (`activeSub.max_branches` من `saas_plans`) ومنع التجاوز بصمت.
+  - `backend/test/critical/phase11-saas-platform.spec.ts`:
+    - إنشاء جناح اختبارات تدقيقي يغطي 6 سيناريوهات حتمية: العزل المزدوج وحظر السوبر أدمن المستأجر، حصانة منصة `zs` ضد الحذف والتعديل، تطهير والتحقق من معرفات المشتركين (slugs)، حراسة سقف المستخدمين والفروع للباقات، دورة حياة الاشتراكات وفترات السماح، وتكامل أكواد التدقيق SAAS_* والترقيم الموحد للسندات.
+* **فحص الجودة والسلامة البرمجية:**
+  - جناح الاختبارات الحاسم `npm run test:critical` (30 جناح اختبار): **اجتياز بنسبة 100% بنجاح تام (Exit code 0)**.
+
+

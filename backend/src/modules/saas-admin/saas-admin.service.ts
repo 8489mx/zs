@@ -6,7 +6,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { KYSELY_DB } from '../../database/database.constants';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
-import { AuditService } from '../../core/audit/audit.service';
+import { AuditService, AUDIT_EVENT_CODES } from '../../core/audit/audit.service';
 import { SessionService } from '../../core/auth/services/session.service';
 import { createCsrfToken } from '../../core/auth/utils/csrf-token';
 import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto, RecordPaymentDto, UpdateSaasPlanDto } from './dto/saas-admin.dto';
@@ -389,7 +389,10 @@ export class SaasAdminService {
       },
     );
 
-    await this.audit.log('إنشاء نسخة تجريبية', `تم إنشاء نسخة تجريبية: ${result.tenant.slug} (${result.tenant.id})`, auth, { targetTenantId: String(result.tenant.id) });
+    await this.audit.log('إنشاء نسخة تجريبية', `تم إنشاء نسخة تجريبية: ${result.tenant.slug} (${result.tenant.id})`, auth, {
+      targetTenantId: String(result.tenant.id),
+      eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_TRIAL_CREATED,
+    });
     return result;
   }
 
@@ -511,7 +514,10 @@ export class SaasAdminService {
       created_at: now,
     } as any).execute();
 
-    await this.audit.log('تسجيل دفعة', `تم تسجيل دفعة بقيمة ${body.amount} ${body.currency} لاشتراك النسخة: ${tenant.slug}`, auth, { targetTenantId: tenant.id });
+    await this.audit.log('تسجيل دفعة', `تم تسجيل دفعة بقيمة ${body.amount} ${body.currency} لاشتراك النسخة: ${tenant.slug}`, auth, {
+      targetTenantId: tenant.id,
+      eventCode: AUDIT_EVENT_CODES.SAAS_PAYMENT_RECORDED,
+    });
     return { ok: true };
   }
 
@@ -577,7 +583,10 @@ export class SaasAdminService {
       await trx.updateTable('tenants').set(tenantUpdateData).where('id', '=', tenant.id).execute();
     });
     
-    await this.audit.log('تجديد اشتراك', `تم تجديد اشتراك النسخة: ${tenant.slug} لمدة ${body.durationMonths} أشهر`, auth, { targetTenantId: tenant.id });
+    await this.audit.log('تجديد اشتراك', `تم تجديد اشتراك النسخة: ${tenant.slug} لمدة ${body.durationMonths} أشهر`, auth, {
+      targetTenantId: tenant.id,
+      eventCode: AUDIT_EVENT_CODES.SAAS_SUBSCRIPTION_RENEWED,
+    });
     return { ok: true };
   }
 
@@ -656,7 +665,10 @@ export class SaasAdminService {
     });
 
     this.authCache.invalidateTenant(tenant.id);
-    await this.audit.log('تفعيل نسخة', `تم تفعيل/ترقية النسخة: ${tenant.slug} (${tenant.id}) ${body.planId ? `بخطة ${body.planId}` : ''}`, auth, { targetTenantId: tenant.id });
+    await this.audit.log('تفعيل نسخة', `تم تفعيل/ترقية النسخة: ${tenant.slug} (${tenant.id}) ${body.planId ? `بخطة ${body.planId}` : ''}`, auth, {
+      targetTenantId: tenant.id,
+      eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_ACTIVATED,
+    });
     return { ok: true };
   }
 
@@ -668,7 +680,10 @@ export class SaasAdminService {
     await this.db.updateTable('tenants').set({ status: 'suspended', updated_at: now }).where('id', '=', tenant.id).execute();
     this.authCache.invalidateTenant(tenant.id);
     const note = [this.normalizeOptional(body.reason), this.normalizeOptional(body.notes)].filter(Boolean).join(' - ');
-    await this.audit.log('إيقاف نسخة', `تم إيقاف النسخة: ${tenant.slug} (${tenant.id})${note ? ` | ${note}` : ''}`, auth, { targetTenantId: tenant.id });
+    await this.audit.log('إيقاف نسخة', `تم إيقاف النسخة: ${tenant.slug} (${tenant.id})${note ? ` | ${note}` : ''}`, auth, {
+      targetTenantId: tenant.id,
+      eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_SUSPENDED,
+    });
     return { ok: true };
   }
 
@@ -686,7 +701,10 @@ export class SaasAdminService {
       .execute();
     this.authCache.invalidateTenant(tenant.id);
     const note = [this.normalizeOptional(body.reason), this.normalizeOptional(body.notes)].filter(Boolean).join(' - ');
-    await this.audit.log('إنهاء نسخة', `تم إنهاء النسخة: ${tenant.slug} (${tenant.id})${note ? ` | ${note}` : ''}`, auth, { targetTenantId: tenant.id });
+    await this.audit.log('إنهاء نسخة', `تم إنهاء النسخة: ${tenant.slug} (${tenant.id})${note ? ` | ${note}` : ''}`, auth, {
+      targetTenantId: tenant.id,
+      eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_EXPIRED,
+    });
     return { ok: true };
   }
 
@@ -712,7 +730,10 @@ export class SaasAdminService {
       .where('id', '=', tenant.id)
       .execute();
     this.authCache.invalidateTenant(tenant.id);
-    await this.audit.log('تمديد نسخة تجريبية', `تم تمديد النسخة ${tenant.slug} (${tenant.id}) لمدة ${days} يوم`, auth, { targetTenantId: tenant.id });
+    await this.audit.log('تمديد نسخة تجريبية', `تم تمديد النسخة ${tenant.slug} (${tenant.id}) لمدة ${days} يوم`, auth, {
+      targetTenantId: tenant.id,
+      eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_TRIAL_EXTENDED,
+    });
 
     return { ok: true, trialEndsAt: nextTrialEnd.toISOString(), daysAdded: days };
   }
@@ -733,7 +754,10 @@ export class SaasAdminService {
       .where('id', '=', owner.id)
       .execute();
 
-    await this.audit.log('فك قفل مالك النسخة', `تم فك قفل مالك النسخة ${tenant.slug} (${tenant.id}) - المستخدم: ${owner.username}`, auth, { targetTenantId: tenant.id });
+    await this.audit.log('فك قفل مالك النسخة', `تم فك قفل مالك النسخة ${tenant.slug} (${tenant.id}) - المستخدم: ${owner.username}`, auth, {
+      targetTenantId: tenant.id,
+      eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_OWNER_UNLOCKED,
+    });
     return { ok: true };
   }
 
@@ -760,7 +784,10 @@ export class SaasAdminService {
       .where('id', '=', owner.id)
       .execute();
 
-    await this.audit.log('إعادة كلمة مرور مالك النسخة', `تمت إعادة كلمة مرور مالك النسخة ${tenant.slug} (${tenant.id}) - المستخدم: ${owner.username}`, auth, { targetTenantId: tenant.id });
+    await this.audit.log('إعادة كلمة مرور مالك النسخة', `تمت إعادة كلمة مرور مالك النسخة ${tenant.slug} (${tenant.id}) - المستخدم: ${owner.username}`, auth, {
+      targetTenantId: tenant.id,
+      eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_PASSWORD_RESET,
+    });
     return {
       ok: true,
       password: finalPassword,
@@ -812,15 +839,18 @@ export class SaasAdminService {
     }
 
     await this.db.deleteFrom('tenants').where('id', '=', tenant.id).execute();
+    this.authCache.invalidateTenant(tenant.id);
 
-    await this.audit.log('حذف نسخة', `تم حذف النسخة ${tenant.slug} (${tenant.id}) نهائياً من النظام`, auth, { targetTenantId: tenant.id });
+    await this.audit.log('حذف نسخة', `تم حذف النسخة ${tenant.slug} (${tenant.id}) نهائياً من النظام`, auth, {
+      targetTenantId: tenant.id,
+      eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_DELETED,
+    });
     return { ok: true };
   }
 
   async updateTenantPlan(id: string, dto: { planId?: string; extraFeatures?: string[] }, auth: AuthContext) {
-    if (auth.role !== 'super_admin') {
-      throw new ForbiddenException('Only super_admins can update tenant plans');
-    }
+    this.assertPlatformAccess(auth);
+    this.assertNotPlatformTenantTarget(id);
 
     const tenant = await this.db.selectFrom('tenants').select(['id', 'slug']).where('id', '=', id).executeTakeFirst();
     if (!tenant) throw new NotFoundException('Tenant not found');
@@ -831,16 +861,19 @@ export class SaasAdminService {
 
     if (Object.keys(updateData).length > 0) {
       await this.db.updateTable('tenants').set(updateData).where('id', '=', id).execute();
-      await this.audit.log('تحديث الباقة', `تم تحديث باقة النسخة ${tenant.slug}`, auth, { targetTenantId: tenant.id });
+      this.authCache.invalidateTenant(id);
+      await this.audit.log('تحديث الباقة', `تم تحديث باقة النسخة ${tenant.slug}`, auth, {
+        targetTenantId: tenant.id,
+        eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_PLAN_UPDATED,
+      });
     }
 
     return { ok: true };
   }
 
   async updateTenantSlug(id: string, newSlug: string, auth: AuthContext) {
-    if (auth.role !== 'super_admin') {
-      throw new ForbiddenException('فقط المشرف العام يمكنه تعديل معرّف النسخة');
-    }
+    this.assertPlatformAccess(auth);
+    this.assertNotPlatformTenantTarget(id);
 
     const tenant = await this.db
       .selectFrom('tenants')
@@ -888,11 +921,16 @@ export class SaasAdminService {
       .where('id', '=', id)
       .execute();
 
+    this.authCache.invalidateTenant(id);
+
     await this.audit.log(
       'تعديل معرّف النسخة',
       `تم تغيير معرّف النسخة من "${oldSlug}" إلى "${cleanSlug}" لنشاط (${tenant.business_name})`,
       auth,
-      { targetTenantId: tenant.id },
+      {
+        targetTenantId: tenant.id,
+        eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_SLUG_UPDATED,
+      },
     );
 
     return {
@@ -1218,7 +1256,10 @@ export class SaasAdminService {
       'تصفح نسخة كمالك',
       `قام مسؤول المنصة (${auth.username}) ببدء جلسة تصفح كمالك للنسخة: ${tenant.slug} (${tenant.id})`,
       auth,
-      { targetTenantId: tenant.id },
+      {
+        targetTenantId: tenant.id,
+        eventCode: AUDIT_EVENT_CODES.SAAS_IMPERSONATION_STARTED,
+      },
     );
 
     const impersonatedAuth = await this.sessionService.resolveAuthContext(sessionId);
@@ -1261,7 +1302,10 @@ export class SaasAdminService {
       'إنهاء تصفح نسخة',
       `تم إنهاء جلسة تصفح النسخة والعودة للوحة تحكم المنصة بواسطة (${originalAuth.username})`,
       originalAuth,
-      { targetTenantId: originalAuth.tenantId },
+      {
+        targetTenantId: originalAuth.tenantId,
+        eventCode: AUDIT_EVENT_CODES.SAAS_IMPERSONATION_ENDED,
+      },
     );
 
     return {

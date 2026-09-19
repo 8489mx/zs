@@ -202,11 +202,23 @@ export class UsersService {
 
     if (!isPlatformAdmin) {
       const activeUsers = await this.db.selectFrom('users').select(['id']).where(this.tenantPredicate(actor)).where('is_active', '=', true).execute();
-      const tenant = await this.db.selectFrom('tenants').select(['id', 'plan_id', 'extra_features']).where('id', '=', scope.tenantId).executeTakeFirst();
+      const tenant = await this.db.selectFrom('tenants').select(['id', 'plan_id', 'extra_features', 'status']).where('id', '=', scope.tenantId).executeTakeFirst();
       
-      let maxUsers = 3; // Default for basic/starter (1 admin + 2 cashiers)
-      if (tenant?.plan_id === 'plan_pro') maxUsers = 10;
-      else if (tenant?.plan_id === 'plan_ultimate') maxUsers = 100;
+      const activeSub = await this.db
+        .selectFrom('tenant_subscriptions as s')
+        .leftJoin('saas_plans as p', 'p.id', 's.plan_id')
+        .select(['p.max_users'])
+        .where('s.tenant_id', '=', scope.tenantId)
+        .where('s.status', 'in', ['active', 'past_due'])
+        .orderBy('s.created_at', 'desc')
+        .executeTakeFirst();
+
+      let maxUsers: number = activeSub?.max_users ?? (tenant?.status === 'trial' ? 5 : 3);
+      if (!activeSub?.max_users) {
+        if (tenant?.plan_id === 'plan_pro') maxUsers = 10;
+        else if (tenant?.plan_id === 'plan_ultimate') maxUsers = 100;
+        else if (tenant?.plan_id === 'plan_omnichannel') maxUsers = 999;
+      }
       
       if (activeUsers.length >= maxUsers) {
         throw new AppError(`وصلت للحد الأقصى لعدد المستخدمين في باقتك (${maxUsers} مستخدمين). يرجى ترقية الباقة لإضافة مستخدمين جدد.`, 'PLAN_USER_LIMIT_REACHED', 403);
