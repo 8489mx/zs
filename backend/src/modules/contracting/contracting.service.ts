@@ -4547,6 +4547,7 @@ export class ContractingService {
         .updateTable('contracting_master_boq_library')
         .set(updates)
         .where('id', '=', id as any)
+        .where('tenant_id', '=', tenantId)
         .returningAll()
         .executeTakeFirst();
       return updated;
@@ -4606,6 +4607,7 @@ export class ContractingService {
         .updateTable('contracting_master_boq_library')
         .set({ is_active: newStatus, updated_at: new Date() })
         .where('id', '=', id as any)
+        .where('tenant_id', '=', tenantId)
         .returningAll()
         .executeTakeFirst();
       return { success: true, isActive: newStatus, item: updated };
@@ -4642,6 +4644,7 @@ export class ContractingService {
       await (this.db as any)
         .deleteFrom('contracting_master_boq_library')
         .where('id', '=', id as any)
+        .where('tenant_id', '=', tenantId)
         .execute();
       return { success: true, message: 'تم حذف البند المرجعي المخصص بنجاح' };
     } else {
@@ -5448,6 +5451,7 @@ export class ContractingService {
           updated_at: new Date() as any,
         })
         .where('id', '=', existing.id)
+        .where('tenant_id', '=', tenantId)
         .returningAll()
         .execute();
 
