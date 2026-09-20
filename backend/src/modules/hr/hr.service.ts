@@ -39,6 +39,7 @@ import {
 } from './dto/hr.dto';
 import { HrTreasuryAdapter } from './hr-treasury.adapter';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
+import { getTenantTimezone, todayTenantDate, formatTimeInTimezone } from '../../common/utils/tenant-timezone.util';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 type MasterConfig = {
@@ -176,8 +177,11 @@ function normalizeAttendanceStatus(value: unknown): AttendanceStatus | 'unmarked
   return attendanceStatuses.includes(status as AttendanceStatus) ? (status as AttendanceStatus) : 'unmarked';
 }
 
-function normalizeAttendanceSource(value: unknown): 'manual' | 'import' {
-  return clean(value) === 'import' ? 'import' : 'manual';
+function normalizeAttendanceSource(value: unknown): 'manual' | 'import' | 'mobile_gps' {
+  const c = clean(value);
+  if (c === 'import') return 'import';
+  if (c === 'mobile_gps') return 'mobile_gps';
+  return 'manual';
 }
 
 function todayUtcDate(): string {
@@ -2709,7 +2713,8 @@ export class HrService {
 
   async listAttendance(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
-    const workDate = normalizeDateOnly(query.date) || normalizeDateOnly(query.workDate) || todayUtcDate();
+    const tenantTimezone = await getTenantTimezone(this.db, auth.tenantId);
+    const workDate = normalizeDateOnly(query.date) || normalizeDateOnly(query.workDate) || todayTenantDate(tenantTimezone);
     if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
     const search = clean(query.search).toLowerCase();
 
@@ -2723,8 +2728,8 @@ export class HrService {
         a.id AS attendance_id,
         to_char(a.work_date, 'YYYY-MM-DD') AS work_date_text,
         a.status,
-        to_char(a.check_in_at AT TIME ZONE ${process.env.BUSINESS_TIMEZONE || 'Africa/Cairo'}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_in_at_text,
-        to_char(a.check_out_at AT TIME ZONE ${process.env.BUSINESS_TIMEZONE || 'Africa/Cairo'}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_out_at_text,
+        to_char(a.check_in_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_in_at_text,
+        to_char(a.check_out_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_out_at_text,
         a.source,
         a.notes
       FROM hr_employees e
@@ -2832,16 +2837,35 @@ export class HrService {
 
   async upsertAttendanceRecord(payload: UpsertAttendanceRecordDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
-    const workDate = normalizeDateOnly(payload.workDate);
+    const tenantTimezone = await getTenantTimezone(this.db, auth.tenantId);
+    const workDate = normalizeDateOnly(payload.workDate) || todayTenantDate(tenantTimezone);
     if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
     const employeeId = toId(payload.employeeId);
     if (!employeeId) throw new AppError('Employee is required', 'HR_ATTENDANCE_EMPLOYEE_REQUIRED', 400);
     const status = normalizeAttendanceStatus(payload.status);
     if (status === 'unmarked') throw new AppError('Attendance status is invalid', 'HR_ATTENDANCE_STATUS_INVALID', 400);
-    const checkInAt = payload.checkInAt ? new Date(payload.checkInAt) : null;
-    const checkOutAt = payload.checkOutAt ? new Date(payload.checkOutAt) : null;
-    if ((checkInAt && Number.isNaN(checkInAt.getTime())) || (checkOutAt && Number.isNaN(checkOutAt.getTime()))) {
-      throw new AppError('Attendance check-in/out time is invalid', 'HR_ATTENDANCE_TIME_INVALID', 400);
+
+    let checkInAt: Date | null = null;
+    let checkOutAt: Date | null = null;
+
+    if (payload.useServerTime || payload.punchAction) {
+      // Server-enforced punch time (immune to client device clock tampering)
+      const now = new Date();
+      if (payload.punchAction === 'check_in') {
+        checkInAt = now;
+      } else if (payload.punchAction === 'check_out') {
+        checkOutAt = now;
+      } else if (payload.mode === 'new_session') {
+        checkInAt = now;
+      } else {
+        checkInAt = now;
+      }
+    } else {
+      checkInAt = payload.checkInAt ? new Date(payload.checkInAt) : null;
+      checkOutAt = payload.checkOutAt ? new Date(payload.checkOutAt) : null;
+      if ((checkInAt && Number.isNaN(checkInAt.getTime())) || (checkOutAt && Number.isNaN(checkOutAt.getTime()))) {
+        throw new AppError('Attendance check-in/out time is invalid', 'HR_ATTENDANCE_TIME_INVALID', 400);
+      }
     }
 
     const empCheck = await sql<{ status: string }>`SELECT status FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
@@ -2872,8 +2896,8 @@ export class HrService {
     }
 
     if ((payload.mode === 'new_session' || payload.allowRecheckin) && hasExisting && existingRow?.check_in_at && existingRow?.check_out_at) {
-      const prevCheckIn = new Date(existingRow.check_in_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
-      const prevCheckOut = new Date(existingRow.check_out_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const prevCheckIn = formatTimeInTimezone(existingRow.check_in_at, tenantTimezone);
+      const prevCheckOut = formatTimeInTimezone(existingRow.check_out_at, tenantTimezone);
       const sessionNote = `وردية سابقة (${prevCheckIn} إلى ${prevCheckOut})`;
       const combinedNotes = combineNotes(existingRow.notes, sessionNote);
 
@@ -3055,12 +3079,18 @@ export class HrService {
     employeeId: number,
     workDate: string,
   ): Promise<void> {
+    const empTenant = await sql<{ tenant_id: string }>`
+      SELECT tenant_id FROM hr_employees WHERE id = ${employeeId} LIMIT 1
+    `.execute(db);
+    const tenantId = empTenant.rows[0]?.tenant_id || '';
+    const tenantTimezone = await getTenantTimezone(db, tenantId);
+
     const result = await sql<Record<string, unknown>>`
       SELECT
         a.id AS attendance_id,
         to_char(a.work_date, 'YYYY-MM-DD') AS work_date_text,
-        to_char(a.check_in_at AT TIME ZONE ${process.env.BUSINESS_TIMEZONE || 'Africa/Cairo'}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_in_at_text,
-        to_char(a.check_out_at AT TIME ZONE ${process.env.BUSINESS_TIMEZONE || 'Africa/Cairo'}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_out_at_text,
+        to_char(a.check_in_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_in_at_text,
+        to_char(a.check_out_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_out_at_text,
         e.scheduled_check_in_time,
         e.scheduled_check_out_time,
         e.grace_minutes,
@@ -3089,11 +3119,11 @@ export class HrService {
     const checkOutActualTime = normalizeTimeOnly(checkOutAtText.slice(11, 16));
     const attendancePolicy = clean(row.attendance_policy) || 'strict';
     const expectedDailyHours = Number(row.expected_daily_hours || 8);
-    const tenantId = String(row.tenant_id || '');
+    const effectiveTenantId = String(row.tenant_id || tenantId || '');
 
     let isHolidayOrWeekend = false;
-    if (tenantId) {
-      const globalPolicies = await this.getPayrollPolicies(db, tenantId);
+    if (effectiveTenantId) {
+      const globalPolicies = await this.getPayrollPolicies(db, effectiveTenantId);
       const weekendDaysStr = globalPolicies.hrWeekendDays || 'friday,saturday';
       const weekendDays = weekendDaysStr.split(',').map((d: string) => d.trim().toLowerCase());
       
@@ -3586,7 +3616,8 @@ export class HrService {
     if (!assetType) throw new AppError('Asset type is required', 'HR_ASSET_TYPE_REQUIRED', 400);
     const assetName = clean(payload.assetName);
     if (!assetName) throw new AppError('Asset name is required', 'HR_ASSET_NAME_REQUIRED', 400);
-    const assignedAt = normalizeDateOnly(payload.assignedAt) || todayUtcDate();
+    const tz = await getTenantTimezone(this.db, auth.tenantId);
+    const assignedAt = normalizeDateOnly(payload.assignedAt) || todayTenantDate(tz);
 
     if (id) {
       await sql`
@@ -3618,7 +3649,8 @@ export class HrService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const current = await sql<{ status: string; employee_id: number; asset_name: string }>`SELECT status, employee_id, asset_name FROM hr_employee_assets WHERE id = ${id} LIMIT 1`.execute(trx);
       if (!clean(current.rows[0]?.status)) throw new AppError('Employee asset not found', 'HR_ASSET_NOT_FOUND', 404);
-      const returnedAt = status === 'returned' ? (normalizeDateOnly(payload.returnedAt) || todayUtcDate()) : null;
+      const tz = await getTenantTimezone(trx, auth.tenantId);
+      const returnedAt = status === 'returned' ? (normalizeDateOnly(payload.returnedAt) || todayTenantDate(tz)) : null;
       await sql`
         UPDATE hr_employee_assets
         SET status = ${status},
@@ -3887,12 +3919,14 @@ export class HrService {
 
   async reportsSummary(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
+    const tz = await getTenantTimezone(this.db, auth.tenantId);
+    const todayStr = todayTenantDate(tz);
     const month = normalizePayrollMonth(query.month);
     const range = month
       ? monthRange(month)
       : {
-          from: normalizeDateOnly(query.from) || `${todayUtcDate().slice(0, 7)}-01`,
-          to: normalizeDateOnly(query.to) || todayUtcDate(),
+          from: normalizeDateOnly(query.from) || `${todayStr.slice(0, 7)}-01`,
+          to: normalizeDateOnly(query.to) || todayStr,
         };
     const fromMonth = range.from.slice(0, 7);
     const toMonth = range.to.slice(0, 7);

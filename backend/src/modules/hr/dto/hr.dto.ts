@@ -485,8 +485,9 @@ export class UpsertAttendanceRecordDto {
   @IsNumber()
   employeeId!: number;
 
+  @IsOptional()
   @IsDateString()
-  workDate!: string;
+  workDate?: string;
 
   @IsOptional()
   @IsIn(['present', 'absent', 'late', 'half_day', 'leave', 'excused', 'early_leave'])
@@ -501,7 +502,7 @@ export class UpsertAttendanceRecordDto {
   checkOutAt?: string;
 
   @IsOptional()
-  @IsIn(['manual', 'import'])
+  @IsIn(['manual', 'import', 'mobile_gps'])
   source?: string;
 
   @IsOptional()
@@ -511,6 +512,14 @@ export class UpsertAttendanceRecordDto {
   @IsOptional()
   @IsBoolean()
   allowRecheckin?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  useServerTime?: boolean;
+
+  @IsOptional()
+  @IsIn(['check_in', 'check_out'])
+  punchAction?: 'check_in' | 'check_out';
 
   @IsOptional()
   @IsString()

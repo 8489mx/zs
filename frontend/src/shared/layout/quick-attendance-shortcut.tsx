@@ -170,24 +170,24 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
       if (!checkIn) {
         await mutations.saveAttendanceRecord.mutateAsync({
           employeeId: Number(selectedEmployee.id),
-          workDate: todayDate(),
+          punchAction: 'check_in',
+          useServerTime: true,
           status: 'present',
-          checkInAt: nowIso(),
           source: 'manual',
         });
-        setFeedback({ type: 'success', message: `تم تسجيل حضور "${selectedEmployee.displayName || selectedEmployee.firstName}" بنجاح في ${now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true })}` });
+        setFeedback({ type: 'success', message: `تم تسجيل حضور "${selectedEmployee.displayName || selectedEmployee.firstName}" بنجاح (وفق توقيت السيرفر المعتمد)` });
         await attendanceQuery.refetch();
         return;
       }
       if (!checkOut) {
         await mutations.saveAttendanceRecord.mutateAsync({
           employeeId: Number(selectedEmployee.id),
-          workDate: todayDate(),
+          punchAction: 'check_out',
+          useServerTime: true,
           status: String(current?.status || 'present'),
-          checkOutAt: nowIso(),
           source: 'manual',
         });
-        setFeedback({ type: 'success', message: `تم تسجيل انصراف "${selectedEmployee.displayName || selectedEmployee.firstName}" بنجاح في ${now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true })}` });
+        setFeedback({ type: 'success', message: `تم تسجيل انصراف "${selectedEmployee.displayName || selectedEmployee.firstName}" بنجاح (وفق توقيت السيرفر المعتمد)` });
         await attendanceQuery.refetch();
       }
     } catch (err) {
@@ -201,16 +201,16 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
     try {
       await mutations.saveAttendanceRecord.mutateAsync({
         employeeId: Number(selectedEmployee.id),
-        workDate: todayDate(),
+        useServerTime: true,
+        punchAction: 'check_in',
         status: 'present',
-        checkInAt: nowIso(),
         source: 'manual',
         mode: 'new_session',
         allowRecheckin: true,
       });
       setFeedback({
         type: 'success',
-        message: `تم بدء وردية / جلسة جديدة للموظف "${selectedEmployee.displayName || selectedEmployee.firstName}" في ${now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true })}`,
+        message: `تم بدء وردية / جلسة جديدة للموظف "${selectedEmployee.displayName || selectedEmployee.firstName}" بنجاح (وفق توقيت السيرفر المعتمد)`,
       });
       await attendanceQuery.refetch();
     } catch (err) {

@@ -5,6 +5,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
 import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
+import { getTenantTimezone, todayTenantDate, formatTimeInTimezone } from '../../common/utils/tenant-timezone.util';
 
 export interface MobileAttendanceUser {
   employeeId: number;
@@ -300,7 +301,8 @@ export class MobileAttendanceService {
    * Returns current employee's attendance status for today
    */
   async getTodayStatus(user: MobileAttendanceUser) {
-    const today = new Date().toISOString().slice(0, 10);
+    const tenantTimezone = await getTenantTimezone(this.db, user.tenantId);
+    const today = todayTenantDate(tenantTimezone);
     const record = await this.anyDb
       .selectFrom('hr_attendance_records')
       .selectAll()
@@ -331,8 +333,8 @@ export class MobileAttendanceService {
       workDate: today,
       hasCheckedIn: Boolean(record?.check_in_at),
       hasCheckedOut: Boolean(record?.check_out_at),
-      checkInTime: record?.check_in_at ? new Date(record.check_in_at).toLocaleTimeString('ar-EG') : null,
-      checkOutTime: record?.check_out_at ? new Date(record.check_out_at).toLocaleTimeString('ar-EG') : null,
+      checkInTime: record?.check_in_at ? formatTimeInTimezone(record.check_in_at, tenantTimezone) : null,
+      checkOutTime: record?.check_out_at ? formatTimeInTimezone(record.check_out_at, tenantTimezone) : null,
       checkInSelfie: record?.check_in_selfie_url || null,
       checkOutSelfie: record?.check_out_selfie_url || null,
       distanceMeters: record?.distance_meters ? Number(record.distance_meters) : null,
@@ -397,7 +399,8 @@ export class MobileAttendanceService {
       }
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const tenantTimezone = await getTenantTimezone(this.db, user.tenantId);
+    const today = todayTenantDate(tenantTimezone);
     const now = new Date();
 
     const existing = await this.anyDb
@@ -411,7 +414,7 @@ export class MobileAttendanceService {
     if (punchType === 'check_in') {
       if (existing?.check_in_at) {
         throw new AppError(
-          `تم تسجيل الحضور اليوم بالفعل في تمام الساعة: ${new Date(existing.check_in_at).toLocaleTimeString('ar-EG')}`,
+          `تم تسجيل الحضور اليوم بالفعل في تمام الساعة: ${formatTimeInTimezone(existing.check_in_at, tenantTimezone)}`,
           'ALREADY_CHECKED_IN',
           400,
         );
@@ -462,7 +465,7 @@ export class MobileAttendanceService {
       return {
         ok: true,
         type: 'check_in',
-        time: now.toLocaleTimeString('ar-EG'),
+        time: formatTimeInTimezone(now, tenantTimezone),
         distanceMeters,
         message: 'تم تسجيل حضورك بنجاح داخل نطاق الفرع ✓',
       };
@@ -473,7 +476,7 @@ export class MobileAttendanceService {
       }
       if (existing?.check_out_at) {
         throw new AppError(
-          `تم تسجيل الانصراف مسبقاً في تمام الساعة: ${new Date(existing.check_out_at).toLocaleTimeString('ar-EG')}`,
+          `تم تسجيل الانصراف مسبقاً في تمام الساعة: ${formatTimeInTimezone(existing.check_out_at, tenantTimezone)}`,
           'ALREADY_CHECKED_OUT',
           400,
         );
@@ -495,7 +498,7 @@ export class MobileAttendanceService {
       return {
         ok: true,
         type: 'check_out',
-        time: now.toLocaleTimeString('ar-EG'),
+        time: formatTimeInTimezone(now, tenantTimezone),
         distanceMeters,
         message: 'تم تسجيل انصرافك بنجاح. يوم سعيد! ✓',
       };
