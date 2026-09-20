@@ -8,6 +8,8 @@ export interface HrEmployee {
   status: string;
   /** الرمز نفسه لا يصل من الخادم إطلاقاً — حالة وجوده فقط (البند O20) */
   hasPinCode?: boolean;
+  pinCode?: string;
+  pin_code?: string;
   phone?: string;
   mobile?: string;
   userId?: string;

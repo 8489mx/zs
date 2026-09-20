@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { IconSearch } from './StorefrontIcons';
 import { XIcon, TagIcon, PlusIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -23,7 +23,6 @@ export function StorefrontPredictiveSearch({
   onAddToCart,
 }: StorefrontPredictiveSearchProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<{
     categories: Array<{ id: number; name: string }>;
     products: Array<any>;
@@ -45,7 +44,6 @@ export function StorefrontPredictiveSearch({
     }
 
     debounceTimerRef.current = setTimeout(async () => {
-      setLoading(true);
       try {
         const res = await storefrontApi.getSearchSuggestions(slug, q);
         setSuggestions({
@@ -55,8 +53,6 @@ export function StorefrontPredictiveSearch({
         setIsOpen(Boolean((res?.categories && res.categories.length > 0) || (res?.products && res.products.length > 0)));
       } catch {
         setSuggestions({ categories: [], products: [] });
-      } finally {
-        setLoading(false);
       }
     }, 150);
 

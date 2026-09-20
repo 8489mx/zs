@@ -14,7 +14,6 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
   subtotal,
   freeShippingEnabled,
   freeShippingMinOrder = 500,
-  currency = 'EGP',
   compact = false,
 }: StorefrontFreeShippingBarProps) {
   if (!freeShippingEnabled || freeShippingMinOrder <= 0) {

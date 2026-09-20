@@ -31,7 +31,6 @@ export function NewIssueOrderPage() {
     cameraScanLineId,
     setCameraScanLineId,
     createdTransfers,
-    setCreatedTransfers,
     issueMode,
     setIssueMode,
     isDraftRestored,
