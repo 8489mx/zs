@@ -218,7 +218,7 @@
 | الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
 | :--- | :---: | :---: | :--- | :--- |
 | **دليل الموظفين والملفات الشخصية** | 🟢 | 100% | `hr.service.ts`, `EmployeesPage.tsx` | بيانات الموظفين، الرواتب الأساسية، البدلات، المسميات الوظيفية، وتاريخ التعيين. |
-| **حركات الحضور والانصراف والغياب** | 🟢 | 100% | `attendance`, `AttendancePage.tsx` | تسجيل ساعات الحضور والانصراف والغياب والأيام الإضافية. |
+| **حركات الحضور والانصراف والغياب والحصانة الزمنية الدولية (Attendance, Anti-Tampering & Multi-Tenant Timezone)** | 🟢 | 100% | `hr.service.ts`, `mobile-attendance.service.ts`, `tenant-timezone.util.ts`, `quick-attendance-shortcut.tsx`, `DailyAttendanceTable.tsx`, `tenant-timezone-attendance.spec.ts` | تسجيل ومتابعة الحضور والانصراف والورديات المتعددة واستثناءات التأخير والأوفر تايم؛ **حصانة تامة ضد التلاعب بساعة الأجهزة**: فرض توقيت السيرفر الرسمي (`useServerTime: true` و `punchAction: check_in / check_out`) وتجريد العميل من حق فرض توقيت جهازه في التسجيل السريع وبصمة الموبايل؛ **محرك المناطق الزمنية الذكي للمستأجرين (Dynamic Tenant Timezone Engine)**: قراءة `timezone` من إعدادات كل منشأة (`settings.timezone` مع كاش سريع 5 دقائق) لتحديد تاريخ العمل `work_date` والوقت المعروض بدقة بلد المشترك (الكويت `Asia/Kuwait`، السعودية `Asia/Riyadh`، الإمارات `Asia/Dubai`، مصر `Africa/Cairo`) مع الحماية من انزلاق تاريخ اليوم عبر حدود منتصف الليل. |
 | **مسير الرواتب والسلف والخصومات** | 🟢 | 100% | `payroll_runs`, `hr.service.ts`, `PayrollPage.tsx`, `hr-treasury` | احتساب المرتبات شهرياً، استقطاع السلف والغياب، وصرف الرواتب وترحيلها للخزينة والمصروفات.<br/>**⚠️ تصحيح مالي حرج سبتمبر 2026 (المرحلة 6):** كان قسط القرض يُسجَّل **بكامل قيمته المجدولة** في `loan_deduction_amount` ثم يُقصَّ صافي الأجر إلى صفر عند عدم الكفاية (`Math.max(0, rawNetPay)`) — بينما `settlePayrollLoanDeductions` يُرصِّد أقساط القرض بذلك المبلغ الكامل. النتيجة: **الشركة تُسقط من رصيد القرض مبلغاً لم تستقطعه فعلياً من الموظف** (مثال: إجمالي 5,000 وخصومات 4,500 وقسط 1,000 → الموظف يقبض صفراً، والمتاح للقسط 500 فقط، ومع ذلك كان القرض يُرصَّد 1,000 فتضيع 500 على الشركة في كل حالة). **الحالة الآن:** أولوية خصومات صريحة — القسط يأخذ المتاح فقط `min(المجدول، الإجمالي − الخصومات)`، ويُحفظ المستقطع **الفعلي** لا المجدول، والفرق يُؤجَّل بملاحظة موثقة على بند المسير. طُبِّق على مساري الاحتساب (البناء الكامل وإعادة الاحتساب اليدوي). |
 | **بوابة الخدمة الذاتية للموظف (Employee Self-Service Portal)** | 🟢 | 100% | `EmployeePortalPage.tsx`, `employee-portal.service.ts`, `employee-portal.controller.ts` | بوابة مخصصة للموظف تتيح له تسجيل الدخول بكوده الوظيفي وكلمة المرور المشفرة للاطلاع على ملفه، رصيد الإجازات، سجل الحضور، مفردات المرتب، وتقديم طلبات السلف والإجازات مع عزل كامل لصلاحيات الإدارة. |
 | **إدارة العهد العينية والنقدية للموظفين (Employee Custody & Assets)** | 🟢 | 100% | `HrAssetsPage.tsx`, `hr.service.ts`, `hr_employee_assets`, `employee-portal.service.ts` | نظام كامل لإدارة العهد العينية (سيارات، لابتوبات، هواتف، أجهزة) والنقدية، وتتبع تسليمها واسترجاعها، مع إثبات تلقائي للخصومات المالية على راتب الموظف عند التلف أو الفقدان، وربطها الصارم بإخلاء الطرف وتصفية مستحقات نهاية الخدمة (`endOfService`) وبوابة الموظف الذاتية (`EmployeePortalPage`). |
@@ -2139,30 +2139,39 @@
 * **الباقات المدعومة:** `plan_ultimate`, `plan_omnichannel` (وكافة الأسماء البديلة)
 * **مسارات الكود — Backend:** `backend/src/modules/maritime-freight/`
 * **مسارات الكود — Frontend:** `frontend/src/features/maritime-freight/`
-* **الجداول في قاعدة البيانات (Migration 080):** `shipping_ports`, `shipping_lines`, `maritime_rfqs`, `maritime_rfq_bids`, `maritime_quotations`, `maritime_jobs`, `maritime_containers`, `maritime_job_milestones`
-* **المعيار المرجعي:** DCSA (Digital Container Shipping Association) — 9 مراحل تتبع موحدة
+* **الجداول في قاعدة البيانات (Migrations 080, 122, 124, 125, 126):** `shipping_ports`, `shipping_lines`, `maritime_rfqs`, `maritime_rfq_bids`, `maritime_quotations`, `maritime_jobs`, `maritime_containers`, `maritime_job_milestones`, `maritime_rate_cards`, `maritime_customs_declarations`, `maritime_customs_declaration_items`, `maritime_carrier_invoices`, `maritime_carrier_disputes`, `maritime_cargo_insurances`, `maritime_warehouse_receipts`
+* **المعايير المرجعية الدولية:** DCSA (Digital Container Shipping Association) — 9 مراحل تتبع بحري موحدة، IATA (International Air Transport Association) — نسبة الوزن الحجمي 1:6000 وخوارزمية Modulo-7 لبوالص الشحن الجوي AWB ومحطات تتبع Cargo iQ، معايير التأمين البحري الدولي لمعهد المكتتبين بلندن (Institute Cargo Clauses ICC A/B/C & All Risks).
 * **بيانات أولية مدرجة:** 15 ميناء مصري ودولي (Alexandria, Port Said, Damietta, Singapore, Rotterdam, Jeddah, ...) + 10 خطوط شحن عالمية (MSC, Maersk, CMA CGM, ...)
 
 ### الملفات المنشأة
 
 | النوع | الملف | الوصف |
 | :--- | :--- | :--- |
-| **Types** | `maritime-freight.types.ts` | تعريفات TypeScript، معايير DCSA، 9 مراحل تتبع |
-| **DTOs** | `dto/create-rfq.dto.ts` | بيانات إنشاء طلب التسعير |
+| **Migration** | `2040000000125_maritime_carrier_invoice_audit.ts` | ترحيل قاعدة البيانات لتدقيق فواتير الخطوط الملاحية والنزاعات الناتجة عنها |
+| **Migration** | `2040000000126_multimodal_freight_insurance_and_warehousing.ts` | ترحيل قاعدة البيانات للشحن متعدد الوسائط، تأمين البضائع الشامل، وأذون استلام مستودعات الترانزيت والإيداع الجمركي (MWR) |
+| **Engine** | `engines/freight-audit.engine.ts` | محرك تدقيق فواتير الناقل النقي، مطابقة التعرفة المتعاقد عليها (Contracted Rate Card vs Billed)، حوكمة الاستثناءات (Maker-Checker Separation) |
+| **Engine** | `engines/air-freight.engine.ts` | محرك الشحن الجوي النقي وفق معايير IATA: حساب الوزن الحجمي 1:6000 والوزن الخاضع للتحصيل، خوارزمية التحقق Modulo-7 لبوالص الشحن الجوي، ومحطات تتبع Cargo iQ التسع |
+| **Unit Tests** | `engines/freight-audit.engine.spec.ts` | اختبارات وحدة حسابية صارمة لمحرك تدقيق الفواتير وتأكيد الفصل الإداري وحساب الفروقات |
+| **Unit Tests** | `engines/air-freight.engine.spec.ts` | اختبارات وحدة حسابية صارمة لمحرك الشحن الجوي وتأكيد صحة معادلات IATA و Modulo-7 |
+| **Types** | `maritime-freight.types.ts` | تعريفات TypeScript، معايير DCSA، معايير IATA للشحن الجوي ومحطات Cargo iQ، وتأمين البضائع والمستودعات |
+| **DTOs** | `dto/create-rfq.dto.ts` | بيانات إنشاء طلب التسعير للشحن متعدد الوسائط (بحري/جوي/بري) |
 | **DTOs** | `dto/submit-bid.dto.ts` | بيانات تقديم عرض شركة الشحن |
-| **DTOs** | `dto/create-quotation.dto.ts` | بيانات إنشاء عرض سعر العميل |
-| **DTOs** | `dto/create-job.dto.ts` | بيانات تحويل العرض لأمر تشغيل |
+| **DTOs** | `dto/create-quotation.dto.ts` | بيانات إنشاء عرض سعر العميل متعدد الوسائط |
+| **DTOs** | `dto/create-job.dto.ts` | بيانات تحويل العرض لأمر تشغيل للشحن الجوي والبحري |
+| **DTOs** | `dto/cargo-insurance.dto.ts` | بيانات إصدار وثائق تأمين البضائع وتسجيل المطالبات التأمينية |
+| **DTOs** | `dto/warehouse-receipt.dto.ts` | بيانات إصدار أذون استلام وإيداع المستودع وأوامر الإفراج والتسليم |
 | **DTOs** | `dto/update-container.dto.ts` | بيانات تحديث حالة الحاوية |
-| **Service** | `maritime-freight.service.ts` | كامل منطق RFQs، توليد الأكواد `[RFQ-YYYY-XXXX]`، إرسال بريد بروابط سحرية، مقارنة الأسعار، تطبيق الهامش، إنشاء مركز تكلفة، إدارة الحاويات، حساب الديمراج |
-| **Controller** | `maritime-freight.controller.ts` | Endpoints محمية بـ `SessionAuthGuard` |
+| **Service** | `maritime-freight.service.ts` | كامل منطق RFQs، توليد الأكواد `[RFQ-YYYY-XXXX]`، إرسال بريد بروابط سحرية، مقارنة الأسعار، تطبيق الهامش، إنشاء مركز تكلفة، إدارة الحاويات، حساب الديمراج، تدقيق فواتير الناقل، إصدار وثائق التأمين، وإدارة أذون المستودعات MWR |
+| **Controller** | `maritime-freight.controller.ts` | Endpoints محمية بـ `SessionAuthGuard` لكافة العمليات |
 | **Controller** | `maritime-public-tracking.controller.ts` | Endpoint عام لتتبع الشحنات بدون مصادقة |
 | **Module** | `maritime-freight.module.ts` | مسجل في `app.module.ts` |
-| **API** | `api/maritime-freight.api.ts` | خدمة API Frontend |
-| **Component** | `CreateRfqModal.tsx` | نافذة إنشاء طلب تسعير جديد |
+| **API** | `api/maritime-freight.api.ts` | خدمة API Frontend متكاملة تدعم كافة مسارات الشحن الجوي والبحري والتأمين والمستودعات |
+| **Component** | `CreateRfqModal.tsx` | نافذة إنشاء طلب تسعير جديد مع محول النمط الثلاثي (بحري/جوي/بري) |
 | **Component** | `ApplyMarginModal.tsx` | نافذة تطبيق الهامش على أسعار الشحن |
 | **Component** | `CarrierBidEntryModal.tsx` | نافذة إدخال عرض شركة الشحن يدوياً |
-| **Component** | `JobDetailsModal.tsx` | نافذة تفاصيل أمر التشغيل والمراحل |
+| **Component** | `JobDetailsModal.tsx` | نافذة تفاصيل أمر التشغيل والمراحل، والتدقيق الفوري لفواتير الناقل، وإصدار وثائق التأمين والمطالبات، وأذون المستودعات MWR ورادار الطيران والسفن |
 | **Component** | `ContainerReturnModal.tsx` | نافذة تسجيل إعادة الحاوية الفارغة |
+| **Documents** | `maritime-documents.ts` | طباعة وتوليد بوالص الشحن البحري والجوي الرسمية (Neutral IATA AWB)، وشهادات تأمين البضائع، وأذون إيداع المستودع (MWR)، وإشعار النزاع المالي للناقلين |
 | **Tab** | `MaritimeRfqTab.tsx` | تبويب طلبات التسعير (Carrier RFQs) |
 | **Tab** | `MaritimeMatrixTab.tsx` | تبويب مصفوفة مقارنة الأسعار |
 | **Tab** | `MaritimeQuotationsTab.tsx` | تبويب عروض أسعار العملاء |
@@ -2171,7 +2180,7 @@
 | **Tab** | `MaritimeMasterDataTab.tsx` | تبويب دليل الشركاء والموانئ |
 | **Page** | `MaritimeWorkspacePage.tsx` | الصفحة الرئيسية للموديول (URL-driven tabs بـ `?tab=`) |
 | **Page** | `PublicShipmentTrackingPage.tsx` | صفحة تتبع الشحنة العامة (بدون تسجيل دخول) |
-| **Icons** | `AppIcons.tsx` | أُضيفت `ShipIcon` و `ContainerIcon` |
+| **Icons** | `AppIcons.tsx` | أُضيفت `ShipIcon`, `ContainerIcon`, `PlaneIcon` |
 
 ### التوصيل في النظام (Wiring)
 
@@ -2200,10 +2209,16 @@
 | **مصفوفة مقارنة الأسعار التلقائية** | 🟢 | 100% | `MaritimeMatrixTab.tsx` — مقارنة متعددة الأبعاد |
 | **تطبيق الهامش وإصدار عرض سعر العميل** | 🟢 | 100% | `ApplyMarginModal.tsx`, `MaritimeQuotationsTab.tsx` |
 | **تحويل عرض السعر لأمر تشغيل (Job Conversion)** | 🟢 | 100% | `MaritimeJobsTab.tsx`, `create-job.dto.ts` |
-| **تتبع 9 مراحل شحن وفق معيار DCSA** | 🟢 | 100% | `JobDetailsModal.tsx`, `MaritimeJobsTab.tsx`, `maritime-freight.types.ts` |
+| **تتبع 9 مراحل شحن بحري وفق معيار DCSA** | 🟢 | 100% | `JobDetailsModal.tsx`, `MaritimeJobsTab.tsx`, `maritime-freight.types.ts` |
+| **الشحن الجوي والنقل متعدد الوسائط (Air Freight & Multimodal)** | 🟢 | 100% | `air-freight.engine.ts`, `maritime-freight.service.ts`, `JobDetailsModal.tsx`, `maritime-documents.ts` — دعم معايير IATA (نسبة 1:6000)، وخوارزمية Modulo-7 للتحقق من أرقام بوالص الشحن الجوي AWB، وتتبع 9 محطات Cargo iQ، وتوليد بوليصة الشحن الجوي الموحدة Neutral IATA AWB |
+| **تأمين البضائع الشامل وإدارة المطالبات (Cargo Insurance & Claims)** | 🟢 | 100% | `maritime-freight.service.ts`, `JobDetailsModal.tsx`, `maritime-documents.ts` — إصدار وثائق التأمين البحري/الجوي لكافة شروط التغطية (All Risks, ICC A/B/C)، وحساب الأقساط، وتسجيل مطالبات التعويض، وطباعة شهادة التأمين المعتمدة |
+| **أذون استلام وإيداع مستودعات الترانزيت والجمركية (Transit & Bonded Warehouse Intake - MWR)** | 🟢 | 100% | `maritime-freight.service.ts`, `JobDetailsModal.tsx`, `maritime-documents.ts` — ترقيم موحد `MWR-YYMMDD-XXXX`، تخصيص مواقع التخزين والأرفف (Bay/Rack/Bin)، مراقبة الطرود والأوزان والأحجام، وإصدار أذون الإفراج والتسليم وطباعة إذن الإيداع |
 | **إدارة الحاويات وتتبع مواعيد الإعادة** | 🟢 | 100% | `MaritimeContainersTab.tsx`, `ContainerReturnModal.tsx` |
 | **حساب الديمراج التلقائي** | 🟢 | 100% | `maritime-freight.service.ts` |
 | **إنشاء مركز تكلفة تلقائي لكل أمر شحن** | 🟢 | 100% | `maritime-freight.service.ts` — `dimension = 'project'` |
+| **تدقيق ومطابقة فواتير الخطوط الملاحية (Freight Audit & Rate Card Reconciliation)** | 🟢 | 100% | `freight-audit.engine.ts`, `maritime-freight.service.ts`, `JobDetailsModal.tsx` — تدقيق تلقائي فوري لأي فاتورة مقدمة من الناقل ومقارنتها بسعر الفوز والتعرفة المتعاقد عليها واكتشاف البنود الزائدة أو غير المتفق عليها فورياً وتصنيف الفاتورة (clean / overcharge / undercharge) |
+| **حوكمة استثناءات فروق الفواتير (Maker-Checker Variance Override)** | 🟢 | 100% | `freight-audit.engine.ts`, `maritime-freight.service.ts`, `JobDetailsModal.tsx` — منع منشئ الفاتورة من تجاوز الفروق بنفسه (`userId !== createdBy`) واشتراط رتبة مالية/إدارية وتبرير كتابي لا يقل عن 10 أحرف |
+| **إدارة النزاعات والمطالبات مع الخطوط الملاحية (Carrier Dispute Management)** | 🟢 | 100% | `maritime-freight.service.ts`, `JobDetailsModal.tsx`, `maritime-documents.ts` — فتح ومتابعة النزاعات الرسمية مع الناقلين، ترقيم موحد `DISP-YYMMDD-XXXX`، وإصدار إشعار نزاع رسمي قابل للطباعة (Carrier Dispute Note) مع تعليق الفاتورة لحين التسوية |
 | **دليل الموانئ والخطوط البحرية** | 🟢 | 100% | `MaritimeMasterDataTab.tsx` + بذر 15 ميناء + 10 خطوط |
 | **صفحة تتبع عام للشحنة (Public Tracking)** | 🟢 | 100% | `PublicShipmentTrackingPage.tsx`, `maritime-public-tracking.controller.ts` |
 | **عزل المستأجرين (Multi-Tenant Isolation)** | 🟢 | 100% | جميع استعلامات DB بـ `tenant_id` |

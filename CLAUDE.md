@@ -8,6 +8,10 @@
 > 4. `ARCHITECTURE_INVARIANTS.md` (**Architecture Invariants & Audit Ledger** — forbidden patterns,
 >    single-source-of-truth engines, enforced invariants, migration ledger, audit phase status).
 >    **Read §2 and §3 of that file before writing any financial, stock, or accounting code.**
+> 5. `REVIEW_ROADMAP.md` (**Review Roadmap** — what has been reviewed line-by-line and is trusted,
+>    what is only test-covered, and the prioritized queue of what to review next).
+>    **If asked to do a review/audit session, read this file FIRST** — it tells you what to skip,
+>    what to delta-review, and where to start.
 
 ---
 
@@ -16,7 +20,18 @@ After completing ANY phase of the audit, or any structural fix, you MUST — bef
 1. Update `ARCHITECTURE_INVARIANTS.md`: new invariants, newly forbidden patterns, migration ledger,
    phase status table, and the open-items list.
 2. Update `SYSTEM_CAPABILITIES.md` for any capability whose behaviour or status changed.
+3. Update `REVIEW_ROADMAP.md`: move the completed item from the priority queue to the "reviewed and
+   trusted" table, and note the commit/date it was reviewed as of (for future delta reviews).
 This is what lets the next session (Claude, another AI, or a human) resume without re-deriving context.
+
+## 0-b. Delta-Review Rule (مراجعة الدلتا لموديول سبق إغلاقه)
+When new code lands inside a module already marked reviewed in `REVIEW_ROADMAP.md`, do NOT
+re-read the whole module, and do NOT review only the changed lines in isolation. Instead:
+`git diff <last-reviewed-ref>..HEAD -- <path>`, then read the FULL BODY of every function the diff
+touches (a two-line change inside an old function can only be judged correct in the context of that
+function's whole transaction/lock/invariant), and verify the new code still routes through the
+established single-source-of-truth engines (§2 of `ARCHITECTURE_INVARIANTS.md`) rather than
+bypassing them. See `REVIEW_ROADMAP.md` §0 for the full walkthrough and a live example.
 
 ---
 
