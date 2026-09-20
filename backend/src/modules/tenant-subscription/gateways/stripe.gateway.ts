@@ -114,7 +114,8 @@ export class StripeGatewayService implements IPaymentGateway {
     return {
       isValid,
       isSuccessful,
-      transactionReference: session?.id || `STRIPE-HOOK-${Date.now()}`,
+      // No synthetic fallback: a payment we cannot name is a payment we cannot de-duplicate (F4).
+      transactionReference: String(session?.id || '').trim(),
       amount: Number(session?.amount_total || 0) / 100,
       currency: (session?.currency || 'USD').toUpperCase(),
       gateway: 'stripe',

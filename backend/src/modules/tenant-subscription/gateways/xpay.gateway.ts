@@ -140,7 +140,8 @@ export class XPayGatewayService implements IPaymentGateway {
     return {
       isValid,
       isSuccessful,
-      transactionReference: data?.transaction_uuid || data?.id || `XPAY-HOOK-${Date.now()}`,
+      // No synthetic fallback: a payment we cannot name is a payment we cannot de-duplicate (F4).
+      transactionReference: String(data?.transaction_uuid || data?.id || '').trim(),
       amount: Number(data?.total_amount || data?.amount || 0),
       currency: data?.currency || 'EGP',
       gateway: 'xpay',

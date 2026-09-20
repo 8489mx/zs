@@ -24,6 +24,15 @@ export type PaymentInitiateResult = {
 export type WebhookValidationResult = {
   isValid: boolean;
   isSuccessful: boolean;
+  /**
+   * The gateway's own identifier for this transaction, used as the idempotency key
+   * when granting subscription time.
+   *
+   * It must be empty when the payload did not carry one. Synthesising a reference
+   * (e.g. `GATEWAY-${Date.now()}`) makes every retry of the same payment look like a
+   * new payment, which is forbidden pattern F4 — that is exactly how a retried
+   * webhook used to stack another billing period onto the tenant.
+   */
   transactionReference: string;
   amount: number;
   currency: string;

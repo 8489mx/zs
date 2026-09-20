@@ -1,12 +1,14 @@
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Kysely } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuditService } from '../../../core/audit/audit.service';
+import { AuthCacheService } from '../../../core/auth/services/auth-cache.service';
 import { XPayGatewayService } from './xpay.gateway';
 import { PaymobGatewayService } from './paymob.gateway';
 import { StripeGatewayService } from './stripe.gateway';
 import { PaymentInitiateInput, PaymentInitiateResult, WebhookValidationResult } from './payment-gateway.interface';
+import { decideSubscriptionGrant } from './subscription-grant.engine';
 
 @Injectable()
 export class PaymentManagerService {
@@ -15,6 +17,7 @@ export class PaymentManagerService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly audit: AuditService,
+    private readonly authCache: AuthCacheService,
     private readonly xpay: XPayGatewayService,
     private readonly paymob: PaymobGatewayService,
     private readonly stripe: StripeGatewayService,
@@ -49,6 +52,16 @@ export class PaymentManagerService {
     if (!result.tenantId) {
       this.logger.warn(`Webhook from ${gatewayName} missing tenantId (reference: ${result.transactionReference})`);
       return { ok: true, status: 'missing_tenant' };
+    }
+
+    // A successful payment we cannot name cannot be de-duplicated, and every gateway
+    // retries. Granting billing period for an unnamed payment is how a single captured
+    // webhook turns into unlimited subscription time (F4) — refuse instead.
+    if (!String(result.transactionReference || '').trim()) {
+      this.logger.error(
+        `Webhook from ${gatewayName} reported a successful payment with no transaction reference; refusing to grant a subscription period.`,
+      );
+      return { ok: false, message: 'Missing transaction reference' };
     }
 
     const tenant = await this.db.selectFrom('tenants').selectAll().where('id', '=', result.tenantId).executeTakeFirst();
@@ -93,24 +106,58 @@ export class PaymentManagerService {
     transactionReference: string,
   ): Promise<Record<string, unknown>> {
     const now = new Date();
-
-    const activeSub = await this.db
-      .selectFrom('tenant_subscriptions')
-      .selectAll()
-      .where('tenant_id', '=', tenant.id)
-      .where('status', 'in', ['active', 'past_due', 'expired'])
-      .orderBy('ends_at', 'desc')
-      .executeTakeFirst();
-
-    let newStart = now;
-    if (activeSub && activeSub.status !== 'expired' && activeSub.ends_at && new Date(activeSub.ends_at) > now) {
-      newStart = new Date(activeSub.ends_at);
+    const reference = String(transactionReference || '').trim();
+    if (!reference) {
+      throw new BadRequestException('لا يمكن ترحيل دفعة اشتراك بلا مرجع معاملة.');
     }
 
-    const newEnd = new Date(newStart);
-    newEnd.setMonth(newEnd.getMonth() + durationMonths);
+    let alreadyApplied = false;
+    let newEnd = now;
 
     await this.db.transaction().execute(async (trx) => {
+      // Serialise concurrent grants for this tenant. The period to add is derived from the
+      // current subscription, so reading it outside the transaction (as this used to) lets
+      // two gateway retries read the same base and each extend from it (F1/F2).
+      await trx.selectFrom('tenants').select('id').where('id', '=', tenant.id).forUpdate().executeTakeFirst();
+
+      // Idempotency gate. Every gateway retries, and XPay/Paymob signatures are a plain
+      // HMAC over the body with no nonce, so a captured payload stays valid forever:
+      // without this check each replay granted another billing period.
+      const existingPayment = await trx
+        .selectFrom('tenant_subscription_payments')
+        .select('id')
+        .where('tenant_id', '=', tenant.id)
+        .where('reference', '=', reference)
+        .executeTakeFirst();
+
+      if (existingPayment) {
+        alreadyApplied = true;
+        return;
+      }
+
+      const activeSub = await trx
+        .selectFrom('tenant_subscriptions')
+        .selectAll()
+        .where('tenant_id', '=', tenant.id)
+        .where('status', 'in', ['active', 'past_due', 'expired'])
+        .orderBy('ends_at', 'desc')
+        .executeTakeFirst();
+
+      const decision = decideSubscriptionGrant({
+        transactionReference: reference,
+        alreadyRecorded: false,
+        currentPeriodEndsAt: activeSub?.ends_at ?? null,
+        currentPeriodIsLive: Boolean(activeSub && activeSub.status !== 'expired'),
+        durationMonths,
+        now,
+      });
+
+      // `reference` and `alreadyRecorded` were settled above, so only 'grant' can reach here.
+      if (decision.action !== 'grant') return;
+
+      const newStart = decision.startsAt;
+      newEnd = decision.endsAt;
+
       if (activeSub) {
         await trx.updateTable('tenant_subscriptions').set({ status: 'expired', updated_at: now }).where('id', '=', activeSub.id).where('tenant_id', '=', tenant.id).execute();
       }
@@ -139,7 +186,7 @@ export class PaymentManagerService {
           amount,
           currency,
           method: `${gatewayName}_online`,
-          reference: transactionReference,
+          reference,
           paid_at: now,
           created_at: now,
         } as any)
@@ -153,8 +200,30 @@ export class PaymentManagerService {
       await trx.updateTable('tenants').set(tenantUpdateData).where('id', '=', tenant.id).execute();
     });
 
-    const mockAuth: any = {
-      userId: 'system-gateway',
+    // The grant just flipped tenants.status to 'active' and may have changed plan_id.
+    // assertTenantLoginAllowed caches the previous 'not allowed' verdict, so without this
+    // the customer who just paid keeps being refused until the cache entry ages out.
+    this.authCache.invalidateTenant(tenant.id);
+
+    if (alreadyApplied) {
+      this.logger.log(
+        `Duplicate ${gatewayName} webhook for reference ${reference} (tenant ${tenant.slug}) ignored; subscription already granted.`,
+      );
+      return {
+        ok: true,
+        renewed: false,
+        duplicate: true,
+        tenant: tenant.slug,
+        transactionReference: reference,
+      };
+    }
+
+    // `created_by` is BIGINT REFERENCES users(id): there is no user behind a gateway
+    // callback, so it must be null. It used to carry the string 'system-gateway', which
+    // made this insert throw AFTER the subscription had been committed — the handler
+    // returned 500, the gateway retried, and the retry granted another period.
+    const systemActor: any = {
+      userId: null,
       username: `${gatewayName}-checkout`,
       role: 'super_admin',
       tenantId: tenant.id,
@@ -164,8 +233,8 @@ export class PaymentManagerService {
 
     await this.audit.log(
       'تجديد آلي للباقة (بوابة دفع)',
-      `تم تجديد وتفعيل باقة (${plan.name}) للنسخة ${tenant.slug} تلقائياً عبر بوابة ${gatewayName.toUpperCase()} بقيمة ${amount} ${currency} (مرجع: ${transactionReference})`,
-      mockAuth,
+      `تم تجديد وتفعيل باقة (${plan.name}) للنسخة ${tenant.slug} تلقائياً عبر بوابة ${gatewayName.toUpperCase()} بقيمة ${amount} ${currency} (مرجع: ${reference})`,
+      systemActor,
       { targetTenantId: tenant.id },
     );
 
@@ -176,7 +245,8 @@ export class PaymentManagerService {
       renewed: true,
       tenant: tenant.slug,
       plan: plan.name,
-      transactionReference,
+      endsAt: newEnd.toISOString(),
+      transactionReference: reference,
     };
   }
 

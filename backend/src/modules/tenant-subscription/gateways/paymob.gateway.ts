@@ -186,7 +186,8 @@ export class PaymobGatewayService implements IPaymentGateway {
     return {
       isValid,
       isSuccessful,
-      transactionReference: String(obj?.id || obj?.order?.id || `PAYMOB-${Date.now()}`),
+      // No synthetic fallback: a payment we cannot name is a payment we cannot de-duplicate (F4).
+      transactionReference: String(obj?.id || obj?.order?.id || '').trim(),
       amount: Number(obj?.amount_cents || 0) / 100,
       currency: obj?.currency || 'EGP',
       gateway: 'paymob',
