@@ -583,6 +583,11 @@ export class SaasAdminService {
       await trx.updateTable('tenants').set(tenantUpdateData).where('id', '=', tenant.id).execute();
     });
     
+    // Renewal flips tenants.status to 'active' and may change plan_id. Every sibling
+    // mutation invalidates here; this one did not, so a customer whose expiry had already
+    // been cached as 'not allowed' stayed locked out until the entry aged out.
+    this.authCache.invalidateTenant(tenant.id);
+
     await this.audit.log('تجديد اشتراك', `تم تجديد اشتراك النسخة: ${tenant.slug} لمدة ${body.durationMonths} أشهر`, auth, {
       targetTenantId: tenant.id,
       eventCode: AUDIT_EVENT_CODES.SAAS_SUBSCRIPTION_RENEWED,
@@ -602,8 +607,11 @@ export class SaasAdminService {
     this.assertNotPlatformTenantTarget(tenant.id);
     const now = new Date();
     
-    let trialEndsAt = tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : now;
-    if (trialEndsAt < now) trialEndsAt = now;
+    // Copy, never alias: `trialEndsAt` is mutated below, and both branches used to be able
+    // to leave it pointing at the very `now` object that also fills activated_at/updated_at,
+    // so extending the trial pushed the activation timestamp into the future too.
+    let trialEndsAt = tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : new Date(now);
+    if (trialEndsAt < now) trialEndsAt = new Date(now);
     
     const updateData: any = { status: 'active', activated_at: now, updated_at: now };
     
@@ -771,18 +779,29 @@ export class SaasAdminService {
     const finalPassword = isCustomPassword ? body.newPassword!.trim() : this.generateStrongTemporaryPassword();
     const passwordRecord = await createPasswordRecord(finalPassword);
 
-    await this.db
-      .updateTable('users')
-      .set({
-        password_hash: passwordRecord.hash,
-        password_salt: passwordRecord.salt,
-        must_change_password: isCustomPassword ? false : true,
-        failed_login_count: 0,
-        locked_until: null,
-        is_active: true,
-      } as any)
-      .where('id', '=', owner.id)
-      .execute();
+    await this.db.transaction().execute(async (trx) => {
+      await trx
+        .updateTable('users')
+        .set({
+          password_hash: passwordRecord.hash,
+          password_salt: passwordRecord.salt,
+          must_change_password: isCustomPassword ? false : true,
+          failed_login_count: 0,
+          locked_until: null,
+          is_active: true,
+        } as any)
+        .where('id', '=', owner.id)
+        .execute();
+
+      // Resetting the password is the remedy for a compromised account, so the sessions
+      // opened with the old one must not survive it. Sessions last 30 days and
+      // resolveAuthContext has no notion of a password version, so without this a stolen
+      // cookie kept working after the reset. users.service.ts:updateUser already does
+      // this on every password change; this path had been missed.
+      await trx.deleteFrom('sessions').where('user_id', '=', owner.id).where('tenant_id', '=', tenant.id).execute();
+    });
+
+    this.authCache.invalidateUserSessions(owner.id);
 
     await this.audit.log('إعادة كلمة مرور مالك النسخة', `تمت إعادة كلمة مرور مالك النسخة ${tenant.slug} (${tenant.id}) - المستخدم: ${owner.username}`, auth, {
       targetTenantId: tenant.id,
@@ -811,34 +830,54 @@ export class SaasAdminService {
       WHERE column_name = 'tenant_id' AND table_schema = 'public'
     `.execute(this.db);
 
-    let tables = tablesQuery.rows.map(r => r.table_name).filter(t => t !== 'tenants');
-    
-    let progress = true;
-    while (tables.length > 0 && progress) {
-      progress = false;
-      const nextTables = [];
-      for (const table of tables) {
-        try {
-          await sql`DELETE FROM ${sql.table(table)} WHERE tenant_id = ${tenant.id}`.execute(this.db);
-          progress = true; 
-        } catch (e: any) {
-          const code = e.code || e.cause?.code || e.originalError?.code || e.error?.code;
-          if (code === '23503' || code === '23001') { // foreign_key_violation or restrict_violation
-            nextTables.push(table);
-          } else {
-            console.error('deleteTenant error:', e, 'Extracted code:', code, 'Table:', table);
-            throw e;
+    const allTables = tablesQuery.rows.map(r => r.table_name).filter(t => t !== 'tenants');
+
+    // One transaction for the whole purge. Each table used to be deleted on its own
+    // connection, so a foreign key we could not resolve - or any unexpected error - left
+    // the tenant half-deleted with no way back: some ledgers gone, others still present,
+    // and the tenant row still there. Either the tenant disappears completely or nothing
+    // moves.
+    //
+    // Savepoints matter here: the retry loop drives itself off foreign-key violations, and
+    // inside a transaction a raised error poisons the whole thing unless the failed
+    // statement is rolled back to a savepoint first.
+    await this.db.transaction().execute(async (trx) => {
+      let tables = allTables;
+      let progress = true;
+
+      while (tables.length > 0 && progress) {
+        progress = false;
+        const nextTables: string[] = [];
+
+        for (const table of tables) {
+          const savepoint = `sp_del_${Math.random().toString(36).slice(2, 10)}`;
+          await sql`SAVEPOINT ${sql.raw(savepoint)}`.execute(trx);
+          try {
+            await sql`DELETE FROM ${sql.table(table)} WHERE tenant_id = ${tenant.id}`.execute(trx);
+            await sql`RELEASE SAVEPOINT ${sql.raw(savepoint)}`.execute(trx);
+            progress = true;
+          } catch (e: any) {
+            await sql`ROLLBACK TO SAVEPOINT ${sql.raw(savepoint)}`.execute(trx);
+            const code = e.code || e.cause?.code || e.originalError?.code || e.error?.code;
+            if (code === '23503' || code === '23001') { // foreign_key_violation or restrict_violation
+              nextTables.push(table);
+            } else {
+              console.error('deleteTenant error:', e, 'Extracted code:', code, 'Table:', table);
+              throw e;
+            }
           }
         }
+
+        tables = nextTables;
       }
-      tables = nextTables;
-    }
 
-    if (tables.length > 0) {
-      throw new BadRequestException('تعذر حذف بعض البيانات المرتبطة بالنسخة بسبب قيود قواعد البيانات.');
-    }
+      if (tables.length > 0) {
+        throw new BadRequestException('تعذر حذف بعض البيانات المرتبطة بالنسخة بسبب قيود قواعد البيانات.');
+      }
 
-    await this.db.deleteFrom('tenants').where('id', '=', tenant.id).execute();
+      await trx.deleteFrom('tenants').where('id', '=', tenant.id).execute();
+    });
+
     this.authCache.invalidateTenant(tenant.id);
 
     await this.audit.log('حذف نسخة', `تم حذف النسخة ${tenant.slug} (${tenant.id}) نهائياً من النظام`, auth, {
