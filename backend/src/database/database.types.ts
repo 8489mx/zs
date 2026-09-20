@@ -3111,6 +3111,9 @@ export interface ShippingPortTable {
   name_en: string;
   country_code: string;
   country_name: string;
+  port_type: ColumnType<'sea' | 'air' | 'land', string | undefined, string | undefined>;
+  iata_code: string | null;
+  icao_code: string | null;
   is_active: boolean;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
@@ -3122,7 +3125,8 @@ export interface ShippingLineTable {
   code: string;
   name_ar: string;
   name_en: string;
-  carrier_type: ColumnType<'shipping_line' | 'overseas_agent', string | undefined, string | undefined>;
+  carrier_type: ColumnType<'shipping_line' | 'airline' | 'trucking' | 'freight_forwarder' | 'overseas_agent', string | undefined, string | undefined>;
+  airline_prefix: string | null;
   trade_lanes: string | null;
   country_name: string | null;
   country_code: string | null;
@@ -3152,6 +3156,8 @@ export interface MaritimeInquiryTable {
   customer_phone: string | null;
   customer_email: string | null;
   direction: 'import' | 'export' | 'cross_trade';
+  transport_mode: 'sea' | 'air' | 'road' | 'multimodal';
+  air_cargo_type: string | null;
   pol_id: string | null;
   pol_code: string;
   pol_name: string;
@@ -3165,6 +3171,14 @@ export interface MaritimeInquiryTable {
   commodity_description: string;
   cargo_nature: string;
   gross_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  volumetric_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  chargeable_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  total_cbm: ColumnType<number, number | string | undefined, number | string | undefined>;
+  package_count: number | null;
+  flight_number: string | null;
+  flight_date: string | null;
+  mawb_number: string | null;
+  hawb_number: string | null;
   cbm: ColumnType<number, number | string | undefined, number | string | undefined>;
   cargo_ready_date: string | null;
   target_delivery_date: string | null;
@@ -3190,6 +3204,7 @@ export interface MaritimeRfqTable {
   customer_phone: string | null;
   customer_email: string | null;
   direction: 'import' | 'export' | 'cross_trade';
+  transport_mode: 'sea' | 'air' | 'road' | 'multimodal';
   pol_id: string | null;
   pol_code: string;
   pol_name: string;
@@ -3202,6 +3217,16 @@ export interface MaritimeRfqTable {
   container_count: number;
   commodity_description: string;
   cargo_nature: string;
+  air_cargo_type: string | null;
+  gross_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  volumetric_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  chargeable_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  total_cbm: ColumnType<number, number | string | undefined, number | string | undefined>;
+  package_count: number | null;
+  flight_number: string | null;
+  flight_date: string | null;
+  mawb_number: string | null;
+  hawb_number: string | null;
   cargo_ready_date: string | null;
   target_free_days: number;
   payment_term: 'prepaid' | 'collect';
@@ -3248,12 +3273,15 @@ export interface MaritimeRateCardTable {
   tenant_id: string;
   shipping_line_id: string | null;
   carrier_name: string;
+  transport_mode: 'sea' | 'air' | 'road' | 'multimodal';
   pol_code: string;
   pol_name: string;
   pod_code: string;
   pod_name: string;
   cargo_mode: string;
   container_type: string;
+  rate_basis: string;
+  min_charge: ColumnType<number, number | string | undefined, number | string | undefined>;
   ocean_freight: ColumnType<number, number | string | undefined, number | string | undefined>;
   currency: string;
   thc_origin: ColumnType<number, number | string | undefined, number | string | undefined>;
@@ -3285,6 +3313,17 @@ export interface MaritimeQuotationTable {
   customer_name: string;
   customer_phone: string | null;
   customer_email: string | null;
+  transport_mode: 'sea' | 'air' | 'road' | 'multimodal';
+  air_cargo_type: string | null;
+  gross_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  volumetric_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  chargeable_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  total_cbm: ColumnType<number, number | string | undefined, number | string | undefined>;
+  package_count: number | null;
+  flight_number: string | null;
+  flight_date: string | null;
+  mawb_number: string | null;
+  hawb_number: string | null;
   payment_term: 'prepaid' | 'collect';
   base_cost: ColumnType<number, number | string | undefined, number | string | undefined>;
   currency: string;
@@ -3312,6 +3351,17 @@ export interface MaritimeJobTable {
   customer_id: number | null;
   customer_name: string;
   direction: 'import' | 'export' | 'cross_trade';
+  transport_mode: 'sea' | 'air' | 'road' | 'multimodal';
+  air_cargo_type: string | null;
+  gross_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  volumetric_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  chargeable_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  total_cbm: ColumnType<number, number | string | undefined, number | string | undefined>;
+  package_count: number | null;
+  flight_number: string | null;
+  flight_date: string | null;
+  mawb_number: string | null;
+  hawb_number: string | null;
   payment_term: 'prepaid' | 'collect';
   shipping_line_id: string | null;
   shipping_line_name: string;
@@ -3428,6 +3478,58 @@ export interface MaritimeJobMilestoneTable {
   notes: string | null;
   recorded_by: number | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface MaritimeCarrierInvoiceTable {
+  id: Generated<string>;
+  tenant_id: string;
+  job_id: string | number;
+  shipping_line_id: string | number | null;
+  carrier_name: string;
+  invoice_number: string;
+  invoice_date: ColumnType<string, string | Date | undefined, string | Date | undefined>;
+  currency: string;
+  total_invoiced_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  ocean_freight: ColumnType<number, number | string | undefined, number | string | undefined>;
+  thc_charges: ColumnType<number, number | string | undefined, number | string | undefined>;
+  baf_charges: ColumnType<number, number | string | undefined, number | string | undefined>;
+  detention_demurrage: ColumnType<number, number | string | undefined, number | string | undefined>;
+  other_charges: ColumnType<number, number | string | undefined, number | string | undefined>;
+  rate_card_id: string | number | null;
+  contracted_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  variance_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  variance_pct: ColumnType<number, number | string | undefined, number | string | undefined>;
+  audit_status: 'pending' | 'matched' | 'overcharge' | 'undercharge' | 'no_contract' | 'approved_override' | 'disputed';
+  override_approved_by: number | null;
+  override_approved_at: Date | null;
+  override_reason: string | null;
+  journal_entry_id: number | null;
+  payment_status: 'unpaid' | 'partially_paid' | 'paid' | 'held_for_dispute';
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeCarrierDisputeTable {
+  id: Generated<string>;
+  tenant_id: string;
+  dispute_number: string;
+  invoice_id: string | number;
+  job_id: string | number;
+  carrier_name: string;
+  disputed_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  currency: string;
+  dispute_reason: string;
+  dispute_status: 'draft' | 'submitted' | 'accepted' | 'rejected' | 'partially_accepted';
+  resolution_notes: string | null;
+  credit_note_number: string | null;
+  credit_note_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  created_by: number | null;
+  resolved_by: number | null;
+  resolved_at: Date | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface ContractingProjectTable {
@@ -3855,6 +3957,49 @@ export interface ContractingGuaranteeTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface MaritimeCargoInsuranceTable {
+  id: Generated<string>;
+  tenant_id: string;
+  job_id: string | number;
+  policy_number: string;
+  insurance_company: string;
+  insured_value: ColumnType<number, number | string | undefined, number | string | undefined>;
+  premium_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  currency: string;
+  coverage_type: 'all_risks' | 'clauses_a' | 'clauses_b' | 'clauses_c';
+  issue_date: string;
+  expiry_date: string | null;
+  status: 'draft' | 'active' | 'claimed' | 'cancelled' | 'expired';
+  claim_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  claim_status: string | null;
+  claim_notes: string | null;
+  certificate_url: string | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeWarehouseReceiptTable {
+  id: Generated<string>;
+  tenant_id: string;
+  receipt_number: string;
+  job_id: string | number;
+  location_id: string | number | null;
+  received_date: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  package_count: number;
+  gross_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  cbm: ColumnType<number, number | string | undefined, number | string | undefined>;
+  bay_rack_bin: string | null;
+  warehouse_status: 'in_storage' | 'inspected' | 'released' | 'transferred';
+  released_at: Date | null;
+  released_by: number | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface Database {
   tamper_audit_logs: TamperAuditLogTable;
   approval_rules: ApprovalRuleTable;
@@ -3877,6 +4022,10 @@ export interface Database {
   maritime_jobs: MaritimeJobTable;
   maritime_containers: MaritimeContainerTable;
   maritime_job_milestones: MaritimeJobMilestoneTable;
+  maritime_carrier_invoices: MaritimeCarrierInvoiceTable;
+  maritime_carrier_disputes: MaritimeCarrierDisputeTable;
+  maritime_cargo_insurances: MaritimeCargoInsuranceTable;
+  maritime_warehouse_receipts: MaritimeWarehouseReceiptTable;
   contracting_projects: ContractingProjectTable;
   contracting_documents: ContractingDocumentTable;
   contracting_document_revisions: ContractingDocumentRevisionTable;

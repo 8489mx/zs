@@ -58,7 +58,7 @@ export function MaritimeMasterDataTab({
 
   // Modal States
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'shipping_line' | 'overseas_agent'>('shipping_line');
+  const [modalType, setModalType] = useState<'shipping_line' | 'overseas_agent' | 'airline' | 'trucking'>('shipping_line');
   const [editingPartner, setEditingPartner] = useState<ShippingLine | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
 

@@ -5,6 +5,11 @@ export type MaritimeCargoMode = 'FCL' | 'LCL' | 'Breakbulk';
 export type MaritimeContainerType = '20GP' | '40GP' | '40HC' | '20RF' | '40RF' | '45HC' | 'OpenTop' | 'FlatRack';
 export type MaritimeCargoNature = 'general' | 'hazardous_dg' | 'temperature_controlled' | 'fragile';
 export type MaritimeBlType = 'original' | 'telex_release' | 'sea_waybill';
+export type TransportMode = 'sea' | 'air' | 'road' | 'multimodal';
+export type AirCargoType = 'general' | 'perishable' | 'dangerous_goods' | 'valuable' | 'live_animals' | 'pharma';
+export type InsuranceCoverageType = 'all_risks' | 'clauses_a' | 'clauses_b' | 'clauses_c';
+export type InsuranceStatus = 'draft' | 'active' | 'claimed' | 'cancelled' | 'expired';
+export type WarehouseReceiptStatus = 'in_storage' | 'inspected' | 'released' | 'transferred';
 
 export type MaritimeInquiryStatus = 'received' | 'rfq_created' | 'quoted' | 'converted_to_job' | 'cancelled';
 export type MaritimeRfqStatus = 'draft' | 'sent' | 'bids_received' | 'awarded' | 'cancelled';

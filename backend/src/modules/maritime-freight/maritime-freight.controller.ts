@@ -14,6 +14,8 @@ import { CreateMaritimeJobDto } from './dto/create-job.dto';
 import { UpdateMaritimeContainerDto } from './dto/update-container.dto';
 import { CreateRateCardDto, UpdateRateCardStatusDto } from './dto/rate-card.dto';
 import { CreateCustomsDeclarationDto, CreateCustomsDeclarationItemDto, UpdateCustomsDeclarationStatusDto } from './dto/customs-declaration.dto';
+import { CreateCargoInsuranceDto, UpdateCargoInsuranceDto, ClaimCargoInsuranceDto } from './dto/cargo-insurance.dto';
+import { CreateWarehouseReceiptDto, ReleaseWarehouseReceiptDto } from './dto/warehouse-receipt.dto';
 import { DcsaMilestoneKey } from './maritime-freight.types';
 
 @Controller(['maritime-freight', 'api/maritime-freight'])
@@ -479,5 +481,140 @@ export class MaritimeFreightController {
     @Req() req: RequestWithAuth,
   ) {
     return this.freightService.updateCustomsDeclarationStatus(req.authContext!, id, dto);
+  }
+
+  // --------------------------------------------------------------------------
+  // Freight Audit & Carrier Invoices (Reconciliation against Rate Cards)
+  // --------------------------------------------------------------------------
+
+  @Post('jobs/:jobId/carrier-invoices/preview')
+  async previewCarrierInvoiceAudit(
+    @Param('jobId') jobId: string,
+    @Body() dto: any,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.previewCarrierInvoiceAudit(req.authContext!, jobId, dto);
+  }
+
+  @Get('jobs/:jobId/carrier-invoices')
+  async listJobCarrierInvoices(
+    @Param('jobId') jobId: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.listJobCarrierInvoices(req.authContext!, jobId);
+  }
+
+  @Post('jobs/:jobId/carrier-invoices')
+  async createCarrierInvoice(
+    @Param('jobId') jobId: string,
+    @Body() dto: any,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.createCarrierInvoice(req.authContext!, jobId, dto);
+  }
+
+  @Post('carrier-invoices/:id/override')
+  async overrideCarrierInvoice(
+    @Param('id') id: string,
+    @Body() dto: { reason: string },
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.overrideCarrierInvoice(req.authContext!, id, dto);
+  }
+
+  @Post('carrier-invoices/:id/dispute')
+  async createCarrierDispute(
+    @Param('id') id: string,
+    @Body() dto: { reason: string; disputedAmount?: number },
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.createCarrierDispute(req.authContext!, id, dto);
+  }
+
+  @Post('carrier-disputes/:id/resolve')
+  async resolveCarrierDispute(
+    @Param('id') id: string,
+    @Body() dto: any,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.resolveCarrierDispute(req.authContext!, id, dto);
+  }
+
+  // --------------------------------------------------------------------------
+  // Cargo Insurance Policies & Claims
+  // --------------------------------------------------------------------------
+  @Post('jobs/:jobId/insurances')
+  async createCargoInsurance(
+    @Param('jobId') jobId: string,
+    @Body() dto: CreateCargoInsuranceDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    dto.jobId = jobId;
+    return this.freightService.createCargoInsurance(req.authContext!, dto);
+  }
+
+  @Patch('insurances/:id')
+  async updateCargoInsurance(
+    @Param('id') id: string,
+    @Body() dto: UpdateCargoInsuranceDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.updateCargoInsurance(req.authContext!, id, dto);
+  }
+
+  @Post('insurances/:id/claim')
+  async claimCargoInsurance(
+    @Param('id') id: string,
+    @Body() dto: ClaimCargoInsuranceDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.claimCargoInsurance(req.authContext!, id, dto);
+  }
+
+  @Get('jobs/:jobId/insurances')
+  async getJobInsurances(
+    @Param('jobId') jobId: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.getJobInsurances(req.authContext!, jobId);
+  }
+
+  // --------------------------------------------------------------------------
+  // Transit & Bonded Warehouse Intake / Receipts
+  // --------------------------------------------------------------------------
+  @Post('jobs/:jobId/warehouse-receipts')
+  async createWarehouseReceipt(
+    @Param('jobId') jobId: string,
+    @Body() dto: CreateWarehouseReceiptDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    dto.jobId = jobId;
+    return this.freightService.createWarehouseReceipt(req.authContext!, dto);
+  }
+
+  @Post('warehouse-receipts/:id/release')
+  async releaseWarehouseReceipt(
+    @Param('id') id: string,
+    @Body() dto: ReleaseWarehouseReceiptDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.releaseWarehouseReceipt(req.authContext!, id, dto);
+  }
+
+  @Get('jobs/:jobId/warehouse-receipts')
+  async getJobWarehouseReceipts(
+    @Param('jobId') jobId: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.getJobWarehouseReceipts(req.authContext!, jobId);
+  }
+
+  @Get('warehouse-receipts')
+  async getWarehouseReceipts(
+    @Query('status') status: string,
+    @Query('search') search: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.getWarehouseReceipts(req.authContext!, { status, search });
   }
 }

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsArray, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, IsArray, IsNumber, Min } from 'class-validator';
 
 export class CreateMaritimeRfqDto {
   @IsString()
@@ -20,6 +20,50 @@ export class CreateMaritimeRfqDto {
   @IsString()
   @IsOptional()
   direction?: 'import' | 'export' | 'cross_trade';
+
+  @IsString()
+  @IsOptional()
+  transportMode?: 'sea' | 'air' | 'road' | 'multimodal';
+
+  @IsString()
+  @IsOptional()
+  airCargoType?: string;
+
+  @IsNumber()
+  @IsOptional()
+  grossWeightKg?: number;
+
+  @IsNumber()
+  @IsOptional()
+  volumetricWeightKg?: number;
+
+  @IsNumber()
+  @IsOptional()
+  chargeableWeightKg?: number;
+
+  @IsNumber()
+  @IsOptional()
+  totalCbm?: number;
+
+  @IsInt()
+  @IsOptional()
+  packageCount?: number;
+
+  @IsString()
+  @IsOptional()
+  flightNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  flightDate?: string;
+
+  @IsString()
+  @IsOptional()
+  mawbNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  hawbNumber?: string;
 
   @IsString()
   @IsOptional()

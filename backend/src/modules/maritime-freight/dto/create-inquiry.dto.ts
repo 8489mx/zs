@@ -38,6 +38,46 @@ export class CreateMaritimeInquiryDto {
 
   @IsString()
   @IsOptional()
+  transportMode?: 'sea' | 'air' | 'road' | 'multimodal';
+
+  @IsString()
+  @IsOptional()
+  airCargoType?: string;
+
+  @IsNumber()
+  @IsOptional()
+  volumetricWeightKg?: number;
+
+  @IsNumber()
+  @IsOptional()
+  chargeableWeightKg?: number;
+
+  @IsNumber()
+  @IsOptional()
+  totalCbm?: number;
+
+  @IsInt()
+  @IsOptional()
+  packageCount?: number;
+
+  @IsString()
+  @IsOptional()
+  flightNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  flightDate?: string;
+
+  @IsString()
+  @IsOptional()
+  mawbNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  hawbNumber?: string;
+
+  @IsString()
+  @IsOptional()
   incoterm?: string;
 
   @IsString()

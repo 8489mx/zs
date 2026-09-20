@@ -8,6 +8,9 @@ export interface ShippingPort {
   name_en: string;
   country_code: string;
   country_name: string;
+  port_type?: 'sea' | 'air' | 'road';
+  iata_code?: string | null;
+  icao_code?: string | null;
   is_active: boolean;
 }
 
@@ -16,7 +19,8 @@ export interface ShippingLine {
   code: string;
   name_ar: string;
   name_en: string;
-  carrier_type?: 'shipping_line' | 'overseas_agent';
+  carrier_type?: 'shipping_line' | 'overseas_agent' | 'airline' | 'trucking';
+  airline_prefix?: string | null;
   trade_lanes?: string | null;
   country_name?: string | null;
   country_code?: string | null;
@@ -109,6 +113,17 @@ export interface MaritimeRfq {
   id: string;
   rfq_number: string;
   direction: 'import' | 'export' | 'cross_trade';
+  transport_mode?: 'sea' | 'air' | 'road' | 'multimodal';
+  air_cargo_type?: string | null;
+  gross_weight_kg?: number;
+  volumetric_weight_kg?: number;
+  chargeable_weight_kg?: number;
+  total_cbm?: number;
+  package_count?: number;
+  flight_number?: string | null;
+  flight_date?: string | null;
+  mawb_number?: string | null;
+  hawb_number?: string | null;
   pol_code: string;
   pol_name: string;
   pod_code: string;
@@ -166,6 +181,17 @@ export interface MaritimeQuotation {
   customer_name: string;
   customer_phone: string | null;
   customer_email: string | null;
+  transport_mode?: 'sea' | 'air' | 'road' | 'multimodal';
+  air_cargo_type?: string | null;
+  gross_weight_kg?: number;
+  volumetric_weight_kg?: number;
+  chargeable_weight_kg?: number;
+  total_cbm?: number;
+  package_count?: number;
+  flight_number?: string | null;
+  flight_date?: string | null;
+  mawb_number?: string | null;
+  hawb_number?: string | null;
   payment_term: 'prepaid' | 'collect';
   base_cost: number;
   currency: string;
@@ -235,6 +261,17 @@ export interface MaritimeJob {
   customer_phone?: string | null;
   customer_email?: string | null;
   direction: 'import' | 'export' | 'cross_trade';
+  transport_mode?: 'sea' | 'air' | 'road' | 'multimodal';
+  air_cargo_type?: string | null;
+  gross_weight_kg?: number;
+  volumetric_weight_kg?: number;
+  chargeable_weight_kg?: number;
+  total_cbm?: number;
+  package_count?: number;
+  flight_number?: string | null;
+  flight_date?: string | null;
+  mawb_number?: string | null;
+  hawb_number?: string | null;
   payment_term: 'prepaid' | 'collect';
   shipping_line_id: string | null;
   shipping_line_name: string;
@@ -275,6 +312,45 @@ export interface MaritimeJob {
   hasOverdueContainers?: boolean;
   containers?: MaritimeContainer[];
   milestones?: MaritimeMilestone[];
+  insurances?: CargoInsurance[];
+  warehouseReceipts?: WarehouseReceipt[];
+}
+
+export interface CargoInsurance {
+  id: string;
+  job_id: string;
+  policy_number: string;
+  insurance_company: string;
+  insured_value: number;
+  premium_amount: number;
+  currency: string;
+  coverage_type: 'all_risks' | 'clauses_a' | 'clauses_b' | 'clauses_c';
+  issue_date: string;
+  expiry_date: string | null;
+  status: 'draft' | 'active' | 'claimed' | 'cancelled' | 'expired';
+  claim_amount: number;
+  claim_status: string | null;
+  claim_notes: string | null;
+  certificate_url: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface WarehouseReceipt {
+  id: string;
+  receipt_number: string;
+  job_id: string;
+  location_id: string | null;
+  received_date: string;
+  package_count: number;
+  gross_weight_kg: number;
+  cbm: number;
+  bay_rack_bin: string | null;
+  warehouse_status: 'in_storage' | 'inspected' | 'released' | 'transferred';
+  released_at: string | null;
+  released_by: number | null;
+  notes: string | null;
+  created_at: string;
 }
 
 function toQueryString(params?: Record<string, any>): string {
@@ -624,6 +700,75 @@ export const maritimeApi = {
       method: 'PUT',
       body: JSON.stringify({ status, declarationNumber }),
     }),
+
+  // Freight Audit & Carrier Invoices (Rate Reconciliation)
+  previewCarrierInvoiceAudit: (jobId: string, data: any) =>
+    http<FreightAuditPreview>(`/api/maritime-freight/jobs/${jobId}/carrier-invoices/preview`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  createCarrierInvoice: (jobId: string, data: any) =>
+    http<{ success: boolean; invoice: MaritimeCarrierInvoice; audit: any; message: string }>(`/api/maritime-freight/jobs/${jobId}/carrier-invoices`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  listJobCarrierInvoices: (jobId: string) =>
+    http<MaritimeCarrierInvoice[]>(`/api/maritime-freight/jobs/${jobId}/carrier-invoices`),
+
+  overrideCarrierInvoice: (id: string, reason: string) =>
+    http<{ success: boolean; invoice: MaritimeCarrierInvoice; message: string }>(`/api/maritime-freight/carrier-invoices/${id}/override`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  createCarrierDispute: (id: string, data: { reason: string; disputedAmount?: number }) =>
+    http<{ success: boolean; dispute: any; message: string }>(`/api/maritime-freight/carrier-invoices/${id}/dispute`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  resolveCarrierDispute: (id: string, data: any) =>
+    http<{ success: boolean; dispute: any; message: string }>(`/api/maritime-freight/carrier-disputes/${id}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Cargo Insurance
+  createCargoInsurance: (jobId: string, data: Partial<CargoInsurance>) =>
+    http<CargoInsurance>(`/api/maritime-freight/jobs/${jobId}/insurances`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateCargoInsurance: (id: string, data: Partial<CargoInsurance>) =>
+    http<CargoInsurance>(`/api/maritime-freight/insurances/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  claimCargoInsurance: (id: string, data: { claimAmount: number; claimStatus: string; claimNotes?: string }) =>
+    http<CargoInsurance>(`/api/maritime-freight/insurances/${id}/claim`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getJobInsurances: (jobId: string) =>
+    http<CargoInsurance[]>(`/api/maritime-freight/jobs/${jobId}/insurances`),
+
+  // Transit & Bonded Warehouse Receipts
+  createWarehouseReceipt: (jobId: string, data: Partial<WarehouseReceipt>) =>
+    http<WarehouseReceipt>(`/api/maritime-freight/jobs/${jobId}/warehouse-receipts`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  releaseWarehouseReceipt: (id: string, data: { notes?: string }) =>
+    http<WarehouseReceipt>(`/api/maritime-freight/warehouse-receipts/${id}/release`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getJobWarehouseReceipts: (jobId: string) =>
+    http<WarehouseReceipt[]>(`/api/maritime-freight/jobs/${jobId}/warehouse-receipts`),
+  getWarehouseReceipts: (params?: { status?: string; search?: string }) =>
+    http<WarehouseReceipt[]>(`/api/maritime-freight/warehouse-receipts${toQueryString(params)}`),
 };
 
 export interface MaritimeCustomsDeclaration {
@@ -685,3 +830,77 @@ export interface MaritimeRateCard {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface MaritimeCarrierInvoice {
+  id: string;
+  jobId: string;
+  shippingLineId: string | null;
+  carrierName: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  currency: string;
+  totalInvoicedAmount: number;
+  oceanFreight: number;
+  thcCharges: number;
+  bafCharges: number;
+  detentionDemurrage: number;
+  otherCharges: number;
+  rateCardId: string | null;
+  contractedAmount: number;
+  varianceAmount: number;
+  variancePct: number;
+  auditStatus: 'pending' | 'matched' | 'overcharge' | 'undercharge' | 'no_contract' | 'approved_override' | 'disputed';
+  overrideApprovedBy: string | null;
+  overrideApprovedAt: string | null;
+  overrideReason: string | null;
+  journalEntryId: string | null;
+  paymentStatus: 'unpaid' | 'partially_paid' | 'paid' | 'held_for_dispute';
+  notes: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  dispute?: {
+    id: string;
+    disputeNumber: string;
+    disputeStatus: 'draft' | 'submitted' | 'accepted' | 'rejected' | 'partially_accepted';
+    disputedAmount: number;
+    creditNoteNumber: string | null;
+    creditNoteAmount: number;
+  } | null;
+  rateCard?: {
+    carrierName: string;
+    unitCost: number;
+  } | null;
+}
+
+export interface FreightAuditPreview {
+  jobId: string;
+  jobNumber: string;
+  shippingLineName: string;
+  polCode: string;
+  podCode: string;
+  containerCount: number;
+  containerType: string;
+  rateCard: any | null;
+  audit: {
+    hasRateCard: boolean;
+    rateCardId: string | number | null;
+    contractedRatePerUnit: number;
+    containerCount: number;
+    contractedTotal: number;
+    invoicedTotal: number;
+    varianceAmount: number;
+    variancePct: number;
+    auditStatus: 'matched' | 'overcharge' | 'undercharge' | 'no_contract' | 'approved_override' | 'disputed';
+    isOvercharged: boolean;
+    isUndercharged: boolean;
+    isMatched: boolean;
+    varianceBreakdown: {
+      oceanFreightDiff: number;
+      thcDiff: number;
+      bafDiff: number;
+      otherDiff: number;
+    };
+    recommendation: 'auto_approvable' | 'requires_override_or_dispute' | 'manual_review_no_contract';
+  };
+}
+

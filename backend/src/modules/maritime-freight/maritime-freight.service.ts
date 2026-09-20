@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, BadRequestException, UnprocessableEntityException } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
@@ -12,7 +12,10 @@ import { CreateMaritimeJobDto } from './dto/create-job.dto';
 import { UpdateMaritimeContainerDto } from './dto/update-container.dto';
 import { CreateRateCardDto, UpdateRateCardStatusDto } from './dto/rate-card.dto';
 import { CreateCustomsDeclarationDto, CreateCustomsDeclarationItemDto, UpdateCustomsDeclarationStatusDto } from './dto/customs-declaration.dto';
+import { CreateCargoInsuranceDto, UpdateCargoInsuranceDto, ClaimCargoInsuranceDto } from './dto/cargo-insurance.dto';
+import { CreateWarehouseReceiptDto, ReleaseWarehouseReceiptDto } from './dto/warehouse-receipt.dto';
 import { DCSA_STANDARD_MILESTONES, DcsaMilestoneKey, MaritimePipelineConfig, DEFAULT_PIPELINE_CONFIG } from './maritime-freight.types';
+import { IATA_CARGO_IQ_MILESTONES } from './engines/air-freight.engine';
 import * as crypto from 'crypto';
 import {
   DEFAULT_SHIPPING_LINES,
@@ -25,6 +28,7 @@ import {
 import { MaritimeMailService } from './maritime-mail.service';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
+import { calculateFreightAudit, validateMakerCheckerOverride } from './engines/freight-audit.engine';
 
 @Injectable()
 export class MaritimeFreightService {
@@ -492,6 +496,8 @@ export class MaritimeFreightService {
           customer_phone: dto.customerPhone || null,
           customer_email: dto.customerEmail || null,
           direction: dto.direction || 'import',
+          transport_mode: dto.transportMode || 'sea',
+          air_cargo_type: dto.airCargoType || null,
           pol_code: dto.polCode.toUpperCase(),
           pol_name: dto.polName,
           pod_code: dto.podCode.toUpperCase(),
@@ -503,7 +509,15 @@ export class MaritimeFreightService {
           commodity_description: dto.commodityDescription || '',
           cargo_nature: dto.cargoNature || 'general',
           gross_weight_kg: Number(dto.grossWeightKg || 0),
-          cbm: Number(dto.cbm || 0),
+          volumetric_weight_kg: Number(dto.volumetricWeightKg || 0),
+          chargeable_weight_kg: Number(dto.chargeableWeightKg || 0),
+          total_cbm: Number(dto.totalCbm || dto.cbm || 0),
+          package_count: dto.packageCount ? Number(dto.packageCount) : 0,
+          flight_number: dto.flightNumber || null,
+          flight_date: dto.flightDate || null,
+          mawb_number: dto.mawbNumber || null,
+          hawb_number: dto.hawbNumber || null,
+          cbm: Number(dto.cbm || dto.totalCbm || 0),
           cargo_ready_date: dto.cargoReadyDate || null,
           target_delivery_date: dto.targetDeliveryDate || null,
           target_free_days: dto.targetFreeDays || 14,
@@ -656,6 +670,17 @@ export class MaritimeFreightService {
           customer_phone: dto.customerPhone || null,
           customer_email: dto.customerEmail || null,
           direction: dto.direction || 'import',
+          transport_mode: dto.transportMode || 'sea',
+          air_cargo_type: dto.airCargoType || null,
+          gross_weight_kg: Number(dto.grossWeightKg || 0),
+          volumetric_weight_kg: Number(dto.volumetricWeightKg || 0),
+          chargeable_weight_kg: Number(dto.chargeableWeightKg || 0),
+          total_cbm: Number(dto.totalCbm || 0),
+          package_count: dto.packageCount ? Number(dto.packageCount) : 0,
+          flight_number: dto.flightNumber || null,
+          flight_date: dto.flightDate || null,
+          mawb_number: dto.mawbNumber || null,
+          hawb_number: dto.hawbNumber || null,
           pol_code: dto.polCode.toUpperCase(),
           pol_name: dto.polName,
           pod_code: dto.podCode.toUpperCase(),
@@ -1343,6 +1368,17 @@ export class MaritimeFreightService {
           customer_name: dto.customerName,
           customer_phone: dto.customerPhone || null,
           customer_email: dto.customerEmail || null,
+          transport_mode: dto.transportMode || 'sea',
+          air_cargo_type: dto.airCargoType || null,
+          gross_weight_kg: Number(dto.grossWeightKg || 0),
+          volumetric_weight_kg: Number(dto.volumetricWeightKg || 0),
+          chargeable_weight_kg: Number(dto.chargeableWeightKg || 0),
+          total_cbm: Number(dto.totalCbm || 0),
+          package_count: dto.packageCount ? Number(dto.packageCount) : 0,
+          flight_number: dto.flightNumber || null,
+          flight_date: dto.flightDate || null,
+          mawb_number: dto.mawbNumber || null,
+          hawb_number: dto.hawbNumber || null,
           payment_term: dto.paymentTerm || 'prepaid',
           base_cost: baseCost,
           currency: dto.currency || 'USD',
@@ -1455,6 +1491,17 @@ export class MaritimeFreightService {
           customer_id: dto.customerId ? Number(dto.customerId) : null,
           customer_name: dto.customerName,
           direction: dto.direction || 'import',
+          transport_mode: dto.transportMode || 'sea',
+          air_cargo_type: dto.airCargoType || null,
+          gross_weight_kg: Number(dto.grossWeightKg || 0),
+          volumetric_weight_kg: Number(dto.volumetricWeightKg || 0),
+          chargeable_weight_kg: Number(dto.chargeableWeightKg || 0),
+          total_cbm: Number(dto.totalCbm || 0),
+          package_count: dto.packageCount ? Number(dto.packageCount) : 0,
+          flight_number: dto.flightNumber || null,
+          flight_date: dto.flightDate || null,
+          mawb_number: dto.mawbNumber || null,
+          hawb_number: dto.hawbNumber || null,
           payment_term: dto.paymentTerm || 'prepaid',
           shipping_line_id: dto.shippingLineId ? String(dto.shippingLineId) : null,
           shipping_line_name: dto.shippingLineName,
@@ -1474,7 +1521,7 @@ export class MaritimeFreightService {
           shipper_details: dto.shipperDetails || null,
           consignee_details: dto.consigneeDetails || null,
           notify_party: dto.notifyParty || null,
-          milestone_status: 'BOOK',
+          milestone_status: dto.transportMode === 'air' ? 'BKD' : 'BOOK',
           cost_center_id: null,
           tracking_token: trackingToken,
           delivery_address: dto.deliveryAddress || null,
@@ -1490,15 +1537,16 @@ export class MaritimeFreightService {
       // 2. Automatically create an Accounting Cost Center under dimension = 'project'
       let costCenterId: string | null = null;
       try {
+        const modeLabel = dto.transportMode === 'air' ? 'شحنة جوية' : dto.transportMode === 'road' ? 'شحنة برية' : 'شحنة بحرية';
         const [costCenter] = await trx
           .insertInto('cost_centers')
           .values({
             tenant_id: tenantId,
             code: finalJobNumber,
-            name: `شحنة بحرية: ${finalJobNumber} - ${dto.customerName}`,
+            name: `${modeLabel}: ${finalJobNumber} - ${dto.customerName}`,
             dimension: 'project',
             is_active: true,
-            description: `مركز تكلفة تلقائي للعملية الملاحية ${finalJobNumber} (${dto.polName} إلى ${dto.podName})`,
+            description: `مركز تكلفة تلقائي للعملية ${finalJobNumber} (${dto.polName} إلى ${dto.podName})`,
           })
           .returning('id')
           .execute();
@@ -1520,16 +1568,17 @@ export class MaritimeFreightService {
         .returningAll()
         .execute();
 
-      // 4. Add initial DCSA milestone
+      // 4. Add initial milestone (DCSA BOOK for sea, Cargo iQ BKD for air)
+      const isAir = dto.transportMode === 'air';
       await trx
         .insertInto('maritime_job_milestones')
         .values({
           tenant_id: tenantId,
           job_id: String(job.id),
-          milestone_key: 'BOOK',
-          milestone_title: 'تأكيد الحجز الملاحي (Booking Confirmed)',
+          milestone_key: isAir ? 'BKD' : 'BOOK',
+          milestone_title: isAir ? 'تأكيد حجز الشحنة الجوية (Air Cargo Booked)' : 'تأكيد الحجز الملاحي (Booking Confirmed)',
           location: dto.polName,
-          notes: `تم فتح أمر التشغيل وتأكيد الحجز بنجاح برقم ${dto.bookingNumber || finalJobNumber}`,
+          notes: `تم فتح أمر التشغيل وتأكيد الحجز بنجاح برقم ${dto.bookingNumber || dto.mawbNumber || finalJobNumber}`,
           recorded_by: auth.userId ? Number(auth.userId) : null,
         })
         .execute();
@@ -1640,13 +1689,24 @@ export class MaritimeFreightService {
       customerId: quote.customer_id,
       customerName: quote.customer_name,
       direction: (rfq?.direction as any) || 'import',
+      transportMode: quote.transport_mode || rfq?.transport_mode || 'sea',
+      airCargoType: quote.air_cargo_type || rfq?.air_cargo_type || null,
+      grossWeightKg: Number(quote.gross_weight_kg || rfq?.gross_weight_kg || 0),
+      volumetricWeightKg: Number(quote.volumetric_weight_kg || rfq?.volumetric_weight_kg || 0),
+      chargeableWeightKg: Number(quote.chargeable_weight_kg || rfq?.chargeable_weight_kg || 0),
+      totalCbm: Number(quote.total_cbm || rfq?.total_cbm || 0),
+      packageCount: quote.package_count || rfq?.package_count || 0,
+      flightNumber: quote.flight_number || rfq?.flight_number || null,
+      flightDate: quote.flight_date || rfq?.flight_date || null,
+      mawbNumber: quote.mawb_number || rfq?.mawb_number || null,
+      hawbNumber: quote.hawb_number || rfq?.hawb_number || null,
       paymentTerm: quote.payment_term,
       shippingLineId: bid?.shipping_line_id || null,
-      shippingLineName: bid?.shipping_line_name || 'خط ملاحي معتمد',
+      shippingLineName: bid?.shipping_line_name || (quote.transport_mode === 'air' ? 'شركة طيران معتمدة' : 'خط ملاحي معتمد'),
       polCode: rfq?.pol_code || 'CNSHA',
-      polName: rfq?.pol_name || 'ميناء الشحن',
-      podCode: rfq?.pod_code || 'EGALY',
-      podName: rfq?.pod_name || 'ميناء الوصول',
+      polName: rfq?.pol_name || (quote.transport_mode === 'air' ? 'مطار الشحن' : 'ميناء الشحن'),
+      podCode: rfq?.pod_code || 'CAI',
+      podName: rfq?.pod_name || (quote.transport_mode === 'air' ? 'مطار الوصول' : 'ميناء الوصول'),
       bookingNumber: `BKG-${Math.floor(100000 + Math.random() * 900000)}`,
       containers: containersPayload,
       notes: `أمر تشغيل تم تحويله وتفعيله آلياً من عرض السعر ${quote.quotation_number}`,
@@ -1730,6 +1790,22 @@ export class MaritimeFreightService {
       .orderBy('occurred_at', 'asc')
       .execute();
 
+    const insurances = await this.db
+      .selectFrom('maritime_cargo_insurances')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('job_id', '=', id as any)
+      .orderBy('id', 'desc')
+      .execute();
+
+    const warehouseReceipts = await this.db
+      .selectFrom('maritime_warehouse_receipts')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('job_id', '=', id as any)
+      .orderBy('id', 'desc')
+      .execute();
+
     let customerBalance = 0;
     let customerAvailableCredit = 0;
     if (job.customer_id) {
@@ -1751,7 +1827,10 @@ export class MaritimeFreightService {
       customerAvailableCredit,
       containers,
       milestones,
+      insurances: insurances || [],
+      warehouseReceipts: warehouseReceipts || [],
       dcsaDefinitions: DCSA_STANDARD_MILESTONES,
+      cargoIqDefinitions: IATA_CARGO_IQ_MILESTONES,
     };
   }
 
@@ -1770,6 +1849,17 @@ export class MaritimeFreightService {
       updated_at: sql`NOW()`,
     };
 
+    if (dto.transportMode !== undefined) updatePayload.transport_mode = dto.transportMode;
+    if (dto.airCargoType !== undefined) updatePayload.air_cargo_type = dto.airCargoType || null;
+    if (dto.flightNumber !== undefined) updatePayload.flight_number = dto.flightNumber || null;
+    if (dto.flightDate !== undefined) updatePayload.flight_date = dto.flightDate || null;
+    if (dto.mawbNumber !== undefined) updatePayload.mawb_number = dto.mawbNumber || null;
+    if (dto.hawbNumber !== undefined) updatePayload.hawb_number = dto.hawbNumber || null;
+    if (dto.grossWeightKg !== undefined) updatePayload.gross_weight_kg = Number(dto.grossWeightKg || 0);
+    if (dto.volumetricWeightKg !== undefined) updatePayload.volumetric_weight_kg = Number(dto.volumetricWeightKg || 0);
+    if (dto.chargeableWeightKg !== undefined) updatePayload.chargeable_weight_kg = Number(dto.chargeableWeightKg || 0);
+    if (dto.totalCbm !== undefined) updatePayload.total_cbm = Number(dto.totalCbm || 0);
+    if (dto.packageCount !== undefined) updatePayload.package_count = Number(dto.packageCount || 0);
     if (dto.vesselName !== undefined) updatePayload.vessel_name = dto.vesselName || null;
     if (dto.voyageNumber !== undefined) updatePayload.voyage_number = dto.voyageNumber || null;
     if (dto.bookingNumber !== undefined) updatePayload.booking_number = dto.bookingNumber || null;
@@ -2461,6 +2551,26 @@ export class MaritimeFreightService {
     return null;
   }
 
+  /**
+   * Fiscal period lock check shared by every ad-hoc journal posted in this file outside the
+   * canonical accounting-posting service. Same string-date comparison as insertPostedJournal.
+   */
+  private async assertMaritimeJournalPeriodOpen(trx: any, tenantId: string, entryDate: Date): Promise<void> {
+    const entryDateStr = entryDate.toISOString().slice(0, 10);
+    const settings = await trx
+      .selectFrom('accounting_settings')
+      .select(['lock_date_all'])
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', 1)
+      .executeTakeFirst();
+    const lockAllStr = settings?.lock_date_all ? String(settings.lock_date_all).slice(0, 10) : '';
+    if (lockAllStr && entryDateStr <= lockAllStr) {
+      throw new BadRequestException(
+        `الفترة المحاسبية مقفلة نهائياً حتى تاريخ ${lockAllStr}. لا يمكن الترحيل في فترة مغلقة.`,
+      );
+    }
+  }
+
   async issueJobSalesInvoice(auth: AuthContext, jobId: string, dto?: { amount?: number; notes?: string }) {
     const { tenantId } = requireTenantScope(auth);
     const job = await this.getJobById(auth, jobId);
@@ -2499,49 +2609,60 @@ export class MaritimeFreightService {
       throw new BadRequestException('يجب تحديد مبلغ صالح للفاتورة أكبر من صفر');
     }
 
-    // Resolve accounts: Customer Receivable (1130), Service Revenue (4200 or 4100)
+    // Resolve accounts: Customer Receivable (1130), Service Revenue (4200 or 4100).
+    // Previously "if (customerAccId && revenueAccId)" silently skipped the journal when either
+    // account was missing, while client_invoiced_total was still updated unconditionally below --
+    // recognising revenue on the job record with nothing behind it in the general ledger, and the
+    // return message still claimed the invoice was issued AND posted. Now this throws, and the
+    // whole operation is one transaction so a failure here touches nothing.
     const customerAccId = await this.resolveAccountId(tenantId, '1130');
     const revenueAccId = await this.resolveAccountId(tenantId, '4200', '4100');
+    if (!customerAccId || !revenueAccId) {
+      throw new BadRequestException(
+        'تعذر إصدار فاتورة المبيعات: حساب ذمم العملاء (1130) أو حساب إيراد الخدمات (4200/4100) غير متاح في شجرة الحسابات.',
+      );
+    }
 
-    let entryId: number | null = null;
-    let entryNo = `INV-${job.job_number}`;
+    const entryDate = new Date();
+    const desc = dto?.notes || `فاتورة مبيعات خدمات ملاحية - العملية #${job.job_number} (${job.customer_name})`;
 
-    if (customerAccId && revenueAccId) {
-      const tempNo = `TMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      const [inserted] = await this.db
+    const { updatedJob, entryId, entryNo } = await this.db.transaction().execute(async (trx: any) => {
+      await this.assertMaritimeJournalPeriodOpen(trx, tenantId, entryDate);
+
+      const [inserted] = await trx
         .insertInto('journal_entries')
         .values({
-          entry_no: tempNo,
+          entry_no: `JRN-TMP-${job.id}-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
           tenant_id: tenantId,
           account_id: tenantId,
-          entry_date: new Date(),
-          description: dto?.notes || `فاتورة مبيعات خدمات ملاحية - العملية #${job.job_number} (${job.customer_name})`,
+          entry_date: entryDate,
+          description: desc,
           source_type: 'maritime_job',
           source_id: Number(job.id),
           status: 'posted',
           created_by: auth.userId ? Number(auth.userId) : null,
           posted_by: auth.userId ? Number(auth.userId) : null,
           posted_at: sql`NOW()`,
-        } as any)
+        })
         .returning('id')
         .execute();
 
-      entryId = Number(inserted.id);
-      entryNo = `JE-${String(entryId).padStart(8, '0')}`;
-      await this.db
+      const newEntryId = Number(inserted.id);
+      const newEntryNo = `JE-${String(newEntryId).padStart(8, '0')}`;
+      await trx
         .updateTable('journal_entries')
-        .set({ entry_no: entryNo, updated_at: sql`NOW()` } as any)
-        .where('id', '=', entryId)
+        .set({ entry_no: newEntryNo, updated_at: sql`NOW()` })
+        .where('id', '=', newEntryId)
         .where('tenant_id', '=', tenantId)
         .execute();
 
       // Line 1: Debit Customer Receivable (1130)
       // Line 2: Credit Service Revenue (4200)
-      await this.db
+      await trx
         .insertInto('journal_entry_lines')
         .values([
           {
-            journal_entry_id: entryId,
+            journal_entry_id: newEntryId,
             tenant_id: tenantId,
             account_id: customerAccId,
             cost_center_id: costCenterId,
@@ -2550,9 +2671,9 @@ export class MaritimeFreightService {
             credit: 0,
             partner_type: 'customer',
             partner_id: job.customer_id ? Number(job.customer_id) : null,
-          } as any,
+          },
           {
-            journal_entry_id: entryId,
+            journal_entry_id: newEntryId,
             tenant_id: tenantId,
             account_id: revenueAccId,
             cost_center_id: costCenterId,
@@ -2561,27 +2682,28 @@ export class MaritimeFreightService {
             credit: invoiceAmount,
             partner_type: 'none',
             partner_id: null,
-          } as any,
+          },
         ])
         .execute();
-    }
 
-    // Update Job Totals
-    const carrierCost = Number(job.carrier_cost_total || 0);
-    const otherCosts = Number(job.other_costs_total || 0);
-    const netProfit = invoiceAmount - (carrierCost + otherCosts);
+      const carrierCost = Number(job.carrier_cost_total || 0);
+      const otherCosts = Number(job.other_costs_total || 0);
+      const netProfit = invoiceAmount - (carrierCost + otherCosts);
 
-    const [updatedJob] = await this.db
-      .updateTable('maritime_jobs')
-      .set({
-        client_invoiced_total: invoiceAmount,
-        net_profit: netProfit,
-        updated_at: sql`NOW()`,
-      })
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', job.id as any)
-      .returningAll()
-      .execute();
+      const [updated] = await trx
+        .updateTable('maritime_jobs')
+        .set({
+          client_invoiced_total: invoiceAmount,
+          net_profit: netProfit,
+          updated_at: sql`NOW()`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', job.id as any)
+        .returningAll()
+        .execute();
+
+      return { updatedJob: updated, entryId: newEntryId, entryNo: newEntryNo };
+    });
 
     return {
       success: true,
@@ -2642,7 +2764,10 @@ export class MaritimeFreightService {
       }
     }
 
-    // 2. Resolve accounts:
+    // 2. Resolve accounts.
+    // Same fix as issueJobSalesInvoice: previously "if (expenseAccId && creditAccId)" silently
+    // skipped the journal while carrier_cost_total / other_costs_total were still bumped
+    // unconditionally below -- a cost recognised on the job with no journal entry behind it.
     const expenseAccId = await this.resolveAccountId(tenantId, '6400', '5100');
 
     let creditAccCode = '2110';
@@ -2656,20 +2781,25 @@ export class MaritimeFreightService {
     }
     const creditAccId = await this.resolveAccountId(tenantId, creditAccCode);
 
-    let entryId: number | null = null;
-    let entryNo = `EXP-${job.job_number}`;
+    if (!expenseAccId || !creditAccId) {
+      throw new BadRequestException(
+        `تعذر تسجيل سند المصروفات: حساب المصروف (6400/5100) أو حساب السداد (${creditAccCode}) غير متاح في شجرة الحسابات.`,
+      );
+    }
 
+    const entryDate = new Date();
     const desc = dto.description || `سند مصروفات ملاحية (${dto.expenseType === 'carrier' ? 'نولون الخط الملاحي' : 'مصروفات موانئ وتخليص'}) - العملية #${job.job_number}`;
 
-    if (expenseAccId && creditAccId) {
-      const tempNo = `TMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      const [inserted] = await this.db
+    const { updatedJob, entryId, entryNo } = await this.db.transaction().execute(async (trx: any) => {
+      await this.assertMaritimeJournalPeriodOpen(trx, tenantId, entryDate);
+
+      const [inserted] = await trx
         .insertInto('journal_entries')
         .values({
-          entry_no: tempNo,
+          entry_no: `JRN-TMP-${job.id}-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
           tenant_id: tenantId,
           account_id: tenantId,
-          entry_date: new Date(),
+          entry_date: entryDate,
           description: desc,
           source_type: 'maritime_job_expense',
           source_id: Number(job.id),
@@ -2677,24 +2807,24 @@ export class MaritimeFreightService {
           created_by: auth.userId ? Number(auth.userId) : null,
           posted_by: auth.userId ? Number(auth.userId) : null,
           posted_at: sql`NOW()`,
-        } as any)
+        })
         .returning('id')
         .execute();
 
-      entryId = Number(inserted.id);
-      entryNo = `JE-${String(entryId).padStart(8, '0')}`;
-      await this.db
+      const newEntryId = Number(inserted.id);
+      const newEntryNo = `JE-${String(newEntryId).padStart(8, '0')}`;
+      await trx
         .updateTable('journal_entries')
-        .set({ entry_no: entryNo, updated_at: sql`NOW()` } as any)
-        .where('id', '=', entryId)
+        .set({ entry_no: newEntryNo, updated_at: sql`NOW()` })
+        .where('id', '=', newEntryId)
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      await this.db
+      await trx
         .insertInto('journal_entry_lines')
         .values([
           {
-            journal_entry_id: entryId,
+            journal_entry_id: newEntryId,
             tenant_id: tenantId,
             account_id: expenseAccId,
             cost_center_id: costCenterId,
@@ -2703,9 +2833,9 @@ export class MaritimeFreightService {
             credit: 0,
             partner_type: 'none',
             partner_id: null,
-          } as any,
+          },
           {
-            journal_entry_id: entryId,
+            journal_entry_id: newEntryId,
             tenant_id: tenantId,
             account_id: creditAccId,
             cost_center_id: costCenterId,
@@ -2714,35 +2844,37 @@ export class MaritimeFreightService {
             credit: amount,
             partner_type: partnerType,
             partner_id: dto.supplierId ? Number(dto.supplierId) : null,
-          } as any,
+          },
         ])
         .execute();
-    }
 
-    let carrierCost = Number(job.carrier_cost_total || 0);
-    let otherCosts = Number(job.other_costs_total || 0);
+      let carrierCost = Number(job.carrier_cost_total || 0);
+      let otherCosts = Number(job.other_costs_total || 0);
 
-    if (dto.expenseType === 'carrier') {
-      carrierCost += amount;
-    } else {
-      otherCosts += amount;
-    }
+      if (dto.expenseType === 'carrier') {
+        carrierCost += amount;
+      } else {
+        otherCosts += amount;
+      }
 
-    const revenue = Number(job.client_invoiced_total || 0);
-    const netProfit = revenue - (carrierCost + otherCosts);
+      const revenue = Number(job.client_invoiced_total || 0);
+      const netProfit = revenue - (carrierCost + otherCosts);
 
-    const [updatedJob] = await this.db
-      .updateTable('maritime_jobs')
-      .set({
-        carrier_cost_total: carrierCost,
-        other_costs_total: otherCosts,
-        net_profit: netProfit,
-        updated_at: sql`NOW()`,
-      })
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', job.id as any)
-      .returningAll()
-      .execute();
+      const [updated] = await trx
+        .updateTable('maritime_jobs')
+        .set({
+          carrier_cost_total: carrierCost,
+          other_costs_total: otherCosts,
+          net_profit: netProfit,
+          updated_at: sql`NOW()`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', job.id as any)
+        .returningAll()
+        .execute();
+
+      return { updatedJob: updated, entryId: newEntryId, entryNo: newEntryNo };
+    });
 
     return {
       success: true,
@@ -3196,6 +3328,9 @@ export class MaritimeFreightService {
       id: String(r.id),
       shippingLineId: r.shipping_line_id ? String(r.shipping_line_id) : null,
       carrierName: r.carrier_name,
+      transportMode: r.transport_mode || 'sea',
+      rateBasis: r.rate_basis || 'per_container',
+      minCharge: Number(r.min_charge || 0),
       polCode: r.pol_code,
       polName: r.pol_name,
       podCode: r.pod_code,
@@ -3222,13 +3357,14 @@ export class MaritimeFreightService {
     };
   }
 
-  async listRateCards(auth: AuthContext, filters?: { polCode?: string; podCode?: string; containerType?: string; status?: string }) {
+  async listRateCards(auth: AuthContext, filters?: { polCode?: string; podCode?: string; containerType?: string; status?: string; transportMode?: string }) {
     const { tenantId } = requireTenantScope(auth);
     let query = this.db.selectFrom('maritime_rate_cards').selectAll().where('tenant_id', '=', tenantId);
 
     if (filters?.polCode) query = query.where('pol_code', '=', filters.polCode.toUpperCase());
     if (filters?.podCode) query = query.where('pod_code', '=', filters.podCode.toUpperCase());
     if (filters?.containerType) query = query.where('container_type', '=', filters.containerType);
+    if (filters?.transportMode) query = query.where('transport_mode', '=', filters.transportMode as any);
     if (filters?.status) query = query.where('status', '=', filters.status as any);
 
     const rows = await query.orderBy('total_freight_cost', 'asc').execute();
@@ -3290,6 +3426,9 @@ export class MaritimeFreightService {
         tenant_id: tenantId,
         shipping_line_id: dto.shippingLineId ? (String(dto.shippingLineId) as any) : null,
         carrier_name: carrierName || 'Unnamed Carrier',
+        transport_mode: dto.transportMode || 'sea',
+        rate_basis: dto.rateBasis || 'per_container',
+        min_charge: Number(dto.minCharge || 0),
         pol_code: dto.polCode.toUpperCase(),
         pol_name: dto.polName || dto.polCode.toUpperCase(),
         pod_code: dto.podCode.toUpperCase(),
@@ -3610,5 +3749,904 @@ export class MaritimeFreightService {
 
     if (!updated) throw new NotFoundException('البيان الجمركي غير موجود');
     return this.mapCustomsDeclarationRow(updated);
+  }
+
+  // --------------------------------------------------------------------------
+  // Freight Audit & Rate Reconciliation (CargoWise Benchmark)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Posts the carrier-invoice journal entry and updates the job's carrier cost roll-up.
+   *
+   * Extracted into one place because createCarrierInvoice and overrideCarrierInvoice previously
+   * duplicated this ~50-line block, which had drifted into a genuine defect:
+   *  - Missing 6400/5100/2110 accounts caused a SILENT skip (`if (expenseAccId && creditAccId)`)
+   *    with no error, yet the caller still reported success and (in the override path) claimed
+   *    the journal was posted even though it never was. Forbidden pattern F7
+   *    (see ARCHITECTURE_INVARIANTS.md §2.2) — a missing account must fail loudly.
+   *  - No fiscal period lock check, unlike every posting routed through insertPostedJournal.
+   *  - No transaction: the journal header, journal lines, job cost update and invoice
+   *    insert/update were independent statements. A failure partway left an orphaned journal
+   *    entry or a job cost bump with no invoice record behind it.
+   * All three are fixed here: this method MUST be called with a transaction handle, throws
+   * instead of skipping, and enforces the period lock the same way insertPostedJournal does.
+   */
+  private async postCarrierInvoiceJournal(
+    trx: any,
+    tenantId: string,
+    params: {
+      job: { id: number | string; cost_center_id?: number | string | null; job_number?: string; shipping_line_name?: string | null; carrier_cost_total?: number | string | null; client_invoiced_total?: number | string | null; other_costs_total?: number | string | null };
+      invoiceNumber: string;
+      carrierName?: string | null;
+      shippingLineId?: string | number | null;
+      totalAmount: number;
+      entryDate: Date;
+      descriptionSuffix?: string;
+      userId?: number | string | null;
+    },
+  ): Promise<number> {
+    const { job, totalAmount } = params;
+
+    await this.assertMaritimeJournalPeriodOpen(trx, tenantId, params.entryDate);
+
+    const expenseAccId = await this.resolveAccountId(tenantId, '6400', '5100');
+    const creditAccId = await this.resolveAccountId(tenantId, '2110');
+    if (!expenseAccId || !creditAccId) {
+      throw new BadRequestException(
+        'تعذر ترحيل فاتورة الناقل: حساب مصروف الشحن (6400/5100) أو حساب الذمم الدائنة (2110) غير متاح في شجرة الحسابات. يرجى تهيئتهما أولاً.',
+      );
+    }
+
+    const costCenterId = job.cost_center_id ? Number(job.cost_center_id) : null;
+    const desc = `فاتورة الخط الملاحي #${params.invoiceNumber} (${params.carrierName || job.shipping_line_name || 'Carrier'})${params.descriptionSuffix ? ' ' + params.descriptionSuffix : ''} - الشحنة #${job.job_number}`;
+    const tempNo = `JRN-TMP-CARRIER-${job.id}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+    const [inserted] = await trx
+      .insertInto('journal_entries')
+      .values({
+        entry_no: tempNo,
+        tenant_id: tenantId,
+        account_id: tenantId,
+        entry_date: params.entryDate,
+        description: desc,
+        source_type: 'maritime_carrier_invoice',
+        source_id: Number(job.id),
+        status: 'posted',
+        created_by: params.userId ? Number(params.userId) : null,
+        posted_by: params.userId ? Number(params.userId) : null,
+        posted_at: sql`NOW()`,
+      })
+      .returning('id')
+      .execute();
+
+    const entryId = Number(inserted.id);
+    await trx
+      .updateTable('journal_entries')
+      .set({ entry_no: `JE-${String(entryId).padStart(8, '0')}`, updated_at: sql`NOW()` })
+      .where('id', '=', entryId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    await trx
+      .insertInto('journal_entry_lines')
+      .values([
+        {
+          journal_entry_id: entryId,
+          tenant_id: tenantId,
+          account_id: expenseAccId,
+          cost_center_id: costCenterId,
+          description: desc,
+          debit: totalAmount,
+          credit: 0,
+          partner_type: 'none',
+          partner_id: null,
+        },
+        {
+          journal_entry_id: entryId,
+          tenant_id: tenantId,
+          account_id: creditAccId,
+          cost_center_id: costCenterId,
+          description: desc,
+          debit: 0,
+          credit: totalAmount,
+          partner_type: 'supplier',
+          partner_id: params.shippingLineId ? Number(params.shippingLineId) : null,
+        },
+      ])
+      .execute();
+
+    const newCarrierCost = Number(job.carrier_cost_total || 0) + totalAmount;
+    const revenue = Number(job.client_invoiced_total || 0);
+    const otherCosts = Number(job.other_costs_total || 0);
+    const newNetProfit = revenue - (newCarrierCost + otherCosts);
+
+    await trx
+      .updateTable('maritime_jobs')
+      .set({
+        carrier_cost_total: newCarrierCost,
+        net_profit: newNetProfit,
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', job.id)
+      .execute();
+
+    return entryId;
+  }
+
+  async previewCarrierInvoiceAudit(
+    auth: AuthContext,
+    jobId: string,
+    dto: {
+      invoicedTotal: number;
+      oceanFreight?: number;
+      thcCharges?: number;
+      bafCharges?: number;
+      otherCharges?: number;
+      shippingLineId?: string | number;
+      containerType?: string;
+    },
+  ) {
+    const { tenantId } = requireTenantScope(auth);
+    const job = await this.getJobById(auth, jobId);
+
+    // 1. Find matching active rate card
+    const shippingLineId = dto.shippingLineId || job.shipping_line_id;
+    const polCode = (job.pol_code || '').toUpperCase();
+    const podCode = (job.pod_code || '').toUpperCase();
+    const today = new Date().toISOString().slice(0, 10);
+
+    let query = this.db
+      .selectFrom('maritime_rate_cards')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('pol_code', '=', polCode)
+      .where('pod_code', '=', podCode)
+      .where('status', '=', 'active')
+      .where('valid_from', '<=', today)
+      .where('valid_until', '>=', today);
+
+    if (shippingLineId) {
+      query = query.where('shipping_line_id', '=', String(shippingLineId) as any);
+    }
+
+    const containerType = dto.containerType || job.containers?.[0]?.container_type || '40HC';
+    if (containerType) {
+      query = query.where('container_type', '=', containerType);
+    }
+
+    const matchedCard = await query.orderBy('total_freight_cost', 'asc').executeTakeFirst();
+    const containerCount = job.containers?.length || 1;
+
+    const auditResult = calculateFreightAudit({
+      invoicedTotal: Number(dto.invoicedTotal || 0),
+      oceanFreight: Number(dto.oceanFreight || 0),
+      thcCharges: Number(dto.thcCharges || 0),
+      bafCharges: Number(dto.bafCharges || 0),
+      otherCharges: Number(dto.otherCharges || 0),
+      rateCard: matchedCard ? this.mapRateCardRow(matchedCard) : null,
+      containerCount,
+    });
+
+    return {
+      jobId: job.id,
+      jobNumber: job.job_number,
+      shippingLineName: job.shipping_line_name,
+      polCode: job.pol_code,
+      podCode: job.pod_code,
+      containerCount,
+      containerType,
+      rateCard: matchedCard ? this.mapRateCardRow(matchedCard) : null,
+      audit: auditResult,
+    };
+  }
+
+  async createCarrierInvoice(
+    auth: AuthContext,
+    jobId: string,
+    dto: {
+      invoiceNumber: string;
+      invoiceDate?: string;
+      totalInvoicedAmount: number;
+      currency?: string;
+      oceanFreight?: number;
+      thcCharges?: number;
+      bafCharges?: number;
+      detentionDemurrage?: number;
+      otherCharges?: number;
+      shippingLineId?: string | number;
+      carrierName?: string;
+      notes?: string;
+      allowOverride?: boolean;
+      overrideReason?: string;
+    },
+  ) {
+    const { tenantId } = requireTenantScope(auth);
+    const job = await this.getJobById(auth, jobId);
+
+    const totalAmount = Number(dto.totalInvoicedAmount || 0);
+    if (totalAmount <= 0) {
+      throw new BadRequestException('يجب تحديد مبلغ إجمالي للفاتورة أكبر من صفر');
+    }
+    if (!dto.invoiceNumber?.trim()) {
+      throw new BadRequestException('يجب إدخال رقم فاتورة الخط الملاحي');
+    }
+
+    // 1. Audit against rate card
+    const auditPreview = await this.previewCarrierInvoiceAudit(auth, jobId, {
+      invoicedTotal: totalAmount,
+      oceanFreight: dto.oceanFreight,
+      thcCharges: dto.thcCharges,
+      bafCharges: dto.bafCharges,
+      otherCharges: dto.otherCharges,
+      shippingLineId: dto.shippingLineId,
+    });
+
+    const audit = auditPreview.audit;
+    // Invariant L14 & Rule #14: Strict Maker-Checker Separation.
+    // A user creating an invoice CANNOT self-approve financial variances at creation time.
+    // An 'overcharge' invoice is saved WITHOUT posting a journal, and must be reviewed and
+    // approved by a distinct authorized checker via /override, or sent to dispute.
+    const auditStatus = audit.auditStatus;
+    const overrideApprovedBy: number | null = null;
+    const overrideApprovedAt: Date | null = null;
+    const overrideReason: string | null = null;
+
+    const entryDate = dto.invoiceDate ? new Date(dto.invoiceDate) : new Date();
+    const shouldPostJournal = ['matched', 'undercharge', 'no_contract'].includes(auditStatus);
+
+    // Everything below is one atomic unit: the journal (header + lines), the job cost roll-up,
+    // and the invoice record itself. Previously these were five independent statements on
+    // `this.db` directly — a failure partway (e.g. a duplicate invoice_number constraint violation
+    // on the final insert) left an orphaned journal entry and an inflated job cost with no invoice
+    // record to explain either.
+    const insertedInvoice = await this.db.transaction().execute(async (trx: any) => {
+      let entryId: number | null = null;
+
+      if (shouldPostJournal) {
+        entryId = await this.postCarrierInvoiceJournal(trx, tenantId, {
+          job,
+          invoiceNumber: dto.invoiceNumber,
+          carrierName: dto.carrierName,
+          shippingLineId: dto.shippingLineId,
+          totalAmount,
+          entryDate,
+          userId: auth.userId,
+        });
+      }
+
+      // 3. Insert into maritime_carrier_invoices
+      const [row] = await trx
+        .insertInto('maritime_carrier_invoices')
+        .values({
+          tenant_id: tenantId,
+          job_id: Number(job.id),
+          shipping_line_id: dto.shippingLineId ? Number(dto.shippingLineId) : (job.shipping_line_id ? Number(job.shipping_line_id) : null),
+          carrier_name: dto.carrierName || job.shipping_line_name || 'Carrier',
+          invoice_number: dto.invoiceNumber.trim(),
+          invoice_date: dto.invoiceDate ? (dto.invoiceDate as any) : (new Date().toISOString().slice(0, 10) as any),
+          currency: dto.currency || 'USD',
+          total_invoiced_amount: totalAmount,
+          ocean_freight: Number(dto.oceanFreight || 0),
+          thc_charges: Number(dto.thcCharges || 0),
+          baf_charges: Number(dto.bafCharges || 0),
+          detention_demurrage: Number(dto.detentionDemurrage || 0),
+          other_charges: Number(dto.otherCharges || 0),
+          rate_card_id: audit.rateCardId ? Number(audit.rateCardId) : null,
+          contracted_amount: audit.contractedTotal,
+          variance_amount: audit.varianceAmount,
+          variance_pct: audit.variancePct,
+          audit_status: auditStatus,
+          override_approved_by: overrideApprovedBy,
+          override_approved_at: overrideApprovedAt,
+          override_reason: overrideReason,
+          journal_entry_id: entryId,
+          payment_status: 'unpaid',
+          notes: dto.notes || null,
+          created_by: auth.userId ? Number(auth.userId) : null,
+        } as any)
+        .returningAll()
+        .execute();
+
+      return row;
+    });
+
+    const statusMessage =
+      auditStatus === 'matched'
+        ? 'مطابقة للتعرفة المتعاقد عليها'
+        : auditStatus === 'overcharge'
+        ? `زيادة غير معتمدة بمقدار +${audit.varianceAmount} (+${audit.variancePct}%) تتطلب مراجعة واعتماد مسؤول مالي آخر أو فتح نزاع`
+        : auditStatus === 'undercharge'
+        ? `أقل من التعرفة بمقدار -${Math.abs(audit.varianceAmount)}`
+        : 'سجلت بدون تعرفة مسبقة';
+
+    return {
+      success: true,
+      invoice: insertedInvoice,
+      audit,
+      message: `تم تسجيل فاتورة الخط الملاحي #${dto.invoiceNumber} بنجاح (${statusMessage})`,
+    };
+  }
+
+
+  async overrideCarrierInvoice(auth: AuthContext, invoiceId: string, dto: { reason: string }) {
+    const { tenantId } = requireTenantScope(auth);
+
+    const updatedInvoice = await this.db.transaction().execute(async (trx: any) => {
+      // Row lock: without it, two concurrent /override calls by two different valid checkers
+      // both read journal_entry_id = NULL, both pass the "not yet posted" check below, and both
+      // post a journal entry for the same invoice — a duplicated expense in the general ledger.
+      const invoice = await trx
+        .selectFrom('maritime_carrier_invoices')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', Number(invoiceId) as any)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!invoice) throw new NotFoundException('فاتورة الناقل غير موجودة');
+
+      // The endpoint previously had no check on the invoice's current audit_status at all: it
+      // could be called on an already-matched, already-approved, or disputed invoice and would
+      // unconditionally flip it to 'approved_override'. Only an invoice actually flagged
+      // 'overcharge' is awaiting this decision.
+      if (invoice.audit_status !== 'overcharge') {
+        throw new BadRequestException(
+          `لا يمكن تطبيق التجاوز المالي: حالة الفاتورة الحالية (${invoice.audit_status}) ليست في انتظار مراجعة زيادة سعرية.`,
+        );
+      }
+
+      const validation = validateMakerCheckerOverride({
+        userId: auth.userId || 0,
+        role: auth.role || '',
+        invoiceCreatedBy: invoice.created_by ? Number(invoice.created_by) : null,
+        reason: dto.reason,
+      });
+
+      if (!validation.valid) {
+        throw new BadRequestException(validation.error);
+      }
+
+      const job = await this.getJobById(auth, String(invoice.job_id));
+
+      // Post journal if not already posted. Uses the same shared helper as createCarrierInvoice:
+      // throws instead of silently skipping when the required accounts are missing, and enforces
+      // the fiscal period lock — neither of which the previous inline copy of this logic did.
+      let entryId = invoice.journal_entry_id ? Number(invoice.journal_entry_id) : null;
+      if (!entryId) {
+        entryId = await this.postCarrierInvoiceJournal(trx, tenantId, {
+          job,
+          invoiceNumber: invoice.invoice_number,
+          shippingLineId: invoice.shipping_line_id,
+          totalAmount: Number(invoice.total_invoiced_amount),
+          entryDate: invoice.invoice_date ? new Date(invoice.invoice_date) : new Date(),
+          descriptionSuffix: '(معتمدة بتجاوز مالي)',
+          userId: auth.userId,
+        });
+      }
+
+      const [row] = await trx
+        .updateTable('maritime_carrier_invoices')
+        .set({
+          audit_status: 'approved_override',
+          override_approved_by: auth.userId ? Number(auth.userId) : null,
+          override_approved_at: sql`NOW()`,
+          override_reason: dto.reason.trim(),
+          journal_entry_id: entryId,
+          updated_at: sql`NOW()`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', Number(invoiceId) as any)
+        .returningAll()
+        .execute();
+
+      return row;
+    });
+
+    return {
+      success: true,
+      invoice: updatedInvoice,
+      message: 'تم اعتماد التجاوز المالي لفاتورة الناقل وترحيل القيد المحاسبي بنجاح',
+    };
+  }
+
+
+  async createCarrierDispute(
+    auth: AuthContext,
+    invoiceId: string,
+    dto: { reason: string; disputedAmount?: number },
+  ) {
+    const { tenantId } = requireTenantScope(auth);
+
+    const invoice = await this.db
+      .selectFrom('maritime_carrier_invoices')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', Number(invoiceId) as any)
+      .executeTakeFirst();
+
+    if (!invoice) throw new NotFoundException('فاتورة الناقل غير موجودة');
+
+    const job = await this.getJobById(auth, String(invoice.job_id));
+    const disputedAmount = dto.disputedAmount ? Number(dto.disputedAmount) : Number(invoice.variance_amount);
+
+    const countRow = await this.db
+      .selectFrom('maritime_carrier_disputes')
+      .select(sql`COUNT(*)`.as('c'))
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    const seq = Number((countRow as any)?.c || 0) + 1;
+    const disputeNumber = formatDailyDocumentNumber('DISP', seq, new Date());
+
+    const [dispute] = await this.db
+      .insertInto('maritime_carrier_disputes')
+      .values({
+        tenant_id: tenantId,
+        dispute_number: disputeNumber,
+        invoice_id: Number(invoice.id),
+        job_id: Number(job.id),
+        carrier_name: invoice.carrier_name,
+        disputed_amount: disputedAmount > 0 ? disputedAmount : Number(invoice.total_invoiced_amount),
+        currency: invoice.currency || 'USD',
+        dispute_reason: dto.reason?.trim() || 'فروق تسعير عن التعرفة المتعاقد عليها',
+        dispute_status: 'submitted',
+        created_by: auth.userId ? Number(auth.userId) : null,
+      } as any)
+      .returningAll()
+      .execute();
+
+    await this.db
+      .updateTable('maritime_carrier_invoices')
+      .set({
+        audit_status: 'disputed',
+        payment_status: 'held_for_dispute',
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', Number(invoice.id) as any)
+      .execute();
+
+    return {
+      success: true,
+      dispute,
+      message: `تم إنشاء مذكرة النزاع المالي #${disputeNumber} وحجز الفاتورة عن الصرف بنجاح`,
+    };
+  }
+
+  async resolveCarrierDispute(
+    auth: AuthContext,
+    disputeId: string,
+    dto: {
+      status: 'accepted' | 'rejected' | 'partially_accepted';
+      resolutionNotes?: string;
+      creditNoteNumber?: string;
+      creditNoteAmount?: number;
+    },
+  ) {
+    const { tenantId } = requireTenantScope(auth);
+
+    const dispute = await this.db
+      .selectFrom('maritime_carrier_disputes')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', Number(disputeId) as any)
+      .executeTakeFirst();
+
+    if (!dispute) throw new NotFoundException('مذكرة النزاع غير موجودة');
+
+    const creditAmount = Number(dto.creditNoteAmount || 0);
+
+    const [updatedDispute] = await this.db
+      .updateTable('maritime_carrier_disputes')
+      .set({
+        dispute_status: dto.status,
+        resolution_notes: dto.resolutionNotes || null,
+        credit_note_number: dto.creditNoteNumber || null,
+        credit_note_amount: creditAmount,
+        resolved_by: auth.userId ? Number(auth.userId) : null,
+        resolved_at: sql`NOW()`,
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', Number(disputeId) as any)
+      .returningAll()
+      .execute();
+
+    // If accepted and credit note received, adjust ledger
+    if ((dto.status === 'accepted' || dto.status === 'partially_accepted') && creditAmount > 0) {
+      const job = await this.getJobById(auth, String(dispute.job_id));
+      let costCenterId = job.cost_center_id ? Number(job.cost_center_id) : null;
+      const expenseAccId = await this.resolveAccountId(tenantId, '6400', '5100');
+      const creditAccId = await this.resolveAccountId(tenantId, '2110');
+
+      if (expenseAccId && creditAccId) {
+        const desc = `إشعار دائن خط ملاحي #${dto.creditNoteNumber || 'CN'} (تسوية نزاع #${dispute.dispute_number}) - الشحنة #${job.job_number}`;
+        const tempNo = `TMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+        const [inserted] = await this.db
+          .insertInto('journal_entries')
+          .values({
+            entry_no: tempNo,
+            tenant_id: tenantId,
+            account_id: tenantId,
+            entry_date: new Date(),
+            description: desc,
+            source_type: 'maritime_carrier_credit_note',
+            source_id: Number(job.id),
+            status: 'posted',
+            created_by: auth.userId ? Number(auth.userId) : null,
+            posted_by: auth.userId ? Number(auth.userId) : null,
+            posted_at: sql`NOW()`,
+          } as any)
+          .returning('id')
+          .execute();
+
+        const entryId = Number(inserted.id);
+        const entryNo = `JE-${String(entryId).padStart(8, '0')}`;
+        await this.db
+          .updateTable('journal_entries')
+          .set({ entry_no: entryNo, updated_at: sql`NOW()` } as any)
+          .where('id', '=', entryId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+
+        await this.db
+          .insertInto('journal_entry_lines')
+          .values([
+            {
+              journal_entry_id: entryId,
+              tenant_id: tenantId,
+              account_id: creditAccId,
+              cost_center_id: costCenterId,
+              description: desc,
+              debit: creditAmount,
+              credit: 0,
+              partner_type: 'supplier',
+              partner_id: null,
+            } as any,
+            {
+              journal_entry_id: entryId,
+              tenant_id: tenantId,
+              account_id: expenseAccId,
+              cost_center_id: costCenterId,
+              description: desc,
+              debit: 0,
+              credit: creditAmount,
+              partner_type: 'none',
+              partner_id: null,
+            } as any,
+          ])
+          .execute();
+
+        const newCarrierCost = Math.max(0, Number(job.carrier_cost_total || 0) - creditAmount);
+        const revenue = Number(job.client_invoiced_total || 0);
+        const otherCosts = Number(job.other_costs_total || 0);
+        const newNetProfit = revenue - (newCarrierCost + otherCosts);
+
+        await this.db
+          .updateTable('maritime_jobs')
+          .set({
+            carrier_cost_total: newCarrierCost,
+            net_profit: newNetProfit,
+            updated_at: sql`NOW()`,
+          })
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', job.id as any)
+          .execute();
+      }
+    }
+
+    // Release hold on invoice
+    await this.db
+      .updateTable('maritime_carrier_invoices')
+      .set({
+        payment_status: 'unpaid',
+        audit_status: dto.status === 'rejected' ? 'approved_override' : 'matched',
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', Number(dispute.invoice_id) as any)
+      .execute();
+
+    return {
+      success: true,
+      dispute: updatedDispute,
+      message: `تم تسوية النزاع المالي بنجاح (${dto.status})`,
+    };
+  }
+
+  async listJobCarrierInvoices(auth: AuthContext, jobId: string) {
+    const { tenantId } = requireTenantScope(auth);
+
+    const invoices = await this.db
+      .selectFrom('maritime_carrier_invoices as mci')
+      .leftJoin('maritime_carrier_disputes as mcd', 'mcd.invoice_id', 'mci.id')
+      .leftJoin('maritime_rate_cards as mrc', 'mrc.id', 'mci.rate_card_id')
+      .select([
+        'mci.id',
+        'mci.tenant_id',
+        'mci.job_id',
+        'mci.shipping_line_id',
+        'mci.carrier_name',
+        'mci.invoice_number',
+        'mci.invoice_date',
+        'mci.currency',
+        'mci.total_invoiced_amount',
+        'mci.ocean_freight',
+        'mci.thc_charges',
+        'mci.baf_charges',
+        'mci.detention_demurrage',
+        'mci.other_charges',
+        'mci.rate_card_id',
+        'mci.contracted_amount',
+        'mci.variance_amount',
+        'mci.variance_pct',
+        'mci.audit_status',
+        'mci.override_approved_by',
+        'mci.override_approved_at',
+        'mci.override_reason',
+        'mci.journal_entry_id',
+        'mci.payment_status',
+        'mci.notes',
+        'mci.created_by',
+        'mci.created_at',
+        'mcd.id as dispute_id',
+        'mcd.dispute_number',
+        'mcd.dispute_status',
+        'mcd.disputed_amount',
+        'mcd.credit_note_number',
+        'mcd.credit_note_amount',
+        'mrc.carrier_name as rate_card_carrier',
+        'mrc.total_freight_cost as rate_card_unit_cost',
+      ])
+      .where('mci.tenant_id', '=', tenantId)
+      .where('mci.job_id', '=', Number(jobId) as any)
+      .orderBy('mci.id', 'desc')
+      .execute();
+
+    return invoices.map((r: any) => ({
+      id: String(r.id),
+      jobId: String(r.job_id),
+      shippingLineId: r.shipping_line_id ? String(r.shipping_line_id) : null,
+      carrierName: r.carrier_name,
+      invoiceNumber: r.invoice_number,
+      invoiceDate: r.invoice_date,
+      currency: r.currency,
+      totalInvoicedAmount: Number(r.total_invoiced_amount),
+      oceanFreight: Number(r.ocean_freight),
+      thcCharges: Number(r.thc_charges),
+      bafCharges: Number(r.baf_charges),
+      detentionDemurrage: Number(r.detention_demurrage),
+      otherCharges: Number(r.other_charges),
+      rateCardId: r.rate_card_id ? String(r.rate_card_id) : null,
+      contractedAmount: Number(r.contracted_amount),
+      varianceAmount: Number(r.variance_amount),
+      variancePct: Number(r.variance_pct),
+      auditStatus: r.audit_status,
+      overrideApprovedBy: r.override_approved_by ? String(r.override_approved_by) : null,
+      overrideApprovedAt: r.override_approved_at,
+      overrideReason: r.override_reason,
+      journalEntryId: r.journal_entry_id ? String(r.journal_entry_id) : null,
+      paymentStatus: r.payment_status,
+      notes: r.notes,
+      createdBy: r.created_by ? String(r.created_by) : null,
+      createdAt: r.created_at,
+      dispute: r.dispute_id
+        ? {
+            id: String(r.dispute_id),
+            disputeNumber: r.dispute_number,
+            disputeStatus: r.dispute_status,
+            disputedAmount: Number(r.disputed_amount),
+            creditNoteNumber: r.credit_note_number,
+            creditNoteAmount: Number(r.credit_note_amount),
+          }
+        : null,
+      rateCard: r.rate_card_id
+        ? {
+            carrierName: r.rate_card_carrier,
+            unitCost: Number(r.rate_card_unit_cost),
+          }
+        : null,
+    }));
+  }
+
+  // ==========================================
+  // CARGO INSURANCE METHODS
+  // ==========================================
+  async createCargoInsurance(auth: AuthContext, dto: CreateCargoInsuranceDto) {
+    const { tenantId } = requireTenantScope(auth);
+    return await this.db.transaction().execute(async (trx) => {
+      const [record] = await trx
+        .insertInto('maritime_cargo_insurances')
+        .values({
+          tenant_id: tenantId,
+          job_id: dto.jobId as any,
+          policy_number: dto.policyNumber,
+          insurance_company: dto.insuranceCompany,
+          insured_value: Number(dto.insuredValue || 0),
+          premium_amount: Number(dto.premiumAmount || 0),
+          currency: dto.currency || 'USD',
+          coverage_type: dto.coverageType || 'all_risks',
+          issue_date: dto.issueDate || new Date().toISOString().split('T')[0],
+          expiry_date: dto.expiryDate || null,
+          status: 'active',
+          claim_amount: 0,
+          claim_status: null,
+          claim_notes: null,
+          certificate_url: null,
+          notes: dto.notes || null,
+          created_by: auth.userId ? Number(auth.userId) : null,
+        })
+        .returningAll()
+        .execute();
+
+      return record;
+    });
+  }
+
+  async updateCargoInsurance(auth: AuthContext, id: string | number, dto: UpdateCargoInsuranceDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const updatePayload: any = {
+      updated_at: sql`NOW()`,
+    };
+    if (dto.policyNumber !== undefined) updatePayload.policy_number = dto.policyNumber;
+    if (dto.insuranceCompany !== undefined) updatePayload.insurance_company = dto.insuranceCompany;
+    if (dto.insuredValue !== undefined) updatePayload.insured_value = Number(dto.insuredValue);
+    if (dto.premiumAmount !== undefined) updatePayload.premium_amount = Number(dto.premiumAmount);
+    if (dto.currency !== undefined) updatePayload.currency = dto.currency;
+    if (dto.coverageType !== undefined) updatePayload.coverage_type = dto.coverageType;
+    if (dto.expiryDate !== undefined) updatePayload.expiry_date = dto.expiryDate;
+    if (dto.notes !== undefined) updatePayload.notes = dto.notes;
+
+    const [updated] = await this.db
+      .updateTable('maritime_cargo_insurances')
+      .set(updatePayload)
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    if (!updated) throw new NotFoundException('Cargo Insurance policy not found');
+    return updated;
+  }
+
+  async claimCargoInsurance(auth: AuthContext, id: string | number, dto: ClaimCargoInsuranceDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const existing = await this.db
+      .selectFrom('maritime_cargo_insurances')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .executeTakeFirst();
+
+    if (!existing) throw new NotFoundException('Cargo Insurance policy not found');
+
+    const [updated] = await this.db
+      .updateTable('maritime_cargo_insurances')
+      .set({
+        status: 'claimed',
+        claim_amount: Number(dto.claimAmount),
+        claim_status: dto.claimStatus,
+        claim_notes: dto.claimNotes || null,
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    return updated;
+  }
+
+  async getJobInsurances(auth: AuthContext, jobId: string | number) {
+    const { tenantId } = requireTenantScope(auth);
+    return await this.db
+      .selectFrom('maritime_cargo_insurances')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('job_id', '=', jobId as any)
+      .orderBy('id', 'desc')
+      .execute();
+  }
+
+  // ==========================================
+  // WAREHOUSE INTAKE / RECEIPTS METHODS
+  // ==========================================
+  async createWarehouseReceipt(auth: AuthContext, dto: CreateWarehouseReceiptDto) {
+    const { tenantId } = requireTenantScope(auth);
+    return await this.db.transaction().execute(async (trx) => {
+      const tempNumber = `MWR-TMP-${crypto.randomUUID()}`;
+      const [receipt] = await trx
+        .insertInto('maritime_warehouse_receipts')
+        .values({
+          tenant_id: tenantId,
+          receipt_number: tempNumber,
+          job_id: dto.jobId as any,
+          location_id: dto.locationId ? (dto.locationId as any) : null,
+          received_date: dto.receivedDate ? new Date(dto.receivedDate) : sql`NOW()`,
+          package_count: Number(dto.packageCount || 1),
+          gross_weight_kg: Number(dto.grossWeightKg || 0),
+          cbm: Number(dto.cbm || 0),
+          bay_rack_bin: dto.bayRackBin || null,
+          warehouse_status: 'in_storage',
+          released_at: null,
+          released_by: null,
+          notes: dto.notes || null,
+          created_by: auth.userId ? Number(auth.userId) : null,
+        })
+        .returningAll()
+        .execute();
+
+      const finalNumber = formatDailyDocumentNumber('MWR', Number(receipt.id));
+      const [updated] = await trx
+        .updateTable('maritime_warehouse_receipts')
+        .set({ receipt_number: finalNumber })
+        .where('id', '=', receipt.id)
+        .returningAll()
+        .execute();
+
+      return updated;
+    });
+  }
+
+  async releaseWarehouseReceipt(auth: AuthContext, id: string | number, dto: ReleaseWarehouseReceiptDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const existing = await this.db
+      .selectFrom('maritime_warehouse_receipts')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .executeTakeFirst();
+
+    if (!existing) throw new NotFoundException('Warehouse Receipt not found');
+
+    const [updated] = await this.db
+      .updateTable('maritime_warehouse_receipts')
+      .set({
+        warehouse_status: 'released',
+        released_at: sql`NOW()`,
+        released_by: auth.userId ? Number(auth.userId) : null,
+        notes: dto.notes ? `${existing.notes ? existing.notes + ' | ' : ''}${dto.notes}` : existing.notes,
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id as any)
+      .returningAll()
+      .execute();
+
+    return updated;
+  }
+
+  async getJobWarehouseReceipts(auth: AuthContext, jobId: string | number) {
+    const { tenantId } = requireTenantScope(auth);
+    return await this.db
+      .selectFrom('maritime_warehouse_receipts')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('job_id', '=', jobId as any)
+      .orderBy('id', 'desc')
+      .execute();
+  }
+
+  async getWarehouseReceipts(auth: AuthContext, filters?: { status?: string; search?: string }) {
+    const { tenantId } = requireTenantScope(auth);
+    let query = this.db
+      .selectFrom('maritime_warehouse_receipts')
+      .selectAll()
+      .where('tenant_id', '=', tenantId);
+
+    if (filters?.status && filters.status !== 'all') {
+      query = query.where('warehouse_status', '=', filters.status as any);
+    }
+
+    if (filters?.search) {
+      const term = `%${filters.search}%`;
+      query = query.where((eb) => eb.or([
+        eb('receipt_number', 'ilike', term),
+        eb('bay_rack_bin', 'ilike', term),
+      ]));
+    }
+
+    return await query.orderBy('id', 'desc').execute();
   }
 }

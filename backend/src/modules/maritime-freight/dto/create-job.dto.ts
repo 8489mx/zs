@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsArray, IsNumber, IsInt } from 'class-validator';
 
 export class CreateMaritimeJobDto {
   @IsString()
@@ -27,6 +27,50 @@ export class CreateMaritimeJobDto {
   @IsString()
   @IsOptional()
   direction?: 'import' | 'export' | 'cross_trade';
+
+  @IsString()
+  @IsOptional()
+  transportMode?: 'sea' | 'air' | 'road' | 'multimodal';
+
+  @IsString()
+  @IsOptional()
+  airCargoType?: string;
+
+  @IsNumber()
+  @IsOptional()
+  grossWeightKg?: number;
+
+  @IsNumber()
+  @IsOptional()
+  volumetricWeightKg?: number;
+
+  @IsNumber()
+  @IsOptional()
+  chargeableWeightKg?: number;
+
+  @IsNumber()
+  @IsOptional()
+  totalCbm?: number;
+
+  @IsInt()
+  @IsOptional()
+  packageCount?: number;
+
+  @IsString()
+  @IsOptional()
+  flightNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  flightDate?: string;
+
+  @IsString()
+  @IsOptional()
+  mawbNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  hawbNumber?: string;
 
   @IsString()
   @IsOptional()

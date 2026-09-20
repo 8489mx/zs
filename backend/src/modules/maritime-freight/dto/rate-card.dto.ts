@@ -30,6 +30,19 @@ export class CreateRateCardDto {
 
   @IsString()
   @IsOptional()
+  transportMode?: 'sea' | 'air' | 'road' | 'multimodal';
+
+  @IsString()
+  @IsOptional()
+  rateBasis?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  minCharge?: number;
+
+  @IsString()
+  @IsOptional()
   containerType?: string;
 
   @IsNumber()

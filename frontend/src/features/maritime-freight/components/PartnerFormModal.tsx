@@ -10,7 +10,7 @@ interface PartnerFormModalProps {
   onClose: () => void;
   onSaved: () => void;
   partner?: ShippingLine | null;
-  defaultType?: 'shipping_line' | 'overseas_agent';
+  defaultType?: 'shipping_line' | 'overseas_agent' | 'airline' | 'trucking';
 }
 
 const TRADE_LANE_OPTIONS = [
@@ -50,7 +50,7 @@ export function PartnerFormModal({
   partner,
   defaultType = 'shipping_line',
 }: PartnerFormModalProps) {
-  const [carrierType, setCarrierType] = useState<'shipping_line' | 'overseas_agent'>(defaultType);
+  const [carrierType, setCarrierType] = useState<'shipping_line' | 'overseas_agent' | 'airline' | 'trucking'>(defaultType);
   const [code, setCode] = useState('');
   const [nameAr, setNameAr] = useState('');
   const [nameEn, setNameEn] = useState('');
