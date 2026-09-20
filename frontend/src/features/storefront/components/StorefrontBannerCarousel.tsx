@@ -80,7 +80,7 @@ export function StorefrontBannerCarousel({
     <div
       className="storefront-banner-carousel-wrapper"
       style={{
-        maxWidth: '1280px',
+        maxWidth: 'var(--storefront-container, 1440px)',
         width: '100%',
         margin: '16px auto 10px',
         padding: '0 20px',

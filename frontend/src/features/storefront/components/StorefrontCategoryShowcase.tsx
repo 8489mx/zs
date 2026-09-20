@@ -62,9 +62,9 @@ export function StorefrontCategoryShowcase({
         }
       `}</style>
       <div
-        className="storefront-cat-showcase-inner"
+        className="storefront-cat-showcase-inner storefront-category-showcase"
         style={{
-          maxWidth: '1280px',
+          maxWidth: 'var(--storefront-container, 1440px)',
           margin: '0 auto',
           display: 'flex',
           alignItems: 'center',

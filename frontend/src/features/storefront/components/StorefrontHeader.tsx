@@ -180,9 +180,9 @@ export function StorefrontHeader({
 
       {/* Main Navbar */}
       <div
-        className="storefront-navbar"
+        className="storefront-navbar storefront-header-shell"
         style={{
-          maxWidth: '1280px',
+          maxWidth: 'var(--storefront-container, 1440px)',
           margin: '0 auto',
           padding: '12px 24px',
           display: 'flex',

@@ -78,9 +78,9 @@ export function StorefrontSubNav({
         }
       `}</style>
       <div
-        className="storefront-subnav-inner"
+        className="storefront-subnav-inner storefront-subnav-shell"
         style={{
-          maxWidth: '1280px',
+          maxWidth: 'var(--storefront-container, 1440px)',
           margin: '0 auto',
           display: 'flex',
           alignItems: 'center',

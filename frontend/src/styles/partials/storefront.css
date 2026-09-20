@@ -1,7 +1,27 @@
 /* Storefront Responsive Layout Styles */
+
+/*
+ * عرض الحاوية الموحّد. كان 1280px مكرراً في أربعة مواضع inline، فكان أي تغيير
+ * يتطلب تعديل كل موضع. 1440px تعطي 6 منتجات في الصف على الشاشات الكبيرة بدل 5،
+ * وتقلّل المساحة المهدورة على جانبي الصفحة دون أن تتمدد بلا حدود.
+ */
+:root {
+  --storefront-container: 1440px;
+  /* ارتفاع بار السلة السفلي — تقرؤه شبكة المنتجات لتترك مساحة أسفلها */
+  --storefront-dock-height: 84px;
+}
+
+.storefront-container {
+  max-width: var(--storefront-container);
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
 .storefront-products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  /* 200px بدل 220px: كثافة أعلى بصف واحد إضافي على الشاشات المتوسطة والكبيرة */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
 }
 
@@ -9,6 +29,55 @@
   display: flex;
   flex-direction: column;
   gap: 28px;
+}
+
+/*
+ * رفوف الصفحة الرئيسية: تمرير أفقي بدل شبكة.
+ *
+ * كانت الرفوف تعرض 4 منتجات ثابتة (`slice(0, 4)`) داخل شبكة `auto-fill`، فعلى أي
+ * شاشة تتسع لأكثر من 4 أعمدة تبقى الأعمدة الزائدة **فارغة** — وهو ما يجعل نصف
+ * عرض الصفحة أبيض على الشاشات الكبيرة. الرفّ الأفقي يملأ العرض دائماً مهما كان،
+ * ولا يترك عنصراً يتيماً في سطر ثانٍ، وهو نفس نمط طلبات/نون/أمازون.
+ */
+.storefront-shelf {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 4px;
+  padding-bottom: 6px;
+  /* شريط تمرير رفيع لا يزاحم المحتوى */
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.storefront-shelf::-webkit-scrollbar {
+  height: 6px;
+}
+.storefront-shelf::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+.storefront-shelf::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.storefront-shelf-item {
+  flex: 0 0 210px;
+  max-width: 210px;
+  scroll-snap-align: start;
+}
+
+@media (max-width: 640px) {
+  .storefront-shelf {
+    gap: 8px;
+  }
+  .storefront-shelf-item {
+    /* عنصران ونصف ظاهران: إشارة بصرية واضحة أن الرفّ قابل للتمرير */
+    flex-basis: 43vw;
+    max-width: 43vw;
+  }
 }
 
 @media (max-width: 640px) {
@@ -44,5 +113,39 @@
     padding: 8px 10px !important;
     gap: 8px !important;
     margin-bottom: 12px !important;
+  }
+}
+
+/*
+ * بار السلة السفلي كان يغطي آخر صف منتجات: المحتوى ينتهي بـ`padding-bottom: 80px`
+ * ثابتة بينما البار مثبّت فوقه، فيُقص الكارت الأخير ولا يصل المستخدم لزر الإضافة.
+ * المساحة الآن مشتقّة من ارتفاع البار + المنطقة الآمنة في أجهزة iPhone.
+ */
+.storefront-main-content {
+  padding-bottom: calc(var(--storefront-dock-height) + env(safe-area-inset-bottom, 0px) + 24px) !important;
+}
+
+@media (max-width: 640px) {
+  :root {
+    /* البار أطول على الموبايل: سطر الإجمالي + زر إتمام الطلب */
+    --storefront-dock-height: 96px;
+  }
+
+  /*
+   * الهيدر كان يستهلك ثلث الشاشة قبل أول منتج (لوجو + بحث + صف فلاتر + شريط
+   * أقسام). تقليص الحشو والفجوات يرفع أول منتج فوق الطيّة.
+   */
+  .storefront-header-shell {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    gap: 8px !important;
+  }
+  .storefront-subnav-shell {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+  .storefront-category-showcase {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
   }
 }

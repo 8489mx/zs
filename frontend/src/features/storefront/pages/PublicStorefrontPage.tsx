@@ -9,6 +9,7 @@ import { StorefrontMultiRowHome } from '../components/StorefrontMultiRowHome';
 import { StorefrontFilteredGrid } from '../components/StorefrontFilteredGrid';
 import { StorefrontModals } from '../components/StorefrontModals';
 import { StorefrontFreeShippingBar } from '../components/StorefrontFreeShippingBar';
+import { StorefrontDeliveryInfoBar } from '../components/StorefrontDeliveryInfoBar';
 import { initStorefrontPixels, trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { usePublicStorefront, ITEMS_PER_PAGE } from '../hooks/usePublicStorefront';
@@ -224,9 +225,12 @@ export function PublicStorefrontPage() {
         onAddToCart={handleAddToCart}
       />
 
+      {/* إشارات التوصيل (المدة، الرسوم، أقل طلب) قبل أي تصفح */}
+      <StorefrontDeliveryInfoBar info={info} />
+
       {/* Free Shipping Progress Notification Banner (if enabled) */}
       {info.freeShippingEnabled && (
-        <div style={{ maxWidth: '1280px', width: '100%', margin: '0 auto', padding: '10px 20px 0', boxSizing: 'border-box' }}>
+        <div style={{ maxWidth: 'var(--storefront-container, 1440px)', width: '100%', margin: '0 auto', padding: '10px 20px 0', boxSizing: 'border-box' }}>
           <StorefrontFreeShippingBar
             subtotal={cartSubtotal}
             freeShippingEnabled={info.freeShippingEnabled}
@@ -333,7 +337,7 @@ export function PublicStorefrontPage() {
         className="storefront-main-content"
         style={{
           flex: 1,
-          maxWidth: '1280px',
+          maxWidth: 'var(--storefront-container, 1440px)',
           width: '100%',
           margin: '0 auto',
           padding: '20px 20px 80px',

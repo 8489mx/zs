@@ -111,21 +111,22 @@ export function StorefrontMultiRowHome({
             </button>
           </div>
 
-          <div className="storefront-products-grid">
-            {dealsProducts.slice(0, 4).map((product) => (
-              <StorefrontProductCard
-                key={product.id}
-                product={product}
-                cartQuantity={cartMap.get(product.id) || 0}
-                whatsappPhone={info.whatsappPhone}
-                onAddToCart={onAddToCart}
-                onUpdateQuantity={onUpdateQuantity}
-                isSmartDeal={true}
-                onOpenReviewModal={onOpenReviewModal}
-                isFavorite={favoriteIds.has(product.id)}
-                onToggleFavorite={onToggleFavorite}
-                onQuickView={onQuickView}
-              />
+          <div className="storefront-shelf">
+            {dealsProducts.slice(0, 12).map((product) => (
+              <div className="storefront-shelf-item" key={product.id}>
+                <StorefrontProductCard
+                  product={product}
+                  cartQuantity={cartMap.get(product.id) || 0}
+                  whatsappPhone={info.whatsappPhone}
+                  onAddToCart={onAddToCart}
+                  onUpdateQuantity={onUpdateQuantity}
+                  isSmartDeal={true}
+                  onOpenReviewModal={onOpenReviewModal}
+                  isFavorite={favoriteIds.has(product.id)}
+                  onToggleFavorite={onToggleFavorite}
+                  onQuickView={onQuickView}
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -217,21 +218,22 @@ export function StorefrontMultiRowHome({
                 </button>
               </div>
 
-              {/* 4 Full Sized Product Cards in Horizontal Row */}
-              <div className="storefront-products-grid">
-                {section.products.slice(0, 4).map((product) => (
-                  <StorefrontProductCard
-                    key={product.id}
-                    product={product}
-                    cartQuantity={cartMap.get(product.id) || 0}
-                    whatsappPhone={info.whatsappPhone}
-                    onAddToCart={onAddToCart}
-                    onUpdateQuantity={onUpdateQuantity}
-                    onOpenReviewModal={onOpenReviewModal}
-                    isFavorite={favoriteIds.has(product.id)}
-                    onToggleFavorite={onToggleFavorite}
-                onQuickView={onQuickView}
-                  />
+              {/* رفّ أفقي قابل للتمرير — يملأ العرض دائماً بلا أعمدة فارغة */}
+              <div className="storefront-shelf">
+                {section.products.slice(0, 12).map((product) => (
+                  <div className="storefront-shelf-item" key={product.id}>
+                    <StorefrontProductCard
+                      product={product}
+                      cartQuantity={cartMap.get(product.id) || 0}
+                      whatsappPhone={info.whatsappPhone}
+                      onAddToCart={onAddToCart}
+                      onUpdateQuantity={onUpdateQuantity}
+                      onOpenReviewModal={onOpenReviewModal}
+                      isFavorite={favoriteIds.has(product.id)}
+                      onToggleFavorite={onToggleFavorite}
+                      onQuickView={onQuickView}
+                    />
+                  </div>
                 ))}
               </div>
             </div>

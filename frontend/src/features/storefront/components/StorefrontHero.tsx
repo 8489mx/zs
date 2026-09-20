@@ -33,7 +33,7 @@ export function StorefrontHero({
     >
       <div
         style={{
-          maxWidth: '1280px',
+          maxWidth: 'var(--storefront-container, 1440px)',
           margin: '0 auto',
           padding: '22px 20px 18px',
           position: 'relative',
