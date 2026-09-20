@@ -112,7 +112,7 @@ export class PaymentManagerService {
 
     await this.db.transaction().execute(async (trx) => {
       if (activeSub) {
-        await trx.updateTable('tenant_subscriptions').set({ status: 'expired', updated_at: now }).where('id', '=', activeSub.id).execute();
+        await trx.updateTable('tenant_subscriptions').set({ status: 'expired', updated_at: now }).where('id', '=', activeSub.id).where('tenant_id', '=', tenant.id).execute();
       }
 
       const newSub = await trx

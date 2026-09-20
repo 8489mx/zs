@@ -117,13 +117,13 @@ export class SessionService {
         const graceEndsAt = subscription.grace_ends_at ? new Date(subscription.grace_ends_at) : subscription.ends_at;
         if (graceEndsAt <= now) {
           await this.db.transaction().execute(async (trx) => {
-            await trx.updateTable('tenant_subscriptions').set({ status: 'expired', updated_at: now.toISOString() }).where('id', '=', subscription.id).execute();
+            await trx.updateTable('tenant_subscriptions').set({ status: 'expired', updated_at: now.toISOString() }).where('id', '=', subscription.id).where('tenant_id', '=', tenant.id).execute();
             await trx.updateTable('tenants').set({ status: 'expired', updated_at: now.toISOString() }).where('id', '=', tenant.id).execute();
           });
           this.authCache.setTenantAllowed(normalizedTenantId, false);
           throw new UnauthorizedException('انتهى اشتراك هذه النسخة وانتهت فترة السماح. تواصل معنا لتفعيل الاشتراك.');
         } else if (subscription.status === 'active') {
-          await this.db.updateTable('tenant_subscriptions').set({ status: 'past_due', updated_at: now.toISOString() }).where('id', '=', subscription.id).execute();
+          await this.db.updateTable('tenant_subscriptions').set({ status: 'past_due', updated_at: now.toISOString() }).where('id', '=', subscription.id).where('tenant_id', '=', tenant.id).execute();
         }
       }
     }
