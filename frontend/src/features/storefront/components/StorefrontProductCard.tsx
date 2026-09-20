@@ -214,6 +214,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             alt={product.name}
             loading="lazy"
             decoding="async"
+            draggable={false}
             onError={(e) => {
               e.currentTarget.src = generatePremiumProductSvg(product.name, product.categoryName);
             }}
@@ -224,6 +225,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               display: 'block',
               transition: 'transform 0.4s ease, opacity 0.3s ease',
               opacity: imageLoaded ? 1 : 0.8,
+              pointerEvents: 'none',
             }}
             onLoad={() => setImageLoaded(true)}
             data-illustrative={isIllustrativePhoto ? 'true' : undefined}

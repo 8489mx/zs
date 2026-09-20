@@ -225,6 +225,7 @@ export function StorefrontBannerCarousel({
                   src={url}
                   alt={`${title} - إعلان ${idx + 1}`}
                   loading={idx === 0 ? 'eager' : 'lazy'}
+                  draggable={false}
                   style={{
                     width: '100%',
                     height: '100%',
@@ -232,6 +233,7 @@ export function StorefrontBannerCarousel({
                     objectPosition: slidePos,
                     display: 'block',
                     borderRadius: 'inherit',
+                    pointerEvents: 'none',
                   }}
                 />
               </div>

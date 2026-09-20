@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { StorefrontProductCard } from './StorefrontProductCard';
 import { IconArrowUpRight } from './StorefrontIcons';
+import { useDragScroll } from '../hooks/useDragScroll';
 
 /**
  * رفّ منتجات موحّد: ترويسة + شريط تمرير أفقي.
@@ -41,7 +42,7 @@ const SCROLL_STEP = 320;
 export const StorefrontShelfSection = React.memo(function StorefrontShelfSection({
   badge,
   subtitle,
-  viewAllLabel,
+  viewAllLabel = 'عرض كل أصناف القسم',
   products,
   cartMap,
   whatsappPhone,
@@ -54,7 +55,8 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
   onToggleFavorite,
   onQuickView,
 }: Props) {
-  const trackRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const { ref: dragRef, onMouseDown, onClickCapture } = useDragScroll<HTMLDivElement>();
   const [canScroll, setCanScroll] = useState(false);
 
   // الأسهم تظهر فقط عندما يكون هناك ما يُمرَّر إليه فعلاً
@@ -214,7 +216,17 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
         </div>
       </div>
 
-      <div className="storefront-shelf" ref={trackRef} onScroll={syncScrollability}>
+      <div
+        className="storefront-shelf"
+        ref={(el) => {
+          trackRef.current = el;
+          dragRef.current = el;
+        }}
+        onMouseDown={onMouseDown}
+        onClickCapture={onClickCapture}
+        onScroll={syncScrollability}
+        style={{ cursor: 'grab' }}
+      >
         {products.map((product) => (
           <div className="storefront-shelf-item" key={product.id}>
             <StorefrontProductCard

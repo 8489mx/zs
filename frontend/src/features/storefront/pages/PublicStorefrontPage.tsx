@@ -250,6 +250,10 @@ export function PublicStorefrontPage() {
         display: 'flex',
         flexDirection: 'column',
         fontFamily: 'inherit',
+        width: '100%',
+        maxWidth: '100vw',
+        overflowX: 'hidden',
+        boxSizing: 'border-box',
       }}
     >
       {/* Header */}
@@ -366,12 +370,16 @@ export function PublicStorefrontPage() {
         favoritesCount={favoriteIds.size}
       />
 
-      {/* Horizontal Circular Category Showcase */}
-      {isHomepageMultiRow && (
+      {/* Horizontal Circular Category Showcase - Always visible unless searching */}
+      {!searchTerm && (
         <StorefrontCategoryShowcase
           categories={categories}
           selectedCategoryId={selectedCategory}
-          onSelectCategory={setSelectedCategory}
+          onSelectCategory={(id) => {
+            setSelectedCategory(id);
+            setOnlyDeals(false);
+            setOnlyFavorites(false);
+          }}
           onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
           categoryCounts={categoryCounts}
         />

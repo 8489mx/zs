@@ -1,6 +1,8 @@
+import { useRef, useEffect } from 'react';
 import { StorefrontCategory } from '../types/storefront.types';
 import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { IconShoppingBag, IconFolder } from './StorefrontIcons';
+import { useDragScroll } from '../hooks/useDragScroll';
 
 interface StorefrontCategoryShowcaseProps {
   categories: StorefrontCategory[];
@@ -17,6 +19,19 @@ export function StorefrontCategoryShowcase({
   onOpenCategoriesModal,
   categoryCounts,
 }: StorefrontCategoryShowcaseProps) {
+  const { ref: containerRef, onMouseDown, onClickCapture } = useDragScroll<HTMLDivElement>();
+  const selectedItemRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (selectedCategoryId !== 'all' && selectedItemRef.current) {
+      selectedItemRef.current.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest',
+      });
+    }
+  }, [selectedCategoryId]);
+
   if (!categories || categories.length === 0) return null;
 
   // Filter only categories that have products, and take top 10 sorted by count
@@ -29,6 +44,9 @@ export function StorefrontCategoryShowcase({
 
   return (
     <div
+      ref={containerRef}
+      onMouseDown={onMouseDown}
+      onClickCapture={onClickCapture}
       className="storefront-cat-showcase"
       style={{
         background: '#ffffff',
@@ -37,15 +55,24 @@ export function StorefrontCategoryShowcase({
         overflowX: 'auto',
         WebkitOverflowScrolling: 'touch',
         direction: 'rtl',
+        cursor: 'grab',
+        userSelect: 'none',
+        width: '100%',
+        maxWidth: '100vw',
+        boxSizing: 'border-box',
       }}
     >
       <style>{`
         @media (max-width: 640px) {
           .storefront-cat-showcase {
             padding: 8px 10px !important;
+            width: 100% !important;
+            max-width: 100vw !important;
+            box-sizing: border-box !important;
           }
           .storefront-cat-showcase-inner {
             gap: 10px !important;
+            width: max-content !important;
           }
           .storefront-cat-item {
             min-width: 60px !important;
@@ -69,6 +96,7 @@ export function StorefrontCategoryShowcase({
           display: 'flex',
           alignItems: 'center',
           gap: '16px',
+          width: 'max-content',
         }}
       >
         {/* All Products Avatar */}
@@ -128,6 +156,7 @@ export function StorefrontCategoryShowcase({
           return (
             <div
               key={cat.id}
+              ref={isSelected ? selectedItemRef : undefined}
               className="storefront-cat-item"
               onClick={() => onSelectCategory(cat.id)}
               style={{
@@ -163,6 +192,7 @@ export function StorefrontCategoryShowcase({
                   alt={cat.name}
                   loading="lazy"
                   decoding="async"
+                  draggable={false}
                   onError={(e) => {
                     e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
                   }}
@@ -170,6 +200,7 @@ export function StorefrontCategoryShowcase({
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
+                    pointerEvents: 'none',
                     transition: 'transform 0.3s ease',
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
