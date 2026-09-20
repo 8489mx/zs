@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { PortalsHubPage } from './PortalsHubPage';
+import { PORTALS_LIST } from '../components/portals-data';
 
 function renderHub() {
   return render(
@@ -12,54 +13,53 @@ function renderHub() {
   );
 }
 
+function searchInput() {
+  return screen.getByPlaceholderText(/ابحث عن بوابة/i);
+}
+
 describe('PortalsHubPage Component & Layout', () => {
-  it('renders header, title, and all 10 portals by default', () => {
+  it('renders the header and every portal in the catalogue by default', () => {
     renderHub();
 
-    expect(screen.getByText('دليل البوابات والخدمات الذاتية')).toBeInTheDocument();
-    expect(screen.getByText('منظومة Z-Systems')).toBeInTheDocument();
-    expect(screen.getByText('بوابة الموظف الذاتية')).toBeInTheDocument();
-    expect(screen.getByText('بصمة الموبايل الذكية (GPS)')).toBeInTheDocument();
-    expect(screen.getByText('بوابة مندوبي التوصيل')).toBeInTheDocument();
-    expect(screen.getByText('مبيعات سيارات التوزيع والفان')).toBeInTheDocument();
-    expect(screen.getByText('شاشة المطبخ (KDS)')).toBeInTheDocument();
-    expect(screen.getByText('شاشة العميل بنقطة البيع (CFD)')).toBeInTheDocument();
-    expect(screen.getByText('شاشة العروض الرقمية (Signage)')).toBeInTheDocument();
-    expect(screen.getByText('الطلب الذاتي من الطاولة (QR)')).toBeInTheDocument();
-    expect(screen.getByText('رادار متابعة المالك المتنقل')).toBeInTheDocument();
-    expect(screen.getByText('النظام الإداري المركزي (ERP)')).toBeInTheDocument();
+    expect(screen.getByText('مركز البوابات الرقمية وشاشات الخدمة الذاتية')).toBeInTheDocument();
+    expect(screen.getByText(`${PORTALS_LIST.length} بوابات نشطة`)).toBeInTheDocument();
+
+    // Driven off the data file so adding a portal cannot silently skip this assertion.
+    for (const portal of PORTALS_LIST) {
+      expect(screen.getByText(portal.title)).toBeInTheDocument();
+    }
+  });
+
+  it('keeps the "all" pill count in step with the catalogue', () => {
+    renderHub();
+    expect(screen.getByRole('button', { name: `الكل (${PORTALS_LIST.length})` })).toBeInTheDocument();
   });
 
   it('filters portals when clicking a category pill', async () => {
     const user = userEvent.setup();
     renderHub();
 
-    // Click 'الموظفين والخدمة الذاتية'
-    const staffBtn = screen.getByRole('button', { name: /الموظفين والخدمة الذاتية/i });
-    await user.click(staffBtn);
+    await user.click(screen.getByRole('button', { name: 'خدمة ذاتية' }));
 
-    // Only staff portals should remain
-    expect(screen.getByText('بوابة الموظف الذاتية')).toBeInTheDocument();
-    expect(screen.getByText('بصمة الموبايل الذكية (GPS)')).toBeInTheDocument();
-    expect(screen.queryByText('شاشة المطبخ (KDS)')).not.toBeInTheDocument();
-    expect(screen.queryByText('بوابة مندوبي التوصيل')).not.toBeInTheDocument();
+    for (const portal of PORTALS_LIST) {
+      if (portal.category === 'staff') {
+        expect(screen.getByText(portal.title)).toBeInTheDocument();
+      } else {
+        expect(screen.queryByText(portal.title)).not.toBeInTheDocument();
+      }
+    }
   });
 
-  it('performs live search and clears search correctly', async () => {
+  it('performs live search across keywords and restores the list when cleared', async () => {
     const user = userEvent.setup();
     renderHub();
 
-    const searchInput = screen.getByPlaceholderText(/ابحث بالاسم/i);
-    await user.type(searchInput, 'طيار');
-
-    // Delivery portal matches keyword 'طيار'
+    // 'طيار' only appears in the delivery portal's keywords.
+    await user.type(searchInput(), 'طيار');
     expect(screen.getByText('بوابة مندوبي التوصيل')).toBeInTheDocument();
     expect(screen.queryByText('بوابة الموظف الذاتية')).not.toBeInTheDocument();
 
-    // Clear search using clear button
-    const clearBtn = screen.getByTitle('مسح البحث');
-    await user.click(clearBtn);
-
+    await user.clear(searchInput());
     expect(screen.getByText('بوابة الموظف الذاتية')).toBeInTheDocument();
     expect(screen.getByText('شاشة المطبخ (KDS)')).toBeInTheDocument();
   });

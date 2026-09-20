@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { enforceWithBaseline } from './architecture-baseline.mjs';
 
 const projectRoot = process.cwd();
 const srcRoot = path.join(projectRoot, 'src');
@@ -63,10 +65,11 @@ for (const filePath of walkFiles(featuresDir)) {
   }
 }
 
-if (failures.length) {
-  console.error('\nFrontend import layer check failed.\n');
-  failures.forEach((entry) => console.error(`- ${entry}`));
-  process.exit(1);
-}
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
-console.log(`\nFrontend import layer check passed.`);
+enforceWithBaseline({
+  name: 'Frontend import layer check',
+  baselineFile: path.join(scriptDir, 'baselines', 'import-layer.json'),
+  violations: failures,
+  hint: 'A component must not reach into the app layer or into a page module, and a page must not import another page.',
+});

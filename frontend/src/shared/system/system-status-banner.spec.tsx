@@ -56,13 +56,17 @@ describe('SystemStatusBanner', () => {
     });
   });
 
-  it('reflects offline network-state events in the UI', async () => {
+  // The offline banner itself was deliberately removed in 057bde61 ('// isOffline removed'),
+  // so a network-state event must stay silent rather than render a stale banner. This test
+  // now pins that contract: if the offline banner is ever brought back, update it here too.
+  it('stays silent on offline network-state events (offline banner is disabled)', async () => {
     renderBanner('/dashboard');
     await act(async () => {
       window.dispatchEvent(new CustomEvent(APP_NETWORK_STATE_EVENT, { detail: { online: false, path: '/health' } }));
     });
 
-    expect(await screen.findByText('لا يوجد اتصال بالشبكة حاليًا. بعض العمليات قد لا تعمل حتى يعود الاتصال.')).toBeInTheDocument();
+    expect(screen.queryByText(/لا يوجد اتصال بالشبكة/)).not.toBeInTheDocument();
+    expect(document.querySelector('.system-banner')).toBeNull();
   });
 
   it('shows the signed-out reason on the login route', async () => {

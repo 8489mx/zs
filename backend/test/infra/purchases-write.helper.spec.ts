@@ -17,6 +17,8 @@ assert.deepEqual(normalized, {
   total: 15,
   categoryId: null,
   locationId: null,
+  batchNumber: null,
+  expiryDate: null,
 });
 assert.equal(calculatePurchaseSubtotal([{ total: 10 }, { total: 4.255 }]), 14.26);
 assert.deepEqual(calculatePurchaseStockIncrease('2', '1.5', '4'), { increasedQty: 3, beforeQty: 4, afterQty: 7 });

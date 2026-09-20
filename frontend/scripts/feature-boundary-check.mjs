@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { enforceWithBaseline } from './architecture-baseline.mjs';
 
 const projectRoot = path.resolve(process.cwd());
 const featuresDir = path.join(projectRoot, 'src', 'features');
@@ -36,10 +38,11 @@ for (const filePath of files) {
   }
 }
 
-if (crossFeatureImports.length > 0) {
-  console.error('\nFeature boundary check failed. Cross-feature imports are not allowed inside feature implementation files:\n');
-  crossFeatureImports.forEach((entry) => console.error(`- ${entry}`));
-  process.exit(1);
-}
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
-console.log(`\nFeature boundary check passed for ${files.length} files.`);
+enforceWithBaseline({
+  name: 'Feature boundary check',
+  baselineFile: path.join(scriptDir, 'baselines', 'feature-boundary.json'),
+  violations: crossFeatureImports,
+  hint: "Cross-feature imports are not allowed inside feature implementation files. Import through the feature's public index.ts, or move the shared code into src/shared.",
+});

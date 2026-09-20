@@ -1,0 +1,21 @@
+[
+  "Feature accounting index.ts does not re-export its page component.",
+  "Feature ai-copilot is missing index.ts",
+  "Feature approvals is missing index.ts",
+  "Feature apps-store is missing index.ts",
+  "Feature crm index.ts does not re-export its page component.",
+  "Feature delivery-reps is missing index.ts",
+  "Feature hr is missing index.ts",
+  "Feature import-sales is missing index.ts",
+  "Feature maintenance is missing index.ts",
+  "Feature manufacturing is missing index.ts",
+  "Feature pharmacy is missing index.ts",
+  "Feature portals-hub is missing index.ts",
+  "Feature public-trial is missing index.ts",
+  "Feature saas-admin is missing index.ts",
+  "Feature storefront is missing index.ts",
+  "Feature tax-integration index.ts does not re-export its page component.",
+  "Feature tax-integration index.ts does not re-export routes.",
+  "Feature tradein is missing index.ts",
+  "Feature updates is missing index.ts"
+]

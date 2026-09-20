@@ -70,7 +70,7 @@ export function PortalsHubPage() {
 
           <div style={{ display: 'flex', gap: '6px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
             {[
-              { id: 'all', label: 'الكل (10)' },
+              { id: 'all', label: `الكل (${PORTALS_LIST.length})` },
               { id: 'staff', label: 'خدمة ذاتية' },
               { id: 'field', label: 'توصيل وميداني' },
               { id: 'branch', label: 'صالة وعمليات' },

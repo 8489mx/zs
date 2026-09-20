@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(frontendRoot, '..');
-const backendEnv = fs.readFileSync(path.join(projectRoot, 'backend', '.env.example'), 'utf8');
+// The dev proxy must follow the DEVELOPMENT backend port (.env.development.example),
+// not the docker/default one in .env.example. See 809fb72b.
+const backendEnv = fs.readFileSync(path.join(projectRoot, 'backend', '.env.development.example'), 'utf8');
 const viteConfig = fs.readFileSync(path.join(frontendRoot, 'vite.config.ts'), 'utf8');
 const httpClient = fs.readFileSync(path.join(frontendRoot, 'src', 'lib', 'http.ts'), 'utf8');
 

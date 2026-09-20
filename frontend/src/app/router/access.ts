@@ -530,7 +530,10 @@ function normalizePermissionList(input: RoutePermissionRequirement): string[] {
 export function hasAnyPermission(user: AuthUser | null | undefined, required: RoutePermissionRequirement) {
   if (!required) return true;
   if (!user) return false;
-  if (user.role === 'super_admin' || user.role === 'admin') return true;
+  // Only super_admin bypasses granular permissions. An 'admin' must respect the permissions
+  // actually granted to them, matching the backend PermissionsGuard (which never exempted
+  // 'admin'). The blanket admin bypass added in e5b0bc14 is a regression; see O29.
+  if (user.role === 'super_admin') return true;
   const needed = normalizePermissionList(required);
   if (!needed.length) return true;
   const userPermissions = new Set((user.permissions || []).map((permission) => String(permission || '').trim()).filter(Boolean));

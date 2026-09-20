@@ -23,7 +23,8 @@ describe('http client', () => {
   });
 
   it('keeps the local API base for the Vite dev server', () => {
-    expect(normalizeApiBaseUrl(undefined, { port: '5173', protocol: 'http:', hostname: 'localhost' })).toBe('http://localhost:3001');
+    // Dev server default moved to 3101 in 809fb72b; an explicitly configured base is still honoured as-is.
+    expect(normalizeApiBaseUrl(undefined, { port: '5173', protocol: 'http:', hostname: 'localhost' })).toBe('http://localhost:3101');
     expect(normalizeApiBaseUrl('http://localhost:3001/', { port: '5173', protocol: 'http:', hostname: 'localhost' })).toBe('http://localhost:3001');
   });
 

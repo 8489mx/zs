@@ -16,7 +16,9 @@ import { assertCashDrawerAmount, assertCashDrawerCountedCash, assertCashDrawerNo
   const summary = summarizeCashDrawerRows(rows);
   assert.equal(summary.openShiftCount, 1);
   assert.equal(summary.totalVariance, -5.25);
-  assert.equal(buildCashDrawerShiftDocNo(77), 'SHIFT-77');
+  // Universal Document Numbering standard: PREFIX-YYMMDD-NNNN (date injected so the assertion stays deterministic).
+  assert.equal(buildCashDrawerShiftDocNo(77, new Date('2026-09-20T00:00:00.000Z')), 'SHIFT-260920-0077');
+  assert.match(buildCashDrawerShiftDocNo(77), /^SHIFT-\d{6}-\d{4}$/);
   const normalized = normalizeShiftOpenPayload({ openingCash: '25' as unknown as number, note: ' start ', branchId: '3', locationId: '4' });
   assert.equal(normalized.openingCash, 25);
   assert.equal(normalized.note, 'start');

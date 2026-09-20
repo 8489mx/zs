@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { enforceWithBaseline } from './architecture-baseline.mjs';
 
 const root = process.cwd();
 const featuresDir = path.join(root, 'src', 'features');
@@ -24,10 +26,11 @@ for (const featureName of featureNames) {
   }
 }
 
-if (errors.length) {
-  console.error('\nFeature contract check failed:\n');
-  for (const error of errors) console.error(`- ${error}`);
-  process.exit(1);
-}
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
-console.log(`\nFeature contract check passed for ${featureNames.length} features.`);
+enforceWithBaseline({
+  name: 'Feature contract check',
+  baselineFile: path.join(scriptDir, 'baselines', 'feature-contract.json'),
+  violations: errors,
+  hint: "Every feature should expose an index.ts that re-exports its routes and page component.",
+});

@@ -36,6 +36,20 @@ const product: Product = {
   offers: [],
 };
 
+// `Field` (src/shared/ui/field.tsx) renders its caption as a plain <span> inside a <div>,
+// not as a <label>, so getByLabelText cannot associate it with the input. Until that is
+// fixed (open item O30) the tests locate the control through its field container.
+function fieldInput(caption: string | RegExp): HTMLInputElement {
+  const matches = (text: string) => (typeof caption === 'string' ? text === caption : caption.test(text));
+  const field = Array.from(document.querySelectorAll('.field')).find(
+    (node) => matches(node.querySelector('span')?.textContent?.trim() || ''),
+  );
+  if (!field) throw new Error(`Field not found: ${caption}`);
+  const input = field.querySelector('input');
+  if (!input) throw new Error(`Field has no input: ${caption}`);
+  return input as HTMLInputElement;
+}
+
 function renderDialog() {
   const queryClient = createTestQueryClient();
   return render(
@@ -61,7 +75,7 @@ describe('ProductOfferDialog', () => {
   it('defaults the offer start date to the local date and resets back to it', () => {
     renderDialog();
 
-    const startDate = screen.getByLabelText('تاريخ البداية');
+    const startDate = fieldInput('تاريخ البداية');
     expect(startDate).toHaveValue('2026-04-27');
 
     fireEvent.change(startDate, { target: { value: '2026-04-30' } });
@@ -74,16 +88,20 @@ describe('ProductOfferDialog', () => {
   it('allows saving an open-ended offer without forcing an end date', async () => {
     renderDialog();
 
-    const startDate = screen.getByLabelText('تاريخ البداية');
+    const startDate = fieldInput('تاريخ البداية');
     expect(startDate).toHaveValue('2026-04-27');
 
     vi.useRealTimers();
 
-    fireEvent.change(screen.getByLabelText(/نسبة الخصم|قيمة/), { target: { value: '10' } });
+    fireEvent.change(fieldInput(/نسبة الخصم|قيمة الخصم/), { target: { value: '10' } });
     fireEvent.click(screen.getByRole('button', { name: /إضافة العرض/ }));
 
     await waitFor(() => expect(updateMock).toHaveBeenCalled());
     const payload = updateMock.mock.calls[0][1];
-    expect(payload.offers[0]).toMatchObject({ from: '2026-04-27', to: null });
+    // buildUpdatePayload omits a falsy `to` entirely, and the backend replaces the whole
+    // offers set per product (catalog-product.service.ts:1412 deletes then re-inserts),
+    // so an absent `to` is exactly "no end date" — there is no stale value to merge over.
+    expect(payload.offers[0]).toMatchObject({ from: '2026-04-27' });
+    expect(payload.offers[0].to).toBeUndefined();
   });
 });

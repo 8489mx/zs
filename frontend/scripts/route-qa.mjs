@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { enforceWithBaseline } from './architecture-baseline.mjs';
 
 const projectRoot = path.resolve(process.cwd());
 const featuresDir = path.join(projectRoot, 'src', 'features');
@@ -81,13 +83,11 @@ for (const moduleDef of parsedModules) {
   }
 }
 
-if (errors.length > 0) {
-  console.error('\nRoute QA failed:\n');
-  errors.forEach((error) => console.error(`- ${error}`));
-  process.exit(1);
-}
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
-console.log('\nRoute QA passed.');
-for (const moduleDef of parsedModules) {
-  console.log(`- ${moduleDef.featureName}: routes=${moduleDef.routes.map((route) => route.path).join(', ')} nav=${moduleDef.navigation.map((nav) => nav.to).join(', ')}`);
-}
+enforceWithBaseline({
+  name: 'Route QA',
+  baselineFile: path.join(scriptDir, 'baselines', 'route-qa.json'),
+  violations: errors,
+  hint: "Every feature needs a routes.tsx, and every navigation target must match one of that feature's declared route paths.",
+});

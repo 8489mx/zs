@@ -15,7 +15,8 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     css: true,
     clearMocks: true,
-    exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**', 'electron/**'],
+    // Playwright suites live in e2e/tests and must not be collected by Vitest.
+    exclude: ['e2e/**', 'tests/e2e/**', 'node_modules/**', 'dist/**', 'electron/**'],
     maxWorkers: 1,
   },
 });

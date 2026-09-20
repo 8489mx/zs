@@ -75,6 +75,9 @@ jobs:
           npm run check:permissions
           npm run check:env-safety
         working-directory: backend
+      - name: Backend regression guards (invariants + security specs)
+        run: npm run test:infra
+        working-directory: backend
       - name: Start backend for E2E
         run: |
           npm run migration:run
@@ -118,6 +121,15 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install frontend
         run: npm ci
+        working-directory: frontend
+      - name: Frontend architecture and contract guards
+        run: |
+          npm run qa:functional
+          npm run qa:api
+          npm run qa:contracts
+          npm run qa:routes
+          npm run qa:composition
+          npm run qa:architecture
         working-directory: frontend
       - name: Build frontend (type-check + bundle)
         run: npm run build

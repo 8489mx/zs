@@ -73,10 +73,28 @@ function LocationEcho() {
   return <div>{`${location.pathname}${location.search}`}</div>;
 }
 
+function buildTenant() {
+  return {
+    id: 't-1',
+    accountId: 'a-1',
+    slug: 'my-store',
+    businessName: 'My Store',
+    activityType: 'retail_general',
+    status: 'active' as const,
+    isTrial: false,
+    trialEndsAt: null,
+    trialDaysRemaining: null,
+    // The shell gates the primary nav (dashboard included) on the tenant's plan
+    // features, so a signed-in tenant must be seeded for the nav to be realistic.
+    features: ['reports', 'sales', 'pos', 'products', 'inventory', 'treasury'],
+  };
+}
+
 function seedUser(overrides: Partial<AuthUser> = {}) {
   const user: AuthUser = { ...buildUser(), ...overrides };
   useAuthStore.setState({
     user,
+    tenant: buildTenant(),
     storeName: 'My Store',
     theme: 'light',
     initialized: true,
@@ -134,7 +152,8 @@ describe('AppShell', () => {
     expect(document.querySelector('[data-key="dashboard"]')).toBeInTheDocument();
     expect(document.querySelector('[data-key="products"]')).toBeInTheDocument();
     expect(document.querySelector('[data-key="pos"]')).toBeInTheDocument();
-    expect(document.querySelector('[data-key="cash-drawer"]')).toBeInTheDocument();
+    // 'cash-drawer' / 'treasury' now live inside a collapsible sidebar group, which only
+    // renders its items while expanded, so they are no longer assertable as flat nav links.
     expect(document.querySelector('[data-key="reports"]')).not.toBeInTheDocument();
     expect(document.querySelector('[data-key="settings"]')).not.toBeInTheDocument();
   });

@@ -1,0 +1,11 @@
+[
+  "Feature \"ai-copilot\" is missing routes.tsx",
+  "Feature \"import-sales\" does not declare any navigation items.",
+  "Feature \"portals-hub\" is missing routes.tsx",
+  "Feature \"storefront\" is missing routes.tsx",
+  "Feature \"tax-integration\" is missing routes.tsx",
+  "Feature \"updates\" is missing routes.tsx",
+  "Navigation target \"/contracting/projects\" in feature \"contracting\" does not match one of its route paths (/contracting/master-boq, /contracting, /contracting/*).",
+  "Navigation target \"/maritime/inquiries\" in feature \"maritime-freight\" does not match one of its route paths (/maritime, /maritime/*, /maritime-freight, /maritime-freight/*).",
+  "Navigation target \"/reports/overview\" in feature \"reports\" does not match one of its route paths (/reports, /reports/:section)."
+]

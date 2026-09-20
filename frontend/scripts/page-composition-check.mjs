@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { enforceWithBaseline } from './architecture-baseline.mjs';
 
 const root = process.cwd();
 const featuresDir = path.join(root, 'src', 'features');
@@ -45,10 +47,11 @@ for (const pageFile of pages) {
   }
 }
 
-if (violations.length) {
-  console.error('\nPage composition check failed:\n');
-  for (const item of violations) console.error(`- ${item}`);
-  process.exit(1);
-}
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
-console.log(`\nPage composition check passed for ${pages.length} page files.`);
+enforceWithBaseline({
+  name: 'Page composition check',
+  baselineFile: path.join(scriptDir, 'baselines', 'page-composition.json'),
+  violations,
+  hint: 'Page files must go through feature hooks instead of calling the api layer, React Query or fetch directly.',
+});

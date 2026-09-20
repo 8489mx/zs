@@ -22,24 +22,42 @@ function run(): void {
 
   assertValid(UpsertUserDto, {
     username: 'owner',
+    phone: '01000000000',
     password: strongPassword,
     role: 'admin',
   });
 
   assertValid(UpsertUserDto, {
     username: 'owner',
+    phone: '01000000000',
     role: 'admin',
   });
 
   assertValid(UpsertUserDto, {
     username: 'cashier1',
+    phone: '01000000001',
     password: '1',
     role: 'cashier',
   });
 
   assertValid(UpsertUserDto, {
     username: 'admin1',
+    phone: '01000000002',
     password: 'a',
+    role: 'admin',
+  });
+
+  // Mobile-first identity (09589654): a user record is invalid without a phone number.
+  assertInvalid(UpsertUserDto, {
+    username: 'owner',
+    password: strongPassword,
+    role: 'admin',
+  });
+
+  assertInvalid(UpsertUserDto, {
+    username: 'owner',
+    phone: '0100',
+    password: strongPassword,
     role: 'admin',
   });
 
