@@ -8,7 +8,7 @@ import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { formatBranchStockLocationName } from '../../common/utils/branch-stock.util';
 import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
-import { invalidateTenantTimezoneCache } from '../../common/utils/tenant-timezone.util';
+import { invalidateTenantTimezoneCache, isValidTimezone } from '../../common/utils/tenant-timezone.util';
 import { getIndustryProfile, normalizeIndustryProfileKey, listSupportedIndustryProfiles, type IndustryProfile } from '../../core/tenant/industry-profiles';
 import { PLAN_MANAGED_MODULES_SETTING_KEY } from '../../common/constants/platform-settings-keys';
 
@@ -324,6 +324,13 @@ export class SettingsService {
     }
     if ('defaultBranchIssueMode' in normalizedPayload) {
       normalizedPayload.defaultBranchIssueMode = normalizedPayload.defaultBranchIssueMode === 'transfer_to_branch_stock' ? 'transfer_to_branch_stock' : 'final_issue';
+    }
+    if ('timezone' in normalizedPayload && normalizedPayload.timezone) {
+      const tz = String(normalizedPayload.timezone).trim();
+      if (!isValidTimezone(tz)) {
+        throw new AppError('المنطقة الزمنية المحددة غير صالحة', 'INVALID_TIMEZONE', 400);
+      }
+      normalizedPayload.timezone = tz;
     }
 
     const tenantRow = await this.db

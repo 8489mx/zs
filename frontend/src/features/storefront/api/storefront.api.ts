@@ -66,6 +66,19 @@ export const storefrontApi = {
     return res;
   },
 
+  getSearchSuggestions: (slug: string, q: string) =>
+    http<{
+      categories: Array<{ id: number; name: string; imageUrl?: string }>;
+      products: Array<{ id: number; name: string; price: number; imageUrl?: string; categoryName?: string; inStock: boolean }>;
+    }>(`/api/storefront/${encodeURIComponent(slug)}/search/suggest?q=${encodeURIComponent(q)}`),
+
+  getProductDetails: (slug: string, productId: number) =>
+    http<{
+      product: any;
+      related: any[];
+      crossSell: any[];
+    }>(`/api/storefront/${encodeURIComponent(slug)}/products/${productId}`),
+
   createOrder: (slug: string, payload: CreateOnlineOrderPayload) =>
     http<CreateOnlineOrderResponse>(`/api/storefront/${encodeURIComponent(slug)}/orders`, {
       method: 'POST',

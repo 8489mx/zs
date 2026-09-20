@@ -29,7 +29,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   onToggleFavorite: onToggleFavoriteProp,
   onQuickView,
 }: StorefrontProductCardProps) {
-  const isOutOfStock = !product.inStock || product.stockQty <= 0;
+  const isOutOfStock = product.inStock !== undefined ? !product.inStock : product.stockQty <= 0;
   const isZeroPrice = product.price <= 0;
   const [imageLoaded, setImageLoaded] = useState(false);
   const [localFavorite, setLocalFavorite] = useState(() => {
@@ -280,6 +280,44 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                   <IconCheckCircle size={11} strokeWidth={2.2} color="#16a34a" />
                   <span>متوفر</span>
                 </span>
+                {product.stockQty > 0 && product.stockQty <= 5 && (
+                  <span
+                    className="storefront-product-badge"
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      background: '#fff7ed',
+                      color: '#c2410c',
+                      padding: '2px 7px',
+                      borderRadius: '6px',
+                      border: '1px solid #fed7aa',
+                      boxShadow: '0 1px 3px rgba(194, 65, 12, 0.1)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                    }}
+                  >
+                    <span>متبقي {product.stockQty} فقط</span>
+                  </span>
+                )}
+                {product.rating && product.rating >= 4.5 && product.reviewCount && product.reviewCount >= 2 && (
+                  <span
+                    className="storefront-product-badge"
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      background: '#170e5e',
+                      color: '#ffffff',
+                      padding: '2px 7px',
+                      borderRadius: '6px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                    }}
+                  >
+                    <span>الأكثر مبيعاً</span>
+                  </span>
+                )}
                 {hasDiscount && (
                   <span
                     className="storefront-product-badge"

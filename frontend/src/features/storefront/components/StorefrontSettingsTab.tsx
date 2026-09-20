@@ -73,6 +73,7 @@ export function StorefrontSettingsTab() {
     ga4Id: '',
     tiktokPixelId: '',
     snapchatPixelId: '',
+    allowOutOfStockOrders: true,
   });
 
   const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
@@ -131,6 +132,7 @@ export function StorefrontSettingsTab() {
         ga4Id: settingsQuery.data.ga4Id || '',
         tiktokPixelId: settingsQuery.data.tiktokPixelId || '',
         snapchatPixelId: settingsQuery.data.snapchatPixelId || '',
+        allowOutOfStockOrders: (settingsQuery.data as any).allowOutOfStockOrders !== false,
       });
     }
   }, [settingsQuery.data]);
@@ -963,6 +965,35 @@ export function StorefrontSettingsTab() {
                   type="checkbox"
                   checked={formState.smartDealsEnabled}
                   onChange={(e) => setFormState({ ...formState, smartDealsEnabled: e.target.checked })}
+                  style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Allow Out Of Stock / Unlimited Stock for Kitchen & Food */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  background: '#f8fafc',
+                  borderRadius: '8px',
+                  border: formState.allowOutOfStockOrders ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
+                    السماح بالطلب دون التقيد بالرصيد المخزني (مناسب للمطاعم وتجهيز الوجبات)
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    إظهار الوجبات والأصناف بحالة "متوفر" وزر "أضف للسلة" مفعل دائماً حتى لو كان رصيد المخزن 0
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={formState.allowOutOfStockOrders}
+                  onChange={(e) => setFormState({ ...formState, allowOutOfStockOrders: e.target.checked })}
                   style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
                 />
               </div>

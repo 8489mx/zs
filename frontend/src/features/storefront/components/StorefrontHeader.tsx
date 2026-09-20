@@ -1,6 +1,7 @@
-import { StorefrontInfo } from '../types/storefront.types';
-import { IconCheckCircle, IconSearch } from './StorefrontIcons';
-import { PackageIcon , XIcon } from '@/shared/components/icons/AppIcons';
+import { StorefrontInfo, StorefrontProduct } from '../types/storefront.types';
+import { IconCheckCircle } from './StorefrontIcons';
+import { PackageIcon } from '@/shared/components/icons/AppIcons';
+import { StorefrontPredictiveSearch } from './StorefrontPredictiveSearch';
 
 interface StorefrontHeaderProps {
   info: StorefrontInfo;
@@ -11,6 +12,9 @@ interface StorefrontHeaderProps {
   onOpenCart: () => void;
   onOpenOrders?: () => void;
   onGoHome?: () => void;
+  onSelectCategory?: (categoryId: number) => void;
+  onSelectProduct?: (product: StorefrontProduct) => void;
+  onAddToCart?: (product: StorefrontProduct) => void;
 }
 
 export function resolveStorefrontBrand(info: { title?: string; businessName?: string; address?: string }) {
@@ -51,6 +55,9 @@ export function StorefrontHeader({
   onOpenCart,
   onOpenOrders,
   onGoHome,
+  onSelectCategory,
+  onSelectProduct,
+  onAddToCart,
 }: StorefrontHeaderProps) {
   const brand = resolveStorefrontBrand(info);
   const whatsappNumber = info.whatsappPhone.replace(/[^0-9]/g, '');
@@ -324,88 +331,15 @@ export function StorefrontHeader({
 
         {/* Unified Search & Actions Bottom Row on Mobile / Inline on Desktop */}
         <div className="storefront-nav-bottom-row">
-          {/* Center: Sleek Unified Search Bar */}
-          <div
-            className="storefront-search-wrapper"
-            style={{
-              flex: 1,
-              maxWidth: '640px',
-              margin: '0 16px',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <div
-              className="storefront-search-box"
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                background: '#f8fafc',
-                borderRadius: '10px',
-                padding: '4px 6px 4px 14px',
-                border: '1.5px solid #cbd5e1',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 1px 4px rgba(15, 23, 42, 0.04)',
-              }}
-            >
-              <input
-                className="storefront-search-input"
-                type="text"
-                value={searchTerm}
-                onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="ابحث عن أي منتج، كود، أو تصنيف..."
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: '13.5px',
-                  fontWeight: 600,
-                  color: '#0f172a',
-                  background: 'transparent',
-                  padding: '7px 6px',
-                  fontFamily: 'inherit',
-                  minWidth: 0,
-                }}
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => onSearchChange('')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#94a3b8',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    padding: '4px 6px',
-                    fontWeight: 700,
-                  }}
-                ><XIcon size={15} /></button>
-              )}
-              <button
-                className="storefront-search-btn"
-                type="button"
-                style={{
-                  background: '#170e5e',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px 16px',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-              >
-                <IconSearch size={15} strokeWidth={2.2} />
-                <span className="storefront-search-btn-text">بحث</span>
-              </button>
-            </div>
-          </div>
+          {/* Center: Sleek Unified Predictive Search Bar */}
+          <StorefrontPredictiveSearch
+            slug={info.slug}
+            searchTerm={searchTerm}
+            onSearchChange={onSearchChange}
+            onSelectCategory={onSelectCategory}
+            onSelectProduct={onSelectProduct}
+            onAddToCart={onAddToCart}
+          />
 
         {/* Quick Actions (WhatsApp & Cart) */}
         <div className="storefront-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>

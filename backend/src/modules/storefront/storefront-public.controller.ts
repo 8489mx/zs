@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Headers, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Post, Put, Query, Req } from '@nestjs/common';
 import { StorefrontService } from './storefront.service';
 import { StorefrontPaymentService } from './storefront-payment.service';
+import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { CreateOnlineOrderDto } from './dto/create-online-order.dto';
 import { CreateProductReviewDto } from './dto/create-product-review.dto';
 import { RecordAbandonedCartDto } from './dto/abandoned-cart.dto';
@@ -20,6 +21,22 @@ export class StorefrontPublicController {
   @Get(':slug/catalog')
   getCatalog(@Param('slug') slug: string) {
     return this.service.getStorefrontCatalog(slug);
+  }
+
+  @Get(':slug/search/suggest')
+  getSearchSuggestions(
+    @Param('slug') slug: string,
+    @Query('q') q: string,
+  ) {
+    return this.service.getSearchSuggestions(slug, q);
+  }
+
+  @Get(':slug/products/:productId')
+  getProductDetails(
+    @Param('slug') slug: string,
+    @Param('productId') productId: string,
+  ) {
+    return this.service.getProductDetails(slug, Number(productId));
   }
 
   @Get(':slug/tables-qr')
@@ -129,8 +146,9 @@ export class StorefrontPublicController {
   handlePaymobWebhook(
     @Headers() headers: Record<string, any>,
     @Body() body: any,
+    @Req() req: RequestWithAuth,
   ) {
-    return this.paymentService.processPaymobWebhook(headers, body);
+    return this.paymentService.processPaymobWebhook(headers, body, (req as any)?.rawBody);
   }
 
   @Get('webhooks/paymob')
@@ -144,8 +162,9 @@ export class StorefrontPublicController {
   handleXPayWebhook(
     @Headers() headers: Record<string, any>,
     @Body() body: any,
+    @Req() req: RequestWithAuth,
   ) {
-    return this.paymentService.processXPayWebhook(headers, body);
+    return this.paymentService.processXPayWebhook(headers, body, (req as any)?.rawBody);
   }
 
   @Get('webhooks/xpay')
@@ -159,8 +178,9 @@ export class StorefrontPublicController {
   handleTapWebhook(
     @Headers() headers: Record<string, any>,
     @Body() body: any,
+    @Req() req: RequestWithAuth,
   ) {
-    return this.paymentService.processTapWebhook(headers, body);
+    return this.paymentService.processTapWebhook(headers, body, (req as any)?.rawBody);
   }
 
   @Get('webhooks/tap-callback')
@@ -174,8 +194,9 @@ export class StorefrontPublicController {
   handleStripeWebhook(
     @Headers() headers: Record<string, any>,
     @Body() body: any,
+    @Req() req: RequestWithAuth,
   ) {
-    return this.paymentService.processStripeWebhook(headers, body);
+    return this.paymentService.processStripeWebhook(headers, body, (req as any)?.rawBody);
   }
 }
 

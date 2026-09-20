@@ -1076,8 +1076,6 @@ export interface ManufacturingBomTable {
 }
 
 export interface ManufacturingBomLineTable {
-  tenant_id: ColumnType<string, string | undefined, string | undefined>;
-  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   bom_id: number;
   component_product_id: number;
@@ -2182,8 +2180,6 @@ export interface HrEmployeeAdjustmentTable {
 }
 
 export interface OfflineReleaseTable {
-  tenant_id: ColumnType<string, string | undefined, string | undefined>;
-  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   version: string;
   changelog: string;

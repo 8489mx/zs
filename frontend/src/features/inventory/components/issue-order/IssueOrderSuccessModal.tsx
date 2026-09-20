@@ -1,4 +1,5 @@
 import React from 'react';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { CheckIcon } from '@/shared/components/icons/AppIcons';
 
@@ -19,64 +20,62 @@ export const IssueOrderSuccessModal: React.FC<IssueOrderSuccessModalProps> = ({
 }) => {
   if (!createdTransfers.length) return null;
 
+  const docNo = createdTransfers.length > 1
+    ? 'أذونات صرف متعددة'
+    : (createdTransfers[0]?.docNo || `TR-${createdTransfers[0]?.id}`);
+
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.6)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-      }}
+    <StandardDialog
+      open={createdTransfers.length > 0}
+      onClose={onClose}
+      title="تم إنشاء إذن الصرف بنجاح"
+      subtitle={`رقم الإذن: ${docNo}`}
+      maxWidth="460px"
+      minHeight="auto"
+      footerActions={
+        <StandardDialogFooter
+          onCancel={onClose}
+          cancelLabel="العودة للمخزون"
+          onSubmit={onNewTransfer}
+          submitLabel="إذن صرف جديد"
+        />
+      }
     >
-      <div
-        style={{
-          backgroundColor: '#ffffff',
-          padding: '28px',
-          borderRadius: '16px',
-          maxWidth: '420px',
-          width: '100%',
-          textAlign: 'center',
-          boxShadow: '0 20px 40px rgba(15, 23, 42, 0.2)',
-          border: '1px solid #e2e8f0',
-        }}
-      >
+      <div style={{ textAlign: 'center', padding: '12px 8px' }}>
         <div
           style={{
-            width: '60px',
-            height: '60px',
+            width: '56px',
+            height: '56px',
             borderRadius: '50%',
             backgroundColor: '#ecfdf5',
             border: '2px solid #a7f3d0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 16px',
+            margin: '0 auto 14px',
           }}
         >
-          <CheckIcon size={32} color="#059669" strokeWidth={2.5} />
+          <CheckIcon size={28} color="#059669" strokeWidth={2.5} />
         </div>
 
-        <h2 style={{ fontSize: '18px', fontWeight: 900, color: '#065f46', margin: '0 0 8px' }}>
-          تم إنشاء إذن الصرف بنجاح
-        </h2>
-
-        <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 20px', lineHeight: 1.5 }}>
-          تم إنشاء {createdTransfers.length > 1 ? 'الأذونات بنجاح' : `الإذن رقم ${createdTransfers[0].docNo || createdTransfers[0].id}`}
+        <p style={{ color: '#64748b', margin: '0 0 18px', fontSize: '0.92rem', lineHeight: 1.5 }}>
+          {createdTransfers.length > 1
+            ? 'تم اعتماد وحفظ أذونات الصرف بنجاح وتحديث أرصدة المخازن.'
+            : `تم اعتماد وحفظ إذن الصرف (${docNo}) بنجاح وتحديث أرصدة المخازن.`}
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <Button
             type="button"
             onClick={onPrintReceipt}
-            style={{ width: '100%', justifyContent: 'center', backgroundColor: '#170e5e', color: '#ffffff', height: '42px', fontWeight: 800 }}
+            style={{
+              width: '100%',
+              justifyContent: 'center',
+              backgroundColor: '#170e5e',
+              color: '#ffffff',
+              height: '42px',
+              fontWeight: 800,
+            }}
           >
             طباعة ريسيت (Thermal)
           </Button>
@@ -84,36 +83,17 @@ export const IssueOrderSuccessModal: React.FC<IssueOrderSuccessModalProps> = ({
             type="button"
             variant="secondary"
             onClick={onPrintA4}
-            style={{ width: '100%', justifyContent: 'center', height: '40px', fontWeight: 700 }}
+            style={{
+              width: '100%',
+              justifyContent: 'center',
+              height: '40px',
+              fontWeight: 700,
+            }}
           >
             طباعة وثيقة (A4)
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onNewTransfer}
-            style={{ width: '100%', justifyContent: 'center', height: '40px', fontWeight: 700 }}
-          >
-            إذن صرف جديد
-          </Button>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              marginTop: '4px',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: '#64748b',
-              fontSize: '13px',
-              fontWeight: 700,
-              padding: '6px',
-            }}
-          >
-            العودة للمخزون
-          </button>
         </div>
       </div>
-    </div>
+    </StandardDialog>
   );
 };

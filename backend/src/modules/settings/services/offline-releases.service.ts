@@ -387,7 +387,10 @@ export class OfflineReleasesService implements OnModuleInit {
 
     const expectedPasscode = targetRelease?.passcode || generateReleasePasscode(targetVer);
 
-    if (targetRelease?.requires_passcode !== false && body.passcode !== undefined) {
+    if (targetRelease?.requires_passcode !== false) {
+      if (!body.passcode || !body.passcode.trim()) {
+        throw new BadRequestException(`كود تفعيل التحديث مطلوب لهذا الإصدار.`);
+      }
       const normalizedProvided = (body.passcode || '').replace(/[\s-]+/g, '').toUpperCase();
       const normalizedExpected = expectedPasscode.replace(/[\s-]+/g, '').toUpperCase();
       if (normalizedProvided !== normalizedExpected) {
@@ -803,8 +806,8 @@ export class OfflineReleasesService implements OnModuleInit {
   }
 
   async applyLocalZipUpdate(file: Express.Multer.File, passcode?: string) {
-    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true' && process.env.NODE_ENV === 'production') {
-      throw new BadRequestException('تطبيق التحديثات المباشرة متاح فقط في تطبيق سطح المكتب (Desktop App). في وضع التطوير، لا يمكن استبدال ملفات السورس كود أثناء التشغيل.');
+    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') {
+      throw new BadRequestException('تطبيق التحديثات المباشرة متاح فقط في تطبيق سطح المكتب (Desktop App).');
     }
 
     if (!file || !file.buffer) {

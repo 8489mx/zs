@@ -8,6 +8,7 @@ import { StorefrontBannerCarousel } from '../components/StorefrontBannerCarousel
 import { StorefrontMultiRowHome } from '../components/StorefrontMultiRowHome';
 import { StorefrontFilteredGrid } from '../components/StorefrontFilteredGrid';
 import { StorefrontModals } from '../components/StorefrontModals';
+import { StorefrontFreeShippingBar } from '../components/StorefrontFreeShippingBar';
 import { initStorefrontPixels, trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { usePublicStorefront, ITEMS_PER_PAGE } from '../hooks/usePublicStorefront';
@@ -90,6 +91,18 @@ export function PublicStorefrontPage() {
       }
     }
   }, [info]);
+
+  useEffect(() => {
+    if (!catalogQuery.data?.products) return;
+    const hash = window.location.hash;
+    const productParam = searchParams.get('product') || (hash.startsWith('#product-') ? hash.replace('#product-', '') : null);
+    if (productParam) {
+      const found = (catalogQuery.data.products as StorefrontProduct[]).find((p) => String(p.id) === String(productParam));
+      if (found) {
+        setQuickViewProduct(found);
+      }
+    }
+  }, [catalogQuery.data?.products, searchParams]);
 
   if (catalogQuery.isLoading || infoQuery.isLoading) {
     return (
@@ -202,7 +215,27 @@ export function PublicStorefrontPage() {
         onOpenCart={() => setIsCartOpen(true)}
         onOpenOrders={() => setIsMyOrdersOpen(true)}
         onGoHome={handleGoHome}
+        onSelectCategory={(id) => {
+          setSelectedCategory(id);
+          setOnlyDeals(false);
+          setOnlyFavorites(false);
+        }}
+        onSelectProduct={(prod) => setQuickViewProduct(prod)}
+        onAddToCart={handleAddToCart}
       />
+
+      {/* Free Shipping Progress Notification Banner (if enabled) */}
+      {info.freeShippingEnabled && (
+        <div style={{ maxWidth: '1280px', width: '100%', margin: '0 auto', padding: '10px 20px 0', boxSizing: 'border-box' }}>
+          <StorefrontFreeShippingBar
+            subtotal={cartSubtotal}
+            freeShippingEnabled={info.freeShippingEnabled}
+            freeShippingMinOrder={info.freeShippingMinOrder}
+            currency={info.currency}
+            compact
+          />
+        </div>
+      )}
 
       {/* Dine-In QR Table Banner */}
       {tableParam && (

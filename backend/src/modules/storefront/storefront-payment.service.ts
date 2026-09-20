@@ -681,7 +681,7 @@ export class StorefrontPaymentService {
     return order;
   }
 
-  async processPaymobWebhook(headers: Record<string, any>, body: any) {
+  async processPaymobWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer) {
     const obj = body?.obj || body;
     const merchantOrderId = String(obj?.order?.merchant_order_id || '');
 
@@ -708,39 +708,51 @@ export class StorefrontPaymentService {
       return { ok: false, message: 'Order not found' };
     }
 
-    // Validate HMAC if tenant has secret configured
+    // Idempotency: skip re-processing and re-notifying if already paid
+    if (order.payment_status === 'paid') {
+      this.logger.log(`Paymob Webhook: Order ${order.order_number} is already paid. Skipping duplicate notification.`);
+      return { ok: true, status: 'paid', orderNumber: order.order_number, alreadyPaid: true };
+    }
+
+    // Validate HMAC (Fail-Closed: without a configured secret or signature header, reject)
     const config = await this.getTenantPaymentConfig(order.tenant_id);
     const hmacHeader = (headers['hmac'] || headers['HMAC'] || '') as string;
 
-    if (config.hmacSecret && hmacHeader) {
-      const concatenated = [
-        obj.amount_cents,
-        obj.created_at,
-        obj.currency,
-        obj.error_occured,
-        obj.has_parent_transaction,
-        obj.id,
-        obj.integration_id,
-        obj.is_3d_secure,
-        obj.is_auth,
-        obj.is_capture,
-        obj.is_refunded,
-        obj.is_standalone_payment,
-        obj.is_voided,
-        obj.order?.id,
-        obj.owner,
-        obj.pending,
-        obj.source_data?.pan,
-        obj.source_data?.sub_type,
-        obj.source_data?.type,
-        obj.success,
-      ].join('');
+    if (!config.hmacSecret || !hmacHeader) {
+      this.logger.warn(`Paymob webhook rejected: storefront_paymob_hmac_secret not configured or hmac header missing for order ${order.order_number}`);
+      throw new UnauthorizedException('توقيع HMAC غير صحيح أو مفقود.');
+    }
 
-      const computedHmac = crypto.createHmac('sha512', config.hmacSecret).update(concatenated).digest('hex');
-      if (hmacHeader.toLowerCase() !== computedHmac.toLowerCase()) {
-        this.logger.error(`Paymob HMAC verification failed for order ${order.order_number}`);
-        throw new UnauthorizedException('توقيع HMAC غير صحيح.');
-      }
+    const concatenated = [
+      obj.amount_cents,
+      obj.created_at,
+      obj.currency,
+      obj.error_occured,
+      obj.has_parent_transaction,
+      obj.id,
+      obj.integration_id,
+      obj.is_3d_secure,
+      obj.is_auth,
+      obj.is_capture,
+      obj.is_refunded,
+      obj.is_standalone_payment,
+      obj.is_voided,
+      obj.order?.id,
+      obj.owner,
+      obj.pending,
+      obj.source_data?.pan,
+      obj.source_data?.sub_type,
+      obj.source_data?.type,
+      obj.success,
+    ].join('');
+
+    const computedHmac = crypto.createHmac('sha512', config.hmacSecret).update(concatenated).digest('hex');
+    const hmacBuf = Buffer.from(hmacHeader.toLowerCase());
+    const computedBuf = Buffer.from(computedHmac.toLowerCase());
+
+    if (hmacBuf.length !== computedBuf.length || !crypto.timingSafeEqual(hmacBuf, computedBuf)) {
+      this.logger.error(`Paymob HMAC verification failed for order ${order.order_number}`);
+      throw new UnauthorizedException('توقيع HMAC غير صحيح.');
     }
 
     const isSuccessful = obj.success === true && obj.pending === false;
@@ -785,7 +797,7 @@ export class StorefrontPaymentService {
     }
   }
 
-  async processXPayWebhook(headers: Record<string, any>, body: any) {
+  async processXPayWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer) {
     this.logger.log(`XPay Webhook received: ${JSON.stringify(body)}`);
     const data = body?.data || body;
     const transactionStatus = String(data?.transaction_status || body?.transaction_status || data?.status || '').toUpperCase();
@@ -810,6 +822,32 @@ export class StorefrontPaymentService {
     if (!order) {
       this.logger.warn(`XPay Webhook received for unknown order. Transaction: ${transactionId}, Order: ${orderNumber}`);
       return { ok: false, message: 'Order not found' };
+    }
+
+    // Idempotency: skip re-processing and re-notifying if already paid
+    if (order.payment_status === 'paid') {
+      this.logger.log(`XPay Webhook: Order ${order.order_number} is already paid. Skipping duplicate notification.`);
+      return { ok: true, status: 'paid', orderNumber: order.order_number, alreadyPaid: true };
+    }
+
+    // Cryptographic signature check (Fail-closed)
+    const config = await this.getTenantPaymentConfig(order.tenant_id);
+    const xpaySecret = config.xpayApiKey || process.env.XPAY_WEBHOOK_SECRET || process.env.XPAY_API_KEY || '';
+    const signatureHeader = (headers['x-xpay-signature'] || headers['xpay-signature'] || headers['x-signature'] || headers['signature'] || '') as string;
+
+    if (!xpaySecret || !signatureHeader) {
+      this.logger.warn(`XPay webhook rejected: secret or signature header missing for order ${order.order_number}`);
+      throw new UnauthorizedException('توقيع XPay غير صحيح أو مفقود.');
+    }
+
+    const payload = rawBody && rawBody.length > 0 ? rawBody : Buffer.from(JSON.stringify(body));
+    const computed = crypto.createHmac('sha256', xpaySecret).update(payload).digest('hex');
+    const sigBuf = Buffer.from(signatureHeader.toLowerCase());
+    const compBuf = Buffer.from(computed.toLowerCase());
+
+    if (sigBuf.length !== compBuf.length || !crypto.timingSafeEqual(sigBuf, compBuf)) {
+      this.logger.error(`XPay signature verification failed for order ${order.order_number}`);
+      throw new UnauthorizedException('توقيع XPay غير صحيح.');
     }
 
     const isSuccessful = transactionStatus === 'SUCCESSFUL' || transactionStatus === 'SUCCESS' || transactionStatus === 'PAID';
@@ -926,7 +964,7 @@ export class StorefrontPaymentService {
     };
   }
 
-  async processTapWebhook(headers: Record<string, any>, body: any) {
+  async processTapWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer) {
     this.logger.log(`Tap Webhook received: ${JSON.stringify(body)}`);
     const chargeId = String(body?.id || '');
     const status = String(body?.status || '').toUpperCase();
@@ -946,6 +984,68 @@ export class StorefrontPaymentService {
     if (!order) {
       this.logger.warn(`Tap Webhook received for unknown order. ChargeId: ${chargeId}, Order: ${orderNumber}`);
       return { ok: false, message: 'Order not found' };
+    }
+
+    // Idempotency: skip re-processing and re-notifying if already paid
+    if (order.payment_status === 'paid') {
+      this.logger.log(`Tap Webhook: Order ${order.order_number} is already paid. Skipping duplicate notification.`);
+      return { ok: true, status: 'paid', orderNumber: order.order_number, alreadyPaid: true };
+    }
+
+    // Tap Verification (Fail-closed)
+    const config = await this.getTenantPaymentConfig(order.tenant_id);
+    if (!config.tapSecretKey) {
+      this.logger.warn(`Tap webhook rejected: tapSecretKey not configured for order ${order.order_number}`);
+      throw new UnauthorizedException('إعدادات بوابة Tap غير مكتملة.');
+    }
+
+    const hashHeader = (headers['hashstring'] || headers['Hashstring'] || headers['hash'] || '') as string;
+    let isVerified = false;
+
+    // 1. If hashstring is present, verify HMAC-SHA256
+    if (hashHeader) {
+      const strToHash = `${body?.id || ''}${Number(body?.amount || 0).toFixed(2)}${body?.currency || ''}${body?.gateway?.reference || ''}${body?.payment_reference || ''}${body?.status || ''}${body?.created || ''}`;
+      const computedFromFields = crypto.createHmac('sha256', config.tapSecretKey.trim()).update(strToHash).digest('hex');
+      const computedFromRaw = rawBody && rawBody.length > 0 ? crypto.createHmac('sha256', config.tapSecretKey.trim()).update(rawBody).digest('hex') : '';
+
+      const hashBuf = Buffer.from(hashHeader.toLowerCase());
+      const fBuf = Buffer.from(computedFromFields.toLowerCase());
+      const rBuf = Buffer.from(computedFromRaw.toLowerCase());
+
+      if ((hashBuf.length === fBuf.length && crypto.timingSafeEqual(hashBuf, fBuf)) ||
+          (rBuf.length > 0 && hashBuf.length === rBuf.length && crypto.timingSafeEqual(hashBuf, rBuf))) {
+        isVerified = true;
+      }
+    }
+
+    // 2. If not verified by hash header, verify by fetching the charge directly from Tap API
+    if (!isVerified && chargeId) {
+      try {
+        const tapCheckRes = await fetch(`https://api.tap.company/v2/charges/${chargeId}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${config.tapSecretKey.trim()}`,
+          },
+        });
+        if (tapCheckRes.ok) {
+          const tapCheckData: any = await tapCheckRes.json();
+          const fetchedStatus = String(tapCheckData?.status || '').toUpperCase();
+          const fetchedAmount = Number(tapCheckData?.amount || 0);
+          const fetchedOrderNum = String(tapCheckData?.metadata?.orderNumber || tapCheckData?.reference?.order || '');
+          if ((fetchedStatus === 'CAPTURED' || fetchedStatus === 'PAID') &&
+              Math.abs(fetchedAmount - Number(order.total_amount || 0)) < 0.01 &&
+              (!fetchedOrderNum || fetchedOrderNum === order.order_number)) {
+            isVerified = true;
+          }
+        }
+      } catch (err: any) {
+        this.logger.error(`Tap API verification failed: ${err.message}`);
+      }
+    }
+
+    if (!isVerified) {
+      this.logger.error(`Tap Webhook verification failed for order ${order.order_number}`);
+      throw new UnauthorizedException('تعذر التحقق من صحة إشعار Tap.');
     }
 
     const isSuccessful = status === 'CAPTURED' || status === 'PAID' || status === 'SUCCESS';
@@ -990,7 +1090,7 @@ export class StorefrontPaymentService {
     return { ok: true, status: status.toLowerCase(), orderNumber: order.order_number };
   }
 
-  async processStripeWebhook(headers: Record<string, any>, body: any) {
+  async processStripeWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer) {
     this.logger.log(`Stripe Webhook received: ${body?.type}`);
     const eventType = String(body?.type || '');
     const obj = body?.data?.object || body;
@@ -1017,6 +1117,50 @@ export class StorefrontPaymentService {
     if (!order) {
       this.logger.warn(`Stripe Webhook received for unknown order: Session: ${sessionId}, Order: ${orderNumber}`);
       return { ok: false, message: 'Order not found' };
+    }
+
+    // Idempotency: skip re-processing and re-notifying if already paid
+    if (order.payment_status === 'paid') {
+      this.logger.log(`Stripe Webhook: Order ${order.order_number} is already paid. Skipping duplicate notification.`);
+      return { ok: true, status: 'paid', orderNumber: order.order_number, alreadyPaid: true };
+    }
+
+    // Cryptographic signature check (Fail-closed + Replay Protection)
+    const config = await this.getTenantPaymentConfig(order.tenant_id);
+    const stripeSecret = config.stripeWebhookSecret || process.env.STRIPE_WEBHOOK_SECRET || '';
+    const sigHeader = (headers['stripe-signature'] || headers['Stripe-Signature'] || '') as string;
+
+    if (!stripeSecret || !sigHeader || !rawBody) {
+      this.logger.warn(`Stripe webhook rejected: missing secret, signature, or rawBody for order ${order.order_number}`);
+      throw new UnauthorizedException('توقيع Stripe غير صحيح أو مفقود.');
+    }
+
+    const parts = sigHeader.split(',').reduce((acc: Record<string, string>, item: string) => {
+      const [k, v] = item.split('=');
+      if (k && v) acc[k.trim()] = v.trim();
+      return acc;
+    }, {});
+
+    const timestamp = parts['t'];
+    const providedSig = parts['v1'];
+    if (!timestamp || !providedSig) {
+      throw new UnauthorizedException('ترويسة توقيع Stripe غير مكتملة.');
+    }
+
+    // 300s replay protection
+    const timestampSeconds = Number(timestamp);
+    if (!Number.isFinite(timestampSeconds) || Math.abs(Date.now() / 1000 - timestampSeconds) > 300) {
+      throw new UnauthorizedException('تم رفض توقيع Stripe بسبب انتهاء صلاحية الختم الزمني (Replay Protection).');
+    }
+
+    const signedPayload = `${timestamp}.${rawBody.toString('utf8')}`;
+    const computed = crypto.createHmac('sha256', stripeSecret).update(signedPayload).digest('hex');
+    const providedBuf = Buffer.from(providedSig);
+    const computedBuf = Buffer.from(computed);
+
+    if (providedBuf.length !== computedBuf.length || !crypto.timingSafeEqual(providedBuf, computedBuf)) {
+      this.logger.error(`Stripe signature verification failed for order ${order.order_number}`);
+      throw new UnauthorizedException('توقيع Stripe غير صحيح.');
     }
 
     const isSuccessful =

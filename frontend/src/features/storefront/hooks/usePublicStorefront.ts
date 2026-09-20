@@ -272,7 +272,7 @@ export function usePublicStorefront(cleanSlug: string) {
       list = list.filter((p) => Number(p.categoryId) === Number(selectedCategory));
     }
     if (inStockOnly) {
-      list = list.filter((p) => p.inStock && p.stockQty > 0);
+      list = list.filter((p) => p.inStock);
     }
     if (onlyDeals) {
       list = dealsProducts;

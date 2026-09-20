@@ -1,9 +1,15 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
-import { PricingPreviewDto } from './dto/pricing-preview.dto';
+import {
+  PricingBulkSetProfileDto,
+  PricingPreviewDto,
+  PricingRuleListQueryDto,
+  PricingRuleMatchDto,
+  PricingRuleUpsertDto,
+} from './dto/pricing-preview.dto';
 import { PricingService } from './pricing.service';
 
 @Controller('api/pricing')
@@ -51,5 +57,29 @@ export class PricingController {
   @RequirePermissions('pricingCenterManage')
   undo(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.pricingService.undo(id, req.authContext!);
+  }
+
+  @Post('profiles/bulk-set')
+  @RequirePermissions('pricingCenterManage')
+  bulkSetProfiles(@Body() payload: PricingBulkSetProfileDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.pricingService.bulkSetProfiles(payload, req.authContext!);
+  }
+
+  @Get('rules')
+  @RequirePermissions('pricingCenterView')
+  listRules(@Query() query: PricingRuleListQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.pricingService.listRules(query, req.authContext!);
+  }
+
+  @Post('rules')
+  @RequirePermissions('pricingCenterManage')
+  upsertRule(@Body() payload: PricingRuleUpsertDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.pricingService.upsertRule(payload, req.authContext!);
+  }
+
+  @Post('rules/match')
+  @RequirePermissions('pricingCenterView')
+  matchRule(@Body() payload: PricingRuleMatchDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.pricingService.matchRule(payload, req.authContext!);
   }
 }

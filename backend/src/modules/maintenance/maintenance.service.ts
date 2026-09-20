@@ -12,7 +12,7 @@ import { applyStockDelta } from '../../common/utils/location-stock-ledger';
 import { UpsertMaintenanceTicketDto } from './dto/upsert-maintenance-ticket.dto';
 import { UpdateTicketStatusDto, AddTicketPartDto } from './dto/update-ticket-status.dto';
 import { normalizeArabicSearch } from '../../common/utils/arabic-search.util';
-import { getDailyDocumentPrefix } from '../../common/utils/document-number.util';
+import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../common/utils/document-number.util';
 
 @Injectable()
 export class MaintenanceService {
@@ -173,22 +173,14 @@ export class MaintenanceService {
   async createTicket(payload: UpsertMaintenanceTicketDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
     const result = await this.tx.runInTransaction(this.db, async (trx) => {
-      const prefix = getDailyDocumentPrefix('ZM');
-      const countRes = await trx
-        .selectFrom('maintenance_tickets')
-        .select((eb) => eb.fn.count('id').as('count'))
-        .where('tenant_id', '=', scope.tenantId)
-        .where('ticket_no', 'like', `${prefix}%`)
-        .executeTakeFirst();
-      const nextNum = Number(countRes?.count || 0) + 1;
-      const ticketNo = `${prefix}${String(nextNum).padStart(4, '0')}`;
+      const tempTicketNo = `TMP-ZM-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
       const inserted = await trx
         .insertInto('maintenance_tickets')
         .values({
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-          ticket_no: ticketNo,
+          ticket_no: tempTicketNo,
           customer_id: payload.customerId ?? null,
           customer_name: (payload.customerName || (payload as any).name || 'عميل نقدي').trim(),
           customer_phone: (payload.customerPhone || (payload as any).phone || '').trim(),
@@ -218,6 +210,14 @@ export class MaintenanceService {
       }
 
       const ticketId = Number(inserted.id);
+      const ticketNo = formatDailyDocumentNumber('ZM', ticketId);
+
+      await trx
+        .updateTable('maintenance_tickets')
+        .set({ ticket_no: ticketNo })
+        .where('id', '=', ticketId)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
 
       // If advance payment was made, record cash-in to treasury atomically
       if (payload.advancePayment && Number(payload.advancePayment) > 0) {

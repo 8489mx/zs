@@ -28,6 +28,14 @@ export class TenantSubscriptionController {
     }
   }
 
+  private assertSubscriptionManagePermission(req: RequestWithAuth): void {
+    const role = req.authContext?.role;
+    const permissions = req.authContext?.permissions ?? [];
+    if (role !== 'admin' && role !== 'super_admin' && !permissions.includes('settings') && !permissions.includes('canManageSettings')) {
+      throw new ForbiddenException('إدارة وتجديد اشتراك المنشأة مقتصرة على مالك الحساب (Admin) أو من يملك صلاحيات الإعدادات.');
+    }
+  }
+
   @Get('me')
   @UseGuards(SessionAuthGuard)
   getMySubscription(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
@@ -37,12 +45,14 @@ export class TenantSubscriptionController {
   @Post('request-renewal')
   @UseGuards(SessionAuthGuard)
   requestRenewal(@Body() dto: RequestRenewalDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    this.assertSubscriptionManagePermission(req);
     return this.service.requestRenewal(dto, req.authContext!);
   }
 
   @Post('initiate-online-payment')
   @UseGuards(SessionAuthGuard)
   initiateOnlinePayment(@Body() dto: InitiateOnlinePaymentDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    this.assertSubscriptionManagePermission(req);
     return this.service.initiateOnlinePayment(dto, this.paymentManager, req.authContext!);
   }
 
@@ -54,6 +64,7 @@ export class TenantSubscriptionController {
   @UseGuards(SessionAuthGuard)
   sandboxCheckout(@Query() query: any, @Req() req: RequestWithAuth, @Res() res: Response) {
     this.assertSandboxGatewayUsable();
+    this.assertSubscriptionManagePermission(req);
     // Every value below is interpolated into the HTML returned by this route, so each one
     // is escaped at the point it is read rather than at each of its use sites.
     const gateway = escapeHtml(String(query.gateway || 'xpay').toUpperCase());
@@ -286,6 +297,7 @@ export class TenantSubscriptionController {
   @UseGuards(SessionAuthGuard)
   async completeSandboxCheckout(@Body() body: any, @Req() req: RequestWithAuth, @Res() res: Response) {
     this.assertSandboxGatewayUsable();
+    this.assertSubscriptionManagePermission(req);
     const gateway = String(body.gateway || 'xpay').toLowerCase();
     // لا يُوثق بمعرّف المستأجر القادم من جسم الطلب إطلاقاً — يُشتق حصراً من الجلسة الموثّقة
     // لمنع أي مستخدم من "دفع" باقة لمستأجر آخر غير مستأجره.

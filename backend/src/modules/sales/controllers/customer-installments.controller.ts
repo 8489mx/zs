@@ -10,6 +10,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
+import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
+import { RequireAnyPermission } from '../../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { CustomerInstallmentsService } from '../services/customer-installments.service';
 import {
@@ -19,7 +21,8 @@ import {
 } from '../dto/customer-installment.dto';
 
 @Controller('api/installments')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireAnyPermission('sales', 'customers')
 export class CustomerInstallmentsController {
   constructor(private readonly installmentsService: CustomerInstallmentsService) {}
 

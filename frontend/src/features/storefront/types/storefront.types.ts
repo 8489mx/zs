@@ -47,6 +47,7 @@ export interface StorefrontInfo {
   tiktokPixelId?: string;
   snapchatPixelId?: string;
   pickupEnabled?: boolean;
+  allowOutOfStockOrders?: boolean;
 }
 
 export interface StorefrontCategory {
@@ -244,6 +245,7 @@ export interface StorefrontSettingsPayload {
   stripePublishableKey?: string;
   stripeWebhookSecret?: string;
   stripeTestMode?: boolean;
+  allowOutOfStockOrders?: boolean;
 }
 
 export interface StorefrontPaymentSessionResponse {

@@ -55,7 +55,7 @@ export class VatDeclarationService {
       .where(this.tenantPredicate(auth))
       .where('created_at', '>=', fromDate)
       .where('created_at', '<=', toDate)
-      .where('status', '!=', 'cancelled')
+      .where('status', '=', 'posted')
       .executeTakeFirst();
 
     // 2. Sales returns query
@@ -86,7 +86,7 @@ export class VatDeclarationService {
       .where(this.tenantPredicate(auth))
       .where('created_at', '>=', fromDate)
       .where('created_at', '<=', toDate)
-      .where('status', '!=', 'cancelled')
+      .where('status', '=', 'posted')
       .executeTakeFirst();
 
     // 4. Purchase returns query

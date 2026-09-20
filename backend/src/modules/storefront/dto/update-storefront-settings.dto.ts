@@ -179,4 +179,9 @@ export class UpdateStorefrontSettingsDto {
   @IsOptional()
   @IsBoolean()
   pickupEnabled?: boolean;
+
+  // Stock Availability
+  @IsOptional()
+  @IsBoolean()
+  allowOutOfStockOrders?: boolean;
 }

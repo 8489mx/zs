@@ -1,5 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
+import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
+import { RequireAnyPermission } from '../../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import {
   MarketplaceSyncService,
@@ -9,7 +11,8 @@ import {
 } from '../services/marketplace-sync.service';
 
 @Controller('api/storefront/marketplaces')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireAnyPermission('storefront', 'settings')
 export class MarketplaceSyncController {
   constructor(private readonly syncService: MarketplaceSyncService) {}
 

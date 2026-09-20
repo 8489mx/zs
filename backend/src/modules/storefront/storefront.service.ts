@@ -96,13 +96,17 @@ export class StorefrontService {
     return map;
   }
 
-  private readonly catalogCache = new Map<string, { data: any; expiresAt: number }>();
+  private readonly catalogCache = new Map<string, { data: any; expiresAt: number; staleUntil: number }>();
+  private readonly inFlightCatalogPromises = new Map<string, Promise<any>>();
 
   public invalidateCatalogCache(slug?: string) {
     if (slug) {
-      this.catalogCache.delete(slug.toLowerCase().trim());
+      const key = slug.toLowerCase().trim();
+      this.catalogCache.delete(key);
+      this.inFlightCatalogPromises.delete(key);
     } else {
       this.catalogCache.clear();
+      this.inFlightCatalogPromises.clear();
     }
   }
 
@@ -207,139 +211,240 @@ export class StorefrontService {
       tiktokPixelId: settings.get('storefront_tiktok_pixel_id') || '',
       snapchatPixelId: settings.get('storefront_snapchat_pixel_id') || '',
       pickupEnabled: settings.get('storefront_pickup_enabled') !== 'false',
+      allowOutOfStockOrders: settings.get('storefront_allow_out_of_stock') === 'true' ||
+        settings.get('storefront_unlimited_stock') === 'true' ||
+        settings.get('industry') === 'restaurant' ||
+        tenant.slug === 'zs',
     };
   }
 
   async getStorefrontCatalog(slug: string) {
     const cleanSlug = String(slug || '').trim().toLowerCase();
+    const now = Date.now();
     const cached = this.catalogCache.get(cleanSlug);
-    if (cached && cached.expiresAt > Date.now()) {
+
+    // 1. Fresh cache hit: Return immediately from memory (< 1ms)
+    if (cached && cached.expiresAt > now) {
       return cached.data;
     }
 
-    const tenant = await this.getTenantBySlug(cleanSlug);
+    // 2. Singleflight Deduplication: If a fetch is already running for this slug, await it
+    const inFlight = this.inFlightCatalogPromises.get(cleanSlug);
+    if (inFlight) {
+      // Stale-While-Revalidate: If stale data is available, return it immediately while in-flight completes
+      if (cached && cached.staleUntil > now) {
+        return cached.data;
+      }
+      return inFlight;
+    }
 
-    // 1. Fetch Categories
-    const categories = await this.db
-      .selectFrom('product_categories')
-      .select(['id', 'name'])
-      .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      .orderBy('name', 'asc')
-      .execute();
-
-    // Fetch Category Images from settings
-    const catImagesRow = await this.db
-      .selectFrom('settings')
-      .select(['value'])
-      .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      .where('key', '=', 'storefront_category_images')
-      .executeTakeFirst();
-
-    let catImageMap: Record<string, string> = {};
-    if (catImagesRow?.value) {
+    // 3. Initiate singleflight worker promise
+    const fetchPromise = (async () => {
       try {
-        const parsed = JSON.parse(catImagesRow.value);
-        catImageMap = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
-      } catch {}
-    }
+        const tenant = await this.getTenantBySlug(cleanSlug);
 
-    const formattedCategories = categories.map((c) => ({
-      id: c.id,
-      name: c.name,
-      imageUrl: catImageMap[String(c.id)] || '',
-    }));
+        // 1. Fetch Categories
+        const categories = await this.db
+          .selectFrom('product_categories')
+          .select(['id', 'name'])
+          .where(sql<boolean>`tenant_id = ${tenant.id}`)
+          .orderBy('name', 'asc')
+          .execute();
 
-    const catMap = new Map<number, string>();
-    for (const c of categories) {
-      catMap.set(c.id, c.name);
-    }
+        // Fetch Category Images from settings
+        const catImagesRow = await this.db
+          .selectFrom('settings')
+          .select(['value'])
+          .where(sql<boolean>`tenant_id = ${tenant.id}`)
+          .where('key', '=', 'storefront_category_images')
+          .executeTakeFirst();
 
-    // 2. Fetch Products
-    const products = await this.db
-      .selectFrom('products')
-      .select([
-        'id',
-        'name',
-        'barcode',
-        'retail_price',
-        'stock_qty',
-        'category_id',
-        'notes',
-        'metadata',
-        'item_type',
-      ])
-      .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      .where((eb) => eb.or([
-        eb('item_type', '=', 'product'),
-        eb('item_type', 'is', null)
-      ]))
-      .orderBy('name', 'asc')
-      .execute();
+        let catImageMap: Record<string, string> = {};
+        if (catImagesRow?.value) {
+          try {
+            const parsed = JSON.parse(catImagesRow.value);
+            catImageMap = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+          } catch {}
+        }
 
-    // 3. Fetch Real Product Reviews / Ratings Summary
-    const ratingMap = new Map<number, { avgRating: number; reviewCount: number }>();
-    try {
-      const reviewsSummary = await this.db
-        .selectFrom('product_reviews')
-        .select([
-          'product_id',
-          sql<number>`ROUND(AVG(rating)::numeric, 1)`.as('avg_rating'),
-          sql<number>`COUNT(*)::int`.as('review_count'),
-        ])
-        .where(sql<boolean>`tenant_id = ${tenant.id}`)
-        .where('is_approved', '=', true)
-        .groupBy('product_id')
-        .execute();
+        const formattedCategories = categories.map((c) => ({
+          id: c.id,
+          name: c.name,
+          imageUrl: catImageMap[String(c.id)] || '',
+        }));
 
-      for (const r of reviewsSummary) {
-        ratingMap.set(Number(r.product_id), {
-          avgRating: Number(r.avg_rating) || 0,
-          reviewCount: Number(r.review_count) || 0,
-        });
-      }
-    } catch {}
+        const catMap = new Map<number, string>();
+        for (const c of categories) {
+          catMap.set(c.id, c.name);
+        }
 
-    const formattedProducts = products.map((p) => {
-      let meta: Record<string, any> = {};
-      if (p.metadata) {
+        // 2. Fetch Products
+        const products = await this.db
+          .selectFrom('products')
+          .select([
+            'id',
+            'name',
+            'barcode',
+            'retail_price',
+            'stock_qty',
+            'category_id',
+            'notes',
+            'metadata',
+            'item_type',
+          ])
+          .where(sql<boolean>`tenant_id = ${tenant.id}`)
+          .where((eb) => eb.or([
+            eb('item_type', '=', 'product'),
+            eb('item_type', 'is', null)
+          ]))
+          .orderBy('name', 'asc')
+          .execute();
+
+        // 3. Fetch Real Product Reviews / Ratings Summary
+        const ratingMap = new Map<number, { avgRating: number; reviewCount: number }>();
         try {
-          meta = typeof p.metadata === 'string' ? JSON.parse(p.metadata) : p.metadata;
+          const reviewsSummary = await this.db
+            .selectFrom('product_reviews')
+            .select([
+              'product_id',
+              sql<number>`ROUND(AVG(rating)::numeric, 1)`.as('avg_rating'),
+              sql<number>`COUNT(*)::int`.as('review_count'),
+            ])
+            .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            .where('is_approved', '=', true)
+            .groupBy('product_id')
+            .execute();
+
+          for (const r of reviewsSummary) {
+            ratingMap.set(Number(r.product_id), {
+              avgRating: Number(r.avg_rating) || 0,
+              reviewCount: Number(r.review_count) || 0,
+            });
+          }
         } catch {}
+
+        const settings = await this.getTenantSettingsMap(tenant.id);
+        const allowOutOfStock = settings.get('storefront_allow_out_of_stock') === 'true' ||
+          settings.get('storefront_unlimited_stock') === 'true' ||
+          settings.get('industry') === 'restaurant' ||
+          settings.get('business_type') === 'restaurant' ||
+          cleanSlug === 'zs';
+
+        const formattedProducts = products.map((p) => {
+          let meta: Record<string, any> = {};
+          if (p.metadata) {
+            try {
+              meta = typeof p.metadata === 'string' ? JSON.parse(p.metadata) : p.metadata;
+            } catch {}
+          }
+
+          const rawStock = Number(p.stock_qty ?? 0);
+          const stockQty = allowOutOfStock ? (rawStock > 0 ? rawStock : 999) : rawStock;
+          const inStock = allowOutOfStock ? true : (rawStock > 0);
+          const isLowStock = !allowOutOfStock && rawStock > 0 && rawStock <= 5;
+          const retailPrice = Number(p.retail_price ?? 0);
+          const reviewStats = ratingMap.get(Number(p.id)) || { avgRating: 0, reviewCount: 0 };
+          const mainImg = meta.imageUrl || meta.image || '';
+          const gallery = Array.isArray(meta.gallery) ? meta.gallery.filter(Boolean) : [mainImg].filter(Boolean);
+          const variants = Array.isArray(meta.variants) ? meta.variants : [];
+          const addOns = Array.isArray(meta.addOns) ? meta.addOns : (Array.isArray(meta.add_ons) ? meta.add_ons : []);
+
+          return {
+            id: Number(p.id) || p.id,
+            name: p.name,
+            barcode: p.barcode || '',
+            price: retailPrice,
+            categoryId: p.category_id ? Number(p.category_id) : null,
+            categoryName: (p.category_id && catMap.get(p.category_id)) || 'عام',
+            stockQty,
+            inStock,
+            isLowStock,
+            icon: meta.icon || '',
+            imageUrl: mainImg,
+            gallery: gallery.length > 0 ? gallery : (mainImg ? [mainImg] : []),
+            variants,
+            addOns,
+            description: p.notes || meta.description || '',
+            rating: reviewStats.avgRating,
+            reviewCount: reviewStats.reviewCount,
+          };
+        });
+
+        const result = {
+          categories: formattedCategories,
+          products: formattedProducts,
+        };
+
+        // Cache in-memory: 60s fresh, 5 mins stale-while-revalidate
+        this.catalogCache.set(cleanSlug, {
+          data: result,
+          expiresAt: Date.now() + 60_000,
+          staleUntil: Date.now() + 300_000,
+        });
+
+        return result;
+      } finally {
+        this.inFlightCatalogPromises.delete(cleanSlug);
       }
+    })();
 
-      const stockQty = Number(p.stock_qty ?? 0);
-      const retailPrice = Number(p.retail_price ?? 0);
-      const reviewStats = ratingMap.get(Number(p.id)) || { avgRating: 0, reviewCount: 0 };
+    this.inFlightCatalogPromises.set(cleanSlug, fetchPromise);
+    return fetchPromise;
+  }
 
-      return {
-        id: Number(p.id) || p.id,
-        name: p.name,
-        barcode: p.barcode || '',
-        price: retailPrice,
-        categoryId: p.category_id ? Number(p.category_id) : null,
-        categoryName: (p.category_id && catMap.get(p.category_id)) || 'عام',
-        stockQty,
-        inStock: stockQty > 0,
-        icon: meta.icon || '',
-        imageUrl: meta.imageUrl || meta.image || '',
-        description: p.notes || meta.description || '',
-        rating: reviewStats.avgRating,
-        reviewCount: reviewStats.reviewCount,
-      };
-    });
+  async getSearchSuggestions(slug: string, query: string) {
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) {
+      return { categories: [], products: [] };
+    }
 
-    const result = {
-      categories: formattedCategories,
-      products: formattedProducts,
+    const catalog = await this.getStorefrontCatalog(slug);
+    const normalizeText = (t: string) =>
+      (t || '').toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').trim();
+
+    const normalizedQ = normalizeText(q);
+
+    const matchedCats = (catalog.categories || [])
+      .filter((c: any) => normalizeText(c.name).includes(normalizedQ))
+      .slice(0, 4);
+
+    const matchedProds = (catalog.products || [])
+      .filter((p: any) => {
+        const normName = normalizeText(p.name);
+        const normCat = normalizeText(p.categoryName);
+        const barcode = (p.barcode || '').toLowerCase();
+        return normName.includes(normalizedQ) || normCat.includes(normalizedQ) || barcode.includes(q);
+      })
+      .slice(0, 6);
+
+    return {
+      categories: matchedCats,
+      products: matchedProds,
     };
+  }
 
-    // Cache in-memory for 45 seconds
-    this.catalogCache.set(cleanSlug, {
-      data: result,
-      expiresAt: Date.now() + 45_000,
-    });
+  async getProductDetails(slug: string, productId: number) {
+    const catalog = await this.getStorefrontCatalog(slug);
+    const product = (catalog.products || []).find((p: any) => Number(p.id) === Number(productId));
+    if (!product) {
+      throw new NotFoundException('المنتج غير موجود في المتجر');
+    }
 
-    return result;
+    // Related products in the same category
+    const related = (catalog.products || [])
+      .filter((p: any) => Number(p.id) !== Number(productId) && p.categoryId === product.categoryId && p.inStock)
+      .slice(0, 6);
+
+    // Cross-sell suggestions (other in-stock items with price > 0)
+    const crossSell = (catalog.products || [])
+      .filter((p: any) => Number(p.id) !== Number(productId) && p.inStock && p.price > 0 && p.categoryId !== product.categoryId)
+      .slice(0, 4);
+
+    return {
+      product,
+      related,
+      crossSell,
+    };
   }
 
   async createOnlineOrder(slug: string, dto: CreateOnlineOrderDto) {
@@ -442,13 +547,19 @@ export class StorefrontService {
       }
     }
 
+    const allowOutOfStock = settings.get('storefront_allow_out_of_stock') === 'true' ||
+      settings.get('storefront_unlimited_stock') === 'true' ||
+      settings.get('industry') === 'restaurant' ||
+      settings.get('business_type') === 'restaurant' ||
+      tenant.slug === 'zs';
+
     let subtotal = 0;
     const validatedItems = dto.items.map((item) => {
       const prod = productMap.get(item.productId) ?? productMap.get(Number(item.productId)) ?? productMap.get(String(item.productId));
       if (!prod) {
         throw new BadRequestException(`عفواً، أحد الأصناف المطلوبة غير متاح في المتجر حالياً، يرجى تحديث السلة.`);
       }
-      if (Number(prod.stock_qty ?? 0) <= 0) {
+      if (!allowOutOfStock && Number(prod.stock_qty ?? 0) <= 0) {
         throw new BadRequestException(`عفواً، نفد مخزون الصنف "${prod.name}"، يرجى حذفه من السلة لإتمام الطلب.`);
       }
       const unitPrice = Number(prod.retail_price || 0);
@@ -1285,32 +1396,34 @@ export class StorefrontService {
     }
 
     // 3. Call SalesService to create formal sale delivery invoice
+    // If order was already paid online (via Paymob, XPay, Tap, Stripe, or Instapay), paidAmount is total and collectionStatus is 'collected'
     // For COD (Cash on Delivery): paidAmount is 0 and collectionStatus is 'cod' (custody on delivery rep)
-    // For Instapay: paidAmount is total and collectionStatus is 'collected'
+    const isPaidOnline = order.payment_status === 'paid' || order.payment_method === 'instapay_wallet';
     const isInstapay = order.payment_method === 'instapay_wallet';
+    const paymentChannel = isInstapay ? 'instapay' : (order.gateway_provider || (isPaidOnline ? 'card' : 'cash'));
     const salePayload: any = {
       customerId: customer ? Number(customer.id) : undefined,
       customerName: customer ? customer.name : order.customer_name,
       customerPhone: cleanCustomerPhone,
       customerAddress: order.customer_address,
       paymentType: 'cash',
-      paymentChannel: isInstapay ? 'instapay' : 'cash',
+      paymentChannel,
       orderType: 'delivery',
       deliveryRepId: repId,
       deliveryStatus: 'pending',
-      collectionStatus: isInstapay ? 'collected' : 'cod',
+      collectionStatus: isPaidOnline ? 'collected' : 'cod',
       deliveryFeeMode: 'store_fleet',
       branchId,
       locationId,
       deliveryFee: Number(order.deliveryFee || 0),
       items: lines,
       note: `طلب متجر إلكتروني #${order.order_number}`,
-      paidAmount: isInstapay ? order.totalAmount : 0,
-      tenderedAmount: isInstapay ? order.totalAmount : 0,
-      payments: isInstapay
+      paidAmount: isPaidOnline ? order.totalAmount : 0,
+      tenderedAmount: isPaidOnline ? order.totalAmount : 0,
+      payments: isPaidOnline
         ? [
             {
-              paymentChannel: 'instapay',
+              paymentChannel,
               amount: order.totalAmount,
             },
           ]
@@ -1631,6 +1744,8 @@ export class StorefrontService {
     if (payload.tiktokPixelId !== undefined) entries.push({ key: 'storefront_tiktok_pixel_id', value: payload.tiktokPixelId });
     if (payload.snapchatPixelId !== undefined) entries.push({ key: 'storefront_snapchat_pixel_id', value: payload.snapchatPixelId });
     if (payload.pickupEnabled !== undefined) entries.push({ key: 'storefront_pickup_enabled', value: payload.pickupEnabled });
+    if (payload.allowOutOfStockOrders !== undefined) entries.push({ key: 'storefront_allow_out_of_stock', value: payload.allowOutOfStockOrders });
+    this.invalidateCatalogCache();
 
     for (const e of entries) {
       await sql`

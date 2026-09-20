@@ -460,11 +460,21 @@ export function useNewIssueOrderController() {
         clearDraft();
         idempotencyKeyRef.current = null;
         currentPayloadRef.current = null;
+        setLines([{ id: Date.now(), productId: '', qty: 1, fromLocationId: '' }]);
+        setToLocationId('');
+        setToLocationQuery('');
+        setRecipientName('');
+        setNote('');
         setCreatedTransfers(successfulTransfers);
       } else {
         clearDraft();
         idempotencyKeyRef.current = null;
         currentPayloadRef.current = null;
+        setLines([{ id: Date.now(), productId: '', qty: 1, fromLocationId: '' }]);
+        setToLocationId('');
+        setToLocationQuery('');
+        setRecipientName('');
+        setNote('');
         navigate('/inventory');
       }
     } catch (error: any) {

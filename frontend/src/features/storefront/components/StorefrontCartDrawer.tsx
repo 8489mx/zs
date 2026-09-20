@@ -3,6 +3,7 @@ import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { CartItem, StorefrontInfo } from '../types/storefront.types';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
+import { StorefrontFreeShippingBar } from './StorefrontFreeShippingBar';
 
 interface StorefrontCartDrawerProps {
   isOpen: boolean;
@@ -107,8 +108,23 @@ export function StorefrontCartDrawer({
               color: '#64748b',
               fontSize: '16px',
             }}
-          ><XIcon size={15} /></button>
+          >
+            <XIcon size={15} />
+          </button>
         </div>
+
+        {/* Free Shipping Progress inside Drawer */}
+        {info?.freeShippingEnabled && (
+          <div style={{ padding: '12px 20px 0' }}>
+            <StorefrontFreeShippingBar
+              subtotal={subtotal}
+              freeShippingEnabled={info.freeShippingEnabled}
+              freeShippingMinOrder={info.freeShippingMinOrder}
+              currency={info.currency}
+              compact
+            />
+          </div>
+        )}
 
         {/* Drawer Body: Cart Items */}
         <div

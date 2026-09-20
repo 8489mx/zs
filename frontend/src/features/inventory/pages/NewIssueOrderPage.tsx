@@ -62,19 +62,19 @@ export function NewIssueOrderPage() {
   ]);
 
   return (
-    <div className="page-stack page-shell" dir="rtl">
+    <div dir="rtl" style={{ width: '100%' }}>
       <IssueOrderSuccessModal
         createdTransfers={createdTransfers}
         onPrintReceipt={handlePrintReceipt}
         onPrintA4={handlePrintA4}
         onNewTransfer={resetForm}
         onClose={() => {
-          setCreatedTransfers([]);
+          resetForm();
           navigate('/inventory');
         }}
       />
 
-      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+      <div className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', width: 'min(100%, 1280px)', margin: '0 auto' }}>
         <PageHeader
           title="إذن صرف جديد"
           onBack={() => navigate('/inventory')}
@@ -215,7 +215,7 @@ export function NewIssueOrderPage() {
             />
           </div>
         </section>
-      </main>
+      </div>
 
       <CameraBarcodeScannerModal
         isOpen={cameraScanLineId !== null}
