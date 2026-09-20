@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import '@/styles/partials/storefront.css';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { StorefrontHeader } from '../components/StorefrontHeader';
 import { StorefrontSubNav } from '../components/StorefrontSubNav';
 import { StorefrontCategoryShowcase } from '../components/StorefrontCategoryShowcase';
@@ -13,15 +13,41 @@ import { StorefrontDeliveryInfoBar } from '../components/StorefrontDeliveryInfoB
 import { initStorefrontPixels, trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { usePublicStorefront, ITEMS_PER_PAGE } from '../hooks/usePublicStorefront';
+import { useStorefrontSeo } from '../hooks/useStorefrontSeo';
 import { IconStore } from '../components/StorefrontIcons';
 import { UtensilsIcon } from '@/shared/components/icons/AppIcons';
 
 export function PublicStorefrontPage() {
-  const { slug, tableNo } = useParams<{ slug?: string; tableNo?: string }>();
+  const { slug, tableNo, productId } = useParams<{ slug?: string; tableNo?: string; productId?: string }>();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const tableParam = (tableNo || searchParams.get('table') || '').trim();
   const cleanSlug = String(slug || 'default').trim();
   const [quickViewProduct, setQuickViewProduct] = useState<StorefrontProduct | null>(null);
+
+  /**
+   * جذر المتجر الحالي (`/st/:slug` أو `/store/:slug` أو `/shop/:slug`).
+   * يُشتق من المسار الفعلي حتى يبقى العميل على نفس البادئة التي دخل منها.
+   */
+  const storeBasePath = useMemo(() => {
+    const match = location.pathname.match(/^\/(st|store|shop)\/[^/]+/);
+    return match ? match[0] : `/st/${cleanSlug}`;
+  }, [location.pathname, cleanSlug]);
+
+  /** فتح منتج = تغيير الرابط؛ المودال يتبع الرابط لا العكس. */
+  const openProduct = useCallback(
+    (product: StorefrontProduct) => {
+      navigate(`${storeBasePath}/p/${product.id}`);
+    },
+    [navigate, storeBasePath],
+  );
+
+  /** الإغلاق يرجع خطوة في التاريخ حتى يعمل زر الرجوع طبيعياً. */
+  const closeProduct = useCallback(() => {
+    if (productId) navigate(storeBasePath, { replace: false });
+    else setQuickViewProduct(null);
+  }, [navigate, productId, storeBasePath]);
 
   const {
     infoQuery,
@@ -81,6 +107,9 @@ export function PublicStorefrontPage() {
     isHomepageMultiRow,
   } = usePublicStorefront(cleanSlug);
 
+  // عنوان التبويب ووسوم المشاركة تتبع المنتج المفتوح إن وُجد
+  useStorefrontSeo({ info, product: quickViewProduct });
+
   useEffect(() => {
     if (info) {
       initStorefrontPixels(info);
@@ -104,6 +133,23 @@ export function PublicStorefrontPage() {
       }
     }
   }, [catalogQuery.data?.products, searchParams]);
+
+  /*
+   * مزامنة المودال مع الرابط: الرابط هو مصدر الحقيقة.
+   * يفتح `/p/:productId` المنتج مباشرة عند الدخول من لينك مشارَك أو إعلان،
+   * ويغلقه الرجوع للجذر — فيعمل زر الرجوع في المتصفح كما يتوقع المستخدم.
+   * البحث في الكتالوج الكامل لا في المفلتر، وإلا لن يُفتح منتج خارج الفلتر النشط.
+   */
+  useEffect(() => {
+    if (!productId) {
+      setQuickViewProduct(null);
+      return;
+    }
+    const products = catalogQuery.data?.products as StorefrontProduct[] | undefined;
+    if (!products) return;
+    const found = products.find((p) => String(p.id) === String(productId));
+    setQuickViewProduct(found || null);
+  }, [productId, catalogQuery.data?.products]);
 
   if (catalogQuery.isLoading || infoQuery.isLoading) {
     return (
@@ -221,7 +267,7 @@ export function PublicStorefrontPage() {
           setOnlyDeals(false);
           setOnlyFavorites(false);
         }}
-        onSelectProduct={(prod) => setQuickViewProduct(prod)}
+        onSelectProduct={openProduct}
         onAddToCart={handleAddToCart}
       />
 
@@ -355,7 +401,7 @@ export function PublicStorefrontPage() {
             onUpdateQuantity={handleUpdateQuantity}
             onOpenReviewModal={handleOpenReviewModal}
             onToggleFavorite={handleToggleFavorite}
-            onQuickView={(p: StorefrontProduct) => setQuickViewProduct(p)}
+            onQuickView={openProduct}
             onSelectDeals={() => setOnlyDeals(true)}
             onSelectCategory={(id) => setSelectedCategory(id)}
             onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
@@ -382,7 +428,7 @@ export function PublicStorefrontPage() {
             onUpdateQuantity={handleUpdateQuantity}
             onOpenReviewModal={handleOpenReviewModal}
             onToggleFavorite={handleToggleFavorite}
-            onQuickView={(p: StorefrontProduct) => setQuickViewProduct(p)}
+            onQuickView={openProduct}
           />
         )}
       </main>
@@ -392,7 +438,7 @@ export function PublicStorefrontPage() {
         allProducts={filteredProducts || []}
         onAddToCart={handleAddToCart}
         quickViewProduct={quickViewProduct}
-        onCloseQuickView={() => setQuickViewProduct(null)}
+        onCloseQuickView={closeProduct}
         isCategoriesModalOpen={isCategoriesModalOpen}
         onCloseCategoriesModal={() => setIsCategoriesModalOpen(false)}
         categories={categories}

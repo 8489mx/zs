@@ -70,7 +70,14 @@ export function StorefrontProductQuickViewModal({
     : (product.price + (selectedVariant?.extraPrice ? Number(selectedVariant.extraPrice) : 0));
 
   const effectiveSlug = tenantSlug || slug;
-  const productUrl = `${window.location.origin}${effectiveSlug ? `/store/${effectiveSlug}` : window.location.pathname}#product-${product.id}`;
+  /*
+   * رابط المنتج القابل للمشاركة.
+   *
+   * كان `#product-<id>` — جزء Hash لا يصل إلى الخادم إطلاقاً، فلا تراه زواحف
+   * واتساب/فيسبوك ولا جوجل، وبالتالي لا بطاقة معاينة ولا فهرسة. صار مساراً
+   * حقيقياً `/p/:id` يقرؤه الخادم ويرد عليه بوسوم OG.
+   */
+  const productUrl = `${window.location.origin}${effectiveSlug ? `/store/${effectiveSlug}` : window.location.pathname.replace(/\/p\/\d+$/, '')}/p/${product.id}`;
 
   const handleShareWhatsApp = () => {
     const text = `شاهد هذا المنتج في ${info?.title || 'متجرنا'}:\n*${product.name}*\nالسعر: ${basePrice} ${info?.currency || 'ج.م'}\n${productUrl}`;

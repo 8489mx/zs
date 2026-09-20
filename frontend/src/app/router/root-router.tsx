@@ -178,6 +178,23 @@ const router = createRouter([
     path: '/shop/:slug',
     element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
   },
+  /*
+   * صفحات المنتج: كل منتج له رابط حقيقي قابل للمشاركة والفهرسة.
+   * قبلها كان المنتج يُفتح في مودال بلا URL، فلا يمكن إرساله في واتساب ولا
+   * استهدافه بإعلان ولا فهرسته في جوجل، وزر الرجوع كان يخرج من المتجر كله.
+   */
+  {
+    path: '/st/:slug/p/:productId',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
+    path: '/store/:slug/p/:productId',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
+    path: '/shop/:slug/p/:productId',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
   {
     path: '/table/:tableNo',
     element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),

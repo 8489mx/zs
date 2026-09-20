@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Headers, Param, Post, Put, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Header, Headers, Param, Post, Put, Query, Req } from '@nestjs/common';
 import { StorefrontService } from './storefront.service';
 import { StorefrontPaymentService } from './storefront-payment.service';
+import { StorefrontSocialPreviewService } from './storefront-social-preview.service';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { CreateOnlineOrderDto } from './dto/create-online-order.dto';
 import { CreateProductReviewDto } from './dto/create-product-review.dto';
@@ -11,6 +12,7 @@ export class StorefrontPublicController {
   constructor(
     private readonly service: StorefrontService,
     private readonly paymentService: StorefrontPaymentService,
+    private readonly socialPreviewService: StorefrontSocialPreviewService,
   ) {}
 
   @Get(':slug/info')
@@ -21,6 +23,37 @@ export class StorefrontPublicController {
   @Get(':slug/catalog')
   getCatalog(@Param('slug') slug: string) {
     return this.service.getStorefrontCatalog(slug);
+  }
+
+  /**
+   * بطاقة المعاينة لزواحف التواصل (واتساب/فيسبوك/تليجرام/جوجل).
+   * بوابة nginx وحدها هي من توجّه الزواحف إلى هنا — المستخدم يُخدَّم التطبيق.
+   */
+  @Get(':slug/social-preview')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Cache-Control', 'public, max-age=300')
+  socialPreview(@Param('slug') slug: string, @Req() req: RequestWithAuth) {
+    return this.socialPreviewService.buildPreview(slug, this.resolveOrigin(req));
+  }
+
+  @Get(':slug/social-preview/:productId')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Cache-Control', 'public, max-age=300')
+  socialPreviewProduct(
+    @Param('slug') slug: string,
+    @Param('productId') productId: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.socialPreviewService.buildPreview(slug, this.resolveOrigin(req), productId);
+  }
+
+  /** يبني الأصل من رؤوس الوكيل حتى تكون روابط og:url مطلقة وصحيحة خلف nginx. */
+  private resolveOrigin(req: RequestWithAuth): string {
+    const configured = String(process.env.APP_PUBLIC_URL || '').trim();
+    if (configured) return configured.replace(/\/$/, '');
+    const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+    return host ? `${proto}://${host}` : '';
   }
 
   @Get(':slug/search/suggest')
