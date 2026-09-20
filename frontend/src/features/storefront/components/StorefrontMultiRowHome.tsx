@@ -1,8 +1,7 @@
 import React from 'react';
 import type { StorefrontProduct, StorefrontCategory, StorefrontInfo } from '../types/storefront.types';
-import { StorefrontProductCard } from './StorefrontProductCard';
-import { StorefrontHorizontalCarousel } from './StorefrontHorizontalCarousel';
-import { IconFlame, IconFolder, IconArrowUpRight } from './StorefrontIcons';
+import { StorefrontShelfSection } from './StorefrontShelfSection';
+import { IconFolder } from './StorefrontIcons';
 
 interface TopHomepageSection {
   categoryId: number;
@@ -48,197 +47,45 @@ export function StorefrontMultiRowHome({
     <div className="storefront-homepage-sections">
       {/* Row 1: Deals Spotlight */}
       {dealsProducts.length > 0 && (
-        <div
-          className="storefront-section-card"
-          style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            border: '1px solid #fee2e2',
-            padding: '20px',
-            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.04)',
-          }}
-        >
-          <div
-            className="storefront-deals-header"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '16px',
-              borderBottom: '1px solid #fef2f2',
-              paddingBottom: '12px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span
-                style={{
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  fontSize: '12.5px',
-                  fontWeight: 800,
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <IconFlame size={14} color="#ffffff" strokeWidth={2.2} />
-                <span>عروض وتخفيضات حصرية</span>
-              </span>
-              <span className="storefront-deals-subtitle" style={{ fontSize: '12.5px', color: '#64748b' }}>
-                أقوى الخصومات والأسعار المخفضة
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={onSelectDeals}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#dc2626',
-                fontSize: '12.5px',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span>عرض كل العروض ({dealsProducts.length})</span>
-              <IconArrowUpRight size={14} strokeWidth={2.2} />
-            </button>
-          </div>
-
-          <div className="storefront-shelf">
-            {dealsProducts.slice(0, 12).map((product) => (
-              <div className="storefront-shelf-item" key={product.id}>
-                <StorefrontProductCard
-                  product={product}
-                  cartQuantity={cartMap.get(product.id) || 0}
-                  whatsappPhone={info.whatsappPhone}
-                  onAddToCart={onAddToCart}
-                  onUpdateQuantity={onUpdateQuantity}
-                  isSmartDeal={true}
-                  onOpenReviewModal={onOpenReviewModal}
-                  isFavorite={favoriteIds.has(product.id)}
-                  onToggleFavorite={onToggleFavorite}
-                  onQuickView={onQuickView}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+        <StorefrontShelfSection
+          badge="عروض وتخفيضات حصرية"
+          subtitle="أقوى الخصومات والأسعار المخفضة"
+          viewAllLabel={`عرض كل العروض (${dealsProducts.length})`}
+          products={dealsProducts.slice(0, 12)}
+          cartMap={cartMap}
+          whatsappPhone={info.whatsappPhone}
+          favoriteIds={favoriteIds}
+          isSmartDeal
+          onAddToCart={onAddToCart}
+          onUpdateQuantity={onUpdateQuantity}
+          onOpenReviewModal={onOpenReviewModal}
+          onToggleFavorite={onToggleFavorite}
+          onQuickView={onQuickView}
+          onViewAll={onSelectDeals}
+        />
       )}
 
       {/* Wide Horizontal Category Cards (Full Width Shelves) */}
-      {topHomepageSections.map((section, idx) => (
-        <React.Fragment key={section.categoryId}>
-          {/* Visual Accent: Section 3 renders as a smooth Horizontal Carousel */}
-          {idx === 2 ? (
-            <StorefrontHorizontalCarousel
-              title={`الأكثر طلباً في قسم ${section.categoryName}`}
-              badge="رائج الآن"
-              totalCount={section.totalCount}
-              products={section.products}
-              cartMap={cartMap}
-              whatsappPhone={info.whatsappPhone}
-              onAddToCart={onAddToCart}
-              onUpdateQuantity={onUpdateQuantity}
-              onOpenReviewModal={onOpenReviewModal}
-              onViewAll={() => {
-                onSelectCategory(section.categoryId);
-                window.scrollTo({ top: 120, behavior: 'smooth' });
-              }}
-            />
-          ) : (
-            <div
-              className="storefront-section-card"
-              style={{
-                background: '#ffffff',
-                borderRadius: '16px',
-                border: '1px solid #e2e8f0',
-                padding: '20px',
-                boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
-              }}
-            >
-              {/* Wide Shelf Header */}
-              <div
-                className="storefront-cat-shelf-header"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '16px',
-                  borderBottom: '1px solid #f1f5f9',
-                  paddingBottom: '12px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span
-                    style={{
-                      background: '#170e5e',
-                      color: '#ffffff',
-                      fontSize: '13px',
-                      fontWeight: 800,
-                      padding: '4px 12px',
-                      borderRadius: '6px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    {section.categoryName}
-                  </span>
-                  <span className="storefront-deals-subtitle" style={{ fontSize: '12.5px', color: '#64748b' }}>
-                    أفضل منتجات {section.categoryName} بأسعار الجملة
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSelectCategory(section.categoryId);
-                    window.scrollTo({ top: 120, behavior: 'smooth' });
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#170e5e',
-                    fontSize: '12.5px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <span>عرض كل أصناف القسم ({section.totalCount})</span>
-                  <IconArrowUpRight size={14} strokeWidth={2.2} />
-                </button>
-              </div>
-
-              {/* رفّ أفقي قابل للتمرير — يملأ العرض دائماً بلا أعمدة فارغة */}
-              <div className="storefront-shelf">
-                {section.products.slice(0, 12).map((product) => (
-                  <div className="storefront-shelf-item" key={product.id}>
-                    <StorefrontProductCard
-                      product={product}
-                      cartQuantity={cartMap.get(product.id) || 0}
-                      whatsappPhone={info.whatsappPhone}
-                      onAddToCart={onAddToCart}
-                      onUpdateQuantity={onUpdateQuantity}
-                      onOpenReviewModal={onOpenReviewModal}
-                      isFavorite={favoriteIds.has(product.id)}
-                      onToggleFavorite={onToggleFavorite}
-                      onQuickView={onQuickView}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </React.Fragment>
+      {topHomepageSections.map((section) => (
+        <StorefrontShelfSection
+          key={section.categoryId}
+          badge={section.categoryName}
+          subtitle={`أفضل منتجات ${section.categoryName} بأسعار الجملة`}
+          viewAllLabel={`عرض كل أصناف القسم (${section.totalCount})`}
+          products={section.products.slice(0, 12)}
+          cartMap={cartMap}
+          whatsappPhone={info.whatsappPhone}
+          favoriteIds={favoriteIds}
+          onAddToCart={onAddToCart}
+          onUpdateQuantity={onUpdateQuantity}
+          onOpenReviewModal={onOpenReviewModal}
+          onToggleFavorite={onToggleFavorite}
+          onQuickView={onQuickView}
+          onViewAll={() => {
+            onSelectCategory(section.categoryId);
+            window.scrollTo({ top: 120, behavior: 'smooth' });
+          }}
+        />
       ))}
 
       {/* Bottom Invitation Banner to browse remaining categories */}

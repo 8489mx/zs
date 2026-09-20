@@ -161,4 +161,20 @@
   .storefront-category-showcase .storefront-cat-count {
     display: none !important;
   }
+
+  /*
+   * ترويسة الرفّ على الموبايل: الأسهم لا معنى لها مع التمرير باللمس، ونص
+   * «عرض كل أصناف القسم (24)» أطول من أن يتسع بجانب اسم القسم. تُخفى الأسهم
+   * ويُختصر النص إلى «عرض الكل» — فيبقى كل شيء في سطر واحد بلا كسر.
+   */
+  .storefront-shelf-arrows {
+    display: none !important;
+  }
+  .storefront-shelf-viewall-label {
+    font-size: 0;
+  }
+  .storefront-shelf-viewall-label::after {
+    content: 'عرض الكل';
+    font-size: 12.5px;
+  }
 }
