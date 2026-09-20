@@ -4,6 +4,7 @@ import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { RequireAnyPermission, RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
+import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AccountingService } from './accounting.service';
 import {
   CashMovementQueryDto,
@@ -306,17 +307,17 @@ export class AccountingController {
 
   @Get('fixed-assets/auto-depreciate/status')
   getAutoDepreciationStatus(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.fixedAssetsScheduler.getSchedulerStatus(req.authContext?.tenantId || 'default');
+    return this.fixedAssetsScheduler.getSchedulerStatus(requireTenantScope(req.authContext).tenantId);
   }
 
   @Post('fixed-assets/auto-depreciate/toggle')
   toggleAutoDepreciation(@Body() body: { enabled: boolean }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.fixedAssetsScheduler.setAutoDepreciationEnabled(req.authContext?.tenantId || 'default', Boolean(body.enabled));
+    return this.fixedAssetsScheduler.setAutoDepreciationEnabled(requireTenantScope(req.authContext).tenantId, Boolean(body.enabled));
   }
 
   @Post('fixed-assets/auto-depreciate/trigger')
   triggerAutoDepreciation(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.fixedAssetsScheduler.triggerImmediateRun(req.authContext?.tenantId || 'default', req.authContext!);
+    return this.fixedAssetsScheduler.triggerImmediateRun(requireTenantScope(req.authContext).tenantId, req.authContext!);
   }
 
   // --- Multi-Currency (العملات المتعددة وأسعار الصرف) ---
