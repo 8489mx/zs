@@ -3,6 +3,7 @@ import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
+import { planWebhookOrderLookup, selectUnambiguousOrder } from './engines/webhook-order-resolution.engine';
 import * as crypto from 'crypto';
 
 export interface TenantPaymentConfig {
@@ -274,6 +275,7 @@ export class StorefrontPaymentService {
                   updated_at: new Date(),
                 })
                 .where('id', '=', order.id)
+                .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
                 .execute();
 
               return {
@@ -341,6 +343,7 @@ export class StorefrontPaymentService {
                   updated_at: new Date(),
                 })
                 .where('id', '=', order.id)
+                .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
                 .execute();
 
               return {
@@ -481,6 +484,7 @@ export class StorefrontPaymentService {
                   updated_at: new Date(),
                 })
                 .where('id', '=', order.id)
+                .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
                 .execute();
 
               return {
@@ -578,6 +582,7 @@ export class StorefrontPaymentService {
                   updated_at: new Date(),
                 })
                 .where('id', '=', order.id)
+                .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
                 .execute();
 
               return {
@@ -626,6 +631,56 @@ export class StorefrontPaymentService {
     };
   }
 
+  /**
+   * Single resolution path for every public payment webhook — executes the plan
+   * produced by `planWebhookOrderLookup` (invariant WH-1, see that engine for why
+   * `order_number` alone is not an identity across tenants).
+   */
+  private async resolveWebhookOrder(params: {
+    provider: string;
+    tenantId: string;
+    orderNumber: string;
+    gatewayOrderId: string;
+  }) {
+    const plan = planWebhookOrderLookup(params);
+
+    if (plan.mode === 'refuse') {
+      this.logger.warn(
+        `${params.provider} webhook refused (${plan.reason}): order "${params.orderNumber}" cannot be identified without crossing tenants.`,
+      );
+      return null;
+    }
+
+    if (plan.mode === 'tenant_scoped') {
+      const order = await this.db
+        .selectFrom('online_orders')
+        .selectAll()
+        .where(sql<boolean>`tenant_id = ${plan.tenantId}`)
+        .where(plan.by, '=', plan.value)
+        .executeTakeFirst();
+
+      return order ?? null;
+    }
+
+    // `.limit(2)` is what makes ambiguity detectable without scanning the table.
+    const matches = await this.db
+      .selectFrom('online_orders')
+      .selectAll()
+      .where('gateway_order_id', '=', plan.gatewayOrderId)
+      .limit(2)
+      .execute();
+
+    const order = selectUnambiguousOrder(matches);
+    if (!order) {
+      this.logger.warn(
+        `${params.provider} webhook gateway id "${plan.gatewayOrderId}" matched ${matches.length} orders; refusing ambiguous cross-tenant update.`,
+      );
+      return null;
+    }
+
+    return order;
+  }
+
   async processPaymobWebhook(headers: Record<string, any>, body: any) {
     const obj = body?.obj || body;
     const merchantOrderId = String(obj?.order?.merchant_order_id || '');
@@ -641,18 +696,13 @@ export class StorefrontPaymentService {
       orderNumber = merchantOrderId;
     }
 
-    // Lookup order
-    let orderQuery = this.db.selectFrom('online_orders').selectAll();
-    if (tenantId) {
-      orderQuery = orderQuery.where(sql<boolean>`tenant_id = ${tenantId}`);
-    }
-    if (orderNumber) {
-      orderQuery = orderQuery.where('order_number', '=', orderNumber);
-    } else if (obj?.order?.id) {
-      orderQuery = orderQuery.where('gateway_order_id', '=', String(obj.order.id));
-    }
+    const order = await this.resolveWebhookOrder({
+      provider: 'Paymob',
+      tenantId,
+      orderNumber,
+      gatewayOrderId: String(obj?.order?.id || ''),
+    });
 
-    const order = await orderQuery.executeTakeFirst();
     if (!order) {
       this.logger.warn(`Paymob Webhook received for unknown order: ${merchantOrderId}`);
       return { ok: false, message: 'Order not found' };
@@ -709,6 +759,7 @@ export class StorefrontPaymentService {
           updated_at: new Date(),
         })
         .where('id', '=', order.id)
+        .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
         .execute();
 
       // Trigger WhatsApp notification
@@ -727,6 +778,7 @@ export class StorefrontPaymentService {
           updated_at: new Date(),
         })
         .where('id', '=', order.id)
+        .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
         .execute();
 
       return { ok: true, status: 'failed', orderNumber: order.order_number };
@@ -748,17 +800,13 @@ export class StorefrontPaymentService {
       if (f.field_label === 'TenantId' || f.label === 'TenantId') tenantId = String(f.value || '');
     }
 
-    let orderQuery = this.db.selectFrom('online_orders').selectAll();
-    if (tenantId) {
-      orderQuery = orderQuery.where(sql<boolean>`tenant_id = ${tenantId}`);
-    }
-    if (orderNumber) {
-      orderQuery = orderQuery.where('order_number', '=', orderNumber);
-    } else if (transactionId) {
-      orderQuery = orderQuery.where('gateway_order_id', '=', transactionId);
-    }
+    const order = await this.resolveWebhookOrder({
+      provider: 'XPay',
+      tenantId,
+      orderNumber,
+      gatewayOrderId: transactionId,
+    });
 
-    const order = await orderQuery.executeTakeFirst();
     if (!order) {
       this.logger.warn(`XPay Webhook received for unknown order. Transaction: ${transactionId}, Order: ${orderNumber}`);
       return { ok: false, message: 'Order not found' };
@@ -779,6 +827,7 @@ export class StorefrontPaymentService {
           updated_at: new Date(),
         })
         .where('id', '=', order.id)
+        .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
         .execute();
 
       if (this.whatsappService) {
@@ -796,6 +845,7 @@ export class StorefrontPaymentService {
           updated_at: new Date(),
         })
         .where('id', '=', order.id)
+        .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
         .execute();
 
       return { ok: true, status: 'failed', orderNumber: order.order_number };
@@ -834,6 +884,7 @@ export class StorefrontPaymentService {
         updated_at: new Date(),
       })
       .where('id', '=', order.id)
+      .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
       .execute();
 
     // Trigger WhatsApp notification
@@ -885,17 +936,13 @@ export class StorefrontPaymentService {
     let orderNumber = String(metadata?.orderNumber || reference?.order || reference?.transaction || '');
     let tenantId = String(metadata?.tenantId || '');
 
-    let orderQuery = this.db.selectFrom('online_orders').selectAll();
-    if (tenantId) {
-      orderQuery = orderQuery.where(sql<boolean>`tenant_id = ${tenantId}`);
-    }
-    if (orderNumber) {
-      orderQuery = orderQuery.where('order_number', '=', orderNumber);
-    } else if (chargeId) {
-      orderQuery = orderQuery.where('gateway_order_id', '=', chargeId);
-    }
+    const order = await this.resolveWebhookOrder({
+      provider: 'Tap',
+      tenantId,
+      orderNumber,
+      gatewayOrderId: chargeId,
+    });
 
-    const order = await orderQuery.executeTakeFirst();
     if (!order) {
       this.logger.warn(`Tap Webhook received for unknown order. ChargeId: ${chargeId}, Order: ${orderNumber}`);
       return { ok: false, message: 'Order not found' };
@@ -916,6 +963,7 @@ export class StorefrontPaymentService {
           updated_at: new Date(),
         })
         .where('id', '=', order.id)
+        .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
         .execute();
 
       if (this.whatsappService) {
@@ -933,6 +981,7 @@ export class StorefrontPaymentService {
           updated_at: new Date(),
         })
         .where('id', '=', order.id)
+        .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
         .execute();
 
       return { ok: true, status: 'failed', orderNumber: order.order_number };
@@ -958,17 +1007,13 @@ export class StorefrontPaymentService {
 
     const sessionId = String(obj?.id || '');
 
-    let orderQuery = this.db.selectFrom('online_orders').selectAll();
-    if (tenantId) {
-      orderQuery = orderQuery.where(sql<boolean>`tenant_id = ${tenantId}`);
-    }
-    if (orderNumber) {
-      orderQuery = orderQuery.where('order_number', '=', orderNumber);
-    } else if (sessionId) {
-      orderQuery = orderQuery.where('gateway_order_id', '=', sessionId);
-    }
+    const order = await this.resolveWebhookOrder({
+      provider: 'Stripe',
+      tenantId,
+      orderNumber,
+      gatewayOrderId: sessionId,
+    });
 
-    const order = await orderQuery.executeTakeFirst();
     if (!order) {
       this.logger.warn(`Stripe Webhook received for unknown order: Session: ${sessionId}, Order: ${orderNumber}`);
       return { ok: false, message: 'Order not found' };
@@ -994,6 +1039,7 @@ export class StorefrontPaymentService {
           updated_at: new Date(),
         })
         .where('id', '=', order.id)
+        .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
         .execute();
 
       if (this.whatsappService) {
