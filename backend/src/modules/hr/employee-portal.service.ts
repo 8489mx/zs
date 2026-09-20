@@ -1,10 +1,22 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { createHmac } from 'crypto';
 import { Kysely, sql } from '../../database/kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
 import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
+import {
+  PORTAL_TOKEN_TTL_MS,
+  signPortalToken,
+  verifyPortalToken,
+  type PortalTokenErrorSpec,
+} from '../../core/auth/utils/portal-token';
+
+const PORTAL_TOKEN_ERRORS: PortalTokenErrorSpec = {
+  missing: { message: 'يرجى تسجيل الدخول إلى بوابة الموظف', code: 'UNAUTHORIZED' },
+  invalid: { message: 'رمز الجلسة غير صالح', code: 'INVALID_TOKEN' },
+  signature: { message: 'رمز الجلسة غير صالح أو تم التلاعب به', code: 'INVALID_SIGNATURE' },
+  expired: { message: 'انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول', code: 'TOKEN_EXPIRED' },
+};
 
 export interface PortalEmployeeUser {
   employeeId: number;
@@ -31,58 +43,67 @@ export class EmployeePortalService {
     return this.db as any;
   }
 
-  private getSecret(): string {
-    return process.env.SESSION_SECRET || 'zs-attendance-mobile-punch-secret-2026';
-  }
-
   /**
    * Generates a tamper-proof session token for the employee portal
    */
   generateToken(user: PortalEmployeeUser): string {
-    const payload = {
-      employeeId: user.employeeId,
-      employeeNo: user.employeeNo,
-      name: user.name,
-      tenantId: user.tenantId,
-      accountId: user.accountId,
-      branchId: user.branchId,
-      role: 'employee',
-      iat: Date.now(),
-      exp: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
-    };
-
-    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
-    const signature = createHmac('sha256', this.getSecret()).update(encoded).digest('base64url');
-    return `${encoded}.${signature}`;
+    return signPortalToken(
+      {
+        employeeId: user.employeeId,
+        employeeNo: user.employeeNo,
+        name: user.name,
+        tenantId: user.tenantId,
+        accountId: user.accountId,
+        branchId: user.branchId,
+        role: 'employee',
+      },
+      PORTAL_TOKEN_TTL_MS,
+    );
   }
 
   /**
-   * Verifies employee portal token from Authorization header
+   * Verifies employee portal token from Authorization header.
+   *
+   * التوقيع وحده لا يكفي: الرمز بلا حالة وعمره 30 يوماً، فلا بد من التأكد على كل طلب
+   * أن الموظف ما زال موجوداً ونشطاً **داخل نفس المستأجر المذكور في الرمز**. بدون هذا
+   * الفحص يظل موظف مفصول (أو مستأجر موقوف) قادراً على قراءة الرواتب والسلف لمدة شهر.
    */
-  verifyToken(authHeader?: string): PortalEmployeeUser {
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new AppError('يرجى تسجيل الدخول إلى بوابة الموظف', 'UNAUTHORIZED', 401);
-    }
-    const token = authHeader.replace('Bearer ', '').trim();
-    const [encoded, signature] = token.split('.');
-    if (!encoded || !signature) {
+  async verifyToken(authHeader?: string): Promise<PortalEmployeeUser> {
+    const payload = verifyPortalToken<Record<string, any>>(authHeader, PORTAL_TOKEN_ERRORS);
+
+    const employeeId = Number(payload.employeeId || 0);
+    const tenantId = String(payload.tenantId || '').trim();
+    const accountId = String(payload.accountId || '').trim();
+
+    if (!employeeId || !tenantId || !accountId) {
       throw new AppError('رمز الجلسة غير صالح', 'INVALID_TOKEN', 401);
     }
 
-    const expected = createHmac('sha256', this.getSecret()).update(encoded).digest('base64url');
-    if (signature !== expected) {
-      throw new AppError('رمز الجلسة غير صالح أو تم التلاعب به', 'INVALID_SIGNATURE', 401);
+    const employee = await this.anyDb
+      .selectFrom('hr_employees')
+      .select(['id', 'status', 'tenant_id', 'account_id'])
+      .where('id', '=', employeeId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!employee || employee.status !== 'active') {
+      throw new AppError('تم إيقاف حساب الموظف. يرجى مراجعة إدارة الموارد البشرية', 'EMPLOYEE_INACTIVE', 401);
     }
 
-    try {
-      const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
-      if (payload.exp && Date.now() > payload.exp) {
-        throw new AppError('انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول', 'TOKEN_EXPIRED', 401);
-      }
-      return payload;
-    } catch {
-      throw new AppError('فشل فك تشفير رمز الجلسة', 'INVALID_TOKEN_PAYLOAD', 401);
-    }
+    return {
+      employeeId,
+      employeeNo: String(payload.employeeNo || ''),
+      name: String(payload.name || ''),
+      phone: String(payload.phone || ''),
+      branchId: payload.branchId != null ? Number(payload.branchId) : null,
+      branchName: String(payload.branchName || ''),
+      departmentName: String(payload.departmentName || ''),
+      positionName: String(payload.positionName || ''),
+      hireDate: payload.hireDate ? String(payload.hireDate) : null,
+      status: String(employee.status),
+      tenantId: String(employee.tenant_id),
+      accountId: String(employee.account_id || accountId),
+    };
   }
 
   /**
@@ -289,6 +310,57 @@ export class EmployeePortalService {
   }
 
   /**
+   * رصيد الإجازات المتاح للموظف.
+   *
+   * كان هذا يُقرأ من جدول `hr_leave_balances` — وهو جدول **غير موجود في أي هجرة**،
+   * فكانت لوحة البوابة و شاشة الإجازات تنهار بالكامل وقت التشغيل، والخطأ مخفي خلف
+   * `this.db as any`. المصدر الحقيقي هو `hr_employees.annual_leave_balance`
+   * (هجرة `2030000000006-hr-leave-balances`) مخصوماً منه الإجازات المعتمدة هذا العام.
+   */
+  private async computeLeaveBalances(employeeId: number, tenantId: string): Promise<Array<{
+    leave_type_id: number | null;
+    leave_type_name: string;
+    total_days: number;
+    used_days: number;
+    remaining_days: number;
+  }>> {
+    const employee = await this.anyDb
+      .selectFrom('hr_employees')
+      .select(['annual_leave_balance'])
+      .where('id', '=', employeeId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    const annualType = await this.anyDb
+      .selectFrom('hr_leave_types')
+      .select(['id', 'name'])
+      .where('tenant_id', '=', tenantId)
+      .where(sql`LOWER(COALESCE(code, ''))`, '=', 'annual')
+      .executeTakeFirst();
+
+    const currentYear = new Date().toISOString().slice(0, 4);
+    const usedRow = await this.anyDb
+      .selectFrom('hr_leave_requests')
+      .select([sql<number>`COALESCE(SUM(days_count), 0)`.as('used_days')])
+      .where('employee_id', '=', employeeId)
+      .where('tenant_id', '=', tenantId)
+      .where('status', '=', 'approved')
+      .where(sql`start_date::text`, 'like', `${currentYear}%`)
+      .executeTakeFirst();
+
+    const totalDays = Number(employee?.annual_leave_balance ?? 21);
+    const usedDays = Number(usedRow?.used_days || 0);
+
+    return [{
+      leave_type_id: annualType?.id != null ? Number(annualType.id) : null,
+      leave_type_name: annualType?.name || 'إجازة سنوية',
+      total_days: totalDays,
+      used_days: usedDays,
+      remaining_days: Math.max(0, totalDays - usedDays),
+    }];
+  }
+
+  /**
    * Get employee dashboard overview
    */
   async getDashboard(employeeId: number, tenantId: string) {
@@ -314,6 +386,7 @@ export class EmployeePortalService {
         'pos.name as position_name',
       ])
       .where('e.id', '=', employeeId)
+      .where('e.tenant_id', '=', tenantId)
       .executeTakeFirst();
 
     // 2. Active contract
@@ -321,6 +394,7 @@ export class EmployeePortalService {
       .selectFrom('hr_employment_contracts')
       .selectAll()
       .where('employee_id', '=', employeeId)
+      .where('tenant_id', '=', tenantId)
       .where('status', '=', 'active')
       .executeTakeFirst();
 
@@ -329,6 +403,7 @@ export class EmployeePortalService {
       .selectFrom('hr_attendance_records')
       .selectAll()
       .where('employee_id', '=', employeeId)
+      .where('tenant_id', '=', tenantId)
       .where('work_date', '=', today)
       .executeTakeFirst();
 
@@ -337,6 +412,7 @@ export class EmployeePortalService {
       .selectFrom('hr_attendance_records')
       .selectAll()
       .where('employee_id', '=', employeeId)
+      .where('tenant_id', '=', tenantId)
       .where(sql`work_date::text`, 'like', `${currentMonth}%`)
       .execute();
 
@@ -349,18 +425,7 @@ export class EmployeePortalService {
     }
 
     // 5. Leave balances
-    const leaveBalances = await this.anyDb
-      .selectFrom('hr_leave_balances as b')
-      .leftJoin('hr_leave_types as t', 't.id', 'b.leave_type_id')
-      .select([
-        'b.leave_type_id',
-        't.name as leave_type_name',
-        'b.total_days',
-        'b.used_days',
-        'b.remaining_days',
-      ])
-      .where('b.employee_id', '=', employeeId)
-      .execute();
+    const leaveBalances = await this.computeLeaveBalances(employeeId, tenantId);
 
     // 6. Latest payslip
     const latestPayslip = await this.anyDb
@@ -380,6 +445,7 @@ export class EmployeePortalService {
         'run.created_at',
       ])
       .where('item.employee_id', '=', employeeId)
+      .where('item.tenant_id', '=', tenantId)
       .where('item.status', 'in', ['approved', 'paid', 'reviewed'])
       .orderBy('run.period_month', 'desc')
       .executeTakeFirst();
@@ -389,6 +455,7 @@ export class EmployeePortalService {
       .selectFrom('hr_employee_loans')
       .selectAll()
       .where('employee_id', '=', employeeId)
+      .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['approved', 'paid', 'partially_repaid'])
       .execute();
 
@@ -448,12 +515,13 @@ export class EmployeePortalService {
   /**
    * Get attendance log for month
    */
-  async getAttendance(employeeId: number, month?: string) {
+  async getAttendance(employeeId: number, tenantId: string, month?: string) {
     const targetMonth = month || new Date().toISOString().slice(0, 7);
     const records = await this.anyDb
       .selectFrom('hr_attendance_records')
       .selectAll()
       .where('employee_id', '=', employeeId)
+      .where('tenant_id', '=', tenantId)
       .where(sql`work_date::text`, 'like', `${targetMonth}%`)
       .orderBy('work_date', 'desc')
       .execute();
@@ -475,7 +543,7 @@ export class EmployeePortalService {
   /**
    * Get employee payslips
    */
-  async getPayslips(employeeId: number) {
+  async getPayslips(employeeId: number, tenantId: string) {
     const items = await this.anyDb
       .selectFrom('hr_payroll_run_items as item')
       .leftJoin('hr_payroll_runs as run', 'run.id', 'item.run_id')
@@ -494,6 +562,7 @@ export class EmployeePortalService {
         'run.created_at',
       ])
       .where('item.employee_id', '=', employeeId)
+      .where('item.tenant_id', '=', tenantId)
       .orderBy('run.period_month', 'desc')
       .execute();
 
@@ -505,6 +574,7 @@ export class EmployeePortalService {
         .selectFrom('hr_payroll_item_adjustments')
         .selectAll()
         .where('payroll_item_id', 'in', itemIds)
+        .where('tenant_id', '=', tenantId)
         .execute();
     }
 
@@ -534,25 +604,15 @@ export class EmployeePortalService {
   /**
    * Get employee leave balance and requests
    */
-  async getLeaves(employeeId: number) {
+  async getLeaves(employeeId: number, tenantId: string) {
     const types = await this.anyDb
       .selectFrom('hr_leave_types')
       .selectAll()
       .where('is_active', '=', true)
+      .where('tenant_id', '=', tenantId)
       .execute();
 
-    const balances = await this.anyDb
-      .selectFrom('hr_leave_balances as b')
-      .leftJoin('hr_leave_types as t', 't.id', 'b.leave_type_id')
-      .select([
-        'b.leave_type_id',
-        't.name as leave_type_name',
-        'b.total_days',
-        'b.used_days',
-        'b.remaining_days',
-      ])
-      .where('b.employee_id', '=', employeeId)
-      .execute();
+    const balances = await this.computeLeaveBalances(employeeId, tenantId);
 
     const requests = await this.anyDb
       .selectFrom('hr_leave_requests as req')
@@ -570,6 +630,7 @@ export class EmployeePortalService {
         'req.created_at',
       ])
       .where('req.employee_id', '=', employeeId)
+      .where('req.tenant_id', '=', tenantId)
       .orderBy('req.created_at', 'desc')
       .execute();
 
@@ -603,6 +664,7 @@ export class EmployeePortalService {
   async requestLeave(
     employeeId: number,
     tenantId: string,
+    accountId: string,
     body: { leaveTypeId: number; startDate: string; endDate: string; reason?: string },
   ) {
     if (!body.startDate || !body.endDate) {
@@ -618,11 +680,27 @@ export class EmployeePortalService {
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const daysCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
+    // نوع الإجازة يصل من العميل — يجب التحقق أنه يخص نفس المستأجر،
+    // وإلا ارتبط الطلب بنوع إجازة منشأة أخرى (كان `body.leaveTypeId || 1` بلا أي فحص).
+    const leaveType = await this.anyDb
+      .selectFrom('hr_leave_types')
+      .select(['id'])
+      .where('id', '=', Number(body.leaveTypeId || 0))
+      .where('tenant_id', '=', tenantId)
+      .where('is_active', '=', true)
+      .executeTakeFirst();
+
+    if (!leaveType) {
+      throw new AppError('نوع الإجازة المحدد غير متاح في منشأتك', 'INVALID_LEAVE_TYPE', 400);
+    }
+
     const inserted = await this.anyDb
       .insertInto('hr_leave_requests')
       .values({
         employee_id: employeeId,
-        leave_type_id: body.leaveTypeId || 1,
+        tenant_id: tenantId,
+        account_id: accountId,
+        leave_type_id: Number(leaveType.id),
         start_date: body.startDate,
         end_date: body.endDate,
         days_count: daysCount,
@@ -644,11 +722,12 @@ export class EmployeePortalService {
   /**
    * Get employee loans, advances and custody assets
    */
-  async getLoansAndCustody(employeeId: number) {
+  async getLoansAndCustody(employeeId: number, tenantId: string) {
     const loans = await this.anyDb
       .selectFrom('hr_employee_loans')
       .selectAll()
       .where('employee_id', '=', employeeId)
+      .where('tenant_id', '=', tenantId)
       .orderBy('created_at', 'desc')
       .execute();
 
@@ -656,6 +735,7 @@ export class EmployeePortalService {
       .selectFrom('hr_employee_assets')
       .selectAll()
       .where('employee_id', '=', employeeId)
+      .where('tenant_id', '=', tenantId)
       .orderBy('assigned_at', 'desc')
       .execute();
 
@@ -692,6 +772,7 @@ export class EmployeePortalService {
   async requestAdvance(
     employeeId: number,
     tenantId: string,
+    accountId: string,
     body: { amount: number; reason: string; repaymentMonths?: number },
   ) {
     const amount = Number(body.amount);
@@ -707,6 +788,8 @@ export class EmployeePortalService {
       .insertInto('hr_employee_loans')
       .values({
         employee_id: employeeId,
+        tenant_id: tenantId,
+        account_id: accountId,
         loan_no: `ADV-REQ-${Date.now().toString().slice(-6)}`,
         loan_type: 'advance',
         principal_amount: amount,

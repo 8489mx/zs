@@ -1,11 +1,23 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { createHmac } from 'crypto';
 import { Kysely, sql } from '../../database/kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
 import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
 import { getTenantTimezone, todayTenantDate, formatTimeInTimezone } from '../../common/utils/tenant-timezone.util';
+import {
+  PORTAL_TOKEN_TTL_MS,
+  signPortalToken,
+  verifyPortalToken,
+  type PortalTokenErrorSpec,
+} from '../../core/auth/utils/portal-token';
+
+const MOBILE_TOKEN_ERRORS: PortalTokenErrorSpec = {
+  missing: { message: 'يرجى تسجيل الدخول أولاً', code: 'UNAUTHORIZED' },
+  invalid: { message: 'رمز الجلسة غير صالح', code: 'INVALID_TOKEN' },
+  signature: { message: 'رمز الجلسة مزور أو غير صالح', code: 'INVALID_SIGNATURE' },
+  expired: { message: 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول ثانية', code: 'TOKEN_EXPIRED' },
+};
 
 export interface MobileAttendanceUser {
   employeeId: number;
@@ -237,63 +249,66 @@ export class MobileAttendanceService {
    * Generates a tamper-proof HMAC auth token for the mobile session
    */
   private generateToken(user: MobileAttendanceUser): string {
-    const payload = {
-      employeeId: user.employeeId,
-      employeeNo: user.employeeNo,
-      name: user.name,
-      tenantId: user.tenantId,
-      accountId: user.accountId,
-      branchId: user.branchId,
-      branchName: user.branchName,
-      branchLat: user.branchLat,
-      branchLng: user.branchLng,
-      geofenceRadiusMeters: user.geofenceRadiusMeters,
-      iat: Date.now(),
-      exp: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
-    };
-
-    const secret = process.env.SESSION_SECRET || 'zs-attendance-mobile-punch-secret-2026';
-    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
-    const signature = createHmac('sha256', secret).update(encoded).digest('base64url');
-    return `${encoded}.${signature}`;
+    return signPortalToken(
+      {
+        employeeId: user.employeeId,
+        employeeNo: user.employeeNo,
+        name: user.name,
+        phone: user.phone,
+        tenantId: user.tenantId,
+        accountId: user.accountId,
+        branchId: user.branchId,
+        branchName: user.branchName,
+        branchLat: user.branchLat,
+        branchLng: user.branchLng,
+        geofenceRadiusMeters: user.geofenceRadiusMeters,
+      },
+      PORTAL_TOKEN_TTL_MS,
+    );
   }
 
   /**
-   * Validates mobile employee token from Authorization header
+   * Validates mobile employee token from Authorization header.
+   *
+   * الرمز بلا حالة وعمره 30 يوماً، فلا يكفي التحقق من التوقيع: يُعاد التأكد على كل
+   * طلب أن الموظف ما زال نشطاً داخل نفس المستأجر، وأن الفرع المذكور في الرمز يخص
+   * هذا المستأجر فعلاً (وإلا صار الـgeofence قابلاً للاختيار من داخل الرمز).
    */
-  verifyToken(authHeader?: string): MobileAttendanceUser {
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new AppError('يرجى تسجيل الدخول أولاً', 'UNAUTHORIZED', 401);
-    }
-    const token = authHeader.replace('Bearer ', '').trim();
-    const [encoded, signature] = token.split('.');
-    if (!encoded || !signature) {
+  async verifyToken(authHeader?: string): Promise<MobileAttendanceUser> {
+    const payload = verifyPortalToken<Record<string, any>>(authHeader, MOBILE_TOKEN_ERRORS);
+
+    const employeeId = Number(payload.employeeId || 0);
+    const tenantId = String(payload.tenantId || '').trim();
+    const accountId = String(payload.accountId || '').trim();
+
+    if (!employeeId || !tenantId || !accountId) {
       throw new AppError('رمز الجلسة غير صالح', 'INVALID_TOKEN', 401);
     }
 
-    const secret = process.env.SESSION_SECRET || 'zs-attendance-mobile-punch-secret-2026';
-    const expected = createHmac('sha256', secret).update(encoded).digest('base64url');
-    if (signature !== expected) {
-      throw new AppError('رمز الجلسة مزور أو غير صالح', 'INVALID_SIGNATURE', 401);
-    }
+    const employee = await this.anyDb
+      .selectFrom('hr_employees')
+      .select(['id', 'status', 'tenant_id', 'account_id', 'branch_id'])
+      .where('id', '=', employeeId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
 
-    const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf-8'));
-    if (payload.exp && Date.now() > payload.exp) {
-      throw new AppError('انتهت صلاحية الجلسة، يرجى تسجيل الدخول ثانية', 'TOKEN_EXPIRED', 401);
+    if (!employee || employee.status !== 'active') {
+      throw new AppError('تم إيقاف حساب الموظف. يرجى مراجعة إدارة الموارد البشرية', 'EMPLOYEE_INACTIVE', 401);
     }
 
     return {
-      employeeId: payload.employeeId,
-      employeeNo: payload.employeeNo,
-      name: payload.name,
-      phone: payload.phone || '',
-      branchId: payload.branchId,
-      branchName: payload.branchName,
-      tenantId: payload.tenantId,
-      accountId: payload.accountId,
-      branchLat: payload.branchLat,
-      branchLng: payload.branchLng,
-      geofenceRadiusMeters: payload.geofenceRadiusMeters || 100,
+      employeeId,
+      employeeNo: String(payload.employeeNo || ''),
+      name: String(payload.name || ''),
+      phone: String(payload.phone || ''),
+      // الفرع يُؤخذ من صف الموظف في القاعدة، لا من الرمز
+      branchId: employee.branch_id != null ? Number(employee.branch_id) : null,
+      branchName: String(payload.branchName || ''),
+      tenantId: String(employee.tenant_id),
+      accountId: String(employee.account_id || accountId),
+      branchLat: payload.branchLat != null ? Number(payload.branchLat) : null,
+      branchLng: payload.branchLng != null ? Number(payload.branchLng) : null,
+      geofenceRadiusMeters: Number(payload.geofenceRadiusMeters || 100),
     };
   }
 
@@ -321,6 +336,7 @@ export class MobileAttendanceService {
         .selectFrom('branches')
         .select(['latitude', 'longitude', 'geofence_radius_meters'])
         .where('id', '=', user.branchId)
+        .where('tenant_id', '=', user.tenantId)
         .executeTakeFirst();
       if (br) {
         branchLat = br.latitude ? Number(br.latitude) : branchLat;
@@ -379,6 +395,7 @@ export class MobileAttendanceService {
         .selectFrom('branches')
         .select(['latitude', 'longitude', 'geofence_radius_meters'])
         .where('id', '=', user.branchId)
+        .where('tenant_id', '=', user.tenantId)
         .executeTakeFirst();
       if (br && br.latitude != null && br.longitude != null) {
         targetLat = Number(br.latitude);

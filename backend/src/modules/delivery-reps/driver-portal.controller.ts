@@ -11,29 +11,29 @@ export class DriverPortalController {
   }
 
   @Get('profile')
-  getProfile(@Headers('authorization') authHeader: string) {
-    const driver = this.service.verifyDriverToken(authHeader);
+  async getProfile(@Headers('authorization') authHeader: string) {
+    const driver = await this.service.verifyDriverToken(authHeader);
     return { ok: true, driver };
   }
 
   @Get('orders')
-  getOrders(
+  async getOrders(
     @Headers('authorization') authHeader: string,
     @Query('status') status?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
   ) {
-    const driver = this.service.verifyDriverToken(authHeader);
+    const driver = await this.service.verifyDriverToken(authHeader);
     return this.service.driverListOrders(driver.repId, driver.tenantId, { status, dateFrom, dateTo });
   }
 
   @Post('orders/:saleId/settle')
-  settleOrder(
+  async settleOrder(
     @Param('saleId', ParseIntPipe) saleId: number,
     @Headers('authorization') authHeader: string,
     @Body() body: { signatureDataUrl?: string; proofPhotoUrl?: string; gpsLat?: number; gpsLng?: number; notes?: string },
   ) {
-    const driver = this.service.verifyDriverToken(authHeader);
+    const driver = await this.service.verifyDriverToken(authHeader);
     return this.service.driverSettleOrder(saleId, driver.repId, driver.tenantId, body);
   }
 }

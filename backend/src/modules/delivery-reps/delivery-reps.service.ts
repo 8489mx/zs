@@ -1,9 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { createHmac } from 'node:crypto';
 import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import {
+  PORTAL_TOKEN_TTL_MS,
+  signPortalToken,
+  verifyPortalToken,
+  type PortalTokenErrorSpec,
+} from '../../core/auth/utils/portal-token';
 import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
@@ -12,6 +17,13 @@ import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
 
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { SalesFinanceService } from '../sales/services/sales-finance.service';
+
+const DRIVER_TOKEN_ERRORS: PortalTokenErrorSpec = {
+  missing: { message: 'غير مصرح - مطلوب تسجيل الدخول', code: 'UNAUTHORIZED_DRIVER' },
+  invalid: { message: 'رمز الدخول غير صالح', code: 'INVALID_DRIVER_TOKEN' },
+  signature: { message: 'رمز الدخول غير صالح أو مزور', code: 'INVALID_DRIVER_TOKEN' },
+  expired: { message: 'انتهت صلاحية جلسة المندوب، يرجى إعادة تسجيل الدخول', code: 'DRIVER_SESSION_EXPIRED' },
+};
 
 @Injectable()
 export class DeliveryRepsService {
@@ -611,20 +623,16 @@ export class DeliveryRepsService {
       // fallback to tenant_id
     }
 
-    const tokenPayload = {
-      repId: Number(matchedRep.id),
-      tenantId: matchedRep.tenant_id,
-      accountId: matchedRep.account_id,
-      name: matchedRep.name,
-      phone: matchedRep.phone,
-      iat: Date.now(),
-      exp: Date.now() + 30 * 24 * 60 * 60 * 1000,
-    };
-
-    const tokenSecret = process.env.SESSION_SECRET || 'zs-delivery-secret-token-key-2026';
-    const payloadEncoded = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
-    const signature = createHmac('sha256', tokenSecret).update(payloadEncoded).digest('base64url');
-    const token = `${payloadEncoded}.${signature}`;
+    const token = signPortalToken(
+      {
+        repId: Number(matchedRep.id),
+        tenantId: matchedRep.tenant_id,
+        accountId: matchedRep.account_id,
+        name: matchedRep.name,
+        phone: matchedRep.phone,
+      },
+      PORTAL_TOKEN_TTL_MS,
+    );
     this.driverLoginLimiter.recordSuccess(rateLimitKey);
 
     return {
@@ -643,22 +651,42 @@ export class DeliveryRepsService {
     };
   }
 
-  verifyDriverToken(token: string): { repId: number; tenantId: string; accountId: string; name: string; phone: string } {
-    if (!token) throw new AppError('غير مصرح - مطلوب تسجيل الدخول', 'UNAUTHORIZED_DRIVER', 401);
-    const cleanToken = token.startsWith('Bearer ') ? token.slice(7).trim() : token.trim();
-    const parts = cleanToken.split('.');
-    if (parts.length !== 2) throw new AppError('رمز الدخول غير صالح', 'INVALID_DRIVER_TOKEN', 401);
-    const [payloadEncoded, signature] = parts;
-    const tokenSecret = process.env.SESSION_SECRET || 'zs-delivery-secret-token-key-2026';
-    const expectedSignature = createHmac('sha256', tokenSecret).update(payloadEncoded).digest('base64url');
-    if (signature !== expectedSignature) {
-      throw new AppError('رمز الدخول غير صالح أو مزور', 'INVALID_DRIVER_TOKEN', 401);
+  /**
+   * يتحقق من رمز بوابة المندوب.
+   *
+   * الرمز بلا حالة وعمره 30 يوماً، فبعد التحقق من التوقيع يُعاد التأكد من قاعدة
+   * البيانات أن المندوب ما زال نشطاً داخل نفس المستأجر — وإلا ظل مندوب موقوف قادراً
+   * على البيع والتحصيل باسم المنشأة لمدة شهر بعد إيقافه.
+   */
+  async verifyDriverToken(token: string): Promise<{ repId: number; tenantId: string; accountId: string; name: string; phone: string }> {
+    const payload = verifyPortalToken<Record<string, any>>(token, DRIVER_TOKEN_ERRORS);
+
+    const repId = Number(payload.repId || 0);
+    const tenantId = String(payload.tenantId || '').trim();
+    const accountId = String(payload.accountId || '').trim();
+
+    if (!repId || !tenantId || !accountId) {
+      throw new AppError('رمز الدخول غير صالح', 'INVALID_DRIVER_TOKEN', 401);
     }
-    const payload = JSON.parse(Buffer.from(payloadEncoded, 'base64url').toString('utf8'));
-    if (payload.exp && Date.now() > payload.exp) {
-      throw new AppError('انتهت صلاحية جلسة المندوب، يرجى إعادة تسجيل الدخول', 'DRIVER_SESSION_EXPIRED', 401);
+
+    const rep = await this.db
+      .selectFrom('delivery_representatives')
+      .select(['id', 'name', 'phone', 'is_active', 'tenant_id', 'account_id'])
+      .where('id', '=', repId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!rep || rep.is_active === false) {
+      throw new AppError('تم إيقاف حساب المندوب. يرجى مراجعة الإدارة', 'DRIVER_INACTIVE', 401);
     }
-    return payload;
+
+    return {
+      repId,
+      tenantId: String(rep.tenant_id),
+      accountId: String(rep.account_id || accountId),
+      name: String(rep.name || payload.name || ''),
+      phone: String(rep.phone || payload.phone || ''),
+    };
   }
 
   async driverListOrders(repId: number, tenantId: string, filters?: { dateFrom?: string; dateTo?: string; status?: string }): Promise<Record<string, unknown>> {

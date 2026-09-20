@@ -33,8 +33,11 @@ function readSessionId(request: RequestWithAuth, allowHeaderAuth: boolean, cooki
     }
   }
 
-  // 3. Query string token/sessionId for direct file downloads
-  if (request.query && typeof request.query === 'object') {
+  // 3. Query string token/sessionId — **للتنزيلات المباشرة فقط**.
+  // معرّف الجلسة في الـURL يتسرب عبر سجلات الخادم والوكيل، وسجل المتصفح، ورأس
+  // `Referer` لأي طرف ثالث تحمّله الصفحة. لذلك يُقبل على الطرق الآمنة فقط
+  // (GET/HEAD) حتى لا يصبح رابطاً مسرَّباً قادراً على تنفيذ عملية تغيّر البيانات.
+  if (!isUnsafeHttpMethod(request.method) && request.query && typeof request.query === 'object') {
     const queryCandidate = (request.query as Record<string, unknown>)['sessionId']
       || (request.query as Record<string, unknown>)['session_id']
       || (request.query as Record<string, unknown>)['token'];

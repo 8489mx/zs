@@ -15,7 +15,7 @@ export class VanSalesController {
 
   @Get('active-trip')
   async getActiveTrip(@Headers('authorization') authHeader: string) {
-    const driver = this.deliveryRepsService.verifyDriverToken(authHeader);
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.getActiveTrip(driver.repId, driver.tenantId, driver.accountId);
   }
 
@@ -24,7 +24,7 @@ export class VanSalesController {
     @Headers('authorization') authHeader: string,
     @Body() body: { sourceWarehouseId: number; items: { productId: number; qty: number }[]; notes?: string },
   ) {
-    const driver = this.deliveryRepsService.verifyDriverToken(authHeader);
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.openTripAndLoad(driver.repId, driver.tenantId, driver.accountId, body);
   }
 
@@ -42,7 +42,7 @@ export class VanSalesController {
       notes?: string;
     },
   ) {
-    const driver = this.deliveryRepsService.verifyDriverToken(authHeader);
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.executeFieldSale(driver.repId, driver.tenantId, driver.accountId, body);
   }
 
@@ -51,7 +51,7 @@ export class VanSalesController {
     @Headers('authorization') authHeader: string,
     @Body() body: { tripId: number; customerId: number; amount: number; notes?: string },
   ) {
-    const driver = this.deliveryRepsService.verifyDriverToken(authHeader);
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.recordFieldCollection(driver.repId, driver.tenantId, driver.accountId, body);
   }
 
@@ -66,7 +66,7 @@ export class VanSalesController {
       notes?: string;
     },
   ) {
-    const driver = this.deliveryRepsService.verifyDriverToken(authHeader);
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.recordFieldReturn(driver.repId, driver.tenantId, driver.accountId, body);
   }
 
@@ -75,7 +75,7 @@ export class VanSalesController {
     @Headers('authorization') authHeader: string,
     @Body() body: { tripId: number; countedCash: number; unloadRemainingToWarehouse: boolean; notes?: string },
   ) {
-    const driver = this.deliveryRepsService.verifyDriverToken(authHeader);
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.settleTrip(driver.repId, driver.tenantId, driver.accountId, body);
   }
 }

@@ -16,13 +16,13 @@ export class MobileAttendanceController {
   }
 
   @Get('status')
-  getStatus(@Headers('authorization') authHeader: string) {
-    const user = this.service.verifyToken(authHeader);
+  async getStatus(@Headers('authorization') authHeader: string) {
+    const user = await this.service.verifyToken(authHeader);
     return this.service.getTodayStatus(user);
   }
 
   @Post('record')
-  recordPunch(
+  async recordPunch(
     @Headers('authorization') authHeader: string,
     @Body()
     body: {
@@ -33,7 +33,7 @@ export class MobileAttendanceController {
       notes?: string;
     },
   ) {
-    const user = this.service.verifyToken(authHeader);
+    const user = await this.service.verifyToken(authHeader);
     return this.service.recordPunch(user, body);
   }
 
