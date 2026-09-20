@@ -191,7 +191,7 @@ export function StorefrontCategoryShowcase({
               >
                 {cat.name}
               </span>
-              <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>
+              <span className="storefront-cat-count" style={{ fontSize: '10.5px', color: '#94a3b8' }}>
                 {count} صنف
               </span>
             </div>

@@ -148,4 +148,17 @@
     padding-top: 6px !important;
     padding-bottom: 6px !important;
   }
+
+  /*
+   * شريط الأقسام كان أطول كتلة في الترويسة (103px من 812). تصغير الدوائر
+   * وإخفاء عدّاد الأصناف يوفّر ~30px تدفع أول منتج أعلى الطيّة، والعدّاد متاح
+   * على أي حال داخل قائمة الأقسام.
+   */
+  .storefront-category-showcase .storefront-cat-avatar {
+    width: 50px !important;
+    height: 50px !important;
+  }
+  .storefront-category-showcase .storefront-cat-count {
+    display: none !important;
+  }
 }
