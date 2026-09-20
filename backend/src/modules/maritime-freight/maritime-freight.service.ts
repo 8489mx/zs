@@ -29,6 +29,7 @@ import { MaritimeMailService } from './maritime-mail.service';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { calculateFreightAudit, validateMakerCheckerOverride } from './engines/freight-audit.engine';
+import { checkInsuranceClaim } from './engines/cargo-insurance.engine';
 
 @Injectable()
 export class MaritimeFreightService {
@@ -2948,21 +2949,42 @@ export class MaritimeFreightService {
 
   async settleJobFromCustomerBalance(auth: AuthContext, jobId: string, dto?: { amount?: number }) {
     const { tenantId } = requireTenantScope(auth);
-    const job = await this.getJobById(auth, jobId);
+    const jobHeader = await this.getJobById(auth, jobId);
 
-    if (!job.customer_id) {
+    if (!jobHeader.customer_id) {
       throw new BadRequestException('هذه الشحنة غير مربوطة بسجل عميل معتمد في النظام');
     }
 
-    const customer = await this.db
+    // معاملة واحدة بقفل على صف العميل: هذه الدالة تقرأ الرصيد الدائن ثم تقرر ثم
+    // تكتب رصيداً **مطلقاً** (لا `balance = balance + x`). بلا قفل، تسويتان
+    // متزامنتان تقرآن نفس الرصيد وتكتبان نفس الناتج، فيُستهلك الرصيد الدائن مرتين
+    // وتُسوّى ضعف قيمته من ديون الشحنات — F1/F2 على نقدية حقيقية. وبلا معاملة،
+    // فشل جزئي يخصم من رصيد العميل ويترك الشحنة غير مسددة.
+    return await this.db.transaction().execute(async (trx) => {
+    const customer = await trx
       .selectFrom('customers')
       .select(['id', 'name', 'balance'])
       .where('tenant_id', '=', tenantId)
-      .where('id', '=', job.customer_id as any)
+      .where('id', '=', jobHeader.customer_id as any)
+      .forUpdate()
       .executeTakeFirst();
 
     if (!customer) {
       throw new NotFoundException('تعذر العثور على سجل العميل');
+    }
+
+    // إعادة قراءة أرقام الشحنة **داخل** المعاملة: القراءة خارجها قد تكون قديمة
+    // إن سُدِّدت الشحنة بين القراءة والكتابة (F2).
+    const job = await trx
+      .selectFrom('maritime_jobs')
+      .select(['id', 'job_number', 'client_invoiced_total', 'client_paid_total', 'paid_at'])
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', jobHeader.id as any)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!job) {
+      throw new NotFoundException('عملية الشحن غير موجودة');
     }
 
     const currentBalance = Number(customer.balance || 0);
@@ -3003,7 +3025,7 @@ export class MaritimeFreightService {
 
     // 1. Update customer balance (+amountToDeduct consumes the credit)
     const newCustomerBalance = currentBalance + amountToDeduct;
-    await this.db
+    await trx
       .updateTable('customers')
       .set({ balance: newCustomerBalance, updated_at: sql`NOW()` })
       .where('tenant_id', '=', tenantId)
@@ -3012,7 +3034,7 @@ export class MaritimeFreightService {
 
     // 2. Add customer ledger entry
     const ledgerDesc = `سداد وتسوية مستحقات الشحنة #${job.job_number} من الرصيد الدائن المتاح`;
-    await this.db
+    await trx
       .insertInto('customer_ledger')
       .values({
         tenant_id: tenantId,
@@ -3029,7 +3051,7 @@ export class MaritimeFreightService {
       .execute();
 
     // 3. Update maritime_jobs
-    const [updatedJob] = await this.db
+    const [updatedJob] = await trx
       .updateTable('maritime_jobs')
       .set({
         client_invoiced_total: finalInvoiced,
@@ -3044,7 +3066,7 @@ export class MaritimeFreightService {
       .execute();
 
     // 4. Record job milestone
-    await this.db
+    await trx
       .insertInto('maritime_job_milestones')
       .values({
         tenant_id: tenantId,
@@ -3066,6 +3088,7 @@ export class MaritimeFreightService {
       customerAvailableCreditAfter: Math.max(0, -newCustomerBalance),
       message: `تم سداد وتسوية ${amountToDeduct.toLocaleString()} ج.م من رصيد العميل المتاح بنجاح`,
     };
+    });
   }
 
   async getCustomerActiveJobs(auth: AuthContext, customerId: string | number) {
@@ -4178,41 +4201,53 @@ export class MaritimeFreightService {
     const job = await this.getJobById(auth, String(invoice.job_id));
     const disputedAmount = dto.disputedAmount ? Number(dto.disputedAmount) : Number(invoice.variance_amount);
 
-    const countRow = await this.db
-      .selectFrom('maritime_carrier_disputes')
-      .select(sql`COUNT(*)`.as('c'))
-      .where('tenant_id', '=', tenantId)
-      .executeTakeFirst();
-    const seq = Number((countRow as any)?.c || 0) + 1;
-    const disputeNumber = formatDailyDocumentNumber('DISP', seq, new Date());
+    // معاملة واحدة: إنشاء النزاع **و**حجز الفاتورة عن الصرف لا ينفصلان. كانا
+    // عبارتين مستقلتين، ففشل الثانية يترك نزاعاً قائماً وفاتورة قابلة للصرف —
+    // خرق صامت للثابت DISP-1 ("تعليق الفاتورة لحين التسوية").
+    const { dispute, disputeNumber } = await this.db.transaction().execute(async (trx) => {
+      // ترقيم آمن: رقم مؤقت فريد ثم إعادة التسمية بالمعرّف (نفس نمط MWR في هذا
+      // الملف و§2.2). كان `COUNT(*) + 1` بلا فلتر يومي وبلا قيد تفرد على
+      // `dispute_number` — نزاعان متزامنان يأخذان نفس الرقم **بصمت** (F6).
+      const tempNumber = `DISP-TMP-${crypto.randomUUID()}`;
+      const [inserted] = await trx
+        .insertInto('maritime_carrier_disputes')
+        .values({
+          tenant_id: tenantId,
+          dispute_number: tempNumber,
+          invoice_id: Number(invoice.id),
+          job_id: Number(job.id),
+          carrier_name: invoice.carrier_name,
+          disputed_amount: disputedAmount > 0 ? disputedAmount : Number(invoice.total_invoiced_amount),
+          currency: invoice.currency || 'USD',
+          dispute_reason: dto.reason?.trim() || 'فروق تسعير عن التعرفة المتعاقد عليها',
+          dispute_status: 'submitted',
+          created_by: auth.userId ? Number(auth.userId) : null,
+        } as any)
+        .returningAll()
+        .execute();
 
-    const [dispute] = await this.db
-      .insertInto('maritime_carrier_disputes')
-      .values({
-        tenant_id: tenantId,
-        dispute_number: disputeNumber,
-        invoice_id: Number(invoice.id),
-        job_id: Number(job.id),
-        carrier_name: invoice.carrier_name,
-        disputed_amount: disputedAmount > 0 ? disputedAmount : Number(invoice.total_invoiced_amount),
-        currency: invoice.currency || 'USD',
-        dispute_reason: dto.reason?.trim() || 'فروق تسعير عن التعرفة المتعاقد عليها',
-        dispute_status: 'submitted',
-        created_by: auth.userId ? Number(auth.userId) : null,
-      } as any)
-      .returningAll()
-      .execute();
+      const finalNumber = formatDailyDocumentNumber('DISP', Number(inserted.id), new Date());
+      const [renamed] = await trx
+        .updateTable('maritime_carrier_disputes')
+        .set({ dispute_number: finalNumber })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', inserted.id as any)
+        .returningAll()
+        .execute();
 
-    await this.db
-      .updateTable('maritime_carrier_invoices')
-      .set({
-        audit_status: 'disputed',
-        payment_status: 'held_for_dispute',
-        updated_at: sql`NOW()`,
-      })
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', Number(invoice.id) as any)
-      .execute();
+      await trx
+        .updateTable('maritime_carrier_invoices')
+        .set({
+          audit_status: 'disputed',
+          payment_status: 'held_for_dispute',
+          updated_at: sql`NOW()`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', Number(invoice.id) as any)
+        .execute();
+
+      return { dispute: renamed, disputeNumber: finalNumber };
+    });
 
     return {
       success: true,
@@ -4461,9 +4496,30 @@ export class MaritimeFreightService {
   // ==========================================
   // CARGO INSURANCE METHODS
   // ==========================================
+  /**
+   * يتحقق أن الشحنة المرجعية تخص نفس المستأجر قبل تعليق سجل ابن عليها.
+   *
+   * المفتاح الأجنبي في الهجرة 126 أحادي العمود (`job_id REFERENCES maritime_jobs(id)`)
+   * لا مركّب `(tenant_id, id)` كما في هجرة 101 للمقاولات — فهو يضمن أن الشحنة
+   * **موجودة** لا أنها **تخصّك**. بدون هذا الفحص يعلّق مستأجر وثيقة تأمين أو إيصال
+   * مستودع على شحنة مستأجر آخر (السجل نفسه يبقى معزولاً بـ`tenant_id`، لكن المرجع
+   * يصبح معلّقاً عبر المستأجرين). نفس الفحص موجود أصلاً في `createCustomsDeclaration`.
+   */
+  private async assertJobBelongsToTenant(trx: any, tenantId: string, jobId: string | number): Promise<void> {
+    const job = await trx
+      .selectFrom('maritime_jobs')
+      .select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', jobId as any)
+      .executeTakeFirst();
+    if (!job) throw new NotFoundException('عملية الشحن غير موجودة');
+  }
+
   async createCargoInsurance(auth: AuthContext, dto: CreateCargoInsuranceDto) {
     const { tenantId } = requireTenantScope(auth);
     return await this.db.transaction().execute(async (trx) => {
+      await this.assertJobBelongsToTenant(trx, tenantId, dto.jobId);
+
       const [record] = await trx
         .insertInto('maritime_cargo_insurances')
         .values({
@@ -4520,30 +4576,46 @@ export class MaritimeFreightService {
 
   async claimCargoInsurance(auth: AuthContext, id: string | number, dto: ClaimCargoInsuranceDto) {
     const { tenantId } = requireTenantScope(auth);
-    const existing = await this.db
-      .selectFrom('maritime_cargo_insurances')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id as any)
-      .executeTakeFirst();
+    return await this.db.transaction().execute(async (trx) => {
+      const existing = await trx
+        .selectFrom('maritime_cargo_insurances')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', id as any)
+        .forUpdate()
+        .executeTakeFirst();
 
-    if (!existing) throw new NotFoundException('Cargo Insurance policy not found');
+      if (!existing) throw new NotFoundException('Cargo Insurance policy not found');
 
-    const [updated] = await this.db
-      .updateTable('maritime_cargo_insurances')
-      .set({
-        status: 'claimed',
-        claim_amount: Number(dto.claimAmount),
-        claim_status: dto.claimStatus,
-        claim_notes: dto.claimNotes || null,
-        updated_at: sql`NOW()`,
-      })
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id as any)
-      .returningAll()
-      .execute();
+      const claimAmount = Number(dto.claimAmount);
 
-    return updated;
+      // البوابة في محرك نقي يستورده الاختبار من الإنتاج (AGENTS.md Rule 13):
+      // تمنع تجاوز القيمة المؤمَّن عليها (كانت تُخزَّن ولا تُقرأ — F10) وتمنع
+      // استبدال مطالبة مسجَّلة بصمت.
+      const claimCheck = checkInsuranceClaim(
+        { insuredValue: existing.insured_value, status: existing.status, claimAmount: existing.claim_amount },
+        claimAmount,
+      );
+      if (!claimCheck.ok) {
+        throw new BadRequestException(claimCheck.message);
+      }
+
+      const [updated] = await trx
+        .updateTable('maritime_cargo_insurances')
+        .set({
+          status: 'claimed',
+          claim_amount: claimAmount,
+          claim_status: dto.claimStatus,
+          claim_notes: dto.claimNotes || null,
+          updated_at: sql`NOW()`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', id as any)
+        .returningAll()
+        .execute();
+
+      return updated;
+    });
   }
 
   async getJobInsurances(auth: AuthContext, jobId: string | number) {
@@ -4563,6 +4635,8 @@ export class MaritimeFreightService {
   async createWarehouseReceipt(auth: AuthContext, dto: CreateWarehouseReceiptDto) {
     const { tenantId } = requireTenantScope(auth);
     return await this.db.transaction().execute(async (trx) => {
+      await this.assertJobBelongsToTenant(trx, tenantId, dto.jobId);
+
       const tempNumber = `MWR-TMP-${crypto.randomUUID()}`;
       const [receipt] = await trx
         .insertInto('maritime_warehouse_receipts')
@@ -4600,30 +4674,40 @@ export class MaritimeFreightService {
 
   async releaseWarehouseReceipt(auth: AuthContext, id: string | number, dto: ReleaseWarehouseReceiptDto) {
     const { tenantId } = requireTenantScope(auth);
-    const existing = await this.db
-      .selectFrom('maritime_warehouse_receipts')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id as any)
-      .executeTakeFirst();
+    return await this.db.transaction().execute(async (trx) => {
+      const existing = await trx
+        .selectFrom('maritime_warehouse_receipts')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', id as any)
+        .forUpdate()
+        .executeTakeFirst();
 
-    if (!existing) throw new NotFoundException('Warehouse Receipt not found');
+      if (!existing) throw new NotFoundException('Warehouse Receipt not found');
 
-    const [updated] = await this.db
-      .updateTable('maritime_warehouse_receipts')
-      .set({
-        warehouse_status: 'released',
-        released_at: sql`NOW()`,
-        released_by: auth.userId ? Number(auth.userId) : null,
-        notes: dto.notes ? `${existing.notes ? existing.notes + ' | ' : ''}${dto.notes}` : existing.notes,
-        updated_at: sql`NOW()`,
-      })
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id as any)
-      .returningAll()
-      .execute();
+      // الإفراج حدث يقع مرة واحدة ويحمل أثراً رقابياً (مَن أفرج ومتى). بلا هذا
+      // الحارس، استدعاء ثانٍ يستبدل `released_at`/`released_by` فيمحو أثر
+      // الإفراج الأصلي بصمت.
+      if (existing.warehouse_status === 'released') {
+        throw new BadRequestException('سبق الإفراج عن إيصال المستودع هذا؛ لا يمكن الإفراج عنه مرتين');
+      }
 
-    return updated;
+      const [updated] = await trx
+        .updateTable('maritime_warehouse_receipts')
+        .set({
+          warehouse_status: 'released',
+          released_at: sql`NOW()`,
+          released_by: auth.userId ? Number(auth.userId) : null,
+          notes: dto.notes ? `${existing.notes ? existing.notes + ' | ' : ''}${dto.notes}` : existing.notes,
+          updated_at: sql`NOW()`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', id as any)
+        .returningAll()
+        .execute();
+
+      return updated;
+    });
   }
 
   async getJobWarehouseReceipts(auth: AuthContext, jobId: string | number) {
