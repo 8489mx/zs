@@ -61,6 +61,9 @@ export interface AttendanceResponse {
     leaveCount?: number;
     unmarkedCount?: number;
   };
+  serverTime?: string;
+  serverTimezone?: string;
+  workDate?: string;
 }
 
 export interface AttendanceExceptionsResponse {

@@ -1,5 +1,5 @@
 import { XIcon } from '@/shared/components/icons/AppIcons';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -22,10 +22,6 @@ function normalize(value: unknown) {
   return String(value || '').trim().toLowerCase();
 }
 
-function nowIso() {
-  return new Date().toISOString();
-}
-
 function todayDate() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -33,14 +29,62 @@ function todayDate() {
 function formatTimeText(value?: string) {
   if (!value) return '—';
   try {
-    const d = new Date(value);
-    if (isNaN(d.getTime())) {
-      const match = String(value).match(/(\d{2}):(\d{2})/);
-      return match ? `${match[1]}:${match[2]}` : '—';
+    const match = String(value).match(/(\d{2}):(\d{2})/);
+    if (match) {
+      const h = parseInt(match[1], 10);
+      const m = match[2];
+      const period = h >= 12 ? 'م' : 'ص';
+      const h12 = h % 12 || 12;
+      return `${String(h12).padStart(2, '0')}:${m} ${period}`;
     }
-    return d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+    return '—';
   } catch {
     return '—';
+  }
+}
+
+function parseTenantTimeString(str: string): number {
+  if (!str) return NaN;
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):?(\d{2})?/);
+  if (!match) return NaN;
+  return Date.UTC(
+    parseInt(match[1], 10),
+    parseInt(match[2], 10) - 1,
+    parseInt(match[3], 10),
+    parseInt(match[4], 10),
+    parseInt(match[5], 10),
+    parseInt(match[6] || '0', 10)
+  );
+}
+
+function getTenantNowEpoch(nowDate: Date, timezone: string): number {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).formatToParts(nowDate);
+
+    const map: Record<string, string> = {};
+    for (const p of parts) {
+      map[p.type] = p.value;
+    }
+    const h = parseInt(map.hour, 10) % 24;
+    return Date.UTC(
+      parseInt(map.year, 10),
+      parseInt(map.month, 10) - 1,
+      parseInt(map.day, 10),
+      h,
+      parseInt(map.minute, 10),
+      parseInt(map.second, 10)
+    );
+  } catch {
+    return nowDate.getTime();
   }
 }
 
@@ -51,12 +95,18 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState<Date | null>(null);
+  const serverAnchorRef = useRef<{ serverEpochMs: number; perfStart: number } | null>(null);
 
-  // Live timer tick
+  // Live timer tick anchored to monotonic clock - immune to client OS clock manipulation
   useEffect(() => {
     if (!shortcutOpen) return;
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    const timer = setInterval(() => {
+      if (serverAnchorRef.current) {
+        const elapsed = performance.now() - serverAnchorRef.current.perfStart;
+        setNow(new Date(serverAnchorRef.current.serverEpochMs + elapsed));
+      }
+    }, 1000);
     return () => clearInterval(timer);
   }, [shortcutOpen]);
 
@@ -88,11 +138,27 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
   });
 
   const attendanceQuery = useQuery({
-    queryKey: ['hr', 'quick-attendance', 'today', todayDate()],
-    queryFn: () => hrApi.attendance({ date: todayDate(), page: 1, pageSize: 1000 }),
+    queryKey: ['hr', 'quick-attendance', 'today'],
+    queryFn: () => hrApi.attendance({ page: 1, pageSize: 1000 }),
     enabled: shortcutOpen,
     staleTime: 10_000,
   });
+
+  const tenantTimezone = attendanceQuery.data?.serverTimezone || 'Africa/Cairo';
+
+  // Synchronize server time anchor whenever attendanceQuery resolves
+  useEffect(() => {
+    if (attendanceQuery.data?.serverTime) {
+      const serverEpoch = new Date(attendanceQuery.data.serverTime).getTime();
+      if (!Number.isNaN(serverEpoch)) {
+        serverAnchorRef.current = {
+          serverEpochMs: serverEpoch,
+          perfStart: performance.now(),
+        };
+        setNow(new Date(serverEpoch));
+      }
+    }
+  }, [attendanceQuery.data?.serverTime]);
 
   const employees = useMemo(() => (employeesQuery.data?.employees || []) as HrEmployee[], [employeesQuery.data?.employees]);
   const attendanceRows = useMemo(() => (attendanceQuery.data?.rows || []) as HrAttendanceRecord[], [attendanceQuery.data?.rows]);
@@ -149,8 +215,10 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
 
   function calculateWorkedTime(checkIn?: string, checkOut?: string) {
     if (!checkIn) return null;
-    const start = new Date(checkIn).getTime();
-    const end = checkOut ? new Date(checkOut).getTime() : now.getTime();
+    const start = parseTenantTimeString(checkIn);
+    const end = checkOut
+      ? parseTenantTimeString(checkOut)
+      : (now ? getTenantNowEpoch(now, tenantTimezone) : NaN);
     if (isNaN(start) || isNaN(end) || end < start) return null;
     const diffMinutes = Math.floor((end - start) / 60000);
     const hours = Math.floor(diffMinutes / 60);
@@ -224,7 +292,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
     try {
       await mutations.saveAttendanceRecord.mutateAsync({
         employeeId: Number(selectedEmployee.id),
-        workDate: todayDate(),
+        workDate: attendanceQuery.data?.workDate || todayDate(),
         status: 'present',
         source: 'manual',
         mode: 'cancel_checkout',
@@ -239,8 +307,45 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
     }
   }
 
-  const dateFormatted = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const timeFormatted = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+  const timeFormatted = useMemo(() => {
+    if (!now) return 'جارٍ المزامنة...';
+    try {
+      return now.toLocaleTimeString('ar-EG', {
+        timeZone: tenantTimezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return now.toLocaleTimeString('ar-EG', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      });
+    }
+  }, [now, tenantTimezone]);
+
+  const dateFormatted = useMemo(() => {
+    if (!now) return '—';
+    try {
+      return now.toLocaleDateString('ar-EG', {
+        timeZone: tenantTimezone,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch {
+      return now.toLocaleDateString('ar-EG', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    }
+  }, [now, tenantTimezone]);
 
   const topQuickEmployees = useMemo(() => employees.slice(0, 6), [employees]);
   const workedDuration = calculateWorkedTime(selectedAttendance?.checkInAt, selectedAttendance?.checkOutAt);
@@ -271,10 +376,47 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* Live Clock Pill */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#0f172a', color: '#ffffff', padding: '5px 14px', borderRadius: '8px', fontSize: '0.84rem', fontWeight: 700, fontFamily: 'monospace' }}>
-              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+            {/* Live Clock Pill - Server Time Synced */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: '#0f172a',
+                color: '#ffffff',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.84rem',
+                fontWeight: 700,
+                fontFamily: 'monospace',
+                boxShadow: '0 2px 4px rgba(15, 23, 42, 0.15)',
+              }}
+              title={`توقيت السيرفر المعتمد (${tenantTimezone}) - محمي ضد تغيير ساعة الجهاز`}
+            >
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: serverAnchorRef.current ? '#22c55e' : '#f59e0b',
+                  display: 'inline-block',
+                  boxShadow: serverAnchorRef.current ? '0 0 6px #22c55e' : 'none',
+                }}
+              />
               <span>{timeFormatted}</span>
+              <span
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  borderRadius: '4px',
+                  padding: '1px 6px',
+                  fontSize: '0.68rem',
+                  fontWeight: 600,
+                  fontFamily: 'system-ui, sans-serif',
+                  color: '#cbd5e1',
+                }}
+              >
+                توقيت السيرفر
+              </span>
             </div>
 
             <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '4px 10px', fontSize: '0.74rem', fontWeight: 600, color: '#475569' }}>

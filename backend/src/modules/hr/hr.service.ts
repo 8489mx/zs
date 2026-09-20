@@ -2778,7 +2778,14 @@ export class HrService {
     );
 
     const paged = paginateRows(rows, query, { defaultSize: 50 });
-    return { rows: paged.rows, pagination: paged.pagination, summary };
+    return {
+      rows: paged.rows,
+      pagination: paged.pagination,
+      summary,
+      serverTime: new Date().toISOString(),
+      serverTimezone: tenantTimezone,
+      workDate,
+    };
   }
 
   async bulkSaveAttendance(payload: BulkSaveAttendanceDto, auth: AuthContext): Promise<Record<string, unknown>> {
