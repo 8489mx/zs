@@ -43,7 +43,9 @@ export function TaxIntegrationSection() {
       form.reset({
         provider: settingsData.settings.provider || 'ETA_EGYPT',
         client_id: settingsData.settings.client_id || '',
-        client_secret: settingsData.settings.client_secret || '',
+        // السر لا يعود من الخادم إطلاقاً بعد حفظه؛ الحقل يبقى فارغاً ويعني
+        // "اتركه كما هو" ما لم يكتب المستخدم قيمة جديدة.
+        client_secret: '',
         tax_id: settingsData.settings.tax_id || '',
         environment: settingsData.settings.environment || 'sandbox',
         is_active: settingsData.settings.is_active ?? true,
@@ -75,7 +77,8 @@ export function TaxIntegrationSection() {
 
   const handleTestCredentials = () => {
     const values = form.getValues();
-    if (!values.tax_id || !values.client_id || !values.client_secret) {
+    const hasSavedSecret = Boolean(settingsData?.settings?.hasClientSecret);
+    if (!values.tax_id || !values.client_id || (!values.client_secret && !hasSavedSecret)) {
       setTestResult({
         kind: 'error',
         message: 'يرجى إدخال الرقم الضريبي و Client ID و Client Secret أولاً لفحص البيانات.',
@@ -194,7 +197,7 @@ export function TaxIntegrationSection() {
               <input
                 type="text"
                 className={showSecret ? '' : 'secure-password-field'}
-                placeholder="أدخل الـ Secret المستخرج من البوابة"
+                placeholder={settingsData?.settings?.hasClientSecret ? 'محفوظ — اتركه فارغاً للإبقاء عليه' : 'أدخل الـ Secret المستخرج من البوابة'}
                 {...form.register('client_secret')}
                 style={{ width: '100%', height: '36px', padding: '0 10px', fontSize: '0.82rem', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
                 autoComplete="new-password"
