@@ -5,6 +5,7 @@ import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.in
 import { TenantSubscriptionService } from './tenant-subscription.service';
 import { PaymentManagerService } from './gateways/payment-manager.service';
 import { InitiateOnlinePaymentDto, RequestRenewalDto } from './dto/tenant-subscription.dto';
+import { escapeHtml, sanitizeRedirectPath } from './sandbox-checkout-render.util';
 
 @Controller('api/tenant-subscription')
 export class TenantSubscriptionController {
@@ -53,17 +54,21 @@ export class TenantSubscriptionController {
   @UseGuards(SessionAuthGuard)
   sandboxCheckout(@Query() query: any, @Req() req: RequestWithAuth, @Res() res: Response) {
     this.assertSandboxGatewayUsable();
-    const gateway = String(query.gateway || 'xpay').toUpperCase();
-    const amount = Number(query.amount || 0).toLocaleString('ar-EG');
-    const currency = query.currency || 'EGP';
-    const planName = query.planName || 'الباقة المختارة';
-    const businessName = query.businessName || 'المتجر الرئيسي';
-    const ref = query.ref || `SANDBOX-${Date.now()}`;
-    const redirectUrl = query.redirectUrl || '/settings/subscription';
+    // Every value below is interpolated into the HTML returned by this route, so each one
+    // is escaped at the point it is read rather than at each of its use sites.
+    const gateway = escapeHtml(String(query.gateway || 'xpay').toUpperCase());
+    const gatewayValue = escapeHtml(String(query.gateway || 'xpay'));
+    const amount = escapeHtml(Number(query.amount || 0).toLocaleString('ar-EG'));
+    const amountValue = escapeHtml(String(Number(query.amount || 0)));
+    const currency = escapeHtml(String(query.currency || 'EGP'));
+    const planName = escapeHtml(String(query.planName || 'الباقة المختارة'));
+    const businessName = escapeHtml(String(query.businessName || 'المتجر الرئيسي'));
+    const ref = escapeHtml(String(query.ref || `SANDBOX-${Date.now()}`));
+    const redirectUrl = escapeHtml(sanitizeRedirectPath(query.redirectUrl));
     // معرّف المستأجر يُشتق دائماً من الجلسة الموثّقة، لا من مُعامل الرابط، لمنع محاولة عرض/تمرير معرّف مستأجر آخر.
-    const tenantId = req.authContext!.tenantId;
-    const planId = query.planId || '';
-    const duration = query.duration || '12';
+    const tenantId = escapeHtml(String(req.authContext!.tenantId));
+    const planId = escapeHtml(String(query.planId || ''));
+    const duration = escapeHtml(String(query.duration || '12'));
 
     const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -235,11 +240,11 @@ export class TenantSubscriptionController {
     </div>
 
     <form method="POST" action="/api/tenant-subscription/sandbox-checkout/complete">
-      <input type="hidden" name="gateway" value="${query.gateway || 'xpay'}">
+      <input type="hidden" name="gateway" value="${gatewayValue}">
       <input type="hidden" name="tenantId" value="${tenantId}">
       <input type="hidden" name="planId" value="${planId}">
       <input type="hidden" name="duration" value="${duration}">
-      <input type="hidden" name="amount" value="${query.amount || '0'}">
+      <input type="hidden" name="amount" value="${amountValue}">
       <input type="hidden" name="currency" value="${currency}">
       <input type="hidden" name="ref" value="${ref}">
       <input type="hidden" name="redirectUrl" value="${redirectUrl}">
@@ -290,11 +295,11 @@ export class TenantSubscriptionController {
     const amount = Number(body.amount) || 0;
     const currency = String(body.currency || 'EGP');
     const transactionReference = String(body.ref || `SANDBOX-${Date.now()}`);
-    let redirectUrl = String(body.redirectUrl || '/settings/subscription');
-    
-    if (redirectUrl) {
-      redirectUrl += redirectUrl.includes('?') ? '&payment_success=1' : '?payment_success=1';
-    }
+    let redirectUrl = sanitizeRedirectPath(body.redirectUrl);
+    redirectUrl += redirectUrl.includes('?') ? '&payment_success=1' : '?payment_success=1';
+    const redirectUrlHtml = escapeHtml(redirectUrl);
+    // JSON.stringify, not quotes-plus-escaping: this lands inside a <script> string literal.
+    const redirectUrlJs = JSON.stringify(redirectUrl);
 
     if (tenantId) {
       await this.paymentManager.processDirectPayment({
@@ -326,11 +331,11 @@ export class TenantSubscriptionController {
     <div class="icon">✓</div>
     <h2 style="margin: 0 0 10px; color: #0f172a;">تم سداد الاشتراك وتفعيله بنجاح!</h2>
     <p style="color: #64748b; font-size: 14px; margin: 0 0 16px;">تم تحديث باقة مؤسستك وترقيتها فورياً. جاري إعادتك للنظام...</p>
-    <a href="${redirectUrl}" class="btn">العودة إلى لوحة التحكم</a>
+    <a href="${redirectUrlHtml}" class="btn">العودة إلى لوحة التحكم</a>
   </div>
   <script>
     setTimeout(function() {
-      window.location.href = "${redirectUrl}";
+      window.location.href = ${redirectUrlJs};
     }, 1200);
   </script>
 </body>
