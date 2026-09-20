@@ -31,6 +31,8 @@ export interface SessionTable {
   last_seen_at: Date | null;
   ip_address: string;
   user_agent: string;
+  /** Platform admin driving this session via impersonation; null for a normal login. */
+  impersonated_by: ColumnType<number | null, number | null | undefined, number | null | undefined>;
 }
 
 export interface UserTable {
@@ -222,6 +224,8 @@ export interface AuditLogTable {
   details: string;
   target_tenant_id: string | null;
   created_by: number | null;
+  /** Platform admin who performed this while impersonating `created_by`; null otherwise. */
+  impersonated_by: ColumnType<number | null, number | null | undefined, number | null | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 

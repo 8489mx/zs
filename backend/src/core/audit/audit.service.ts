@@ -5,7 +5,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import type { AuthContext } from '../auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../auth/utils/tenant-boundary';
 
-type AuditActor = Pick<AuthContext, 'userId' | 'tenantId' | 'accountId'>;
+type AuditActor = Pick<AuthContext, 'userId' | 'tenantId' | 'accountId'> & Pick<Partial<AuthContext>, 'impersonatedBy'>;
 
 /** Stable event codes consumed by detection logic (fraud radar, alerting). */
 export const AUDIT_EVENT_CODES = {
@@ -53,6 +53,10 @@ export class AuditService {
         event_code: options?.eventCode ?? null,
         target_tenant_id: options?.targetTenantId ?? null,
         created_by: actor.userId ?? null,
+        // `created_by` is whose identity the action ran under; this is who actually took
+        // it. They differ only during platform impersonation, which is exactly the case
+        // that used to be invisible here (O34).
+        impersonated_by: actor.impersonatedBy ?? null,
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
       } as any)

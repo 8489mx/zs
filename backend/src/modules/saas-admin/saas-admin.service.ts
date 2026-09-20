@@ -337,12 +337,16 @@ export class SaasAdminService {
     const events = await this.db
       .selectFrom('audit_logs as a')
       .leftJoin('users as u', 'u.id', 'a.created_by')
+      // The impersonator is a platform user, so it is a second, separate join — not the
+      // same row as the acting identity.
+      .leftJoin('users as imp', 'imp.id', 'a.impersonated_by')
       .select([
         'a.id',
         'a.action',
         'a.details',
         'a.created_at',
-        'u.username as actor_name'
+        'u.username as actor_name',
+        'imp.username as impersonator_name'
       ])
       .where((eb) => eb.or([
         eb('a.tenant_id', '=', tenantId),
@@ -358,6 +362,9 @@ export class SaasAdminService {
         action: e.action,
         details: e.details,
         actorName: e.actor_name || 'System',
+        // Present only when a platform admin took this action while impersonating the
+        // tenant's owner. Null on everything the tenant did themselves.
+        impersonatedBy: e.impersonator_name || null,
         createdAt: new Date(e.created_at).toISOString()
       }))
     };
@@ -1347,6 +1354,10 @@ export class SaasAdminService {
         last_seen_at: now,
         ip_address: meta?.ipAddress?.slice(0, 255) || '',
         user_agent: meta?.userAgent?.slice(0, 500) || '',
+        // Stamps the session as borrowed. resolveAuthContext carries this onto every
+        // request's AuthContext, and AuditService writes it onto every row — so what this
+        // platform admin does inside the customer's books stays attributable to them (O34).
+        impersonated_by: auth.userId,
       })
       .execute();
 

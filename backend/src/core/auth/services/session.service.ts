@@ -232,7 +232,7 @@ export class SessionService {
       .selectFrom('sessions as s')
       .innerJoin('users as u', 'u.id', 's.user_id')
       .leftJoin('tenants as t', 't.id', 's.tenant_id')
-      .select(['s.id as session_id', 's.user_id as session_user_id', 's.tenant_id as session_tenant_id', 's.account_id as session_account_id', 's.expires_at', 'u.id as user_id', 'u.username', 'u.role', 'u.permissions_json', 'u.is_active', 'u.locked_until', 'u.tenant_id', 'u.account_id', 't.plan_id', 't.extra_features', 't.activity_type'])
+      .select(['s.id as session_id', 's.user_id as session_user_id', 's.tenant_id as session_tenant_id', 's.account_id as session_account_id', 's.expires_at', 's.impersonated_by as session_impersonated_by', 'u.id as user_id', 'u.username', 'u.role', 'u.permissions_json', 'u.is_active', 'u.locked_until', 'u.tenant_id', 'u.account_id', 't.plan_id', 't.extra_features', 't.activity_type'])
       .where('s.id', '=', sessionId)
       .executeTakeFirst();
     if (!row) return null;
@@ -258,6 +258,9 @@ export class SessionService {
       extraFeatures: safeJsonArray(row.extra_features),
       activityType: profile.key,
       pillar: profile.pillar,
+      // Comes from the session row, never from the request: this is what makes an action
+      // taken during impersonation attributable to the platform admin (O34).
+      impersonatedBy: row.session_impersonated_by ?? null,
       ...tenantContext,
     };
 
