@@ -397,6 +397,42 @@ export class AccountingPostingService {
     throw new Error(`No valid expense posting account found for expense ${expenseId}`);
   }
 
+  /**
+   * Posting entry point for modules whose journal lines are domain-specific enough to be
+   * built where that domain lives, but which must still go through this engine.
+   *
+   * It exists so "my lines are special" is never a reason to hand-roll an insert into
+   * `journal_entries` — that is what section 2.2 forbids, and what it costs is concrete:
+   * the central balance guard, the three-layer period-lock check, and collision-free
+   * numbering. Contracting's IPC posting had all three missing.
+   *
+   * Callers still own WHICH accounts and amounts make up the entry. They do not own
+   * whether it balances, whether the period accepts it, or what it is numbered.
+   */
+  async postDomainJournal(
+    queryable: DbOrTx,
+    params: {
+      sourceType: string;
+      sourceId: number;
+      tenantId: string;
+      accountId: string | null;
+      entryDate: Date;
+      description: string;
+      branchId?: number | null;
+      locationId?: number | null;
+      createdBy: number | null;
+      postedBy?: number | null;
+      lines: JournalLineDraft[];
+    },
+  ): Promise<number> {
+    return this.insertPostedJournal(queryable, {
+      ...params,
+      branchId: params.branchId ?? null,
+      locationId: params.locationId ?? null,
+      postedBy: params.postedBy ?? params.createdBy,
+    });
+  }
+
   private async insertPostedJournal(
     queryable: DbOrTx,
     params: {

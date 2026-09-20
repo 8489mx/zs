@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import {
   getDailyDocumentPrefix,
   formatDailyDocumentNumber,
@@ -116,6 +117,7 @@ export class ContractingService {
 
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   // ==========================================================================
@@ -1458,6 +1460,23 @@ export class ContractingService {
       throw new NotFoundException('المشروع التابع له المستخلص غير موجود');
     }
 
+    // Contractual retention rate for the ledger row written below. Taken from the same
+    // source the IPC calculation uses (the subcontract for a subcontractor IPC, the
+    // project for a client one) rather than letting the column default to 5% and quietly
+    // describe a holding that was taken at a different rate.
+    let ledgerRetentionPercent = Number(project.retention_percent ?? 5);
+    if (invoice.subcontract_id) {
+      const subcontractForRetention = await (this.db as any)
+        .selectFrom('contracting_subcontracts')
+        .select('retention_percent')
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', invoice.subcontract_id)
+        .executeTakeFirst();
+      if (subcontractForRetention?.retention_percent != null) {
+        ledgerRetentionPercent = Number(subcontractForRetention.retention_percent);
+      }
+    }
+
     // Amounts
     const currentWorkAndStored = Number(invoice.current_amount || 0) + Number(invoice.stored_materials_amount || 0);
     const advanceRecovery = Number(invoice.advance_recovery_amount || 0);
@@ -1609,37 +1628,10 @@ export class ContractingService {
       }
     }
 
-    // Sequence & entry number
-    const seqRow = await (this.db as any)
-      .selectFrom('journal_entries')
-      .select(sql<number>`count(*)::int`.as('count'))
-      .where('tenant_id', '=', tenantId)
-      .executeTakeFirst();
-    const sequence = Number(seqRow?.count || 0) + 1;
-    const prefix = isSubcontractor ? 'JE-SUB' : 'JE-IPC';
-    const entryNo = `${prefix}-${String(sequence).padStart(5, '0')}`;
-
     const inserted = await this.db.transaction().execute(async (trx: any) => {
       const description = isSubcontractor
         ? `إثبات مستخلص مقاول باطن رقم ${invoice.ipc_number} - ${invoice.subcontractor_name || 'مقاول باطن'} - مشروع ${project.name}`
         : `إثبات استحقاق مستخلص أعمال رقم ${invoice.ipc_number} - مشروع ${project.name}`;
-
-      // 1. Create header
-      const [entry] = await trx
-        .insertInto('journal_entries')
-        .values({
-          entry_no: entryNo,
-          tenant_id: tenantId,
-          account_id: accountId,
-          entry_date: invoice.period_end || new Date(),
-          description,
-          source_type: isSubcontractor ? 'contracting_subcontract_ipc' : 'contracting_ipc',
-          source_id: Number(invoice.id),
-          status: 'posted',
-          created_by: auth.userId,
-        })
-        .returning(['id', 'entry_no'])
-        .execute();
 
       const lines: any[] = [];
 
@@ -1647,56 +1639,65 @@ export class ContractingService {
         // Subcontractor Journal Entry:
         // Line 1: Debit Subcontracting Expense (WIP)
         lines.push({
-          journal_entry_id: Number(entry.id),
-          tenant_id: tenantId,
-          account_id: primaryAccountId,
-          cost_center_id: project.cost_center_id || null,
+          accountId: primaryAccountId,
+          costCenterId: project.cost_center_id ? Number(project.cost_center_id) : null,
+          branchId: null,
+          locationId: null,
           description: `أعمال وتشوينات مستخلص مقاول باطن ${invoice.ipc_number}`,
           debit: currentWorkAndStored,
           credit: 0,
-          partner_type: 'supplier',
-          partner_id: invoice.subcontractor_id || null,
+          partnerType: 'supplier',
+          partnerId: invoice.subcontractor_id ? Number(invoice.subcontractor_id) : null,
         });
 
         // Line 2: Credit Advance Recovery
         if (advanceRecovery > 0) {
           lines.push({
-            journal_entry_id: Number(entry.id),
-            tenant_id: tenantId,
-            account_id: advanceAccountId,
-            cost_center_id: project.cost_center_id || null,
+            accountId: advanceAccountId,
+            costCenterId: project.cost_center_id ? Number(project.cost_center_id) : null,
+            branchId: null,
+            locationId: null,
             description: `استرداد دفعة مقدمة مقاول باطن ${invoice.ipc_number}`,
             debit: 0,
             credit: advanceRecovery,
-            partner_type: 'supplier',
-            partner_id: invoice.subcontractor_id || null,
+            partnerType: 'supplier',
+            partnerId: invoice.subcontractor_id ? Number(invoice.subcontractor_id) : null,
           });
         }
 
         // Line 3: Credit Retention Held (Liability to subcontractor)
         if (retentionHeld > 0) {
           lines.push({
-            journal_entry_id: Number(entry.id),
-            tenant_id: tenantId,
-            account_id: retentionAccountId,
-            cost_center_id: project.cost_center_id || null,
+            accountId: retentionAccountId,
+            costCenterId: project.cost_center_id ? Number(project.cost_center_id) : null,
+            branchId: null,
+            locationId: null,
             description: `تأمين أعمال محتجز (حسن تنفيذ) لمقاول الباطن ${invoice.ipc_number}`,
             debit: 0,
             credit: retentionHeld,
-            partner_type: 'supplier',
-            partner_id: invoice.subcontractor_id || null,
+            partnerType: 'supplier',
+            partnerId: invoice.subcontractor_id ? Number(invoice.subcontractor_id) : null,
           });
 
-          // Auto-insert into retention ledger
+          // Auto-insert into retention ledger.
+          // Column names here must match contracting_retention_records exactly — the
+          // enclosing transaction runs as `trx: any`, so nothing type-checks this insert
+          // (O16). It previously wrote guarantee_type / reference_number / due_date, none
+          // of which exist on that table, so Postgres rejected it with 42703 and the whole
+          // posting transaction rolled back. See createRetentionRecord for the real shape.
           await trx.insertInto('contracting_retention_records').values({
             tenant_id: tenantId,
             project_id: invoice.project_id,
-            guarantee_type: 'subcontractor',
+            subcontract_id: invoice.subcontract_id || null,
+            party_type: 'subcontractor',
+            party_id: invoice.subcontractor_id || null,
             party_name: invoice.subcontractor_name || 'مقاول باطن',
-            reference_number: invoice.ipc_number,
             held_amount: retentionHeld,
             released_amount: 0,
-            due_date: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
+            retention_percent: ledgerRetentionPercent,
+            ipc_invoice_id: invoice.id,
+            guarantee_certificate_ref: invoice.ipc_number,
+            release_due_date: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
             status: 'held',
             notes: `استقطاع ضمان حسن تنفيذ لمقاول الباطن من مستخلص ${invoice.ipc_number}`,
           }).execute();
@@ -1705,86 +1706,92 @@ export class ContractingService {
         // Line 4: Credit Other Deductions
         if (otherDeductions > 0) {
           lines.push({
-            journal_entry_id: Number(entry.id),
-            tenant_id: tenantId,
-            account_id: primaryAccountId,
-            cost_center_id: project.cost_center_id || null,
+            accountId: primaryAccountId,
+            costCenterId: project.cost_center_id ? Number(project.cost_center_id) : null,
+            branchId: null,
+            locationId: null,
             description: `استقطاعات وجزاءات مستخلص مقاول باطن ${invoice.ipc_number}`,
             debit: 0,
             credit: otherDeductions,
-            partner_type: 'supplier',
-            partner_id: invoice.subcontractor_id || null,
+            partnerType: 'supplier',
+            partnerId: invoice.subcontractor_id ? Number(invoice.subcontractor_id) : null,
           });
         }
 
         // Line 5: Credit Accounts Payable (Net Payable to Subcontractor)
         if (netPayable > 0) {
           lines.push({
-            journal_entry_id: Number(entry.id),
-            tenant_id: tenantId,
-            account_id: contraAccountId,
-            cost_center_id: project.cost_center_id || null,
+            accountId: contraAccountId,
+            costCenterId: project.cost_center_id ? Number(project.cost_center_id) : null,
+            branchId: null,
+            locationId: null,
             description: `صافي المستحق لمقاول الباطن مستخلص ${invoice.ipc_number}`,
             debit: 0,
             credit: netPayable,
-            partner_type: 'supplier',
-            partner_id: invoice.subcontractor_id || null,
+            partnerType: 'supplier',
+            partnerId: invoice.subcontractor_id ? Number(invoice.subcontractor_id) : null,
           });
         }
       } else {
         // Client Journal Entry:
         // Line 1: Credit Contracting Revenue
         lines.push({
-          journal_entry_id: Number(entry.id),
-          tenant_id: tenantId,
-          account_id: primaryAccountId,
-          cost_center_id: project.cost_center_id || null,
+          accountId: primaryAccountId,
+          costCenterId: project.cost_center_id ? Number(project.cost_center_id) : null,
+          branchId: null,
+          locationId: null,
           description: `إيرادات أعمال وتشوينات مستخلص ${invoice.ipc_number}`,
           debit: 0,
           credit: currentWorkAndStored,
-          partner_type: 'customer',
-          partner_id: project.client_id || null,
+          partnerType: 'customer',
+          partnerId: project.client_id ? Number(project.client_id) : null,
         });
 
         // Line 2: Debit Customer Advances (Recovery)
         if (advanceRecovery > 0) {
           lines.push({
-            journal_entry_id: Number(entry.id),
-            tenant_id: tenantId,
-            account_id: advanceAccountId,
-            cost_center_id: project.cost_center_id || null,
+            accountId: advanceAccountId,
+            costCenterId: project.cost_center_id ? Number(project.cost_center_id) : null,
+            branchId: null,
+            locationId: null,
             description: `استرداد دفعة مقدمة مستخلص ${invoice.ipc_number}`,
             debit: advanceRecovery,
             credit: 0,
-            partner_type: 'customer',
-            partner_id: project.client_id || null,
+            partnerType: 'customer',
+            partnerId: project.client_id ? Number(project.client_id) : null,
           });
         }
 
         // Line 3: Debit Retentions Held (Asset)
         if (retentionHeld > 0) {
           lines.push({
-            journal_entry_id: Number(entry.id),
-            tenant_id: tenantId,
-            account_id: retentionAccountId,
-            cost_center_id: project.cost_center_id || null,
+            accountId: retentionAccountId,
+            costCenterId: project.cost_center_id ? Number(project.cost_center_id) : null,
+            branchId: null,
+            locationId: null,
             description: `تأمين أعمال محتجز (حسن تنفيذ) مستخلص ${invoice.ipc_number}`,
             debit: retentionHeld,
             credit: 0,
-            partner_type: 'customer',
-            partner_id: project.client_id || null,
+            partnerType: 'customer',
+            partnerId: project.client_id ? Number(project.client_id) : null,
           });
 
-          // Auto-insert into retention ledger for client
+          // Auto-insert into retention ledger for client — same schema mismatch as the
+          // subcontractor branch above, and the same consequence: every client IPC that
+          // held retention failed to post.
           await trx.insertInto('contracting_retention_records').values({
             tenant_id: tenantId,
             project_id: invoice.project_id,
-            guarantee_type: 'client',
+            subcontract_id: null,
+            party_type: 'client',
+            party_id: project.client_id || null,
             party_name: project.client_name || 'المالك',
-            reference_number: invoice.ipc_number,
             held_amount: retentionHeld,
             released_amount: 0,
-            due_date: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
+            retention_percent: Number(project.retention_percent ?? 5),
+            ipc_invoice_id: invoice.id,
+            guarantee_certificate_ref: invoice.ipc_number,
+            release_due_date: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
             status: 'held',
             notes: `استقطاع ضمان حسن تنفيذ على المالك من مستخلص ${invoice.ipc_number}`,
           }).execute();
@@ -1793,43 +1800,54 @@ export class ContractingService {
         // Line 4: Debit Other Deductions
         if (otherDeductions > 0) {
           lines.push({
-            journal_entry_id: Number(entry.id),
-            tenant_id: tenantId,
-            account_id: contraAccountId,
-            cost_center_id: project.cost_center_id || null,
+            accountId: contraAccountId,
+            costCenterId: project.cost_center_id ? Number(project.cost_center_id) : null,
+            branchId: null,
+            locationId: null,
             description: `استقطاعات وجزاءات مستخلص ${invoice.ipc_number}`,
             debit: otherDeductions,
             credit: 0,
-            partner_type: 'customer',
-            partner_id: project.client_id || null,
+            partnerType: 'customer',
+            partnerId: project.client_id ? Number(project.client_id) : null,
           });
         }
 
         // Line 5: Debit Accounts Receivable (Net Payable)
         if (netPayable > 0) {
           lines.push({
-            journal_entry_id: Number(entry.id),
-            tenant_id: tenantId,
-            account_id: contraAccountId,
-            cost_center_id: project.cost_center_id || null,
+            accountId: contraAccountId,
+            costCenterId: project.cost_center_id ? Number(project.cost_center_id) : null,
+            branchId: null,
+            locationId: null,
             description: `صافي المستحق على العميل مستخلص ${invoice.ipc_number}`,
             debit: netPayable,
             credit: 0,
-            partner_type: 'customer',
-            partner_id: project.client_id || null,
+            partnerType: 'customer',
+            partnerId: project.client_id ? Number(project.client_id) : null,
           });
         }
       }
 
-      if (lines.length > 0) {
-        await trx.insertInto('journal_entry_lines').values(lines).execute();
-      }
+      // Posted through the accounting engine, not by hand. This path used to insert the
+      // header and lines itself with a COUNT(*)+1 entry number, which skipped all three
+      // things section 2.2 says only this engine provides: the balance guard, the
+      // period-lock check, and collision-free numbering.
+      const journalEntryId = await this.accountingPosting.postDomainJournal(trx, {
+        sourceType: isSubcontractor ? 'contracting_subcontract_ipc' : 'contracting_ipc',
+        sourceId: Number(invoice.id),
+        tenantId,
+        accountId,
+        entryDate: invoice.period_end ? new Date(invoice.period_end) : new Date(),
+        description,
+        createdBy: auth.userId ?? null,
+        lines,
+      });
 
       // Update invoice with journal_entry_id and ensure status is approved
       await trx
         .updateTable('contracting_invoices')
         .set({
-          journal_entry_id: Number(entry.id),
+          journal_entry_id: journalEntryId,
           status: 'approved',
           approved_by: invoice.approved_by || auth.username || 'المعتمد',
           approved_at: invoice.approved_at || new Date(),
@@ -1839,13 +1857,20 @@ export class ContractingService {
         .where('id', '=', invoice.id)
         .execute();
 
-      return entry;
+      return journalEntryId;
     });
+
+    const postedEntry = await (this.db as any)
+      .selectFrom('journal_entries')
+      .select(['id', 'entry_no'])
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', inserted)
+      .executeTakeFirst();
 
     return {
       success: true,
-      journalEntryId: Number(inserted.id),
-      entryNo: inserted.entry_no,
+      journalEntryId: Number(inserted),
+      entryNo: postedEntry?.entry_no ?? null,
       message: 'تم ترحيل القيد المحاسبي بنجاح',
     };
   }
