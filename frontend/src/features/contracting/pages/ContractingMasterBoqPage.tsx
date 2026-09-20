@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { contractingApi } from '../api/contracting.api';
@@ -34,7 +34,7 @@ interface SectorDef {
   id: string;
   name: string;
   tradeCategories: string[];
-  icon: (props: any) => JSX.Element;
+  icon: (props: any) => ReactNode;
 }
 
 const SECTORS: SectorDef[] = [
@@ -70,7 +70,7 @@ const SECTORS: SectorDef[] = [
   },
 ];
 
-const TRADE_ICONS: Record<string, (props: any) => JSX.Element> = {
+const TRADE_ICONS: Record<string, (props: any) => ReactNode> = {
   site_mobilization: AppIcons.Truck,
   civil_concrete: AppIcons.Building,
   masonry_insulation: AppIcons.Layers,

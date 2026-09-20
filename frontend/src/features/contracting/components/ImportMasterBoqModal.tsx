@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { contractingApi } from '../api/contracting.api';
 import { MasterBoqItem, MasterBoqTrade } from '../contracting.types';
@@ -26,6 +26,13 @@ const TRADE_CATEGORY_ALIASES: Record<string, string> = {
   hvac: 'hvac_mechanical',
   fire: 'fire_fighting',
   infrastructure: 'site_infrastructure',
+  architectural: 'finishing_decor',
+  mep: 'electrical_lighting',
+  electro_mechanic: 'electrical_lighting',
+  electromechanical: 'electrical_lighting',
+  site: 'site_infrastructure',
+  landscape: 'site_infrastructure',
+  general: 'site_mobilization',
 };
 
 export function normalizeTradeCategory(cat?: string | null): string {
@@ -38,7 +45,7 @@ interface SectorDef {
   id: string;
   name: string;
   tradeCategories: string[];
-  icon: (props: any) => JSX.Element;
+  icon: (props: any) => ReactNode;
 }
 
 const SECTORS: SectorDef[] = [
@@ -74,7 +81,7 @@ const SECTORS: SectorDef[] = [
   },
 ];
 
-const TRADE_ICONS: Record<string, (props: any) => JSX.Element> = {
+const TRADE_ICONS: Record<string, (props: any) => ReactNode> = {
   site_mobilization: AppIcons.Truck,
   civil_concrete: AppIcons.Building,
   masonry_insulation: AppIcons.Layers,

@@ -2,6 +2,7 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { formatCurrency } from '@/lib/format';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { addDaysIsoDate, getOfferStatus, todayIsoDate } from './product-offer.utils';
 import { ClockIcon } from '@/shared/components/icons/AppIcons';
 import type { Product, ProductOffer } from '@/types/domain';
