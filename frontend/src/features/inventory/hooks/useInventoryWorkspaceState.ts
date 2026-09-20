@@ -14,6 +14,9 @@ export type PostSessionConfirmState = {
 export function useInventoryWorkspaceState() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<InventoryStatusFilter>('all');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [supplierFilter, setSupplierFilter] = useState('');
   const [transferFilter, setTransferFilter] = useState<'all' | 'sent' | 'received' | 'cancelled'>('all');
   const [sessionFilter, setSessionFilter] = useState<'all' | 'draft' | 'posted'>('all');
   const [selectedTransferId, setSelectedTransferId] = useState('');
@@ -43,6 +46,12 @@ export function useInventoryWorkspaceState() {
     setSearch,
     statusFilter,
     setStatusFilter,
+    locationFilter,
+    setLocationFilter,
+    categoryFilter,
+    setCategoryFilter,
+    supplierFilter,
+    setSupplierFilter,
     transferFilter,
     setTransferFilter,
     sessionFilter,

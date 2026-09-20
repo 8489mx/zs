@@ -256,12 +256,12 @@ export class CatalogProductService {
   }
 
   async listProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
-    const { page, pageSize, q, view, requestedLocationId } = this.parseListProductsQuery(query);
+    const { page, pageSize, q, view, requestedLocationId, categoryId, supplierId } = this.parseListProductsQuery(query);
     const canViewCost = this.hasPermission(actor, 'canViewCost');
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
     const scopedLocation = requestedLocationId > 0 && actor ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor).catch(() => null) : null;
 
-    const [products, categories, suppliers] = await Promise.all([
+    const [products, categories, suppliers, locations] = await Promise.all([
       this.db
         .selectFrom('products')
         .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').on('b.is_active', '=', true))
@@ -273,12 +273,22 @@ export class CatalogProductService {
         .execute() as Promise<ProductRow[]>,
       this.db.selectFrom('product_categories').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(actor)).execute(),
       this.db.selectFrom('suppliers').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(actor)).execute(),
+      this.db.selectFrom('stock_locations').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(actor)).execute(),
     ]);
 
     const productIds = products.map((product) => Number(product.id));
     const scopedStockResult = await this.resolveScopedStockByProduct(productIds, scopedLocation ? [scopedLocation.id] : [], products, actor);
-    const listContext = await this.buildListProductsContext(productIds, q, categories, suppliers, actor);
-    const filteredBaseRows = this.filterListProducts(products, { q, view, scopedLocationId: scopedLocation?.id || null, scopedStockByProduct: scopedStockResult.stock, ...listContext });
+    const listContext = await this.buildListProductsContext(productIds, q, categories, suppliers, locations, actor);
+    const filteredBaseRows = this.filterListProducts(products, {
+      q,
+      view,
+      scopedLocationId: scopedLocation?.id || null,
+      scopedStockByProduct: scopedStockResult.stock,
+      activeLocationsByProduct: scopedStockResult.locations,
+      categoryId,
+      supplierId,
+      ...listContext,
+    });
 
     const total = filteredBaseRows.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -293,6 +303,9 @@ export class CatalogProductService {
       scopedLocationId: scopedLocation?.id || null,
       scopedStockByProduct: scopedStockResult.stock,
       activeLocationsByProduct: scopedStockResult.locations,
+      categoriesById: listContext.categoriesById,
+      suppliersById: listContext.suppliersById,
+      locationsById: listContext.locationsById,
       unitsByProduct: relations.unitsByProduct,
       offersByProduct: relations.offersByProduct,
       pricesByProduct: relations.pricesByProduct,
@@ -318,6 +331,8 @@ export class CatalogProductService {
       q: normalizeArabicSearch(query.q),
       view: String(query.view || 'all'),
       requestedLocationId: Number(query.locationId || 0),
+      categoryId: query.categoryId ? Number(query.categoryId) : undefined,
+      supplierId: query.supplierId ? Number(query.supplierId) : undefined,
     };
   }
 
@@ -870,6 +885,7 @@ export class CatalogProductService {
     q: string,
     categories: Array<{ id: number; name: string }>,
     suppliers: Array<{ id: number; name: string }>,
+    locations: Array<{ id: number; name: string }>,
     actor: AuthContext,
   ) {
     const [unitSearchRows, offerCountRows, customerPriceCountRows] = await Promise.all([
@@ -905,6 +921,7 @@ export class CatalogProductService {
 
     const categoriesById = Object.fromEntries(categories.map((entry) => [String(entry.id), String(entry.name || '')]));
     const suppliersById = Object.fromEntries(suppliers.map((entry) => [String(entry.id), String(entry.name || '')]));
+    const locationsById = Object.fromEntries(locations.map((entry) => [String(entry.id), String(entry.name || '')]));
     const unitSearchValuesByProduct = new Map<string, string[]>();
     for (const unit of unitSearchRows) {
       const key = String(unit.product_id);
@@ -921,6 +938,7 @@ export class CatalogProductService {
     return {
       categoriesById,
       suppliersById,
+      locationsById,
       unitSearchValuesByProduct,
       offerCountByProduct,
       customerPriceCountByProduct,
@@ -934,11 +952,15 @@ export class CatalogProductService {
       view: string;
       scopedLocationId: number | null;
       scopedStockByProduct: Map<string, number>;
+      activeLocationsByProduct?: Map<string, number[]>;
       categoriesById: Record<string, string>;
       suppliersById: Record<string, string>;
+      locationsById: Record<string, string>;
       unitSearchValuesByProduct: Map<string, string[]>;
       offerCountByProduct: Map<string, number>;
       customerPriceCountByProduct: Map<string, number>;
+      categoryId?: number;
+      supplierId?: number;
     },
   ): ProductRow[] {
     return products.filter((product) => {
@@ -948,6 +970,15 @@ export class CatalogProductService {
       const offerCount = Number(context.offerCountByProduct.get(key) || 0);
       const customerPriceCount = Number(context.customerPriceCountByProduct.get(key) || 0);
 
+      if (context.categoryId && Number(product.category_id) !== context.categoryId) return false;
+      if (context.supplierId && Number(product.supplier_id) !== context.supplierId) return false;
+
+      if (context.scopedLocationId) {
+        const activeLocIds = context.activeLocationsByProduct?.get(key) || [];
+        const inLocation = activeLocIds.includes(context.scopedLocationId) || Number(product.default_location_id) === context.scopedLocationId;
+        if (!inLocation) return false;
+      }
+
       if (context.view !== 'all') {
         if (context.view === 'low' && !(stock <= minStock)) return false;
         if (context.view === 'out' && !(stock <= 0)) return false;
@@ -956,11 +987,17 @@ export class CatalogProductService {
       }
 
       if (!context.q) return true;
+      const activeLocIds = context.activeLocationsByProduct?.get(key) || [];
+      const activeLocNames = activeLocIds.map((id) => context.locationsById[String(id)] || '').filter(Boolean);
+      const defaultLocName = product.default_location_name || context.locationsById[String(product.default_location_id || '')] || '';
+
       const haystack = [
         String(product.name || ''),
         String(product.barcode || ''),
         context.categoriesById[String(product.category_id || '')] || '',
         context.suppliersById[String(product.supplier_id || '')] || '',
+        defaultLocName,
+        ...activeLocNames,
         String(product.notes || ''),
         String(product.style_code || ''),
         String(product.color || ''),
@@ -1044,18 +1081,28 @@ export class CatalogProductService {
       scopedLocationId: number | null;
       scopedStockByProduct: Map<string, number>;
       activeLocationsByProduct?: Map<string, number[]>;
+      categoriesById?: Record<string, string>;
+      suppliersById?: Record<string, string>;
+      locationsById?: Record<string, string>;
       unitsByProduct: Map<string, Record<string, unknown>[]>;
       offersByProduct: Map<string, Record<string, unknown>[]>;
       pricesByProduct: Map<string, Record<string, unknown>[]>;
     },
   ): Record<string, unknown>[] {
     return pagedBaseRows.map((product) => {
+      const activeLocIds = context.activeLocationsByProduct?.get(String(product.id)) || [];
+      const activeLocationNames = activeLocIds.map((id) => context.locationsById?.[String(id)]).filter(Boolean) as string[];
+      const categoryName = context.categoriesById?.[String(product.category_id || '')] || undefined;
+      const supplierName = context.suppliersById?.[String(product.supplier_id || '')] || undefined;
+
       const mapped: Record<string, unknown> = {
         id: String(product.id),
         name: product.name || '',
         barcode: product.barcode || '',
         categoryId: product.category_id ? String(product.category_id) : '',
+        categoryName,
         supplierId: product.supplier_id ? String(product.supplier_id) : '',
+        supplierName,
         itemType: product.item_type === 'raw_material' ? 'raw_material' : product.item_type === 'service' ? 'service' : 'product',
         itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
         styleCode: product.style_code || '',
@@ -1072,8 +1119,9 @@ export class CatalogProductService {
         bomId: product.bom_id ? Number(product.bom_id) : undefined,
         hasBom: !!product.bom_id,
         defaultLocationId: product.default_location_id ? String(product.default_location_id) : undefined,
-        defaultLocationName: product.default_location_name || undefined,
-        activeLocationIds: context.activeLocationsByProduct?.get(String(product.id))?.map(String) || [],
+        defaultLocationName: product.default_location_name || context.locationsById?.[String(product.default_location_id || '')] || undefined,
+        activeLocationIds: activeLocIds.map(String),
+        activeLocationNames,
         units: context.unitsByProduct.get(String(product.id)) || [{ id: `base-${product.id}`, name: 'قطعة', multiplier: 1, barcode: product.barcode || '', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }],
         offers: context.offersByProduct.get(String(product.id)) || [],
         customerPrices: context.pricesByProduct.get(String(product.id)) || [],

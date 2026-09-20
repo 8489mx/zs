@@ -8,6 +8,9 @@ export interface ProductsListParams {
   pageSize?: number;
   q?: string;
   view?: 'all' | 'low' | 'out' | 'offers' | 'special';
+  locationId?: number | string;
+  categoryId?: number | string;
+  supplierId?: number | string;
 }
 
 export interface ProductsPageResponse {

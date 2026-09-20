@@ -56,7 +56,13 @@ export interface Product {
   hasBom?: boolean;
   comboOriginalPrice?: number;
   comboComponentsSummary?: string;
+  categoryName?: string;
+  supplierName?: string;
   binLocation?: string;
+  defaultLocationId?: string;
+  defaultLocationName?: string;
+  activeLocationIds?: string[];
+  activeLocationNames?: string[];
   trackSerials?: boolean;
   matchedSerialNumber?: string | null;
   icon?: string | null;

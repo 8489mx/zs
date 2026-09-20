@@ -1,4 +1,3 @@
-import React from 'react';
 import type { StorefrontProduct, StorefrontCategory, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontShelfSection } from './StorefrontShelfSection';
 import { IconFolder } from './StorefrontIcons';

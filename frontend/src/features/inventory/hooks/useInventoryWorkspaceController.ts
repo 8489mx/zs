@@ -16,12 +16,22 @@ import {
 } from '@/features/inventory/lib/inventory-workspace.helpers';
 import type { InventorySectionKey } from '@/features/inventory/pages/inventory.page-config';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
-import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function useInventoryWorkspaceController(currentSection: InventorySectionKey) {
   const queryClient = useQueryClient();
   const state = useInventoryWorkspaceState();
-  const { productsQuery, rows, inventory, pagination: inventoryPagination } = useInventoryPage(state.search, state.statusFilter, state.inventoryPage, state.inventoryPageSize);
+  const { data: categories = [] } = useCategoriesQuery();
+  const { data: suppliers = [] } = useSuppliersQuery();
+  const { productsQuery, rows, inventory, pagination: inventoryPagination } = useInventoryPage(
+    state.search,
+    state.statusFilter,
+    state.inventoryPage,
+    state.inventoryPageSize,
+    state.locationFilter,
+    state.categoryFilter,
+    state.supplierFilter,
+  );
   const { transferFilter, sessionFilter, setTransfersPage, setSelectedTransferIds, setSelectedTransferId, setSessionsPage, setSelectedSessionIds, setSelectedSessionId } = state;
   const actionCatalog = useInventoryActionCatalog();
   const products = actionCatalog.productsQuery.data || [];
@@ -103,6 +113,9 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
   const resetInventoryView = () => {
     state.setSearch('');
     state.setStatusFilter('all');
+    state.setLocationFilter('');
+    state.setCategoryFilter('');
+    state.setSupplierFilter('');
     state.setTransferFilter('all');
     state.setSessionFilter('all');
     state.setSelectedTransferId('');
@@ -249,6 +262,14 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     selectedSession,
     selectedTransferTotals,
     selectedSessionTotals,
+    locationFilter: state.locationFilter,
+    setLocationFilter: state.setLocationFilter,
+    categoryFilter: state.categoryFilter,
+    setCategoryFilter: state.setCategoryFilter,
+    supplierFilter: state.supplierFilter,
+    setSupplierFilter: state.setSupplierFilter,
+    categories,
+    suppliers,
     resetInventoryView,
     canAdjustInventory,
     canPrint,

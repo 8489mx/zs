@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { StockTransferSuccessDialog } from '@/features/inventory/components/StockTransferSuccessDialog';
 import { printTransferDocument } from '@/lib/inventory-printing';
@@ -7,7 +7,7 @@ import { InventorySectionTabs } from '@/features/inventory/pages/InventorySectio
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { InventoryMovementCard, InventoryStatusCard, StockCountComposerCard, StockCountMonitorCard, TransferMonitorCard, DamagedStockCard } from '@/features/inventory/components/InventoryWorkspaceSections';
 import { InventoryPostSessionDialog, InventoryTransferActionDialog } from '@/features/inventory/components/InventoryWorkspaceDialogs';
-import { InventoryActionsPanel } from '@/features/inventory/components/InventoryActionsPanel';
+import { QuickStockAdjustmentDialog } from '@/features/inventory/components/QuickStockAdjustmentDialog';
 import { useInventoryWorkspaceController } from '@/features/inventory/hooks/useInventoryWorkspaceController';
 import type { InventorySectionKey } from '@/features/inventory/pages/inventory.page-config';
 import type { Product } from '@/types/domain';
@@ -18,16 +18,12 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
   const [countSubView, setCountSubView] = useState<'create' | 'history'>('create');
   const [searchParams, setSearchParams] = useSearchParams();
   const productId = searchParams.get('productId');
-  const actionPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (productId && inventory.products.length > 0) {
       const product = inventory.products.find(p => String(p.id) === productId);
       if (product) {
         setSelectedInventoryProduct({ product, token: Date.now() });
-        setTimeout(() => {
-          actionPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
         // Remove productId from URL after selecting it so it doesn't trigger on every re-render
         searchParams.delete('productId');
         setSearchParams(searchParams, { replace: true });
@@ -70,6 +66,15 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
           <InventoryStatusCard
             statusFilter={inventory.statusFilter}
             onStatusFilterChange={inventory.setStatusFilter}
+            locationFilter={inventory.locationFilter}
+            onLocationFilterChange={inventory.setLocationFilter}
+            categoryFilter={inventory.categoryFilter}
+            onCategoryFilterChange={inventory.setCategoryFilter}
+            supplierFilter={inventory.supplierFilter}
+            onSupplierFilterChange={inventory.setSupplierFilter}
+            locations={inventory.locations}
+            categories={inventory.categories}
+            suppliers={inventory.suppliers}
             search={inventory.search}
             onSearchChange={inventory.setSearch}
             onReset={inventory.resetInventoryView}
@@ -82,20 +87,15 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             onProductSelect={(product) => setSelectedInventoryProduct({ product, token: Date.now() })}
           />
 
-          <div ref={actionPanelRef}>
-            <InventoryActionsPanel
-            products={inventory.products}
+          <QuickStockAdjustmentDialog
+            open={Boolean(selectedInventoryProduct)}
+            onClose={() => setSelectedInventoryProduct(null)}
+            product={selectedInventoryProduct?.product || null}
             branches={inventory.branches}
             locations={inventory.locations}
             locationStocks={Array.isArray(inventory.actionCatalog.locationStocksQuery.data) ? inventory.actionCatalog.locationStocksQuery.data : []}
-            isCatalogLoading={inventory.actionCatalog.isLoading}
-            isCatalogError={inventory.actionCatalog.isError}
-            catalogError={inventory.actionCatalog.error}
             canManageInventory={inventory.canAdjustInventory}
-            selectedProduct={selectedInventoryProduct?.product || null}
-            selectedProductToken={selectedInventoryProduct?.token || 0}
-            />
-          </div>
+          />
         </div>
       ) : null}
 

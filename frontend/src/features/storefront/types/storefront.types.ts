@@ -4,6 +4,7 @@ export interface StorefrontInfo {
   businessName: string;
   enabled: boolean;
   title: string;
+  description?: string;
   address?: string;
   bio: string;
   announcement: string;

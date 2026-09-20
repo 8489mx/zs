@@ -4,7 +4,15 @@ import { queryKeys } from '@/app/query-keys';
 import { productsApi, type ProductsListParams } from '@/features/products/api/products.api';
 import { buildInventorySummary, filterInventoryRows, type InventoryStatusFilter } from '@/features/inventory/utils/inventory-mappers';
 
-export function useInventoryPage(search: string, statusFilter: InventoryStatusFilter, page = 1, pageSize = 50) {
+export function useInventoryPage(
+  search: string,
+  statusFilter: InventoryStatusFilter,
+  page = 1,
+  pageSize = 50,
+  locationFilter = '',
+  categoryFilter = '',
+  supplierFilter = '',
+) {
   const viewMap: Record<InventoryStatusFilter, ProductsListParams['view']> = {
     all: 'all',
     low: 'low',
@@ -13,8 +21,17 @@ export function useInventoryPage(search: string, statusFilter: InventoryStatusFi
   };
 
   const productsQuery = useQuery({
-    queryKey: [...queryKeys.products, 'inventory', page, pageSize, search, statusFilter],
-    queryFn: () => productsApi.listPage({ page, pageSize, q: search || undefined, view: viewMap[statusFilter] || 'all' }),
+    queryKey: [...queryKeys.products, 'inventory', page, pageSize, search, statusFilter, locationFilter, categoryFilter, supplierFilter],
+    queryFn: () =>
+      productsApi.listPage({
+        page,
+        pageSize,
+        q: search || undefined,
+        view: viewMap[statusFilter] || 'all',
+        locationId: locationFilter || undefined,
+        categoryId: categoryFilter || undefined,
+        supplierId: supplierFilter || undefined,
+      }),
     placeholderData: (prev) => prev,
   });
 

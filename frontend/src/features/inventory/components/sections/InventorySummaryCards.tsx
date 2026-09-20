@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { formatCurrency } from '@/lib/format';
 import { InventoryStatusFilterField } from '@/features/inventory/components/InventoryStatusFilter';
 import { InventoryTable } from '@/features/inventory/components/InventoryTable';
@@ -46,6 +48,15 @@ export function InventoryMovementCard() {
 export function InventoryStatusCard({
   statusFilter,
   onStatusFilterChange,
+  locationFilter = '',
+  onLocationFilterChange,
+  categoryFilter = '',
+  onCategoryFilterChange,
+  supplierFilter = '',
+  onSupplierFilterChange,
+  locations = [],
+  categories = [],
+  suppliers = [],
   search,
   onSearchChange,
   onReset,
@@ -59,6 +70,15 @@ export function InventoryStatusCard({
 }: {
   statusFilter: InventoryStatusFilter;
   onStatusFilterChange: (value: InventoryStatusFilter) => void;
+  locationFilter?: string;
+  onLocationFilterChange?: (value: string) => void;
+  categoryFilter?: string;
+  onCategoryFilterChange?: (value: string) => void;
+  supplierFilter?: string;
+  onSupplierFilterChange?: (value: string) => void;
+  locations?: Array<{ id: number | string; name: string }>;
+  categories?: Array<{ id: number | string; name: string }>;
+  suppliers?: Array<{ id: number | string; name: string }>;
   search: string;
   onSearchChange: (value: string) => void;
   onReset: () => void;
@@ -70,6 +90,21 @@ export function InventoryStatusCard({
   selectedProductId?: string;
   onProductSelect?: (product: Product) => void;
 }) {
+  const locationOptions = useMemo(() => [
+    { value: '', label: 'كل المخازن' },
+    ...locations.map((loc) => ({ value: String(loc.id), label: loc.name })),
+  ], [locations]);
+
+  const categoryOptions = useMemo(() => [
+    { value: '', label: 'كل الأقسام' },
+    ...categories.map((cat) => ({ value: String(cat.id), label: cat.name })),
+  ], [categories]);
+
+  const supplierOptions = useMemo(() => [
+    { value: '', label: 'كل الموردين' },
+    ...suppliers.map((sup) => ({ value: String(sup.id), label: sup.name })),
+  ], [suppliers]);
+
   return (
     <section className="document-prototype-section">
       <div className="section-header-compact-row">
@@ -87,13 +122,50 @@ export function InventoryStatusCard({
       <SearchToolbar
         search={search}
         onSearchChange={onSearchChange}
-        searchPlaceholder="ابحث باسم الصنف أو الباركود أو كود المجموعة"
+        searchPlaceholder="ابحث باسم الصنف أو الباركود أو كود المجموعة..."
         title="بحث وتصفية"
         actions={<span className="nav-pill">{statusFilter === 'all' ? 'كل الحالات' : statusFilter === 'healthy' ? 'سليم' : statusFilter === 'low' ? 'منخفض' : 'نافد'}</span>}
         onReset={onReset}
         resetLabel="تفريغ"
       >
-        <InventoryStatusFilterField value={statusFilter} onChange={onStatusFilterChange} />
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end', width: '100%' }}>
+          {onLocationFilterChange && (
+            <div style={{ minWidth: '130px', flex: 1 }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>المخزن</span>
+              <CustomSelect
+                value={locationFilter}
+                onChange={onLocationFilterChange}
+                options={locationOptions}
+                placeholder="كل المخازن"
+              />
+            </div>
+          )}
+          {onCategoryFilterChange && (
+            <div style={{ minWidth: '130px', flex: 1 }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>القسم</span>
+              <CustomSelect
+                value={categoryFilter}
+                onChange={onCategoryFilterChange}
+                options={categoryOptions}
+                placeholder="كل الأقسام"
+              />
+            </div>
+          )}
+          {onSupplierFilterChange && (
+            <div style={{ minWidth: '130px', flex: 1 }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>المورد</span>
+              <CustomSelect
+                value={supplierFilter}
+                onChange={onSupplierFilterChange}
+                options={supplierOptions}
+                placeholder="كل الموردين"
+              />
+            </div>
+          )}
+          <div style={{ minWidth: '110px', flex: 1 }}>
+            <InventoryStatusFilterField value={statusFilter} onChange={onStatusFilterChange} />
+          </div>
+        </div>
       </SearchToolbar>
       <QueryFeedback
         isLoading={isLoading}
