@@ -681,24 +681,33 @@ app.whenReady().then(async () => {
   const cryptoLib = require('crypto');
   const dataDir = app.isPackaged ? path.join(path.dirname(process.execPath), 'runtime', 'data') : path.join(process.cwd(), 'portable_data');
   const secretsPath = path.join(dataDir, 'secrets.json');
-  let sessionSecret, csrfSecret;
+  let sessionSecret, csrfSecret, developerMasterPassword;
   try {
     if (fsLib.existsSync(secretsPath)) {
       const secretsData = JSON.parse(fsLib.readFileSync(secretsPath, 'utf8'));
       sessionSecret = secretsData.sessionSecret;
       csrfSecret = secretsData.csrfSecret;
+      developerMasterPassword = secretsData.developerMasterPassword;
     }
   } catch (err) {
     console.error('Error reading secrets.json', err);
   }
-  if (!sessionSecret || !csrfSecret) {
-    sessionSecret = cryptoLib.randomBytes(32).toString('hex');
-    csrfSecret = cryptoLib.randomBytes(32).toString('hex');
+  // The developer panel unlocks every paid module, and in lan_server mode the backend
+  // listens on 0.0.0.0 — so this must be per-installation, never a constant shipped in
+  // the build. It joins the existing secrets file rather than getting its own mechanism.
+  if (!sessionSecret || !csrfSecret || !developerMasterPassword) {
+    sessionSecret = sessionSecret || cryptoLib.randomBytes(32).toString('hex');
+    csrfSecret = csrfSecret || cryptoLib.randomBytes(32).toString('hex');
+    developerMasterPassword = developerMasterPassword || cryptoLib.randomBytes(24).toString('base64url');
     try {
       if (!fsLib.existsSync(dataDir)) {
         fsLib.mkdirSync(dataDir, { recursive: true });
       }
-      fsLib.writeFileSync(secretsPath, JSON.stringify({ sessionSecret, csrfSecret }), { mode: 0o600 });
+      fsLib.writeFileSync(
+        secretsPath,
+        JSON.stringify({ sessionSecret, csrfSecret, developerMasterPassword }),
+        { mode: 0o600 }
+      );
     } catch (err) {
       console.error('Error writing secrets.json', err);
     }
@@ -734,7 +743,7 @@ app.whenReady().then(async () => {
     ELECTRON_EXE_PATH: process.execPath,
     SKIP_MIGRATIONS: 'false',
     ELECTRON_RUNTIME_MODE: currentConfig.runtimeMode,
-    DEVELOPER_MASTER_PASSWORD: 'infoadmin',
+    DEVELOPER_MASTER_PASSWORD: developerMasterPassword,
   };
 
   let backendProcess = null;
