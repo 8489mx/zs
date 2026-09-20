@@ -8,7 +8,9 @@ export interface StandardDialogProps {
   isOpen?: boolean;
   onClose: () => void;
   title: ReactNode;
-  subtitle?: string;
+  /** Widened to match `title`: callers (e.g. job detail headers) compose rich content here, such
+   * as a status badge next to the descriptive text, not just plain text. */
+  subtitle?: ReactNode;
   children: ReactNode;
   width?: string;
   maxWidth?: string;
@@ -128,7 +130,9 @@ export function StandardDialog({
                 </span>
               )}
             </div>
-            {subtitle && <p className="standard-dialog-subtitle">{subtitle}</p>}
+            {/* div, not p: subtitle can now carry block-level content (e.g. a badge row), and a
+                <div> inside a <p> is invalid HTML that browsers silently mis-nest. */}
+            {subtitle && <div className="standard-dialog-subtitle">{subtitle}</div>}
           </div>
           <button
             type="button"
