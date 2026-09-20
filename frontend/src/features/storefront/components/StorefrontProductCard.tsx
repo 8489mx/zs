@@ -1,7 +1,7 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React, { useState } from 'react';
 import { StorefrontProduct } from '../types/storefront.types';
-import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
+import { resolveProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { IconCheckCircle, IconStar, IconShoppingCart } from './StorefrontIcons';
 
 interface StorefrontProductCardProps {
@@ -58,7 +58,10 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   };
 
   // Priority: 1. Merchant Uploaded Photo -> 2. Auto-Assigned Photographic Library
-  const displayPhotoUrl = product.imageUrl || getAutoProductPhoto(product.name, product.categoryName);
+  const autoPhoto = resolveProductPhoto(product.name, product.categoryName);
+  const displayPhotoUrl = product.imageUrl || autoPhoto.url;
+  // صورة القسم تتكرر على كل منتجاته — نوضّح أنها توضيحية بدل أن تُقرأ كصورة المنتج
+  const isIllustrativePhoto = !product.imageUrl && autoPhoto.source === 'category';
 
   // Optional smart discount badge for visual psychological appeal only when isSmartDeal is enabled
   const isDeal = Boolean(isSmartDeal || (product as any).hasDiscount);
@@ -223,6 +226,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               opacity: imageLoaded ? 1 : 0.8,
             }}
             onLoad={() => setImageLoaded(true)}
+            data-illustrative={isIllustrativePhoto ? 'true' : undefined}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'scale(1.08)';
             }}
@@ -230,6 +234,27 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               e.currentTarget.style.transform = 'scale(1)';
             }}
           />
+
+          {/* صورة القسم التوضيحية: تُوسم صراحة حتى لا يفهمها العميل كصورة المنتج */}
+          {isIllustrativePhoto && (
+            <span
+              style={{
+                position: 'absolute',
+                bottom: '6px',
+                insetInlineStart: '6px',
+                background: 'rgba(15, 23, 42, 0.62)',
+                color: '#ffffff',
+                fontSize: '0.6rem',
+                fontWeight: 700,
+                padding: '2px 6px',
+                borderRadius: '5px',
+                pointerEvents: 'none',
+                backdropFilter: 'blur(2px)',
+              }}
+            >
+              صورة توضيحية
+            </span>
+          )}
 
           {/* Top Right: Stock Status & Deal Badges */}
           <div

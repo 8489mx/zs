@@ -866,6 +866,36 @@ const photoCache = new Map<string, string>();
  * Analyzes product name & category, normalizes Arabic text, and calculates
  * the highest specificity confidence score to guarantee accurate photos.
  */
+/**
+ * من أين جاءت الصورة المعروضة:
+ * - `name`: طابقت اسم المنتج نفسه — صورة تمثّل هذا المنتج فعلاً.
+ * - `category`: طابقت اسم القسم فقط — صورة **توضيحية** للقسم، وكل منتجات القسم
+ *   ستحصل على نفس الصورة. عرضها كأنها صورة المنتج يضلّل العميل.
+ * - `placeholder`: لا مطابقة — بطاقة SVG تحمل اسم المنتج.
+ */
+export type ProductPhotoSource = 'name' | 'category' | 'placeholder';
+
+export type ResolvedProductPhoto = {
+  url: string;
+  source: ProductPhotoSource;
+};
+
+const photoSourceCache = new Map<string, ProductPhotoSource>();
+
+/**
+ * يعيد الصورة **ومصدرها** حتى تستطيع الواجهة التمييز بين صورة المنتج الحقيقية
+ * وصورة القسم التوضيحية.
+ *
+ * كانت مطابقة اسم القسم تعطي 70 نقطة — أعلى من عتبة القبول (40) — فكل منتجات
+ * القسم تحصل على **نفس** الصورة وتبدو كأنها صور منتجاتها. في متجر مطاعم يعني
+ * ذلك ظهور نفس صورة الدجاج على ستة أصناف مختلفة.
+ */
+export function resolveProductPhoto(productName: string, categoryName?: string): ResolvedProductPhoto {
+  const url = getAutoProductPhoto(productName, categoryName);
+  const source = photoSourceCache.get(`${productName}:::${categoryName || ''}`) || 'placeholder';
+  return { url, source };
+}
+
 export function getAutoProductPhoto(productName: string, categoryName?: string): string {
   const cacheKey = `${productName}:::${categoryName || ''}`;
   const cached = photoCache.get(cacheKey);
@@ -877,9 +907,12 @@ export function getAutoProductPhoto(productName: string, categoryName?: string):
 
   let bestRule: SemanticPhotoRule | null = null;
   let highestScore = 0;
+  // هل جاء أعلى سكور من اسم المنتج أم من اسم القسم فقط؟
+  let bestFromNameOnly = false;
 
   for (const rule of SEMANTIC_PHOTO_RULES) {
     let score = 0;
+    let scoreFromName = 0;
 
     for (const kw of rule.keywords) {
       const cleanKw = cleanArabic(kw);
@@ -889,14 +922,17 @@ export function getAutoProductPhoto(productName: string, categoryName?: string):
         // Multi-word phrase exact match in name (Highest precision: +25 bonus!)
         if (cleanName.includes(cleanKw)) {
           score = Math.max(score, rule.weight + 25);
+          scoreFromName = Math.max(scoreFromName, rule.weight + 25);
         }
       } else {
         // Single word exact match
         if (words.some((w) => w === cleanKw)) {
           score = Math.max(score, rule.weight);
+          scoreFromName = Math.max(scoreFromName, rule.weight);
         } else if (cleanName.includes(cleanKw) && cleanKw.length >= 4) {
           // Substring match for longer words
           score = Math.max(score, rule.weight - 10);
+          scoreFromName = Math.max(scoreFromName, rule.weight - 10);
         }
       }
 
@@ -912,15 +948,18 @@ export function getAutoProductPhoto(productName: string, categoryName?: string):
     if (score > highestScore) {
       highestScore = score;
       bestRule = rule;
+      bestFromNameOnly = scoreFromName >= score;
     }
   }
 
   // Only accept a photo match if confidence score is solid (>= 40).
   // Otherwise, fall back to the clean, enterprise SVG vector placeholder (NEVER vegetables!).
-  const result = (bestRule && highestScore >= 40)
-    ? bestRule.imageUrl 
+  const matched = Boolean(bestRule && highestScore >= 40);
+  const result = matched
+    ? (bestRule as SemanticPhotoRule).imageUrl
     : generatePremiumProductSvg(productName, categoryName);
 
   photoCache.set(cacheKey, result);
+  photoSourceCache.set(cacheKey, matched ? (bestFromNameOnly ? 'name' : 'category') : 'placeholder');
   return result;
 }
