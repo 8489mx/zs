@@ -172,7 +172,12 @@ export class ZatcaPhase2Service {
             custom_id: 'POS-01',
             private_key_pem: privateKey,
             public_key_pem: publicKey,
-            status: 'production_active',
+            // وحدة أُنشئت تلقائياً ولم تمر بالتسجيل لدى الهيئة (CSR ← شهادة امتثال
+            // ← شهادة إنتاج) — لا يصح وسمها `production_active`. `unregistered`
+            // مشمولة أصلاً في شرط الاختيار أعلاه فالسلوك لم يتغير، لكن الحالة صارت
+            // صادقة ويمكن لشاشة الامتثال أن تميّزها. التسجيل الفعلي في
+            // `zatca-onboarding.service.ts` هو ما يرفعها إلى `production_active`.
+            status: 'unregistered',
             environment: settings?.environment === 'production' ? 'production' : 'sandbox',
             last_icv: 0,
             last_invoice_hash: 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==',
@@ -286,7 +291,12 @@ export class ZatcaPhase2Service {
           zatca_hash: invoiceHash,
           zatca_prev_hash: previousInvoiceHash,
           zatca_icv: nextIcv,
-          zatca_status: 'reported',
+          // `generated` لا `reported`: هذه الدالة تبني الفاتورة وتوقّعها محلياً
+          // وتُقدّم سلسلة الـICV/PIH فقط — **لا يوجد أي اتصال بهيئة الزكاة هنا**
+          // (ولا في أي مكان آخر؛ الموجود هو التسجيل CSR/CSID فقط). وسمها
+          // `reported` كان يدّعي إبلاغاً لم يحدث، فتبدو الفواتير مكتملة الامتثال
+          // ولا يلتقطها أي مسار إعادة إرسال لاحق. انظر البند O47.
+          zatca_status: 'generated',
           zatca_qr: qrCodeBase64,
           zatca_ubl_xml: ublXml,
         } as any)
