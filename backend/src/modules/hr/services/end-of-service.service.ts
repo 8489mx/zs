@@ -174,10 +174,14 @@ export class EndOfServiceService {
     const unpaidLoansDeduction = Number(loansRes.rows[0]?.total_unpaid || 0);
 
     // Active unreturned assets / custody
+    // Scoped like the loans query above: this feeds a settlement figure, and the
+    // posting gate in postSettlement already filters on tenant_id, so an unscoped
+    // read here would let the preview and the gate disagree about the same employee.
     const assetsRes = await (this.db as any)
       .selectFrom('hr_employee_assets')
       .selectAll()
       .where('employee_id', '=', input.employeeId)
+      .where('tenant_id', '=', tenantId)
       .where('status', 'not in', ['returned', 'lost', 'cancelled'])
       .execute();
 

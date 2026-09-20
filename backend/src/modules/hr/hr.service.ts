@@ -3479,8 +3479,8 @@ export class HrService {
     if (!Number.isFinite(daysCount) || daysCount <= 0) throw new AppError('Leave days count is invalid', 'HR_LEAVE_DAYS_COUNT_INVALID', 400);
 
     await sql`
-      INSERT INTO hr_leave_requests (employee_id, leave_type_id, leave_type, start_date, end_date, days_count, status, reason, notes, created_by, updated_by, created_at, updated_at)
-      VALUES (${employeeId}, ${leaveTypeId}, ${leaveType || null}, ${startDate}::date, ${endDate}::date, ${Number(daysCount.toFixed(2))}, 'pending', ${clean(payload.reason) || null}, ${clean(payload.notes) || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
+      INSERT INTO hr_leave_requests (tenant_id, account_id, employee_id, leave_type_id, leave_type, start_date, end_date, days_count, status, reason, notes, created_by, updated_by, created_at, updated_at)
+      VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${leaveTypeId}, ${leaveType || null}, ${startDate}::date, ${endDate}::date, ${Number(daysCount.toFixed(2))}, 'pending', ${clean(payload.reason) || null}, ${clean(payload.notes) || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
     `.execute(this.db);
 
     await this.audit.log('Create HR leave request', `Leave request created for employee #${employeeId} by ${auth.username}`, auth);
@@ -3633,12 +3633,12 @@ export class HrService {
             notes = ${clean(payload.notes) || null},
             updated_by = ${auth.userId},
             updated_at = NOW()
-        WHERE id = ${id}
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId}
       `.execute(this.db);
     } else {
       await sql`
-        INSERT INTO hr_employee_assets (employee_id, asset_type, asset_name, asset_code, serial_no, assigned_at, status, notes, created_by, updated_by, created_at, updated_at)
-        VALUES (${employeeId}, ${assetType}, ${assetName}, ${clean(payload.assetCode) || null}, ${clean(payload.serialNo) || null}, ${assignedAt}::date, 'assigned', ${clean(payload.notes) || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
+        INSERT INTO hr_employee_assets (tenant_id, account_id, employee_id, asset_type, asset_name, asset_code, serial_no, assigned_at, status, notes, created_by, updated_by, created_at, updated_at)
+        VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${assetType}, ${assetName}, ${clean(payload.assetCode) || null}, ${clean(payload.serialNo) || null}, ${assignedAt}::date, 'assigned', ${clean(payload.notes) || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
       `.execute(this.db);
     }
 
@@ -3649,7 +3649,7 @@ export class HrService {
   private async setEmployeeAssetStatus(id: number, status: 'returned' | 'lost' | 'damaged' | 'cancelled', payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const current = await sql<{ status: string; employee_id: number; asset_name: string }>`SELECT status, employee_id, asset_name FROM hr_employee_assets WHERE id = ${id} LIMIT 1`.execute(trx);
+      const current = await sql<{ status: string; employee_id: number; asset_name: string }>`SELECT status, employee_id, asset_name FROM hr_employee_assets WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(trx);
       if (!clean(current.rows[0]?.status)) throw new AppError('Employee asset not found', 'HR_ASSET_NOT_FOUND', 404);
       const tz = await getTenantTimezone(trx, auth.tenantId);
       const returnedAt = status === 'returned' ? (normalizeDateOnly(payload.returnedAt) || todayTenantDate(tz)) : null;
@@ -3661,7 +3661,7 @@ export class HrService {
             return_notes = ${clean(payload.returnNotes) || null},
             updated_by = ${auth.userId},
             updated_at = NOW()
-        WHERE id = ${id}
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId}
       `.execute(trx);
 
       if (['lost', 'damaged'].includes(status) && typeof payload.deductionAmount === 'number' && payload.deductionAmount > 0) {

@@ -83,6 +83,38 @@ export const migration = {
         AND a.tenant_id = ''
         AND it.tenant_id <> ''
     `.execute(db);
+
+    // Two more writers in hr.service.ts omitted the scope, each disabling a gate
+    // that filters on tenant_id:
+    //
+    //  - hr_leave_requests (createLeaveRequest, the HR-admin path — the portal
+    //    writer was fixed in the item 1 sweep): approve/reject/cancel all resolve
+    //    `WHERE id = ? AND tenant_id = ?`, so an admin-created request could never
+    //    leave 'pending', and approved leave days feed the payroll run.
+    //
+    //  - hr_employee_assets (upsertEmployeeAsset): the end-of-service custody
+    //    clearance gate counts unreturned assets `WHERE employee_id = ? AND
+    //    tenant_id = ?`, so it always saw zero and never blocked — a final
+    //    settlement could be posted in full to an employee still holding custody.
+    //
+    // Both are repaired from the owning employee row.
+    await sql`
+      UPDATE hr_leave_requests r
+      SET tenant_id = e.tenant_id, account_id = e.account_id
+      FROM hr_employees e
+      WHERE e.id = r.employee_id
+        AND r.tenant_id = ''
+        AND e.tenant_id <> ''
+    `.execute(db);
+
+    await sql`
+      UPDATE hr_employee_assets a
+      SET tenant_id = e.tenant_id, account_id = e.account_id
+      FROM hr_employees e
+      WHERE e.id = a.employee_id
+        AND a.tenant_id = ''
+        AND e.tenant_id <> ''
+    `.execute(db);
   },
 
   async down(db: Kysely<unknown>): Promise<void> {
