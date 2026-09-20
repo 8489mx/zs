@@ -183,6 +183,7 @@ export class VanSalesService {
         updated_at: sql`NOW()`,
       })
       .where('id', '=', repId)
+      .where('tenant_id', '=', tenantId)
       .execute();
 
     return { id: Number(inserted.id), name: inserted.name || locationName };
@@ -642,6 +643,7 @@ export class VanSalesService {
         .updateTable('sales')
         .set({ doc_no: docNo })
         .where('id', '=', createdSaleId)
+        .where('tenant_id', '=', tenantId)
         .execute();
 
       for (const it of saleItemRecords) {
@@ -669,6 +671,7 @@ export class VanSalesService {
             updated_at: sql`NOW()`,
           })
           .where('id', '=', payload.tripId)
+          .where('tenant_id', '=', tenantId)
           .execute();
       } else {
         await trxAny
@@ -679,6 +682,7 @@ export class VanSalesService {
             updated_at: sql`NOW()`,
           })
           .where('id', '=', payload.tripId)
+          .where('tenant_id', '=', tenantId)
           .execute();
 
         if (resolvedCustomerId) {
@@ -738,6 +742,18 @@ export class VanSalesService {
     const amount = Number(payload.amount || 0);
     if (amount <= 0) throw new AppError('المبلغ المحصل يجب أن يكون أكبر من صفر', 'INVALID_AMOUNT', 400);
 
+    // tripId arrives straight from the driver-portal request body, so it must be
+    // proven to belong to this tenant before anything is written against it —
+    // exactly as recordFieldReturn and settleTrip already do.
+    const trip = await this.anyDb
+      .selectFrom('van_sales_trips as vt')
+      .select(['vt.id'])
+      .where('vt.id', '=', payload.tripId)
+      .where('vt.tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!trip) throw new AppError('رحلة التوزيع المحددة غير صالحة', 'INVALID_TRIP', 400);
+
     const cust = await this.anyDb.selectFrom('customers').select(['id', 'name']).where('id', '=', payload.customerId).where('tenant_id', '=', tenantId).executeTakeFirst();
     if (!cust) throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
 
@@ -775,6 +791,7 @@ export class VanSalesService {
         .updateTable('customer_payments')
         .set({ note: finalNote })
         .where('id', '=', insertedPayment.id)
+        .where('tenant_id', '=', tenantId)
         .execute();
 
       await trxAny
@@ -800,6 +817,7 @@ export class VanSalesService {
           updated_at: sql`NOW()`,
         })
         .where('id', '=', payload.tripId)
+        .where('tenant_id', '=', tenantId)
         .execute();
     });
 
@@ -901,6 +919,7 @@ export class VanSalesService {
         .updateTable('customer_ledger')
         .set({ note: payload.notes || `مرتجع بضاعة ميداني بواسطة المندوب (#${returnDocNo})` })
         .where('id', '=', insertedLedger.id)
+        .where('tenant_id', '=', tenantId)
         .execute();
 
       await trxAny
@@ -910,6 +929,7 @@ export class VanSalesService {
           updated_at: sql`NOW()`,
         })
         .where('id', '=', payload.tripId)
+        .where('tenant_id', '=', tenantId)
         .execute();
     });
 
@@ -1017,6 +1037,7 @@ export class VanSalesService {
           updated_at: sql`NOW()`,
         })
         .where('id', '=', payload.tripId)
+        .where('tenant_id', '=', tenantId)
         .execute();
     });
 
