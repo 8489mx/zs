@@ -46,6 +46,8 @@ import {
   startsNewSession,
   type AttendancePunchResolution,
 } from './attendance-punch.engine';
+import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
+import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 type MasterConfig = {
@@ -550,11 +552,12 @@ export class HrService {
       id: String(row.id),
       employeeNo: clean(row.employee_no),
       nationalId: clean(row.national_id),
+      // الرمز نفسه لا يُعاد أبداً — حالة وجوده فقط (البند O20)
+      hasPinCode: Boolean(row.pin_hash),
       firstName: clean(row.first_name),
       lastName: clean(row.last_name),
       displayName: clean(row.display_name) || `${clean(row.first_name)} ${clean(row.last_name)}`.trim(),
       status: clean(row.status) || 'active',
-      pinCode: clean(row.pin_code),
       phone: clean(row.primary_phone),
       mobile: clean(row.primary_phone),
       userId: row.user_id ? String(row.user_id) : '',
@@ -623,11 +626,12 @@ export class HrService {
       id: String(row.id),
       employeeNo: clean(row.employee_no),
       nationalId: clean(row.national_id),
+      // الرمز نفسه لا يُعاد أبداً — حالة وجوده فقط (البند O20)
+      hasPinCode: Boolean(row.pin_hash),
       firstName: clean(row.first_name),
       lastName: clean(row.last_name),
       displayName: clean(row.display_name) || `${clean(row.first_name)} ${clean(row.last_name)}`.trim(),
       status: clean(row.status) || 'active',
-      pinCode: clean(row.pin_code),
       phone: clean(row.primary_phone),
       mobile: clean(row.primary_phone),
       userId: row.user_id ? String(row.user_id) : '',
@@ -847,6 +851,8 @@ export class HrService {
 
     const cleanPhone = String(payload.mobile || payload.phone || '').trim();
     const cleanPin = String(payload.pinCode || '').trim();
+    // الرمز يُجزَّأ قبل أي كتابة — لا يُخزَّن نصاً صريحاً إطلاقاً (البند O20)
+    const pinRecord = cleanPin ? await createPasswordRecord(cleanPin) : null;
     let savedEmployeeId = id ? String(id) : '';
 
     try {
@@ -858,7 +864,8 @@ export class HrService {
           UPDATE hr_employees
           SET employee_no = COALESCE(NULLIF(${employeeNo}, ''), employee_no), user_id = ${toId(payload.userId)}, first_name = ${firstName}, last_name = ${lastName}, display_name = ${displayName},
               national_id = ${nationalId || null},
-              pin_code = COALESCE(NULLIF(${cleanPin}, ''), pin_code),
+              pin_hash = COALESCE(${pinRecord?.hash ?? null}, pin_hash),
+              pin_salt = COALESCE(${pinRecord?.salt ?? null}, pin_salt),
               status = ${clean(payload.status) || 'active'}, department_id = ${toId(payload.departmentId)}, job_title_id = ${toId(payload.jobTitleId)}, position_id = ${toId(payload.positionId)},
               branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)}, hire_date = ${hireDate}, notes = ${clean(payload.notes)},
               compensation_type = ${compensationType},
@@ -898,8 +905,8 @@ export class HrService {
           const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx, auth);
           await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null, auth);
           const insertResult = await sql<{ id: number }>`
-            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, pin_code, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, pay_frequency, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, attendance_policy, commission_type, commission_value, commission_target, delay_policy, has_social_insurance, insurance_salary, has_income_tax, bank_name, bank_account_number, iban, bank_swift_code, created_by, updated_by)
-            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${cleanPin || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${payFrequency}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${attendancePolicy}, ${clean(payload.commissionType) || 'inherit'}, ${payload.commissionValue == null ? null : Number(payload.commissionValue)}, ${payload.commissionTarget == null ? null : Number(payload.commissionTarget)}, ${clean(payload.delayPolicy) || 'inherit'}, ${Boolean(payload.hasSocialInsurance)}, ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)}, ${Boolean(payload.hasIncomeTax)}, ${clean(payload.bankName) || null}, ${clean(payload.bankAccountNumber) || null}, ${clean(payload.iban) || null}, ${clean(payload.bankSwiftCode) || null}, ${auth.userId}, ${auth.userId})
+            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, pin_hash, pin_salt, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, pay_frequency, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, attendance_policy, commission_type, commission_value, commission_target, delay_policy, has_social_insurance, insurance_salary, has_income_tax, bank_name, bank_account_number, iban, bank_swift_code, created_by, updated_by)
+            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${pinRecord?.hash ?? null}, ${pinRecord?.salt ?? null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${payFrequency}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${attendancePolicy}, ${clean(payload.commissionType) || 'inherit'}, ${payload.commissionValue == null ? null : Number(payload.commissionValue)}, ${payload.commissionTarget == null ? null : Number(payload.commissionTarget)}, ${clean(payload.delayPolicy) || 'inherit'}, ${Boolean(payload.hasSocialInsurance)}, ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)}, ${Boolean(payload.hasIncomeTax)}, ${clean(payload.bankName) || null}, ${clean(payload.bankAccountNumber) || null}, ${clean(payload.iban) || null}, ${clean(payload.bankSwiftCode) || null}, ${auth.userId}, ${auth.userId})
             RETURNING id
           `.execute(trx);
           const newId = insertResult.rows[0]?.id;
@@ -939,7 +946,8 @@ export class HrService {
       if (cleanPin.length < 4) {
         throw new AppError('رمز الدخول (PIN) يجب ألا يقل عن 4 أرقام', 'INVALID_PIN', 400);
       }
-      await sql`UPDATE hr_employees SET pin_code = ${cleanPin}, mobile_punch_enabled = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
+      const pinRecord = await createPasswordRecord(cleanPin);
+      await sql`UPDATE hr_employees SET pin_hash = ${pinRecord.hash}, pin_salt = ${pinRecord.salt}, mobile_punch_enabled = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     }
 
     if (cleanPhone) {
@@ -2401,27 +2409,34 @@ export class HrService {
       for (const row of installments.rows) {
         if (remainingToDeduct <= 0) break;
 
-        const installmentAmount = Number(row.amount);
-        const installmentPaid = Number(row.paid_amount);
-        const installmentRemaining = installmentAmount - installmentPaid;
-        if (installmentRemaining <= 0) continue;
-
-        const loanRemaining = Number(row.loan_remaining);
-
-        const deductAmount = Math.min(remainingToDeduct, installmentRemaining, loanRemaining);
-        if (deductAmount <= 0) continue;
-
-        remainingToDeduct = Number((remainingToDeduct - deductAmount).toFixed(2));
-        const newInstallmentPaid = Number((installmentPaid + deductAmount).toFixed(2));
-        const newInstallmentStatus = newInstallmentPaid >= installmentAmount ? 'paid' : 'partial';
-
-        const newLoanRemaining = Number((loanRemaining - deductAmount).toFixed(2));
-        const newLoanPaidAmountRaw = await sql<Record<string, unknown>>`
-          SELECT paid_amount FROM hr_employee_loans WHERE id = ${row.loan_id}
+        // رصيد القرض يُقرأ **حديثاً** في كل دورة، لا من لقطة الاستعلام: خصم شهر
+        // واحد قد يغطي قسطين من نفس القرض، وكان `remaining_amount` يُحسب في
+        // الدورة الثانية من القيمة القديمة (بينما `paid_amount` يُقرأ حديثاً)،
+        // فيختل تصالح المسدَّد مع المتبقي ويظل القرض مديناً بعد سداده كاملاً،
+        // ويفقد سقف `min(..., loanRemaining)` معناه فيسمح بخصم زائد.
+        const loanStateRaw = await sql<Record<string, unknown>>`
+          SELECT paid_amount, remaining_amount FROM hr_employee_loans WHERE id = ${row.loan_id}
         `.execute(trx);
-        const currentLoanPaid = Number(newLoanPaidAmountRaw.rows[0]?.paid_amount || 0);
-        const newLoanPaid = Number((currentLoanPaid + deductAmount).toFixed(2));
-        const newLoanStatus = newLoanRemaining <= 0 ? 'repaid' : 'partially_repaid';
+        const loanState = loanStateRaw.rows[0];
+
+        const allocation = allocateLoanDeduction({
+          remainingToDeduct,
+          installmentAmount: Number(row.amount),
+          installmentPaid: Number(row.paid_amount),
+          loanRemaining: Number(loanState?.remaining_amount ?? 0),
+          loanPaid: Number(loanState?.paid_amount ?? 0),
+        });
+        if (!allocation) continue;
+
+        const {
+          deductAmount,
+          newInstallmentPaid,
+          newInstallmentStatus,
+          newLoanRemaining,
+          newLoanPaid,
+          newLoanStatus,
+        } = allocation;
+        remainingToDeduct = allocation.remainingToDeductAfter;
 
         await sql`
           UPDATE hr_employee_loans
@@ -2835,7 +2850,7 @@ export class HrService {
             updated_by = ${auth.userId},
             updated_at = NOW()
         `.execute(trx);
-        await this.refreshAttendanceExceptionForEmployeeDate(trx, employeeId, workDate);
+        await this.refreshAttendanceExceptionForEmployeeDate(trx, employeeId, workDate, auth.tenantId || '');
       }
     });
 
@@ -2888,7 +2903,7 @@ export class HrService {
             updated_at = NOW()
           WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
         `.execute(trx);
-        await this.refreshAttendanceExceptionForEmployeeDate(trx, employeeId, workDate);
+        await this.refreshAttendanceExceptionForEmployeeDate(trx, employeeId, workDate, auth.tenantId || '');
         return {
           action: 'Cancel HR attendance checkout',
           detail: `Checkout cancelled for employee #${employeeId} on ${workDate} by ${auth.username}`,
@@ -2914,7 +2929,7 @@ export class HrService {
             updated_at = NOW()
           WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
         `.execute(trx);
-        await this.refreshAttendanceExceptionForEmployeeDate(trx, employeeId, workDate);
+        await this.refreshAttendanceExceptionForEmployeeDate(trx, employeeId, workDate, auth.tenantId || '');
         return {
           action: 'New attendance session for HR employee',
           detail: `New session started for employee #${employeeId} on ${workDate} by ${auth.username}`,
@@ -2956,7 +2971,7 @@ export class HrService {
           updated_by = ${auth.userId},
           updated_at = NOW()
       `.execute(trx);
-      await this.refreshAttendanceExceptionForEmployeeDate(trx, employeeId, workDate);
+      await this.refreshAttendanceExceptionForEmployeeDate(trx, employeeId, workDate, auth.tenantId || '');
 
       return {
         action: 'Upsert HR attendance record',
@@ -3048,7 +3063,7 @@ export class HrService {
             updated_at = NOW()
         `.execute(trx);
 
-        await this.refreshAttendanceExceptionForEmployeeDate(trx, emp.id, workDate);
+        await this.refreshAttendanceExceptionForEmployeeDate(trx, emp.id, workDate, auth.tenantId || '');
         imported++;
       }
     });
@@ -3087,10 +3102,16 @@ export class HrService {
     db: Kysely<Database>,
     employeeId: number,
     workDate: string,
+    scopeTenantId: string,
   ): Promise<void> {
+    // النطاق يُمرَّر من المستدعي (الذي تحقق من ملكية الموظف) بدل اشتقاقه من صف
+    // غير مُتحقَّق منه — البند O42. والاستعلام صار مقيَّداً بالنطاق، فإن لم يكن
+    // الموظف داخله لا يُنفَّذ شيء بدل أن يُحتسب على مستأجر آخر.
     const empTenant = await sql<{ tenant_id: string; account_id: string }>`
-      SELECT tenant_id, account_id FROM hr_employees WHERE id = ${employeeId} LIMIT 1
+      SELECT tenant_id, account_id FROM hr_employees
+      WHERE id = ${employeeId} AND tenant_id = ${scopeTenantId} LIMIT 1
     `.execute(db);
+    if (empTenant.rows.length === 0) return;
     const tenantId = empTenant.rows[0]?.tenant_id || '';
     const accountId = empTenant.rows[0]?.account_id || '';
     const tenantTimezone = await getTenantTimezone(db, tenantId);

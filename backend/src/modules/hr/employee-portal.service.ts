@@ -4,6 +4,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
 import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
+import { verifyPassword } from '../../core/auth/utils/password-hasher';
 import {
   PORTAL_TOKEN_TTL_MS,
   signPortalToken,
@@ -174,7 +175,8 @@ export class EmployeePortalService {
         'e.display_name',
         'e.first_name',
         'e.last_name',
-        'e.pin_code',
+        'e.pin_hash',
+        'e.pin_salt',
         'e.hire_date',
         'e.status',
         'e.tenant_id',
@@ -233,20 +235,25 @@ export class EmployeePortalService {
 
     if (matchedEmployees.length === 1) {
       matched = matchedEmployees[0];
-      const storedPin = String(matched.pin_code || '').trim();
-      if (!storedPin) {
+      if (!matched.pin_hash) {
         throw new AppError('لم يتم تعيين رمز الدخول السري (PIN) لهذا الموظف بعد. يرجى مراجعة إدارة الموارد البشرية لتعيينه', 'INVALID_PIN', 401);
       }
-      if (storedPin !== rawPin) {
+      const check = await verifyPassword(rawPin, String(matched.pin_hash), String(matched.pin_salt || ''));
+      if (!check.valid) {
         throw new AppError('رمز الدخول السري (PIN) غير صحيح', 'INVALID_PIN', 401);
       }
     } else {
-      // Multiple matches across tenants (e.g. employee code 001 exists in both Ragab and Mahmoud)
-      const validPinMatches = matchedEmployees.filter((emp: any) => {
-        const storedPin = String(emp.pin_code || '').trim();
-        if (!storedPin) return false;
-        return storedPin === rawPin;
-      });
+      // Multiple matches across tenants (e.g. employee code 001 exists in both Ragab and Mahmoud).
+      // المقارنة صارت تجزئة، فلا يمكن ترشيحها بـ`filter` متزامن — تُفحص كل
+      // المرشحين بالتوازي كما في مسار دخول المستخدمين (`session.service`).
+      const pinChecks = await Promise.all(
+        matchedEmployees.map(async (emp: any) => {
+          if (!emp.pin_hash) return false;
+          const res = await verifyPassword(rawPin, String(emp.pin_hash), String(emp.pin_salt || ''));
+          return res.valid;
+        }),
+      );
+      const validPinMatches = matchedEmployees.filter((_: any, idx: number) => pinChecks[idx]);
 
       if (validPinMatches.length === 1) {
         matched = validPinMatches[0];

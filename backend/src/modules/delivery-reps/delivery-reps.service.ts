@@ -14,6 +14,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { UpsertDeliveryRepDto } from './dto/upsert-delivery-rep.dto';
 import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
+import { createPasswordRecord, verifyPassword } from '../../core/auth/utils/password-hasher';
 
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { SalesFinanceService } from '../sales/services/sales-finance.service';
@@ -91,6 +92,9 @@ export class DeliveryRepsService {
     const name = String(payload.name || '').trim();
     if (!name) throw new AppError('Name is required', 'NAME_REQUIRED', 400);
 
+    // الرمز يُجزَّأ قبل الكتابة — لا يُخزَّن نصاً صريحاً (البند O20)
+    const createPinRecord = payload.pinCode ? await createPasswordRecord(String(payload.pinCode)) : null;
+
     const [inserted] = await this.db
       .insertInto('delivery_representatives')
       .values({
@@ -100,7 +104,8 @@ export class DeliveryRepsService {
         national_id: payload.nationalId || null,
         address: payload.address || null,
         vehicle_plate: payload.vehiclePlate || null,
-        pin_code: payload.pinCode || null,
+        pin_hash: createPinRecord?.hash ?? null,
+        pin_salt: createPinRecord?.salt ?? null,
         is_active: payload.isActive !== false,
         ...this.tenantFields(actor),
       } as any)
@@ -123,6 +128,8 @@ export class DeliveryRepsService {
       .executeTakeFirst();
     if (!existing) throw new AppError('Delivery representative not found', 'NOT_FOUND', 404);
 
+    const updatePinRecord = payload.pinCode ? await createPasswordRecord(String(payload.pinCode)) : null;
+
     await this.db
       .updateTable('delivery_representatives')
       .set({
@@ -132,7 +139,8 @@ export class DeliveryRepsService {
         national_id: payload.nationalId !== undefined ? (payload.nationalId || null) : undefined,
         address: payload.address !== undefined ? (payload.address || null) : undefined,
         vehicle_plate: payload.vehiclePlate !== undefined ? (payload.vehiclePlate || null) : undefined,
-        pin_code: payload.pinCode !== undefined ? (payload.pinCode || null) : undefined,
+        pin_hash: updatePinRecord ? updatePinRecord.hash : undefined,
+        pin_salt: updatePinRecord ? updatePinRecord.salt : undefined,
         is_active: payload.isActive !== undefined ? payload.isActive : undefined,
         updated_at: sql`NOW()`,
       } as any)
@@ -561,12 +569,22 @@ export class DeliveryRepsService {
 
     const reps = await repsQuery.execute();
 
-    const matchedReps = reps.filter((r) => {
-      if (!r.phone || !r.pin_code) return false;
+    // الهاتف يُرشَّح أولاً (مقارنة نصية رخيصة)، ثم يُتحقق من الـPIN بالتجزئة على
+    // المرشحين الباقين فقط — bcrypt مكلف ولا يصح تشغيله على كل المناديب.
+    const phoneMatches = reps.filter((r) => {
+      if (!r.phone || !r.pin_hash) return false;
       const rDigits = String(r.phone).replace(/\D/g, '');
       const rNoCountry = rDigits.startsWith('20') ? rDigits.slice(2) : (rDigits.startsWith('0') ? rDigits.slice(1) : rDigits);
-      return (rNoCountry === cleanNoCountry || rDigits === cleanDigits) && String(r.pin_code).trim() === pinCode;
+      return rNoCountry === cleanNoCountry || rDigits === cleanDigits;
     });
+
+    const pinChecks = await Promise.all(
+      phoneMatches.map(async (r) => {
+        const res = await verifyPassword(pinCode, String(r.pin_hash), String(r.pin_salt || ''));
+        return res.valid;
+      }),
+    );
+    const matchedReps = phoneMatches.filter((_, idx) => pinChecks[idx]);
 
     if (!matchedReps || matchedReps.length === 0) {
       throw new AppError('بيانات الدخول غير صحيحة أو حساب المندوب غير مفعّل', 'UNAUTHORIZED_DRIVER', 401);

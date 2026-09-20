@@ -4,6 +4,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
 import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
+import { createPasswordRecord, verifyPassword } from '../../core/auth/utils/password-hasher';
 import { getTenantTimezone, todayTenantDate, formatTimeInTimezone } from '../../common/utils/tenant-timezone.util';
 import {
   PORTAL_TOKEN_TTL_MS,
@@ -120,7 +121,8 @@ export class MobileAttendanceService {
         'e.display_name',
         'e.first_name',
         'e.last_name',
-        'e.pin_code',
+        'e.pin_hash',
+        'e.pin_salt',
         'e.mobile_punch_enabled',
         'e.tenant_id',
         'e.account_id',
@@ -169,10 +171,10 @@ export class MobileAttendanceService {
       empPhonesMap.set(eid, list);
     }
 
-    const matchedList = employees.filter((emp: any) => {
-      const pinsMatch = String(emp.pin_code || '').trim() === pinCode;
-      if (!pinsMatch) return false;
-
+    // الهاتف يُرشَّح أولاً (مقارنة نصية رخيصة) ثم يُتحقق من الـPIN بالتجزئة على
+    // المرشحين الباقين فقط — bcrypt مكلف، وتشغيله على كل موظفي كل المستأجرين
+    // يحوّل شاشة الدخول إلى عبء ثقيل.
+    const phoneMatches = employees.filter((emp: any) => {
       const phones = empPhonesMap.get(Number(emp.employee_id)) || [];
       return phones.some((p) => {
         const pDigits = p.replace(/\D/g, '');
@@ -184,6 +186,15 @@ export class MobileAttendanceService {
         return pDigits === cleanDigits || pNoCountry === cleanNoCountry;
       });
     });
+
+    const pinChecks = await Promise.all(
+      phoneMatches.map(async (emp: any) => {
+        if (!emp.pin_hash) return false;
+        const res = await verifyPassword(pinCode, String(emp.pin_hash), String(emp.pin_salt || ''));
+        return res.valid;
+      }),
+    );
+    const matchedList = phoneMatches.filter((_: any, idx: number) => pinChecks[idx]);
 
     if (!matchedList || matchedList.length === 0) {
       throw new AppError('بيانات الدخول غير صحيحة أو رمز الـ PIN غير مطابق', 'UNAUTHORIZED_EMPLOYEE', 401);
@@ -556,10 +567,13 @@ export class MobileAttendanceService {
       throw new AppError('رمز الـ PIN يجب أن يتكون من 4 أرقام على الأقل', 'INVALID_PIN', 400);
     }
 
+    const pinRecord = await createPasswordRecord(cleanPin);
+
     await this.anyDb
       .updateTable('hr_employees')
       .set({
-        pin_code: cleanPin,
+        pin_hash: pinRecord.hash,
+        pin_salt: pinRecord.salt,
         mobile_punch_enabled: true,
         updated_at: new Date(),
       })

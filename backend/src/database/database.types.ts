@@ -660,7 +660,8 @@ export interface DeliveryRepresentativeTable {
   national_id: string | null;
   address: string | null;
   vehicle_plate: string | null;
-  pin_code?: string | null;
+  pin_hash?: string | null;
+  pin_salt?: string | null;
   rep_type?: 'freelance' | 'store_fleet' | string | null;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -1330,6 +1331,8 @@ export interface HrEmployeeTable {
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_no: string;
+  pin_hash?: string | null;
+  pin_salt?: string | null;
   national_id: string | null;
   user_id: number | null;
   first_name: string;

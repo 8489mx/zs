@@ -73,7 +73,7 @@ export function EmployeeOverviewTab({
                 <div>
                   <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>رمز الدخول السريع (PIN) للبوابة والبصمة</span>
                   <strong style={{ fontSize: '0.85rem', color: '#0f172a', fontFamily: 'monospace', letterSpacing: '1px' }}>
-                    {employee?.pinCode || (employee as any)?.pin_code ? `•••• (${employee?.pinCode || (employee as any)?.pin_code})` : 'غير محدد حتى الآن'}
+                    {employee?.hasPinCode ? 'تم تعيينه' : 'غير محدد حتى الآن'}
                   </strong>
                 </div>
                 {canManageEmployees && (
