@@ -40,6 +40,12 @@ import {
 import { HrTreasuryAdapter } from './hr-treasury.adapter';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { getTenantTimezone, todayTenantDate, formatTimeInTimezone } from '../../common/utils/tenant-timezone.util';
+import {
+  AttendancePunchError,
+  resolveAttendancePunch,
+  startsNewSession,
+  type AttendancePunchResolution,
+} from './attendance-punch.engine';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 type MasterConfig = {
@@ -182,11 +188,6 @@ function normalizeAttendanceSource(value: unknown): 'manual' | 'import' | 'mobil
   if (c === 'import') return 'import';
   if (c === 'mobile_gps') return 'mobile_gps';
   return 'manual';
-}
-
-function todayUtcDate(): string {
-  const now = new Date();
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
 }
 
 function normalizeTimeOnly(value: unknown): string | null {
@@ -2845,124 +2846,125 @@ export class HrService {
   async upsertAttendanceRecord(payload: UpsertAttendanceRecordDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     const tenantTimezone = await getTenantTimezone(this.db, auth.tenantId);
-    const workDate = normalizeDateOnly(payload.workDate) || todayTenantDate(tenantTimezone);
-    if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
     const employeeId = toId(payload.employeeId);
     if (!employeeId) throw new AppError('Employee is required', 'HR_ATTENDANCE_EMPLOYEE_REQUIRED', 400);
     const status = normalizeAttendanceStatus(payload.status);
     if (status === 'unmarked') throw new AppError('Attendance status is invalid', 'HR_ATTENDANCE_STATUS_INVALID', 400);
 
-    let checkInAt: Date | null = null;
-    let checkOutAt: Date | null = null;
-
-    if (payload.useServerTime || payload.punchAction) {
-      // Server-enforced punch time (immune to client device clock tampering)
-      const now = new Date();
-      if (payload.punchAction === 'check_in') {
-        checkInAt = now;
-      } else if (payload.punchAction === 'check_out') {
-        checkOutAt = now;
-      } else if (payload.mode === 'new_session') {
-        checkInAt = now;
-      } else {
-        checkInAt = now;
-      }
-    } else {
-      checkInAt = payload.checkInAt ? new Date(payload.checkInAt) : null;
-      checkOutAt = payload.checkOutAt ? new Date(payload.checkOutAt) : null;
-      if ((checkInAt && Number.isNaN(checkInAt.getTime())) || (checkOutAt && Number.isNaN(checkOutAt.getTime()))) {
-        throw new AppError('Attendance check-in/out time is invalid', 'HR_ATTENDANCE_TIME_INVALID', 400);
-      }
+    let punch: AttendancePunchResolution;
+    try {
+      punch = resolveAttendancePunch(payload, tenantTimezone, normalizeDateOnly);
+    } catch (error) {
+      if (error instanceof AttendancePunchError) throw new AppError(error.message, error.code, 400);
+      throw error;
     }
+    const { checkInAt, checkOutAt, workDate } = punch;
+    if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
 
     const empCheck = await sql<{ status: string }>`SELECT status FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     if (empCheck.rows.length === 0 || empCheck.rows[0].status !== 'active') {
       throw new AppError('Employee is not active', 'HR_EMPLOYEE_NOT_ACTIVE', 400);
     }
 
-    const existingCheck = await sql<{ check_in_at: Date | null; check_out_at: Date | null; notes: string | null }>`
-      SELECT check_in_at, check_out_at, notes FROM hr_attendance_records 
-      WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
-    `.execute(this.db);
-    const hasExisting = existingCheck.rows.length > 0;
-    const existingRow = hasExisting ? existingCheck.rows[0] : null;
+    // قراءة ثم كتابة: لا بد من معاملة واحدة بقفل على صف اليوم، وإلا بصمتان متزامنتان
+    // (نقرة مزدوجة على زر البصمة، أو إعادة محاولة من الموبايل) تتجاوزان حارس
+    // "تم تسجيل الحضور بالفعل"، وبدء وردية جديدة مرتين يمحو وردية مكتملة بصمت — F1.
+    const auditEntry = await this.db.transaction().execute(async (trx) => {
+      const existingCheck = await sql<{ check_in_at: Date | null; check_out_at: Date | null; notes: string | null }>`
+        SELECT check_in_at, check_out_at, notes FROM hr_attendance_records
+        WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
+        FOR UPDATE
+      `.execute(trx);
+      const hasExisting = existingCheck.rows.length > 0;
+      const existingRow = hasExisting ? existingCheck.rows[0] : null;
 
-    if (payload.mode === 'cancel_checkout' && hasExisting) {
+      if (payload.mode === 'cancel_checkout' && hasExisting) {
+        await sql`
+          UPDATE hr_attendance_records
+          SET
+            check_out_at = NULL,
+            status = 'present',
+            updated_by = ${auth.userId},
+            updated_at = NOW()
+          WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
+        `.execute(trx);
+        await this.refreshAttendanceExceptionForEmployeeDate(trx, employeeId, workDate);
+        return {
+          action: 'Cancel HR attendance checkout',
+          detail: `Checkout cancelled for employee #${employeeId} on ${workDate} by ${auth.username}`,
+        };
+      }
+
+      const hasCompletedSession = Boolean(existingRow?.check_in_at && existingRow?.check_out_at);
+      if (startsNewSession(payload, hasCompletedSession)) {
+        const prevCheckIn = formatTimeInTimezone(existingRow!.check_in_at, tenantTimezone);
+        const prevCheckOut = formatTimeInTimezone(existingRow!.check_out_at, tenantTimezone);
+        const sessionNote = `وردية سابقة (${prevCheckIn} إلى ${prevCheckOut})`;
+        const combinedNotes = combineNotes(existingRow!.notes, sessionNote);
+
+        await sql`
+          UPDATE hr_attendance_records
+          SET
+            check_in_at = ${checkInAt ? checkInAt.toISOString() : new Date().toISOString()},
+            check_out_at = NULL,
+            status = 'present',
+            notes = ${combinedNotes},
+            source = ${normalizeAttendanceSource(payload.source)},
+            updated_by = ${auth.userId},
+            updated_at = NOW()
+          WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
+        `.execute(trx);
+        await this.refreshAttendanceExceptionForEmployeeDate(trx, employeeId, workDate);
+        return {
+          action: 'New attendance session for HR employee',
+          detail: `New session started for employee #${employeeId} on ${workDate} by ${auth.username}`,
+        };
+      }
+
+      if (checkInAt && !checkOutAt && hasExisting && existingRow?.check_in_at && !existingRow?.check_out_at) {
+        throw new AppError('Already checked in', 'HR_ATTENDANCE_ALREADY_CHECKED_IN', 400);
+      }
+
+      if (checkOutAt && !checkInAt && (!hasExisting || !existingRow?.check_in_at)) {
+        throw new AppError('Cannot check out without check in', 'HR_ATTENDANCE_NO_CHECK_IN', 400);
+      }
+
       await sql`
-        UPDATE hr_attendance_records
+        INSERT INTO hr_attendance_records (tenant_id, account_id, employee_id, work_date, status, check_in_at, check_out_at, source, notes, created_by, updated_by, created_at, updated_at)
+        VALUES (
+          ${auth.tenantId},
+          ${auth.accountId},
+          ${employeeId},
+          ${workDate}::date,
+          ${status},
+          ${checkInAt ? checkInAt.toISOString() : null},
+          ${checkOutAt ? checkOutAt.toISOString() : null},
+          ${normalizeAttendanceSource(payload.source)},
+          ${clean(payload.notes) || null},
+          ${auth.userId},
+          ${auth.userId},
+          NOW(),
+          NOW()
+        )
+        ON CONFLICT (tenant_id, employee_id, work_date) DO UPDATE
         SET
-          check_out_at = NULL,
-          status = 'present',
+          status = EXCLUDED.status,
+          check_in_at = COALESCE(EXCLUDED.check_in_at, hr_attendance_records.check_in_at),
+          check_out_at = COALESCE(EXCLUDED.check_out_at, hr_attendance_records.check_out_at),
+          source = EXCLUDED.source,
+          notes = EXCLUDED.notes,
           updated_by = ${auth.userId},
           updated_at = NOW()
-        WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
-      `.execute(this.db);
-      await this.refreshAttendanceExceptionForEmployeeDate(this.db, employeeId, workDate);
-      await this.audit.log('Cancel HR attendance checkout', `Checkout cancelled for employee #${employeeId} on ${workDate} by ${auth.username}`, auth);
-      return this.listAttendance({ date: workDate }, auth);
-    }
+      `.execute(trx);
+      await this.refreshAttendanceExceptionForEmployeeDate(trx, employeeId, workDate);
 
-    if ((payload.mode === 'new_session' || payload.allowRecheckin) && hasExisting && existingRow?.check_in_at && existingRow?.check_out_at) {
-      const prevCheckIn = formatTimeInTimezone(existingRow.check_in_at, tenantTimezone);
-      const prevCheckOut = formatTimeInTimezone(existingRow.check_out_at, tenantTimezone);
-      const sessionNote = `وردية سابقة (${prevCheckIn} إلى ${prevCheckOut})`;
-      const combinedNotes = combineNotes(existingRow.notes, sessionNote);
+      return {
+        action: 'Upsert HR attendance record',
+        detail: `Attendance record saved for employee #${employeeId} on ${workDate} by ${auth.username}`,
+      };
+    });
 
-      await sql`
-        UPDATE hr_attendance_records
-        SET
-          check_in_at = ${checkInAt ? checkInAt.toISOString() : new Date().toISOString()},
-          check_out_at = NULL,
-          status = 'present',
-          notes = ${combinedNotes},
-          source = ${normalizeAttendanceSource(payload.source)},
-          updated_by = ${auth.userId},
-          updated_at = NOW()
-        WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
-      `.execute(this.db);
-      await this.refreshAttendanceExceptionForEmployeeDate(this.db, employeeId, workDate);
-      await this.audit.log('New attendance session for HR employee', `New session started for employee #${employeeId} on ${workDate} by ${auth.username}`, auth);
-      return this.listAttendance({ date: workDate }, auth);
-    }
-
-    if (checkInAt && !checkOutAt && hasExisting && existingCheck.rows[0].check_in_at && !existingCheck.rows[0].check_out_at) {
-      throw new AppError('Already checked in', 'HR_ATTENDANCE_ALREADY_CHECKED_IN', 400);
-    }
-
-    if (checkOutAt && !checkInAt && (!hasExisting || !existingCheck.rows[0].check_in_at)) {
-      throw new AppError('Cannot check out without check in', 'HR_ATTENDANCE_NO_CHECK_IN', 400);
-    }
-
-    await sql`
-      INSERT INTO hr_attendance_records (tenant_id, account_id, employee_id, work_date, status, check_in_at, check_out_at, source, notes, created_by, updated_by, created_at, updated_at)
-      VALUES (
-        ${auth.tenantId},
-        ${auth.accountId},
-        ${employeeId},
-        ${workDate}::date,
-        ${status},
-        ${checkInAt ? checkInAt.toISOString() : null},
-        ${checkOutAt ? checkOutAt.toISOString() : null},
-        ${normalizeAttendanceSource(payload.source)},
-        ${clean(payload.notes) || null},
-        ${auth.userId},
-        ${auth.userId},
-        NOW(),
-        NOW()
-      )
-      ON CONFLICT (tenant_id, employee_id, work_date) DO UPDATE
-      SET
-        status = EXCLUDED.status,
-        check_in_at = COALESCE(EXCLUDED.check_in_at, hr_attendance_records.check_in_at),
-        check_out_at = COALESCE(EXCLUDED.check_out_at, hr_attendance_records.check_out_at),
-        source = EXCLUDED.source,
-        notes = EXCLUDED.notes,
-        updated_by = ${auth.userId},
-        updated_at = NOW()
-    `.execute(this.db);
-    await this.refreshAttendanceExceptionForEmployeeDate(this.db, employeeId, workDate);
-
-    await this.audit.log('Upsert HR attendance record', `Attendance record saved for employee #${employeeId} on ${workDate} by ${auth.username}`, auth);
+    await this.audit.log(auditEntry.action, auditEntry.detail, auth);
     return this.listAttendance({ date: workDate }, auth);
   }
 

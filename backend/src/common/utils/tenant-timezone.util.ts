@@ -34,32 +34,37 @@ export async function getTenantTimezone(
     return cached.timezone;
   }
 
+  let row: { rows: Array<{ value: unknown }> };
   try {
-    const row = await sql<{ value: unknown }>`
+    row = await sql<{ value: unknown }>`
       SELECT value FROM settings
       WHERE tenant_id = ${tenantId} AND key = 'timezone'
       LIMIT 1
     `.execute(db);
-
-    if (row.rows.length > 0 && row.rows[0].value) {
-      let rawVal = row.rows[0].value;
-      if (typeof rawVal === 'string') {
-        try {
-          rawVal = JSON.parse(rawVal);
-        } catch {
-          // already a raw string
-        }
-      }
-      const tzCandidate = String(rawVal || '').trim();
-      if (isValidTimezone(tzCandidate)) {
-        timezoneCache.set(tenantId, { timezone: tzCandidate, expiresAt: Date.now() + CACHE_TTL_MS });
-        return tzCandidate;
-      }
-    }
   } catch {
-    // If settings table query fails, fallback safely
+    // عطل عابر في القاعدة: نرجع للقيمة الاحتياطية لهذا الطلب فقط و**لا نخزّنها**.
+    // تخزينها كان يثبّت التوقيت الخطأ 5 دقائق كاملة بعد عطل لحظي — وقرب منتصف
+    // الليل ذلك يعني كتابة `work_date` بيوم خاطئ يذهب مباشرة لمسيّر الرواتب.
+    return fallback;
   }
 
+  if (row.rows.length > 0 && row.rows[0].value) {
+    let rawVal = row.rows[0].value;
+    if (typeof rawVal === 'string') {
+      try {
+        rawVal = JSON.parse(rawVal);
+      } catch {
+        // already a raw string
+      }
+    }
+    const tzCandidate = String(rawVal || '').trim();
+    if (isValidTimezone(tzCandidate)) {
+      timezoneCache.set(tenantId, { timezone: tzCandidate, expiresAt: Date.now() + CACHE_TTL_MS });
+      return tzCandidate;
+    }
+  }
+
+  // الاستعلام نجح ولا يوجد إعداد صالح — تخزين القيمة الاحتياطية هنا صحيح ومقصود.
   timezoneCache.set(tenantId, { timezone: fallback, expiresAt: Date.now() + CACHE_TTL_MS });
   return fallback;
 }

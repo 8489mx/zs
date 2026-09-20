@@ -8,6 +8,7 @@ import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { formatBranchStockLocationName } from '../../common/utils/branch-stock.util';
 import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
+import { invalidateTenantTimezoneCache } from '../../common/utils/tenant-timezone.util';
 import { getIndustryProfile, normalizeIndustryProfileKey, listSupportedIndustryProfiles, type IndustryProfile } from '../../core/tenant/industry-profiles';
 
 @Injectable()
@@ -57,6 +58,10 @@ export class SettingsService {
     } else {
       this._settingsCache.clear();
     }
+    // `settings.timezone` له كاش منفصل عمره 5 دقائق داخل `tenant-timezone.util`،
+    // وهو مصدر `work_date` للحضور. بدون إبطاله هنا يظل تغيير المنطقة الزمنية بلا
+    // أثر حتى تنتهي المهلة — وقرب منتصف الليل يُكتب الحضور بيوم خاطئ.
+    invalidateTenantTimezoneCache(tenantId);
   }
 
   invalidateBranchesCache(tenantId?: string) {
