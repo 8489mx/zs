@@ -385,6 +385,7 @@ export class ImportSalesService {
           landed_cost_egp: unitLandedEgp
         })
         .where('id', '=', item.id)
+        .where('tenant_id', '=', tenantId)
         .execute();
     }
     

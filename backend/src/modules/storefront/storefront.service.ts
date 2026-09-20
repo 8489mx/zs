@@ -684,6 +684,7 @@ export class StorefrontService {
             .updateTable('online_orders')
             .set({ sale_id: sid })
             .where('id', '=', insertedOrder.id)
+            .where('tenant_id', '=', tenant.id)
             .execute();
         }
       } catch {
@@ -2138,6 +2139,7 @@ export class StorefrontService {
           updated_at: new Date(),
         })
         .where('id', '=', recent.id)
+        .where('tenant_id', '=', tenant.id)
         .execute();
       return { ok: true, cartId: recent.id };
     }

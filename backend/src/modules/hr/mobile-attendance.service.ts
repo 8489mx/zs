@@ -454,6 +454,7 @@ export class MobileAttendanceService {
             updated_at: now,
           })
           .where('id', '=', existing.id)
+          .where('tenant_id', '=', user.tenantId)
           .execute();
       } else {
         await this.anyDb
@@ -510,6 +511,7 @@ export class MobileAttendanceService {
           updated_at: now,
         })
         .where('id', '=', existing.id)
+        .where('tenant_id', '=', user.tenantId)
         .execute();
 
       return {

@@ -2135,6 +2135,7 @@ export class AccountingPostingService {
         .updateTable('accounting_accounts')
         .set({ is_active: true, updated_at: sql`NOW()` })
         .where('id', '=', Number(account.id))
+        .where('tenant_id', '=', tenantId)
         .execute();
     }
     return Number(account.id);

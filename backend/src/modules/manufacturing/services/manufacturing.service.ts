@@ -778,6 +778,7 @@ export class ManufacturingService {
           updated_at: sql`NOW()`,
         } as any)
         .where('id', '=', unbuildId)
+        .where('tenant_id', '=', scope.tenantId)
         .execute();
     });
 

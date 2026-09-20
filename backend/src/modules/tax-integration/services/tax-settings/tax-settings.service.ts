@@ -42,6 +42,7 @@ export class TaxSettingsService {
           updated_at: new Date()
         })
         .where('id', '=', existing.id)
+        .where('tenant_id', '=', tenantId)
         .returningAll()
         .executeTakeFirstOrThrow();
       return updated;

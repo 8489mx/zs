@@ -1328,6 +1328,7 @@ export class CatalogProductService {
             .updateTable('product_categories')
             .set({ is_active: true })
             .where('id', '=', existingCategory.id)
+            .where('tenant_id', '=', tenantId)
             .execute();
         }
         payload.categoryId = Number(existingCategory.id);

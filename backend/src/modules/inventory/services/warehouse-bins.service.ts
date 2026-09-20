@@ -434,6 +434,7 @@ export class WarehouseBinsService {
           updated_at: sql`NOW()`,
         } as any)
         .where('id', '=', existing.id)
+        .where('tenant_id', '=', scope.tenantId)
         .execute();
     } else {
       await this.db
@@ -488,6 +489,7 @@ export class WarehouseBinsService {
           updated_at: sql`NOW()`,
         } as any)
         .where('id', '=', allocation.id)
+        .where('tenant_id', '=', scope.tenantId)
         .execute();
     } else {
       await this.db

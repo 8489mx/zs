@@ -176,6 +176,7 @@ export class MaritimeAutomationSchedulerService implements OnApplicationBootstra
               updated_at: sql`NOW()`,
             })
             .where('id', '=', c.id as any)
+            .where('tenant_id', '=', c.tenant_id)
             .execute();
         } else {
           // Within safe or warning window
@@ -189,6 +190,7 @@ export class MaritimeAutomationSchedulerService implements OnApplicationBootstra
                 updated_at: sql`NOW()`,
               })
               .where('id', '=', c.id as any)
+              .where('tenant_id', '=', c.tenant_id)
               .execute();
           }
 

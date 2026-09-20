@@ -275,6 +275,7 @@ export class ZatcaPhase2Service {
           updated_at: new Date(),
         })
         .where('id', '=', egs.id)
+        .where('tenant_id', '=', tenantId)
         .execute();
 
       // 5. Save ZATCA audit details on the sale record
@@ -290,6 +291,7 @@ export class ZatcaPhase2Service {
           zatca_ubl_xml: ublXml,
         } as any)
         .where('id', '=', sale.id)
+        .where('tenant_id', '=', tenantId)
         .execute();
 
       return {

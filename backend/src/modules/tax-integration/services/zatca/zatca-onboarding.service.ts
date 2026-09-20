@@ -153,6 +153,7 @@ export class ZatcaOnboardingService {
           updated_at: new Date(),
         })
         .where('id', '=', egs.id)
+        .where('tenant_id', '=', tenantId)
         .execute();
 
       return {
@@ -218,6 +219,7 @@ export class ZatcaOnboardingService {
           updated_at: new Date(),
         })
         .where('id', '=', egs.id)
+        .where('tenant_id', '=', tenantId)
         .execute();
 
       return {

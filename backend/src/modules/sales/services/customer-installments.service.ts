@@ -548,6 +548,7 @@ export class CustomerInstallmentsService {
           updated_at: new Date(),
         } as any)
         .where('id', '=', Number(installmentId))
+        .where('tenant_id', '=', scope.tenantId)
         .returningAll()
         .executeTakeFirstOrThrow();
 

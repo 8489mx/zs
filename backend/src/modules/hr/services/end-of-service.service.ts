@@ -304,6 +304,7 @@ export class EndOfServiceService {
         .updateTable('hr_end_of_service_settlements')
         .set({ settlement_no: settlementNo })
         .where('id', '=', inserted.id)
+        .where('tenant_id', '=', tenantId)
         .execute();
       inserted.settlement_no = settlementNo;
 

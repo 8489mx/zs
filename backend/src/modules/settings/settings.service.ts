@@ -488,7 +488,7 @@ export class SettingsService {
       }).returning('id').executeTakeFirstOrThrow();
 
       // 4. Update branch with default stock location id
-      await trx.updateTable('branches').set({ default_stock_location_id: newLocation.id }).where('id', '=', newBranch.id).execute();
+      await trx.updateTable('branches').set({ default_stock_location_id: newLocation.id }).where('id', '=', newBranch.id).where('tenant_id', '=', scope.tenantId).execute();
 
       return newBranch;
     });
@@ -561,7 +561,7 @@ export class SettingsService {
         const defaultLocation = await trx.selectFrom('stock_locations').select(['id', 'name', 'location_type']).where('id', '=', branch.default_stock_location_id).where(this.tenantPredicate(actor)).executeTakeFirst();
         if (defaultLocation) {
           const expectedNewName = formatBranchStockLocationName(name);
-          await trx.updateTable('stock_locations').set({ name: expectedNewName }).where('id', '=', defaultLocation.id).execute();
+          await trx.updateTable('stock_locations').set({ name: expectedNewName }).where('id', '=', defaultLocation.id).where('tenant_id', '=', scope.tenantId).execute();
         }
       }
     });

@@ -449,6 +449,7 @@ export class TrialTenantProvisioningService {
         .updateTable('branches')
         .set({ default_stock_location_id: locationId })
         .where('id', '=', branchId)
+        .where('tenant_id', '=', tenantId)
         .execute();
 
       // 3. Create Tenant Admin User with default branch

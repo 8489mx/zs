@@ -534,6 +534,7 @@ export class MaritimeFreightService {
         .updateTable('maritime_inquiries')
         .set({ inquiry_number: finalNumber })
         .where('id', '=', inquiry.id)
+        .where('tenant_id', '=', tenantId)
         .returningAll()
         .execute();
 
@@ -711,6 +712,7 @@ export class MaritimeFreightService {
         .updateTable('maritime_rfqs')
         .set({ rfq_number: finalNumber })
         .where('id', '=', rfq.id)
+        .where('tenant_id', '=', tenantId)
         .returningAll()
         .execute();
 
@@ -1400,6 +1402,7 @@ export class MaritimeFreightService {
         .updateTable('maritime_quotations')
         .set({ quotation_number: finalNumber })
         .where('id', '=', quote.id)
+        .where('tenant_id', '=', tenantId)
         .returningAll()
         .execute();
 
@@ -1565,6 +1568,7 @@ export class MaritimeFreightService {
           cost_center_id: costCenterId,
         })
         .where('id', '=', job.id)
+        .where('tenant_id', '=', tenantId)
         .returningAll()
         .execute();
 
@@ -1938,6 +1942,7 @@ export class MaritimeFreightService {
               updated_at: sql`NOW()`,
             })
             .where('id', '=', c.id as any)
+            .where('tenant_id', '=', tenantId)
             .execute();
         }
       }
@@ -2521,6 +2526,7 @@ export class MaritimeFreightService {
       .updateTable('maritime_rfqs')
       .set({ status: 'bids_received', updated_at: sql`NOW()` })
       .where('id', '=', rfqId as any)
+      .where('tenant_id', '=', rfq.tenant_id)
       .execute();
 
     return bid;
@@ -2597,6 +2603,7 @@ export class MaritimeFreightService {
             .updateTable('maritime_jobs')
             .set({ cost_center_id: String(costCenterId) })
             .where('id', '=', job.id as any)
+            .where('tenant_id', '=', tenantId)
             .execute();
         }
       } catch {
@@ -2757,6 +2764,7 @@ export class MaritimeFreightService {
             .updateTable('maritime_jobs')
             .set({ cost_center_id: String(costCenterId) })
             .where('id', '=', job.id as any)
+            .where('tenant_id', '=', tenantId)
             .execute();
         }
       } catch {
@@ -4582,6 +4590,7 @@ export class MaritimeFreightService {
         .updateTable('maritime_warehouse_receipts')
         .set({ receipt_number: finalNumber })
         .where('id', '=', receipt.id)
+        .where('tenant_id', '=', tenantId)
         .returningAll()
         .execute();
 
