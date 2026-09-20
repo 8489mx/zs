@@ -48,8 +48,17 @@ export function ContractingMaterialsTab({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
       {/* هيدر التبويب */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          width: '100%',
+        }}
+      >
+        <div style={{ minWidth: '280px', flex: '1 1 auto' }}>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
             أذون صرف وتخصيص الخامات للمشروع (Site Material Requisitions)
           </h2>
@@ -57,7 +66,7 @@ export function ContractingMaterialsTab({
             {projectName ? `المشروع: ${projectName}` : 'حصر الخامات والمواد المنصرفة من المخازن وتحميل تكلفتها على بنود المقايسة'}
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={() => setIsSupplierReturnsOpen(true)}

@@ -115,9 +115,18 @@ export function ContractingInvoicesTab({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
-      {/* هيدر التبويب وفلتر نوع المستخلص */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
+      {/* هيدر التبويب */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          width: '100%',
+        }}
+      >
+        <div style={{ minWidth: '280px', flex: '1 1 auto' }}>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
             المستخلصات وشهادات الدفع الجارية (Interim Payment Certificates - IPC)
           </h2>
@@ -125,7 +134,7 @@ export function ContractingInvoicesTab({
             {project ? `المشروع: ${project.name}` : 'مطابقة الأعمال المنفذة، التشوينات بالموقع، واحتساب الاستقطاعات النظامية'}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           {/* فلتر العميل / مقاولي الباطن */}
           <div style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: '8px', padding: '3px', border: '1px solid #e2e8f0' }}>
             <button

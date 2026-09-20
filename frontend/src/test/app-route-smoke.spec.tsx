@@ -43,6 +43,8 @@ describe('app route smoke', () => {
     await renderAppAt('/accounts');
     expect((await screen.findAllByText(/الحسابات/, undefined, queryTimeout)).length).toBeGreaterThan(0);
     expect((await screen.findAllByText('عميل الآجل', undefined, queryTimeout)).length).toBeGreaterThan(0);
-    expect(await screen.findByRole('heading', { name: 'تحصيل من عميل' }, queryTimeout)).toBeInTheDocument();
+    // The card title is activity-aware now ('سند قبض / تحصيل من عميل' for retail,
+    // with contracting/maritime wording elsewhere), so match on the stable part.
+    expect(await screen.findByRole('heading', { name: /تحصيل من عميل/ }, queryTimeout)).toBeInTheDocument();
   });
 });

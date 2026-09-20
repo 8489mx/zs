@@ -71,8 +71,17 @@ export function ContractingSubcontractsTab({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
       {/* هيدر التبويب */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          width: '100%',
+        }}
+      >
+        <div style={{ minWidth: '280px', flex: '1 1 auto' }}>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
             إسناد أعمال مقاولي الباطن والالتزامات (Subcontract Commitments)
           </h2>
@@ -80,14 +89,14 @@ export function ContractingSubcontractsTab({
             {projectName ? `المشروع: ${projectName}` : 'إدارة أوامر الإسناد، نسب الحجز، ونطاق الأعمال الموكولة للمقاولين'}
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
           {/* دليل وسجل مقاولي الباطن */}
           <button
             type="button"
             onClick={() => setIsSubcontractorsDirectoryOpen(true)}
             style={{
-              height: '36px',
-              padding: '0 14px',
+              height: '34px',
+              padding: '0 12px',
               borderRadius: '8px',
               fontWeight: 600,
               background: '#ffffff',
@@ -99,6 +108,7 @@ export function ContractingSubcontractsTab({
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
               boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              whiteSpace: 'nowrap',
             }}
           >
             <AppIcons.Users size={15} />
@@ -113,8 +123,8 @@ export function ContractingSubcontractsTab({
               setIsPaymentModalOpen(true);
             }}
             style={{
-              height: '36px',
-              padding: '0 14px',
+              height: '34px',
+              padding: '0 12px',
               borderRadius: '8px',
               fontWeight: 600,
               background: '#ffffff',
@@ -126,6 +136,7 @@ export function ContractingSubcontractsTab({
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
               boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              whiteSpace: 'nowrap',
             }}
           >
             <AppIcons.CreditCard size={15} />
@@ -140,8 +151,8 @@ export function ContractingSubcontractsTab({
               setIsGuaranteesDirectoryOpen(true);
             }}
             style={{
-              height: '36px',
-              padding: '0 14px',
+              height: '34px',
+              padding: '0 12px',
               borderRadius: '8px',
               fontWeight: 600,
               background: '#ffffff',
@@ -153,6 +164,7 @@ export function ContractingSubcontractsTab({
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
               boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              whiteSpace: 'nowrap',
             }}
           >
             <AppIcons.CheckShield size={15} />
@@ -164,8 +176,8 @@ export function ContractingSubcontractsTab({
             type="button"
             onClick={() => setIsRetentionModalOpen(true)}
             style={{
-              height: '36px',
-              padding: '0 14px',
+              height: '34px',
+              padding: '0 12px',
               borderRadius: '8px',
               fontWeight: 600,
               background: '#ffffff',
@@ -176,7 +188,8 @@ export function ContractingSubcontractsTab({
               gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
-              transition: 'all 0.15s ease',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              whiteSpace: 'nowrap',
             }}
           >
             <AppIcons.ShieldCheck size={15} />
@@ -188,8 +201,8 @@ export function ContractingSubcontractsTab({
             type="button"
             onClick={() => setIsPaymentHoldsOpen(true)}
             style={{
-              height: '36px',
-              padding: '0 14px',
+              height: '34px',
+              padding: '0 12px',
               borderRadius: '8px',
               fontWeight: 600,
               background: '#ffffff',
@@ -200,7 +213,8 @@ export function ContractingSubcontractsTab({
               gap: '6px',
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
-              transition: 'all 0.15s ease',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              whiteSpace: 'nowrap',
             }}
           >
             <AppIcons.AlertTriangle size={15} />
@@ -212,8 +226,8 @@ export function ContractingSubcontractsTab({
             type="button"
             onClick={onNewSubcontract}
             style={{
-              height: '36px',
-              padding: '0 16px',
+              height: '34px',
+              padding: '0 14px',
               borderRadius: '8px',
               fontWeight: 700,
               background: '#170e5e',
@@ -225,7 +239,7 @@ export function ContractingSubcontractsTab({
               cursor: 'pointer',
               fontSize: 'var(--font-body)',
               boxShadow: '0 1px 3px rgba(23, 14, 94, 0.15)',
-              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
             }}
           >
             <AppIcons.Plus size={15} />

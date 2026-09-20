@@ -14,6 +14,7 @@ import { ProductsTableCard } from '@/features/products/components/ProductsTableC
 import { PurchasesTable } from '@/features/purchases/components/PurchasesTable';
 import { PurchaseDetailCard } from '@/features/purchases/components/PurchaseDetailCard';
 import { Card } from '@/shared/ui/card';
+import { useAuthStore } from '@/stores/auth-store';
 
 beforeEach(() => {
   installGlobalAppFetchMock();
@@ -81,7 +82,29 @@ const purchaseFixture: Purchase = {
   ],
 };
 
+function seedPlatformUser() {
+  // SettingsSectionTabs filters every tab through canAccessPath(user, ...), so without a
+  // signed-in user in the store the shell renders zero navigation links.
+  useAuthStore.setState({
+    user: {
+      id: 'u-root',
+      username: 'root',
+      role: 'super_admin',
+      permissions: [],
+      displayName: 'Root',
+      branchIds: ['branch-1'],
+      defaultBranchId: 'branch-1',
+      tenantId: 'default',
+      accountId: 'default',
+    },
+    storeName: 'متجر تجريبي',
+    theme: 'light',
+    initialized: true,
+  });
+}
+
 function renderSettingsShell(currentSection: 'core' | 'reference' | 'users' | 'backup', children: React.ReactNode) {
+  seedPlatformUser();
   return render(
     <MemoryRouter initialEntries={[`/settings/${currentSection}`]}>
       <AppProviders>
@@ -172,10 +195,11 @@ describe('app ui coverage', () => {
     expect((await screen.findAllByText('ملخص اليوم')).length).toBeGreaterThan(0);
     expect(await screen.findByText('مبيعات اليوم')).toBeInTheDocument();
     expect(await screen.findByText('صافي الخزينة')).toBeInTheDocument();
-    expect(await screen.findByText('أهم ما يحتاج مراجعة الآن')).toBeInTheDocument();
-    expect(await screen.findByText('قرارات تحتاج مراجعة')).toBeInTheDocument();
-    expect(await screen.findByText('أعلى أصناف اليوم')).toBeInTheDocument();
-    expect(await screen.findByText('تنبيهات المخزون والحسابات')).toBeInTheDocument();
+    // Section titles after the dashboard redesign (see DashboardPage.tsx / DashboardSummaryGrid.tsx).
+    expect(await screen.findByText('تنبيهات عاجلة وموجز تنفيذي')).toBeInTheDocument();
+    expect(await screen.findByText('مركز اتخاذ القرارات')).toBeInTheDocument();
+    expect((await screen.findAllByText('أعلى أصناف اليوم مبيعاً')).length).toBeGreaterThan(0);
+    expect(await screen.findByText('الحسابات والمخزون')).toBeInTheDocument();
     expect(screen.queryByText('المبيعات اليومية · آخر 7 أيام')).not.toBeInTheDocument();
     expect(screen.queryByText('المشتريات اليومية · آخر 7 أيام')).not.toBeInTheDocument();
   });
@@ -193,11 +217,15 @@ describe('app ui coverage', () => {
       />,
     );
     expect(await screen.findByRole('heading', { level: 1, name: 'إعدادات النشاط' })).toBeInTheDocument();
-    expect(await screen.findByRole('link', { name: 'إعدادات النظام' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { level: 3, name: 'إعدادات النظام' })).toBeInTheDocument();
-    expect(await screen.findByText('الإعدادات العامة')).toBeInTheDocument();
-    expect(await screen.findByText('الفرع الرئيسي')).toBeInTheDocument();
-    expect(await screen.findByText('المخزن الأساسي')).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'إعدادات النظام الأساسية' })).toBeInTheDocument();
+    // The settings form renders its section captions as plain text, not headings (a11y gap,
+    // open item O30), so the caption below is asserted by text rather than by heading role.
+    // The core settings form is tabbed now; assert the section caption, its first tab, and
+    // that the seeded store/branch fixture actually reached the form.
+    expect(await screen.findByText('تخصيص المنظومة والنشاط')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'عام' })).toBeInTheDocument();
+    expect(await screen.findByText('الفرع الرئيسي ومخازن ونمط الكاشير')).toBeInTheDocument();
+    expect((await screen.findAllByText('متجر تجريبي')).length).toBeGreaterThan(0);
 
     cleanup();
     installGlobalAppFetchMock();
@@ -231,9 +259,10 @@ describe('app ui coverage', () => {
         locationActionBusy={false}
       />,
     );
-    expect(await screen.findByRole('link', { name: 'المخازن' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { level: 3, name: 'الفروع' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { level: 3, name: 'المواقع' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'الفروع وأماكن التخزين' })).toBeInTheDocument();
+    // Both section headings now carry a live count suffix, e.g. 'الفروع (1)'.
+    expect(await screen.findByRole('heading', { level: 3, name: /^الفروع \(\d+\)$/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 3, name: /^المخازن والمواقع \(\d+\)$/ })).toBeInTheDocument();
 
     cleanup();
     installGlobalAppFetchMock();
@@ -290,15 +319,22 @@ describe('app ui coverage', () => {
         downloadTemplate={() => undefined}
       />,
     );
-    expect(await screen.findByRole('link', { name: 'النسخ والاستيراد' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'النسخ والبيانات والصيانة' })).toBeInTheDocument();
     expect(
-      await screen.findByRole('button', { name: 'تنزيل نسخة احتياطية الآن' })
+      await screen.findByRole('button', { name: /تنزيل نسخة احتياطية/ })
     ).toBeInTheDocument();
   });
 
   it('covers products table interactions', async () => {
     const user = userEvent.setup();
-    render(<ProductsTableHarness />);
+    // ProductsTableCard renders <CurrencySymbol/>, which reads settings through React Query.
+    render(
+      <MemoryRouter>
+        <AppProviders>
+          <ProductsTableHarness />
+        </AppProviders>
+      </MemoryRouter>,
+    );
     expect(screen.getByText('مياه معدنية')).toBeInTheDocument();
     await user.click(screen.getByText('مياه معدنية'));
     expect(await screen.findByText('تم فتح وضع التعديل')).toBeInTheDocument();
@@ -314,8 +350,15 @@ describe('app ui coverage', () => {
       </MemoryRouter>,
     );
     await user.click(screen.getByText('فتح تفاصيل اختبارية'));
-    const detailCard = screen.getByRole('heading', { level: 3, name: 'تفاصيل PO-1001' }).closest('section') ?? document.body;
-    expect(within(detailCard).getByText('مورد رئيسي')).toBeInTheDocument();
-    expect(within(detailCard).getByText('مياه معدنية')).toBeInTheDocument();
+    // PurchaseDetailCard's root is a <div class="purchase-detail-card-shell"> now, not a
+    // <section>, so scoping via closest('section') silently fell back to document.body and
+    // matched the same supplier name in the table row as well.
+    const detailCard = screen
+      .getByRole('heading', { level: 3, name: 'تفاصيل PO-1001' })
+      .closest('.purchase-detail-card-shell');
+    expect(detailCard).not.toBeNull();
+    expect(within(detailCard as HTMLElement).getByText('مورد رئيسي')).toBeInTheDocument();
+    // The detail card renders the line items twice: a desktop table plus the mobile card list.
+    expect(within(detailCard as HTMLElement).getAllByText('مياه معدنية').length).toBeGreaterThan(0);
   });
 });

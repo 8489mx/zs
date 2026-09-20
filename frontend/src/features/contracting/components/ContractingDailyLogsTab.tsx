@@ -29,8 +29,17 @@ export function ContractingDailyLogsTab({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
       {/* هيدر التبويب */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          width: '100%',
+        }}
+      >
+        <div style={{ minWidth: '280px', flex: '1 1 auto' }}>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
             يوميات وتقارير الموقع الميدانية (Site Daily Diary Logs)
           </h2>
@@ -38,7 +47,7 @@ export function ContractingDailyLogsTab({
             {projectName ? `المشروع: ${projectName}` : 'توثيق العمالة الميدانية، المعدات، التوريدات، والإنجاز اليومي للأعمال'}
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {/* يوميات العمالة الميدانية */}
           <button
             type="button"

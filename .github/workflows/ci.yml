@@ -131,6 +131,9 @@ jobs:
           npm run qa:composition
           npm run qa:architecture
         working-directory: frontend
+      - name: Frontend regression guards (component and route specs)
+        run: npm run test:run
+        working-directory: frontend
       - name: Build frontend (type-check + bundle)
         run: npm run build
         working-directory: frontend

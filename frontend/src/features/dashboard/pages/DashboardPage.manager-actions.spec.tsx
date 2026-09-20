@@ -1,7 +1,9 @@
+import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
+import { createTestQueryClient } from '@/test/test-query-client';
 
 const dashboardOverview = {
   range: { from: '2026-04-27T00:00:00.000Z', to: '2026-04-27T23:59:59.999Z' },
@@ -141,7 +143,13 @@ describe('Dashboard daily home layout', () => {
       error: null,
     });
 
-    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    // The dashboard now renders <CurrencySymbol/>, which reads settings through React Query,
+    // so the page needs a QueryClientProvider even though its own data hooks are mocked.
+    render(
+      <QueryClientProvider client={createTestQueryClient()}>
+        <MemoryRouter><DashboardPage /></MemoryRouter>
+      </QueryClientProvider>,
+    );
 
     expect(screen.getAllByText('ملخص اليوم').length).toBeGreaterThan(0);
     expect(screen.getByText('مبيعات اليوم')).toBeInTheDocument();

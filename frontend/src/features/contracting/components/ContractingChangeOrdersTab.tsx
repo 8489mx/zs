@@ -66,8 +66,17 @@ export function ContractingChangeOrdersTab({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
       {/* هيدر التبويب */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          width: '100%',
+        }}
+      >
+        <div style={{ minWidth: '280px', flex: '1 1 auto' }}>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
             الأوامر التغييرية والمطالبات (Change Orders & Variations)
           </h2>

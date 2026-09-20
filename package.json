@@ -6,7 +6,7 @@
   "scripts": {
     "guards": "npm run guards:backend && npm run guards:frontend",
     "guards:backend": "npm --prefix backend run test:infra",
-    "guards:frontend": "npm --prefix frontend run qa:functional && npm --prefix frontend run qa:api && npm --prefix frontend run qa:contracts && npm --prefix frontend run qa:routes && npm --prefix frontend run qa:composition && npm --prefix frontend run qa:architecture",
+    "guards:frontend": "npm --prefix frontend run qa:functional && npm --prefix frontend run qa:api && npm --prefix frontend run qa:contracts && npm --prefix frontend run qa:routes && npm --prefix frontend run qa:composition && npm --prefix frontend run qa:architecture && npm --prefix frontend run test:run",
     "start": "node hostinger-api-entry.cjs",
     "install:all": "npm --prefix backend ci && npm --prefix frontend ci",
     "build": "node ./scripts/build-root.cjs",
