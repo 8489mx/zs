@@ -15,8 +15,10 @@ import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
 import { SettingsDemoDataService } from '../settings/services/settings-demo-data.service';
 import { SettingsService } from '../settings/settings.service';
+import { PLAN_MANAGED_MODULES_SETTING_KEY } from '../../common/constants/platform-settings-keys';
 
 type TenantStatus = 'trial' | 'active' | 'expired' | 'suspended';
+
 
 @Injectable()
 export class SaasAdminService {
@@ -1202,6 +1204,25 @@ export class SaasAdminService {
         modulesToSet['weightedBarcodeEnabled'] = true;
       }
 
+      // --- Revoke what this sync itself granted, and nothing else.
+      //
+      // These `*ModuleEnabled` keys are the TENANT's own operational switches (the apps
+      // store screen), not the entitlement gate — paid access is enforced by
+      // PermissionsGuard + @RequireFeature against tenants.plan_id, which a downgrade
+      // already revokes. So this sync must not behave like an authority over them: it may
+      // only take back a switch that it turned on itself for a plan that no longer grants
+      // it, and must leave anything the tenant toggled by hand alone.
+      //
+      // Provenance lives in a marker key holding exactly what the last sync set.
+      const previouslyGranted = await this.readPlanManagedModuleKeys(tenantId);
+      const desiredKeys = Object.keys(modulesToSet);
+      const desiredSet = new Set(desiredKeys);
+      const toRevoke = previouslyGranted.filter((key) => !desiredSet.has(key));
+
+      for (const key of toRevoke) {
+        modulesToSet[key] = false;
+      }
+
       for (const [key, value] of Object.entries(modulesToSet)) {
         await sql`
           INSERT INTO settings (key, value, tenant_id, account_id)
@@ -1210,10 +1231,48 @@ export class SaasAdminService {
         `.execute(this.db);
       }
 
+      // Record what this run granted, so the next one knows what is its to take back.
+      await sql`
+        INSERT INTO settings (key, value, tenant_id, account_id)
+        VALUES (${PLAN_MANAGED_MODULES_SETTING_KEY}, ${JSON.stringify(desiredKeys.sort())}, ${tenantId}, ${accountId})
+        ON CONFLICT (tenant_id, key) DO UPDATE SET value = EXCLUDED.value, account_id = EXCLUDED.account_id
+      `.execute(this.db);
+
       this.settingsService.invalidateSettingsCache(tenantId);
       this.settingsService.invalidatePlanFeaturesCache(tenantId);
     } catch (err) {
-      // Non-fatal
+      // Not fatal — a failed switch sync must not roll back the plan change itself, which
+      // is what actually governs access. But it is not silent either: swallowing this
+      // whole is forbidden pattern F7, and it used to hide the plan change appearing to
+      // succeed while the tenant's module switches never moved.
+      console.error(
+        `[syncTenantModuleSettingsForPlan] failed for tenant ${tenantId} (plan ${planId ?? 'none'}); ` +
+        `module switches may be out of step with the plan.`,
+        err,
+      );
+    }
+  }
+
+  /**
+   * The module keys the last plan sync turned on for this tenant. Anything outside this
+   * list was switched on by the tenant, and is not this sync's to switch off.
+   */
+  private async readPlanManagedModuleKeys(tenantId: string): Promise<string[]> {
+    const row = await this.db
+      .selectFrom('settings')
+      .select('value')
+      .where('key', '=', PLAN_MANAGED_MODULES_SETTING_KEY)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!row?.value) return [];
+
+    try {
+      const parsed = JSON.parse(String(row.value));
+      return Array.isArray(parsed) ? parsed.filter((k): k is string => typeof k === 'string') : [];
+    } catch {
+      // A corrupt marker must not cause a revocation sweep — treat it as "nothing is mine".
+      return [];
     }
   }
 

@@ -10,6 +10,7 @@ import { formatBranchStockLocationName } from '../../common/utils/branch-stock.u
 import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
 import { invalidateTenantTimezoneCache } from '../../common/utils/tenant-timezone.util';
 import { getIndustryProfile, normalizeIndustryProfileKey, listSupportedIndustryProfiles, type IndustryProfile } from '../../core/tenant/industry-profiles';
+import { PLAN_MANAGED_MODULES_SETTING_KEY } from '../../common/constants/platform-settings-keys';
 
 @Injectable()
 export class SettingsService {
@@ -431,6 +432,13 @@ export class SettingsService {
         delete normalizedPayload[key];
       }
     }
+
+    // Platform bookkeeping, never a tenant setting: this records which module switches the
+    // last plan sync granted, and the next sync takes its revocation list from it. It is
+    // returned by getSettings like any other row, so a full round-trip of the settings
+    // object would otherwise write it straight back — and a crafted value would steer what
+    // the next sync switches off.
+    delete normalizedPayload[PLAN_MANAGED_MODULES_SETTING_KEY];
 
     for (const [key, value] of Object.entries(normalizedPayload)) {
       await sql`insert into settings (key, value, tenant_id, account_id) values (${key}, ${JSON.stringify(value)}, ${scope.tenantId}, ${scope.accountId}) on conflict (tenant_id, key) do update set value = excluded.value, account_id = excluded.account_id`.execute(this.db);
