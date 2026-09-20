@@ -887,7 +887,7 @@ export class HrService {
         if (cleanPhone) {
           const existing = await sql<{ id: number }>`SELECT id FROM hr_employee_contacts WHERE employee_id = ${id} AND tenant_id = ${auth.tenantId} ORDER BY is_primary DESC, id ASC LIMIT 1`.execute(this.db);
           if (existing.rows.length > 0) {
-            await sql`UPDATE hr_employee_contacts SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${existing.rows[0].id}`.execute(this.db);
+            await sql`UPDATE hr_employee_contacts SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${existing.rows[0].id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
           } else {
             await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, 'mobile', ${cleanPhone}, 'الموبايل الأساسي', true, '', ${auth.userId}, ${auth.userId})`.execute(this.db);
           }
@@ -944,7 +944,7 @@ export class HrService {
     if (cleanPhone) {
       const existing = await sql<{ id: number }>`SELECT id FROM hr_employee_contacts WHERE employee_id = ${employeeId} AND tenant_id = ${auth.tenantId} ORDER BY is_primary DESC, id ASC LIMIT 1`.execute(this.db);
       if (existing.rows.length > 0) {
-        await sql`UPDATE hr_employee_contacts SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${existing.rows[0].id}`.execute(this.db);
+        await sql`UPDATE hr_employee_contacts SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${existing.rows[0].id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
       } else {
         await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, 'mobile', ${cleanPhone}, 'الموبايل الأساسي', true, '', ${auth.userId}, ${auth.userId})`.execute(this.db);
       }
@@ -1238,7 +1238,7 @@ export class HrService {
         const installmentValue = i === plan.installmentCount
           ? Math.max(0, Number((amount - plan.installmentAmount * (plan.installmentCount - 1)).toFixed(2)))
           : plan.installmentAmount;
-        await sql`INSERT INTO hr_employee_loan_installments (loan_id, installment_no, due_date, amount) VALUES (${loanId}, ${i}, ${dueDate}, ${installmentValue})`.execute(trx);
+        await sql`INSERT INTO hr_employee_loan_installments (tenant_id, account_id, loan_id, installment_no, due_date, amount) VALUES (${auth.tenantId}, ${auth.accountId}, ${loanId}, ${i}, ${dueDate}, ${installmentValue})`.execute(trx);
       }
     });
     await this.audit.log('Create HR employee loan', `Employee loan created by ${auth.username}`, auth);
@@ -1266,15 +1266,15 @@ export class HrService {
         WHERE id = ${id} AND tenant_id = ${auth.tenantId}
       `.execute(trx);
 
-      await sql`DELETE FROM hr_employee_loan_installments WHERE loan_id = ${id}`.execute(trx);
+      await sql`DELETE FROM hr_employee_loan_installments WHERE loan_id = ${id} AND (tenant_id = ${auth.tenantId} OR tenant_id = '')`.execute(trx);
       for (let i = 1; i <= plan.installmentCount; i += 1) {
         const installmentValue = i === plan.installmentCount
           ? Math.max(0, Number((amount - plan.installmentAmount * (plan.installmentCount - 1)).toFixed(2)))
           : plan.installmentAmount;
         const dueDate = plan.firstDueDate ? addMonths(plan.firstDueDate, i - 1) : null;
         await sql`
-          INSERT INTO hr_employee_loan_installments (loan_id, installment_no, due_date, amount)
-          VALUES (${id}, ${i}, ${dueDate}, ${installmentValue})
+          INSERT INTO hr_employee_loan_installments (tenant_id, account_id, loan_id, installment_no, due_date, amount)
+          VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, ${i}, ${dueDate}, ${installmentValue})
         `.execute(trx);
       }
     });
@@ -1585,7 +1585,7 @@ export class HrService {
       to: run.end_date_text || monthRange(periodMonth).to
     };
     const payFreq = clean(run.pay_frequency) || 'monthly';
-    await sql`UPDATE hr_employee_adjustments SET status = 'pending', applied_in_run_id = NULL WHERE applied_in_run_id = ${runId}`.execute(db);
+    await sql`UPDATE hr_employee_adjustments SET status = 'pending', applied_in_run_id = NULL WHERE applied_in_run_id = ${runId} AND tenant_id = ${tenantId}`.execute(db);
     const employees = await sql<Record<string, unknown>>`
       SELECT
         e.id AS employee_id,
@@ -2359,7 +2359,7 @@ export class HrService {
       // Auto-recalculate before reviewing to ensure all new loans/deductions are captured
       await this.rebuildPayrollRunItems(trx, id, 'draft');
 
-      await sql`UPDATE hr_payroll_run_items SET status = 'reviewed', updated_at = NOW() WHERE run_id = ${id} AND status = 'draft'`.execute(trx);
+      await sql`UPDATE hr_payroll_run_items SET status = 'reviewed', updated_at = NOW() WHERE run_id = ${id} AND status = 'draft' AND tenant_id = ${auth.tenantId}`.execute(trx);
       await sql`UPDATE hr_payroll_runs SET status = 'reviewed', reviewed_by = ${auth.userId}, reviewed_at = NOW(), updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
     });
     await this.audit.log('Review HR payroll run', `Payroll run #${id} reviewed by ${auth.username}`, auth);
@@ -2473,7 +2473,7 @@ export class HrService {
       const { posted } = await this.accountingPosting.postPayrollAccrual(trx, id, auth);
       if (!posted) throw new AppError('Payroll accrual journal entry could not be created or already exists', 'HR_PAYROLL_ACCRUAL_FAILED', 400);
 
-      await sql`UPDATE hr_payroll_run_items SET status = 'approved', updated_at = NOW() WHERE run_id = ${id} AND status = 'reviewed'`.execute(trx);
+      await sql`UPDATE hr_payroll_run_items SET status = 'approved', updated_at = NOW() WHERE run_id = ${id} AND status = 'reviewed' AND tenant_id = ${auth.tenantId}`.execute(trx);
       await sql`UPDATE hr_payroll_runs SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(), updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
     });
     await this.audit.log('Approve HR payroll run', `Payroll run #${id} approved by ${auth.username}`, auth);
@@ -2676,8 +2676,8 @@ export class HrService {
     if (item.runStatus !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
     await this.tx.runInTransaction(this.db, async (trx) => {
       await sql`
-        INSERT INTO hr_payroll_item_adjustments (payroll_item_id, adjustment_type, label, amount, notes)
-        VALUES (${id}, ${clean(payload.adjustmentType)}, ${clean(payload.label)}, ${money(payload.amount)}, ${clean(payload.notes)})
+        INSERT INTO hr_payroll_item_adjustments (tenant_id, account_id, payroll_item_id, adjustment_type, label, amount, notes)
+        VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, ${clean(payload.adjustmentType)}, ${clean(payload.label)}, ${money(payload.amount)}, ${clean(payload.notes)})
       `.execute(trx);
       await this.recalculatePayrollItemTotals(trx, id);
       await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${item.runId} AND tenant_id = ${auth.tenantId}`.execute(trx);
@@ -2703,7 +2703,7 @@ export class HrService {
       if (clean(row.run_status) !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
       runId = Number(row.run_id || 0);
       itemId = Number(row.payroll_item_id || 0);
-      await sql`DELETE FROM hr_payroll_item_adjustments WHERE id = ${id}`.execute(trx);
+      await sql`DELETE FROM hr_payroll_item_adjustments WHERE id = ${id} AND (tenant_id = ${auth.tenantId} OR tenant_id = '')`.execute(trx);
       await this.recalculatePayrollItemTotals(trx, itemId);
       await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${runId} AND tenant_id = ${auth.tenantId}`.execute(trx);
     });
@@ -3079,10 +3079,11 @@ export class HrService {
     employeeId: number,
     workDate: string,
   ): Promise<void> {
-    const empTenant = await sql<{ tenant_id: string }>`
-      SELECT tenant_id FROM hr_employees WHERE id = ${employeeId} LIMIT 1
+    const empTenant = await sql<{ tenant_id: string; account_id: string }>`
+      SELECT tenant_id, account_id FROM hr_employees WHERE id = ${employeeId} LIMIT 1
     `.execute(db);
     const tenantId = empTenant.rows[0]?.tenant_id || '';
+    const accountId = empTenant.rows[0]?.account_id || '';
     const tenantTimezone = await getTenantTimezone(db, tenantId);
 
     const result = await sql<Record<string, unknown>>`
@@ -3105,7 +3106,7 @@ export class HrService {
     `.execute(db);
     const row = result.rows[0];
     if (!row) {
-      await sql`DELETE FROM hr_attendance_exceptions WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date`.execute(db);
+      await sql`DELETE FROM hr_attendance_exceptions WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND (tenant_id = ${tenantId} OR tenant_id = '')`.execute(db);
       return;
     }
 
@@ -3150,7 +3151,7 @@ export class HrService {
 
     if (isHolidayOrWeekend) {
       if (!checkInActualTime && !checkOutActualTime) {
-        await sql`DELETE FROM hr_attendance_exceptions WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date`.execute(db);
+        await sql`DELETE FROM hr_attendance_exceptions WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND (tenant_id = ${tenantId} OR tenant_id = '')`.execute(db);
         return;
       }
       let actualDuration = 0;
@@ -3221,15 +3222,17 @@ export class HrService {
       }
     }
 
-    await sql`DELETE FROM hr_attendance_exceptions WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date`.execute(db);
+    await sql`DELETE FROM hr_attendance_exceptions WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND (tenant_id = ${tenantId} OR tenant_id = '')`.execute(db);
     for (const entry of entries) {
       if (!entry) continue;
       await sql`
         INSERT INTO hr_attendance_exceptions (
+          tenant_id, account_id,
           employee_id, attendance_record_id, work_date, exception_type,
           scheduled_time, actual_time, duration_minutes, status, approved_duration_minutes, note, created_at, updated_at
         )
         VALUES (
+          ${tenantId}, ${accountId},
           ${entry.employeeId}, ${entry.attendanceRecordId}, ${entry.workDate}::date, ${entry.exceptionType},
           ${entry.scheduledTime || null}, ${entry.actualTime || null},
           ${entry.durationMinutes}, ${entry.status}, ${entry.approvedDurationMinutes}, ${entry.note}, NOW(), NOW()
@@ -3309,7 +3312,6 @@ export class HrService {
   async decideAttendanceException(id: number, status: 'approved' | 'skipped', payload: DecideAttendanceExceptionDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     const currentResult = await sql<Record<string, unknown>>`SELECT * FROM hr_attendance_exceptions WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(this.db);
-    console.log('query result rows:', currentResult.rows);
     const current = currentResult.rows[0];
     if (!current) throw new AppError('Attendance exception not found', 'HR_ATTENDANCE_EXCEPTION_NOT_FOUND', 404);
     const currentStatus = clean(current.status);
