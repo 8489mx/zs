@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { Kysely } from 'kysely';
@@ -26,7 +26,14 @@ export class SaasDiagnosticsService {
     const appVersion = (meta.appVersion || '1.0.0').trim();
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
-    const logPeriod = (meta.logPeriod || `${now.getFullYear()}-${pad(now.getMonth() + 1)}`).trim();
+    const rawLogPeriod = (meta.logPeriod || `${now.getFullYear()}-${pad(now.getMonth() + 1)}`).trim();
+
+    // This endpoint is public by design (offline desktop clients post crash bundles), and
+    // UploadDiagnosticDto is a plain interface, so nothing validates the body. logPeriod
+    // used to go straight into the filename, and path.join resolves '..' — so
+    // `logPeriod=../../../evil` wrote an attacker-supplied file outside the storage tree.
+    // Same allow-list as clientIdentifier above.
+    const logPeriod = rawLogPeriod.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40) || 'unknown-period';
 
     // 1. Prepare storage directory
     const baseStorageDir = path.join(process.cwd(), 'storage', 'diagnostics', clientIdentifier);
@@ -34,6 +41,13 @@ export class SaasDiagnosticsService {
 
     const fileName = `${Date.now()}_${logPeriod}_diagnostics.zip`;
     const targetFilePath = path.join(baseStorageDir, fileName);
+
+    // Belt and braces: whatever the sanitisers above did, the write must land inside the
+    // directory we just created.
+    const resolvedBase = path.resolve(baseStorageDir);
+    if (!path.resolve(targetFilePath).startsWith(resolvedBase + path.sep)) {
+      throw new BadRequestException('مسار حفظ ملف التشخيص غير صالح.');
+    }
 
     // Write file to disk
     await fs.writeFile(targetFilePath, file.buffer);

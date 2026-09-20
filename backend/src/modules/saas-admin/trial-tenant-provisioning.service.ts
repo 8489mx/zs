@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { KYSELY_DB } from '../../database/database.constants';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
+import { assertStrongPassword } from '../../core/auth/utils/password-policy';
 import { DEFAULT_TRIAL_DAYS } from './trial.constants';
 import { formatBranchStockLocationName } from '../../common/utils/branch-stock.util';
 import { SUPER_ADMIN_PERMISSIONS } from '../../core/auth/constants/super-admin-permissions';
@@ -262,10 +263,14 @@ export class TrialTenantProvisioningService {
     }
   }
 
+  /**
+   * Routes through the shared policy instead of re-stating it. This used to inline its own
+   * `length < 1` rule, so `enforceStrongProvidedPassword: true` from the platform admin
+   * path enforced nothing beyond "not empty", and raising MIN_PASSWORD_LENGTH centrally
+   * would silently have missed tenant provisioning.
+   */
   private assertStrongTrialPassword(password: string): void {
-    if (String(password || '').trim().length < 1) {
-      throw new BadRequestException('كلمة المرور لا يمكن أن تكون فارغة.');
-    }
+    assertStrongPassword(password);
   }
 
   private generatePassword(): string {
