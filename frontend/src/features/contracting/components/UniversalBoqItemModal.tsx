@@ -43,40 +43,76 @@ export function cleanNumberInput(val: string): string {
 export const TRADE_PREFIXES: Record<string, string> = {
   civil_concrete: 'CIV',
   masonry_insulation: 'MAS',
+  finishing_decor: 'FIN',
   finishes: 'FIN',
-  doors_windows_facades: 'FAC',
+  doors_windows_aluminum: 'ALU',
+  doors_windows_facades: 'ALU',
+  steel_structure: 'STL',
   steel_structures: 'STL',
+  electrical_lighting: 'ELE',
   electrical: 'ELE',
+  smart_elv_systems: 'ELV',
   smart_systems_elv: 'ELV',
-  plumbing: 'PLM',
+  plumbing_sanitary: 'SAN',
+  plumbing: 'SAN',
+  hvac_mechanical: 'HVAC',
   hvac_firefighting: 'HVAC',
+  fire_fighting: 'FF',
+  fire_fighting_mep: 'FF',
+  site_infrastructure: 'INF',
+  site_mobilization: 'MOB',
+  site_landscape: 'LAN',
   landscape_infrastructure: 'INF',
 };
 
 export const DEFAULT_TRADE_MARGINS: Record<string, number> = {
   civil_concrete: 25,
   masonry_insulation: 30,
+  finishing_decor: 30,
   finishes: 30,
+  doors_windows_aluminum: 30,
   doors_windows_facades: 30,
+  steel_structure: 25,
   steel_structures: 25,
+  electrical_lighting: 33,
   electrical: 33,
+  smart_elv_systems: 32,
   smart_systems_elv: 32,
+  plumbing_sanitary: 30,
   plumbing: 30,
+  hvac_mechanical: 30,
   hvac_firefighting: 30,
+  fire_fighting: 32,
+  fire_fighting_mep: 32,
+  site_infrastructure: 28,
+  site_mobilization: 25,
+  site_landscape: 30,
   landscape_infrastructure: 30,
 };
 
 export const TRADE_LABELS: Record<string, string> = {
   civil_concrete: 'الأعمال المدنية والخرسانات',
-  masonry_insulation: 'أعمال المباني والعزل',
+  masonry_insulation: 'المباني والعزل والفواصل',
+  finishing_decor: 'التشطيبات المعمارية والديكور',
+  doors_windows_aluminum: 'الأبواب والشبابيك والواجهات',
+  steel_structure: 'المنشآت المعدنية والجمالونات',
+  electrical_lighting: 'الأعمال الكهربائية والإنارة',
+  smart_elv_systems: 'التيار الخفيف والأنظمة الذكية (ELV)',
+  plumbing_sanitary: 'الأعمال الصحية وتغذية وصرف المياه',
+  hvac_mechanical: 'التكييف والتهوية الميكانيكية',
+  fire_fighting: 'شبكات مكافحة وإطفاء الحريق',
+  site_infrastructure: 'تجهيزات الموقع والبنية التحتية واللاندسكيب',
+  // Aliases for compatibility
   finishes: 'أعمال التشطيبات والديكور',
-  doors_windows_facades: 'النجارة والألوميتال والواجهات',
-  steel_structures: 'الإنشاءات المعدنية',
-  electrical: 'أعمال الكهرباء والإنارة',
-  smart_systems_elv: 'التيار الخفيف والسمارت',
-  plumbing: 'الأعمال الصحية والسباكة',
-  hvac_firefighting: 'التكييف ومكافحة الحريق',
-  landscape_infrastructure: 'الموقع العام واللاندسكيب',
+  doors_windows_facades: 'الأبواب والشبابيك والواجهات',
+  steel_structures: 'المنشآت المعدنية والجمالونات',
+  electrical: 'الأعمال الكهربائية والإنارة',
+  smart_systems_elv: 'التيار الخفيف والأنظمة الذكية (ELV)',
+  plumbing: 'الأعمال الصحية وتغذية وصرف المياه',
+  hvac_firefighting: 'التكييف والتهوية الميكانيكية',
+  site_mobilization: 'تجهيزات الموقع والأعمال التمهيدية',
+  site_landscape: 'الموقع العام واللاندسكيب',
+  landscape_infrastructure: 'تجهيزات الموقع والبنية التحتية واللاندسكيب',
   earthworks: 'أعمال الحفر والردم',
   concrete: 'الخرسانات المسلحة',
   masonry: 'أعمال المباني',
@@ -417,14 +453,36 @@ export function UniversalBoqItemModal({
 
   const tradeOptions = useMemo(() => {
     if (trades.length > 0) {
-      return trades.map((t) => ({
-        value: t.tradeCategory,
-        label: t.tradeNameAr,
-      }));
+      const seen = new Set<string>();
+      const opts: { value: string; label: string }[] = [];
+      for (const t of trades) {
+        if (!seen.has(t.tradeCategory)) {
+          seen.add(t.tradeCategory);
+          opts.push({
+            value: t.tradeCategory,
+            label: t.tradeNameAr,
+          });
+        }
+      }
+      return opts;
     }
-    return Object.entries(TRADE_LABELS).map(([key, label]) => ({
+    const standardKeys = [
+      'site_mobilization',
+      'civil_concrete',
+      'masonry_insulation',
+      'steel_structure',
+      'finishing_decor',
+      'doors_windows_aluminum',
+      'electrical_lighting',
+      'smart_elv_systems',
+      'plumbing_sanitary',
+      'hvac_mechanical',
+      'fire_fighting',
+      'site_infrastructure',
+    ];
+    return standardKeys.map((key) => ({
       value: key,
-      label,
+      label: TRADE_LABELS[key] || key,
     }));
   }, [trades]);
 

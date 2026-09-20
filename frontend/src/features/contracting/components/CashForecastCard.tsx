@@ -52,8 +52,8 @@ export function CashForecastCard({ projectId }: CashForecastCardProps) {
         <AppIcons.TrendingUp size={22} style={{ color: '#170e5e', opacity: 0.7 }} />
       </div>
 
-      {/* Buckets Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0 }}>
+      {/* Buckets Grid - All 4 periods on a single row */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${forecast.buckets.length || 4}, 1fr)`, gap: 0 }}>
         {forecast.buckets.map((bucket: CashForecastBucket, idx: number) => {
           const isPositive = bucket.netCashFlow >= 0;
           return (
@@ -61,7 +61,7 @@ export function CashForecastCard({ projectId }: CashForecastCardProps) {
               key={bucket.period}
               style={{
                 padding: '14px 18px',
-                borderRight: idx < forecast.buckets.length - 1 ? '1px solid #f1f5f9' : 'none',
+                borderInlineEnd: idx < forecast.buckets.length - 1 ? '1px solid #f1f5f9' : 'none',
                 borderBottom: 'none',
               }}
             >

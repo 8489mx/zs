@@ -14,6 +14,96 @@ interface ImportMasterBoqModalProps {
   onImportSelected?: (selectedIds: (string | number)[]) => void;
 }
 
+const TRADE_CATEGORY_ALIASES: Record<string, string> = {
+  civil: 'civil_concrete',
+  concrete: 'civil_concrete',
+  finishes: 'finishing_decor',
+  doors_windows_facades: 'doors_windows_aluminum',
+  doors_windows: 'doors_windows_aluminum',
+  electrical: 'electrical_lighting',
+  elv: 'smart_elv_systems',
+  plumbing: 'plumbing_sanitary',
+  hvac: 'hvac_mechanical',
+  fire: 'fire_fighting',
+  infrastructure: 'site_infrastructure',
+};
+
+export function normalizeTradeCategory(cat?: string | null): string {
+  if (!cat) return '';
+  const trimmed = cat.trim();
+  return TRADE_CATEGORY_ALIASES[trimmed] || trimmed;
+}
+
+interface SectorDef {
+  id: string;
+  name: string;
+  tradeCategories: string[];
+  icon: (props: any) => JSX.Element;
+}
+
+const SECTORS: SectorDef[] = [
+  {
+    id: 'all',
+    name: 'كافة القطاعات',
+    tradeCategories: [],
+    icon: AppIcons.Layers,
+  },
+  {
+    id: 'civil_structural',
+    name: 'الإنشائي والمدني',
+    tradeCategories: ['site_mobilization', 'civil_concrete', 'civil', 'concrete', 'masonry_insulation', 'steel_structure'],
+    icon: AppIcons.Building,
+  },
+  {
+    id: 'architectural',
+    name: 'التشطيبات والمعماري',
+    tradeCategories: ['finishing_decor', 'finishes', 'doors_windows_aluminum', 'doors_windows_facades', 'doors_windows'],
+    icon: AppIcons.Edit,
+  },
+  {
+    id: 'mep',
+    name: 'الكهروميكانيك MEP',
+    tradeCategories: ['electrical_lighting', 'electrical', 'smart_elv_systems', 'elv', 'plumbing_sanitary', 'plumbing', 'hvac_mechanical', 'hvac', 'fire_fighting', 'fire'],
+    icon: AppIcons.Zap,
+  },
+  {
+    id: 'infrastructure',
+    name: 'الموقع العام واللاندسكيب',
+    tradeCategories: ['site_infrastructure', 'infrastructure'],
+    icon: AppIcons.Truck,
+  },
+];
+
+const TRADE_ICONS: Record<string, (props: any) => JSX.Element> = {
+  site_mobilization: AppIcons.Truck,
+  civil_concrete: AppIcons.Building,
+  masonry_insulation: AppIcons.Layers,
+  steel_structure: AppIcons.Package,
+  finishing_decor: AppIcons.Edit,
+  doors_windows_aluminum: AppIcons.Warehouse,
+  electrical_lighting: AppIcons.Zap,
+  smart_elv_systems: AppIcons.Sliders,
+  plumbing_sanitary: AppIcons.Tool,
+  hvac_mechanical: AppIcons.RefreshCw,
+  fire_fighting: AppIcons.ShieldCheck,
+  site_infrastructure: AppIcons.Globe,
+};
+
+const CANONICAL_ORDER = [
+  'site_mobilization',
+  'civil_concrete',
+  'masonry_insulation',
+  'steel_structure',
+  'finishing_decor',
+  'doors_windows_aluminum',
+  'electrical_lighting',
+  'smart_elv_systems',
+  'plumbing_sanitary',
+  'hvac_mechanical',
+  'fire_fighting',
+  'site_infrastructure',
+];
+
 export function ImportMasterBoqModal({
   open,
   projectId = '',
@@ -23,6 +113,7 @@ export function ImportMasterBoqModal({
   onImportSelected,
 }: ImportMasterBoqModalProps) {
   const [trades, setTrades] = useState<MasterBoqTrade[]>([]);
+  const [selectedSector, setSelectedSector] = useState<string>('all');
   const [selectedTrade, setSelectedTrade] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [allItems, setAllItems] = useState<MasterBoqItem[]>([]);
@@ -39,6 +130,7 @@ export function ImportMasterBoqModal({
     setSuccessMsg(null);
     setSelectedIds(new Set());
     setSearch('');
+    setSelectedSector('all');
     setSelectedTrade('all');
     setLoading(true);
 
@@ -58,23 +150,92 @@ export function ImportMasterBoqModal({
       });
   }, [open]);
 
+  // Unique trades list with aggregated counts and canonical order
+  const uniqueTrades = useMemo(() => {
+    const map = new Map<string, { tradeCategory: string; tradeNameAr: string; itemsCount: number }>();
+    for (const it of allItems) {
+      const norm = normalizeTradeCategory(it.tradeCategory);
+      if (!map.has(norm)) {
+        const matchingTrade = trades.find((t) => normalizeTradeCategory(t.tradeCategory) === norm);
+        map.set(norm, {
+          tradeCategory: norm,
+          tradeNameAr: matchingTrade?.tradeNameAr || it.tradeNameAr || norm,
+          itemsCount: 1,
+        });
+      } else {
+        map.get(norm)!.itemsCount += 1;
+      }
+    }
+    const list = Array.from(map.values());
+    return list.sort((a, b) => {
+      const idxA = CANONICAL_ORDER.indexOf(a.tradeCategory);
+      const idxB = CANONICAL_ORDER.indexOf(b.tradeCategory);
+      return (idxA >= 0 ? idxA : 99) - (idxB >= 0 ? idxB : 99);
+    });
+  }, [allItems, trades]);
+
+  // Sector counts computed directly from allItems
+  const sectorCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      all: allItems.length,
+    };
+    for (const sec of SECTORS) {
+      if (sec.id === 'all') continue;
+      counts[sec.id] = allItems.filter(
+        (it) =>
+          sec.tradeCategories.includes(normalizeTradeCategory(it.tradeCategory)) ||
+          sec.tradeCategories.includes(it.tradeCategory)
+      ).length;
+    }
+    return counts;
+  }, [allItems]);
+
+  // Filtered trades by sector
+  const visibleTrades = useMemo(() => {
+    if (selectedSector === 'all') {
+      return uniqueTrades;
+    }
+    const sec = SECTORS.find((s) => s.id === selectedSector);
+    if (!sec) return uniqueTrades;
+    return uniqueTrades.filter(
+      (t) =>
+        sec.tradeCategories.includes(normalizeTradeCategory(t.tradeCategory)) ||
+        sec.tradeCategories.includes(t.tradeCategory)
+    );
+  }, [uniqueTrades, selectedSector]);
+
   // Instant in-memory search and trade filtering (Zero flicker, zero network latency)
   const filteredItems = useMemo(() => {
     let result = allItems;
     if (selectedTrade !== 'all') {
-      result = result.filter((it) => it.tradeCategory === selectedTrade);
+      result = result.filter(
+        (it) =>
+          normalizeTradeCategory(it.tradeCategory) === selectedTrade ||
+          it.tradeCategory === selectedTrade
+      );
+    } else if (selectedSector !== 'all') {
+      const sec = SECTORS.find((s) => s.id === selectedSector);
+      if (sec && sec.tradeCategories.length > 0) {
+        result = result.filter(
+          (it) =>
+            sec.tradeCategories.includes(normalizeTradeCategory(it.tradeCategory)) ||
+            sec.tradeCategories.includes(it.tradeCategory)
+        );
+      }
     }
     const q = search.trim().toLowerCase();
     if (q) {
-      result = result.filter((it) =>
-        it.itemCode.toLowerCase().includes(q) ||
-        it.name.toLowerCase().includes(q) ||
-        (it.description && it.description.toLowerCase().includes(q)) ||
-        (it.tradeNameAr && it.tradeNameAr.toLowerCase().includes(q))
+      result = result.filter(
+        (it) =>
+          it.itemCode.toLowerCase().includes(q) ||
+          it.name.toLowerCase().includes(q) ||
+          (it.description && it.description.toLowerCase().includes(q)) ||
+          (it.tradeNameAr && it.tradeNameAr.toLowerCase().includes(q)) ||
+          normalizeTradeCategory(it.tradeCategory).includes(q)
       );
     }
     return result;
-  }, [allItems, selectedTrade, search]);
+  }, [allItems, selectedSector, selectedTrade, search]);
 
   const allVisibleSelected = useMemo(() => {
     if (filteredItems.length === 0) return false;
@@ -257,82 +418,197 @@ export function ImportMasterBoqModal({
             )}
           </div>
 
-          {/* Trade Categories Filter Tabs - Clean 2-Row Wrap with fixed bounds */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            <button
-              type="button"
-              onClick={() => setSelectedTrade('all')}
-              style={{
-                height: '28px',
-                padding: '0 12px',
-                borderRadius: '14px',
-                fontSize: 'var(--font-badge)',
-                fontWeight: 600,
-                cursor: 'pointer',
-                border: '1px solid',
-                borderColor: selectedTrade === 'all' ? '#170e5e' : '#cbd5e1',
-                backgroundColor: selectedTrade === 'all' ? '#170e5e' : '#ffffff',
-                color: selectedTrade === 'all' ? '#ffffff' : '#475569',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>كافة التخصصات</span>
-              <span
+          {/* شريط القطاعات والتخصصات الهندسية المنظم داخل نافذة الاستيراد — شبكة موحدة تمتد بعرض النافذة */}
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}
+          >
+            {/* 1. القطاعات الهندسية */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                <AppIcons.Sliders size={14} color="#170e5e" />
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
+                  القطاعات الهندسية:
+                </span>
+              </div>
+              <div
                 style={{
-                  background: selectedTrade === 'all' ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
-                  color: selectedTrade === 'all' ? '#ffffff' : '#64748b',
-                  padding: '1px 6px',
-                  borderRadius: '10px',
-                  fontSize: '10px',
-                  fontWeight: 700,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                  gap: '6px',
+                  width: '100%',
                 }}
               >
-                {allItems.length}
-              </span>
-            </button>
-            {trades.map((t) => {
-              const isSelected = selectedTrade === t.tradeCategory;
-              return (
+                {SECTORS.map((sec) => {
+                  const isSecActive = selectedSector === sec.id;
+                  const count = sectorCounts[sec.id] || 0;
+                  const SecIcon = sec.icon;
+                  return (
+                    <button
+                      key={sec.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedSector(sec.id);
+                        setSelectedTrade('all');
+                      }}
+                      style={{
+                        height: '34px',
+                        padding: '0 10px',
+                        borderRadius: '6px',
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        border: isSecActive ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                        background: isSecActive ? '#170e5e' : '#ffffff',
+                        color: isSecActive ? '#ffffff' : '#334155',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                        <SecIcon size={13} color={isSecActive ? '#ffffff' : '#64748b'} style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {sec.name}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          padding: '1px 6px',
+                          borderRadius: '10px',
+                          background: isSecActive ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
+                          color: isSecActive ? '#ffffff' : '#475569',
+                          fontWeight: 700,
+                          flexShrink: 0,
+                          marginInlineStart: '6px',
+                        }}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. التخصصات الهندسية المحددة */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                <AppIcons.Tool size={14} color="#170e5e" />
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
+                  التخصصات التنفيذية:
+                </span>
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '6px',
+                  width: '100%',
+                }}
+              >
                 <button
-                  key={t.tradeCategory}
                   type="button"
-                  onClick={() => setSelectedTrade(t.tradeCategory)}
+                  onClick={() => setSelectedTrade('all')}
                   style={{
-                    height: '28px',
-                    padding: '0 10px',
-                    borderRadius: '14px',
-                    fontSize: 'var(--font-badge)',
+                    height: '36px',
+                    padding: '0 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
                     fontWeight: 600,
                     cursor: 'pointer',
-                    border: '1px solid',
-                    borderColor: isSelected ? '#170e5e' : '#cbd5e1',
-                    backgroundColor: isSelected ? '#170e5e' : '#ffffff',
-                    color: isSelected ? '#ffffff' : '#475569',
-                    display: 'inline-flex',
+                    border: selectedTrade === 'all' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                    backgroundColor: selectedTrade === 'all' ? '#170e5e' : '#ffffff',
+                    color: selectedTrade === 'all' ? '#ffffff' : '#334155',
+                    display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    boxSizing: 'border-box',
                   }}
                 >
-                  <span>{t.tradeNameAr}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+                    <AppIcons.Layers size={14} color={selectedTrade === 'all' ? '#ffffff' : '#64748b'} style={{ flexShrink: 0 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                      {selectedSector === 'all' ? 'كافة التخصصات' : `كافة بنود ${SECTORS.find(s => s.id === selectedSector)?.name || ''}`}
+                    </span>
+                  </div>
                   <span
                     style={{
-                      background: isSelected ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
-                      color: isSelected ? '#ffffff' : '#0f172a',
+                      background: selectedTrade === 'all' ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
+                      color: selectedTrade === 'all' ? '#ffffff' : '#64748b',
                       padding: '1px 6px',
                       borderRadius: '10px',
                       fontSize: '10px',
                       fontWeight: 700,
+                      flexShrink: 0,
+                      marginInlineStart: '6px',
                     }}
                   >
-                    {t.itemsCount}
+                    {selectedSector === 'all' ? allItems.length : sectorCounts[selectedSector] || 0}
                   </span>
                 </button>
-              );
-            })}
+
+                {visibleTrades.map((t) => {
+                  const isSelected = selectedTrade === t.tradeCategory;
+                  const TradeIcon = TRADE_ICONS[t.tradeCategory] || AppIcons.Tool;
+                  return (
+                    <button
+                      key={t.tradeCategory}
+                      type="button"
+                      onClick={() => setSelectedTrade(t.tradeCategory)}
+                      style={{
+                        height: '36px',
+                        padding: '0 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        border: isSelected ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                        backgroundColor: isSelected ? '#170e5e' : '#ffffff',
+                        color: isSelected ? '#ffffff' : '#334155',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+                        <TradeIcon size={14} color={isSelected ? '#ffffff' : '#64748b'} style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                          {t.tradeNameAr}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          background: isSelected ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+                          color: isSelected ? '#ffffff' : '#0f172a',
+                          padding: '1px 6px',
+                          borderRadius: '10px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          flexShrink: 0,
+                          marginInlineStart: '6px',
+                        }}
+                      >
+                        {t.itemsCount}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 

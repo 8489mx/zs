@@ -10,6 +10,81 @@ import { downloadExcelFile } from '@/lib/browser';
 import { getTextDirection } from '@/lib/arabic-normalization';
 import { systemConfirm } from '@/shared/components/system-alert';
 
+const TRADE_CATEGORY_ALIASES: Record<string, string> = {
+  civil: 'civil_concrete',
+  concrete: 'civil_concrete',
+  finishes: 'finishing_decor',
+  doors_windows_facades: 'doors_windows_aluminum',
+  doors_windows: 'doors_windows_aluminum',
+  electrical: 'electrical_lighting',
+  elv: 'smart_elv_systems',
+  plumbing: 'plumbing_sanitary',
+  hvac: 'hvac_mechanical',
+  fire: 'fire_fighting',
+  infrastructure: 'site_infrastructure',
+};
+
+export function normalizeTradeCategory(cat?: string | null): string {
+  if (!cat) return '';
+  const trimmed = cat.trim();
+  return TRADE_CATEGORY_ALIASES[trimmed] || trimmed;
+}
+
+interface SectorDef {
+  id: string;
+  name: string;
+  tradeCategories: string[];
+  icon: (props: any) => JSX.Element;
+}
+
+const SECTORS: SectorDef[] = [
+  {
+    id: 'all',
+    name: 'كافة القطاعات والتخصصات',
+    tradeCategories: [],
+    icon: AppIcons.Layers,
+  },
+  {
+    id: 'civil_structural',
+    name: 'الإنشائي والمدني',
+    tradeCategories: ['site_mobilization', 'civil_concrete', 'civil', 'concrete', 'masonry_insulation', 'steel_structure'],
+    icon: AppIcons.Building,
+  },
+  {
+    id: 'architectural',
+    name: 'التشطيبات والمعماري',
+    tradeCategories: ['finishing_decor', 'finishes', 'doors_windows_aluminum', 'doors_windows_facades', 'doors_windows'],
+    icon: AppIcons.Edit,
+  },
+  {
+    id: 'mep',
+    name: 'الكهروميكانيك MEP',
+    tradeCategories: ['electrical_lighting', 'electrical', 'smart_elv_systems', 'elv', 'plumbing_sanitary', 'plumbing', 'hvac_mechanical', 'hvac', 'fire_fighting', 'fire'],
+    icon: AppIcons.Zap,
+  },
+  {
+    id: 'infrastructure',
+    name: 'الموقع العام واللاندسكيب',
+    tradeCategories: ['site_infrastructure', 'infrastructure'],
+    icon: AppIcons.Truck,
+  },
+];
+
+const TRADE_ICONS: Record<string, (props: any) => JSX.Element> = {
+  site_mobilization: AppIcons.Truck,
+  civil_concrete: AppIcons.Building,
+  masonry_insulation: AppIcons.Layers,
+  steel_structure: AppIcons.Package,
+  finishing_decor: AppIcons.Edit,
+  doors_windows_aluminum: AppIcons.Warehouse,
+  electrical_lighting: AppIcons.Zap,
+  smart_elv_systems: AppIcons.Sliders,
+  plumbing_sanitary: AppIcons.Tool,
+  hvac_mechanical: AppIcons.RefreshCw,
+  fire_fighting: AppIcons.ShieldCheck,
+  site_infrastructure: AppIcons.Globe,
+};
+
 export function ContractingMasterBoqPage() {
   useAppToolbar([
     { label: 'الرئيسية', to: '/dashboard' },
@@ -18,10 +93,11 @@ export function ContractingMasterBoqPage() {
   ]);
 
   const [trades, setTrades] = useState<MasterBoqTrade[]>([]);
+  const [selectedSector, setSelectedSector] = useState<string>('all');
   const [selectedTrade, setSelectedTrade] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'inactive'>('active');
-  const [items, setItems] = useState<MasterBoqItem[]>([]);
+  const [allItems, setAllItems] = useState<MasterBoqItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isExcelImportModalOpen, setIsExcelImportModalOpen] = useState(false);
@@ -39,23 +115,21 @@ export function ContractingMasterBoqPage() {
     }
   }, []);
 
-  // Load items
+  // Load all items for the selected status filter
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
       const data = await contractingApi.getMasterBoqLibrary({
-        tradeCategory: selectedTrade !== 'all' ? selectedTrade : undefined,
-        search: search.trim() || undefined,
         status: statusFilter,
       });
-      setItems(data || []);
+      setAllItems(data || []);
     } catch (err) {
       console.error('Failed to load master BOQ items:', err);
       setNotification({ type: 'error', text: 'تعذر تحميل بنك البنود المرجعي' });
     } finally {
       setLoading(false);
     }
-  }, [selectedTrade, search, statusFilter]);
+  }, [statusFilter]);
 
   useEffect(() => {
     loadTrades();
@@ -107,21 +181,128 @@ export function ContractingMasterBoqPage() {
     }
   };
 
+  // Canonical order of trades for construction sequence
+  const CANONICAL_ORDER = useMemo(
+    () => [
+      'site_mobilization',
+      'civil_concrete',
+      'masonry_insulation',
+      'steel_structure',
+      'finishing_decor',
+      'doors_windows_aluminum',
+      'electrical_lighting',
+      'smart_elv_systems',
+      'plumbing_sanitary',
+      'hvac_mechanical',
+      'fire_fighting',
+      'site_infrastructure',
+    ],
+    []
+  );
+
+  // Unique trades list with aggregated counts and canonical sorting
+  const uniqueTrades = useMemo(() => {
+    const map = new Map<string, { tradeCategory: string; tradeNameAr: string; itemsCount: number }>();
+    for (const it of allItems) {
+      const norm = normalizeTradeCategory(it.tradeCategory);
+      if (!map.has(norm)) {
+        const matchingTrade = trades.find((t) => normalizeTradeCategory(t.tradeCategory) === norm);
+        map.set(norm, {
+          tradeCategory: norm,
+          tradeNameAr: matchingTrade?.tradeNameAr || it.tradeNameAr || norm,
+          itemsCount: 1,
+        });
+      } else {
+        map.get(norm)!.itemsCount += 1;
+      }
+    }
+    const list = Array.from(map.values());
+    return list.sort((a, b) => {
+      const idxA = CANONICAL_ORDER.indexOf(a.tradeCategory);
+      const idxB = CANONICAL_ORDER.indexOf(b.tradeCategory);
+      return (idxA >= 0 ? idxA : 99) - (idxB >= 0 ? idxB : 99);
+    });
+  }, [allItems, trades, CANONICAL_ORDER]);
+
+  // Sector counts computed directly from allItems for 100% mathematical accuracy
+  const sectorCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      all: allItems.length,
+    };
+    for (const sec of SECTORS) {
+      if (sec.id === 'all') continue;
+      counts[sec.id] = allItems.filter(
+        (it) =>
+          sec.tradeCategories.includes(normalizeTradeCategory(it.tradeCategory)) ||
+          sec.tradeCategories.includes(it.tradeCategory)
+      ).length;
+    }
+    return counts;
+  }, [allItems]);
+
+  // Filtered trades by sector
+  const visibleTrades = useMemo(() => {
+    if (selectedSector === 'all') {
+      return uniqueTrades;
+    }
+    const sec = SECTORS.find((s) => s.id === selectedSector);
+    if (!sec) return uniqueTrades;
+    return uniqueTrades.filter(
+      (t) =>
+        sec.tradeCategories.includes(normalizeTradeCategory(t.tradeCategory)) ||
+        sec.tradeCategories.includes(t.tradeCategory)
+    );
+  }, [uniqueTrades, selectedSector]);
+
+  // Instant in-memory filtering: 0ms latency, zero flicker, zero empty-state collapse
+  const filteredItems = useMemo(() => {
+    let result = allItems;
+    if (selectedTrade !== 'all') {
+      result = result.filter(
+        (it) =>
+          normalizeTradeCategory(it.tradeCategory) === selectedTrade ||
+          it.tradeCategory === selectedTrade
+      );
+    } else if (selectedSector !== 'all') {
+      const sec = SECTORS.find((s) => s.id === selectedSector);
+      if (sec) {
+        result = result.filter(
+          (it) =>
+            sec.tradeCategories.includes(normalizeTradeCategory(it.tradeCategory)) ||
+            sec.tradeCategories.includes(it.tradeCategory)
+        );
+      }
+    }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter(
+        (it) =>
+          it.itemCode?.toLowerCase().includes(q) ||
+          it.name?.toLowerCase().includes(q) ||
+          it.description?.toLowerCase().includes(q) ||
+          it.tradeNameAr?.toLowerCase().includes(q) ||
+          normalizeTradeCategory(it.tradeCategory).includes(q)
+      );
+    }
+    return result;
+  }, [allItems, selectedSector, selectedTrade, search]);
+
   // KPIs
-  const totalItemsCount = items.length;
-  const customItemsCount = items.filter((i) => i.isCustom).length;
-  const totalTradesCount = trades.length;
+  const totalItemsCount = allItems.length;
+  const customItemsCount = allItems.filter((i) => i.isCustom).length;
+  const totalTradesCount = uniqueTrades.length;
+
   const avgMargin = useMemo(() => {
-    if (items.length === 0) return 0;
-    const margins = items
+    if (allItems.length === 0) return 0;
+    const margins = allItems
       .filter((i) => Number(i.standardPrice) > 0 && Number(i.standardCost) > 0)
       .map((i) => ((Number(i.standardPrice) - Number(i.standardCost)) / Number(i.standardPrice)) * 100);
     if (margins.length === 0) return 0;
     return Math.round(margins.reduce((a, b) => a + b, 0) / margins.length);
-  }, [items]);
+  }, [allItems]);
 
   const handleExportExcel = () => {
-    if (items.length === 0) return;
+    if (filteredItems.length === 0) return;
     const headers = [
       'كود البند',
       'التخصص',
@@ -134,7 +315,7 @@ export function ContractingMasterBoqPage() {
       'نوع البند',
       'الحالة',
     ];
-    const rows = items.map((i) => {
+    const rows = filteredItems.map((i) => {
       const price = Number(i.standardPrice) || 0;
       const cost = Number(i.standardCost) || 0;
       const margin = price > 0 ? Math.round(((price - cost) / price) * 100) : 0;
@@ -192,7 +373,7 @@ export function ContractingMasterBoqPage() {
               <button
                 type="button"
                 onClick={handleExportExcel}
-                disabled={items.length === 0}
+                disabled={filteredItems.length === 0}
                 style={{
                   height: '38px',
                   padding: '0 14px',
@@ -204,9 +385,9 @@ export function ContractingMasterBoqPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  cursor: items.length > 0 ? 'pointer' : 'not-allowed',
+                  cursor: filteredItems.length > 0 ? 'pointer' : 'not-allowed',
                   fontSize: 'var(--font-body)',
-                  opacity: items.length > 0 ? 1 : 0.6,
+                  opacity: filteredItems.length > 0 ? 1 : 0.6,
                 }}
               >
                 <AppIcons.Download size={14} />
@@ -465,97 +646,215 @@ export function ContractingMasterBoqPage() {
             </div>
 
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', marginInlineStart: '6px' }}>
-              معروض: <strong style={{ color: '#0f172a' }}>{items.length}</strong> بند
+              معروض: <strong style={{ color: '#0f172a' }}>{filteredItems.length}</strong> بند
             </div>
           </div>
         </div>
 
-        {/* شرائح فلاتر التخصصات الإنشائية المرنة المتجاوبة بدون أي قص أو كسر للكلمات */}
+        {/* شريط تصنيف وفلاتر التخصصات الهندسية المعتمدة — تصميم مؤسسي منظم ومريح للعين */}
         <div
           style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px',
-            marginBottom: '16px',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '16px 18px',
+            marginBottom: '18px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
           }}
         >
-          <button
-            type="button"
-            onClick={() => setSelectedTrade('all')}
+          {/* 1. شريط القطاعات الهندسية الكبرى (Super-Tabs) — شبكة متناسقة تمتد بعرض الصفحة */}
+          <div
             style={{
-              height: '34px',
-              padding: '0 14px',
-              borderRadius: '8px',
-              fontSize: 'var(--font-badge)',
-              fontWeight: 700,
-              border: selectedTrade === 'all' ? '1px solid #170e5e' : '1px solid #e2e8f0',
-              background: selectedTrade === 'all' ? '#170e5e' : '#ffffff',
-              color: selectedTrade === 'all' ? '#ffffff' : '#475569',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease',
-              boxShadow: selectedTrade === 'all' ? '0 1px 2px rgba(23, 14, 94, 0.15)' : 'none',
+              paddingBottom: '14px',
+              marginBottom: '14px',
+              borderBottom: '1px solid #f1f5f9',
             }}
           >
-            <span>كافة التخصصات</span>
-            <span
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <AppIcons.Sliders size={16} color="#170e5e" />
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
+                القطاعات الهندسية الرئيسية:
+              </span>
+            </div>
+
+            <div
               style={{
-                fontSize: '11px',
-                padding: '1px 7px',
-                borderRadius: '10px',
-                background: selectedTrade === 'all' ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
-                color: selectedTrade === 'all' ? '#ffffff' : '#64748b',
-                fontWeight: 700,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '8px',
+                width: '100%',
               }}
             >
-              {trades.reduce((sum, t) => sum + t.itemsCount, 0)}
-            </span>
-          </button>
+              {SECTORS.map((sec) => {
+                const isSecActive = selectedSector === sec.id;
+                const SecIcon = sec.icon;
+                const count = sectorCounts[sec.id] || 0;
+                return (
+                  <button
+                    key={sec.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedSector(sec.id);
+                      setSelectedTrade('all');
+                    }}
+                    style={{
+                      height: '40px',
+                      padding: '0 14px',
+                      borderRadius: '8px',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      border: isSecActive ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                      background: isSecActive ? '#170e5e' : '#f8fafc',
+                      color: isSecActive ? '#ffffff' : '#334155',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      boxShadow: isSecActive ? '0 2px 4px rgba(23, 14, 94, 0.12)' : 'none',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                      <SecIcon size={15} color={isSecActive ? '#ffffff' : '#64748b'} style={{ flexShrink: 0 }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {sec.name}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        background: isSecActive ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+                        color: isSecActive ? '#ffffff' : '#334155',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        marginInlineStart: '6px',
+                      }}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-          {trades.map((t) => {
-            const isSelected = selectedTrade === t.tradeCategory;
-            return (
+          {/* 2. شرائح التخصصات التنفيذية المنظمة بدون أي تكرار — بحجم موحد وشبكة ممتدة بعرض الصفحة */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <AppIcons.Tool size={15} color="#170e5e" />
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
+                التخصصات التنفيذية:
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                gap: '8px',
+                width: '100%',
+              }}
+            >
+              {/* زر الكل داخل القطاع */}
               <button
-                key={t.tradeCategory}
                 type="button"
-                onClick={() => setSelectedTrade(t.tradeCategory)}
+                onClick={() => setSelectedTrade('all')}
                 style={{
-                  height: '34px',
+                  height: '42px',
                   padding: '0 14px',
                   borderRadius: '8px',
-                  fontSize: 'var(--font-badge)',
-                  fontWeight: isSelected ? 700 : 600,
-                  border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
-                  background: isSelected ? '#170e5e' : '#ffffff',
-                  color: isSelected ? '#ffffff' : '#475569',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  border: selectedTrade === 'all' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                  background: selectedTrade === 'all' ? '#170e5e' : '#ffffff',
+                  color: selectedTrade === 'all' ? '#ffffff' : '#334155',
                   cursor: 'pointer',
-                  display: 'inline-flex',
+                  display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.15s ease',
-                  boxShadow: isSelected ? '0 1px 2px rgba(23, 14, 94, 0.15)' : 'none',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  boxShadow: selectedTrade === 'all' ? '0 2px 4px rgba(23, 14, 94, 0.15)' : '0 1px 2px rgba(0,0,0,0.02)',
                 }}
               >
-                <span>{t.tradeNameAr}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                  <AppIcons.Layers size={15} color={selectedTrade === 'all' ? '#ffffff' : '#64748b'} style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                    {selectedSector === 'all' ? 'كافة التخصصات' : `كافة بنود ${SECTORS.find(s => s.id === selectedSector)?.name || ''}`}
+                  </span>
+                </div>
                 <span
                   style={{
                     fontSize: '11px',
-                    padding: '1px 7px',
-                    borderRadius: '10px',
-                    background: isSelected ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
-                    color: isSelected ? '#ffffff' : '#64748b',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    background: selectedTrade === 'all' ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
+                    color: selectedTrade === 'all' ? '#ffffff' : '#475569',
                     fontWeight: 700,
+                    flexShrink: 0,
+                    marginInlineStart: '8px',
                   }}
                 >
-                  {t.itemsCount}
+                  {selectedSector === 'all'
+                    ? allItems.length
+                    : sectorCounts[selectedSector] || 0}
                 </span>
               </button>
-            );
-          })}
+
+              {visibleTrades.map((t) => {
+                const isSelected = selectedTrade === t.tradeCategory;
+                const TradeIcon = TRADE_ICONS[t.tradeCategory] || AppIcons.Tool;
+                return (
+                  <button
+                    key={t.tradeCategory}
+                    type="button"
+                    onClick={() => setSelectedTrade(t.tradeCategory)}
+                    style={{
+                      height: '42px',
+                      padding: '0 14px',
+                      borderRadius: '8px',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      border: isSelected ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                      background: isSelected ? '#170e5e' : '#ffffff',
+                      color: isSelected ? '#ffffff' : '#334155',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      boxShadow: isSelected ? '0 2px 4px rgba(23, 14, 94, 0.15)' : '0 1px 2px rgba(0,0,0,0.02)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                      <TradeIcon size={15} color={isSelected ? '#ffffff' : '#64748b'} style={{ flexShrink: 0 }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                        {t.tradeNameAr}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        background: isSelected ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
+                        color: isSelected ? '#ffffff' : '#475569',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        marginInlineStart: '8px',
+                      }}
+                    >
+                      {t.itemsCount}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* شريط الإجراء المباشر أعلى الجدول */}
@@ -612,7 +911,7 @@ export function ContractingMasterBoqPage() {
             <div style={{ padding: '60px 24px', textAlign: 'center', color: '#64748b' }}>
               جاري تحميل بنك البنود المرجعي...
             </div>
-          ) : items.length === 0 ? (
+          ) : filteredItems.length === 0 ? (
             <div style={{ padding: '60px 24px', textAlign: 'center' }}>
               <div style={{ color: '#94a3b8', marginBottom: '12px', display: 'flex', justifyContent: 'center' }}>
                 <AppIcons.FileText size={48} />
@@ -670,7 +969,7 @@ export function ContractingMasterBoqPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item) => {
+                  {filteredItems.map((item) => {
                     const price = Number(item.standardPrice) || 0;
                     const cost = Number(item.standardCost) || 0;
                     const margin = price > 0 ? Math.round(((price - cost) / price) * 100) : 0;
@@ -866,7 +1165,7 @@ export function ContractingMasterBoqPage() {
             open={isCreateModalOpen}
             initialItem={editingItem}
             trades={trades}
-            existingItems={items}
+            existingItems={allItems}
             initialTradeCategory={selectedTrade !== 'all' ? selectedTrade : undefined}
             onClose={() => {
               setIsCreateModalOpen(false);

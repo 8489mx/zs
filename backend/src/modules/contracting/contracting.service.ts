@@ -4329,12 +4329,28 @@ export class ContractingService {
       )
       SELECT 
         trade_category,
-        trade_name_ar,
+        MAX(trade_name_ar) as trade_name_ar,
         COUNT(*)::text as items_count
       FROM scoped_items
       WHERE is_active = true
-      GROUP BY trade_category, trade_name_ar
-      ORDER BY trade_category ASC
+      GROUP BY trade_category
+      ORDER BY (
+        CASE trade_category
+          WHEN 'site_mobilization' THEN 1
+          WHEN 'civil_concrete' THEN 2
+          WHEN 'masonry_insulation' THEN 3
+          WHEN 'steel_structure' THEN 4
+          WHEN 'finishing_decor' THEN 5
+          WHEN 'doors_windows_aluminum' THEN 6
+          WHEN 'electrical_lighting' THEN 7
+          WHEN 'smart_elv_systems' THEN 8
+          WHEN 'plumbing_sanitary' THEN 9
+          WHEN 'hvac_mechanical' THEN 10
+          WHEN 'fire_fighting' THEN 11
+          WHEN 'site_infrastructure' THEN 12
+          ELSE 99
+        END
+      ) ASC
     `.execute(this.db);
 
     return rows.rows.map((r) => ({
@@ -4368,7 +4384,12 @@ export class ContractingService {
     }
 
     if (query?.tradeCategory && query.tradeCategory !== 'all') {
-      rawQuery = sql`${rawQuery} AND trade_category = ${query.tradeCategory}`;
+      const cats = query.tradeCategory.split(',').map((c: string) => c.trim()).filter(Boolean);
+      if (cats.length === 1) {
+        rawQuery = sql`${rawQuery} AND trade_category = ${cats[0]}`;
+      } else if (cats.length > 1) {
+        rawQuery = sql`${rawQuery} AND trade_category IN (${sql.join(cats.map((c: string) => sql`${c}`), sql`, `)})`;
+      }
     }
 
     if (query?.search) {

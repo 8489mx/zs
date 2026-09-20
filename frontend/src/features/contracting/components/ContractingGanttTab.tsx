@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ContractingScheduleTask } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { systemConfirm } from '@/shared/components/system-alert';
@@ -16,6 +16,38 @@ interface ContractingGanttTabProps {
   onTaskUpdated: () => void;
 }
 
+type FilterType = 'all' | 'critical' | 'in_progress' | 'completed' | 'not_started' | 'delayed';
+type SortType = 'chronological' | 'cpm_first' | 'wbs' | 'progress';
+
+function compareWbs(a?: string, b?: string): number {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  const partsA = a.split('.').map((p) => {
+    const num = parseInt(p, 10);
+    return isNaN(num) ? p : num;
+  });
+  const partsB = b.split('.').map((p) => {
+    const num = parseInt(p, 10);
+    return isNaN(num) ? p : num;
+  });
+  const len = Math.max(partsA.length, partsB.length);
+  for (let i = 0; i < len; i++) {
+    const valA = partsA[i];
+    const valB = partsB[i];
+    if (valA === undefined) return -1;
+    if (valB === undefined) return 1;
+    if (typeof valA === 'number' && typeof valB === 'number') {
+      if (valA !== valB) return valA - valB;
+    } else {
+      const strA = String(valA);
+      const strB = String(valB);
+      if (strA !== strB) return strA.localeCompare(strB);
+    }
+  }
+  return 0;
+}
+
 export function ContractingGanttTab({
   tasks,
   loading,
@@ -29,11 +61,81 @@ export function ContractingGanttTab({
   const [showResourceLoadingModal, setShowResourceLoadingModal] = useState(false);
   const [selectedDelayTask, setSelectedDelayTask] = useState<ContractingScheduleTask | null>(null);
 
+  // Filter & Sort State
+  const [filter, setFilter] = useState<FilterType>('all');
+  const [search, setSearch] = useState('');
+  const [sortType, setSortType] = useState<SortType>('chronological');
+
   // Metrics
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.status === 'completed' || Number(t.progressPercent) >= 100).length;
   const inProgressTasks = tasks.filter((t) => t.status === 'in_progress' || (Number(t.progressPercent) > 0 && Number(t.progressPercent) < 100)).length;
   const criticalPathTasks = tasks.filter((t) => t.isCriticalPath).length;
+
+  // Filtered and Sorted Tasks
+  const filteredTasks = useMemo(() => {
+    let list = [...tasks];
+
+    // 1. Filter by status / CPM
+    if (filter === 'critical') {
+      list = list.filter((t) => t.isCriticalPath);
+    } else if (filter === 'in_progress') {
+      list = list.filter((t) => t.status === 'in_progress' || (Number(t.progressPercent) > 0 && Number(t.progressPercent) < 100));
+    } else if (filter === 'completed') {
+      list = list.filter((t) => t.status === 'completed' || Number(t.progressPercent) >= 100);
+    } else if (filter === 'delayed') {
+      list = list.filter((t) => t.status === 'delayed');
+    } else if (filter === 'not_started') {
+      list = list.filter((t) => (t.status === 'not_started' || !t.status) && Number(t.progressPercent || 0) === 0);
+    }
+
+    // 2. Search filter
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((t) => {
+        const code = (t.taskCode || (t as any).task_code || '').toLowerCase();
+        const name = (t.taskName || (t as any).task_name || '').toLowerCase();
+        const wbs = (t.wbsCode || (t as any).wbs_code || '').toLowerCase();
+        const team = (t.assignedTeam || (t as any).assigned_team || '').toLowerCase();
+        return code.includes(q) || name.includes(q) || wbs.includes(q) || team.includes(q);
+      });
+    }
+
+    // 3. Sorting engine: Chronological Execution Sequence by default
+    return list.sort((a, b) => {
+      if (sortType === 'cpm_first') {
+        // Critical tasks first!
+        if (a.isCriticalPath !== b.isCriticalPath) {
+          return a.isCriticalPath ? -1 : 1;
+        }
+        const dateA = a.startDate || (a as any).start_date || '';
+        const dateB = b.startDate || (b as any).start_date || '';
+        if (dateA !== dateB) return dateA.localeCompare(dateB);
+        return compareWbs(a.wbsCode || (a as any).wbs_code, b.wbsCode || (b as any).wbs_code);
+      }
+
+      if (sortType === 'wbs') {
+        return compareWbs(a.wbsCode || (a as any).wbs_code, b.wbsCode || (b as any).wbs_code);
+      }
+
+      if (sortType === 'progress') {
+        return Number(b.progressPercent || 0) - Number(a.progressPercent || 0);
+      }
+
+      // Default: 'chronological' (Execution Order: Start Date ASC -> CPM First if same date -> WBS)
+      const dateA = a.startDate || (a as any).start_date || '';
+      const dateB = b.startDate || (b as any).start_date || '';
+      if (dateA !== dateB) {
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA.localeCompare(dateB);
+      }
+      if (a.isCriticalPath !== b.isCriticalPath) {
+        return a.isCriticalPath ? -1 : 1;
+      }
+      return compareWbs(a.wbsCode || (a as any).wbs_code, b.wbsCode || (b as any).wbs_code);
+    });
+  }, [tasks, filter, search, sortType]);
 
   const handleUpdateProgress = async (task: ContractingScheduleTask, newProgress: number) => {
     try {
@@ -167,45 +269,267 @@ export function ContractingGanttTab({
         </div>
       </div>
 
-      {/* بطاقات المؤشرات السريعة للجدول */}
+      {/* بطاقات المؤشرات السريعة للجدول — فلاتر تفاعلية فورية */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          onClick={() => setFilter('all')}
+          style={{
+            background: '#ffffff',
+            border: filter === 'all' ? '2px solid #170e5e' : '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            cursor: 'pointer',
+            boxShadow: filter === 'all' ? '0 2px 8px rgba(23, 14, 94, 0.12)' : '0 1px 3px rgba(0,0,0,0.02)',
+            boxSizing: 'border-box',
+          }}
+        >
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', color: '#64748b' }}>إجمالي أنشطة الجدول</div>
+            <div style={{ fontSize: 'var(--font-table-head)', color: '#64748b', fontWeight: 600 }}>إجمالي أنشطة الجدول</div>
             <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{totalTasks} نشاط</div>
           </div>
-          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: filter === 'all' ? '#170e5e' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: filter === 'all' ? '#ffffff' : '#1e40af' }}>
             <AppIcons.Calendar size={18} />
           </div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          onClick={() => setFilter(filter === 'critical' ? 'all' : 'critical')}
+          style={{
+            background: filter === 'critical' ? '#fef2f2' : '#ffffff',
+            border: filter === 'critical' ? '2px solid #dc2626' : '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            cursor: 'pointer',
+            boxShadow: filter === 'critical' ? '0 2px 8px rgba(220, 38, 38, 0.15)' : '0 1px 3px rgba(0,0,0,0.02)',
+            boxSizing: 'border-box',
+          }}
+        >
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', color: '#64748b' }}>أنشطة المسار الحرج (CPM)</div>
+            <div style={{ fontSize: 'var(--font-table-head)', color: filter === 'critical' ? '#991b1b' : '#64748b', fontWeight: 600 }}>أنشطة المسار الحرج (CPM)</div>
             <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>{criticalPathTasks} نشاط حرج</div>
           </div>
-          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: filter === 'critical' ? '#dc2626' : '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: filter === 'critical' ? '#ffffff' : '#dc2626' }}>
             <AppIcons.AlertCircle size={18} />
           </div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          onClick={() => setFilter(filter === 'in_progress' ? 'all' : 'in_progress')}
+          style={{
+            background: filter === 'in_progress' ? '#eff6ff' : '#ffffff',
+            border: filter === 'in_progress' ? '2px solid #1e40af' : '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            cursor: 'pointer',
+            boxShadow: filter === 'in_progress' ? '0 2px 8px rgba(30, 64, 175, 0.12)' : '0 1px 3px rgba(0,0,0,0.02)',
+            boxSizing: 'border-box',
+          }}
+        >
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', color: '#64748b' }}>أنشطة قيد التنفيذ</div>
+            <div style={{ fontSize: 'var(--font-table-head)', color: filter === 'in_progress' ? '#1e3a8a' : '#64748b', fontWeight: 600 }}>أنشطة قيد التنفيذ</div>
             <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1e40af', marginTop: '2px' }}>{inProgressTasks} نشاط</div>
           </div>
-          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: filter === 'in_progress' ? '#1e40af' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: filter === 'in_progress' ? '#ffffff' : '#1e40af' }}>
             <AppIcons.Clock size={18} />
           </div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          onClick={() => setFilter(filter === 'completed' ? 'all' : 'completed')}
+          style={{
+            background: filter === 'completed' ? '#f0fdf4' : '#ffffff',
+            border: filter === 'completed' ? '2px solid #15803d' : '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            cursor: 'pointer',
+            boxShadow: filter === 'completed' ? '0 2px 8px rgba(21, 128, 61, 0.12)' : '0 1px 3px rgba(0,0,0,0.02)',
+            boxSizing: 'border-box',
+          }}
+        >
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', color: '#64748b' }}>الأنشطة المكتملة</div>
+            <div style={{ fontSize: 'var(--font-table-head)', color: filter === 'completed' ? '#14532d' : '#64748b', fontWeight: 600 }}>الأنشطة المكتملة</div>
             <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>{completedTasks} نشاط</div>
           </div>
-          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: filter === 'completed' ? '#15803d' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: filter === 'completed' ? '#ffffff' : '#15803d' }}>
             <AppIcons.CheckCircle size={18} />
+          </div>
+        </div>
+      </div>
+
+      {/* شريط البحث وتصفية الأنشطة وترتيب الظهور */}
+      <div
+        style={{
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}
+      >
+        {/* كبسولات التصفية السريعة */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setFilter('all')}
+            style={{
+              height: '32px',
+              padding: '0 12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              border: filter === 'all' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+              background: filter === 'all' ? '#170e5e' : '#ffffff',
+              color: filter === 'all' ? '#ffffff' : '#475569',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>كافة الأنشطة</span>
+            <span style={{ fontSize: '10.5px', padding: '1px 6px', borderRadius: '10px', background: filter === 'all' ? 'rgba(255,255,255,0.2)' : '#f1f5f9', fontWeight: 700 }}>
+              {totalTasks}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilter(filter === 'critical' ? 'all' : 'critical')}
+            style={{
+              height: '32px',
+              padding: '0 12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              border: filter === 'critical' ? '1.5px solid #dc2626' : '1px solid #fca5a5',
+              background: filter === 'critical' ? '#dc2626' : '#fff5f5',
+              color: filter === 'critical' ? '#ffffff' : '#b91c1c',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <AppIcons.AlertCircle size={14} color={filter === 'critical' ? '#ffffff' : '#dc2626'} />
+            <span>المسار الحرج CPM فقط</span>
+            <span style={{ fontSize: '10.5px', padding: '1px 6px', borderRadius: '10px', background: filter === 'critical' ? 'rgba(255,255,255,0.25)' : '#fee2e2', fontWeight: 700 }}>
+              {criticalPathTasks}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilter('in_progress')}
+            style={{
+              height: '32px',
+              padding: '0 12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              border: filter === 'in_progress' ? '1.5px solid #1e40af' : '1px solid #cbd5e1',
+              background: filter === 'in_progress' ? '#1e40af' : '#ffffff',
+              color: filter === 'in_progress' ? '#ffffff' : '#475569',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>قيد التنفيذ</span>
+            <span style={{ fontSize: '10.5px', padding: '1px 6px', borderRadius: '10px', background: filter === 'in_progress' ? 'rgba(255,255,255,0.2)' : '#f1f5f9', fontWeight: 700 }}>
+              {inProgressTasks}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilter('completed')}
+            style={{
+              height: '32px',
+              padding: '0 12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              border: filter === 'completed' ? '1.5px solid #15803d' : '1px solid #cbd5e1',
+              background: filter === 'completed' ? '#15803d' : '#ffffff',
+              color: filter === 'completed' ? '#ffffff' : '#475569',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>المكتملة</span>
+            <span style={{ fontSize: '10.5px', padding: '1px 6px', borderRadius: '10px', background: filter === 'completed' ? 'rgba(255,255,255,0.2)' : '#f1f5f9', fontWeight: 700 }}>
+              {completedTasks}
+            </span>
+          </button>
+        </div>
+
+        {/* البحث وخيارات الترتيب */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* حقل البحث */}
+          <div style={{ position: 'relative', minWidth: '220px' }}>
+            <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
+              <AppIcons.Search size={14} />
+            </span>
+            <input
+              type="text"
+              placeholder="ابحث بكود المهمة أو الاسم..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                height: '34px',
+                padding: '0 32px 0 10px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '12px',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          {/* محدد الترتيب */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>الترتيب:</span>
+            <select
+              value={sortType}
+              onChange={(e) => setSortType(e.target.value as SortType)}
+              style={{
+                height: '34px',
+                padding: '0 10px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: '#170e5e',
+                background: '#ffffff',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            >
+              <option value="chronological">الترتيب الزمني والتنفيذي (الأسبق أولاً)</option>
+              <option value="cpm_first">المسار الحرج أولاً (CPM First)</option>
+              <option value="wbs">تسلسل هيكل الأعمال (WBS)</option>
+              <option value="progress">نسبة الإنجاز (الأعلى أولاً)</option>
+            </select>
           </div>
         </div>
       </div>
@@ -245,6 +569,38 @@ export function ContractingGanttTab({
               إضافة أول نشاط بالجدول
             </button>
           </div>
+        ) : filteredTasks.length === 0 ? (
+          <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', color: '#dc2626' }}>
+              <AppIcons.Filter size={24} />
+            </div>
+            <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: '0 0 6px' }}>
+              لا توجد أنشطة مطابقة للفلتر المحدد
+            </h3>
+            <p style={{ fontSize: 'var(--font-body)', color: '#64748b', margin: '0 0 16px' }}>
+              لم يتم العثور على أنشطة تتطابق مع معايير البحث أو التصفية الحالية.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setFilter('all');
+                setSearch('');
+              }}
+              style={{
+                height: '34px',
+                padding: '0 16px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                background: '#f1f5f9',
+                color: '#170e5e',
+                border: '1px solid #cbd5e1',
+                cursor: 'pointer',
+                fontSize: 'var(--font-body)',
+              }}
+            >
+              إعادة ضبط الفلاتر والبحث
+            </button>
+          </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', minWidth: '1060px', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right' }}>
@@ -269,7 +625,7 @@ export function ContractingGanttTab({
                 </tr>
               </thead>
               <tbody>
-                {tasks.map((task) => {
+                {filteredTasks.map((task) => {
                   const progress = Number(task.progressPercent || 0);
                   const isCritical = task.isCriticalPath;
 

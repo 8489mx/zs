@@ -29,46 +29,90 @@ interface ParsedMasterRow {
 }
 
 const TRADE_CATEGORY_MAP: Record<string, { key: string; ar: string }> = {
+  // 1. Civil & Concrete
   'الأعمال المدنية والخرسانات': { key: 'civil_concrete', ar: 'الأعمال المدنية والخرسانات' },
   'مدني وخرسانات': { key: 'civil_concrete', ar: 'الأعمال المدنية والخرسانات' },
   civil_concrete: { key: 'civil_concrete', ar: 'الأعمال المدنية والخرسانات' },
   civil: { key: 'civil_concrete', ar: 'الأعمال المدنية والخرسانات' },
 
-  'تجهيزات الموقع والأعمال التمهيدية': { key: 'site_mobilization', ar: 'تجهيزات الموقع والأعمال التمهيدية' },
-  'تجهيزات الموقع': { key: 'site_mobilization', ar: 'تجهيزات الموقع والأعمال التمهيدية' },
-  site_mobilization: { key: 'site_mobilization', ar: 'تجهيزات الموقع والأعمال التمهيدية' },
-  mobilization: { key: 'site_mobilization', ar: 'تجهيزات الموقع والأعمال التمهيدية' },
-
+  // 2. Masonry & Insulation
   'المباني والعزل والفواصل': { key: 'masonry_insulation', ar: 'المباني والعزل والفواصل' },
+  'أعمال المباني والعزل': { key: 'masonry_insulation', ar: 'المباني والعزل والفواصل' },
   'مباني وعزل': { key: 'masonry_insulation', ar: 'المباني والعزل والفواصل' },
   masonry_insulation: { key: 'masonry_insulation', ar: 'المباني والعزل والفواصل' },
   masonry: { key: 'masonry_insulation', ar: 'المباني والعزل والفواصل' },
 
-  'الأعمال الكهربائية والتيار الخفيف': { key: 'electrical', ar: 'الأعمال الكهربائية والتيار الخفيف' },
-  'كهرباء وإنارة': { key: 'electrical', ar: 'الأعمال الكهربائية والتيار الخفيف' },
-  electrical: { key: 'electrical', ar: 'الأعمال الكهربائية والتيار الخفيف' },
-  electric: { key: 'electrical', ar: 'الأعمال الكهربائية والتيار الخفيف' },
+  // 3. Finishes & Decor
+  'التشطيبات المعمارية والديكور': { key: 'finishing_decor', ar: 'التشطيبات المعمارية والديكور' },
+  'أعمال التشطيبات والديكور والدهانات': { key: 'finishing_decor', ar: 'التشطيبات المعمارية والديكور' },
+  'أعمال التشطيبات والديكور': { key: 'finishing_decor', ar: 'التشطيبات المعمارية والديكور' },
+  'تشطيبات وديكور': { key: 'finishing_decor', ar: 'التشطيبات المعمارية والديكور' },
+  finishing_decor: { key: 'finishing_decor', ar: 'التشطيبات المعمارية والديكور' },
+  finishes: { key: 'finishing_decor', ar: 'التشطيبات المعمارية والديكور' },
 
-  'الأعمال الصحية وتغذية وصرف المياه': { key: 'plumbing', ar: 'الأعمال الصحية وتغذية وصرف المياه' },
-  'صحي وسباكة': { key: 'plumbing', ar: 'الأعمال الصحية وتغذية وصرف المياه' },
-  plumbing: { key: 'plumbing', ar: 'الأعمال الصحية وتغذية وصرف المياه' },
+  // 4. Doors, Windows & Facades
+  'الأبواب والشبابيك والواجهات': { key: 'doors_windows_aluminum', ar: 'الأبواب والشبابيك والواجهات' },
+  'الأبواب والشبابيك والألومنيوم': { key: 'doors_windows_aluminum', ar: 'الأبواب والشبابيك والواجهات' },
+  'الأبواب والشبابيك والواجهات والتكسيات': { key: 'doors_windows_aluminum', ar: 'الأبواب والشبابيك والواجهات' },
+  'أبواب وشبابيك': { key: 'doors_windows_aluminum', ar: 'الأبواب والشبابيك والواجهات' },
+  doors_windows_aluminum: { key: 'doors_windows_aluminum', ar: 'الأبواب والشبابيك والواجهات' },
+  doors_windows_facades: { key: 'doors_windows_aluminum', ar: 'الأبواب والشبابيك والواجهات' },
 
-  'التكييف والتهوية ومكافحة الحريق': { key: 'hvac_firefighting', ar: 'التكييف والتهوية ومكافحة الحريق' },
-  'تكييف وحريق': { key: 'hvac_firefighting', ar: 'التكييف والتهوية ومكافحة الحريق' },
-  hvac_firefighting: { key: 'hvac_firefighting', ar: 'التكييف والتهوية ومكافحة الحريق' },
-  hvac: { key: 'hvac_firefighting', ar: 'التكييف والتهوية ومكافحة الحريق' },
+  // 5. Steel Structure
+  'المنشآت المعدنية والجمالونات': { key: 'steel_structure', ar: 'المنشآت المعدنية والجمالونات' },
+  'الجمالونات والمنشآت المعدنية': { key: 'steel_structure', ar: 'المنشآت المعدنية والجمالونات' },
+  'الجمالونات والحدادة والإنشاءات المعدنية': { key: 'steel_structure', ar: 'المنشآت المعدنية والجمالونات' },
+  steel_structure: { key: 'steel_structure', ar: 'المنشآت المعدنية والجمالونات' },
+  steel_structures: { key: 'steel_structure', ar: 'المنشآت المعدنية والجمالونات' },
 
-  'أعمال التشطيبات والديكور والدهانات': { key: 'finishes', ar: 'أعمال التشطيبات والديكور والدهانات' },
-  'تشطيبات وديكور': { key: 'finishes', ar: 'أعمال التشطيبات والديكور والدهانات' },
-  finishes: { key: 'finishes', ar: 'أعمال التشطيبات والديكور والدهانات' },
+  // 6. Electrical & Lighting
+  'الأعمال الكهربائية والإنارة': { key: 'electrical_lighting', ar: 'الأعمال الكهربائية والإنارة' },
+  'أعمال الكهرباء والإنارة': { key: 'electrical_lighting', ar: 'الأعمال الكهربائية والإنارة' },
+  'الأعمال الكهربائية والتيار الخفيف': { key: 'electrical_lighting', ar: 'الأعمال الكهربائية والإنارة' },
+  'كهرباء وإنارة': { key: 'electrical_lighting', ar: 'الأعمال الكهربائية والإنارة' },
+  electrical_lighting: { key: 'electrical_lighting', ar: 'الأعمال الكهربائية والإنارة' },
+  electrical: { key: 'electrical_lighting', ar: 'الأعمال الكهربائية والإنارة' },
 
-  'الأبواب والشبابيك والواجهات والتكسيات': { key: 'doors_windows_facades', ar: 'الأبواب والشبابيك والواجهات والتكسيات' },
-  'أبواب وشبابيك': { key: 'doors_windows_facades', ar: 'الأبواب والشبابيك والواجهات والتكسيات' },
-  doors_windows_facades: { key: 'doors_windows_facades', ar: 'الأبواب والشبابيك والواجهات والتكسيات' },
+  // 7. ELV & Smart Systems
+  'التيار الخفيف والأنظمة الذكية (ELV)': { key: 'smart_elv_systems', ar: 'التيار الخفيف والأنظمة الذكية (ELV)' },
+  'الأنظمة الذكية والإلكترونيات والـ ELV': { key: 'smart_elv_systems', ar: 'التيار الخفيف والأنظمة الذكية (ELV)' },
+  'التيار الخفيف والسمارت': { key: 'smart_elv_systems', ar: 'التيار الخفيف والأنظمة الذكية (ELV)' },
+  smart_elv_systems: { key: 'smart_elv_systems', ar: 'التيار الخفيف والأنظمة الذكية (ELV)' },
+  smart_systems_elv: { key: 'smart_elv_systems', ar: 'التيار الخفيف والأنظمة الذكية (ELV)' },
 
-  'الموقع العام والبنية التحتية واللاندسكيب': { key: 'landscape_infrastructure', ar: 'الموقع العام والبنية التحتية واللاندسكيب' },
-  'لاندسكيب وطرق': { key: 'landscape_infrastructure', ar: 'الموقع العام والبنية التحتية واللاندسكيب' },
-  landscape_infrastructure: { key: 'landscape_infrastructure', ar: 'الموقع العام والبنية التحتية واللاندسكيب' },
+  // 8. Plumbing & Sanitary
+  'الأعمال الصحية وتغذية وصرف المياه': { key: 'plumbing_sanitary', ar: 'الأعمال الصحية وتغذية وصرف المياه' },
+  'الأعمال الصحية والسباكة': { key: 'plumbing_sanitary', ar: 'الأعمال الصحية وتغذية وصرف المياه' },
+  'الأعمال الصحية والصرف': { key: 'plumbing_sanitary', ar: 'الأعمال الصحية وتغذية وصرف المياه' },
+  'صحي وسباكة': { key: 'plumbing_sanitary', ar: 'الأعمال الصحية وتغذية وصرف المياه' },
+  plumbing_sanitary: { key: 'plumbing_sanitary', ar: 'الأعمال الصحية وتغذية وصرف المياه' },
+  plumbing: { key: 'plumbing_sanitary', ar: 'الأعمال الصحية وتغذية وصرف المياه' },
+
+  // 9. HVAC & Mechanical
+  'التكييف والتهوية الميكانيكية': { key: 'hvac_mechanical', ar: 'التكييف والتهوية الميكانيكية' },
+  'التكييف والتهوية والأعمال الميكانيكية': { key: 'hvac_mechanical', ar: 'التكييف والتهوية الميكانيكية' },
+  'تكييف وميكانيكا': { key: 'hvac_mechanical', ar: 'التكييف والتهوية الميكانيكية' },
+  hvac_mechanical: { key: 'hvac_mechanical', ar: 'التكييف والتهوية الميكانيكية' },
+  hvac: { key: 'hvac_mechanical', ar: 'التكييف والتهوية الميكانيكية' },
+
+  // 10. Fire Fighting
+  'شبكات مكافحة وإطفاء الحريق': { key: 'fire_fighting', ar: 'شبكات مكافحة وإطفاء الحريق' },
+  'مكافحة وإطفاء الحريق': { key: 'fire_fighting', ar: 'شبكات مكافحة وإطفاء الحريق' },
+  'إطفاء وحريق': { key: 'fire_fighting', ar: 'شبكات مكافحة وإطفاء الحريق' },
+  fire_fighting: { key: 'fire_fighting', ar: 'شبكات مكافحة وإطفاء الحريق' },
+  fire_fighting_mep: { key: 'fire_fighting', ar: 'شبكات مكافحة وإطفاء الحريق' },
+
+  // 11. Site Works & Infrastructure
+  'تجهيزات الموقع والبنية التحتية واللاندسكيب': { key: 'site_infrastructure', ar: 'تجهيزات الموقع والبنية التحتية واللاندسكيب' },
+  'تجهيزات الموقع والأعمال التمهيدية': { key: 'site_infrastructure', ar: 'تجهيزات الموقع والبنية التحتية واللاندسكيب' },
+  'الموقع العام واللاندسكيب والشبكات الخارجية': { key: 'site_infrastructure', ar: 'تجهيزات الموقع والبنية التحتية واللاندسكيب' },
+  'الموقع العام واللاندسكيب': { key: 'site_infrastructure', ar: 'تجهيزات الموقع والبنية التحتية واللاندسكيب' },
+  'تجهيزات الموقع': { key: 'site_infrastructure', ar: 'تجهيزات الموقع والبنية التحتية واللاندسكيب' },
+  'لاندسكيب وطرق': { key: 'site_infrastructure', ar: 'تجهيزات الموقع والبنية التحتية واللاندسكيب' },
+  site_infrastructure: { key: 'site_infrastructure', ar: 'تجهيزات الموقع والبنية التحتية واللاندسكيب' },
+  site_mobilization: { key: 'site_infrastructure', ar: 'تجهيزات الموقع والبنية التحتية واللاندسكيب' },
+  site_landscape: { key: 'site_infrastructure', ar: 'تجهيزات الموقع والبنية التحتية واللاندسكيب' },
+  landscape_infrastructure: { key: 'site_infrastructure', ar: 'تجهيزات الموقع والبنية التحتية واللاندسكيب' },
 };
 
 function normalizeArabicDigits(str: string): string {
