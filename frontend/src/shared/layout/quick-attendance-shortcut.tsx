@@ -22,10 +22,6 @@ function normalize(value: unknown) {
   return String(value || '').trim().toLowerCase();
 }
 
-function nowIso() {
-  return new Date().toISOString();
-}
-
 function todayDate() {
   return new Date().toISOString().slice(0, 10);
 }
