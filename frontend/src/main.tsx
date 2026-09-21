@@ -4,18 +4,10 @@ import { AppProviders } from '@/app/providers';
 import { AppRouter } from '@/app/router';
 import '@/styles/app.css';
 import '@/lib/i18n';
-import * as Sentry from '@sentry/react';
+import { initErrorTracking } from '@/lib/error-tracking';
 
-if (import.meta.env.VITE_ERROR_TRACKING_ENABLED === 'true' && import.meta.env.VITE_SENTRY_DSN) {
-  Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || 'production',
-    release: import.meta.env.VITE_SENTRY_RELEASE,
-    tracesSampleRate: 0,
-    replaysSessionSampleRate: 0,
-    replaysOnErrorSampleRate: 0,
-  });
-}
+// Sentry is loaded on demand (and only when enabled) — see src/lib/error-tracking.ts (PERF-7).
+initErrorTracking();
 
 import { resolveRequestUrl } from '@/lib/http';
 

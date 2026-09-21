@@ -6,6 +6,7 @@ import {
   getCatalogCountFromStorage,
   getLastSyncedAtFromStorage,
 } from '@/features/pos/lib/pos-catalog-storage';
+import { shouldDownloadFullCatalog } from '@/features/pos/lib/pos-catalog-sync-policy';
 
 interface PosCatalogWarmupOptions {
   branchId?: string;
@@ -14,7 +15,7 @@ interface PosCatalogWarmupOptions {
 }
 
 const WARMUP_INITIAL_DELAY_MS = 3500;
-const HEARTBEAT_INTERVAL_MS = 300_000; // 5 minutes
+const HEARTBEAT_INTERVAL_MS = 300_000; // 5 minutes — cheap version check; full reload policy in pos-catalog-sync-policy.ts
 
 export function usePosCatalogWarmup({ branchId, locationId, enabled = true }: PosCatalogWarmupOptions = {}) {
   const [isWarmingUp, setIsWarmingUp] = useState(false);
@@ -42,7 +43,8 @@ export function usePosCatalogWarmup({ branchId, locationId, enabled = true }: Po
       setTotalCached(storedCount);
       setLastSyncedAt(storedLastSync);
 
-      if (storedVersion === remote.version && storedCount > 0) {
+      // PERF-9: re-download only when the catalog really changed or the offline copy is > 1 hour old.
+      if (!shouldDownloadFullCatalog({ remoteVersion: remote.version, storedVersion, storedCount, lastSyncedAt: storedLastSync })) {
         return;
       }
 

@@ -9,6 +9,7 @@ import { NormalizedFashionVariant, NormalizedProductOffer, NormalizedUpsertProdu
 import { InventoryScopeService } from '../../inventory/services/inventory-scope.service';
 import { normalizeArabicInput, normalizeArabicSearch } from '../../../common/utils/arabic-search.util';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
+import { buildPosCatalogVersion } from '../engines/pos-catalog-version.engine';
 
 type ProductRow = {
   id: number;
@@ -122,6 +123,13 @@ export class CatalogProductService {
     return alias
       ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId} AND ${sql.ref(`${alias}.account_id`)} = ${accountId}`
       : sql<boolean>`tenant_id = ${tenantId} AND account_id = ${accountId}`;
+  }
+
+  // PERF-2: for id lists that can span the whole tenant catalog (listProducts passes every active
+  // product). `IN (?, ?, ...)` sends one bind parameter per id — slow to plan, and Postgres rejects a
+  // statement over 65,535 parameters, i.e. a large catalog would crash the page. One array parameter.
+  private productIdAny(column: string, ids: number[]) {
+    return sql<boolean>`${sql.ref(column)} = ANY(${ids.map((id) => Number(id))}::bigint[])`;
   }
 
   private normalizeDateOnly(value: unknown): string {
@@ -336,15 +344,24 @@ export class CatalogProductService {
     };
   }
 
+  // PERF-9 (PERFORMANCE_CONSTITUTION.md): every POS terminal re-downloads its whole offline catalog
+  // when this version changes, so it must move ONLY when something in that catalog changed.
+  // `products.catalog_updated_at` is maintained by a trigger (migration 137) that ignores stock/cost
+  // columns — never go back to `products.updated_at` here: applyStockDelta stamps it on every sale,
+  // which made every terminal reload the full catalog every 5 minutes all day.
+  // Unit/offer counts catch deletions (a deleted row cannot raise MAX(updated_at)).
+  // Stock freshness for the offline copy is the terminal's hourly full reload, not this version.
   async getPosCatalogVersion(actor: AuthContext): Promise<{ version: string; totalCount: number; lastUpdatedAt: string }> {
-    const result = await sql<{ max_updated: string | null; total_count: string | number }>`
+    const result = await sql<{ max_updated: string | null; total_count: string | number; unit_count: string | number; offer_count: string | number }>`
       SELECT 
         GREATEST(
-          COALESCE(MAX(p.updated_at), '1970-01-01'::timestamptz),
+          COALESCE(MAX(p.catalog_updated_at), '1970-01-01'::timestamptz),
           COALESCE((SELECT MAX(pu.updated_at) FROM product_units pu WHERE ${this.tenantPredicate(actor, 'pu')}), '1970-01-01'::timestamptz),
           COALESCE((SELECT MAX(po.updated_at) FROM product_offers po WHERE ${this.tenantPredicate(actor, 'po')}), '1970-01-01'::timestamptz)
         ) as max_updated,
-        COUNT(p.id) as total_count
+        COUNT(p.id) as total_count,
+        (SELECT COUNT(*) FROM product_units pu WHERE ${this.tenantPredicate(actor, 'pu')}) as unit_count,
+        (SELECT COUNT(*) FROM product_offers po WHERE po.is_active = true AND ${this.tenantPredicate(actor, 'po')}) as offer_count
       FROM products p
       WHERE p.is_active = true
         AND ${this.tenantPredicate(actor, 'p')}
@@ -353,8 +370,12 @@ export class CatalogProductService {
     const row = result.rows[0];
     const totalCount = Number(row?.total_count || 0);
     const lastUpdatedAt = row?.max_updated ? new Date(row.max_updated).toISOString() : new Date(0).toISOString();
-    const versionTime = Math.floor(new Date(lastUpdatedAt).getTime() / 1000);
-    const version = `v${totalCount}-${versionTime}`;
+    const version = buildPosCatalogVersion({
+      productCount: totalCount,
+      unitCount: Number(row?.unit_count || 0),
+      offerCount: Number(row?.offer_count || 0),
+      lastUpdatedAt,
+    });
 
     return {
       version,
@@ -362,6 +383,7 @@ export class CatalogProductService {
       lastUpdatedAt,
     };
   }
+
 
   async listPosProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const { q, barcode, limit, requestedLocationId, requestedBranchId, view, isFullCatalog } = this.parsePosProductLookupQuery(query);
@@ -839,22 +861,28 @@ export class CatalogProductService {
       .where(this.tenantPredicate(actor, 'pls'));
 
     if (!isFullCatalog) {
-      query = query.where('pls.product_id', 'in', productIds);
+      query = query.where(this.productIdAny('pls.product_id', productIds));
     }
 
     const stockRows = await query.execute();
 
+    // PERF-2 (ARCHITECTURE_INVARIANTS.md §2.6): every per-product figure is aggregated in this ONE pass
+    // over stockRows. The product loop below must only read these maps — a `stockRows.filter(...)` per
+    // product was O(products × stock rows): ~600M comparisons for a 20k-item full POS catalog.
+    const eligibleLocationSet = new Set(eligibleLocationIds.map((id) => Number(id)));
     const locationQtyByProduct = new Map<string, number>();
     const unassignedQtyByProduct = new Map<string, number>();
+    const assignedQtyByProduct = new Map<string, number>();
     for (const row of stockRows) {
       const key = String(row.product_id);
       const qty = Number(row.qty || 0);
-      
+
       if (!activeLocationsByProduct.has(key)) activeLocationsByProduct.set(key, []);
       if (row.location_id) activeLocationsByProduct.get(key)!.push(row.location_id);
 
       if (row.location_id == null) unassignedQtyByProduct.set(key, qty);
-      if (eligibleLocationIds.some(id => Number(id) === Number(row.location_id || 0))) {
+      else assignedQtyByProduct.set(key, (assignedQtyByProduct.get(key) || 0) + qty);
+      if (eligibleLocationSet.has(Number(row.location_id || 0))) {
         locationQtyByProduct.set(key, (locationQtyByProduct.get(key) || 0) + qty);
       }
     }
@@ -862,8 +890,7 @@ export class CatalogProductService {
     for (const product of products) {
       const key = String(product.id);
       if (eligibleLocationIds.length > 0) {
-        const allLocationRowsForProduct = stockRows.filter(r => String(r.product_id) === key && r.location_id != null);
-        const currentSum = allLocationRowsForProduct.reduce((sum, r) => sum + Number(r.qty || 0), 0);
+        const currentSum = assignedQtyByProduct.get(key) || 0;
         const discrepancy = Number(product.stock_qty || 0) - currentSum;
         const locationQty = locationQtyByProduct.get(key) || 0;
         const unassignedQty = unassignedQtyByProduct.get(key) || 0;
@@ -893,7 +920,7 @@ export class CatalogProductService {
         ? this.db
             .selectFrom('product_units')
             .select(['product_id', 'name', 'barcode'])
-            .where('product_id', 'in', productIds)
+            .where(this.productIdAny('product_id', productIds))
             .where(this.tenantPredicate(actor))
             .orderBy('product_id', 'asc')
             .execute() as Promise<ProductUnitSearchRow[]>
@@ -903,7 +930,7 @@ export class CatalogProductService {
             .selectFrom('product_offers')
             .select(['product_id', (eb) => eb.fn.countAll<number>().as('count')])
             .where('is_active', '=', true)
-            .where('product_id', 'in', productIds)
+            .where(this.productIdAny('product_id', productIds))
             .where(this.tenantPredicate(actor))
             .groupBy('product_id')
             .execute() as Promise<ProductCountRow[]>
@@ -912,7 +939,7 @@ export class CatalogProductService {
         ? this.db
             .selectFrom('product_customer_prices')
             .select(['product_id', (eb) => eb.fn.countAll<number>().as('count')])
-            .where('product_id', 'in', productIds)
+            .where(this.productIdAny('product_id', productIds))
             .where(this.tenantPredicate(actor))
             .groupBy('product_id')
             .execute() as Promise<ProductCountRow[]>

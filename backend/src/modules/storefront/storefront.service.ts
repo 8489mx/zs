@@ -238,26 +238,70 @@ export class StorefrontService {
       return inFlight;
     }
 
+    // PERF-4 (ARCHITECTURE_INVARIANTS.md §2.6): true stale-while-revalidate. Past the 60s fresh window
+    // but inside the stale window, the shopper gets the cached catalog immediately and the refresh runs
+    // in the background — previously the first visitor after every minute waited for the full rebuild.
+    // Prices/stock shown here are display-only: order creation re-prices and re-checks stock server-side.
+    const serveStale = Boolean(cached && cached.staleUntil > now);
+
     // 3. Initiate singleflight worker promise
     const fetchPromise = (async () => {
       try {
         const tenant = await this.getTenantBySlug(cleanSlug);
 
-        // 1. Fetch Categories
-        const categories = await this.db
-          .selectFrom('product_categories')
-          .select(['id', 'name'])
-          .where(sql<boolean>`tenant_id = ${tenant.id}`)
-          .orderBy('name', 'asc')
-          .execute();
-
-        // Fetch Category Images from settings
-        const catImagesRow = await this.db
-          .selectFrom('settings')
-          .select(['value'])
-          .where(sql<boolean>`tenant_id = ${tenant.id}`)
-          .where('key', '=', 'storefront_category_images')
-          .executeTakeFirst();
+        // PERF-4: the five reads below are independent once the tenant is known — run them together
+        // instead of five sequential round-trips (the catalog rebuild is on the shopper's critical path).
+        const [categories, catImagesRow, products, reviewsSummary, settings] = await Promise.all([
+          // 1. Categories
+          this.db
+            .selectFrom('product_categories')
+            .select(['id', 'name'])
+            .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            .orderBy('name', 'asc')
+            .execute(),
+          // Category images from settings
+          this.db
+            .selectFrom('settings')
+            .select(['value'])
+            .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            .where('key', '=', 'storefront_category_images')
+            .executeTakeFirst(),
+          // 2. Products
+          this.db
+            .selectFrom('products')
+            .select([
+              'id',
+              'name',
+              'barcode',
+              'retail_price',
+              'stock_qty',
+              'category_id',
+              'notes',
+              'metadata',
+              'item_type',
+            ])
+            .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            .where((eb) => eb.or([
+              eb('item_type', '=', 'product'),
+              eb('item_type', 'is', null)
+            ]))
+            .orderBy('name', 'asc')
+            .execute(),
+          // 3. Real product reviews / ratings summary (optional: a failure yields no ratings, not an error)
+          this.db
+            .selectFrom('product_reviews')
+            .select([
+              'product_id',
+              sql<number>`ROUND(AVG(rating)::numeric, 1)`.as('avg_rating'),
+              sql<number>`COUNT(*)::int`.as('review_count'),
+            ])
+            .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            .where('is_approved', '=', true)
+            .groupBy('product_id')
+            .execute()
+            .catch(() => [] as Array<{ product_id: number; avg_rating: number; review_count: number }>),
+          this.getTenantSettingsMap(tenant.id),
+        ]);
 
         let catImageMap: Record<string, string> = {};
         if (catImagesRow?.value) {
@@ -278,52 +322,14 @@ export class StorefrontService {
           catMap.set(c.id, c.name);
         }
 
-        // 2. Fetch Products
-        const products = await this.db
-          .selectFrom('products')
-          .select([
-            'id',
-            'name',
-            'barcode',
-            'retail_price',
-            'stock_qty',
-            'category_id',
-            'notes',
-            'metadata',
-            'item_type',
-          ])
-          .where(sql<boolean>`tenant_id = ${tenant.id}`)
-          .where((eb) => eb.or([
-            eb('item_type', '=', 'product'),
-            eb('item_type', 'is', null)
-          ]))
-          .orderBy('name', 'asc')
-          .execute();
-
-        // 3. Fetch Real Product Reviews / Ratings Summary
         const ratingMap = new Map<number, { avgRating: number; reviewCount: number }>();
-        try {
-          const reviewsSummary = await this.db
-            .selectFrom('product_reviews')
-            .select([
-              'product_id',
-              sql<number>`ROUND(AVG(rating)::numeric, 1)`.as('avg_rating'),
-              sql<number>`COUNT(*)::int`.as('review_count'),
-            ])
-            .where(sql<boolean>`tenant_id = ${tenant.id}`)
-            .where('is_approved', '=', true)
-            .groupBy('product_id')
-            .execute();
+        for (const r of reviewsSummary) {
+          ratingMap.set(Number(r.product_id), {
+            avgRating: Number(r.avg_rating) || 0,
+            reviewCount: Number(r.review_count) || 0,
+          });
+        }
 
-          for (const r of reviewsSummary) {
-            ratingMap.set(Number(r.product_id), {
-              avgRating: Number(r.avg_rating) || 0,
-              reviewCount: Number(r.review_count) || 0,
-            });
-          }
-        } catch {}
-
-        const settings = await this.getTenantSettingsMap(tenant.id);
         const allowOutOfStock = settings.get('storefront_allow_out_of_stock') === 'true' ||
           settings.get('storefront_unlimited_stock') === 'true' ||
           settings.get('industry') === 'restaurant' ||
@@ -389,6 +395,11 @@ export class StorefrontService {
     })();
 
     this.inFlightCatalogPromises.set(cleanSlug, fetchPromise);
+    if (serveStale) {
+      // Background refresh: a failure keeps serving the stale copy until staleUntil, never an unhandled rejection.
+      fetchPromise.catch(() => undefined);
+      return cached!.data;
+    }
     return fetchPromise;
   }
 

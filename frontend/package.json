@@ -27,6 +27,8 @@
     "qa:guards": "node scripts/route-guard-check.mjs",
     "qa:live-flows": "node scripts/purchase-inventory-live-flow-check.mjs",
     "qa:split": "node scripts/code-splitting-check.mjs",
+    "qa:perf": "node scripts/perf-budget-check.mjs",
+    "qa:perf:dist": "node scripts/perf-budget-check.mjs --dist",
     "qa:rc": "node scripts/release-candidate-check.mjs",
     "qa:contracts": "node scripts/api-mutation-envelope-check.mjs",
     "qa:release": "node scripts/release-audit.mjs",

@@ -5,7 +5,7 @@ import { getTextDirection } from '@/lib/arabic-normalization';
 import { contractingApi } from '../api/contracting.api';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
-import { ImportBoqModal } from '../components/ImportBoqModal';
+import { ImportBoqModal } from '../components/LazyImportBoqModal';
 import { ImportMasterBoqModal } from '../components/ImportMasterBoqModal';
 import { AutoPricingModal } from '../components/AutoPricingModal';
 import { ClientQuotationModal } from '../components/ClientQuotationModal';

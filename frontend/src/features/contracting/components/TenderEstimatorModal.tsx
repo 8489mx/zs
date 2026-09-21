@@ -5,7 +5,7 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { contractingApi } from '../api/contracting.api';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
-import { ImportBoqModal } from './ImportBoqModal';
+import { ImportBoqModal } from './LazyImportBoqModal';
 import { ImportMasterBoqModal } from './ImportMasterBoqModal';
 
 interface TenderItemComponent {

@@ -5,7 +5,7 @@ import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { downloadExcelFile } from '@/lib/browser';
 import { getTextDirection } from '@/lib/arabic-normalization';
 import { contractingApi } from '../api/contracting.api';
-import { ImportBoqModal } from './ImportBoqModal';
+import { ImportBoqModal } from './LazyImportBoqModal';
 import { ImportMasterBoqModal } from './ImportMasterBoqModal';
 import { AutoPricingModal } from './AutoPricingModal';
 import { ClientQuotationModal } from './ClientQuotationModal';

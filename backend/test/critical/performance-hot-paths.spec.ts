@@ -1,0 +1,214 @@
+import 'reflect-metadata';
+import { strict as assert } from 'node:assert';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { AuthContext } from '../../src/core/auth/interfaces/auth-context.interface';
+import { CatalogProductService } from '../../src/modules/catalog/services/catalog-product.service';
+import { StorefrontService } from '../../src/modules/storefront/storefront.service';
+import { buildPosCatalogVersion } from '../../src/modules/catalog/engines/pos-catalog-version.engine';
+
+// Guard for the performance invariants PERF-1 … PERF-4 (ARCHITECTURE_INVARIANTS.md §2.6).
+// Each block locks a fix that was cheap to undo by accident and expensive to notice: nothing breaks
+// functionally, the system just gets slow again. If one of these fails, read §2.6 before "fixing"
+// the test — the test is usually right.
+
+const SRC = join(__dirname, '..', '..', 'src');
+const read = (relative: string) => readFileSync(join(SRC, relative), 'utf8');
+
+const actor: AuthContext = {
+  userId: 1,
+  sessionId: 'perf-session',
+  username: 'perf',
+  role: 'admin',
+  permissions: ['products', 'sales'],
+  tenantId: 'tenant-perf',
+  accountId: 'account-perf',
+};
+
+type StockRow = { product_id: number; location_id: number | null; qty: number };
+
+// Minimal Kysely stand-in: only what resolveScopedStockByProduct touches.
+function fakeDbReturning(rows: StockRow[]) {
+  const builder = {
+    select: () => builder,
+    where: () => builder,
+    execute: async () => rows,
+  };
+  return { selectFrom: () => builder };
+}
+
+function createCatalogService(rows: StockRow[]): any {
+  return new CatalogProductService(fakeDbReturning(rows) as any, {} as any, {} as any);
+}
+
+// PERF-2 — behaviour of the scoped-stock aggregation must be exactly what it was before the rewrite.
+async function testScopedStockSemantics(): Promise<void> {
+  const service = createCatalogService([
+    { product_id: 1, location_id: 10, qty: 5 },
+    { product_id: 1, location_id: 20, qty: 3 },
+    { product_id: 1, location_id: null, qty: 2 },
+    { product_id: 2, location_id: 20, qty: 4 },
+    { product_id: 3, location_id: 10, qty: 1 },
+  ]);
+  const products = [
+    { id: 1, stock_qty: 10 }, // 5 + 3 assigned, 2 unassigned: no discrepancy
+    { id: 2, stock_qty: 9 },  // 4 assigned elsewhere, no unassigned row: discrepancy 5 is sellable
+    { id: 3, stock_qty: 1 },
+    { id: 4, stock_qty: 7 },  // no stock rows at all: whole global qty is unassigned
+  ];
+
+  const scoped = await service.resolveScopedStockByProduct([1, 2, 3, 4], [10], products, actor);
+  assert.equal(scoped.stock.get('1'), 7, 'location 10 (5) + unassigned row (2)');
+  assert.equal(scoped.stock.get('2'), 5, 'not in location 10, but 5 units are unassigned by discrepancy');
+  assert.equal(scoped.stock.get('3'), 1);
+  assert.equal(scoped.stock.get('4'), 7);
+  assert.deepEqual(scoped.locations.get('1'), [10, 20]);
+  assert.deepEqual(scoped.locations.get('2'), [20]);
+
+  const multi = await service.resolveScopedStockByProduct([1], [10, 20], [{ id: 1, stock_qty: 10 }], actor);
+  assert.equal(multi.stock.get('1'), 10, 'two eligible locations sum (5 + 3) plus unassigned (2)');
+
+  const unscoped = await service.resolveScopedStockByProduct([1, 4], [], products, actor);
+  assert.equal(unscoped.stock.get('1'), 10, 'no location scope: global stock_qty');
+  assert.equal(unscoped.stock.get('4'), 7);
+}
+
+// PERF-2 — the full POS catalog sync (20k products, branch-scoped) must stay linear.
+// The O(products × rows) version took minutes here; the linear one takes well under a second.
+async function testScopedStockIsLinear(): Promise<void> {
+  const productCount = 20_000;
+  const rows: StockRow[] = [];
+  const products: Array<{ id: number; stock_qty: number }> = [];
+  for (let id = 1; id <= productCount; id++) {
+    products.push({ id, stock_qty: 10 });
+    rows.push({ product_id: id, location_id: 1, qty: 4 }, { product_id: id, location_id: 2, qty: 6 });
+  }
+  const service = createCatalogService(rows);
+  const started = Date.now();
+  const scoped = await service.resolveScopedStockByProduct([], [1], products, actor, true);
+  const elapsed = Date.now() - started;
+  assert.equal(scoped.stock.size, productCount);
+  assert.equal(scoped.stock.get('123'), 4);
+  assert.ok(elapsed < 2_000, `scoped stock for ${productCount} products took ${elapsed}ms — quadratic loop is back?`);
+}
+
+// PERF-2 — whole-catalog id lists go out as ONE array parameter, not one bind parameter per id
+// (Postgres rejects > 65,535 parameters, i.e. a big catalog would crash the products page).
+function testWholeCatalogIdListsUseArrayParameter(): void {
+  const service = createCatalogService([]);
+  const compiled = service.productIdAny('pls.product_id', [1, 2, 3]);
+  const node = compiled.toOperationNode();
+  const json = JSON.stringify(node);
+  assert.ok(json.includes('ANY('), 'productIdAny must compile to = ANY($1::bigint[])');
+
+  const source = read('modules/catalog/services/catalog-product.service.ts');
+  const body = source.slice(source.indexOf('private async resolveScopedStockByProduct'), source.indexOf('private async buildListProductsContext'));
+  assert.ok(!/stockRows\.(filter|find|some|reduce)\(/.test(body.slice(body.indexOf('for (const product of products)'))),
+    'the per-product loop must read pre-aggregated maps, never rescan stockRows');
+  assert.ok(body.includes("this.productIdAny('pls.product_id', productIds)"), 'stock rows filter uses the array parameter');
+  const contextBody = source.slice(source.indexOf('private async buildListProductsContext'), source.indexOf('private filterListProducts'));
+  assert.ok(!contextBody.includes("'in', productIds"), 'buildListProductsContext receives every product id — use productIdAny');
+}
+
+// PERF-1 — no global ClassSerializerInterceptor (it deep-copied every response).
+function testNoGlobalClassSerializer(): void {
+  const main = read('main.ts');
+  assert.ok(!/new\s+ClassSerializerInterceptor/.test(main), 'ClassSerializerInterceptor must not be registered globally');
+}
+
+// PERF-3 — the hot-path index migration (136) exists and keeps its contract.
+function testHotPathIndexMigration(): void {
+  const file = join(SRC, 'database', 'migrations', '2040000000136_performance_hot_path_indexes.ts');
+  assert.ok(existsSync(file), 'migration 136 (hot-path indexes) must exist');
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { migration } = require(file);
+  assert.equal(typeof migration.up, 'function');
+  assert.equal(typeof migration.down, 'function');
+  const text = readFileSync(file, 'utf8');
+  for (const name of ['idx_held_sales_tenant_created', 'idx_purchase_items_tenant_product', 'idx_treasury_tenant_created']) {
+    assert.ok(text.includes(name), `${name} must stay in migration 136`);
+  }
+  assert.ok(!/DROP INDEX[^;]*(pkey|uidx|uniq|unique)/i.test(text), 'migration 136 must never drop a unique index or primary key');
+}
+
+// PERF-4 — storefront catalog: stale data is served immediately while the refresh runs in background.
+async function testStorefrontStaleWhileRevalidate(): Promise<void> {
+  const service: any = Object.create(StorefrontService.prototype);
+  service.catalogCache = new Map();
+  service.inFlightCatalogPromises = new Map();
+  let refreshStarted = 0;
+  service.getTenantBySlug = () => {
+    refreshStarted++;
+    return new Promise(() => undefined); // a refresh that never finishes
+  };
+
+  const staleData = { categories: [], products: [{ id: 1 }] };
+  const now = Date.now();
+  service.catalogCache.set('shop', { data: staleData, expiresAt: now - 1_000, staleUntil: now + 60_000 });
+
+  const result = await Promise.race([
+    service.getStorefrontCatalog('shop'),
+    new Promise((resolve) => setTimeout(() => resolve('TIMED_OUT'), 500)),
+  ]);
+  assert.equal(result, staleData, 'stale catalog must be returned without waiting for the refresh');
+  assert.equal(refreshStarted, 1, 'a background refresh must have been started');
+
+  await service.getStorefrontCatalog('shop');
+  assert.equal(refreshStarted, 1, 'singleflight: no second refresh while one is in flight');
+
+  const fresh = { categories: [], products: [] };
+  service.catalogCache.set('fresh', { data: fresh, expiresAt: now + 60_000, staleUntil: now + 300_000 });
+  assert.equal(await service.getStorefrontCatalog('fresh'), fresh);
+  assert.equal(refreshStarted, 1, 'a fresh hit touches nothing');
+
+  const source = read('modules/storefront/storefront.service.ts');
+  const body = source.slice(source.indexOf('async getStorefrontCatalog'), source.indexOf('async getSearchSuggestions'));
+  assert.ok(body.includes('Promise.all('), 'catalog rebuild reads run in parallel (PERF-4)');
+}
+
+// PERF-9 — the POS offline-catalog version ignores stock. Every change of it makes every terminal
+// re-download the whole catalog, so a sale (stock move) must never change it.
+function testPosCatalogVersionIgnoresStock(): void {
+  const base = { productCount: 100, unitCount: 120, offerCount: 3, lastUpdatedAt: '2026-09-21T10:00:00.000Z' };
+  const v = buildPosCatalogVersion(base);
+  assert.equal(buildPosCatalogVersion({ ...base }), v, 'deterministic');
+  assert.notEqual(buildPosCatalogVersion({ ...base, lastUpdatedAt: '2026-09-21T10:00:01.000Z' }), v, 'catalog edit moves it');
+  assert.notEqual(buildPosCatalogVersion({ ...base, productCount: 99 }), v, 'product removed moves it');
+  assert.notEqual(buildPosCatalogVersion({ ...base, unitCount: 119 }), v, 'deleted unit moves it (a deletion cannot raise MAX)');
+  assert.notEqual(buildPosCatalogVersion({ ...base, offerCount: 2 }), v, 'deactivated offer moves it');
+  assert.equal(buildPosCatalogVersion({ ...base, lastUpdatedAt: '1969-12-31T22:00:00.000Z' }), 'v2-100-120-3-0');
+
+  const source = read('modules/catalog/services/catalog-product.service.ts');
+  const body = source.slice(source.indexOf('async getPosCatalogVersion'), source.indexOf('async listPosProducts'));
+  assert.ok(body.includes('MAX(p.catalog_updated_at)'), 'version must read products.catalog_updated_at');
+  assert.ok(!/MAX\(p\.updated_at\)/.test(body), 'products.updated_at moves on every sale (applyStockDelta) — never use it for the POS version');
+
+  const file = join(SRC, 'database', 'migrations', '2040000000137_products_catalog_updated_at.ts');
+  assert.ok(existsSync(file), 'migration 137 (catalog_updated_at trigger) must exist');
+  const text = readFileSync(file, 'utf8');
+  for (const column of ['stock_qty', 'reserved_qty']) {
+    assert.ok(text.includes(`- '${column}'`), `the trigger must ignore ${column}`);
+  }
+  assert.ok(/BEFORE UPDATE ON products/.test(text), 'catalog_updated_at is maintained by a trigger, not by each writer');
+}
+
+async function run(): Promise<void> {
+  testPosCatalogVersionIgnoresStock();
+  await testScopedStockSemantics();
+  await testScopedStockIsLinear();
+  testWholeCatalogIdListsUseArrayParameter();
+  testNoGlobalClassSerializer();
+  testHotPathIndexMigration();
+  await testStorefrontStaleWhileRevalidate();
+  // eslint-disable-next-line no-console
+  console.log('performance-hot-paths.spec: all performance invariants hold (PERF-1..PERF-4, PERF-9)');
+}
+
+run().then(
+  () => process.exit(0),
+  (error) => {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    process.exit(1);
+  },
+);

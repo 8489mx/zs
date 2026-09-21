@@ -10,10 +10,9 @@ try {
 }
 
 import * as Sentry from '@sentry/node';
-import { ClassSerializerInterceptor } from '@nestjs/common';
 import { json, urlencoded } from 'express';
 import { ConfigService } from '@nestjs/config';
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor';
@@ -118,10 +117,13 @@ async function bootstrap(): Promise<void> {
 
   app.useGlobalPipes(requestValidationPipe);
   app.useGlobalFilters(new GlobalExceptionFilter(logger));
+  // PERF-1 (ARCHITECTURE_INVARIANTS.md §2.6): no global ClassSerializerInterceptor. Every response
+  // here is a plain Kysely row/object (no @Exclude/@Expose on any response class), so it only deep-
+  // copied each payload through class-transformer — measured ~100ms of blocked event loop per
+  // 5,000-row response, on top of JSON.stringify. Hide fields by not selecting them instead.
   app.useGlobalInterceptors(
     new RequestContextInterceptor(),
     new ResponseMetadataInterceptor(),
-    new ClassSerializerInterceptor(app.get(Reflector)),
   );
 
   app.enableShutdownHooks();

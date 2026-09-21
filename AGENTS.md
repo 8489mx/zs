@@ -15,6 +15,13 @@
 - **Desktop Mode (`APP_MODE=SELF_CONTAINED`):**
   - Isolated offline environment.
 
+## 1-b. Performance Invariants (`PERFORMANCE_CONSTITUTION.md`)
+- Read `PERFORMANCE_CONSTITUTION.md` before touching `frontend/vite.config.ts`, `backend/src/main.ts`, the app shell's imports, the POS/product catalog, the public storefront catalog, or any index migration.
+- Never statically import heavy libraries (`jspdf`, `html2canvas`, `xlsx`, `recharts`, `html5-qrcode`, `pdfjs-dist`, `@sentry/react`) from code the app shell reaches — use `import()` / `React.lazy`.
+- Never re-register a global `ClassSerializerInterceptor`; never scan a query result inside a loop over another result (build a `Map`).
+- The POS offline catalog (IndexedDB) must stay: it lets cashiers sell without internet. Its version must never be built from `products.updated_at` (moves on every sale) — use `catalog_updated_at` (PERF-9).
+- Guards: `performance-hot-paths.spec.ts` + `npm --prefix frontend run qa:perf` (both in `npm run guards`). A failing perf guard is almost always right.
+
 ## 2. Inviolable Core Invariants
 - Financial transactions & journal entries are immutable double-entry ledgers.
 - Passwords MUST always be hashed with `bcrypt` (never plaintext).
