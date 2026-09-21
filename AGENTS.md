@@ -29,6 +29,7 @@
 - All chat responses wrapped in `<div dir="rtl">...</div>`.
 - 0 Emojis policy across all UI screens (use `@/shared/components/icons/AppIcons`).
 - Strict Ban on AI Sparkles / Magic Stars Icons: NEVER use the 4-pointed sparkle / magic star icon (`SparklesIcon` / `WandMagicIcon` or `m12 3-1.912...` SVG) anywhere in the ERP system. Always use real operational business icons (`DownloadIcon`, `RefreshCwIcon`, `SlidersIcon`, `PlusCircleIcon`, `CheckShieldIcon`, etc.).
+- Strict Ban on Lightning / Zap Icons: NEVER use the lightning bolt / zap icon (`ZapIcon` / `Zap` or `13 2 3 14 12 14 11 22...` SVG) anywhere in the ERP system. The system is a serious, institutional ERP platform; automated processes, speed, and settings must always be represented by real operational business icons (`SlidersIcon`, `SettingsIcon`, `CheckShieldIcon`, `RefreshCwIcon`, `CpuIcon`, etc.).
 - Standard modal framework (`StandardDialog` / `DialogShell`).
 - Centralized combobox system (`CustomSelect`).
 
@@ -129,6 +130,47 @@
   7. *Retroactive Landed Cost Allocation (توزيع التكاليف اللاحقة بين المباع والمتبقي - L16):* When landed costs arrive after units have been sold, costs MUST be proportionally allocated: sold portion to COGS (5110) and remaining portion to Inventory (1140), preserving historical WAC without distortion.
   8. *Subledger Mathematical Continuity (الاتصال الرياضي للأستاذ المساعد وكشف الحركة - L17):* Every stock movement must record true `before_qty` and `after_qty` matching prior movements; never hardcode `0`. Inventory assets (1140) must have `partner_type: 'none'` to avoid polluting supplier subledgers.
 
+## 15. Strict Universal Document & Transaction Form Standard (دستور وثائق وفورمز المعاملات الكبرى الموحد)
+- **Mandatory Full-Page Architecture:** All commercial and financial transaction documents (Purchase Orders, Purchase Bills, Sales Orders, Quotations, Stock Issues, RFQs) MUST be built as dedicated full pages (e.g. `/purchases/orders/new`, `/sales/orders/new`, `/sales/quotations/new`). Trapping multi-line commercial documents inside small popups/modals is strictly prohibited.
+- **Reference Template Component:** All transaction forms MUST follow `frontend/src/shared/components/UniversalDocumentFormTemplate.tsx` as their single source of truth and architectural blueprint.
+- **Visual Anatomy & Invariants:**
+  1. **Universal 1280px Container:** `max-width: 1280px; width: min(100%, 1280px); margin: 0 auto;`.
+  2. **Universal Header (`PageHeader`):** Live document status badge (`is-draft` / `is-confirmed`) and live financial total, with decision action buttons pinned at top-left (`إلغاء المسودة` danger secondary, `حفظ كمسودة` secondary, `اعتماد الوثيقة` primary `#170e5e`).
+  3. **Vertical Section Indicator:** Every major section MUST use `.document-prototype-section-title` featuring the prominent royal navy vertical accent bar (`::before` vertical line).
+  4. **Dynamic Items Table:** Header toolbar with quick actions (`+ صنف`, `+ خدمة`, `% ضريبة`, `خصم`), dual-mode combobox (searching existing catalog or free-text new item), and bottom dashed buttons (`dashedAction`: `+ إضافة صنف`, `مسح باركود`, `+ منتج جديد`).
+  5. **Symmetrical Bottom Split:** Notes on the right (60%) and financial summary totals on the left (40%) with clear calculations of subtotal, discounts, taxes, and final grand total.
+  6. **Auto-Draft Persistence:** All forms must implement `useFormDraft` with `DraftRestoredBanner`.
 
+## 16. Strict Dropdown Chevron & Safe-Padding Standard (دستور عزل سهم القوائم المنسدلة ومنع تداخل النصوص مع الأسهم)
+- **The Anti-Pattern:** In Arabic RTL layouts, dropdown chevrons/arrows are positioned on the left (`left: 8px`). If the select input/trigger does not enforce adequate left padding or accidentally reverses padding (`padding: 0 28px 0 12px`), long labels, customer names, or phone numbers in English/parentheses expand under the chevron, causing visual text collision and unreadable overlapping.
+- **Mandatory Safe-Padding Standard:**
+  1. **Strict Left Safe-Zone:** All dropdown inputs, comboboxes, and custom select triggers (`CustomSelect`, `.custom-select-wrapper input`, `select:not([multiple])`) MUST enforce a minimum safe padding of `padding-left: 36px !important;` (or `padding-inline-end: 36px`).
+  2. **Text Ellipsis Protection:** Overlong text MUST be strictly clipped with `text-overflow: ellipsis; white-space: nowrap; overflow: hidden;` so the text gracefully terminates with `...` before reaching the chevron, leaving at least 10px of clean whitespace.
+  3. **Zero Inverted Padding:** Never reverse left and right padding in RTL dropdowns. Right padding is for text initiation (`12px`), while left padding is exclusively reserved for the chevron action zone (`36px`).
 
+## 17. The 10/10 Golden Modal Standard (دستور النوافذ المنبثقة الذهبي الموحد)
+- **Reference Blueprint:** `CrmDealCreateModal.tsx` and `StandardModalExample.tsx`.
+- **Inviolable Architectural & Visual Invariants:**
+  1. **Ultra-Soft Enterprise Sections:** Replace heavy gray boxes with soft, bright tint (`background: #fbfcfd !important; border: 1px solid #edf2f7 !important; border-radius: 10px !important; padding: 11px 14px !important;`).
+  2. **Visual Breathing Room:** Field label gap MUST be `5px` (`gap: 5px !important;`, never cramped 3px). Field labels must use `0.78rem` (12.5px), font weight `600`, color `#475569`.
+  3. **Universal 35px Height:** Inputs, custom selects, and comboboxes in modals MUST have `height: 35px !important;` with `padding: 0 12px;` for comfortable clicking and typing while maintaining zero-scroll.
+  4. **Proportional Grid Distribution:** NEVER divide mixed text fields equally into `1fr 1fr 1fr 1fr`. Long text fields like emails and company names MUST receive wider proportional columns (e.g. `1.5fr` for email, `1.3fr` for company, `1.1fr` for phone/contact) to prevent text clipping.
+  5. **Textarea Height & Multi-line Room:** Textareas must enforce `min-height: 60px !important; line-height: 1.5 !important; padding: 8px 12px !important;` to comfortably display 3-4 lines of notes.
+  6. **Zero-Scroll Boundary:** Modal height must fit completely within 14" to 32" screens without outer vertical scroll.
 
+## 18. Strict Commercial Scope & Operation Mode Standard (دستور الفصل بين نمط المحلات المبسط ونمط المؤسسات المتقدم ومنع صدمة التعقيد)
+- **The Core Architectural Invariant:**
+  Commercial enterprises operate at two fundamentally different scales, and presenting enterprise accounting to small retail merchants creates cognitive overload and user abandonment:
+  1. **Simple Retail Mode (`enableEnterpriseFeatures: false`):**
+     - Tailored for retail shops, supermarkets, boutiques, and small points of sale.
+     - **Sales:** Restricted to POS, direct sales invoices, returns, and customers. Hides CRM, Sales Orders (SOs), quotations, and price lists.
+     - **Purchases:** Restricted to direct purchase bills, new bill, returns, and suppliers. Hides POs, RFQs, and reorder suggestions.
+     - **Inventory:** Restricted to catalog, categories, basic warehouses, and physical stock count. Hides inventory tree, storage bins, and internal issue/transfer orders.
+     - **Finance:** Strictly renamed to **"الخزينة والمصروفات" (Cash Drawer & Expenses)**. Shows ONLY cash drawer/treasury and daily expenses. Hides all complex accounting: accounts tree, journal entries, cost centers, checks (PDC), bank reconciliation, balance sheet, cash flows, withholding tax, and fixed assets.
+  2. **Enterprise Trading Mode (`enableEnterpriseFeatures: true`):**
+     - Tailored for wholesale distributors, trading companies, and large organizations.
+     - Activates the full enterprise suite: POs, RFQs, SOs, inventory tree, bin locations, full accounting ledgers, checks portfolio, bank reconciliations, and cost centers.
+  3. **Silent Accounting Invariant (المحاسبة الصامتة في الخلفية):**
+     - Even in Simple Retail Mode, the backend continues to post double-entry ledger entries silently in the background. If a business upgrades from Simple to Enterprise after months of operation, their financial books and ledger history remain 100% intact and immediately ready for auditors.
+  4. **Pillar Independence:**
+     - Pillars requiring enterprise financials by definition (`contracting`, `maritime_freight`, `manufacturing`) MUST always enforce `enableEnterpriseFeatures: true`. Only the commerce/retail pillar provides the user-toggleable operational mode.

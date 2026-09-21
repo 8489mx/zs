@@ -89,6 +89,8 @@
 | **شاشة العميل الرقمية (POS Customer-Facing Display)** | 🟢 | 100% | `CustomerFacingDisplayPage.tsx`, `pos-customer-display.css`, `usePosWorkspace.ts` | شاشة مستقلة موجهة للعميل تعرض تفاصيل السلة الحالية والأسعار والعروض التسويقية وتحديث السلة آنياً بنظام البث المحلي/المزامنة. |
 | **شاشات العروض الرقمية والأسعار (Digital Signage & Price Board)** | 🟢 | 100% | `DigitalSignagePage.tsx`, `SignageHeader.tsx`, `SignageNavDrawer.tsx`, `sales/routes.tsx`, `app-shell.tsx` | لوحة عرض تفاعلية ترويجية لقوائم الأسعار والعروض الترويجية في صالة العرض مع تحديث ديناميكي للمنتجات والأسعار، مزودة بزر عودة فوري للنظام ولوحة التحكم وزر دروج جانبي سحابي للتنقل السريع بين أقسام المنظومة وحماية نسخة الديسكتوب (Electron) من الاحتجاز مع دعم زر Esc. |
 | **مكتب طلبات الهاتف والتوصيل السريع وكاشف المتصل (Phone Order Desk, Caller ID, Doorstep Payments & Delivery Zones)** | 🟢 | 100% | `PosPhoneOrderDialog.tsx`, `PosCallerIdFloatingAlert.tsx`, `pos-caller-id-service.ts`, `ModulesSettingsTab.tsx`, `settings.service.ts`, `partners.service.ts`, `partners.controller.ts`, `delivery-reps.api.ts` | بيئة متكاملة وشاملة لطلبات الهاتف والتوصيل السريع بمستوى كبرى سلاسل المطاعم وفق المعيار الذهبي العالمي (Foodics / Domino's Pulse / Toast): بحث تنبؤي ذكي يبدأ بعد 6 أرقام للهاتف (لتجاوز تشابه كود شركات المحمول 010/011/012/015) أو حرفين للاسم، شبكة بطاقات متطابقة لاختيار العميل بدقة دون استعجال فتح الملف، تفعيل فوري لملف العميل الكامل ومساحة العمل التشغيلية عند المطابقة التامة 1-to-1 أو الاختيار الصريح، استرجاع فوري لملف العميل ونقاط الولاء والعناوين السابقة ووسم العناوين (المنزل/العمل/أخرى)، سجل تفصيلي لآخر الطلبات مع ميزة تكرار الطلب بضغطة واحدة (1-Click Reorder)، تحديد مناطق ورسوم التوصيل ووقت الوصول التقديري (ETA)، تحديد طريقة الدفع عند الاستلام (كاش مع حساب الفكة المطلوبة للطيار / فيزا مع ماكينة POS المحمولة / إنستاباي ومحفظة)، تعيين مندوب التوصيل المتاح، سجل مباشر للمكالمات الواردة الأخيرة (Caller ID Log) مع فتح الطلب الفوري، ربط أجهزة كاشف المتصل (USB Serial Caller ID) ومحاكي الرنين مع تنبيهات صوتية ومرئية ودعم اختصار F7 المباشر و Alt+P / Alt+D، مع خيار تشغيل/إيقاف مخصص في إعدادات الموديولات (`phoneOrdersModuleEnabled`) وتفعيل ذكي تلقائي للأنشطة المعتمدة على التوصيل (مطاعم، صيدليات، سوبرماركت)، مع تصميم مضغوط عالي التوافق يلائم كافة مقاسات الشاشات من 14 بوصة إلى 32 بوصة بدون أي سكرول خارجي (Zero-Scroll Layout). |
+| **أوامر البيع وحجز المخزون (Sales Orders & Stock Reservation)** | 🟢 | 100% | `CreateSalesOrderPage.tsx`, `SalesOrdersPage.tsx`, `sales-order.service.ts` | تحويل كامل لشاشة إنشاء وتعديل أوامر البيع إلى صفحة مخصصة متكاملة وفق معيار UniversalDocumentFormTemplate بدلاً من النوافذ المنبثقة، تتضمن اختيار العميل، تواريخ التسليم والشحن، حجز المخزون التلقائي، شريط الأدوات السريع، جدول بنود تفاعلي يعرض الرصيد المتاح بالمخزن، وحسابات الإجماليات والخصم والضرائب بنظام التقسيم 60/40. |
+| **عروض أسعار العملاء (Customer Quotations)** | 🟢 | 100% | `CreateQuotationPage.tsx`, `QuotationsPage.tsx`, `quotations.service.ts` | تحويل شاشة إنشاء عروض الأسعار إلى صفحة كاملة مخصصة وفق معيار UniversalDocumentFormTemplate بدلاً من النوافذ المنبثقة، تتضمن اختيار العميل، تواريخ العرض وفترة الصلاحية، شريط الأدوات السريع، جدول بنود تفاعلي بأسعار الوحدات والضرائب والخصومات، الشروط والأحكام التعاقدية، والمرفقات مع كارت ملخص الإجماليات بنظام التقسيم 60/40. |
 * **حالة الوحدة العامة:** 🟢 مكتمل 100%
 * **مسارات الكود:** `backend/src/modules/inventory`, `backend/src/modules/catalog`, `frontend/src/features/inventory`, `frontend/src/features/products`
 * **الجداول في قاعدة البيانات:** `products`, `product_units`, `product_categories`, `warehouses`, `inventory_transactions`, `stock_adjustments`, `stock_transfers`
@@ -127,8 +129,9 @@
 | **سندات صرف دفعات الموردين** | 🟢 | 100% | `treasury.service.ts`, `PaymentVoucherModal.tsx` | سداد نقدي أو شيك أو تحويل بنكي للمورد وخصمه من الخزينة وكشف حساب المورد. |
 | **محرك تكاليف الشحن والجمارك الموزعة (Purchase Landed Costs Engine)** | 🟢 | 100% | `purchase-landed-costs.service.ts`, `purchases.controller.ts`, `PurchaseLandedCostsModal.tsx`, `PurchaseDetailCard.tsx`, `2040000000054_purchase_landed_costs.ts` | محرك احتساب تكاليف الشحن البحري والجوي والتخليص الجمركي والنقل والتأمين الإضافية وتوزيعها آلياً حسب القيمة أو الكمية على بنود فاتورة المشتريات، وتحديث تكلفة الوحدة المخزنية `landed_unit_cost` وسعر التكلفة `cost_price` في المخازن، وتوليد القيود المحاسبية المقابلة.<br/>**تحصين سبتمبر 2026 (المرحلة 2):** (1) التكلفة الإضافية تُقسَّم الآن بين الوحدات المتبقية (رسملة على المخزون) والوحدات المباعة بالفعل (تحميل على تكلفة المبيعات 5110)، بعد أن كانت تُرسمل بالكامل على المتبقي فتُضخّم تكلفته ويبقى ربح المبيعات السابقة مُبالغاً فيه؛ (2) أُزيل الفرع الذي كان **يمحو المتوسط المرجح** ويستبدله بتكلفة الشحنة وحدها عندما يكون أغلب الكمية قد بيع؛ (3) حارس ضد إعادة التطبيق (`landed_cost_applied_at` كان يُكتب ولا يُقرأ، فكان التكرار يُضاعف التكلفة بلا حد)؛ (4) القيد يُرحَّل بتاريخ الفاتورة لا بتاريخ اليوم؛ (5) فحص قفل الفترة المحاسبية أُضيف؛ (6) أُزيل التخطي الصامت للقيد عند غياب الحساب. |
 | **مقترح إعادة الطلب والتوريد الذكي (Smart Reorder & Procurement Suggestions)** | 🟢 | 100% | `SmartReorderPage.tsx`, `purchases.api.ts`, `SmartReorderStats.tsx`, `SmartReorderFilters.tsx`, `SmartReorderSupplierGroupCard.tsx` | تحليل معدلات استهلاك المخزون وأيام التغطية وفترة التوريد عبر المسار `/purchases/reorder` بتصميم مؤسسي قياسي مطابق لـ `installments` مع هيدر النظام وعمود العرض الموحد `document-prototype-column`, وتجميع مقترحات الشراء آلياً حسب الموردين، وتوليد مسودات أوامر شراء مجمعة لكافة الموردين بنقرة واحدة. |
-| **أوامر الشراء ومحدد الأصناف والموردين الذكي (Purchase Orders & Searchable Selector)** | 🟢 | 100% | `PurchaseOrdersPage.tsx`, `CreatePurchaseOrderModal.tsx`, `purchase-orders.api.ts`, `SearchableCombobox.tsx` | إدارة أوامر الشراء وإصدارها للموردين عبر المسار `/purchases/orders`؛ نافذة إنشاء أمر شراء ذكية مزودة بمحدد أصناف وموردين سحابي عائم (`SearchableCombobox`) يدعم البحث الفوري بالاسم أو الباركود أو رقم الهاتف والتطبيع التلقائي للأحرف العربية، مع التعبئة التلقائية لأسعار التكلفة الحالية والوحدات والاحتساب اللحظي للإجماليات دون قص النوافذ. |
+| **أوامر الشراء والصفحة الكاملة المستقلة ومحدد الأصناف والموردين (Purchase Orders & Dedicated Create Page)** | 🟢 | 100% | `PurchaseOrdersPage.tsx`, `CreatePurchaseOrderPage.tsx`, `CreatePurchaseOrderModal.tsx`, `purchase-orders.api.ts`, `SearchableCombobox.tsx`, `combobox-system.css` | إدارة أوامر الشراء وإصدارها للموردين عبر المسار `/purchases/orders`؛ تحويل إنشاء أمر الشراء إلى **صفحة كاملة مستقلة فسيحة** عبر المسار `/purchases/orders/new` مطابقة لمعايير Z-Systems (حاوية 1280px بدون قص)، تدعم حفظ واسترجاع المسودات تلقائياً (`useFormDraft`)، وإدخال بيانات المورد وشروط التوريد والمستودع، وجدول بنود ديناميكي متقدم مزود بمحدد أصناف وموردين (`SearchableCombobox`) يدعم البحث الفوري بالأصناف المسجلة (الاسم، الباركود، الكود) وإمكانية إدخال أصناف جديدة غير مسجلة بالدليل للتعاقد الحر، واحتساب لحظي للإجماليات والخصومات، مع معالجة وتثبيت موضع وطبقات القوائم المنسدلة (`z-index: 10050` و `position: fixed !important`). |
 | **طلبات عروض أسعار الموردين ومصفوفة المقارنة الترسية (Vendor RFQs & Quotation Comparison Matrix)** | 🟢 | 100% | `purchase-rfqs.service.ts`, `purchase-rfqs.controller.ts`, `PurchaseRfqsPage.tsx`, `CreateRfqModal.tsx`, `RfqBidsModal.tsx`, `RfqComparisonMatrixModal.tsx`, `PurchasesWorkspace.tsx`, `2040000000067_purchase_rfqs.ts` | دورة مشتريات وتوريد متكاملة تضاهي Odoo 17 و Dynamics 365 BC عبر المسار `/purchases/rfqs` مع زر وصول مباشر في شريط أدوات مساحة المشتريات الرئيسية؛ إنشاء طلبات عروض الأسعار وتحديد بنود الأصناف والكميات المطلوبة وتاريخ الإغلاق، دعوة الموردين، تسجيل عروض الأسعار المتلقاة من كل مورد (سعر الوحدة، مدة التوريد، شروط السداد، وملاحظات الجودة)، مصفوفة مقارنة بصرية تحليلية تبرز العرض الأفضل سعراً والأسرع توريداً، مع ترسية العرض الفائز بنقرة واحدة وتحويله تلقائياً لأمر شراء رسمي معتمد (PO). |
+| **دستور وثائق وفورمز المعاملات الكبرى الموحد (Universal Document Form Standard & Template)** | 🟢 | 100% | `UniversalDocumentFormTemplate.tsx`, `CreatePurchaseOrderPage.tsx`, `NewPurchaseOrderPage.tsx`, `document-form-prototype.css` | توحيد معماري وهندسي شامل لكافة صفحات وفورمز الوثائق التجارية (فواتير، أوامر شراء، أوامر بيع، عروض أسعار، أذون صرف)؛ اعتماد معيار الصفحة الكاملة 1280px، هيدر موحد بأزرار القرار أعلى اليسار وشارات الحالة والإجمالي، الفواصل الرأسية الملكية للأقسام (`|`)، شريط الأدوات السريع للجدول والأزرار المتقطعة السفلية، وتوازن الملاحظات يميناً والإجماليات يساراً مع كود مرجعي نموذجي جاهز للنسخ والتطبيق الفوري. |
 
 ---
 
@@ -5572,14 +5575,156 @@
 * **فحص الجودة والسلامة البرمجية:** `npx tsc --noEmit` (Backend + Frontend) نظيف؛ `npm run test:critical` (31 جناح) 100%؛ الهجرتان 120 و121 نُفِّذتا بنجاح، وتحقَّقت قيود الـSchema (تفرد رمز المراجعة، CHECK على الحالات) بإدخال بيانات فعلية عبر سكربت مؤقت.
 * **بند مفتوح متعمَّد:** بوابة تعاون خارجية (استشاري/مالك يراجعون بأنفسهم) — لم تُبنَ عمداً، قرار أمني يستحق جلسة تصميم مستقلة (O17).
 
-## 160. إغلاق فجوات موديول اللوجستيات والشحن البحري مقارنة بـCargoWise/GoFreight (Freight Forwarding Gap-Closing)
+### 160. إغلاق فجوات موديول اللوجستيات والشحن البحري مقارنة بـCargoWise/GoFreight (Freight Forwarding Gap-Closing)
 * **حالة الإغلاق:** 🟢 فجوتان من أربع أُغلقتا بالكامل (Rate Management + Customs)، وفجوتان مؤجَّلتان بقرار واعٍ (تكامل EDI/AIS حي يحتاج اشتراكات مدفوعة من العميل — O18؛ بوابة حجز ذاتي تحتاج سطح مصادقة جديد — O19).
 * **معيار المقارنة الدولي:** CargoWise Rate Management, Customs & Compliance modules — بحث فعلي.
 * **الميزات المُنجزة:**
   1. **إدارة التعرفات والعقود (Rate Management):** `backend/src/database/migrations/2040000000122_maritime_rate_cards.ts` (+ إصلاح تفرد في `2040000000123`) — جدول `maritime_rate_cards` بالناقل/المسار/الحاوية/الصلاحية. خدمات `listRateCards`, `findBestRate` (أرخص تعرفة سارية فورية)، `createRateCard`, `createRateCardFromBid` (تحويل عرض RFQ فائز لتعرفة قابلة لإعادة الاستخدام)، `updateRateCardStatus`, `deleteRateCard` في `maritime-freight.service.ts`. واجهة: `RateCardsModal.tsx` مربوطة بزر "تعرفات وعقود الأسعار" في صفحة RFQ.
   2. **البيانات الجمركية وأكواد HS (Customs Declarations):** `backend/src/database/migrations/2040000000124_maritime_customs_declarations.ts` — جدولا `maritime_customs_declarations` → `maritime_customs_declaration_items` (كود HS، قيمة جمركية، نسبة/مبلغ رسم محسوب آلياً). خدمات القسم المخصص في `maritime-freight.service.ts`. واجهة: `CustomsDeclarationModal.tsx` مربوطة بكارت "البيان الجمركي" في تبويب المستندات بـ`JobDetailsModal.tsx`. **نطاق متعمَّد:** تسجيل داخلي فقط، لا تقديم حي لبوابة جمركية حكومية (O18).
 * **درس مُستخلص:** فهرس تفرد خاطئ في الهجرة الأولى (كان يمنع ناقلين مختلفين من تسعير نفس المسار في نفس اليوم) اكتُشف بسكربت SQL فعلي فور الهجرة وأُصلح بهجرة تصحيحية فورية — راجع `ARCHITECTURE_INVARIANTS.md` القسم 5-ب للتفصيل الكامل.
-* **فحص الجودة والسلامة البرمجية:** `npx tsc --noEmit` (Backend + Frontend) نظيف؛ `npm run test:critical` (31 جناح) 100%؛ الهجرات 122-124 نُفِّذت بنجاح، وتحقَّقت قيود الـSchema (تفرد التعرفة، CHECK على نسبة الرسم والحالات) بسكربتات SQL فعلية.
+* **فحص الجودة والسلامة البرمجية:** `npx tsc --noEmit` (Backend + Frontend) نظيف؛ `npm run test:critical` (31 جناح) 100%؛ الهجرات 122-124 نُفِّذتا بنجاح، وتحقَّقت قيود الـSchema (تفرد التعرفة، CHECK على نسبة الرسم والحالات) بسكربتات SQL فعلية.
 * **بنود مفتوحة متعمَّدة:** O18 (EDI/AIS حي)، O19 (بوابة حجز ذاتي).
+
+---
+
+## 161. تكامل الشحن متعدد الوسائط (بحري / جوي / بري) في واجهات الفرونت إند (Multimodal Freight UI Integration)
+* **حالة الموديول العامة:** 🟢 مكتمل ومربوط 100% (Production Ready).
+* **المعايير الهندسية والتشغيلية المعتمدة:** IATA Standard Air Freight Formula / 0 Emojis Policy (اعتماد `AppIcons.Plane`, `AppIcons.Ship`, `AppIcons.Truck`) / Universal 1280px Layout / Zero Width-Jumping Standard.
+* **المسارات والملفات المنفذة:**
+  - `frontend/src/features/maritime-freight/maritime-freight.types.ts`:
+    - إضافة حقول الشحن الجوي والبري والوسائط المتعددة لواجهة `MaritimeInquiry`: نمط النقل (`transport_mode: 'sea' | 'air' | 'road' | 'multimodal'`)، تصنيف البضاعة الجوية (`air_cargo_type`)، الوزن الحجمي (`volumetric_weight_kg`)، الوزن الخاضع للرسوم (`chargeable_weight_kg`)، عدد الطرود (`package_count`)، رقم الرحلة وتاريخها، وبوالص الشحن الجوي (`mawb_number`, `hawb_number`).
+  - `frontend/src/features/maritime-freight/components/CreateInquiryModal.tsx`:
+    - شريط اختيار وسيلة الشحن التفاعلي (بحري / جوي / بري) بأيقونات تشغيلية نظيفة.
+    - تحويل ديناميكي لحقول الإدخال عند اختيار الشحن الجوي: مطارات الشحن الدولية (CAI, DXB, JED, FRA...)، شروط تسليم FCA، وتصنيف البضائع الجوية (عامة، سريعة التلف، خطرة DG، أدوية، قيّمة)، مع حساب فوري لمعادلة IATA الدولية للوزن الحجمي ($1\text{ CBM} = 166.67\text{ kg}$) وتحديد الوزن الخاضع للرسوم ($\max(\text{gross}, \text{volumetric})$).
+    - تحويل ديناميكي للشحن البري: موانئ ومحطات برية، شروط تسليم CPT، أنواع الشاحنات، ونمط النقل FTL/LTL.
+  - `frontend/src/features/maritime-freight/components/MaritimeInquiriesTab.tsx`:
+    - إضافة فلتر وسيلة الشحن في شريط التصفية (`الكل` / `بحري` / `جوي` / `بري`).
+    - شارات وسيلة النقل بجانب كود الاستفسار، وتحديث عمود البضاعة ليعرض للطرود والأوزان المحتسبة في الجوي والبري بدلاً من اقتصاره على الحاويات.
+  - `frontend/src/features/maritime-freight/components/MaritimeMasterDataTab.tsx`:
+    - إضافة تبويبين فرعيين مستقلين: شركات الطيران للشحن (Airlines) ومطارات الشحن الدولية (Cargo Airports).
+    - جداول متكاملة لعرض شركات الطيران مع بادئات بوالص الشحن الجوي (AWB Prefix)، وبريد طلبات التسعير والحجز، وبيانات التواصل، وجداول المطارات بأكواد IATA / ICAO.
+    - أزرار إضافة سريعة وتحديث تصدير ملفات الـ CSV للنواقل الجوية والمطارات.
+  - `frontend/src/features/maritime-freight/components/MaritimeJobsTab.tsx`:
+    - إضافة فلاتر وسيلة الشحن وشارات الوسيلة بجانب كود العملية، وعرض رقم الرحلة وبوليصة الشحن الجوي AWB والوزن المحتسب للشحنات الجوية.
+  - `frontend/src/features/maritime-freight/components/MaritimeQuotationsTab.tsx`:
+    - إضافة شارة وسيلة الشحن بجانب رقم عرض السعر، وتخصيص نص المشاركة عبر واتساب وفق نوع الشحن (الجوي / البحري / البري).
+  - `frontend/src/features/maritime-freight/pages/MaritimeLayout.tsx`:
+    - تحديث مسمى التبويب الرئيسي إلى "دليل النواقل والموانئ والمطارات" وتحديث وصف الموديول للشحن متعدد الوسائط.
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص الـ TypeScript المكتبي: `node frontend/node_modules/typescript/bin/tsc -p frontend/tsconfig.json --noEmit` — اجتياز نظيف بنسبة 100% بدون أي أخطاء تجميعية (`Exit code 0`).
+
+---
+
+## 162. معيار أمان القوائم المنسدلة وعزل سهم الدروب داون (Strict Dropdown Chevron & Safe-Padding Standard)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% (Production Standard).
+* **المسارات والملفات المنفذة:**
+  - `frontend/src/shared/ui/custom-select.tsx`:
+    - ضبط مسافة الأمان العازلة للسهم في واجهات RTL إلى `padding-left: 36px` مع `padding-right: 12px` (و `30px` في حال وجود أيقونة).
+    - إضافة حماية النص الطويل بالاختصار النقطي: `text-overflow: ellipsis; white-space: nowrap; overflow: hidden;`.
+    - تثبيت موقع السهم عند `left: 8px` مع `zIndex: 2` لضمان وجود مسافة أمان لا تقل عن `10px` بين آخر حرف والسهم، ومنع تداخل النصوص والأسهم نهائياً عبر أكثر من 150 شاشة ومودال.
+  - `frontend/src/styles/partials/combobox-system.css`:
+    - تعميم معيار مسافة الأمان `padding-left: 36px !important;` على عناصر `select:not([multiple])` و `.custom-select-wrapper input` و `.custom-select-trigger` و `.enterprise-compact-modal .custom-select-trigger`.
+  - `AGENTS.md` (بند 16) و `GEMINI.md` (بند 27):
+    - توثيق المعيار كقاعدة معمارية دستورية ملزمة لحظر تداخل النصوص مع الأسهم وحظر عكس قيم الـ Padding في واجهات RTL.
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص TypeScript: `npx tsc --noEmit` نظيف بنسبة 100% (Exit code 0).
+
+---
+
+## 163. دستور النوافذ المنبثقة الذهبي الموحد (The 10/10 Golden Modal Standard)
+* **حالة الوحدة العامة:** 🟢 مكتمل ومطبق 100% (Production Ready).
+* **المسارات والملفات المنفذة:**
+  - `frontend/src/styles/partials/global-dialog-shell.css`:
+    - تعميم القواعد المركزية لـ `.enterprise-compact-modal` و `.dialog-shell.dialog-compact`:
+      - التنفس البصري: `gap: 5px !important;` للـ field، وخط التسميات `0.78rem` (12.5px) بوزن `600` ولون `#475569`.
+      - الارتفاع الموحد: `height: 35px !important;` للمدخلات والقوائم المنسدلة والكومبوبوكس مع حشو `0 12px`.
+      - سعة الملاحظات: `textarea` بارتفاع أدنى `60px !important;` و `line-height: 1.5 !important;`.
+      - الأقسام فائقة النعومة: خلفية `#fbfcfd` مع حد `#edf2f7` وحواف `10px`.
+  - `frontend/src/features/crm/components/CrmDealCreateModal.tsx`:
+    - النموذج المرجعي الحي المعتمد (10/10 Gold Standard).
+  - `frontend/src/shared/components/StandardModalExample.tsx`:
+    - النموذج المرجعي التوثيقي المحدث لكافة المطورين والوكلاء.
+  - `AGENTS.md` (بند 17) و `GEMINI.md` (بند 28):
+    - توثيق المعيار دستورياً.
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص TypeScript: `npx tsc --noEmit` نظيف بنسبة 100% (Exit code 0).
+
+---
+
+## 164. معيار عزل نمط المحلات المبسط عن نمط المؤسسات المتقدم (Commercial Scope & Operation Mode Standard)
+* **حالة الوحدة العامة:** 🟢 مكتمل ومطبق 100% (Production Ready).
+* **المشكلة المعمارية التي تم حلها:**
+  - القضاء التام على ظاهرة "صدمة التعقيد" (Cognitive Overload) لدى أصحاب المحلات والأنشطة التجارية الصغيرة، حيث كان يظهر للمحل البسيط أكثر من 38 عنصراً معقداً في القائمة الجانبية (شجرة حسابات، قيود يومية، شيكات PDC، تسويات بنكية، أرفف تخزين Bins، أوامر شراء RFQ، أوامر بيع SO...).
+* **الحل المعماري المنجز:**
+  1. **النمط التجاري المبسط (Simple Retail Mode - `enableEnterpriseFeatures: false`):**
+     - **المبيعات:** تقتصر على نقاط البيع (POS)، سجل الفواتير، مرتجعات المبيعات، العملاء، والمناديب. (إخفاء CRM، أوامر البيع وحجز المخزون، عروض الأسعار، وقوائم الأسعار).
+     - **المشتريات:** تقتصر على فواتير المشتريات المباشرة، إنشاء فاتورة شراء، المرتجعات، والموردين. (إخفاء أوامر الشراء PO، عروض الأسعار RFQ، ومقترح إعادة الطلب).
+     - **المخزون:** يقتصر على دليل الأصناف، إضافة صنف، الأقسام، المستودعات، وجرد المخزون. (إخفاء شجرة المخازن، أرفف التخزين Bins، وأذونات الصرف والتحويل).
+     - **المالية:** تحويل المسمى حصرياً إلى **"الخزينة والمصروفات"**، وتقتصر على الخزينة/درج النقدية والمصروفات اليومية. (إخفاء شجرة الحسابات، قيود اليومية، مراكز التكلفة، حافظة الشيكات PDC، التسويات البنكية، الميزانية العمومية، التدفقات النقدية، الإقرارات الضريبية، والأصول والإهلاك).
+  2. **النمط المؤسسي المتقدم (Enterprise Trading Mode - `enableEnterpriseFeatures: true`):**
+     - تفعيل الدورة المستندية المحاسبية واللوجستية الكاملة للمؤسسات والشركات الكبرى وتجارة الجملة.
+  3. **بطاقة اختيار نمط التشغيل في الإعدادات (`GeneralSettingsTab.tsx`):**
+     - بطاقة تفاعلية أنيقة تتيح لمدير المنشأة التبديل الفوري بنقرة واحدة بين النمطين مع شارة توضيحية وحفظ التفضيل.
+  4. **دستور المحاسبة الصامتة في الخلفية (Silent Double-Entry Ledger):**
+     - الباك إند يستمر في تدوين القيود المحاسبية وتغذية الأستاذ العام تلقائياً تحت السطح في النمط المبسط، لضمان جهوزية الدفاتر والقوائم المالية فور ترقية النشاط للنمط المؤسسي.
+  5. **عزل الأنشطة التخصصية:**
+     - تثبيت النمط المؤسسي تلقائياً لقطاعات المقاولات، الشحن، والتصنيع لطبيعتها التعاقدية.
+* **الملفات المحدثة:**
+  - `frontend/src/shared/layout/app-shell.tsx`: حجب العناصر المتقدمة تلقائياً وتحديث مسمى وقوائم مجموعة المالية والمشتريات والمبيعات والمخزون وفق النمط.
+  - `frontend/src/features/settings/components/forms/tabs/GeneralSettingsTab.tsx`: إضافة بطاقة اختيار نمط تشغيل المنشأة (Operation Mode).
+  - `backend/src/modules/settings/settings.service.ts`: تمكين مسؤولي المنشأة من حفظ خيار النمط التشغيلي دون قفلها على السوبر أدمن حصراً.
+  - `backend/src/modules/saas-admin/trial-tenant-provisioning.service.ts`: ضبط القيمة الافتراضية للمحلات والتجزئة بالنمط المبسط، وللأنشطة الكبرى بالنمط المتقدم.
+  - `AGENTS.md` (بند 18) و `GEMINI.md` (بند 29).
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص TypeScript (Frontend + Backend): `npx tsc --noEmit` نظيف بنسبة 100% بدون أي أخطاء (`0 errors`).
+
+---
+
+## 165. دستور العزل القطاعي التام للمتاجر والتجزئة عن بيئة المقاولات (Contracting Vertical Isolation & Zero-Retail Standard)
+* **حالة الوحدة العامة:** 🟢 مكتمل ومطبق 100% (Production Ready).
+* **المشكلة المعمارية التي تم حلها:**
+  - ظهور عناصر وتطبيقات التجزئة والمتاجر الإلكترونية (مثل "طلبات أونلاين" `online-orders` ونقاط البيع `pos`) في أعلى القائمة الجانبية أو في نتائج البحث عند تفعيل موديول المقاولات من الإعدادات، وذلك بسبب اعتماد شروط العزل القطاعي سابقاً في `app-shell.tsx` و `GlobalSearchModal.tsx` على حقل نص النشاط (`rawActivity`) فقط دون التحقق من تفعيل موديول المقاولات (`settings.contractingModuleEnabled === true`).
+* **الحل المعماري المنجز:**
+  1. **توحيد تعريف وضع المقاولات (`isContractingVertical` / `isDedicatedContractingOnly`):**
+     - تحديث الفحص في شريط التنقل الجانبي (`app-shell.tsx`) ونافذة البحث الشامل (`GlobalSearchModal.tsx`) ليشمل صراحة:
+       `rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || settings?.contractingModuleEnabled === true`
+  2. **الحجب الصارم لعناصر التجزئة في المقاولات:**
+     - حجب فوري وتام لعناصر: `['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales', 'returns', 'sales-orders', 'price-lists']`.
+     - قصر الروابط السريعة أعلى القائمة (`primaryNavigationKeys`) لشركات المقاولات حصرياً على: **"الرئيسية" + "سجل المشاريع" + "جداول الكميات (BOQ)"**.
+  3. **تفعيل بيئة عمل المقاولات المؤسسية المتخصصة:**
+     - تقديم أقسام المقاولات المتكاملة (المقاولات والمشاريع، العملاء والصفقات، المشتريات والتوريد، المخازن والمستودعات، المالية والمحاسبة، الموارد البشرية، وتقارير المشاريع) بدون أي تداخل مع موديولات التجارة الإلكترونية بالتجزئة.
+* **الملفات المحدثة:**
+  - `frontend/src/shared/layout/app-shell.tsx`
+  - `frontend/src/shared/components/GlobalSearchModal.tsx`
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص TypeScript (Frontend + Backend): `npx tsc --noEmit` كود 0 بنسبة 100% بدون أي أخطاء.
+
+---
+
+## 166. تنظيم وتوحيد تابات التخصصات الهندسية في بنك بنود المقاولات المرجعي ومنع التكرار (Master BOQ Trades Deduplication & Symmetrical Tabs Standard)
+* **حالة الوحدة العامة:** 🟢 مكتمل ومطبق 100% (Production Ready).
+* **المشكلة المعمارية التي تم حلها:**
+  - تشتت تابات التخصصات الهندسية في صفحة بنك بنود المقاولات العام (`/contracting/master-boq`) في أسطر عشوائية وتكرار تفعيل أكثر من تابة في آن واحد عند النقر عليها لاشتراكها في نفس المفتاح وتكرار التسميات في قاعدة البيانات عبر الهجرات السابقة.
+* **الحل المعماري المنجز:**
+  1. **هجرة تطبيع وتوحيد التخصصات بالباك إند (`2040000000128_contracting_master_boq_trade_categories_normalization.ts`):**
+     - توحيد كافة سجلات `contracting_master_boq_library` لتتبع 11 تخصصاً هندسياً قياسياً معتمداً ومطابقاً لـ CSI MasterFormat.
+  2. **حظر التكرار في استعلام الباك إند (`contracting.service.ts`):**
+     - تعديل `getMasterBoqTrades` ليقوم بالتجميع حصرياً عبر `GROUP BY trade_category` مع `MAX(trade_name_ar)` لمنع تكرار أي فئة هندسية نهائياً.
+  3. **إعادة تصميم شريط التابات والتنقل التفاعلي (`ContractingMasterBoqPage.tsx` و `ImportMasterBoqModal.tsx`):**
+     - تقسيم التخصصات إلى قطاعات كبرى رئيسية (Super-Tabs) وتخصصات تنفيذية واضحة مريحة للعين تمتد بعرض الصفحة (1280px).
+     - ضمان تفرد المفاتيح (`uniqueTrades`) وتطبيق دستور منع رعشة التابات (وزن خط موحد `fontWeight: 600` وزمن انتقال لحظي 0ms).
+* **الملفات المحدثة:**
+  - `backend/src/database/migrations/2040000000128_contracting_master_boq_trade_categories_normalization.ts`
+  - `backend/src/modules/contracting/contracting.service.ts`
+  - `frontend/src/features/contracting/pages/ContractingMasterBoqPage.tsx`
+  - `frontend/src/features/contracting/components/ImportMasterBoqModal.tsx`
+  - `frontend/src/features/contracting/components/ImportMasterBoqExcelModal.tsx`
+  - `frontend/src/features/contracting/components/UniversalBoqItemModal.tsx`
+* **فحص الجودة والسلامة البرمجية:**
+  - فحص TypeScript (Frontend + Backend): `npx tsc --noEmit` كود 0 بنسبة 100% بدون أي أخطاء.
+
+
+
+
 
 
