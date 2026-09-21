@@ -69,11 +69,17 @@ function isOutOfStockOrderingAllowed(
     normLegacyInd === 'restaurant' ||
     normLegacyBiz === 'restaurant';
 
+  const cleanSlug = (tenantSlug || '').toLowerCase().trim();
+  const isDemoOrDev =
+    cleanSlug === 'zs' ||
+    cleanSlug === 'default' ||
+    cleanSlug === 'dev-tenant';
+
   return (
     settings.get('storefront_allow_out_of_stock') === 'true' ||
     settings.get('storefront_unlimited_stock') === 'true' ||
     isRestaurant ||
-    tenantSlug === 'zs'
+    isDemoOrDev
   );
 }
 
