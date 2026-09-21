@@ -35,9 +35,8 @@
   --combobox-create-font-size: 0.82rem;
 }
 
-/* Master Dropdown Container */
-.custom-combobox-dropdown,
-.purchase-prototype-combobox-dropdown {
+/* Master Dropdown Container (Local Relative Combobox) */
+.custom-combobox-dropdown {
   position: absolute !important;
   background: var(--combobox-bg) !important;
   border: 1px solid var(--combobox-border) !important;
@@ -49,6 +48,23 @@
   padding: var(--combobox-padding) !important;
   box-sizing: border-box !important;
   z-index: 1200 !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--combobox-scrollbar-thumb) var(--combobox-scrollbar-track) !important;
+}
+
+/* Master Dropdown Container (Portalled Fixed Combobox) */
+.purchase-prototype-combobox-dropdown {
+  position: fixed !important;
+  background: var(--combobox-bg) !important;
+  border: 1px solid var(--combobox-border) !important;
+  border-radius: var(--combobox-radius) !important;
+  box-shadow: var(--combobox-shadow) !important;
+  max-height: var(--combobox-max-height) !important;
+  min-width: var(--combobox-min-width) !important;
+  overflow-y: auto !important;
+  padding: var(--combobox-padding) !important;
+  box-sizing: border-box !important;
+  z-index: 10050 !important;
   scrollbar-width: thin !important;
   scrollbar-color: var(--combobox-scrollbar-thumb) var(--combobox-scrollbar-track) !important;
 }
@@ -150,7 +166,7 @@ select:not([multiple]) {
   background-position: left 8px center;
   border: 1px solid var(--combobox-border, #cbd5e1);
   border-radius: 6px;
-  padding: 6px 10px 6px 26px;
+  padding: 6px 12px 6px 36px !important;
   font-size: 0.84rem;
   font-family: inherit;
   color: #0f172a;
@@ -158,6 +174,9 @@ select:not([multiple]) {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   outline: none;
   cursor: pointer;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 select:not([multiple]):focus {
@@ -169,5 +188,19 @@ select:not([multiple]):disabled {
   background-color: #f8fafc;
   color: #94a3b8;
   cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Universal Safe-Padding Standard for Dropdowns & Selects (Chevron Isolation)
+   Guarantees zero collision/overlap between dropdown arrows and long text in RTL
+   ========================================================================== */
+.custom-select-wrapper input,
+.custom-select-trigger,
+.enterprise-compact-modal .custom-select-trigger,
+.deal-detail-compact .custom-select-trigger {
+  padding-left: 36px !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
 }
 

@@ -57,7 +57,7 @@ export function GlobalSearchModal() {
 
   const tenant = useAuthStore((state) => state.tenant);
   const rawActivity = String(tenant?.activityType || tenant?.pillar || settings?.activityType || settings?.businessIndustry || 'retail_general').trim().toLowerCase();
-  const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
+  const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || settings?.contractingModuleEnabled === true;
   const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
   const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
   const isRetailOrMarketVertical = !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical;

@@ -196,7 +196,7 @@ export function CustomSelect({
             width: '100%',
             height: style?.height || '36px',
             background: disabled ? '#f8fafc' : '#ffffff',
-            padding: selectedOption?.icon && !isSearching ? '0 26px 0 32px' : '0 28px 0 12px',
+            padding: selectedOption?.icon && !isSearching ? '0 32px 0 36px' : '0 12px 0 36px',
             borderRadius: style?.borderRadius || '8px',
             border: '1px solid #cbd5e1',
             boxSizing: 'border-box',
@@ -205,6 +205,9 @@ export function CustomSelect({
             fontWeight: style?.fontWeight || 500,
             cursor: disabled ? 'not-allowed' : 'text',
             textAlign: 'right',
+            textOverflow: 'ellipsis',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
           }}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -238,7 +241,7 @@ export function CustomSelect({
           }}
           style={{
             position: 'absolute',
-            left: '6px',
+            left: '8px',
             top: '50%',
             transform: 'translateY(-50%)',
             background: 'none',
@@ -249,6 +252,7 @@ export function CustomSelect({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            zIndex: 2,
           }}
         >
           <svg

@@ -93,6 +93,83 @@
   gap: 10px !important;
 }
 
+/* ==========================================================================
+   Universal 10/10 Golden Modal Standard (دستور النوافذ المنبثقة الذهبي الموحد)
+   Guarantees visual breathing room, soft enterprise sections, and zero-scroll.
+   ========================================================================== */
+
+/* Universal field breathing room inside modals */
+.enterprise-compact-modal .field,
+.dialog-shell .field {
+  margin-bottom: 0 !important;
+  gap: 5px !important;
+}
+
+.enterprise-compact-modal .field span,
+.dialog-shell .field span {
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Universal input, select & combobox heights */
+.enterprise-compact-modal input,
+.enterprise-compact-modal textarea,
+.dialog-shell.dialog-compact input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.dialog-shell.dialog-compact select {
+  height: 35px !important;
+  font-size: 0.8125rem !important;
+  border-radius: 6px !important;
+  padding: 0 12px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  width: 100% !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+
+.enterprise-compact-modal textarea,
+.dialog-shell.dialog-compact textarea {
+  height: auto !important;
+  min-height: 60px !important;
+  padding: 8px 12px !important;
+  resize: vertical !important;
+  line-height: 1.5 !important;
+  font-family: inherit !important;
+}
+
+.enterprise-compact-modal input:focus,
+.enterprise-compact-modal textarea:focus,
+.dialog-shell.dialog-compact input:focus,
+.dialog-shell.dialog-compact textarea:focus {
+  border-color: #170e5e !important;
+  box-shadow: 0 0 0 2px rgba(23, 14, 94, 0.1) !important;
+}
+
+.enterprise-compact-modal .custom-select-trigger,
+.dialog-shell.dialog-compact .custom-select-trigger {
+  min-height: 35px !important;
+  height: 35px !important;
+  font-size: 0.8125rem !important;
+  border-radius: 6px !important;
+  border: 1px solid #cbd5e1 !important;
+  padding: 0 10px 0 36px !important;
+}
+
+/* Universal Soft Enterprise Section Boxes */
+.modal-section,
+.enterprise-modal-section,
+.enterprise-compact-modal > div[style*="background"] {
+  background: #fbfcfd !important;
+  border: 1px solid #edf2f7 !important;
+  border-radius: 10px !important;
+  padding: 11px 14px !important;
+}
+
 /* Automatic scaling for standard 14" laptop viewports (height <= 820px or width <= 1366px) */
 @media (max-height: 820px) {
   .dialog-overlay {

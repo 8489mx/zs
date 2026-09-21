@@ -7,7 +7,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { hrApi } from '@/features/hr/api/hr.api';
 import { useHrMutations } from '@/features/hr/hooks/useHr';
 import type { HrAttendanceRecord, HrEmployee } from '@/types/domain';
-import { ClockIcon, CheckCircleIcon, MagnifyingGlassIcon, ZapIcon } from '@/features/hr/components/HrIcons';
+import { ClockIcon, CheckCircleIcon, MagnifyingGlassIcon } from '@/features/hr/components/HrIcons';
 
 export const QUICK_ATTENDANCE_SHORTCUT = 'Ctrl + Alt + H';
 
@@ -494,7 +494,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
           {topQuickEmployees.length > 0 && !search && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
               <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                <ZapIcon size={13} style={{ color: '#475569' }} /> اختيار سريع:
+                <ClockIcon size={13} style={{ color: '#475569' }} /> اختيار سريع:
               </span>
               <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: '2px', scrollbarWidth: 'none' }}>
                 {topQuickEmployees.map((e) => {

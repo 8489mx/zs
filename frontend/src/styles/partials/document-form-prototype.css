@@ -1295,6 +1295,32 @@
   vertical-align: middle;
 }
 
+/* Centered Columns Standard (Category/Unit, Warehouse, Qty, Price, Amount, Actions) */
+.document-line-items-table th.purchase-prototype-table-head-category,
+.document-line-items-table th.purchase-prototype-table-head-warehouse,
+.document-line-items-table th.purchase-prototype-table-head-qty,
+.document-line-items-table th.purchase-prototype-table-head-price,
+.document-line-items-table th.purchase-prototype-table-head-amount,
+.document-line-items-table th.purchase-prototype-table-head-actions {
+  text-align: center;
+}
+
+.document-line-items-table td.purchase-prototype-table-cell-category,
+.document-line-items-table td.purchase-prototype-table-cell-warehouse,
+.document-line-items-table td.purchase-prototype-table-cell-qty,
+.document-line-items-table td.purchase-prototype-table-cell-price,
+.document-line-items-table td.purchase-prototype-table-cell-actions,
+.document-line-items-table td.line-total {
+  text-align: center;
+}
+
+.document-line-items-table td.purchase-prototype-table-cell-category input,
+.document-line-items-table td.purchase-prototype-table-cell-warehouse input,
+.document-line-items-table td.purchase-prototype-table-cell-qty input,
+.document-line-items-table td.purchase-prototype-table-cell-price input {
+  text-align: center;
+}
+
 .document-line-items-table td input {
   background: transparent;
   border: 1px solid transparent;

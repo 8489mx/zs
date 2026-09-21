@@ -5,15 +5,16 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 /**
- * StandardModalExample - النموذج المرجعي القياسي المعياري (Golden Reference)
+ * StandardModalExample - النموذج المرجعي القياسي المعياري (10/10 Golden Reference Modal)
  * 
- * 🔴 دستور تصميم النوافذ المنبثقة (Popups / Modals) في Z-Systems:
+ * 🔴 دستور تصميم النوافذ المنبثقة الذهبي (The 10/10 Golden Modal Standard) في Z-Systems:
  * 1. تقسيم الحقول إلى بطاقات منطقية مرقمة ومحكمة (Sectional Cards) تمنع التشتت البصري.
- * 2. كل بطاقة تبدأ بأيقونة SVG رسمية من AppIcons مع عنوان باللون الكحلي الملكي (#170e5e) وحجم 0.84rem ووزن 700.
- * 3. خلفية البطاقات القياسية نظيفة (#f8fafc) مع حواف دائرية (8px) وحدود رفيعة خفيفة (1px solid #e2e8f0).
- * 4. الحقول مدمجة ومحكمة: الارتفاع 33px، الحشو الداخلي 0 10px، حجم الخط 0.8125rem، وعنوان الحقل 0.74rem بلون #334155.
- * 5. حظر كلاسات Tailwind نهائياً لأنها غير مدعومة في المشروع.
- * 6. استخدام StandardDialog و StandardDialogFooter حصرياً لضمان عدم وجود حواف متآكلة وثبات الأبعاد.
+ * 2. كل بطاقة تبدأ بأيقونة SVG رسمية من AppIcons مع عنوان باللون الكحلي الملكي (#170e5e) وحجم 0.85rem ووزن 700.
+ * 3. خلفية البطاقات فائقة النعومة والنقاء (#fbfcfd) مع حواف دائرية (10px) وحدود ناعمة رقيقة (1px solid #edf2f7) لمنع الإحساس بالصناديق الثقيلة.
+ * 4. الحقول مدمجة ومريحة بصرياً: الارتفاع 35px، الحشو الداخلي 0 12px، حجم الخط 0.8125rem، وعنوان الحقل 0.78rem بلون #475569 مع مسافة gap: 5px.
+ * 5. توازن شبكة الحقول: عدم تقسيم الحقول النصية الطويلة عشوائياً، بل إعطاء الحقول الأطول كالإيميل مساحة نسبية أوسع (1.5fr).
+ * 6. حظر كلاسات Tailwind نهائياً لأنها غير مدعومة في المشروع.
+ * 7. استخدام StandardDialog و StandardDialogFooter حصرياً لضمان عدم وجود حواف متآكلة وثبات الأبعاد ومنع السكرول الخارجي.
  */
 export function StandardModalExample() {
   const [isOpen, setIsOpen] = useState(false);
@@ -66,22 +67,22 @@ export function StandardModalExample() {
         <style>{`
           .enterprise-compact-modal .field {
             margin-bottom: 0 !important;
-            gap: 3px !important;
+            gap: 5px !important;
           }
           .enterprise-compact-modal .field span {
-            font-size: 0.74rem !important;
+            font-size: 0.78rem !important;
             font-weight: 600 !important;
-            color: #334155 !important;
+            color: #475569 !important;
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
           }
           .enterprise-compact-modal input,
           .enterprise-compact-modal textarea {
-            height: 33px !important;
+            height: 35px !important;
             font-size: 0.8125rem !important;
             border-radius: 6px !important;
-            padding: 0 10px !important;
+            padding: 0 12px !important;
             border: 1px solid #cbd5e1 !important;
             background: #ffffff !important;
             box-sizing: border-box !important;
@@ -91,10 +92,10 @@ export function StandardModalExample() {
           }
           .enterprise-compact-modal textarea {
             height: auto !important;
-            min-height: 48px !important;
-            padding: 6px 10px !important;
+            min-height: 60px !important;
+            padding: 8px 12px !important;
             resize: vertical !important;
-            line-height: 1.4 !important;
+            line-height: 1.5 !important;
             font-family: inherit !important;
           }
           .enterprise-compact-modal input:focus,
@@ -103,20 +104,20 @@ export function StandardModalExample() {
             box-shadow: 0 0 0 2px rgba(23, 14, 94, 0.1) !important;
           }
           .enterprise-compact-modal .custom-select-trigger {
-            min-height: 33px !important;
-            height: 33px !important;
+            min-height: 35px !important;
+            height: 35px !important;
             font-size: 0.8125rem !important;
             border-radius: 6px !important;
             border: 1px solid #cbd5e1 !important;
-            padding: 0 10px !important;
+            padding: 0 10px 0 36px !important;
           }
         `}</style>
 
-        <div className="enterprise-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '9px' }} dir="rtl">
+        <div className="enterprise-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '11px' }} dir="rtl">
           
           {/* 1. البيانات الأساسية والتعريفية */}
-          <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+          <div style={{ background: '#fbfcfd', padding: '11px 14px', borderRadius: '10px', border: '1px solid #edf2f7' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.85rem' }}>
               <AppIcons.Layers size={15} />
               <span>1. البيانات الأساسية والتعريفية (General Information)</span>
             </div>
@@ -150,8 +151,8 @@ export function StandardModalExample() {
           </div>
 
           {/* 2. التصنيف والبيانات التشغيلية */}
-          <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+          <div style={{ background: '#fbfcfd', padding: '11px 14px', borderRadius: '10px', border: '1px solid #edf2f7' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.85rem' }}>
               <AppIcons.Package size={15} />
               <span>2. التصنيف والبيانات التشغيلية (Operational Specs)</span>
             </div>
@@ -194,15 +195,15 @@ export function StandardModalExample() {
           </div>
 
           {/* 3. الملاحظات والاشتراطات الإضافية */}
-          <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+          <div style={{ background: '#fbfcfd', padding: '11px 14px', borderRadius: '10px', border: '1px solid #edf2f7' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.85rem' }}>
               <AppIcons.Tag size={14} />
               <span>3. الملاحظات والاشتراطات الإضافية (Terms & Notes)</span>
             </div>
 
             <Field label="ملاحظات توضيحية (اختياري)">
               <textarea
-                rows={2}
+                rows={3}
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="أدخل أي ملاحظات إدارية أو اشتراطات تشغيلية إضافية..."
