@@ -2126,6 +2126,7 @@ export interface Database {
   pharmacy_shortages: PharmacyShortageTable;
   pharmacy_clinical_services: PharmacyClinicalServiceTable;
   online_orders: OnlineOrderTable;
+  storefront_media: StorefrontMediaTable;
   quotations: QuotationTable;
   quotation_items: QuotationItemTable;
   customer_loyalty_logs: CustomerLoyaltyLogTable;
@@ -2319,6 +2320,17 @@ export interface PharmacyClinicalServiceTable {
   created_at: ColumnType<Date, string | undefined, string | undefined>;
 }
 
+/** Migration 2040000000135 (SF-9): storefront images as binary, one row per tenant+content hash. */
+export interface StorefrontMediaTable {
+  id: Generated<number>;
+  tenant_id: string;
+  sha256: string;
+  mime_type: string;
+  byte_size: number;
+  content: Buffer;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface OnlineOrderTable {
   id: Generated<number>;
   tenant_id: string;
@@ -2361,6 +2373,11 @@ export interface OnlineOrderTable {
   fulfillment_type?: ColumnType<'delivery' | 'pickup' | 'dine_in' | string, string | undefined, string | undefined>;
   country_code?: ColumnType<string, string | undefined, string | undefined>;
   pickup_branch_id?: number | null;
+  access_token_hash?: string | null;
+  kitchen_draft_sale_id?: number | null;
+  // Present since migration 2040000000046 (QR table ordering); missing from this type until now.
+  order_type?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  table_number?: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }

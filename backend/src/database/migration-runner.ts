@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { Kysely, Migrator, PostgresDialect } from 'kysely';
+import { Kysely, Migrator, PostgresDialect, sql } from 'kysely';
 import { Pool } from 'pg';
 import { Database } from './database.types';
 import { FileMigrationProvider } from './migration-provider';
@@ -167,8 +167,51 @@ export function createDb(): Kysely<Database> {
   });
 }
 
+async function reconcileRenamedMigrations(db: Kysely<Database>): Promise<void> {
+  const schema = process.env.DATABASE_SCHEMA ?? 'public';
+  try {
+    const tableCheck = await sql<{ found: number }>`
+      SELECT 1 AS found FROM information_schema.tables 
+      WHERE table_schema = ${schema} AND table_name = 'kysely_migration'
+    `.execute(db);
+
+    if (tableCheck.rows.length === 0) {
+      return;
+    }
+
+    // Check if 2040000000134_online_order_number_unique is already recorded
+    const orderUniqueCheck = await sql<{ found: number }>`
+      SELECT 1 AS found FROM ${sql.id(schema, 'kysely_migration')}
+      WHERE name = '2040000000134_online_order_number_unique'
+    `.execute(db);
+
+    // If online_order_number_unique is NOT recorded, but performance_hot_path_indexes was recorded
+    // (either under legacy 2040000000134 or premature 2040000000136), delete it from kysely_migration
+    // so Kysely can run 134, 135, 136, 137 in strict alphabetical order.
+    // Migration 136 is fully idempotent (CREATE INDEX IF NOT EXISTS) and safe to re-run.
+    if (orderUniqueCheck.rows.length === 0) {
+      await sql`
+        DELETE FROM ${sql.id(schema, 'kysely_migration')}
+        WHERE name IN (
+          '2040000000134_performance_hot_path_indexes',
+          '2040000000136_performance_hot_path_indexes'
+        )
+      `.execute(db);
+    } else {
+      // If 134 is already recorded, just make sure any legacy 134_performance record is purged
+      await sql`
+        DELETE FROM ${sql.id(schema, 'kysely_migration')}
+        WHERE name = '2040000000134_performance_hot_path_indexes'
+      `.execute(db);
+    }
+  } catch {
+    // Best-effort reconciliation; do not block migrations if schema inspection fails
+  }
+}
+
 export async function runMigrationCommand(command: MigrationCommand): Promise<void> {
   const db = createDb();
+  await reconcileRenamedMigrations(db);
   const migrator = new Migrator({
     db,
     provider: new FileMigrationProvider(getMigrationsPath()),
