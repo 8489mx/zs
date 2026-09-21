@@ -30,8 +30,8 @@ const NAV_TABS = [
   { path: 'quotations', label: 'عروض أسعار العملاء', countKey: 'quotations' as const },
   { path: 'jobs', label: 'أوامر تشغيل الشحنات', countKey: 'jobs' as const },
   { path: 'containers', label: 'تتبع الحاويات وفترات السماح', countKey: 'containers' as const },
-  { path: 'lines', label: 'دليل الخطوط والموانئ', countKey: 'master' as const },
-  { path: 'settings', label: 'قواعد الأتمتة والمراسلات', countKey: 'settings' as const },
+  { path: 'lines', label: 'دليل النواقل والموانئ والمطارات', countKey: 'master' as const },
+  { path: 'settings', label: 'إعدادات وسياسات الشحن', countKey: 'settings' as const },
 ];
 
 function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
@@ -93,7 +93,7 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
         {/* هيدر الصفحة القياسي الموحد */}
         <PageHeader
           title="الشحن واللوجستيات"
-          description="منظومة إدارة الشحن واللوجستيات، دورة الشحن المؤتمتة من استفسار العميل، عروض تسعير الخطوط وحتى التسليم والتخليص."
+          description="منظومة إدارة الشحن واللوجستيات متعدد الوسائط (بحري / جوي / بري)، دورة الشحن المؤتمتة من استفسار العميل وحتى التسليم والتخليص."
           actions={
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button

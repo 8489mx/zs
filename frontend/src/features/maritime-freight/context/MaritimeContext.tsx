@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { maritimeApi } from '../api/maritime-freight.api';
+import { maritimeApi, MaritimePipelineConfig } from '../api/maritime-freight.api';
 
 interface MaritimeCounts {
   inquiries: number;
@@ -22,6 +22,8 @@ interface MaritimeContextType {
   setIsCreateRfqOpen: (open: boolean) => void;
   isCreateInquiryOpen: boolean;
   setIsCreateInquiryOpen: (open: boolean) => void;
+  pipelineConfig: MaritimePipelineConfig;
+  updatePipelineConfig: (newConfig: Partial<MaritimePipelineConfig>) => Promise<void>;
 }
 
 const DEFAULT_COUNTS: MaritimeCounts = {
@@ -33,6 +35,26 @@ const DEFAULT_COUNTS: MaritimeCounts = {
   containers: 0,
   master: 0,
   settings: 0,
+};
+
+const DEFAULT_PIPELINE_CONFIG: MaritimePipelineConfig = {
+  enableSeaFreight: true,
+  enableAirFreight: true,
+  enableRoadFreight: true,
+  automationMode: 'hybrid',
+  defaultMarginType: 'fixed',
+  defaultMarginValue: 200,
+  marginFloor: 150,
+  defaultExchangeRate: 48.5,
+  rfqCutOffHoursStandard: 24,
+  rfqCutOffHoursUrgent: 6,
+  earlyAwardingEnabled: true,
+  earlyAwardingMinFreeDays: 14,
+  requireManualRfqDispatch: false,
+  requireManualAwardAndMargin: true,
+  requireManualQuoteDispatch: false,
+  autoSendWhatsAppQuote: true,
+  autoSendEmailQuote: true,
 };
 
 let memoryCachedCounts: MaritimeCounts = { ...DEFAULT_COUNTS };
@@ -55,10 +77,27 @@ const MaritimeContext = createContext<MaritimeContextType | null>(null);
 
 export function MaritimeProvider({ children }: { children: React.ReactNode }) {
   const [counts, setCounts] = useState<MaritimeCounts>(memoryCachedCounts);
+  const [pipelineConfig, setPipelineConfig] = useState<MaritimePipelineConfig>(DEFAULT_PIPELINE_CONFIG);
   const [isCreateRfqOpen, setIsCreateRfqOpen] = useState(false);
   const [isCreateInquiryOpen, setIsCreateInquiryOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadPipelineConfig = useCallback(async () => {
+    try {
+      const data = await maritimeApi.getPipelineSettings().catch(() => null);
+      if (data) {
+        setPipelineConfig((prev) => ({ ...prev, ...data }));
+      }
+    } catch (err) {
+      console.error('Failed to load pipeline config in context:', err);
+    }
+  }, []);
+
+  const updatePipelineConfig = useCallback(async (newConfig: Partial<MaritimePipelineConfig>) => {
+    const updated = await maritimeApi.savePipelineSettings(newConfig);
+    setPipelineConfig(updated);
+  }, []);
 
   const refreshCounts = useCallback(async () => {
     try {
@@ -101,16 +140,17 @@ export function MaritimeProvider({ children }: { children: React.ReactNode }) {
   const refreshAll = useCallback(async () => {
     try {
       setIsRefreshing(true);
-      await refreshCounts();
+      await Promise.all([refreshCounts(), loadPipelineConfig()]);
       setRefreshKey((prev) => prev + 1);
     } finally {
       setIsRefreshing(false);
     }
-  }, [refreshCounts]);
+  }, [refreshCounts, loadPipelineConfig]);
 
   useEffect(() => {
     refreshCounts();
-  }, [refreshCounts]);
+    loadPipelineConfig();
+  }, [refreshCounts, loadPipelineConfig]);
 
   const value = useMemo(
     () => ({
@@ -123,8 +163,10 @@ export function MaritimeProvider({ children }: { children: React.ReactNode }) {
       setIsCreateRfqOpen,
       isCreateInquiryOpen,
       setIsCreateInquiryOpen,
+      pipelineConfig,
+      updatePipelineConfig,
     }),
-    [counts, refreshCounts, refreshKey, refreshAll, isRefreshing, isCreateRfqOpen, isCreateInquiryOpen]
+    [counts, refreshCounts, refreshKey, refreshAll, isRefreshing, isCreateRfqOpen, isCreateInquiryOpen, pipelineConfig, updatePipelineConfig]
   );
 
   return <MaritimeContext.Provider value={value}>{children}</MaritimeContext.Provider>;

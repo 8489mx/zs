@@ -51,6 +51,17 @@ export interface MaritimeInquiry {
   customer_phone: string | null;
   customer_email: string | null;
   direction: MaritimeDirection;
+  transport_mode?: 'sea' | 'air' | 'road' | 'multimodal';
+  air_cargo_type?: string | null;
+  gross_weight_kg: number;
+  volumetric_weight_kg?: number;
+  chargeable_weight_kg?: number;
+  cbm: number;
+  package_count?: number;
+  flight_number?: string | null;
+  flight_date?: string | null;
+  mawb_number?: string | null;
+  hawb_number?: string | null;
   pol_code: string;
   pol_name: string;
   pod_code: string;
@@ -61,8 +72,6 @@ export interface MaritimeInquiry {
   container_count: number;
   commodity_description: string;
   cargo_nature: string;
-  gross_weight_kg: number;
-  cbm: number;
   cargo_ready_date: string | null;
   target_delivery_date: string | null;
   target_free_days: number;

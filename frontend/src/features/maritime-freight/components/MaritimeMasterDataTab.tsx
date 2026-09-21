@@ -12,6 +12,7 @@ import { PartnerFormModal } from './PartnerFormModal';
 import { ImportCarriersModal } from './ImportCarriersModal';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { CustomSelect } from '@/shared/ui/custom-select';
+import { useMaritime } from '../context/MaritimeContext';
 
 interface MaritimeMasterDataTabProps {
   ports: ShippingPort[];
@@ -49,7 +50,31 @@ export function MaritimeMasterDataTab({
   onRefresh,
 }: MaritimeMasterDataTabProps) {
   const location = useLocation();
-  const [subTab, setSubTab] = useState<'lines' | 'agents' | 'ports' | 'standards'>('agents');
+  const { pipelineConfig, refreshAll } = useMaritime();
+  const enableSeaFreight = pipelineConfig?.enableSeaFreight !== false;
+  const enableAirFreight = pipelineConfig?.enableAirFreight !== false;
+
+  const [subTab, setSubTab] = useState<'lines' | 'airlines' | 'agents' | 'ports' | 'airports' | 'standards'>(() => {
+    if (!enableSeaFreight && enableAirFreight) return 'airlines';
+    return 'lines';
+  });
+
+  // Auto-switch subTab if the currently selected transport mode is disabled
+  useEffect(() => {
+    if (!enableSeaFreight && (subTab === 'lines' || subTab === 'ports')) {
+      if (enableAirFreight) {
+        setSubTab('airlines');
+      } else {
+        setSubTab('agents');
+      }
+    } else if (!enableAirFreight && (subTab === 'airlines' || subTab === 'airports')) {
+      if (enableSeaFreight) {
+        setSubTab('lines');
+      } else {
+        setSubTab('agents');
+      }
+    }
+  }, [enableSeaFreight, enableAirFreight, subTab]);
   
   // Search and Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,14 +117,26 @@ export function MaritimeMasterDataTab({
   const [newPortCountryName, setNewPortCountryName] = useState('مصر');
   const [isAddingPort, setIsAddingPort] = useState(false);
 
-  // Separate shipping lines vs overseas agents
+  // Separate lists by carrier and port type
   const shippingLinesList = useMemo(() => {
     return lines.filter((l) => !l.carrier_type || l.carrier_type === 'shipping_line');
+  }, [lines]);
+
+  const airlinesList = useMemo(() => {
+    return lines.filter((l) => l.carrier_type === 'airline');
   }, [lines]);
 
   const overseasAgentsList = useMemo(() => {
     return lines.filter((l) => l.carrier_type === 'overseas_agent');
   }, [lines]);
+
+  const seaPortsList = useMemo(() => {
+    return ports.filter((p) => !p.port_type || p.port_type === 'sea');
+  }, [ports]);
+
+  const airPortsList = useMemo(() => {
+    return ports.filter((p) => p.port_type === 'air' || p.iata_code);
+  }, [ports]);
 
   // Filtered Shipping Lines
   const filteredLines = useMemo(() => {
@@ -119,6 +156,22 @@ export function MaritimeMasterDataTab({
       return matchQuery && matchLane;
     });
   }, [shippingLinesList, searchQuery, selectedLane]);
+
+  // Filtered Airlines
+  const filteredAirlines = useMemo(() => {
+    return airlinesList.filter((line) => {
+      const matchQuery =
+        !searchQuery ||
+        line.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        line.name_ar.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (line.name_en && line.name_en.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (line.airline_prefix && line.airline_prefix.includes(searchQuery)) ||
+        (line.rfq_email && line.rfq_email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (line.contact_person && line.contact_person.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      return matchQuery;
+    });
+  }, [airlinesList, searchQuery]);
 
   // Filtered Overseas Agents
   const filteredAgents = useMemo(() => {
@@ -144,7 +197,7 @@ export function MaritimeMasterDataTab({
 
   // Filtered Ports
   const filteredPorts = useMemo(() => {
-    return ports.filter((port) => {
+    return seaPortsList.filter((port) => {
       return (
         !searchQuery ||
         port.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -153,7 +206,21 @@ export function MaritimeMasterDataTab({
         (port.country_name && port.country_name.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     });
-  }, [ports, searchQuery]);
+  }, [seaPortsList, searchQuery]);
+
+  // Filtered Airports
+  const filteredAirports = useMemo(() => {
+    return airPortsList.filter((port) => {
+      return (
+        !searchQuery ||
+        port.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        port.name_ar.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (port.name_en && port.name_en.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (port.iata_code && port.iata_code.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (port.country_name && port.country_name.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    });
+  }, [airPortsList, searchQuery]);
 
   // Filtered Containers
   const filteredContainers = useMemo(() => {
@@ -201,7 +268,7 @@ export function MaritimeMasterDataTab({
     });
   }, [referenceData?.portTerminals, searchQuery]);
 
-  const handleOpenAdd = (type: 'shipping_line' | 'overseas_agent') => {
+  const handleOpenAdd = (type: 'shipping_line' | 'overseas_agent' | 'airline' | 'trucking') => {
     setEditingPartner(null);
     setModalType(type);
     setModalOpen(true);
@@ -264,6 +331,30 @@ export function MaritimeMasterDataTab({
     navigator.clipboard.writeText(email);
     toast.success(`تم نسخ البريد الإلكتروني: ${email}`);
   };
+
+  const [isSeeding, setIsSeeding] = useState(false);
+  const handleSeedDefaults = async () => {
+    const confirmed = await systemConfirm({
+      title: 'استعادة وتحديث الدليل القياسي',
+      message: 'هل ترغب في استعادة وتحديث الدليل القياسي لخطوط الملاحة وشركات الطيران والموانئ والمطارات الدولية؟ لن يتم حذف أي بيانات قمت بإضافتها مسبقاً.',
+      confirmText: 'استعادة وتحديث',
+      cancelText: 'إلغاء',
+      variant: 'info',
+    });
+    if (!confirmed) return;
+    try {
+      setIsSeeding(true);
+      await maritimeApi.seedDefaultMasterData();
+      toast.success('تم استعادة وتحديث الدليل القياسي بنجاح', 'تحديث الدليل');
+      onRefresh();
+      refreshAll();
+    } catch (err: any) {
+      toast.error(err?.message || 'فشل استعادة الدليل القياسي', 'خطأ');
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
   const exportMasterDataCsv = () => {
     let filename = 'maritime_data.csv';
     let headers: string[] = [];
@@ -281,6 +372,19 @@ export function MaritimeMasterDataTab({
         `"${l.rfq_email || ''}"`,
         `"${l.booking_email || ''}"`,
         `"${l.trade_lanes || ''}"`
+      ]);
+    } else if (subTab === 'airlines') {
+      filename = `air_freight_airlines_${new Date().toISOString().split('T')[0]}.csv`;
+      headers = ['كود الناقل', 'بادئة بوليصة الشحن (AWB Prefix)', 'اسم شركة الطيران بالعربية', 'اسم شركة الطيران بالإنجليزية', 'مسؤول التواصل', 'الهاتف', 'بريد التسعير (RFQ)', 'بريد الحجز'];
+      rows = filteredAirlines.map((a) => [
+        `"${a.code || ''}"`,
+        `"${a.airline_prefix || ''}"`,
+        `"${a.name_ar || ''}"`,
+        `"${a.name_en || ''}"`,
+        `"${a.contact_person || ''}"`,
+        `"${a.phone || ''}"`,
+        `"${a.rfq_email || ''}"`,
+        `"${a.booking_email || ''}"`
       ]);
     } else if (subTab === 'agents') {
       filename = `maritime_overseas_agents_${new Date().toISOString().split('T')[0]}.csv`;
@@ -301,6 +405,16 @@ export function MaritimeMasterDataTab({
       headers = ['كود الميناء (UN/LOCODE)', 'اسم الميناء بالعربية', 'اسم الميناء بالإنجليزية', 'كود الدولة', 'اسم الدولة'];
       rows = filteredPorts.map((p) => [
         `"${p.code || ''}"`,
+        `"${p.name_ar || ''}"`,
+        `"${p.name_en || ''}"`,
+        `"${p.country_code || ''}"`,
+        `"${p.country_name || ''}"`
+      ]);
+    } else if (subTab === 'airports') {
+      filename = `air_freight_airports_${new Date().toISOString().split('T')[0]}.csv`;
+      headers = ['كود المطار (IATA/ICAO)', 'اسم المطار بالعربية', 'اسم المطار بالإنجليزية', 'كود الدولة', 'اسم الدولة'];
+      rows = filteredAirports.map((p) => [
+        `"${p.code || p.iata_code || ''}"`,
         `"${p.name_ar || ''}"`,
         `"${p.name_en || ''}"`,
         `"${p.country_code || ''}"`,
@@ -427,6 +541,32 @@ export function MaritimeMasterDataTab({
               <span>تصدير إلى Excel / CSV</span>
             </button>
 
+            <button
+              type="button"
+              onClick={handleSeedDefaults}
+              disabled={isSeeding}
+              title="استعادة وتحديث الدليل القياسي لخطوط الملاحة وشركات الطيران والموانئ والمطارات"
+              style={{
+                height: '36px',
+                padding: '0 12px',
+                background: '#ffffff',
+                color: '#170e5e',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: isSeeding ? 'not-allowed' : 'pointer',
+                opacity: isSeeding ? 0.7 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              }}
+            >
+              <AppIcons.RotateCcw size={14} />
+              <span>{isSeeding ? 'جاري الاستعادة...' : 'استعادة الدليل القياسي'}</span>
+            </button>
 
             <span
               style={{
@@ -444,8 +584,10 @@ export function MaritimeMasterDataTab({
               }}
             >
               {subTab === 'lines' && `${shippingLinesList.length} خط ملاحي`}
+              {subTab === 'airlines' && `${airlinesList.length} شركة طيران`}
               {subTab === 'agents' && `${overseasAgentsList.length} وكيل شحن`}
-              {subTab === 'ports' && `${ports.length} ميناء بحري`}
+              {subTab === 'ports' && `${seaPortsList.length} ميناء بحري`}
+              {subTab === 'airports' && `${airPortsList.length} مطار شحن`}
               {subTab === 'standards' && 'المواصفات القياسية'}
             </span>
 
@@ -475,6 +617,36 @@ export function MaritimeMasterDataTab({
               </button>
             )}
 
+            {subTab === 'airlines' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingPartner(null);
+                  setModalType('airline');
+                  setModalOpen(true);
+                }}
+                style={{
+                  height: '36px',
+                  padding: '0 14px',
+                  background: '#0284c7',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 4px rgba(2, 132, 199, 0.15)',
+                }}
+              >
+                <AppIcons.Plus size={15} />
+                <span>+ إضافة شركة طيران</span>
+              </button>
+            )}
+
             {subTab === 'agents' && (
               <button
                 type="button"
@@ -501,7 +673,7 @@ export function MaritimeMasterDataTab({
               </button>
             )}
 
-            {subTab === 'ports' && (
+            {(subTab === 'ports' || subTab === 'airports') && (
               <button
                 type="button"
                 onClick={() => setShowAddPortForm(!showAddPortForm)}
@@ -523,7 +695,7 @@ export function MaritimeMasterDataTab({
                 }}
               >
                 <AppIcons.Plus size={15} />
-                <span>{showAddPortForm ? 'إخفاء نموذج الإضافة' : '+ إضافة ميناء جديد'}</span>
+                <span>{showAddPortForm ? 'إخفاء نموذج الإضافة' : subTab === 'airports' ? '+ إضافة مطار شحن' : '+ إضافة ميناء جديد'}</span>
               </button>
             )}
           </div>
@@ -534,42 +706,73 @@ export function MaritimeMasterDataTab({
           style={{
             background: '#f8fafc',
             borderBottom: '1px solid #e2e8f0',
-            padding: '8px 16px',
+            padding: '6px 12px',
             display: 'flex',
-            gap: '8px',
+            flexWrap: 'wrap',
+            gap: '6px',
             alignItems: 'center',
-            minHeight: '52px',
+            minHeight: '44px',
             boxSizing: 'border-box',
           }}
         >
-          <button
-            type="button"
-            onClick={() => {
-              setSubTab('lines');
-              setSearchQuery('');
-              setSelectedLane('all');
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              height: '36px',
-              padding: '0 16px',
-              borderRadius: '8px',
-              border: subTab === 'lines' ? '1.5px solid #170e5e' : '1.5px solid #cbd5e1',
-              background: subTab === 'lines' ? '#170e5e' : '#ffffff',
-              color: subTab === 'lines' ? '#ffffff' : '#334155',
-              fontWeight: 700,
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-              transition: 'background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <AppIcons.Ship size={15} />
-            <span>الخطوط والتوكيلات الملاحية ({shippingLinesList.length})</span>
-          </button>
+          {enableSeaFreight && (
+            <button
+              type="button"
+              onClick={() => {
+                setSubTab('lines');
+                setSearchQuery('');
+                setSelectedLane('all');
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                height: '32px',
+                padding: '0 10px',
+                borderRadius: '6px',
+                border: subTab === 'lines' ? '1.5px solid #170e5e' : '1.5px solid #cbd5e1',
+                background: subTab === 'lines' ? '#170e5e' : '#ffffff',
+                color: subTab === 'lines' ? '#ffffff' : '#334155',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <AppIcons.Ship size={14} />
+              <span>الخطوط الملاحية ({shippingLinesList.length})</span>
+            </button>
+          )}
+
+          {enableAirFreight && (
+            <button
+              type="button"
+              onClick={() => {
+                setSubTab('airlines');
+                setSearchQuery('');
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                height: '32px',
+                padding: '0 10px',
+                borderRadius: '6px',
+                border: subTab === 'airlines' ? '1.5px solid #0284c7' : '1.5px solid #cbd5e1',
+                background: subTab === 'airlines' ? '#0284c7' : '#ffffff',
+                color: subTab === 'airlines' ? '#ffffff' : '#334155',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <AppIcons.Plane size={14} />
+              <span>شركات الطيران ({airlinesList.length})</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -582,51 +785,80 @@ export function MaritimeMasterDataTab({
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
-              height: '36px',
-              padding: '0 16px',
-              borderRadius: '8px',
+              gap: '5px',
+              height: '32px',
+              padding: '0 10px',
+              borderRadius: '6px',
               border: subTab === 'agents' ? '1.5px solid #170e5e' : '1.5px solid #cbd5e1',
               background: subTab === 'agents' ? '#170e5e' : '#ffffff',
               color: subTab === 'agents' ? '#ffffff' : '#334155',
               fontWeight: 700,
-              fontSize: '0.8125rem',
+              fontSize: '0.78rem',
               cursor: 'pointer',
-              transition: 'background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease',
               whiteSpace: 'nowrap',
             }}
           >
-            <AppIcons.Users size={15} />
-            <span>وكلاء الشحن الدوليين بالخارج ({overseasAgentsList.length})</span>
+            <AppIcons.Users size={14} />
+            <span>وكلاء الشحن ({overseasAgentsList.length})</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setSubTab('ports');
-              setSearchQuery('');
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              height: '36px',
-              padding: '0 16px',
-              borderRadius: '8px',
-              border: subTab === 'ports' ? '1.5px solid #170e5e' : '1.5px solid #cbd5e1',
-              background: subTab === 'ports' ? '#170e5e' : '#ffffff',
-              color: subTab === 'ports' ? '#ffffff' : '#334155',
-              fontWeight: 700,
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-              transition: 'background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <AppIcons.Globe size={15} />
-            <span>دليل الموانئ البحرية الدولية ({ports.length})</span>
-          </button>
+          {enableSeaFreight && (
+            <button
+              type="button"
+              onClick={() => {
+                setSubTab('ports');
+                setSearchQuery('');
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                height: '32px',
+                padding: '0 10px',
+                borderRadius: '6px',
+                border: subTab === 'ports' ? '1.5px solid #170e5e' : '1.5px solid #cbd5e1',
+                background: subTab === 'ports' ? '#170e5e' : '#ffffff',
+                color: subTab === 'ports' ? '#ffffff' : '#334155',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <AppIcons.Globe size={14} />
+              <span>الموانئ البحرية ({seaPortsList.length})</span>
+            </button>
+          )}
+
+          {enableAirFreight && (
+            <button
+              type="button"
+              onClick={() => {
+                setSubTab('airports');
+                setSearchQuery('');
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                height: '32px',
+                padding: '0 10px',
+                borderRadius: '6px',
+                border: subTab === 'airports' ? '1.5px solid #0284c7' : '1.5px solid #cbd5e1',
+                background: subTab === 'airports' ? '#0284c7' : '#ffffff',
+                color: subTab === 'airports' ? '#ffffff' : '#334155',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <AppIcons.Plane size={14} />
+              <span>مطارات الشحن ({airPortsList.length})</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -638,22 +870,21 @@ export function MaritimeMasterDataTab({
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
-              height: '36px',
-              padding: '0 16px',
-              borderRadius: '8px',
+              gap: '5px',
+              height: '32px',
+              padding: '0 10px',
+              borderRadius: '6px',
               border: subTab === 'standards' ? '1.5px solid #170e5e' : '1.5px solid #cbd5e1',
               background: subTab === 'standards' ? '#170e5e' : '#ffffff',
               color: subTab === 'standards' ? '#ffffff' : '#334155',
               fontWeight: 700,
-              fontSize: '0.8125rem',
+              fontSize: '0.78rem',
               cursor: 'pointer',
-              transition: 'background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease',
               whiteSpace: 'nowrap',
             }}
           >
-            <AppIcons.Container size={15} />
-            <span>المواصفات القياسية و Incoterms 2020</span>
+            <AppIcons.Container size={14} />
+            <span>المواصفات و Incoterms</span>
           </button>
         </div>
 
@@ -759,6 +990,76 @@ export function MaritimeMasterDataTab({
           </div>
         )}
 
+        {subTab === 'airlines' && (
+          <div
+            style={{
+              padding: '12px 16px',
+              borderBottom: '1px solid #e2e8f0',
+              background: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              minHeight: '58px',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
+              <input
+                type="text"
+                role="searchbox"
+                name="search_maritime_airlines"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-form-type="other"
+                data-lpignore="true"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="بحث في شركات الشحن الجوي والبادئات..."
+                style={{
+                  width: '100%',
+                  height: '34px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  padding: searchQuery ? '0 32px 0 28px' : '0 32px 0 10px',
+                  fontSize: '0.8125rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ position: 'absolute', right: '10px', top: '9px', color: '#94a3b8', pointerEvents: 'none' }}>
+                <AppIcons.Search size={15} />
+              </div>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  title="مسح البحث"
+                  style={{
+                    position: 'absolute',
+                    left: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#94a3b8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2px',
+                    borderRadius: '50%',
+                  }}
+                >
+                  <XIcon size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {subTab === 'agents' && (
           <div
             style={{
@@ -840,7 +1141,7 @@ export function MaritimeMasterDataTab({
           </div>
         )}
 
-        {subTab === 'ports' && (
+        {(subTab === 'ports' || subTab === 'airports') && (
           <>
             {showAddPortForm && (
               <div
@@ -851,33 +1152,33 @@ export function MaritimeMasterDataTab({
                 }}
               >
                 <h4 style={{ margin: '0 0 12px', fontSize: '0.88rem', fontWeight: 700, color: '#170e5e' }}>
-                  بيانات الميناء الجديد (UN/LOCODE Seaport)
+                  {subTab === 'airports' ? 'بيانات مطار الشحن الدولي الجديد (Cargo Airport)' : 'بيانات الميناء الجديد (UN/LOCODE Seaport)'}
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', alignItems: 'flex-end' }}>
-                  <Field label="كود الميناء (UN/LOCODE) *">
+                  <Field label={subTab === 'airports' ? 'كود IATA (3 حروف) *' : 'كود الميناء (UN/LOCODE) *'}>
                     <input
                       type="text"
                       value={newPortCode}
                       onChange={(e) => setNewPortCode(e.target.value.toUpperCase())}
-                      placeholder="مثال: EGALY, CNSHA"
+                      placeholder={subTab === 'airports' ? 'مثال: CAI, DXB' : 'مثال: EGALY, CNSHA'}
                       style={{ width: '100%', height: '34px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.8125rem' }}
                     />
                   </Field>
-                  <Field label="اسم الميناء بالعربية *">
+                  <Field label={subTab === 'airports' ? 'اسم المطار بالعربية *' : 'اسم الميناء بالعربية *'}>
                     <input
                       type="text"
                       value={newPortNameAr}
                       onChange={(e) => setNewPortNameAr(e.target.value)}
-                      placeholder="ميناء الإسكندرية"
+                      placeholder={subTab === 'airports' ? 'مطار القاهرة للشحن' : 'ميناء الإسكندرية'}
                       style={{ width: '100%', height: '34px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.8125rem' }}
                     />
                   </Field>
-                  <Field label="اسم الميناء بالإنجليزية">
+                  <Field label={subTab === 'airports' ? 'اسم المطار بالإنجليزية' : 'اسم الميناء بالإنجليزية'}>
                     <input
                       type="text"
                       value={newPortNameEn}
                       onChange={(e) => setNewPortNameEn(e.target.value)}
-                      placeholder="Alexandria Port"
+                      placeholder={subTab === 'airports' ? 'Cairo Cargo Airport' : 'Alexandria Port'}
                       style={{ width: '100%', height: '34px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.8125rem' }}
                     />
                   </Field>
@@ -886,7 +1187,7 @@ export function MaritimeMasterDataTab({
                       type="text"
                       value={newPortCountryName}
                       onChange={(e) => setNewPortCountryName(e.target.value)}
-                      placeholder="مصر، الصين..."
+                      placeholder="مصر، الإمارات..."
                       style={{ width: '100%', height: '34px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.8125rem' }}
                     />
                   </Field>
@@ -907,7 +1208,7 @@ export function MaritimeMasterDataTab({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    حفظ الميناء
+                    {subTab === 'airports' ? 'حفظ المطار' : 'حفظ الميناء'}
                   </button>
                 </div>
               </div>
@@ -927,7 +1228,7 @@ export function MaritimeMasterDataTab({
                   data-lpignore="true"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="بحث في الموانئ بالكود أو الاسم..."
+                  placeholder={subTab === 'airports' ? 'بحث في مطارات الشحن بالكود أو الاسم...' : 'بحث في الموانئ بالكود أو الاسم...'}
                   style={{
                     width: '100%',
                     height: '34px',
@@ -1365,6 +1666,189 @@ export function MaritimeMasterDataTab({
           </div>
         )}
 
+        {/* أ2. جدول شركات الشحن الجوي */}
+        {subTab === 'airlines' && (
+          <div style={{ width: '100%', overflowX: 'auto', minHeight: '480px' }}>
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.8125rem' }}>
+              <colgroup>
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '25%' }} />
+                <col style={{ width: '25%' }} />
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '10%' }} />
+              </colgroup>
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700, textAlign: 'center' }}>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>كود وبادئة AWB</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>شركة الطيران / الشحن الجوي</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>إيميل التسعير والحجز (RFQ)</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>الهاتف والتواصل</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>مسؤول الشحن</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAirlines.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                      لا توجد شركات طيران مطابقة لمعايير البحث
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAirlines.map((airline) => (
+                    <tr key={airline.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0284c7', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
+                          <span style={{ background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', padding: '2px 8px', borderRadius: '4px', fontSize: '0.78rem' }}>
+                            {airline.code}
+                          </span>
+                          {airline.airline_prefix && (
+                            <span style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 700 }}>
+                              AWB: {airline.airline_prefix}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={airline.name_ar}>
+                          {airline.name_ar}
+                        </div>
+                        {airline.name_en && (
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'ltr', textAlign: 'left', marginTop: '2px' }} title={airline.name_en}>
+                            {airline.name_en}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden', textAlign: 'left', direction: 'ltr' }}>
+                        {airline.rfq_email ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '6px', minWidth: 0 }}>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyEmail(airline.rfq_email!)}
+                              title="نسخ إيميل التسعير"
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: '#64748b',
+                                padding: '2px',
+                                flexShrink: 0,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <AppIcons.Copy size={13} />
+                            </button>
+                            <span
+                              style={{
+                                fontWeight: 600,
+                                color: '#0369a1',
+                                fontSize: '0.8rem',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                              title={airline.rfq_email}
+                            >
+                              {airline.rfq_email}
+                            </span>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>-</span>
+                        )}
+                        {airline.booking_email && airline.booking_email !== airline.rfq_email && (
+                          <div
+                            style={{
+                              fontSize: '0.72rem',
+                              color: '#64748b',
+                              marginTop: '3px',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                            title={airline.booking_email}
+                          >
+                            booking: {airline.booking_email}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden', textAlign: 'left', direction: 'ltr' }}>
+                        {airline.phone ? (
+                          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                            <a
+                              href={`https://wa.me/${airline.phone.replace(/[^\d]/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                fontSize: '0.74rem',
+                                color: '#15803d',
+                                fontWeight: 700,
+                                textDecoration: 'none',
+                                direction: 'ltr',
+                                textAlign: 'left',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                              title="فتح محادثة واتساب"
+                            >
+                              <span>{airline.phone}</span>
+                            </a>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>-</div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden', textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.78rem', color: '#334155', fontWeight: 600 }}>
+                          {airline.contact_person || '-'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: '4px', justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(airline)}
+                            style={{
+                              padding: '4px 10px',
+                              background: '#f1f5f9',
+                              color: '#170e5e',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            تعديل
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePartner(airline)}
+                            style={{
+                              padding: '4px 8px',
+                              background: '#fff1f2',
+                              color: '#be123c',
+                              border: '1px solid #fecdd3',
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            حذف
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {/* ب. جدول وكلاء الشحن الدوليين بالخارج */}
         {subTab === 'agents' && (
           <div style={{ width: '100%', overflowX: 'auto', minHeight: '480px' }}>
@@ -1612,6 +2096,57 @@ export function MaritimeMasterDataTab({
                       <td style={{ padding: '12px 14px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
                         <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 8px', borderRadius: '4px' }}>
                           {p.code}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 14px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {p.name_ar}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {p.name_en}
+                      </td>
+                      <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{p.country_name}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.74rem', marginInlineStart: '6px' }}>({p.country_code})</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ج2. جدول مطارات الشحن الدولية */}
+        {subTab === 'airports' && (
+          <div style={{ width: '100%', overflowX: 'auto', minHeight: '480px' }}>
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.8125rem' }}>
+              <colgroup>
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '35%' }} />
+                <col style={{ width: '30%' }} />
+                <col style={{ width: '20%' }} />
+              </colgroup>
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
+                  <th style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>كود IATA / ICAO</th>
+                  <th style={{ padding: '12px 14px' }}>اسم المطار بالعربية</th>
+                  <th style={{ padding: '12px 14px' }}>الاسم بالإنجليزية</th>
+                  <th style={{ padding: '12px 14px' }}>الدولة والرمز</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAirports.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                      لا توجد مطارات شحن مطابقة لبحثك
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAirports.map((p) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0284c7', whiteSpace: 'nowrap' }}>
+                        <span style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '3px 8px', borderRadius: '4px' }}>
+                          {p.iata_code || p.code}
                         </span>
                       </td>
                       <td style={{ padding: '12px 14px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

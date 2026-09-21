@@ -1,57 +1,91 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useMemo } from 'react';
 import { MaritimeInquiry } from '../maritime-freight.types';
-import { SearchIcon, ArrowLeftIcon, FileTextIcon, CheckCircleIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { AppIcons, SearchIcon, ArrowLeftIcon, FileTextIcon, CheckCircleIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
+import { useMaritime } from '../context/MaritimeContext';
 
 interface MaritimeInquiriesTabProps {
   inquiries: MaritimeInquiry[];
   loading: boolean;
-  onOpenCreate?: () => void;
-  onConvertToRfq: (inquiryId: string) => void;
+  onConvertToRfq: (inquiryId: string) => Promise<any>;
   onNavigateToRfq?: (rfqId: string) => void;
 }
 
 export function MaritimeInquiriesTab({
   inquiries,
   loading,
-  onOpenCreate: _onOpenCreate,
   onConvertToRfq,
   onNavigateToRfq,
 }: MaritimeInquiriesTabProps) {
-  const location = useLocation();
+  const { pipelineConfig } = useMaritime();
+  const enableSeaFreight = pipelineConfig?.enableSeaFreight !== false;
+  const enableAirFreight = pipelineConfig?.enableAirFreight !== false;
+  const enableRoadFreight = pipelineConfig?.enableRoadFreight !== false;
+  const activeModesCount = (enableSeaFreight ? 1 : 0) + (enableAirFreight ? 1 : 0) + (enableRoadFreight ? 1 : 0);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [modeFilter, setModeFilter] = useState<string>('all');
   const [convertingId, setConvertingId] = useState<string | null>(null);
 
-  // Reset search on route or status filter change
-  useEffect(() => {
-    setSearchTerm('');
-  }, [location.pathname, statusFilter]);
+  const modeOptions = useMemo(() => {
+    const opts = [{ value: 'all', label: 'كافة الوسائط' }];
+    if (enableSeaFreight) opts.push({ value: 'sea', label: 'شحن بحري' });
+    if (enableAirFreight) opts.push({ value: 'air', label: 'شحن جوي' });
+    if (enableRoadFreight) opts.push({ value: 'road', label: 'شحن بري' });
+    return opts;
+  }, [enableSeaFreight, enableAirFreight, enableRoadFreight]);
+
+  const getModeBadge = (mode?: string) => {
+    switch (mode) {
+      case 'air':
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 7px', borderRadius: '4px', background: '#e0f2fe', color: '#0369a1', fontSize: '0.72rem', fontWeight: 700 }}>
+            <AppIcons.Plane size={12} />
+            <span>شحن جوي</span>
+          </span>
+        );
+      case 'road':
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 7px', borderRadius: '4px', background: '#ffedd5', color: '#c2410c', fontSize: '0.72rem', fontWeight: 700 }}>
+            <AppIcons.Truck size={12} />
+            <span>شحن بري</span>
+          </span>
+        );
+      case 'sea':
+      default:
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 7px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', fontSize: '0.72rem', fontWeight: 700 }}>
+            <AppIcons.Ship size={12} />
+            <span>شحن بحري</span>
+          </span>
+        );
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'received':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#eff6ff', color: '#1d4ed8', fontSize: '0.72rem', fontWeight: 700 }}>
+          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#e0e7ff', color: '#3730a3', fontSize: '0.72rem', fontWeight: 700 }}>
             طلب مستلم جديد
           </span>
         );
       case 'rfq_created':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fef3c7', color: '#b45309', fontSize: '0.72rem', fontWeight: 700 }}>
-            تم طلب عروض الخطوط (RFQ)
+          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fef3c7', color: '#92400e', fontSize: '0.72rem', fontWeight: 700 }}>
+            تم إنشاء RFQ
           </span>
         );
       case 'quoted':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#e0e7ff', color: '#4338ca', fontSize: '0.72rem', fontWeight: 700 }}>
-            تم تقديم عرض سعر للعميل
+          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#dbeafe', color: '#1e40af', fontSize: '0.72rem', fontWeight: 700 }}>
+            تم تسعيرها للعميل
           </span>
         );
       case 'converted_to_job':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontSize: '0.72rem', fontWeight: 700 }}>
+          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#dcfce7', color: '#166534', fontSize: '0.72rem', fontWeight: 700 }}>
             تم التعميد (أمر تشغيل)
           </span>
         );
@@ -94,9 +128,14 @@ export function MaritimeInquiriesTab({
         inq.commodity_description?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchStatus = statusFilter === 'all' || inq.status === statusFilter;
-      return matchSearch && matchStatus;
+      const matchMode =
+        modeFilter === 'all' ||
+        inq.transport_mode === modeFilter ||
+        (!inq.transport_mode && modeFilter === 'sea');
+
+      return matchSearch && matchStatus && matchMode;
     });
-  }, [inquiries, searchTerm, statusFilter]);
+  }, [inquiries, searchTerm, statusFilter, modeFilter]);
 
   const handleConvertClick = async (inquiryId: string) => {
     try {
@@ -116,7 +155,7 @@ export function MaritimeInquiriesTab({
             استفسارات وطلبات شحن العملاء (Client Freight Inquiries)
           </h3>
           <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-            نقطة انطلاق دورة الشحن البحري لتسجيل طلبات العملاء وتوليد طلبات تسعير الخطوط فورياً بنقرة زر واحدة
+            نقطة انطلاق دورة الشحن متعدد الوسائط (بحري، جوي، بري) لتسجيل طلبات العملاء وتوليد طلبات تسعير الخطوط فورياً بنقرة زر واحدة
           </p>
         </div>
 
@@ -182,6 +221,19 @@ export function MaritimeInquiriesTab({
           )}
         </div>
 
+        {activeModesCount > 1 && (
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>الوسيلة:</span>
+            <div style={{ width: 140 }}>
+              <CustomSelect
+                value={modeFilter}
+                onChange={(val) => setModeFilter(val || 'all')}
+                options={modeOptions}
+              />
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>الحالة:</span>
           <div style={{ width: 170 }}>
@@ -206,10 +258,10 @@ export function MaritimeInquiriesTab({
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.825rem' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-              <th style={{ padding: '12px 14px' }}>رقم الطلب والتاريخ</th>
+              <th style={{ padding: '12px 14px' }}>رقم الطلب والوسيلة</th>
               <th style={{ padding: '12px 14px' }}>العميل وبيانات الاتصال</th>
               <th style={{ padding: '12px 14px' }}>مسار الشحنة</th>
-              <th style={{ padding: '12px 14px' }}>الحاويات والبضاعة</th>
+              <th style={{ padding: '12px 14px' }}>الشحنة والمعدات / الأوزان</th>
               <th style={{ padding: '12px 14px' }}>الشرط والسداد</th>
               <th style={{ padding: '12px 14px' }}>جاهزية البضاعة</th>
               <th style={{ padding: '12px 14px' }}>الحالة</th>
@@ -235,7 +287,10 @@ export function MaritimeInquiriesTab({
               filteredInquiries.map((inq) => (
                 <tr key={inq.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '12px 14px' }}>
-                    <div style={{ fontWeight: 800, color: '#170e5e' }}>{inq.inquiry_number}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontWeight: 800, color: '#170e5e' }}>{inq.inquiry_number}</span>
+                      {getModeBadge(inq.transport_mode)}
+                    </div>
                     <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
                       {new Date(inq.created_at).toLocaleDateString('ar-EG')}
                     </div>
@@ -256,13 +311,35 @@ export function MaritimeInquiriesTab({
                     </div>
                   </td>
                   <td style={{ padding: '12px 14px' }}>
-                    <div>
-                      <strong>{inq.container_count}x {inq.container_type}</strong> ({inq.cargo_mode})
-                    </div>
-                    <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                      {inq.commodity_description}
-                      {inq.gross_weight_kg ? ` | ${inq.gross_weight_kg} كجم` : ''}
-                    </div>
+                    {inq.transport_mode === 'air' ? (
+                      <div>
+                        <div style={{ fontWeight: 700, color: '#0369a1' }}>
+                          {Number(inq.chargeable_weight_kg || inq.gross_weight_kg || 0).toLocaleString()} كجم (محاسبي)
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                          {inq.cbm ? `${inq.cbm} CBM` : ''} {inq.package_count ? `| ${inq.package_count} طرد` : ''} | {inq.commodity_description || 'بضاعة عامة'}
+                        </div>
+                      </div>
+                    ) : inq.transport_mode === 'road' ? (
+                      <div>
+                        <div style={{ fontWeight: 700, color: '#c2410c' }}>
+                          {inq.container_type || 'شاحنة'} ({inq.cargo_mode || 'FTL'})
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                          {inq.gross_weight_kg ? `${Number(inq.gross_weight_kg).toLocaleString()} كجم` : ''} {inq.cbm ? `| ${inq.cbm} CBM` : ''} | {inq.commodity_description}
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div>
+                          <strong>{inq.container_count}x {inq.container_type}</strong> ({inq.cargo_mode})
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                          {inq.commodity_description}
+                          {inq.gross_weight_kg ? ` | ${Number(inq.gross_weight_kg).toLocaleString()} كجم` : ''}
+                        </div>
+                      </div>
+                    )}
                   </td>
                   <td style={{ padding: '12px 14px' }}>
                     <div>{inq.incoterm}</div>

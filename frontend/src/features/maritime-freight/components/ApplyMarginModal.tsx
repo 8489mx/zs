@@ -96,7 +96,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
           `• الحاويات والبضاعة: ${rfq.container_count}x ${rfq.container_type} (${rfq.commodity_description})\n` +
           `• الخط الملاحي: ${bid.shipping_line_name}\n` +
           `• فترة السماح بالميناء: ${bid.free_days} يوم بميناء الوصول\n` +
-          `• السعر الإجمالي: ${finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${bid.currency} (ما يعادل تقريباً ${finalTotalLocal.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${currencySymbol})\n` +
+          `• السعر الإجمالي: ${Math.round(finalTotal).toLocaleString()} ${bid.currency} (ما يعادل تقريباً ${Math.round(finalTotalLocal).toLocaleString()} ${currencySymbol})\n` +
           `• رقم العرض المرجعي: ${quote.quotation_number}\n\n` +
           `شكراً لاختياركم خدماتنا اللوجستية!`;
 
@@ -481,7 +481,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
               تكلفة الخط الملاحي (Base Cost)
             </div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', marginTop: '6px' }}>
-              ${baseCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ${Math.round(baseCost).toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
               تكلفة نولون وموانئ رسمية
@@ -494,7 +494,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
               هامش الربح المستهدف (Margin Markup)
             </div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#059669', marginTop: '6px' }}>
-              +${profitAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              +${Math.round(profitAmount).toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
               {marginType === 'percentage' ? `(${marginValue}% من التكلفة)` : 'مبلغ مقطوع مضاف'}
@@ -507,10 +507,10 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
               إجمالي عرض السعر للعميل (Total Price)
             </div>
             <div style={{ fontSize: '1.38rem', fontWeight: 900, color: '#170e5e', marginTop: '6px' }}>
-              ${finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ${Math.round(finalTotal).toLocaleString()}
             </div>
             <div style={{ fontSize: '0.74rem', color: '#475569', fontWeight: 600, marginTop: '2px' }}>
-              ≈ {finalTotalLocal.toLocaleString(undefined, { maximumFractionDigits: 0 })} <CurrencySymbol />
+              ≈ {Math.round(finalTotalLocal).toLocaleString()} <CurrencySymbol />
             </div>
           </div>
         </div>

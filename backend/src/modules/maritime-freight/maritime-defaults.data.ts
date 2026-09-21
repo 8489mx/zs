@@ -9,7 +9,8 @@ export interface DefaultCarrierSeed {
   code: string;
   name_ar: string;
   name_en: string;
-  carrier_type: 'shipping_line' | 'overseas_agent';
+  carrier_type: 'shipping_line' | 'overseas_agent' | 'airline' | 'trucking';
+  airline_prefix?: string | null;
   country_name?: string | null;
   country_code?: string | null;
   city_name?: string | null;
@@ -33,6 +34,9 @@ export interface DefaultPortSeed {
   name_en: string;
   country_code: string;
   country_name: string;
+  port_type?: 'sea' | 'air' | 'road';
+  iata_code?: string | null;
+  icao_code?: string | null;
 }
 
 export const DEFAULT_SHIPPING_LINES: DefaultCarrierSeed[] = [
@@ -1763,3 +1767,217 @@ export const DEFAULT_PORT_TERMINALS: DefaultPortTerminal[] = [
     notes: 'أرصفة غرب بورسعيد للبضائع العامة والحاويات الواردة'
   }
 ];
+
+export const DEFAULT_AIRLINES: DefaultCarrierSeed[] = [
+  {
+    code: 'MS',
+    name_ar: 'مصر للطيران للشحن الجوي (EgyptAir Cargo)',
+    name_en: 'EgyptAir Cargo',
+    carrier_type: 'airline',
+    airline_prefix: '077',
+    country_name: 'مصر',
+    country_code: 'EG',
+    city_name: 'القاهرة',
+    contact_person: 'EgyptAir Cargo Pricing Desk',
+    email: 'cargosales@egyptair.com',
+    rfq_email: 'cargosales@egyptair.com',
+    booking_email: 'cargobooking@egyptair.com',
+    phone: '+20 2 2267 8000',
+    trade_lanes: 'middle_east,europe,africa,far_east,americas',
+    services_offered: 'General Cargo, Perishables, Pharma, Valuable Cargo',
+    notes: 'الناقل الوطني المصري - مركز العمليات بمطار القاهرة الدولي قرية البضائع'
+  },
+  {
+    code: 'EK',
+    name_ar: 'الإمارات للشحن الجوي (Emirates SkyCargo)',
+    name_en: 'Emirates SkyCargo',
+    carrier_type: 'airline',
+    airline_prefix: '176',
+    country_name: 'الإمارات',
+    country_code: 'AE',
+    city_name: 'دبي',
+    contact_person: 'Emirates SkyCargo Regional Desk',
+    email: 'skycargo.cai@emirates.com',
+    rfq_email: 'skycargo.cai@emirates.com',
+    booking_email: 'skycargobooking@emirates.com',
+    phone: '+971 4 707 1111',
+    trade_lanes: 'worldwide,middle_east,asia,europe,americas',
+    services_offered: 'Pharma Cool, Fresh Food, General Cargo, Heavy Lift',
+    notes: 'أكبر ناقل شحن جوي بالشرق الأوسط - مطار دبي الدولي وآل مكتوم'
+  },
+  {
+    code: 'SV',
+    name_ar: 'الخطوط السعودية للشحن (Saudia Cargo)',
+    name_en: 'Saudia Cargo',
+    carrier_type: 'airline',
+    airline_prefix: '065',
+    country_name: 'السعودية',
+    country_code: 'SA',
+    city_name: 'جدة والرياض',
+    contact_person: 'Saudia Cargo Commercial Desk',
+    email: 'cargo-rates@saudiacargo.com',
+    rfq_email: 'cargo-rates@saudiacargo.com',
+    booking_email: 'cargobooking@saudiacargo.com',
+    phone: '+966 9200 03111',
+    trade_lanes: 'gulf,middle_east,asia,europe,africa',
+    services_offered: 'General, Pharma, Live Animals, Dangerous Goods',
+    notes: 'شبكة شحن واسعة بالمملكة والخليج العربي ومحطات الترانزيت الدولية'
+  },
+  {
+    code: 'TK',
+    name_ar: 'الخطوط التركية للشحن (Turkish Cargo)',
+    name_en: 'Turkish Cargo',
+    carrier_type: 'airline',
+    airline_prefix: '235',
+    country_name: 'تركيا',
+    country_code: 'TR',
+    city_name: 'إسطنبول',
+    contact_person: 'Turkish Cargo Egypt & Regional Desk',
+    email: 'cairo.cargo@thy.com',
+    rfq_email: 'cairo.cargo@thy.com',
+    booking_email: 'cargo.booking@thy.com',
+    phone: '+90 212 463 6363',
+    trade_lanes: 'europe,far_east,middle_east,americas,africa',
+    services_offered: 'TK Fresh, TK Pharma, TK Care, TK Courier',
+    notes: 'مركز الشحن بمطار إسطنبول الدولي مع أكبر شبكة وجهات عالمية'
+  },
+  {
+    code: 'QR',
+    name_ar: 'القطرية للشحن الجوي (Qatar Airways Cargo)',
+    name_en: 'Qatar Airways Cargo',
+    carrier_type: 'airline',
+    airline_prefix: '157',
+    country_name: 'قطر',
+    country_code: 'QA',
+    city_name: 'الدوحة',
+    contact_person: 'Qatar Airways Cargo Sales',
+    email: 'cargosales@qatarairways.com.qa',
+    rfq_email: 'cargosales@qatarairways.com.qa',
+    booking_email: 'cargores@qatarairways.com.qa',
+    phone: '+974 4022 0000',
+    trade_lanes: 'global,middle_east,europe,asia,americas',
+    services_offered: 'QR Pharma, QR Fresh, QR Live, QR Drive',
+    notes: 'مركز الشحن بمطار حمد الدولي بالدوحة'
+  },
+  {
+    code: 'LH',
+    name_ar: 'لوفتهانزا للشحن الجوي (Lufthansa Cargo)',
+    name_en: 'Lufthansa Cargo',
+    carrier_type: 'airline',
+    airline_prefix: '020',
+    country_name: 'ألمانيا',
+    country_code: 'DE',
+    city_name: 'فرانكفورت',
+    contact_person: 'Lufthansa Cargo MEA Desk',
+    email: 'cargo.cai@dlh.de',
+    rfq_email: 'cargo.cai@dlh.de',
+    booking_email: 'booking.cargo@dlh.de',
+    phone: '+49 69 6960',
+    trade_lanes: 'europe,americas,asia,middle_east',
+    services_offered: 'General, Cool, Dangerous Goods, Emergency Cargo',
+    notes: 'المركز الأوروبي الأكبر للشحن الجوي بمطار فرانكفورت الدولي'
+  }
+];
+
+export const DEFAULT_CARGO_AIRPORTS: DefaultPortSeed[] = [
+  {
+    code: 'CAI',
+    name_ar: 'مطار القاهرة الدولي (قرية البضائع)',
+    name_en: 'Cairo International Airport Cargo Village',
+    country_code: 'EG',
+    country_name: 'مصر',
+    port_type: 'air',
+    iata_code: 'CAI'
+  },
+  {
+    code: 'HBE',
+    name_ar: 'مطار برج العرب الدولي - الإسكندرية',
+    name_en: 'Borg El Arab International Airport Alexandria',
+    country_code: 'EG',
+    country_name: 'مصر',
+    port_type: 'air',
+    iata_code: 'HBE'
+  },
+  {
+    code: 'DXB',
+    name_ar: 'مطار دبي الدولي للشحن',
+    name_en: 'Dubai International Airport Cargo Terminal',
+    country_code: 'AE',
+    country_name: 'الإمارات',
+    port_type: 'air',
+    iata_code: 'DXB'
+  },
+  {
+    code: 'DWC',
+    name_ar: 'مطار آل مكتوم الدولي - دبي',
+    name_en: 'Al Maktoum International Airport (DWC Cargo)',
+    country_code: 'AE',
+    country_name: 'الإمارات',
+    port_type: 'air',
+    iata_code: 'DWC'
+  },
+  {
+    code: 'JED',
+    name_ar: 'مطار الملك عبد العزيز الدولي - جدة',
+    name_en: 'King Abdulaziz International Airport Jeddah',
+    country_code: 'SA',
+    country_name: 'السعودية',
+    port_type: 'air',
+    iata_code: 'JED'
+  },
+  {
+    code: 'RUH',
+    name_ar: 'مطار الملك خالد الدولي - الرياض',
+    name_en: 'King Khalid International Airport Riyadh',
+    country_code: 'SA',
+    country_name: 'السعودية',
+    port_type: 'air',
+    iata_code: 'RUH'
+  },
+  {
+    code: 'FRA',
+    name_ar: 'مطار فرانكفورت الدولي للشحن',
+    name_en: 'Frankfurt Airport CargoCity',
+    country_code: 'DE',
+    country_name: 'ألمانيا',
+    port_type: 'air',
+    iata_code: 'FRA'
+  },
+  {
+    code: 'IST',
+    name_ar: 'مطار إسطنبول الدولي للشحن',
+    name_en: 'Istanbul Airport Cargo Hub',
+    country_code: 'TR',
+    country_name: 'تركيا',
+    port_type: 'air',
+    iata_code: 'IST'
+  },
+  {
+    code: 'LHR',
+    name_ar: 'مطار لندن هيثرو للشحن',
+    name_en: 'London Heathrow Airport Cargo Terminal',
+    country_code: 'GB',
+    country_name: 'المملكة المتحدة',
+    port_type: 'air',
+    iata_code: 'LHR'
+  },
+  {
+    code: 'PVG',
+    name_ar: 'مطار شانغهاي بودنغ الدولي',
+    name_en: 'Shanghai Pudong International Airport Cargo',
+    country_code: 'CN',
+    country_name: 'الصين',
+    port_type: 'air',
+    iata_code: 'PVG'
+  },
+  {
+    code: 'JFK',
+    name_ar: 'مطار جون إف كينيدي الدولي - نيويورك',
+    name_en: 'John F. Kennedy International Airport Cargo',
+    country_code: 'US',
+    country_name: 'الولايات المتحدة الأمريكية',
+    port_type: 'air',
+    iata_code: 'JFK'
+  }
+];
+

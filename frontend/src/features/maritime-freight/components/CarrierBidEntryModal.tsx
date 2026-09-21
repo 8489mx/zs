@@ -151,7 +151,7 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
         <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
             <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <AppIcons.Zap size={13} color="#0284c7" />
+              <AppIcons.Download size={13} color="#170e5e" />
               <span>استخراج بيانات العرض تلقائياً من نص رد الإيميل (AI Copilot Fast Ingestion):</span>
             </span>
             <button

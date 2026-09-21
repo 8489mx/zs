@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { MaritimeQuotation } from '../api/maritime-freight.api';
@@ -19,6 +20,32 @@ export function MaritimeQuotationsTab({
 }: MaritimeQuotationsTabProps) {
   const navigate = useNavigate();
   const { currencySymbol } = useSystemCurrency();
+
+  const getModeBadge = (mode?: string) => {
+    if (mode === 'air') {
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
+          <AppIcons.Plane size={10} />
+          <span>شحن جوي</span>
+        </span>
+      );
+    }
+    if (mode === 'road') {
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
+          <AppIcons.Truck size={10} />
+          <span>شحن بري</span>
+        </span>
+      );
+    }
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
+        <AppIcons.Ship size={10} />
+        <span>شحن بحري</span>
+      </span>
+    );
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'draft':
@@ -42,7 +69,8 @@ export function MaritimeQuotationsTab({
       return;
     }
     const cleanPhone = quote.customer_phone.replace(/[^0-9]/g, '');
-    const message = `مرحباً ${quote.customer_name}، نرسل لكم عرض سعر الشحن البحري:\n` +
+    const modeLabel = quote.transport_mode === 'air' ? 'الجوي' : quote.transport_mode === 'road' ? 'البري' : 'البحري';
+    const message = `مرحباً ${quote.customer_name}، نرسل لكم عرض سعر الشحن ${modeLabel}:\n` +
       `كود العرض: ${quote.quotation_number}\n` +
       `السعر الإجمالي: $${Number(quote.final_total).toLocaleString()} (${Number(quote.final_total_local).toLocaleString()} ${currencySymbol} تقريباً)\n` +
       `طريقة السداد: ${quote.payment_term}\nشكراً لاختياركم خدماتنا!`;
@@ -106,7 +134,10 @@ export function MaritimeQuotationsTab({
               quotations.map((q) => (
                 <tr key={q.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '12px 14px', fontWeight: 800, color: '#170e5e', textAlign: 'center', verticalAlign: 'middle' }}>
-                    {q.quotation_number}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                      <span>{q.quotation_number}</span>
+                      {getModeBadge(q.transport_mode)}
+                    </div>
                   </td>
                   <td style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>
                     <div style={{ fontWeight: 700, color: '#0f172a' }}>{q.customer_name}</div>

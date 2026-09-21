@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MaritimeSettingsTab } from '../components/MaritimeSettingsTab';
 import { MaritimePipelineSettingsTab } from '../components/MaritimePipelineSettingsTab';
-import { ZapIcon, MailIcon } from '@/shared/components/icons/AppIcons';
+import { SlidersIcon, MailIcon } from '@/shared/components/icons/AppIcons';
 
 export function MaritimeSettingsPage() {
   const [subTab, setSubTab] = useState<'pipeline' | 'mail'>('pipeline');
@@ -31,17 +31,16 @@ export function MaritimeSettingsPage() {
             height: '36px',
             padding: '0 16px',
             borderRadius: '8px',
-            border: subTab === 'pipeline' ? '1px solid #170e5e' : '1px solid transparent',
+            border: subTab === 'pipeline' ? '1px solid #170e5e' : '1px solid #e2e8f0',
             background: subTab === 'pipeline' ? '#170e5e' : '#f8fafc',
             color: subTab === 'pipeline' ? '#ffffff' : '#475569',
-            fontWeight: 700,
+            fontWeight: 600,
             fontSize: '0.8125rem',
             cursor: 'pointer',
-            transition: 'all 0.12s ease',
           }}
         >
-          <ZapIcon size={16} />
-          <span>قواعد مسار الأتمتة وهامش الربح (Automation Pipeline)</span>
+          <SlidersIcon size={16} />
+          <span>قواعد وسياسات الشحن وهامش الربح (Shipping Policies & Margins)</span>
         </button>
 
         <button
@@ -54,13 +53,12 @@ export function MaritimeSettingsPage() {
             height: '36px',
             padding: '0 16px',
             borderRadius: '8px',
-            border: subTab === 'mail' ? '1px solid #170e5e' : '1px solid transparent',
+            border: subTab === 'mail' ? '1px solid #170e5e' : '1px solid #e2e8f0',
             background: subTab === 'mail' ? '#170e5e' : '#f8fafc',
             color: subTab === 'mail' ? '#ffffff' : '#475569',
-            fontWeight: 700,
+            fontWeight: 600,
             fontSize: '0.8125rem',
             cursor: 'pointer',
-            transition: 'all 0.12s ease',
           }}
         >
           <MailIcon size={16} />

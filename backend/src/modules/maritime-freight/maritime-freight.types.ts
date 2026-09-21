@@ -66,6 +66,9 @@ export interface RfqEmailDispatchPayload {
 }
 
 export interface MaritimePipelineConfig {
+  enableSeaFreight?: boolean;
+  enableAirFreight?: boolean;
+  enableRoadFreight?: boolean;
   automationMode: 'manual' | 'hybrid' | 'full_autonomous';
   defaultMarginType: 'fixed' | 'percentage';
   defaultMarginValue: number;
@@ -83,6 +86,9 @@ export interface MaritimePipelineConfig {
 }
 
 export const DEFAULT_PIPELINE_CONFIG: MaritimePipelineConfig = {
+  enableSeaFreight: true,
+  enableAirFreight: true,
+  enableRoadFreight: true,
   automationMode: 'hybrid',
   defaultMarginType: 'fixed',
   defaultMarginValue: 200,

@@ -156,6 +156,9 @@ export interface MaritimeRfq {
 }
 
 export interface MaritimePipelineConfig {
+  enableSeaFreight?: boolean;
+  enableAirFreight?: boolean;
+  enableRoadFreight?: boolean;
   automationMode: 'manual' | 'hybrid' | 'full_autonomous';
   defaultMarginType: 'fixed' | 'percentage';
   defaultMarginValue: number;

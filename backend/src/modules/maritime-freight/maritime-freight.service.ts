@@ -21,6 +21,8 @@ import {
   DEFAULT_SHIPPING_LINES,
   DEFAULT_OVERSEAS_AGENTS,
   DEFAULT_SHIPPING_PORTS,
+  DEFAULT_AIRLINES,
+  DEFAULT_CARGO_AIRPORTS,
   DEFAULT_CONTAINER_TYPES,
   DEFAULT_INCOTERMS,
   DEFAULT_PORT_TERMINALS,
@@ -46,12 +48,14 @@ export class MaritimeFreightService {
    * is seeded for the specified tenant. If records are missing, it safely seeds them
    * without overwriting existing client modifications.
    */
-  async ensureDefaultMasterData(tenantId: string): Promise<{ portsAdded: number; linesAdded: number; agentsAdded: number }> {
-    if (!tenantId) return { portsAdded: 0, linesAdded: 0, agentsAdded: 0 };
+  async ensureDefaultMasterData(tenantId: string): Promise<{ portsAdded: number; linesAdded: number; agentsAdded: number; airlinesAdded: number; airportsAdded: number }> {
+    if (!tenantId) return { portsAdded: 0, linesAdded: 0, agentsAdded: 0, airlinesAdded: 0, airportsAdded: 0 };
 
     let portsAdded = 0;
     let linesAdded = 0;
     let agentsAdded = 0;
+    let airlinesAdded = 0;
+    let airportsAdded = 0;
 
     try {
       // 1. Check & Seed Ports for this tenant
@@ -66,8 +70,8 @@ export class MaritimeFreightService {
 
       for (const port of missingPorts) {
         await sql`
-          INSERT INTO shipping_ports (tenant_id, code, name_ar, name_en, country_code, country_name, is_active)
-          VALUES (${tenantId}, ${port.code}, ${port.name_ar}, ${port.name_en}, ${port.country_code}, ${port.country_name}, true)
+          INSERT INTO shipping_ports (tenant_id, code, name_ar, name_en, country_code, country_name, port_type, is_active)
+          VALUES (${tenantId}, ${port.code}, ${port.name_ar}, ${port.name_en}, ${port.country_code}, ${port.country_name}, 'sea', true)
           ON CONFLICT (tenant_id, code) DO NOTHING
         `.execute(this.db);
         portsAdded++;
@@ -135,14 +139,73 @@ export class MaritimeFreightService {
         agentsAdded++;
       }
 
-      if (portsAdded > 0 || linesAdded > 0 || agentsAdded > 0) {
-        this.logger.log(`Seeded maritime defaults for tenant ${tenantId}: ports=${portsAdded}, lines=${linesAdded}, agents=${agentsAdded}`);
+      // 4. Check & Seed Airlines for this tenant
+      const existingAirlines = await this.db
+        .selectFrom('shipping_lines')
+        .select('code')
+        .where('tenant_id', '=', tenantId)
+        .where('carrier_type', '=', 'airline')
+        .execute();
+
+      const existingAirlineCodes = new Set(existingAirlines.map((l) => l.code));
+      const missingAirlines = DEFAULT_AIRLINES.filter((l) => !existingAirlineCodes.has(l.code));
+
+      for (const airline of missingAirlines) {
+        await sql`
+          INSERT INTO shipping_lines (
+            tenant_id, code, name_ar, name_en, carrier_type, airline_prefix, country_name, country_code,
+            city_name, contact_person, email, rfq_email, booking_email, phone,
+            trade_lanes, services_offered, notes, is_active
+          )
+          VALUES (
+            ${tenantId}, ${airline.code}, ${airline.name_ar}, ${airline.name_en}, 'airline',
+            ${airline.airline_prefix || null}, ${airline.country_name || null}, ${airline.country_code || null},
+            ${airline.city_name || null}, ${airline.contact_person || null}, ${airline.email || null},
+            ${airline.rfq_email || null}, ${airline.booking_email || null}, ${airline.phone || null},
+            ${airline.trade_lanes || null}, ${airline.services_offered || null},
+            ${airline.notes || null}, true
+          )
+          ON CONFLICT (tenant_id, code) DO NOTHING
+        `.execute(this.db);
+        airlinesAdded++;
+      }
+
+      // 5. Check & Seed Cargo Airports for this tenant
+      const existingAirports = await this.db
+        .selectFrom('shipping_ports')
+        .select('code')
+        .where('tenant_id', '=', tenantId)
+        .where((eb) => eb.or([
+          eb('port_type', '=', 'air'),
+          eb('iata_code', 'is not', null)
+        ]))
+        .execute();
+
+      const existingAirportCodes = new Set(existingAirports.map((p) => p.code));
+      const missingAirports = DEFAULT_CARGO_AIRPORTS.filter((p) => !existingAirportCodes.has(p.code));
+
+      for (const airport of missingAirports) {
+        await sql`
+          INSERT INTO shipping_ports (
+            tenant_id, code, name_ar, name_en, country_code, country_name, port_type, iata_code, is_active
+          )
+          VALUES (
+            ${tenantId}, ${airport.code}, ${airport.name_ar}, ${airport.name_en}, ${airport.country_code},
+            ${airport.country_name}, 'air', ${airport.iata_code || airport.code}, true
+          )
+          ON CONFLICT (tenant_id, code) DO NOTHING
+        `.execute(this.db);
+        airportsAdded++;
+      }
+
+      if (portsAdded > 0 || linesAdded > 0 || agentsAdded > 0 || airlinesAdded > 0 || airportsAdded > 0) {
+        this.logger.log(`Seeded maritime defaults for tenant ${tenantId}: ports=${portsAdded}, lines=${linesAdded}, agents=${agentsAdded}, airlines=${airlinesAdded}, airports=${airportsAdded}`);
       }
     } catch (err) {
       this.logger.error(`Error ensuring maritime defaults for tenant ${tenantId}:`, err);
     }
 
-    return { portsAdded, linesAdded, agentsAdded };
+    return { portsAdded, linesAdded, agentsAdded, airlinesAdded, airportsAdded };
   }
 
   async seedDefaultMasterData(auth: AuthContext) {

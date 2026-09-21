@@ -15,9 +15,9 @@ import { toast } from '@/shared/components/system-alert';
 import { CustomSelect } from '@/shared/ui/custom-select';
 
 export const STANDARD_EMAIL_TEMPLATES = {
-  subject: '[{{rfq_number}}] Ocean Freight Rate Inquiry: {{pol_name}} to {{pod_name}} ({{container_count}}x {{container_type}})',
-  intro: 'Dear {{carrier_name}} Pricing Desk,\n\nPlease provide your most competitive ocean freight spot rate for the following containerized shipment:',
-  signature: 'Best regards,\n{{company_name}} Operations & Maritime Procurement Desk\n{{company_email}}',
+  subject: '[{{rfq_number}}] Freight Rate Inquiry: {{pol_name}} to {{pod_name}} ({{container_count}}x {{container_type}})',
+  intro: 'Dear {{carrier_name}} Pricing Desk,\n\nPlease provide your most competitive freight spot rate for the following shipment:',
+  signature: 'Best regards,\n{{company_name}} Operations & Freight Procurement Desk\n{{company_email}}',
 };
 
 const DEFAULT_CONFIG: MaritimeMailConfig = {
@@ -130,7 +130,7 @@ export function MaritimeSettingsTab() {
 
     return templateStr
       .replace(/{{rfq_number}}/g, 'RFQ-260914-0045')
-      .replace(/{{carrier_name}}/g, 'Maersk Line (توكيل ميرسك)')
+      .replace(/{{carrier_name}}/g, 'Maersk Line / Carrier Pricing Desk')
       .replace(/{{pol_name}}/g, 'Alexandria Port')
       .replace(/{{pod_name}}/g, 'Shanghai Port')
       .replace(/{{pol_code}}/g, 'EGALY')
@@ -365,11 +365,11 @@ export function MaritimeSettingsTab() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <SettingsIcon size={18} color="#170e5e" />
               <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                إعدادات البريد الإلكتروني وأتمتة الشحن البحري (Mail & Freight Automation)
+                إعدادات خوادم البريد ومراسلات طلبات التسعير (Mail & Freight RFQ Automation)
               </h3>
             </div>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.8125rem', color: '#64748b' }}>
-              ربط حساب Outlook أو خادم البريد المخصص لشركتك لإرسال طلبات التسعير (RFQs) آلياً للخطوط الملاحية وقراءة عروض الأسعار الواردة بالذكاء الاصطناعي
+              ربط حساب البريد المخصص لشركتك لإرسال طلبات التسعير (RFQs) آلياً للناقلين والخطوط الملاحية وشركات الطيران وقراءة عروض الأسعار الواردة بالذكاء الاصطناعي
             </p>
             {companyProfile.name && (
               <div style={{ marginTop: '8px', padding: '8px 12px', background: '#f0f4ff', border: '1px solid #c7d2fe', borderRadius: '8px', fontSize: '0.78rem', color: '#3730a3', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -434,9 +434,9 @@ export function MaritimeSettingsTab() {
       </div>
 
       {/* أزرار الضبط السريع لنوع السيرفر */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#334155' }}>
+          <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#170e5e' }}>
             الضبط المسبق لخوادم البريد الشائعة:
           </span>
           <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
@@ -444,34 +444,34 @@ export function MaritimeSettingsTab() {
           </span>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={() => applyPreset('custom')}
             style={{
               padding: '6px 14px',
-              borderRadius: '6px',
-              border: config.outgoingProvider === 'custom' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-              background: config.outgoingProvider === 'custom' ? '#f0f4ff' : '#ffffff',
-              color: config.outgoingProvider === 'custom' ? '#170e5e' : '#475569',
+              borderRadius: '8px',
+              border: config.outgoingProvider === 'custom' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+              background: config.outgoingProvider === 'custom' ? '#170e5e' : '#f8fafc',
+              color: config.outgoingProvider === 'custom' ? '#ffffff' : '#475569',
               fontSize: '0.78rem',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
             }}
           >
-            سيرفر خاص مخصص (Custom SMTP / Private Mail Server)
+            سيرفر خاص مخصص (Custom SMTP / Private Server)
           </button>
           <button
             type="button"
             onClick={() => applyPreset('outlook')}
             style={{
               padding: '6px 14px',
-              borderRadius: '6px',
-              border: config.outgoingProvider === 'outlook' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-              background: config.outgoingProvider === 'outlook' ? '#f0f4ff' : '#ffffff',
-              color: config.outgoingProvider === 'outlook' ? '#170e5e' : '#475569',
+              borderRadius: '8px',
+              border: config.outgoingProvider === 'outlook' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+              background: config.outgoingProvider === 'outlook' ? '#170e5e' : '#f8fafc',
+              color: config.outgoingProvider === 'outlook' ? '#ffffff' : '#475569',
               fontSize: '0.78rem',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
             }}
           >
@@ -482,12 +482,12 @@ export function MaritimeSettingsTab() {
             onClick={() => applyPreset('gmail')}
             style={{
               padding: '6px 14px',
-              borderRadius: '6px',
-              border: config.outgoingProvider === 'gmail' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-              background: config.outgoingProvider === 'gmail' ? '#f0f4ff' : '#ffffff',
-              color: config.outgoingProvider === 'gmail' ? '#170e5e' : '#475569',
+              borderRadius: '8px',
+              border: config.outgoingProvider === 'gmail' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+              background: config.outgoingProvider === 'gmail' ? '#170e5e' : '#f8fafc',
+              color: config.outgoingProvider === 'gmail' ? '#ffffff' : '#475569',
               fontSize: '0.78rem',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
             }}
           >
@@ -856,7 +856,7 @@ export function MaritimeSettingsTab() {
                   style={{ width: '16px', height: '16px', cursor: imapCardLocked ? 'not-allowed' : 'pointer' }}
                 />
                 <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b' }}>
-                  تفعيل القراءة الذاتية لرسائل عروض الأسعار الواردة من الخطوط
+                  تفعيل القراءة الذاتية لرسائل عروض الأسعار الواردة من الناقلين والخطوط
                 </span>
               </label>
               <p style={{ margin: '4px 0 0 24px', fontSize: '0.72rem', color: '#64748b' }}>
@@ -887,7 +887,7 @@ export function MaritimeSettingsTab() {
               style={{
                 padding: '7px 14px',
                 background: '#ffffff',
-                color: '#334155',
+                color: '#170e5e',
                 border: '1px solid #cbd5e1',
                 borderRadius: '6px',
                 fontSize: '0.78rem',
@@ -908,8 +908,8 @@ export function MaritimeSettingsTab() {
               style={{
                 padding: '7px 14px',
                 background: '#ffffff',
-                color: '#1d4ed8',
-                border: '1px solid #bfdbfe',
+                color: '#170e5e',
+                border: '1px solid #cbd5e1',
                 borderRadius: '6px',
                 fontSize: '0.78rem',
                 fontWeight: 700,
@@ -928,8 +928,8 @@ export function MaritimeSettingsTab() {
               disabled={syncing}
               onClick={handleSyncInboundBids}
               style={{
-                padding: '7px 14px',
-                background: '#15803d',
+                padding: '7px 16px',
+                background: '#170e5e',
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: '6px',
@@ -939,7 +939,7 @@ export function MaritimeSettingsTab() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                boxShadow: '0 2px 4px rgba(21, 128, 61, 0.15)',
+                boxShadow: '0 2px 4px rgba(23, 14, 94, 0.15)',
               }}
             >
               <RefreshCwIcon size={14} />
@@ -1072,7 +1072,7 @@ export function MaritimeSettingsTab() {
                 نص الرسالة والتوقيع المعتمد لطلبات الأسعار (RFQ Email Template & Signature)
               </h4>
               <p style={{ margin: '3px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                الرسالة الفعلية باللغة الإنجليزية التي يستلمها الخط الملاحي في بريده مع المعاينة الحية المباشرة
+                الرسالة الفعلية باللغة الإنجليزية التي يستلمها الناقل أو الخط الملاحي في بريده مع المعاينة الحية المباشرة
               </p>
             </div>
           </div>
@@ -1109,13 +1109,14 @@ export function MaritimeSettingsTab() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {[
                 { tag: '{{rfq_number}}', label: 'رقم طلب التسعير' },
-                { tag: '{{carrier_name}}', label: 'اسم الخط الملاحي' },
-                { tag: '{{pol_name}}', label: 'ميناء الشحن' },
-                { tag: '{{pod_name}}', label: 'ميناء الوصول' },
-                { tag: '{{container_count}}', label: 'عدد الحاويات' },
-                { tag: '{{container_type}}', label: 'نوع الحاوية' },
+                { tag: '{{carrier_name}}', label: 'اسم الناقل / الخط' },
+                { tag: '{{pol_name}}', label: 'ميناء / مطار الشحن' },
+                { tag: '{{pod_name}}', label: 'ميناء / مطار الوصول' },
+                { tag: '{{container_count}}', label: 'عدد الحاويات / الطرود' },
+                { tag: '{{container_type}}', label: 'نوع الحاوية / الشحنة' },
                 { tag: '{{commodity}}', label: 'نوع البضاعة' },
                 { tag: '{{target_free_days}}', label: 'فترة السماح' },
+                { tag: '{{incoterm}}', label: 'شرط الشحن (Incoterm)' },
                 { tag: '{{company_name}}', label: 'اسم شركتك' },
                 { tag: '{{company_email}}', label: 'بريد شركتك' },
                 { tag: '{{company_phone}}', label: 'هاتف شركتك' },
@@ -1183,7 +1184,7 @@ export function MaritimeSettingsTab() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                الافتتاحية والطلب الموجه للخط (Intro & Opening Greeting)
+                الافتتاحية والطلب الموجه للناقل (Intro & Opening Greeting)
               </label>
               <textarea
                 rows={4}
@@ -1252,7 +1253,7 @@ export function MaritimeSettingsTab() {
                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#cbd5e1' }} />
                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#cbd5e1' }} />
                 <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginInlineStart: '6px' }}>
-                  معاينة حية للإيميل الفعلي كما يستلمه الخط الملاحي في بريده
+                  معاينة حية للإيميل الفعلي كما يستلمه الناقل في بريده
                 </span>
               </div>
               <span style={{ fontSize: '0.7rem', color: '#15803d', fontWeight: 700, background: '#dcfce7', padding: '2px 8px', borderRadius: '10px' }}>
@@ -1279,9 +1280,9 @@ export function MaritimeSettingsTab() {
               <table style={{ borderCollapse: 'collapse', width: '100%', margin: '14px 0', border: '1px solid #e2e8f0', fontSize: '12.5px' }}>
                 <tbody>
                   <tr style={{ background: '#f8fafc' }}><td style={{ padding: '7px 10px', fontWeight: 'bold', width: '35%', borderBottom: '1px solid #e2e8f0' }}>Reference</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0', color: '#170e5e', fontWeight: 'bold' }}>RFQ-260914-0045</td></tr>
-                  <tr><td style={{ padding: '7px 10px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>Port of Loading (POL)</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0' }}>Alexandria Port (EGALY)</td></tr>
-                  <tr style={{ background: '#f8fafc' }}><td style={{ padding: '7px 10px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>Port of Discharge (POD)</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0' }}>Shanghai Port (CNSHA)</td></tr>
-                  <tr><td style={{ padding: '7px 10px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>Equipment</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0' }}>2 x 40' High Cube (FCL)</td></tr>
+                  <tr><td style={{ padding: '7px 10px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>Port / Airport of Loading (POL)</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0' }}>Alexandria Port (EGALY)</td></tr>
+                  <tr style={{ background: '#f8fafc' }}><td style={{ padding: '7px 10px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>Port / Airport of Discharge (POD)</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0' }}>Shanghai Port (CNSHA)</td></tr>
+                  <tr><td style={{ padding: '7px 10px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>Equipment / Packages</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0' }}>2 x 40' High Cube (FCL)</td></tr>
                   <tr style={{ background: '#f8fafc' }}><td style={{ padding: '7px 10px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>Commodity</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0' }}>General Commercial Cargo</td></tr>
                   <tr><td style={{ padding: '7px 10px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0' }}>Target Free Days</td><td style={{ padding: '7px 10px', borderBottom: '1px solid #e2e8f0' }}>14 Days at Destination</td></tr>
                   <tr style={{ background: '#f8fafc' }}><td style={{ padding: '7px 10px', fontWeight: 'bold' }}>Incoterm</td><td style={{ padding: '7px 10px' }}>FOB (Freight Prepaid)</td></tr>

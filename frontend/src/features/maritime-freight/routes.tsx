@@ -38,7 +38,7 @@ export const maritimeFreightRouteModule: FeatureRouteModule = {
     { key: 'maritime-quotations', label: 'عروض أسعار العملاء', to: '/maritime/quotations' },
     { key: 'maritime-jobs', label: 'أوامر تشغيل الشحنات', to: '/maritime/jobs' },
     { key: 'maritime-containers', label: 'تتبع الحاويات وفترات السماح', to: '/maritime/containers' },
-    { key: 'maritime-lines', label: 'دليل الخطوط والموانئ', to: '/maritime/lines' },
-    { key: 'maritime-settings', label: 'أتمتة المراسلات والبريد', to: '/maritime/settings' },
+    { key: 'maritime-lines', label: 'دليل النواقل والموانئ والمطارات', to: '/maritime/lines' },
+    { key: 'maritime-settings', label: 'إعدادات وسياسات الشحن', to: '/maritime/settings' },
   ],
 };

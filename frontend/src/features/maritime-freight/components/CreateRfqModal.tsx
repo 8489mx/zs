@@ -6,6 +6,7 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { maritimeApi, ShippingPort, ShippingLine } from '../api/maritime-freight.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { CarrierSelectionGrid } from './CarrierSelectionGrid';
+import { useMaritime } from '../context/MaritimeContext';
 
 interface CreateRfqModalProps {
   open: boolean;
@@ -14,6 +15,12 @@ interface CreateRfqModalProps {
 }
 
 export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps) {
+  const { pipelineConfig } = useMaritime();
+  const enableSeaFreight = pipelineConfig?.enableSeaFreight !== false;
+  const enableAirFreight = pipelineConfig?.enableAirFreight !== false;
+  const enableRoadFreight = pipelineConfig?.enableRoadFreight !== false;
+  const activeModesCount = (enableSeaFreight ? 1 : 0) + (enableAirFreight ? 1 : 0) + (enableRoadFreight ? 1 : 0);
+
   const [ports, setPorts] = useState<ShippingPort[]>([]);
   const [carriers, setCarriers] = useState<ShippingLine[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,7 +28,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
 
   const [formData, setFormData] = useState({
     direction: 'import' as 'import' | 'export' | 'cross_trade',
-    transportMode: 'sea' as 'sea' | 'air' | 'road',
+    transportMode: (enableSeaFreight ? 'sea' : enableAirFreight ? 'air' : 'road') as 'sea' | 'air' | 'road',
     airCargoType: 'general',
     grossWeightKg: '',
     volumetricWeightKg: '',
@@ -61,8 +68,19 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
       maritimeApi.getShippingLines().then((lines) => {
         setCarriers(lines);
       }).catch(() => {});
+
+      if (!enableSeaFreight && formData.transportMode === 'sea') {
+        if (enableAirFreight) handleModeChange('air');
+        else if (enableRoadFreight) handleModeChange('road');
+      } else if (!enableAirFreight && formData.transportMode === 'air') {
+        if (enableSeaFreight) handleModeChange('sea');
+        else if (enableRoadFreight) handleModeChange('road');
+      } else if (!enableRoadFreight && formData.transportMode === 'road') {
+        if (enableSeaFreight) handleModeChange('sea');
+        else if (enableAirFreight) handleModeChange('air');
+      }
     }
-  }, [open]);
+  }, [open, enableSeaFreight, enableAirFreight, enableRoadFreight]);
 
   const handleCbmChange = (cbmStr: string) => {
     const cbm = parseFloat(cbmStr) || 0;
@@ -239,74 +257,82 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
         )}
 
         {/* نمط وسيلة النقل: بحري / جوي / بري */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f1f5f9', padding: '6px', borderRadius: '8px' }}>
-          <button
-            type="button"
-            onClick={() => handleModeChange('sea')}
-            style={{
-              flex: 1,
-              padding: '7px 12px',
-              borderRadius: '6px',
-              border: 'none',
-              background: formData.transportMode === 'sea' ? '#170e5e' : 'transparent',
-              color: formData.transportMode === 'sea' ? '#ffffff' : '#475569',
-              fontWeight: 600,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-            }}
-          >
-            <AppIcons.Ship size={15} />
-            <span>شحن بحري (Ocean Freight)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleModeChange('air')}
-            style={{
-              flex: 1,
-              padding: '7px 12px',
-              borderRadius: '6px',
-              border: 'none',
-              background: formData.transportMode === 'air' ? '#170e5e' : 'transparent',
-              color: formData.transportMode === 'air' ? '#ffffff' : '#475569',
-              fontWeight: 600,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-            }}
-          >
-            <AppIcons.Plane size={15} />
-            <span>شحن جوي (Air Freight / AWB)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleModeChange('road')}
-            style={{
-              flex: 1,
-              padding: '7px 12px',
-              borderRadius: '6px',
-              border: 'none',
-              background: formData.transportMode === 'road' ? '#170e5e' : 'transparent',
-              color: formData.transportMode === 'road' ? '#ffffff' : '#475569',
-              fontWeight: 600,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-            }}
-          >
-            <AppIcons.Truck size={15} />
-            <span>نقل بري (Road Freight)</span>
-          </button>
-        </div>
+        {activeModesCount > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f1f5f9', padding: '6px', borderRadius: '8px' }}>
+            {enableSeaFreight && (
+              <button
+                type="button"
+                onClick={() => handleModeChange('sea')}
+                style={{
+                  flex: 1,
+                  padding: '7px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: formData.transportMode === 'sea' ? '#170e5e' : 'transparent',
+                  color: formData.transportMode === 'sea' ? '#ffffff' : '#475569',
+                  fontWeight: 600,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
+              >
+                <AppIcons.Ship size={15} />
+                <span>شحن بحري (Ocean Freight)</span>
+              </button>
+            )}
+            {enableAirFreight && (
+              <button
+                type="button"
+                onClick={() => handleModeChange('air')}
+                style={{
+                  flex: 1,
+                  padding: '7px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: formData.transportMode === 'air' ? '#170e5e' : 'transparent',
+                  color: formData.transportMode === 'air' ? '#ffffff' : '#475569',
+                  fontWeight: 600,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
+              >
+                <AppIcons.Plane size={15} />
+                <span>شحن جوي (Air Freight / AWB)</span>
+              </button>
+            )}
+            {enableRoadFreight && (
+              <button
+                type="button"
+                onClick={() => handleModeChange('road')}
+                style={{
+                  flex: 1,
+                  padding: '7px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: formData.transportMode === 'road' ? '#170e5e' : 'transparent',
+                  color: formData.transportMode === 'road' ? '#ffffff' : '#475569',
+                  fontWeight: 600,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
+              >
+                <AppIcons.Truck size={15} />
+                <span>نقل بري (Road Freight)</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* بيانات العميل أو المستورد */}
         <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>

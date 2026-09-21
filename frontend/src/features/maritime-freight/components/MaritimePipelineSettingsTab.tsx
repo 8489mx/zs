@@ -11,17 +11,20 @@ import {
   SendIcon,
   RefreshCwIcon,
   ShieldCheckIcon,
-  ZapIcon,
   UsersIcon,
   MessageSquareIcon,
   MailIcon,
   CheckIcon,
+  AppIcons,
 } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { Field } from '@/shared/ui/field';
 import { toast } from '@/shared/components/system-alert';
 
 const DEFAULT_CONFIG: MaritimePipelineConfig = {
+  enableSeaFreight: true,
+  enableAirFreight: true,
+  enableRoadFreight: true,
   automationMode: 'hybrid',
   defaultMarginType: 'fixed',
   defaultMarginValue: 200,
@@ -71,15 +74,15 @@ export function MaritimePipelineSettingsTab() {
       setConfig(updated);
       setFeedback({
         type: 'success',
-        message: 'تم حفظ وتفعيل قواعد مسار الأتمتة وهامش الربح بنجاح.',
+        message: 'تم حفظ وتفعيل إعدادات وسياسات الشحن بنجاح.',
       });
-      toast.success('تم حفظ قواعد الأتمتة الملاحية بنجاح', undefined, 2500);
+      toast.success('تم حفظ إعدادات وسياسات الشحن بنجاح', undefined, 2500);
     } catch (err: any) {
       setFeedback({
         type: 'error',
-        message: err?.message || 'فشل حفظ قواعد الأتمتة الملاحية',
+        message: err?.message || 'فشل حفظ إعدادات وسياسات الشحن',
       });
-      toast.error('فشل حفظ إعدادات الأتمتة');
+      toast.error('فشل حفظ إعدادات وسياسات الشحن');
     } finally {
       setSaving(false);
     }
@@ -107,7 +110,7 @@ export function MaritimePipelineSettingsTab() {
   if (loading) {
     return (
       <div style={{ background: '#ffffff', padding: '40px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#64748b' }}>
-        جاري تحميل قواعد مسار الأتمتة...
+        جاري تحميل إعدادات وسياسات الشحن...
       </div>
     );
   }
@@ -118,16 +121,11 @@ export function MaritimePipelineSettingsTab() {
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', color: '#170e5e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ZapIcon size={18} />
-              </div>
-              <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#170e5e', margin: 0 }}>
-                محرك مسارات الأتمتة الملاحية وهوامش الربح
-              </h2>
-            </div>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#170e5e', margin: 0 }}>
+              إعدادات وسياسات تشغيل الشحن (Freight Settings & Policies)
+            </h2>
             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
-              التحكم في درجة أتمتة دورة الشحن، ضبط هوامش الربح الافتراضية، مؤقت مهل عروض تسعير الخطوط، ومحطات التوقف والمراجعة البشرية.
+              تحديد وسائط الشحن المعتمدة للمنشأة، درجة الأتمتة، ضبط هوامش الربح الافتراضية، مؤقت مهل عروض الأسعار، وخوادم المراسلات.
             </p>
           </div>
 
@@ -177,7 +175,7 @@ export function MaritimePipelineSettingsTab() {
               }}
             >
               <CheckIcon size={16} />
-              <span>{saving ? 'جاري الحفظ...' : 'حفظ قواعد الأتمتة'}</span>
+              <span>{saving ? 'جاري الحفظ...' : 'حفظ إعدادات وسياسات الشحن'}</span>
             </button>
           </div>
         </div>
@@ -204,6 +202,142 @@ export function MaritimePipelineSettingsTab() {
         )}
       </div>
 
+      {/* بطاقة 0: أنماط ووسائل الشحن المعتمدة للمنشأة */}
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
+          <AppIcons.Sliders size={18} />
+          <span>أنماط ووسائل الشحن المعتمدة للمنشأة (Active Transport Modes)</span>
+        </div>
+        <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 16px 0' }}>
+          تحديد خدمات وأنماط الشحن التي تقدمها منشأتكم؛ إيقاف أي نمط يُخفيه تلقائياً من نماذج طلبات الشحن وعروض الأسعار والدليل القياسي لتفادي أي تشتيت لموظفيكم.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+          {/* 1. بحري */}
+          <div
+            onClick={() => {
+              if (config.enableSeaFreight !== false && !config.enableAirFreight && !config.enableRoadFreight) {
+                toast.warning('يجب الإبقاء على نمط شحن واحد على الأقل مفعلاً');
+                return;
+              }
+              setConfig({ ...config, enableSeaFreight: config.enableSeaFreight === false });
+            }}
+            style={{
+              border: config.enableSeaFreight !== false ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '16px',
+              background: config.enableSeaFreight !== false ? '#f8fafc' : '#ffffff',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: config.enableSeaFreight !== false ? '#eff6ff' : '#f1f5f9', color: config.enableSeaFreight !== false ? '#170e5e' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AppIcons.Ship size={16} />
+                </div>
+                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>
+                  الشحن البحري (Ocean Freight)
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={config.enableSeaFreight !== false}
+                onChange={() => {}}
+                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#170e5e' }}
+              />
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+              خطوط الملاحة البحرية، تتبع الحاويات (FCL / LCL)، الموانئ البحرية، وشروط الـ Incoterms البحرية.
+            </div>
+          </div>
+
+          {/* 2. جوي */}
+          <div
+            onClick={() => {
+              if (!config.enableSeaFreight && config.enableAirFreight && !config.enableRoadFreight) {
+                toast.warning('يجب الإبقاء على نمط شحن واحد على الأقل مفعلاً');
+                return;
+              }
+              setConfig({ ...config, enableAirFreight: !config.enableAirFreight });
+            }}
+            style={{
+              border: config.enableAirFreight ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '16px',
+              background: config.enableAirFreight ? '#f8fafc' : '#ffffff',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: config.enableAirFreight ? '#eff6ff' : '#f1f5f9', color: config.enableAirFreight ? '#170e5e' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AppIcons.Plane size={16} />
+                </div>
+                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>
+                  الشحن الجوي (Air Freight)
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={!!config.enableAirFreight}
+                onChange={() => {}}
+                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#170e5e' }}
+              />
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+              مطارات الشحن الدولية، شركات الطيران، بوالص الشحن الجوي AWB، وحساب الوزن الحجمي IATA.
+            </div>
+          </div>
+
+          {/* 3. بري */}
+          <div
+            onClick={() => {
+              if (!config.enableSeaFreight && !config.enableAirFreight && config.enableRoadFreight) {
+                toast.warning('يجب الإبقاء على نمط شحن واحد على الأقل مفعلاً');
+                return;
+              }
+              setConfig({ ...config, enableRoadFreight: !config.enableRoadFreight });
+            }}
+            style={{
+              border: config.enableRoadFreight ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '16px',
+              background: config.enableRoadFreight ? '#f8fafc' : '#ffffff',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: config.enableRoadFreight ? '#eff6ff' : '#f1f5f9', color: config.enableRoadFreight ? '#170e5e' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AppIcons.Truck size={16} />
+                </div>
+                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>
+                  الشحن البري (Road Freight)
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={!!config.enableRoadFreight}
+                onChange={() => {}}
+                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#170e5e' }}
+              />
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+              شاحنات النقل البري (FTL / LTL)، المنافذ والمحطات البرية، وبوالص النقل الداخلي والدولي.
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* بطاقة 1: النمط التشغيلي العام للمنظومة */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
@@ -218,8 +352,8 @@ export function MaritimePipelineSettingsTab() {
               title: 'أتمتة كاملة ذاتية (Full Zero-Touch)',
               desc: 'الدورة تدور ذاتياً بنسبة 100%: جمع العروض، فرز أفضل قيمة، تطبيق الهامش الافتراضي، وإصدار وإرسال العرض للعميل دون أي تدخل يدوي.',
               badge: 'أقصى سرعة',
-              badgeBg: '#dcfce7',
-              badgeColor: '#15803d',
+              badgeBg: '#f1f5f9',
+              badgeColor: '#334155',
             },
             {
               id: 'hybrid',
@@ -227,7 +361,7 @@ export function MaritimePipelineSettingsTab() {
               desc: 'السستم يجمع العروض ويرتبها آلياً، لكنه يقف عند محطة اعتماد الهامش أو مراجعة العرض النهائي لإعطاء الموظف القرار الأخير.',
               badge: 'الموصى به',
               badgeBg: '#eff6ff',
-              badgeColor: '#1d4ed8',
+              badgeColor: '#170e5e',
             },
             {
               id: 'manual',
@@ -235,7 +369,7 @@ export function MaritimePipelineSettingsTab() {
               desc: 'إيقاف الأتمتة الذاتية بالكامل، وتتطلب كل خطوة ضغطات يدوية منفصلة من موظف العمليات والمبيعات.',
               badge: 'تقليدي',
               badgeBg: '#f1f5f9',
-              badgeColor: '#475569',
+              badgeColor: '#64748b',
             },
           ].map((mode) => {
             const isSelected = config.automationMode === mode.id;
@@ -266,12 +400,11 @@ export function MaritimePipelineSettingsTab() {
                   }
                 }}
                 style={{
-                  border: isSelected ? '2px solid #170e5e' : '1px solid #e2e8f0',
+                  border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
                   borderRadius: '10px',
                   padding: '16px',
                   background: isSelected ? '#f8fafc' : '#ffffff',
                   cursor: 'pointer',
-                  transition: 'all 0.12s ease',
                   position: 'relative',
                   display: 'flex',
                   flexDirection: 'column',
@@ -282,7 +415,7 @@ export function MaritimePipelineSettingsTab() {
                   <div style={{ fontWeight: 800, fontSize: '0.88rem', color: isSelected ? '#170e5e' : '#1e293b' }}>
                     {mode.title}
                   </div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: mode.badgeBg, color: mode.badgeColor }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: isSelected ? '#170e5e' : mode.badgeBg, color: isSelected ? '#ffffff' : mode.badgeColor }}>
                     {mode.badge}
                   </span>
                 </div>
@@ -422,8 +555,8 @@ export function MaritimePipelineSettingsTab() {
               justifyContent: 'space-between',
               padding: '12px 16px',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              background: config.requireManualRfqDispatch ? '#fffbeb' : '#f8fafc',
+              border: config.requireManualRfqDispatch ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+              background: config.requireManualRfqDispatch ? '#f8fafc' : '#ffffff',
               cursor: 'pointer',
             }}
           >
@@ -450,8 +583,8 @@ export function MaritimePipelineSettingsTab() {
               justifyContent: 'space-between',
               padding: '12px 16px',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              background: config.requireManualAwardAndMargin ? '#fffbeb' : '#f8fafc',
+              border: config.requireManualAwardAndMargin ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+              background: config.requireManualAwardAndMargin ? '#f8fafc' : '#ffffff',
               cursor: 'pointer',
             }}
           >
@@ -478,8 +611,8 @@ export function MaritimePipelineSettingsTab() {
               justifyContent: 'space-between',
               padding: '12px 16px',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              background: config.requireManualQuoteDispatch ? '#fffbeb' : '#f8fafc',
+              border: config.requireManualQuoteDispatch ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+              background: config.requireManualQuoteDispatch ? '#f8fafc' : '#ffffff',
               cursor: 'pointer',
             }}
           >
@@ -516,8 +649,8 @@ export function MaritimePipelineSettingsTab() {
               gap: '12px',
               padding: '14px',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              background: config.autoSendWhatsAppQuote ? '#f0fdf4' : '#ffffff',
+              border: config.autoSendWhatsAppQuote ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+              background: config.autoSendWhatsAppQuote ? '#f8fafc' : '#ffffff',
               cursor: 'pointer',
             }}
           >
@@ -525,11 +658,11 @@ export function MaritimePipelineSettingsTab() {
               type="checkbox"
               checked={config.autoSendWhatsAppQuote}
               onChange={(e) => setConfig({ ...config, autoSendWhatsAppQuote: e.target.checked })}
-              style={{ width: '18px', height: '18px', accentColor: '#15803d' }}
+              style={{ width: '18px', height: '18px', accentColor: '#170e5e' }}
             />
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#15803d', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MessageSquareIcon size={16} />
+              <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MessageSquareIcon size={16} style={{ color: '#170e5e' }} />
                 <span>إرسال العرض فورياً بالواتساب (WhatsApp Gateway)</span>
               </div>
               <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
@@ -545,8 +678,8 @@ export function MaritimePipelineSettingsTab() {
               gap: '12px',
               padding: '14px',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              background: config.autoSendEmailQuote ? '#eff6ff' : '#ffffff',
+              border: config.autoSendEmailQuote ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+              background: config.autoSendEmailQuote ? '#f8fafc' : '#ffffff',
               cursor: 'pointer',
             }}
           >
@@ -554,11 +687,11 @@ export function MaritimePipelineSettingsTab() {
               type="checkbox"
               checked={config.autoSendEmailQuote}
               onChange={(e) => setConfig({ ...config, autoSendEmailQuote: e.target.checked })}
-              style={{ width: '18px', height: '18px', accentColor: '#1d4ed8' }}
+              style={{ width: '18px', height: '18px', accentColor: '#170e5e' }}
             />
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MailIcon size={16} />
+              <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MailIcon size={16} style={{ color: '#170e5e' }} />
                 <span>إرسال العرض فورياً بالبريد الإلكتروني (Email Quote Dispatch)</span>
               </div>
               <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
