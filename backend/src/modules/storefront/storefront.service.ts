@@ -43,12 +43,38 @@ function catalogImageRef(value: unknown): string {
 }
 
 /** Same rule the public catalog uses to show items as orderable when stock is zero. */
-function isOutOfStockOrderingAllowed(settings: Map<string, string>, tenantSlug: string): boolean {
-  return settings.get('storefront_allow_out_of_stock') === 'true' ||
+function isOutOfStockOrderingAllowed(
+  settings: Map<string, string>,
+  tenantSlug: string,
+  tenantActivity?: string | null,
+): boolean {
+  const normActivity = (tenantActivity || '').toLowerCase().trim();
+  const normSettingType = (settings.get('activityType') || '').toLowerCase().trim();
+  const normIndustry = (settings.get('businessIndustry') || '').toLowerCase().trim();
+  const normLegacyInd = (settings.get('industry') || '').toLowerCase().trim();
+  const normLegacyBiz = (settings.get('business_type') || '').toLowerCase().trim();
+
+  const isRestaurant =
+    normActivity === 'restaurant' ||
+    normActivity === 'مطعم' ||
+    normActivity === 'مطاعم' ||
+    normActivity.includes('مطعم') ||
+    normActivity.includes('كافيه') ||
+    normSettingType === 'restaurant' ||
+    normSettingType === 'مطعم' ||
+    normSettingType.includes('مطعم') ||
+    normIndustry === 'restaurant' ||
+    normIndustry === 'مطعم' ||
+    normIndustry.includes('مطعم') ||
+    normLegacyInd === 'restaurant' ||
+    normLegacyBiz === 'restaurant';
+
+  return (
+    settings.get('storefront_allow_out_of_stock') === 'true' ||
     settings.get('storefront_unlimited_stock') === 'true' ||
-    settings.get('industry') === 'restaurant' ||
-    settings.get('business_type') === 'restaurant' ||
-    tenantSlug === 'zs';
+    isRestaurant ||
+    tenantSlug === 'zs'
+  );
 }
 
 /**
@@ -336,10 +362,7 @@ export class StorefrontService {
       tiktokPixelId: settings.get('storefront_tiktok_pixel_id') || '',
       snapchatPixelId: settings.get('storefront_snapchat_pixel_id') || '',
       pickupEnabled: settings.get('storefront_pickup_enabled') !== 'false',
-      allowOutOfStockOrders: settings.get('storefront_allow_out_of_stock') === 'true' ||
-        settings.get('storefront_unlimited_stock') === 'true' ||
-        settings.get('industry') === 'restaurant' ||
-        tenant.slug === 'zs',
+      allowOutOfStockOrders: isOutOfStockOrderingAllowed(settings, tenant.slug, tenant.activity_type),
     };
   }
 
@@ -458,11 +481,7 @@ export class StorefrontService {
           });
         }
 
-        const allowOutOfStock = settings.get('storefront_allow_out_of_stock') === 'true' ||
-          settings.get('storefront_unlimited_stock') === 'true' ||
-          settings.get('industry') === 'restaurant' ||
-          settings.get('business_type') === 'restaurant' ||
-          cleanSlug === 'zs';
+        const allowOutOfStock = isOutOfStockOrderingAllowed(settings, cleanSlug, tenant.activity_type);
 
         const formattedProducts = products.map((p) => {
           let meta: Record<string, any> = {};
@@ -789,7 +808,7 @@ export class StorefrontService {
       }
     }
 
-    const allowOutOfStock = isOutOfStockOrderingAllowed(settings, tenant.slug);
+    const allowOutOfStock = isOutOfStockOrderingAllowed(settings, tenant.slug, tenant.activity_type);
 
     let subtotal = 0;
     // One line per product: the sales engine that will invoice this order rejects two rows of the
@@ -1344,7 +1363,7 @@ export class StorefrontService {
       notes?: string;
     }> = [];
 
-    const updateAllowsOutOfStock = isOutOfStockOrderingAllowed(settings, tenant.slug);
+    const updateAllowsOutOfStock = isOutOfStockOrderingAllowed(settings, tenant.slug, tenant.activity_type);
     const seenProductIds = new Set<number>();
     for (const item of dto.items) {
       const p = productMap.get(Number(item.productId));
