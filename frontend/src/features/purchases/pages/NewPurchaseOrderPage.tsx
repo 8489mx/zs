@@ -21,7 +21,7 @@ export function NewPurchaseOrderPage() {
         onClose={ctrl.handleNewPurchaseOrder}
       />
 
-      <main className="document-prototype-column" style={{ paddingBottom: '32px', maxWidth: '1280px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '32px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PurchaseOrderHeaderSection
           documentStatus={ctrl.documentStatus}
           total={ctrl.total}

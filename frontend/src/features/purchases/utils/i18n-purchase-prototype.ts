@@ -23,7 +23,7 @@ export const dict = {
   // Breadcrumbs
   purchases: { ar: 'المشتريات', en: 'Purchases' },
   purchase_orders: { ar: 'طلبات الشراء', en: 'Purchase Orders' },
-  new_purchase_order: { ar: 'طلب شراء جديد', en: 'New Purchase Order' },
+  new_purchase_order: { ar: 'فاتورة مشتريات جديدة', en: 'New Purchase Bill' },
   
   // Status
   status_draft: { ar: 'مسودة', en: 'Draft' },

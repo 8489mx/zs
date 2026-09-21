@@ -5,6 +5,8 @@ import type { FeatureRouteModule } from '@/app/router/types';
 export const purchasesRouteModule: FeatureRouteModule = {
   routes: [
     { path: 'purchases', element: createLazyRoute(() => import('@/features/purchases/pages/PurchasesPage').then((module) => ({ default: module.PurchasesPage }))) },
+    { path: 'purchases/orders/new', element: createLazyRoute(() => import('@/features/purchases/pages/CreatePurchaseOrderPage').then((module) => ({ default: module.CreatePurchaseOrderPage }))) },
+    { path: 'purchases-orders-new', element: <Navigate to="/purchases/orders/new" replace /> },
     { path: 'purchases/orders', element: createLazyRoute(() => import('@/features/purchases/pages/PurchaseOrdersPage').then((module) => ({ default: module.PurchaseOrdersPage }))) },
     { path: 'purchases-orders', element: <Navigate to="/purchases/orders" replace /> },
     { path: 'purchases/rfqs', element: createLazyRoute(() => import('@/features/purchases/pages/PurchaseRfqsPage').then((module) => ({ default: module.PurchaseRfqsPage }))) },

@@ -5,10 +5,13 @@ import type { FeatureRouteModule } from '@/app/router/types';
 export const salesRouteModule: FeatureRouteModule = {
   routes: [
     { path: 'sales', element: createLazyRoute(() => import('@/features/sales/pages/SalesPage').then((module) => ({ default: module.SalesPage }))) },
+    { path: 'sales/orders/new', element: createLazyRoute(() => import('@/features/sales/pages/CreateSalesOrderPage').then((module) => ({ default: module.CreateSalesOrderPage }))) },
+    { path: 'sales-orders-new', element: <Navigate to="/sales/orders/new" replace /> },
     { path: 'sales/orders', element: createLazyRoute(() => import('@/features/sales/pages/SalesOrdersPage').then((module) => ({ default: module.SalesOrdersPage }))) },
     { path: 'sales-orders', element: <Navigate to="/sales/orders" replace /> },
     { path: 'sales/price-lists', element: createLazyRoute(() => import('@/features/sales/pages/PriceListsPage').then((module) => ({ default: module.PriceListsPage }))) },
-    { path: 'price-lists', element: <Navigate to="/sales/price-lists" replace /> },
+    { path: 'sales/quotations/new', element: createLazyRoute(() => import('@/features/sales/pages/CreateQuotationPage').then((module) => ({ default: module.CreateQuotationPage }))) },
+    { path: 'quotations/new', element: <Navigate to="/sales/quotations/new" replace /> },
     { path: 'quotations', element: createLazyRoute(() => import('@/features/sales/pages/QuotationsPage').then((module) => ({ default: module.QuotationsPage }))) },
     { path: 'online-orders', element: createLazyRoute(() => import('@/features/storefront/pages/MerchantOnlineOrdersPage').then((module) => ({ default: module.MerchantOnlineOrdersPage }))) },
     { path: 'tax-dispatcher', element: createLazyRoute(() => import('@/features/sales/pages/TaxDispatcherPage').then((module) => ({ default: module.TaxDispatcherPage }))) },

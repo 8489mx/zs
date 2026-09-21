@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -6,8 +7,10 @@ import { quotationsApi, QuotationItem } from '@/features/sales/api/quotations.ap
 import { CreateQuotationModal } from '../components/quotations/CreateQuotationModal';
 import { QuotationsTable } from '../components/quotations/QuotationsTable';
 import { printQuotation } from '../components/quotations/printQuotation';
+import { toast } from '@/shared/components/system-alert';
 
 export function QuotationsPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
@@ -45,7 +48,7 @@ export function QuotationsPage() {
     mutationFn: quotationsApi.convertToSale,
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      alert(`تم تحويل عرض السعر بنجاح إلى فاتورة بيع رقم #${(res as any).saleId || (res as any).sale_id}`);
+      toast.success(`تم تحويل عرض السعر بنجاح إلى فاتورة بيع رقم #${(res as any).saleId || (res as any).sale_id}`);
     },
   });
 
@@ -166,7 +169,8 @@ export function QuotationsPage() {
             <div className="actions compact-actions">
               <Button
                 variant="primary"
-                onClick={() => setIsCreateModalOpen(true)}
+                onClick={() => navigate('/sales/quotations/new')}
+                style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
                 + إنشاء عرض سعر جديد
               </Button>

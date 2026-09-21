@@ -32,7 +32,7 @@ export function PurchaseOrderAccountingSection(props: AccountingSectionProps) {
 
   return (
     <>
-      <section className="document-prototype-section">
+      <section className="document-prototype-section" style={{ marginTop: '12px' }}>
         <h3 className="document-prototype-section-title">موديول الشركات والعمليات المتقدمة</h3>
         <div className="document-prototype-grid compact-grid-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
           {props.setShippingAddress && (
@@ -100,7 +100,7 @@ export function PurchaseOrderAccountingSection(props: AccountingSectionProps) {
         </div>
       </section>
 
-      <section className="document-prototype-section">
+      <section className="document-prototype-section" style={{ marginTop: '12px' }}>
         <h3 className="document-prototype-section-title">{t('terms_conditions')}</h3>
         <SearchableCombobox
           label={t('terms_template')}

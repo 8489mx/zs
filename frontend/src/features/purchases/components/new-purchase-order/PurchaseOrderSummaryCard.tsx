@@ -14,7 +14,7 @@ export function PurchaseOrderSummaryCard(props: SummaryCardProps) {
   const { t } = useTranslation();
 
   return (
-    <section className="document-prototype-bottom-grid">
+    <section className="document-prototype-bottom-grid" style={{ marginTop: '12px' }}>
       <div className="document-prototype-section">
         <h3 className="document-prototype-section-title">{t('notes_section')}</h3>
         <textarea

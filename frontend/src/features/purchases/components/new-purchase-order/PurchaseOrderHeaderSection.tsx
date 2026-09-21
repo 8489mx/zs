@@ -161,7 +161,7 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
           </div>
         }
       />
-      <section className="document-prototype-section">
+      <section className="document-prototype-section" style={{ marginTop: '12px' }}>
         <div className="section-header-compact-row" style={{ marginBottom: '0.6rem' }}>
           <h3 className="document-prototype-section-title" style={{ margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>{t('basic_info')}</h3>
           <div className="section-header-actions-group" style={{ gap: '6px' }}>

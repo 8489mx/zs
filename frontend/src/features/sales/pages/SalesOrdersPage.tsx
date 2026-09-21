@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   salesOrdersApi,
@@ -22,6 +23,7 @@ import { toast } from '@/shared/components/system-alert';
 
 export function SalesOrdersPage() {
   useAppToolbar([{ label: 'المبيعات', to: '/sales' }, { label: 'أوامر البيع وحجز المخزون' }]);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { data: catalogProducts = [] } = useProductsQuery();
@@ -43,63 +45,63 @@ export function SalesOrdersPage() {
   const createMutation = useMutation({
     mutationFn: (payload: CreateSalesOrderPayload) => salesOrdersApi.create(payload),
     onSuccess: (res) => {
-      alert(res.message);
+      toast.success(res.message);
       queryClient.invalidateQueries({ queryKey: ['sales-orders-list'] });
       setIsCreateModalOpen(false);
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل حفظ أمر البيع');
+      toast.error(err.message || 'فشل حفظ أمر البيع');
     },
   });
 
   const confirmMutation = useMutation({
     mutationFn: (id: number) => salesOrdersApi.confirmAndReserve(id),
     onSuccess: (res) => {
-      alert(res.message);
+      toast.success(res.message);
       queryClient.invalidateQueries({ queryKey: ['sales-orders-list'] });
       if (selectedOrder?.id) {
         queryClient.invalidateQueries({ queryKey: ['sales-order-details', selectedOrder.id] });
       }
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل تأكيد أمر البيع وحجز المخزون');
+      toast.error(err.message || 'فشل تأكيد أمر البيع وحجز المخزون');
     },
   });
 
   const cancelMutation = useMutation({
     mutationFn: (id: number) => salesOrdersApi.cancel(id),
     onSuccess: (res) => {
-      alert(res.message);
+      toast.success(res.message);
       queryClient.invalidateQueries({ queryKey: ['sales-orders-list'] });
       if (selectedOrder?.id) {
         queryClient.invalidateQueries({ queryKey: ['sales-order-details', selectedOrder.id] });
       }
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل إلغاء أمر البيع');
+      toast.error(err.message || 'فشل إلغاء أمر البيع');
     },
   });
 
   const convertMutation = useMutation({
     mutationFn: (id: number) => salesOrdersApi.convertToSale(id),
     onSuccess: (res) => {
-      alert(res.message);
+      toast.success(res.message);
       queryClient.invalidateQueries({ queryKey: ['sales-orders-list'] });
       setIsDetailsModalOpen(false);
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل تحويل أمر البيع إلى فاتورة');
+      toast.error(err.message || 'فشل تحويل أمر البيع إلى فاتورة');
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => salesOrdersApi.delete(id),
     onSuccess: (res) => {
-      alert(res.message);
+      toast.success(res.message);
       queryClient.invalidateQueries({ queryKey: ['sales-orders-list'] });
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل حذف أمر البيع');
+      toast.error(err.message || 'فشل حذف أمر البيع');
     },
   });
 
@@ -117,7 +119,7 @@ export function SalesOrdersPage() {
             <div className="actions compact-actions page-header-actions">
               <Button
                 variant="primary"
-                onClick={() => setIsCreateModalOpen(true)}
+                onClick={() => navigate('/sales/orders/new')}
                 className="btn btn-primary flex items-center gap-1.5"
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >

@@ -49,7 +49,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
   const { t } = useTranslation();
 
   return (
-    <section className="document-prototype-section">
+    <section className="document-prototype-section" style={{ marginTop: '12px' }}>
       <div className="section-header-compact-row" style={{ marginBottom: '0.6rem' }}>
         <h3 className="document-prototype-section-title" style={{ margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>{t('items_section')}</h3>
         <div className="purchase-prototype-quick-actions" aria-label={t('quick_item_actions')}>
@@ -170,13 +170,13 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
           <table className="document-line-items-table">
             <thead>
               <tr>
-                <th className="purchase-prototype-table-head purchase-prototype-table-head-product" style={{ width: '35%' }}>{t('item_label')}</th>
-                <th className="purchase-prototype-table-head purchase-prototype-table-head-category" style={{ width: '15%' }}>القسم</th>
-                <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse" style={{ width: '15%' }}>المخزن</th>
-                <th className="purchase-prototype-table-head purchase-prototype-table-head-qty" style={{ width: '10%' }}>{t('quantity')}</th>
-                <th className="purchase-prototype-table-head purchase-prototype-table-head-price" style={{ width: '10%' }}>{t('price_title')}</th>
-                <th className="purchase-prototype-table-head purchase-prototype-table-head-amount" style={{ width: '10%' }}>{t('total_amount')}</th>
-                <th className="purchase-prototype-table-head purchase-prototype-table-head-actions" style={{ width: '5%' }}></th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-product" style={{ width: '35%', textAlign: 'right' }}>{t('item_label')}</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-category" style={{ width: '15%', textAlign: 'center' }}>القسم</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse" style={{ width: '15%', textAlign: 'center' }}>المخزن</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-qty" style={{ width: '10%', textAlign: 'center' }}>{t('quantity')}</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-price" style={{ width: '10%', textAlign: 'center' }}>{t('price_title')}</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-amount" style={{ width: '10%', textAlign: 'center' }}>{t('total_amount')}</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-actions" style={{ width: '5%', textAlign: 'center' }}></th>
               </tr>
             </thead>
             <tbody>
@@ -263,15 +263,16 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                         </div>
                       ) : null}
                     </td>
-                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-category">
+                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-category" style={{ textAlign: 'center' }}>
                       {line.isService ? (
-                        <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly />
+                        <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly style={{ textAlign: 'center' }} />
                       ) : (
                         <SearchableCombobox
                           inline
                           className="purchase-prototype-inline-combobox"
                           inputId={`category-input-${line.id}`}
                           inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
+                          inputStyle={{ textAlign: 'center' }}
                           placeholder="ابحث عن قسم..."
                           value={line.category || ''}
                           onChange={(value) => {
@@ -290,15 +291,16 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                         />
                       )}
                     </td>
-                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-warehouse">
+                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-warehouse" style={{ textAlign: 'center' }}>
                       {line.isService ? (
-                        <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly />
+                        <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly style={{ textAlign: 'center' }} />
                       ) : (
                         <SearchableCombobox
                           inline
                           className="purchase-prototype-inline-combobox"
                           inputId={`warehouse-input-${line.id}`}
                           inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
+                          inputStyle={{ textAlign: 'center' }}
                           placeholder="ابحث عن مخزن..."
                           value={line.warehouse}
                           onChange={(value) => {
@@ -318,7 +320,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                         />
                       )}
                     </td>
-                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-qty">
+                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-qty" style={{ textAlign: 'center' }}>
                       <input
                         className="purchase-prototype-table-input"
                         id={`quantity-input-${line.id}`}
@@ -326,6 +328,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                         min="0"
                         step="1"
                         value={line.qty}
+                        style={{ textAlign: 'center', fontWeight: 600 }}
                         aria-invalid={Boolean(rowErrors.qty)}
                         onChange={(event) => {
                           props.markDocumentDirty();
@@ -335,13 +338,14 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                         }}
                       />
                     </td>
-                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-price">
+                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-price" style={{ textAlign: 'center' }}>
                       <input
                         className="purchase-prototype-table-input"
                         type="number"
                         min="0"
                         step="0.01"
                         value={line.unitPrice !== undefined && line.unitPrice !== null ? line.unitPrice : 0}
+                        style={{ textAlign: 'center', fontWeight: 600 }}
                         aria-invalid={Boolean(rowErrors.price)}
                         onFocus={(event) => event.target.select()}
                         onBlur={(event) => {
@@ -356,8 +360,8 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                         }}
                       />
                     </td>
-                    <td className="line-total">{formatMoney(amount, props.language)}</td>
-                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-actions">
+                    <td className="line-total" style={{ textAlign: 'center' }}>{formatMoney(amount, props.language)}</td>
+                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-actions" style={{ textAlign: 'center' }}>
                       <button type="button" className="document-row-delete purchase-prototype-row-delete" onClick={() => props.onRemoveLine(line.id)} disabled={props.lines.length === 1}>
                         ×
                       </button>

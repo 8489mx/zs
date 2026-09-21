@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   purchaseOrdersApi,
@@ -21,6 +22,7 @@ import { toast } from '@/shared/components/system-alert';
 
 export function PurchaseOrdersPage() {
   useAppToolbar([{ label: 'المشتريات والموردين', to: '/purchases' }, { label: 'أوامر الشراء (PO)' }]);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -141,7 +143,7 @@ export function PurchaseOrdersPage() {
           actions={(
             <div className="actions compact-actions page-header-actions">
               <Button
-                onClick={() => setIsCreateModalOpen(true)}
+                onClick={() => navigate('/purchases/orders/new')}
                 className="btn btn-primary flex items-center gap-1.5"
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
