@@ -71,7 +71,7 @@ const SECTORS: SectorDef[] = [
     id: 'mep',
     name: 'الكهروميكانيك MEP',
     tradeCategories: ['electrical_lighting', 'electrical', 'smart_elv_systems', 'elv', 'plumbing_sanitary', 'plumbing', 'hvac_mechanical', 'hvac', 'fire_fighting', 'fire'],
-    icon: AppIcons.Zap,
+    icon: AppIcons.Tool,
   },
   {
     id: 'infrastructure',
@@ -88,7 +88,7 @@ const TRADE_ICONS: Record<string, (props: any) => ReactNode> = {
   steel_structure: AppIcons.Package,
   finishing_decor: AppIcons.Edit,
   doors_windows_aluminum: AppIcons.Warehouse,
-  electrical_lighting: AppIcons.Zap,
+  electrical_lighting: AppIcons.Sliders,
   smart_elv_systems: AppIcons.Sliders,
   plumbing_sanitary: AppIcons.Tool,
   hvac_mechanical: AppIcons.RefreshCw,

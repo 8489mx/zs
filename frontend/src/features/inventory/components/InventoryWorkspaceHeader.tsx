@@ -31,13 +31,7 @@ export function InventoryWorkspaceHeader({
 
   const primaryAction = currentSection === 'transfers'
     ? { to: '/inventory/issue-order/new', label: 'إذن صرف جديد' }
-    : currentSection === 'counts'
-      ? { to: '/inventory/counts', label: 'جلسة جرد' }
-      : currentSection === 'damaged'
-        ? { to: '/inventory/damaged', label: 'سجل التالف' }
-        : currentSection === 'movements'
-          ? { to: '/inventory/movements', label: 'سجل الحركات' }
-          : { to: '/inventory/overview', label: 'حالة المخزون' };
+    : null;
 
   return (
     <>
@@ -47,7 +41,9 @@ export function InventoryWorkspaceHeader({
         badge={<span className="nav-pill">تشغيل المخزون</span>}
         actions={(
           <div className="actions compact-actions">
-            <Link to={primaryAction.to}><Button>{primaryAction.label}</Button></Link>
+            {primaryAction ? (
+              <Link to={primaryAction.to}><Button>{primaryAction.label}</Button></Link>
+            ) : null}
             <Button
               variant="secondary"
               onClick={() => setIsSmartRestockOpen(true)}

@@ -10,6 +10,7 @@ import { DepreciateAssetModal, BatchDepreciateModal } from '../components/fixed-
 import { FixedAssetsTable } from '../components/fixed-assets/FixedAssetsTable';
 import { FixedAssetsLogsTable } from '../components/fixed-assets/FixedAssetsLogsTable';
 import { ClockIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
+import { systemConfirm } from '@/shared/components/system-alert';
 
 export function AccountingFixedAssetsPage() {
   const queryClient = useQueryClient();
@@ -193,20 +194,6 @@ export function AccountingFixedAssetsPage() {
             <div className="actions compact-actions">
               <Button
                 type="button"
-                variant={activeTab === 'assets' ? 'primary' : 'secondary'}
-                onClick={() => setActiveTab('assets')}
-              >
-                سجل الأصول
-              </Button>
-              <Button
-                type="button"
-                variant={activeTab === 'logs' ? 'primary' : 'secondary'}
-                onClick={() => setActiveTab('logs')}
-              >
-                سجل القيود ({logs.length})
-              </Button>
-              <Button
-                type="button"
                 variant="secondary"
                 onClick={() => setBatchDepreciateOpen(true)}
                 style={{ borderColor: '#f59e0b', color: '#b45309', fontWeight: 700 }}
@@ -218,6 +205,7 @@ export function AccountingFixedAssetsPage() {
                 type="button"
                 variant="primary"
                 onClick={() => setAddModalOpen(true)}
+                style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
                 + إضافة أصل جديد
               </Button>
@@ -310,6 +298,43 @@ export function AccountingFixedAssetsPage() {
           </div>
         </div>
 
+        {/* Navigation Tabs Bar */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '10px',
+            marginTop: '20px',
+            marginBottom: '4px',
+            borderBottom: '1px solid #e2e8f0',
+            paddingBottom: '12px',
+          }}
+        >
+          <Button
+            type="button"
+            variant={activeTab === 'assets' ? 'primary' : 'secondary'}
+            onClick={() => setActiveTab('assets')}
+            style={{
+              fontWeight: 600,
+              backgroundColor: activeTab === 'assets' ? '#170e5e' : '#ffffff',
+              color: activeTab === 'assets' ? '#ffffff' : '#475569',
+            }}
+          >
+            سجل الأصول الرأسمالية ({assets.length})
+          </Button>
+          <Button
+            type="button"
+            variant={activeTab === 'logs' ? 'primary' : 'secondary'}
+            onClick={() => setActiveTab('logs')}
+            style={{
+              fontWeight: 600,
+              backgroundColor: activeTab === 'logs' ? '#170e5e' : '#ffffff',
+              color: activeTab === 'logs' ? '#ffffff' : '#475569',
+            }}
+          >
+            سجل قيود الإهلاك المحاسبي ({logs.length})
+          </Button>
+        </div>
+
         {activeTab === 'assets' ? (
           <FixedAssetsTable
             assets={filteredAssets}
@@ -319,11 +344,18 @@ export function AccountingFixedAssetsPage() {
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
             onDepreciate={(asset) => setDepreciateModalAsset(asset)}
-            onDelete={(asset) => {
-              if (window.confirm(`هل أنت متأكد من حذف أو استبعاد الأصل: ${asset.name}؟`)) {
+            onDelete={async (asset) => {
+              const ok = await systemConfirm({
+                title: 'تأكيد استبعاد الأصل',
+                message: `هل أنت متأكد من حذف أو استبعاد الأصل: ${asset.name}؟`,
+                confirmLabel: 'استبعاد الأصل',
+                danger: true,
+              });
+              if (ok) {
                 deleteMutation.mutate(asset.id);
               }
             }}
+            onAddAsset={() => setAddModalOpen(true)}
           />
         ) : (
           <FixedAssetsLogsTable logs={logs} />

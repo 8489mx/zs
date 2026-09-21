@@ -429,7 +429,6 @@ export class SettingsService {
         'fixedAssetsModuleEnabled',
         'taxDeclarationModuleEnabled',
         'deliveryFleetModuleEnabled',
-        'enableEnterpriseFeatures',
         'weightedBarcodeEnabled',
         'posShowCartMeta',
         'phoneOrdersModuleEnabled',
@@ -758,7 +757,12 @@ export class SettingsService {
       modulePatch.inventoryModuleEnabled = true;
       modulePatch.purchasesModuleEnabled = true;
       modulePatch.crmModuleEnabled = true;
-      modulePatch.enableEnterpriseFeatures = true;
+      const existingSettings = await this.getSettings(actor);
+      if (existingSettings?.enableEnterpriseFeatures !== undefined) {
+        modulePatch.enableEnterpriseFeatures = Boolean(existingSettings.enableEnterpriseFeatures);
+      } else {
+        modulePatch.enableEnterpriseFeatures = false;
+      }
       modulePatch.fixedAssetsModuleEnabled = true;
       modulePatch.taxDeclarationModuleEnabled = true;
       modulePatch.enablePharmacyModule = normalizedKey === 'pharmacy';

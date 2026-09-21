@@ -272,7 +272,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
             <div>
               <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>إجمالي القيمة التعاقدية الكلية</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
-                {Number(kpis?.totalContractValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                {Math.round(Number(kpis?.totalContractValue || 0)).toLocaleString('en-US')}
               </div>
             </div>
             <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#170e5e' }}>
@@ -284,7 +284,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
             <div>
               <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>المستخلصات المعتمدة (Invoiced)</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f766e', marginTop: '4px' }}>
-                {Number(kpis?.totalBilledToDate || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                {Math.round(Number(kpis?.totalBilledToDate || 0)).toLocaleString('en-US')}
               </div>
             </div>
             <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f766e' }}>
@@ -296,7 +296,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
             <div>
               <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>ضمان حسن التنفيذ المحتجز</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#a16207', marginTop: '4px' }}>
-                {Number(kpis?.totalRetentionsHeld || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                {Math.round(Number(kpis?.totalRetentionsHeld || 0)).toLocaleString('en-US')}
               </div>
             </div>
             <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a16207' }}>
@@ -385,7 +385,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                 <span>
                   القيمة التعاقدية المعدلة:{' '}
                   <strong style={{ color: '#0f172a' }}>
-                    {Number(activeProject.revisedContractValue || activeProject.contractValue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {Math.round(Number(activeProject.revisedContractValue || activeProject.contractValue || 0)).toLocaleString('en-US')}
                   </strong>
                 </span>
                 <span>

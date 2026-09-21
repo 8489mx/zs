@@ -165,16 +165,6 @@ function AlertCircleIcon(props: { size?: number; color?: string }) {
   );
 }
 
-function ZapIcon(props: { size?: number; color?: string }) {
-  const size = props.size || 13;
-  const color = props.color || 'currentColor';
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  );
-}
-
 interface PaymentChannelRowProps {
   title: string;
   subtitle: string;
@@ -401,7 +391,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
               onClick={() => props.onApplyTotalToDeclared(detailsTotal)}
               disabled={props.disabled || detailsTotal === 0}
             >
-              <ZapIcon size={12} color="#0284c7" />
+              <CheckCircleIcon size={12} color="#0284c7" />
               <span>اعتماد المجموع كإجمالي معلن</span>
             </Button>
           </div>

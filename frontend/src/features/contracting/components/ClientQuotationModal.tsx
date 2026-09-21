@@ -194,8 +194,8 @@ export function ClientQuotationModal({
           </td>
           <td style="text-align: center; white-space: nowrap;">${item.unit}</td>
           <td style="text-align: center; font-weight: 600; white-space: nowrap;">${qty.toLocaleString()}</td>
-          <td style="text-align: right; font-weight: 600; white-space: nowrap;">${unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td style="text-align: right; font-weight: 700; color: #170e5e; white-space: nowrap;">${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="text-align: right; font-weight: 600; white-space: nowrap;">${Math.round(unitPrice).toLocaleString('en-US')}</td>
+          <td style="text-align: right; font-weight: 700; color: #170e5e; white-space: nowrap;">${Math.round(total).toLocaleString('en-US')}</td>
         </tr>
       `;
     }).join('');
@@ -429,29 +429,29 @@ export function ClientQuotationModal({
           <div class="total-box">
             <div class="total-row">
               <span>إجمالي قيمة الأعمال التنفيذية الأساسية:</span>
-              <strong>${baseContractValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}</strong>
+              <strong>${Math.round(baseContractValue).toLocaleString('en-US')} ${currency}</strong>
             </div>
             ${includeSocialInsurance ? `
               <div class="total-row">
                 <span>تأمينات اجتماعية على العملية (${socialInsurancePercent}%):</span>
-                <strong>${socialInsuranceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}</strong>
+                <strong>${Math.round(socialInsuranceAmount).toLocaleString('en-US')} ${currency}</strong>
               </div>
             ` : ''}
             ${includeOfficeMargin ? `
               <div class="total-row">
                 <span>مصاريف مكتب المقاولات والإشراف الهندسي (${officeMarginPercent}%):</span>
-                <strong>${officeMarginAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}</strong>
+                <strong>${Math.round(officeMarginAmount).toLocaleString('en-US')} ${currency}</strong>
               </div>
             ` : ''}
             ${includeVat ? `
               <div class="total-row">
                 <span>ضريبة القيمة المضافة (${vatPercent}%):</span>
-                <strong>${vatAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}</strong>
+                <strong>${Math.round(vatAmount).toLocaleString('en-US')} ${currency}</strong>
               </div>
             ` : ''}
             <div class="grand-total-row">
               <span>إجمالي قيمة العرض المالي النهائي:</span>
-              <span>${finalTotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}</span>
+              <span>${Math.round(finalTotalAmount).toLocaleString('en-US')} ${currency}</span>
             </div>
           </div>
 
@@ -989,10 +989,10 @@ export function ClientQuotationModal({
                       <td style={{ padding: '6px 6px', fontSize: 'var(--font-body)', textAlign: 'center', whiteSpace: 'nowrap' }}>{item.unit}</td>
                       <td style={{ padding: '6px 6px', fontSize: 'var(--font-body)', textAlign: 'center', fontWeight: 600, whiteSpace: 'nowrap' }}>{qty.toLocaleString()}</td>
                       <td style={{ padding: '6px 8px', fontSize: 'var(--font-body)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        {Number(item.unitPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+                        {Math.round(Number(item.unitPrice)).toLocaleString('en-US')} {currency}
                       </td>
                       <td style={{ padding: '6px 8px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e', whiteSpace: 'nowrap' }}>
-                        {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+                        {Math.round(total).toLocaleString('en-US')} {currency}
                       </td>
                     </tr>
                   );
@@ -1015,27 +1015,27 @@ export function ClientQuotationModal({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-body)', color: '#475569' }}>
               <span>إجمالي قيمة الأعمال التنفيذية الأساسية:</span>
-              <strong style={{ color: '#0f172a' }}>{baseContractValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</strong>
+              <strong style={{ color: '#0f172a' }}>{Math.round(baseContractValue).toLocaleString('en-US')} {currency}</strong>
             </div>
 
             {includeSocialInsurance && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-body)', color: '#475569' }}>
                 <span>تأمينات اجتماعية على العملية ({socialInsurancePercent}%):</span>
-                <strong style={{ color: '#0f172a' }}>{socialInsuranceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</strong>
+                <strong style={{ color: '#0f172a' }}>{Math.round(socialInsuranceAmount).toLocaleString('en-US')} {currency}</strong>
               </div>
             )}
 
             {includeOfficeMargin && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-body)', color: '#475569' }}>
                 <span>مصاريف مكتب المقاولات والإشراف الهندسي ({officeMarginPercent}%):</span>
-                <strong style={{ color: '#0f172a' }}>{officeMarginAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</strong>
+                <strong style={{ color: '#0f172a' }}>{Math.round(officeMarginAmount).toLocaleString('en-US')} {currency}</strong>
               </div>
             )}
 
             {includeVat && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-body)', color: '#475569' }}>
                 <span>ضريبة القيمة المضافة ({vatPercent}%):</span>
-                <strong style={{ color: '#0f172a' }}>{vatAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</strong>
+                <strong style={{ color: '#0f172a' }}>{Math.round(vatAmount).toLocaleString('en-US')} {currency}</strong>
               </div>
             )}
 
@@ -1051,7 +1051,7 @@ export function ClientQuotationModal({
             >
               <strong style={{ color: '#170e5e' }}>إجمالي قيمة العرض المالي النهائي:</strong>
               <strong style={{ color: '#170e5e', fontSize: '1.15rem' }}>
-                {finalTotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+                {Math.round(finalTotalAmount).toLocaleString('en-US')} {currency}
               </strong>
             </div>
           </div>

@@ -186,22 +186,22 @@ export function CrmDealCreateModal({ open, onClose, onSuccess }: CrmDealCreateMo
       <style>{`
         .enterprise-compact-modal .field {
           margin-bottom: 0 !important;
-          gap: 3px !important;
+          gap: 5px !important;
         }
         .enterprise-compact-modal .field span {
-          font-size: 0.74rem !important;
+          font-size: 0.78rem !important;
           font-weight: 600 !important;
-          color: #334155 !important;
+          color: #475569 !important;
           white-space: nowrap !important;
           overflow: hidden !important;
           text-overflow: ellipsis !important;
         }
         .enterprise-compact-modal input,
         .enterprise-compact-modal textarea {
-          height: 33px !important;
+          height: 35px !important;
           font-size: 0.8125rem !important;
           border-radius: 6px !important;
-          padding: 0 10px !important;
+          padding: 0 12px !important;
           border: 1px solid #cbd5e1 !important;
           background: #ffffff !important;
           box-sizing: border-box !important;
@@ -211,10 +211,10 @@ export function CrmDealCreateModal({ open, onClose, onSuccess }: CrmDealCreateMo
         }
         .enterprise-compact-modal textarea {
           height: auto !important;
-          min-height: 48px !important;
-          padding: 6px 10px !important;
+          min-height: 60px !important;
+          padding: 8px 12px !important;
           resize: vertical !important;
-          line-height: 1.4 !important;
+          line-height: 1.5 !important;
           font-family: inherit !important;
         }
         .enterprise-compact-modal input:focus,
@@ -223,8 +223,8 @@ export function CrmDealCreateModal({ open, onClose, onSuccess }: CrmDealCreateMo
           box-shadow: 0 0 0 2px rgba(23, 14, 94, 0.1) !important;
         }
         .enterprise-compact-modal .custom-select-trigger {
-          min-height: 33px !important;
-          height: 33px !important;
+          min-height: 35px !important;
+          height: 35px !important;
           font-size: 0.8125rem !important;
           border-radius: 6px !important;
           border: 1px solid #cbd5e1 !important;
@@ -232,16 +232,16 @@ export function CrmDealCreateModal({ open, onClose, onSuccess }: CrmDealCreateMo
         }
       `}</style>
 
-      <div className="enterprise-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '9px' }} dir="rtl">
+      <div className="enterprise-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '11px' }} dir="rtl">
         
         {/* 1. بيانات الفرصة والعميل */}
-        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+        <div style={{ background: '#fbfcfd', padding: '11px 14px', borderRadius: '10px', border: '1px solid #edf2f7' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.85rem' }}>
             <AppIcons.Layers size={15} />
             <span>1. بيانات الفرصة والعميل (Opportunity & Client Information)</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1.6fr', gap: '8px', marginBottom: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1.6fr', gap: '10px', marginBottom: '10px' }}>
             <Field label="عنوان الفرصة البيعية *">
               <input
                 type="text"
@@ -261,7 +261,7 @@ export function CrmDealCreateModal({ open, onClose, onSuccess }: CrmDealCreateMo
             </Field>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.3fr 1.1fr 1.5fr', gap: '10px' }}>
             <Field label="اسم جهة الاتصال">
               <input
                 type="text"
@@ -301,13 +301,13 @@ export function CrmDealCreateModal({ open, onClose, onSuccess }: CrmDealCreateMo
         </div>
 
         {/* 2. التقييم المالي ومرحلة الصفقة */}
-        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+        <div style={{ background: '#fbfcfd', padding: '11px 14px', borderRadius: '10px', border: '1px solid #edf2f7' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.85rem' }}>
             <AppIcons.TrendingUp size={15} />
             <span>2. التقييم المالي ومسار الصفقة (Financial Evaluation & Pipeline Stage)</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.9fr 1.3fr 0.9fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.3fr 1fr', gap: '10px' }}>
             <Field label="القيمة المالية المتوقعة">
               <input
                 type="number"
@@ -353,8 +353,8 @@ export function CrmDealCreateModal({ open, onClose, onSuccess }: CrmDealCreateMo
                 <span style={{
                   background: '#f1f5f9',
                   border: '1px solid #cbd5e1',
-                  height: '33px',
-                  lineHeight: '33px',
+                  height: '35px',
+                  lineHeight: '35px',
                   padding: '0 8px',
                   borderRadius: '6px',
                   fontSize: '0.78rem',
@@ -370,13 +370,13 @@ export function CrmDealCreateModal({ open, onClose, onSuccess }: CrmDealCreateMo
         </div>
 
         {/* 3. التكليف والجدول الزمني والملاحظات */}
-        <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+        <div style={{ background: '#fbfcfd', padding: '11px 14px', borderRadius: '10px', border: '1px solid #edf2f7' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.85rem' }}>
             <AppIcons.Calendar size={15} />
             <span>3. التكليف والجدول الزمني والمتابعة (Assignment, Timeline & Notes)</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1.1fr', gap: '8px', marginBottom: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 1fr 1.1fr', gap: '10px', marginBottom: '10px' }}>
             <Field label="مسؤول المتابعة (مندوب المبيعات)">
               <CustomSelect
                 value={dealForm.assignedUserId ? String(dealForm.assignedUserId) : ''}
@@ -414,7 +414,7 @@ export function CrmDealCreateModal({ open, onClose, onSuccess }: CrmDealCreateMo
           </div>
 
           {dealForm.stage === 'lost' && (
-            <div style={{ marginBottom: '8px' }}>
+            <div style={{ marginBottom: '10px' }}>
               <Field label="سبب الخسارة (Lost Reason) *">
                 <input
                   type="text"
@@ -430,7 +430,7 @@ export function CrmDealCreateModal({ open, onClose, onSuccess }: CrmDealCreateMo
           <div>
             <Field label="ملاحظات واشتراطات خاصة بالمتابعة">
               <textarea
-                rows={2}
+                rows={3}
                 placeholder="سجل أي اشتراطات خاصة، ملخص الاجتماع الأولي، أو متطلبات فنية..."
                 value={dealForm.notes || ''}
                 onChange={(e) => setDealForm({ ...dealForm, notes: e.target.value })}

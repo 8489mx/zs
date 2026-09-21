@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatCurrency } from '@/lib/format';
-import { Trash2Icon } from '@/shared/components/icons/AppIcons';
+import { Trash2Icon, PlusIcon } from '@/shared/components/icons/AppIcons';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import type { FixedAsset } from '@/features/accounting/api/accounting.api';
 
 const categoryLabels: Record<string, string> = {
@@ -27,6 +28,7 @@ interface FixedAssetsTableProps {
   setSelectedCategory: (c: string) => void;
   onDepreciate: (asset: FixedAsset) => void;
   onDelete: (asset: FixedAsset) => void;
+  onAddAsset?: () => void;
 }
 
 export const FixedAssetsTable: React.FC<FixedAssetsTableProps> = ({
@@ -38,6 +40,7 @@ export const FixedAssetsTable: React.FC<FixedAssetsTableProps> = ({
   setSelectedCategory,
   onDepreciate,
   onDelete,
+  onAddAsset,
 }) => {
   return (
     <section className="document-prototype-section">
@@ -57,19 +60,21 @@ export const FixedAssetsTable: React.FC<FixedAssetsTableProps> = ({
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ minWidth: '240px', padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
         />
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', background: '#fff' }}
-        >
-          <option value="all">كل التصنيفات</option>
-          <option value="equipment">معدات وأجهزة</option>
-          <option value="vehicle">سيارات ونقل</option>
-          <option value="building">مباني وعقارات</option>
-          <option value="furniture">أثاث وتجهيزات</option>
-          <option value="it">أجهزة حاسوب وتقنية</option>
-          <option value="general">عام</option>
-        </select>
+        <div style={{ minWidth: '180px' }}>
+          <CustomSelect
+            value={selectedCategory}
+            onChange={(val) => setSelectedCategory(val)}
+            options={[
+              { value: 'all', label: 'كل التصنيفات' },
+              { value: 'equipment', label: 'معدات وأجهزة' },
+              { value: 'vehicle', label: 'سيارات ونقل' },
+              { value: 'building', label: 'مباني وعقارات' },
+              { value: 'furniture', label: 'أثاث وتجهيزات' },
+              { value: 'it', label: 'أجهزة حاسوب وتقنية' },
+              { value: 'general', label: 'عام' },
+            ]}
+          />
+        </div>
         <span style={{ fontSize: '13px', color: '#64748b', marginRight: 'auto' }}>
           عرض {assets.length} من {totalCount} أصل
         </span>
@@ -95,8 +100,34 @@ export const FixedAssetsTable: React.FC<FixedAssetsTableProps> = ({
           <tbody>
             {assets.length === 0 ? (
               <tr>
-                <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                  لا توجد أصول ثابتة مسجلة بعد. اضغط على "+ إضافة أصل جديد" للبدء.
+                <td colSpan={10} style={{ textAlign: 'center', padding: '48px 20px', color: '#94a3b8' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '14px', color: '#64748b' }}>
+                      لا توجد أصول ثابتة مسجلة بعد في هذا التصنيف.
+                    </span>
+                    {onAddAsset && (
+                      <button
+                        type="button"
+                        onClick={onAddAsset}
+                        style={{
+                          backgroundColor: '#170e5e',
+                          color: '#ffffff',
+                          padding: '8px 18px',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          border: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <PlusIcon size={14} color="#ffffff" />
+                        <span>+ إضافة أول أصل ثابت الآن</span>
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ) : (

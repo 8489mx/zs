@@ -92,7 +92,7 @@ export class TrialTenantProvisioningService {
       deliveryFleetModuleEnabled: false,
       purchasesModuleEnabled: true,
       inventoryModuleEnabled: true,
-      enableEnterpriseFeatures: true,
+      enableEnterpriseFeatures: false,
     };
 
     switch (industry) {
@@ -101,6 +101,7 @@ export class TrialTenantProvisioningService {
         base.posModuleEnabled = false;
         base.requireCashierShiftForSales = false;
         base.hrModuleEnabled = true;
+        base.enableEnterpriseFeatures = true;
         base.fixedAssetsModuleEnabled = true;
         base.taxDeclarationModuleEnabled = true;
         base.installmentsModuleEnabled = true;
@@ -111,6 +112,7 @@ export class TrialTenantProvisioningService {
         base.posModuleEnabled = false;
         base.requireCashierShiftForSales = false;
         base.hrModuleEnabled = true;
+        base.enableEnterpriseFeatures = true;
         base.taxDeclarationModuleEnabled = true;
         break;
 

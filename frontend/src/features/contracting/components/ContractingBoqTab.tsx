@@ -441,14 +441,14 @@ export function ContractingBoqTab({
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي قيمة جدول الكميات</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-            <span>{totalContractValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+            <span>{Math.round(totalContractValue).toLocaleString('en-US')}</span>
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{currencySymbol}</span>
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>التكلفة التقديرية المستهدفة</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-            <span>{totalEstimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+            <span>{Math.round(totalEstimatedCost).toLocaleString('en-US')}</span>
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{currencySymbol}</span>
           </div>
         </div>
@@ -905,7 +905,7 @@ export function ContractingBoqTab({
                       <td style={{ padding: '12px 10px', textAlign: 'center', verticalAlign: 'middle' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '3px' }}>
                           <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
-                            {unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {Math.round(unitPrice).toLocaleString('en-US')}
                           </span>
                           <span style={{ fontSize: '0.6875rem', color: '#94a3b8' }}>{currencySymbol}</span>
                         </div>
@@ -921,7 +921,7 @@ export function ContractingBoqTab({
                               color: total > 0 ? '#170e5e' : '#94a3b8',
                             }}
                           >
-                            {total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {Math.round(total).toLocaleString('en-US')}
                           </span>
                           <span style={{ fontSize: '0.6875rem', color: '#94a3b8' }}>{currencySymbol}</span>
                         </div>
