@@ -110,10 +110,10 @@ export function CreateQuotationPage() {
       name: p.name || '',
       barcode: p.barcode || '',
       sku: p.sku || '',
-      price: Number((p as any).retailPrice ?? (p as any).wholesalePrice ?? p.price ?? 0),
+      price: Number((p as any).retailPrice ?? (p as any).wholesalePrice ?? (p as any).price ?? 0),
       costPrice: Number(p.costPrice ?? 0),
-      unit: p.units?.[0]?.name || p.unit || 'قطعة',
-      stock: Number((p as any).stock ?? p.quantity ?? 0),
+      unit: p.units?.[0]?.name || (p as any).unit || 'قطعة',
+      stock: Number((p as any).stock ?? (p as any).quantity ?? 0),
       raw: p,
     }));
   }, [catalogProducts]);
@@ -360,7 +360,7 @@ export function CreateQuotationPage() {
 
   return (
     <div className="page-stack page-shell create-quotation-workspace" dir="rtl">
-      <DraftRestoredBanner isRestored={isDraftRestored} onDismiss={dismissRestoredNotice} />
+      <DraftRestoredBanner show={isDraftRestored} onClear={clearDraft} onDismiss={dismissRestoredNotice} />
 
       <div className="document-prototype-column" style={{ maxWidth: '1280px', margin: '0 auto', width: '100%', paddingBottom: '40px' }}>
         {/* Universal Page Header */}
@@ -386,8 +386,8 @@ export function CreateQuotationPage() {
                   const ok = await systemConfirm({
                     title: 'إلغاء المسودة',
                     message: 'هل أنت متأكد من إلغاء المسودة والعودة؟',
-                    confirmLabel: 'إلغاء المسودة',
-                    danger: true,
+                    confirmText: 'إلغاء المسودة',
+                    variant: 'danger',
                   });
                   if (ok) {
                     clearDraft();
@@ -425,7 +425,7 @@ export function CreateQuotationPage() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '16px' }}>
-            <Field label="اسم العميل *" required>
+            <Field label="اسم العميل *">
               <div style={{ display: 'flex', gap: '8px' }}>
                 <div style={{ flex: 1 }}>
                   <CustomSelect

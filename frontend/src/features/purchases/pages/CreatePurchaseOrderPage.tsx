@@ -47,7 +47,6 @@ export function CreatePurchaseOrderPage() {
   // Quick Action State
   const [activeQuickAction, setActiveQuickAction] = useState<'tax' | 'discount' | null>(null);
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [customTaxRate, setCustomTaxRate] = useState<string>('14');
   const [discountMode, setDiscountMode] = useState<'percent' | 'value'>('value');
   const [discountValue, setDiscountValue] = useState<number>(0);
 

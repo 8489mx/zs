@@ -53,9 +53,8 @@ export function UniversalDocumentFormTemplate() {
   const [warehouseName, setWarehouseName] = useState('المستودع الرئيسي');
 
   // 2. Quick Action State (Tax & Discount)
-  const [activeQuickAction, setActiveQuickAction] = useState<'tax' | 'discount' | null>(null);
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [discountMode, setDiscountMode] = useState<'percent' | 'value'>('value');
+  const [discountMode] = useState<'percent' | 'value'>('value');
   const [discountValue, setDiscountValue] = useState<number>(0);
 
   // 3. Attachments State
@@ -330,7 +329,7 @@ export function UniversalDocumentFormTemplate() {
               <button
                 type="button"
                 className="purchase-prototype-quick-action"
-                onClick={() => setActiveQuickAction((curr) => (curr === 'tax' ? null : 'tax'))}
+                onClick={() => setTaxRate((curr: number) => (curr > 0 ? 0 : 14))}
                 style={taxRate > 0 ? { borderColor: '#2563eb', color: '#1d4ed8', backgroundColor: '#eff6ff', fontWeight: 700 } : undefined}
               >
                 <span aria-hidden="true">%</span>
@@ -339,7 +338,7 @@ export function UniversalDocumentFormTemplate() {
               <button
                 type="button"
                 className="purchase-prototype-quick-action"
-                onClick={() => setActiveQuickAction((curr) => (curr === 'discount' ? null : 'discount'))}
+                onClick={() => setDiscountValue((curr: number) => (curr > 0 ? 0 : 10))}
                 style={discountValue > 0 ? { borderColor: '#16a34a', color: '#15803d', backgroundColor: '#f0fdf4', fontWeight: 700 } : undefined}
               >
                 <span>خصم{discountValue > 0 ? (discountMode === 'percent' ? ` ${discountValue}%` : ` ${discountValue}`) : ''}</span>

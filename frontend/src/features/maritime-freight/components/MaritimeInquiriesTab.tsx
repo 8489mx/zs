@@ -7,6 +7,7 @@ import { useMaritime } from '../context/MaritimeContext';
 interface MaritimeInquiriesTabProps {
   inquiries: MaritimeInquiry[];
   loading: boolean;
+  onOpenCreate?: () => void;
   onConvertToRfq: (inquiryId: string) => Promise<any>;
   onNavigateToRfq?: (rfqId: string) => void;
 }

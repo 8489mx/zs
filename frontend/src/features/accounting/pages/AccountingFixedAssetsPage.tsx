@@ -348,8 +348,8 @@ export function AccountingFixedAssetsPage() {
               const ok = await systemConfirm({
                 title: 'تأكيد استبعاد الأصل',
                 message: `هل أنت متأكد من حذف أو استبعاد الأصل: ${asset.name}؟`,
-                confirmLabel: 'استبعاد الأصل',
-                danger: true,
+                confirmText: 'استبعاد الأصل',
+                variant: 'danger',
               });
               if (ok) {
                 deleteMutation.mutate(asset.id);

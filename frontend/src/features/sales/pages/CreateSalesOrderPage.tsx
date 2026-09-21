@@ -118,7 +118,7 @@ export function CreateSalesOrderPage() {
       sku: p.sku || '',
       price: Number(p.retailPrice ?? p.wholesalePrice ?? 0),
       costPrice: Number(p.costPrice ?? 0),
-      unit: p.units?.[0]?.name || p.unit || 'قطعة',
+      unit: p.units?.[0]?.name || (p as any).unit || 'قطعة',
       stock: Number(p.stock ?? 0),
       raw: p,
     }));
