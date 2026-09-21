@@ -25,7 +25,7 @@ interface StorefrontModalsProps {
 
   // Quick View & Recommendations
   allProducts?: StorefrontProduct[];
-  onAddToCart?: (product: StorefrontProduct) => void;
+  onAddToCart?: (product: StorefrontProduct, quantity?: number) => void;
   quickViewProduct?: StorefrontProduct | null;
   onCloseQuickView?: () => void;
 
@@ -57,6 +57,7 @@ interface StorefrontModalsProps {
   isMyOrdersOpen: boolean;
   onCloseMyOrders: () => void;
   onEditOrder: (order: OnlineOrderRecord) => void;
+  onReorder?: (order: OnlineOrderRecord) => void;
 
   // Review Modal
   isReviewModalOpen: boolean;
@@ -102,6 +103,7 @@ export function StorefrontModals({
   isMyOrdersOpen,
   onCloseMyOrders,
   onEditOrder,
+  onReorder,
 
   isReviewModalOpen,
   reviewProduct,
@@ -169,6 +171,7 @@ export function StorefrontModals({
         slug={cleanSlug}
         info={info}
         onEditOrder={onEditOrder}
+        onReorder={onReorder}
       />
 
       {/* Product Quick View & Share Modal */}
@@ -180,6 +183,10 @@ export function StorefrontModals({
           tenantSlug={cleanSlug}
           onClose={onCloseQuickView}
           onAddToCart={onAddToCart}
+          cartLine={(() => {
+            const line = cartItems.find((i) => Number(i.product.id) === Number(quickViewProduct.id));
+            return line ? { variantName: line.product.variantName, quantity: line.quantity } : null;
+          })()}
         />
       )}
 

@@ -1,3 +1,4 @@
+import { getProductVariants } from '../lib/storefront-variant-pricing';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React, { useState } from 'react';
 import { StorefrontProduct } from '../types/storefront.types';
@@ -31,6 +32,16 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
 }: StorefrontProductCardProps) {
   const isOutOfStock = product.inStock !== undefined ? !product.inStock : product.stockQty <= 0;
   const isZeroPrice = product.price <= 0;
+  // A product with variants has no single price to add blindly: open the quick view so the
+  // customer picks the size, and the cart line carries it (SF-4).
+  const handleAdd = () => {
+    if (getProductVariants(product).length > 0 && onQuickView) {
+      onQuickView(product);
+      return;
+    }
+    onAddToCart(product);
+  };
+
   const [imageLoaded, setImageLoaded] = useState(false);
   const [localFavorite, setLocalFavorite] = useState(() => {
     try {
@@ -421,7 +432,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onAddToCart(product);
+                handleAdd();
               }}
               title="إضافة سريعة للسلة"
               style={{
@@ -805,7 +816,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           <button
             className="storefront-product-action-btn"
             type="button"
-            onClick={() => onAddToCart(product)}
+            onClick={handleAdd}
             style={{
               width: '100%',
               height: '40px',

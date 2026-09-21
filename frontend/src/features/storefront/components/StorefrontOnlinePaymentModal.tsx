@@ -30,6 +30,7 @@ export function StorefrontOnlinePaymentModal({
 
   if (!isOpen || !session || !orderData) return null;
 
+  const orderToken = orderData.accessToken || '';
   const totalAmount = session.amount || orderData.totalAmount;
   const currencyLabel = session.currency || getGlobalCurrencySymbol();
   const isLiveIframe =
@@ -52,7 +53,7 @@ export function StorefrontOnlinePaymentModal({
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await storefrontApi.mockPayOrder(tenantSlug, session.orderNumber, {
+      const res = await storefrontApi.mockPayOrder(tenantSlug, session.orderNumber, orderToken, {
         cardNumber: cardNumber.replace(/\s+/g, ''),
         cardHolder,
       });
@@ -74,7 +75,7 @@ export function StorefrontOnlinePaymentModal({
   const handleCheckStatus = async () => {
     setLoading(true);
     try {
-      const statusRes = await storefrontApi.getPaymentStatus(tenantSlug, session.orderNumber);
+      const statusRes = await storefrontApi.getPaymentStatus(tenantSlug, session.orderNumber, orderToken);
       if (statusRes.ok && statusRes.paymentStatus === 'paid') {
         onSuccess({
           orderNumber: session.orderNumber,

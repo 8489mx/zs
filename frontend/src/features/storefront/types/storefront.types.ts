@@ -71,6 +71,17 @@ export interface StorefrontProduct {
   description: string;
   rating?: number;
   reviewCount?: number;
+  variants?: StorefrontProductVariant[];
+  /** Set on a cart line only: the chosen variant, priced by storefront-variant-pricing (SF-4). */
+  variantName?: string | null;
+  /** Set on a cart line only: the catalog price before the variant was applied. */
+  basePrice?: number;
+}
+
+export interface StorefrontProductVariant {
+  name: string;
+  price?: number | string | null;
+  extraPrice?: number | string | null;
 }
 
 export interface StorefrontReview {
@@ -100,6 +111,7 @@ export interface CreateOnlineOrderPayload {
     productId: number | string;
     quantity: number;
     notes?: string;
+    variantName?: string;
   }>;
   paymentMethod?: string;
   couponCode?: string;
@@ -116,6 +128,10 @@ export interface CreateOnlineOrderResponse {
   ok: boolean;
   orderId: number;
   orderNumber: string;
+  /** Secret for this order's public routes (SF-1). Returned once; store it with the order number. */
+  accessToken?: string;
+  /** Link that opens this order's tracking on any device (token in the URL fragment). */
+  trackingUrl?: string | null;
   totalAmount: number;
   subtotal: number;
   deliveryFee: number;

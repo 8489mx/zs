@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
+import { buildCartProduct } from '../lib/storefront-variant-pricing';
 import type {
   CartItem,
   CreateOnlineOrderResponse,
@@ -152,13 +153,20 @@ export function usePublicStorefront(cleanSlug: string) {
           return exists;
         })
         .map((item) => {
-          const fresh = activeProductMap.get(String(item.product.id))!;
+          // Re-price from the fresh catalog, keeping the chosen variant (SF-4). A variant that no
+          // longer exists drops the line rather than silently falling back to the base price.
+          const fresh = buildCartProduct(activeProductMap.get(String(item.product.id))!, item.product.variantName);
+          if (!fresh) {
+            changed = true;
+            return null;
+          }
           if (fresh.price !== item.product.price || fresh.name !== item.product.name) {
             changed = true;
             return { ...item, product: fresh };
           }
           return item;
-        });
+        })
+        .filter((item): item is CartItem => item !== null);
 
       return changed ? updated : prev;
     });
@@ -172,19 +180,23 @@ export function usePublicStorefront(cleanSlug: string) {
     return map;
   }, [cartItems]);
 
-  const handleAddToCart = useCallback((product: StorefrontProduct) => {
+  // One cart line per product (the sales engine invoices one row per product): picking a different
+  // variant of a product already in the cart switches that line to the new variant.
+  const handleAddToCart = useCallback((product: StorefrontProduct, quantity: number = 1) => {
+    const addQty = Math.max(1, Math.floor(Number(quantity) || 1));
     setCartItems((prev) => {
       const pNum = Number(product.id);
       const existingIndex = prev.findIndex((i) => Number(i.product.id) === pNum);
       if (existingIndex > -1) {
+        const existing = prev[existingIndex];
+        const sameVariant = (existing.product.variantName || null) === (product.variantName || null);
         const next = [...prev];
-        next[existingIndex] = {
-          ...next[existingIndex],
-          quantity: next[existingIndex].quantity + 1,
-        };
+        next[existingIndex] = sameVariant
+          ? { ...existing, quantity: existing.quantity + addQty }
+          : { product, quantity: addQty };
         return next;
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: addQty }];
     });
   }, []);
 
@@ -219,8 +231,9 @@ export function usePublicStorefront(cleanSlug: string) {
     const newCart: CartItem[] = [];
     for (const item of order.items) {
       const prod = rawProds.find((p) => Number(p.id) === Number(item.productId));
-      if (prod) {
-        newCart.push({ product: prod, quantity: item.quantity });
+      const cartProduct = prod ? buildCartProduct(prod, (item as { variantName?: string | null }).variantName) : null;
+      if (cartProduct) {
+        newCart.push({ product: cartProduct, quantity: item.quantity });
       } else {
         newCart.push({
           product: {
@@ -239,6 +252,34 @@ export function usePublicStorefront(cleanSlug: string) {
     setCartItems(newCart);
     setEditingOrderNumber(order.orderNumber);
     setIsCartOpen(true);
+  }, [catalogQuery.data?.products]);
+
+  /**
+   * "اطلب تاني": refills the cart from a past order at TODAY's catalog prices (the server re-prices at
+   * checkout anyway). Items no longer sold, out of stock, or whose size was removed are skipped and
+   * reported back so the page can tell the shopper.
+   */
+  const handleReorder = useCallback((order: OnlineOrderRecord): { added: number; skipped: string[] } => {
+    const rawProds: StorefrontProduct[] = catalogQuery.data?.products || [];
+    const newCart: CartItem[] = [];
+    const skipped: string[] = [];
+    for (const item of order.items) {
+      const prod = rawProds.find((p) => Number(p.id) === Number(item.productId));
+      const cartProduct = prod && prod.inStock !== false && prod.price > 0
+        ? buildCartProduct(prod, (item as { variantName?: string | null }).variantName)
+        : null;
+      if (cartProduct) {
+        newCart.push({ product: cartProduct, quantity: Math.max(1, Number(item.quantity) || 1) });
+      } else {
+        skipped.push(item.name);
+      }
+    }
+    if (newCart.length > 0) {
+      setCartItems(newCart);
+      setEditingOrderNumber(undefined);
+      setIsCartOpen(true);
+    }
+    return { added: newCart.length, skipped };
   }, [catalogQuery.data?.products]);
 
   const rawProducts: StorefrontProduct[] = catalogQuery.data?.products || [];
@@ -412,6 +453,7 @@ export function usePublicStorefront(cleanSlug: string) {
     handleClearCart,
     handleGoHome,
     handleEditOrder,
+    handleReorder,
     rawProducts,
     categories,
     dealsProducts,

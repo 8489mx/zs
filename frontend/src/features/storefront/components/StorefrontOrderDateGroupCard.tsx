@@ -17,6 +17,7 @@ interface StorefrontOrderDateGroupCardProps {
   onToggle: () => void;
   info: StorefrontInfo;
   onEditOrder: (order: OnlineOrderRecord) => void;
+  onReorder?: (order: OnlineOrderRecord) => void;
   onCancelOrder: (order: OnlineOrderRecord) => void;
   isCancelling: boolean;
 }
@@ -27,6 +28,7 @@ export function StorefrontOrderDateGroupCard({
   onToggle,
   info,
   onEditOrder,
+  onReorder,
   onCancelOrder,
   isCancelling,
 }: StorefrontOrderDateGroupCardProps) {
@@ -129,6 +131,7 @@ export function StorefrontOrderDateGroupCard({
               order={order}
               info={info}
               onEditOrder={onEditOrder}
+              onReorder={onReorder}
               onCancelOrder={onCancelOrder}
               isCancelling={isCancelling}
             />

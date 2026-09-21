@@ -9,15 +9,18 @@ import { StorefrontMultiRowHome } from '../components/StorefrontMultiRowHome';
 import { StorefrontFilteredGrid } from '../components/StorefrontFilteredGrid';
 import { StorefrontModals } from '../components/StorefrontModals';
 import { StorefrontDeliveryInfoBar } from '../components/StorefrontDeliveryInfoBar';
+import { StorefrontSkeleton } from '../components/StorefrontSkeleton';
 import { initStorefrontPixels, trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { usePublicStorefront, ITEMS_PER_PAGE } from '../hooks/usePublicStorefront';
 import { useStorefrontSeo } from '../hooks/useStorefrontSeo';
 import { IconStore } from '../components/StorefrontIcons';
 import { UtensilsIcon } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
+import { saveCustomerOrderRef } from '../lib/customer-order-refs';
 
 export function PublicStorefrontPage() {
-  const { slug, tableNo, productId } = useParams<{ slug?: string; tableNo?: string; productId?: string }>();
+  const { slug, tableNo, productId, orderNumber: trackOrderNumber } = useParams<{ slug?: string; tableNo?: string; productId?: string; orderNumber?: string }>();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -95,6 +98,7 @@ export function PublicStorefrontPage() {
     handleClearCart,
     handleGoHome,
     handleEditOrder,
+    handleReorder,
     categories,
     dealsProducts,
     smartDealProductIds,
@@ -105,6 +109,20 @@ export function PublicStorefrontPage() {
     hasMore,
     isHomepageMultiRow,
   } = usePublicStorefront(cleanSlug);
+
+  /*
+   * رابط التتبع: يسجّل الطلب على هذا الجهاز (فيظهر في «طلباتي» هنا أيضاً) ثم يفتح «طلباتي»،
+   * ويمسح التوكن من شريط العنوان فوراً حتى لا يُنسخ أو يُشارك بالخطأ مع رابط المتجر.
+   */
+  useEffect(() => {
+    if (!trackOrderNumber) return;
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const token = hashParams.get('t');
+    if (token) saveCustomerOrderRef(cleanSlug, trackOrderNumber, token);
+    navigate(storeBasePath, { replace: true });
+    setIsMyOrdersOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackOrderNumber]);
 
   // عنوان التبويب ووسوم المشاركة تتبع المنتج المفتوح إن وُجد
   useStorefrontSeo({ info, product: quickViewProduct });
@@ -151,34 +169,8 @@ export function PublicStorefrontPage() {
   }, [productId, catalogQuery.data?.products]);
 
   if (catalogQuery.isLoading || infoQuery.isLoading) {
-    return (
-      <div
-        dir="rtl"
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#f8fafc',
-          fontFamily: 'inherit',
-        }}
-      >
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            border: '3.5px solid #e2e8f0',
-            borderTopColor: '#170e5e',
-            borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite',
-            marginBottom: '14px',
-          }}
-        />
-        <p style={{ color: '#64748b', fontSize: '14px', fontWeight: 600 }}>جاري تجهيز المتجر بسرعة فائقة...</p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
+    // Page-shaped placeholder instead of a spinner; uses the store colour as soon as /info is in.
+    return <StorefrontSkeleton brandColor={infoQuery.data?.brandColor} />;
   }
 
   // If storefront is explicitly disabled by merchant
@@ -489,6 +481,17 @@ export function PublicStorefrontPage() {
         isMyOrdersOpen={isMyOrdersOpen}
         onCloseMyOrders={() => setIsMyOrdersOpen(false)}
         onEditOrder={handleEditOrder}
+        onReorder={(order) => {
+          const { added, skipped } = handleReorder(order);
+          if (added === 0) {
+            toast.warning('أصناف هذا الطلب غير متاحة حالياً في المتجر.');
+            return;
+          }
+          setIsMyOrdersOpen(false);
+          if (skipped.length > 0) {
+            toast.info(`أضفنا ${added} صنف للسلة. غير متاح حالياً: ${skipped.join('، ')}`);
+          }
+        }}
         isReviewModalOpen={isReviewModalOpen}
         reviewProduct={reviewProduct}
         onCloseReviewModal={() => {

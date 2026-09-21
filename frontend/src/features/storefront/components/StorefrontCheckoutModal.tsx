@@ -6,6 +6,7 @@ import { storefrontApi } from '../api/storefront.api';
 import { StorefrontOnlinePaymentModal } from './StorefrontOnlinePaymentModal';
 import { UtensilsIcon, XIcon, CheckIcon, TagIcon, TruckIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
 import { trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
+import { getCustomerOrderToken, saveCustomerOrderRef } from '../lib/customer-order-refs';
 
 const STOREFRONT_SAVED_CUSTOMER_KEY = 'zsystems.storefront.saved_customer';
 
@@ -149,6 +150,9 @@ export function StorefrontCheckoutModal({
   const [createdOrderForPayment, setCreatedOrderForPayment] = useState<CreateOnlineOrderResponse | null>(null);
   const [rememberDevice, setRememberDevice] = useState(true);
   const [isDeviceMatched, setIsDeviceMatched] = useState(false);
+  // Returning shopper: their saved details collapse into one summary line and the order is one tap
+  // away. "تعديل البيانات" brings the full form back.
+  const [expressMode, setExpressMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [couponCodeInput, setCouponCodeInput] = useState('');
@@ -250,6 +254,7 @@ export function StorefrontCheckoutModal({
           if (parsed?.name) setCustomerName(parsed.name);
           if (parsed?.address) setCustomerAddress(parsed.address);
           setIsDeviceMatched(true);
+          setExpressMode(!editingOrderNumber);
         }
       }
     } catch {}
@@ -351,6 +356,9 @@ export function StorefrontCheckoutModal({
   const phoneStatus = getDynamicPhoneValidation(customerPhone, selectedCountry);
   const nameStatus = getCustomerNameValidation(customerName);
   const addressStatus = getCustomerAddressValidation(customerAddress);
+  // Only collapse when every saved field would pass validation — otherwise show the form so the
+  // shopper can see what needs fixing.
+  const canExpress = expressMode && phoneStatus.isValid && nameStatus.isValid && (isDineIn || isPickup || addressStatus.isValid);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -425,12 +433,14 @@ export function StorefrontCheckoutModal({
           items: cartItems.map((item) => ({
             productId: Number(item.product.id),
             quantity: Number(item.quantity) || 1,
+            variantName: item.product.variantName || undefined,
           })),
         };
-        await storefrontApi.updateCustomerOrder(tenantSlug, editingOrderNumber, payload);
-        try {
-          localStorage.setItem(`zs_customer_phone_${tenantSlug}`, customerPhone.trim());
-        } catch {}
+        const editToken = getCustomerOrderToken(tenantSlug, editingOrderNumber);
+        if (!editToken) {
+          throw new Error('تعذر التحقق من ملكية الطلب على هذا الجهاز، يرجى التواصل مع المتجر لتعديله');
+        }
+        await storefrontApi.updateCustomerOrder(tenantSlug, editingOrderNumber, editToken, payload);
         if (onEditSuccess) {
           onEditSuccess(editingOrderNumber);
         } else {
@@ -468,6 +478,7 @@ export function StorefrontCheckoutModal({
           items: cartItems.map((item) => ({
             productId: Number(item.product.id),
             quantity: Number(item.quantity) || 1,
+            variantName: item.product.variantName || undefined,
           })),
         };
         const res = await storefrontApi.createOrder(tenantSlug, payload);
@@ -479,19 +490,11 @@ export function StorefrontCheckoutModal({
           numItems: cartItems.length,
         });
 
-        try {
-          const key = `zs_customer_orders_${tenantSlug}`;
-          const existing = JSON.parse(localStorage.getItem(key) || '[]');
-          if (!existing.includes(res.orderNumber)) {
-            existing.unshift(res.orderNumber);
-            localStorage.setItem(key, JSON.stringify(existing.slice(0, 30)));
-          }
-          localStorage.setItem(`zs_customer_phone_${tenantSlug}`, customerPhone.trim());
-        } catch {}
+        saveCustomerOrderRef(tenantSlug, res.orderNumber, res.accessToken);
 
         if (paymentMethod === 'credit_card') {
           try {
-            const session = await storefrontApi.createPaymentSession(tenantSlug, res.orderNumber);
+            const session = await storefrontApi.createPaymentSession(tenantSlug, res.orderNumber, res.accessToken || '');
             setCreatedOrderForPayment(res);
             setPaymentSession(session);
             setLoading(false);
@@ -701,6 +704,51 @@ export function StorefrontCheckoutModal({
               </div>
             )}
 
+            {canExpress && (
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: `1.5px solid ${info?.brandColor || '#170e5e'}`,
+                  borderRadius: '12px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
+                    {isDineIn ? 'الطلب باسم' : isPickup ? 'الاستلام باسم' : 'التوصيل إلى'}
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{customerName}</div>
+                  <div style={{ fontSize: '12.5px', color: '#334155', direction: 'ltr', textAlign: 'right', marginTop: '2px' }}>{customerPhone}</div>
+                  {!isDineIn && !isPickup && (
+                    <div style={{ fontSize: '12.5px', color: '#334155', marginTop: '2px', lineHeight: 1.5, wordBreak: 'break-word' }}>{customerAddress}</div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setExpressMode(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: info?.brandColor || '#170e5e',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    whiteSpace: 'nowrap',
+                    fontFamily: 'inherit',
+                    padding: 0,
+                  }}
+                >
+                  تعديل البيانات
+                </button>
+              </div>
+            )}
+
+            {!canExpress && (<>
             {/* Field 1: Customer Phone & Country Selector (First field) */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
@@ -855,6 +903,8 @@ export function StorefrontCheckoutModal({
               />
             </div>
 
+            </>)}
+
             {/* Field: Delivery Zone Matrix Selector (Hidden for Dine-In and Pickup) */}
             {!isDineIn && !isPickup && activeDeliveryZones.length > 0 && (
               <div>
@@ -944,7 +994,7 @@ export function StorefrontCheckoutModal({
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : canExpress ? null : (
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
                   عنوان التوصيل بالتفصيل <span style={{ color: '#ef4444' }}>*</span>

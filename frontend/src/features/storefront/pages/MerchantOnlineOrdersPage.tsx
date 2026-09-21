@@ -68,6 +68,19 @@ export function MerchantOnlineOrdersPage() {
   });
 
   // Mutations
+  const confirmPaymentMutation = useMutation({
+    mutationFn: ({ id, reference }: { id: number; reference?: string }) =>
+      storefrontApi.confirmOrderPayment(id, reference),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders'] });
+      setSelectedOrder((prev) => (prev && prev.id === vars.id ? { ...prev, paymentStatus: 'paid', gatewayProvider: 'manual' } : prev));
+      toast.success('تم تأكيد استلام التحويل، وستصدر فاتورة التوصيل كمحصّلة');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'تعذر تأكيد استلام التحويل');
+    },
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       storefrontApi.updateOrderStatus(id, status),
@@ -591,6 +604,8 @@ export function MerchantOnlineOrdersPage() {
         onClose={() => setSelectedOrder(null)}
         onUpdateStatus={(id, status) => updateStatusMutation.mutate({ id, status })}
         isUpdatingStatus={updateStatusMutation.isPending}
+        onConfirmPayment={(id, reference) => confirmPaymentMutation.mutate({ id, reference })}
+        isConfirmingPayment={confirmPaymentMutation.isPending}
         onConvertToDelivery={(order) => {
           setSelectedOrder(null);
           setDeliveryModalOrder(order);

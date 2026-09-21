@@ -17,6 +17,7 @@ interface StorefrontCustomerOrderCardProps {
   order: OnlineOrderRecord;
   info: StorefrontInfo;
   onEditOrder: (order: OnlineOrderRecord) => void;
+  onReorder?: (order: OnlineOrderRecord) => void;
   onCancelOrder: (order: OnlineOrderRecord) => void;
   isCancelling?: boolean;
 }
@@ -67,6 +68,7 @@ export function StorefrontCustomerOrderCard({
   order,
   info,
   onEditOrder,
+  onReorder,
   onCancelOrder,
   isCancelling = false,
 }: StorefrontCustomerOrderCardProps) {
@@ -648,13 +650,36 @@ export function StorefrontCustomerOrderCard({
             </button>
           </div>
         ) : (
-          <span style={{ fontSize: '11px', color: '#64748b' }}>
-            {order.status === 'cancelled'
-              ? 'الطلب ملغي'
-              : order.status === 'delivered'
-              ? 'اكتمل التوصيل بنجاح'
-              : 'الطلب معتمد ولا يمكن تعديله'}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <span style={{ fontSize: '11px', color: '#64748b' }}>
+              {order.status === 'cancelled'
+                ? 'الطلب ملغي'
+                : order.status === 'delivered'
+                ? 'اكتمل التوصيل بنجاح'
+                : 'الطلب معتمد ولا يمكن تعديله'}
+            </span>
+            {onReorder && (order.status === 'delivered' || order.status === 'cancelled') && (
+              <button
+                type="button"
+                onClick={() => onReorder(order)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  background: info.brandColor || '#170e5e',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                اطلب تاني
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

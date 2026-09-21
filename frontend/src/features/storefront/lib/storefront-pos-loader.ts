@@ -21,9 +21,10 @@ export async function loadOnlineOrderIntoPosCart(orderId: number, navigate: (to:
     priceType: 'retail',
   }));
 
-  const noteText = data.customerNotes && data.customerNotes.trim()
+  const baseNote = data.customerNotes && data.customerNotes.trim()
     ? data.customerNotes.trim()
     : `طلب متجر إلكتروني #${data.orderNumber}`;
+  const noteText = data.couponCode ? `${baseNote} - كوبون ${data.couponCode}` : baseNote;
 
   persistDraftSnapshot({
     cart: posItems,
@@ -35,8 +36,9 @@ export async function loadOnlineOrderIntoPosCart(orderId: number, navigate: (to:
     quickCustomerPhone: data.customerPhone || '',
     quickCustomerAddress: data.customerAddress || '',
     deliveryFee: Number(data.deliveryFee || 0),
-    discount: 0,
-    orderType: 'delivery',
+    // The coupon discount quoted to the customer at checkout (O55). Dropping it here overcharged them.
+    discount: Number(data.discountAmount || 0),
+    orderType: data.orderType === 'dine_in' ? 'dine_in' : 'delivery',
     note: noteText,
     paymentType: 'cash',
     paymentChannel: data.paymentMethod === 'instapay_wallet' ? 'instapay' : 'cash',
@@ -46,7 +48,7 @@ export async function loadOnlineOrderIntoPosCart(orderId: number, navigate: (to:
     transferAmount: 0,
     search: '',
     priceType: 'retail',
-    tableNumber: '',
+    tableNumber: data.orderType === 'dine_in' ? (data.tableNumber || '') : '',
     branchId: '',
     locationId: '',
     deliveryRepId: '',

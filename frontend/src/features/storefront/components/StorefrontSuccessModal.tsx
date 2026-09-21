@@ -1,5 +1,6 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { CreateOnlineOrderResponse } from '../types/storefront.types';
+import { useState } from 'react';
 import { PackageIcon } from '@/shared/components/icons/AppIcons';
 
 interface StorefrontSuccessModalProps {
@@ -20,7 +21,17 @@ export function StorefrontSuccessModal({
   onTrackOrder,
 }: StorefrontSuccessModalProps) {
   const activeOrder = order || orderData;
+  const [linkCopied, setLinkCopied] = useState(false);
   if (!activeOrder || !isOpen) return null;
+
+  const trackingUrl = activeOrder.trackingUrl || '';
+  const copyTrackingLink = async () => {
+    try {
+      await navigator.clipboard.writeText(trackingUrl);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {}
+  };
 
   return (
     <div
@@ -198,6 +209,63 @@ export function StorefrontSuccessModal({
             <PackageIcon size={16} color="#ffffff" />
             <span>تتبع حالة الطلب في (طلباتي)</span>
           </button>
+        )}
+
+        {/* Tracking link: follows the order from any device, no account needed */}
+        {trackingUrl && (
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px dashed #cbd5e1',
+              borderRadius: '12px',
+              padding: '10px 12px',
+              marginBottom: '10px',
+              textAlign: 'right',
+            }}
+          >
+            <div style={{ fontSize: '12px', color: '#334155', fontWeight: 700, marginBottom: '8px', lineHeight: 1.5 }}>
+              احفظ رابط متابعة طلبك لتفتحه من أي جهاز في أي وقت.
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={copyTrackingLink}
+                style={{
+                  flex: 1,
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#0f172a',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {linkCopied ? 'تم نسخ الرابط' : 'نسخ الرابط'}
+              </button>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`رابط متابعة طلبي #${activeOrder.orderNumber}: ${trackingUrl}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  flex: 1,
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #bbf7d0',
+                  background: '#f0fdf4',
+                  color: '#166534',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  textAlign: 'center',
+                }}
+              >
+                إرسال لنفسي على واتساب
+              </a>
+            </div>
+          </div>
         )}
 
         {/* WhatsApp Direct Action */}

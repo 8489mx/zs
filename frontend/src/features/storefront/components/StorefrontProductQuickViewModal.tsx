@@ -14,6 +14,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 import { IconStar, IconFlame } from './StorefrontIcons';
 import { trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
+import { buildCartProduct, getProductVariants, resolveVariantUnitPrice } from '../lib/storefront-variant-pricing';
 
 interface StorefrontProductQuickViewModalProps {
   product: StorefrontProduct | null;
@@ -23,6 +24,8 @@ interface StorefrontProductQuickViewModalProps {
   info?: StorefrontInfo;
   tenantSlug?: string;
   slug?: string;
+  /** This product's line already in the cart, if any (the cart holds one variant per product). */
+  cartLine?: { variantName?: string | null; quantity: number } | null;
 }
 
 export function StorefrontProductQuickViewModal({
@@ -33,6 +36,7 @@ export function StorefrontProductQuickViewModal({
   info,
   tenantSlug,
   slug,
+  cartLine,
 }: StorefrontProductQuickViewModalProps) {
   const [qty, setQty] = useState(1);
   const [copied, setCopied] = useState(false);
@@ -62,12 +66,14 @@ export function StorefrontProductQuickViewModal({
     ? (product as any).gallery
     : (product.imageUrl ? [product.imageUrl] : []);
 
-  const variants: Array<{ name: string; price?: number; extraPrice?: number }> = (product as any).variants || [];
-  const selectedVariant = selectedVariantIndex !== null ? variants[selectedVariantIndex] : null;
+  const variants = getProductVariants(product);
+  const selectedVariant = selectedVariantIndex !== null ? variants[selectedVariantIndex] || null : null;
 
-  const basePrice = selectedVariant?.price !== undefined
-    ? Number(selectedVariant.price)
-    : (product.price + (selectedVariant?.extraPrice ? Number(selectedVariant.extraPrice) : 0));
+  // Same rule as the server's pricing engine (SF-4), so the cart shows what checkout will charge.
+  const basePrice = resolveVariantUnitPrice(product.price, selectedVariant) ?? product.price;
+  const cartHasOtherVariant = Boolean(
+    cartLine && (cartLine.variantName || null) !== (selectedVariant?.name || null),
+  );
 
   const effectiveSlug = tenantSlug || slug;
   /*
@@ -93,11 +99,8 @@ export function StorefrontProductQuickViewModal({
 
   const handleAdd = () => {
     if (!inStock) return;
-    const finalProduct = {
-      ...product,
-      price: basePrice,
-      name: selectedVariant ? `${product.name} (${selectedVariant.name})` : product.name,
-    };
+    const finalProduct = buildCartProduct(product, selectedVariant?.name);
+    if (!finalProduct) return;
 
     onAddToCart(finalProduct, qty);
     setAddedAnimation(true);
@@ -393,11 +396,19 @@ export function StorefrontProductQuickViewModal({
                         }}
                       >
                         <span>{v.name}</span>
-                        {v.price && <span>({Number(v.price).toLocaleString()} ج)</span>}
+                        {(() => {
+                          const vPrice = resolveVariantUnitPrice(product.price, v);
+                          return vPrice !== null && vPrice !== product.price ? <span>({vPrice.toLocaleString()} ج)</span> : null;
+                        })()}
                       </button>
                     );
                   })}
                 </div>
+                {cartHasOtherVariant && cartLine && (
+                  <div style={{ marginTop: '8px', fontSize: '12px', color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '6px 10px', lineHeight: 1.5 }}>
+                    في سلتك الآن {cartLine.variantName ? `المقاس «${cartLine.variantName}»` : 'هذا الصنف'} ({cartLine.quantity}). الإضافة ستستبدله بالمقاس المختار، لأن الطلب الواحد يقبل مقاساً واحداً لكل صنف.
+                  </div>
+                )}
               </div>
             )}
 

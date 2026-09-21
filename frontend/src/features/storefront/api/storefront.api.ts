@@ -19,31 +19,54 @@ import {
   AbandonedCartRecord,
   StorefrontAnalytics,
 } from '../types/storefront.types';
+import type { CustomerOrderRef } from '../lib/customer-order-refs';
+import { resolveStorefrontMediaList, resolveStorefrontMediaUrl, withResolvedProductMedia } from '../lib/storefront-media-url';
+
+/** Banner / logo fields of /info and /admin/settings → loadable URLs (SF-9). */
+function withResolvedInfoMedia<T extends StorefrontInfo>(info: T): T {
+  if (!info) return info;
+  return {
+    ...info,
+    bannerUrl: resolveStorefrontMediaUrl(info.bannerUrl),
+    bannerUrls: info.bannerUrls ? resolveStorefrontMediaList(info.bannerUrls) : info.bannerUrls,
+    logoUrl: resolveStorefrontMediaUrl(info.logoUrl),
+    logo_url: resolveStorefrontMediaUrl(info.logo_url),
+  };
+}
+
+function orderTokenHeaders(token: string): Record<string, string> {
+  return { 'x-order-token': token };
+}
 
 export const storefrontApi = {
   // Public APIs (No auth needed)
-  getInfo: (slug: string) => http<StorefrontInfo>(`/api/storefront/${encodeURIComponent(slug)}/info`),
+  getInfo: async (slug: string) =>
+    withResolvedInfoMedia(await http<StorefrontInfo>(`/api/storefront/${encodeURIComponent(slug)}/info`)),
 
-  createPaymentSession: (slug: string, orderNumber: string) =>
+  // Order-scoped public routes carry the order's access token (invariant SF-1).
+  createPaymentSession: (slug: string, orderNumber: string, token: string) =>
     http<StorefrontPaymentSessionResponse>(
       `/api/storefront/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderNumber)}/payment-session`,
-      { method: 'POST' }
+      { method: 'POST', headers: orderTokenHeaders(token) }
     ),
 
-  getPaymentStatus: (slug: string, orderNumber: string) =>
+  getPaymentStatus: (slug: string, orderNumber: string, token: string) =>
     http<StorefrontPaymentStatusResponse>(
-      `/api/storefront/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderNumber)}/payment-status`
+      `/api/storefront/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderNumber)}/payment-status`,
+      { headers: orderTokenHeaders(token) }
     ),
 
   mockPayOrder: (
     slug: string,
     orderNumber: string,
+    token: string,
     payload?: { cardNumber?: string; cardHolder?: string }
   ) =>
     http<{ ok: boolean; orderNumber: string; paymentStatus: string; transactionId: string; message: string }>(
       `/api/storefront/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderNumber)}/mock-pay`,
       {
         method: 'POST',
+        headers: orderTokenHeaders(token),
         body: JSON.stringify(payload || {}),
       }
     ),
@@ -54,10 +77,11 @@ export const storefrontApi = {
       res.categories = res.categories.map((c) => ({
         ...c,
         id: Number(c.id),
+        imageUrl: resolveStorefrontMediaUrl(c.imageUrl),
       }));
     }
     if (res?.products) {
-      res.products = res.products.map((p) => ({
+      res.products = res.products.map((p) => withResolvedProductMedia({
         ...p,
         id: Number(p.id),
         categoryId: p.categoryId ? Number(p.categoryId) : null,
@@ -66,18 +90,29 @@ export const storefrontApi = {
     return res;
   },
 
-  getSearchSuggestions: (slug: string, q: string) =>
-    http<{
+  getSearchSuggestions: async (slug: string, q: string) => {
+    const res = await http<{
       categories: Array<{ id: number; name: string; imageUrl?: string }>;
       products: Array<{ id: number; name: string; price: number; imageUrl?: string; categoryName?: string; inStock: boolean }>;
-    }>(`/api/storefront/${encodeURIComponent(slug)}/search/suggest?q=${encodeURIComponent(q)}`),
+    }>(`/api/storefront/${encodeURIComponent(slug)}/search/suggest?q=${encodeURIComponent(q)}`);
+    return {
+      categories: (res?.categories || []).map((c) => ({ ...c, imageUrl: resolveStorefrontMediaUrl(c.imageUrl) })),
+      products: (res?.products || []).map((p) => withResolvedProductMedia(p)),
+    };
+  },
 
-  getProductDetails: (slug: string, productId: number) =>
-    http<{
+  getProductDetails: async (slug: string, productId: number) => {
+    const res = await http<{
       product: any;
       related: any[];
       crossSell: any[];
-    }>(`/api/storefront/${encodeURIComponent(slug)}/products/${productId}`),
+    }>(`/api/storefront/${encodeURIComponent(slug)}/products/${productId}`);
+    return {
+      product: withResolvedProductMedia(res?.product),
+      related: (res?.related || []).map((p) => withResolvedProductMedia(p)),
+      crossSell: (res?.crossSell || []).map((p) => withResolvedProductMedia(p)),
+    };
+  },
 
   createOrder: (slug: string, payload: CreateOnlineOrderPayload) =>
     http<CreateOnlineOrderResponse>(`/api/storefront/${encodeURIComponent(slug)}/orders`, {
@@ -91,26 +126,24 @@ export const storefrontApi = {
       body: JSON.stringify({ code, subtotal }),
     }),
 
-  getCustomerOrders: (slug: string, phone?: string, orderNumbers?: string[]) => {
-    const params = new URLSearchParams();
-    if (phone) params.set('phone', phone);
-    if (orderNumbers && orderNumbers.length > 0) params.set('orderNumbers', orderNumbers.join(','));
-    return http<{ ok: boolean; orders: OnlineOrderRecord[] }>(
-      `/api/storefront/${encodeURIComponent(slug)}/orders?${params.toString()}`
-    );
-  },
+  lookupCustomerOrders: (slug: string, orders: CustomerOrderRef[]) =>
+    http<{ ok: boolean; orders: OnlineOrderRecord[] }>(`/api/storefront/${encodeURIComponent(slug)}/orders/lookup`, {
+      method: 'POST',
+      body: JSON.stringify({ orders }),
+    }),
 
-  cancelCustomerOrder: (slug: string, orderNumber: string) =>
+  cancelCustomerOrder: (slug: string, orderNumber: string, token: string) =>
     http<{ ok: boolean; message: string }>(
       `/api/storefront/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderNumber)}/cancel`,
-      { method: 'POST' }
+      { method: 'POST', headers: orderTokenHeaders(token) }
     ),
 
-  updateCustomerOrder: (slug: string, orderNumber: string, payload: CreateOnlineOrderPayload) =>
+  updateCustomerOrder: (slug: string, orderNumber: string, token: string, payload: CreateOnlineOrderPayload) =>
     http<{ ok: boolean; orderNumber: string; totalAmount: number; message: string }>(
       `/api/storefront/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderNumber)}`,
       {
         method: 'PUT',
+        headers: orderTokenHeaders(token),
         body: JSON.stringify(payload),
       }
     ),
@@ -154,6 +187,13 @@ export const storefrontApi = {
       body: JSON.stringify({ status, saleId }),
     }),
 
+  /** Merchant confirms an InstaPay / wallet transfer actually arrived (SF-3). */
+  confirmOrderPayment: (id: number, reference?: string) =>
+    http<{ ok: boolean; paymentStatus: string }>(`/api/storefront/admin/orders/${id}/confirm-payment`, {
+      method: 'POST',
+      body: JSON.stringify({ reference }),
+    }),
+
   convertToSale: (id: number, deliveryRepId?: number) =>
     http<{ ok: boolean; saleId: number; sale: any; message?: string; customerName?: string; isNewCustomer?: boolean; deliveryRepName?: string }>(
       `/api/storefront/admin/orders/${id}/convert-to-sale`,
@@ -174,6 +214,10 @@ export const storefrontApi = {
       customerAddress: string;
       deliveryFee: number;
       totalAmount: number;
+      discountAmount?: number;
+      couponCode?: string | null;
+      orderType?: 'dine_in' | 'delivery';
+      tableNumber?: string;
       items: Array<{
         productId: number;
         name: string;
@@ -190,13 +234,13 @@ export const storefrontApi = {
       method: 'POST',
     }),
 
-  getSettings: () => http<StorefrontInfo>(`/api/storefront/admin/settings`),
+  getSettings: async () => withResolvedInfoMedia(await http<StorefrontInfo>(`/api/storefront/admin/settings`)),
 
-  updateSettings: (payload: StorefrontSettingsPayload) =>
-    http<StorefrontInfo>(`/api/storefront/admin/settings`, {
+  updateSettings: async (payload: StorefrontSettingsPayload) =>
+    withResolvedInfoMedia(await http<StorefrontInfo>(`/api/storefront/admin/settings`, {
       method: 'POST',
       body: JSON.stringify(payload),
-    }),
+    })),
 
   updateProductImage: (productId: number, imageUrl: string) =>
     http<{ success: boolean; productId: number; imageUrl: string }>(

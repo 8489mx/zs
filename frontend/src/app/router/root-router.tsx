@@ -183,6 +183,22 @@ const router = createRouter([
    * قبلها كان المنتج يُفتح في مودال بلا URL، فلا يمكن إرساله في واتساب ولا
    * استهدافه بإعلان ولا فهرسته في جوجل، وزر الرجوع كان يخرج من المتجر كله.
    */
+  /*
+   * رابط تتبع الطلب المرسل للعميل على واتساب: `/store/:slug/track/:orderNumber#t=<token>`.
+   * التوكن في الـ fragment فلا يصل للسيرفر ولا لسجلات الوصول (SF-1).
+   */
+  {
+    path: '/st/:slug/track/:orderNumber',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
+    path: '/store/:slug/track/:orderNumber',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
+    path: '/shop/:slug/track/:orderNumber',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
   {
     path: '/st/:slug/p/:productId',
     element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),

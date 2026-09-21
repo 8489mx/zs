@@ -15,6 +15,8 @@ interface MerchantOrderDetailModalProps {
   onClose: () => void;
   onUpdateStatus: (id: number, status: string) => void;
   isUpdatingStatus: boolean;
+  onConfirmPayment: (id: number, reference?: string) => void;
+  isConfirmingPayment: boolean;
   onConvertToDelivery: (order: OnlineOrderRecord) => void;
   onShipBosta: (order: OnlineOrderRecord) => void;
   onShipGcc: (order: OnlineOrderRecord) => void;
@@ -22,11 +24,40 @@ interface MerchantOrderDetailModalProps {
   loadingPosOrderId: number | null;
 }
 
+// Mirrors the backend's resolveOnlineOrderCollection (SF-3): only a verified gateway payment or a
+// merchant-confirmed transfer counts as collected. The sandbox simulator never does.
+const COLLECTING_PROVIDERS = ['paymob', 'xpay', 'tap', 'stripe', 'manual'];
+
+function describeOrderPayment(order: OnlineOrderRecord): { methodLabel: string; statusLabel: string; collected: boolean } {
+  const provider = String(order.gatewayProvider || '').toLowerCase();
+  const methodLabel =
+    order.paymentMethod === 'instapay_wallet'
+      ? 'إنستاباي / محفظة (تحويل مسبق)'
+      : order.paymentMethod === 'credit_card'
+      ? 'بطاقة بنكية أونلاين'
+      : 'دفع عند الاستلام (كاش)';
+  const collected = order.paymentStatus === 'paid' && COLLECTING_PROVIDERS.includes(provider);
+
+  let statusLabel = 'غير مسدد — يُحصَّل عند الاستلام';
+  if (collected) {
+    statusLabel = provider === 'manual' ? 'مسدد (تحويل مؤكد يدوياً)' : 'مسدد إلكترونياً';
+  } else if (order.paymentStatus === 'paid' && provider === 'mock') {
+    statusLabel = 'دفع تجريبي (Sandbox) — غير محصّل';
+  } else if (order.paymentMethod === 'instapay_wallet') {
+    statusLabel = 'بانتظار تأكيد وصول التحويل';
+  } else if (order.paymentStatus === 'failed') {
+    statusLabel = 'فشل الدفع الإلكتروني — يُحصَّل عند الاستلام';
+  }
+  return { methodLabel, statusLabel, collected };
+}
+
 export function MerchantOrderDetailModal({
   order,
   onClose,
   onUpdateStatus,
   isUpdatingStatus,
+  onConfirmPayment,
+  isConfirmingPayment,
   onConvertToDelivery,
   onShipBosta,
   onShipGcc,
@@ -34,6 +65,13 @@ export function MerchantOrderDetailModal({
   loadingPosOrderId,
 }: MerchantOrderDetailModalProps) {
   if (!order) return null;
+
+  const payment = describeOrderPayment(order);
+  const canConfirmTransfer =
+    order.paymentMethod === 'instapay_wallet' &&
+    order.paymentStatus !== 'paid' &&
+    order.status !== 'cancelled' &&
+    !order.saleId;
 
   return (
     <DialogShell
@@ -148,9 +186,53 @@ export function MerchantOrderDetailModal({
                   color: order.paymentMethod === 'instapay_wallet' ? '#6d28d9' : '#0f172a',
                 }}
               >
-                {order.paymentMethod === 'instapay_wallet' ? 'إنستاباي / محفظة (تحويل مسبق)' : 'دفع عند الاستلام (كاش)'}
+                {payment.methodLabel}
               </span>
             </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>حالة السداد:</span>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  background: payment.collected ? '#dcfce7' : '#fef3c7',
+                  color: payment.collected ? '#166534' : '#92400e',
+                }}
+              >
+                {payment.statusLabel}
+              </span>
+            </div>
+            {canConfirmTransfer && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '8px', padding: '8px 12px' }}>
+                <span style={{ fontSize: '12px', color: '#5b21b6', fontWeight: 700, lineHeight: 1.5 }}>
+                  لن تُعتبر الفاتورة محصّلة حتى تتأكد من وصول التحويل فعلياً لحسابك. بدون التأكيد سيطالب المندوب العميل بالمبلغ عند التسليم.
+                </span>
+                <button
+                  type="button"
+                  disabled={isConfirmingPayment}
+                  onClick={() => {
+                    if (window.confirm(`تأكيد استلام تحويل بمبلغ ${order.totalAmount.toLocaleString()} للطلب #${order.orderNumber}؟`)) {
+                      onConfirmPayment(order.id);
+                    }
+                  }}
+                  style={{
+                    background: '#6d28d9',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '12.5px',
+                    padding: '8px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: isConfirmingPayment ? 'wait' : 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {isConfirmingPayment ? 'جاري التأكيد...' : 'تأكيد استلام التحويل'}
+                </button>
+              </div>
+            )}
             {order.customerNotes && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 12px', marginTop: '2px' }}>
                 <span style={{ fontSize: '12px', color: '#92400e', fontWeight: 800 }}>ملاحظات العميل وتجهيز الأصناف:</span>

@@ -4,6 +4,7 @@ import { PackageIcon, ShoppingCartIcon, RefreshCwIcon, ClockIcon, XIcon, AlertTr
 import { storefrontApi } from '../api/storefront.api';
 import { OnlineOrderRecord, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontOrderDateGroupCard, DateGroupedOrders } from './StorefrontOrderDateGroupCard';
+import { getCustomerOrderRefs, getCustomerOrderToken } from '../lib/customer-order-refs';
 
 interface StorefrontMyOrdersModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface StorefrontMyOrdersModalProps {
   slug: string;
   info: StorefrontInfo;
   onEditOrder: (order: OnlineOrderRecord) => void;
+  onReorder?: (order: OnlineOrderRecord) => void;
 }
 
 function formatOrderDayAndDate(dateInput: string | Date): string {
@@ -29,40 +31,33 @@ export function StorefrontMyOrdersModal({
   slug,
   info,
   onEditOrder,
+  onReorder,
 }: StorefrontMyOrdersModalProps) {
   const queryClient = useQueryClient();
-  const savedPhoneKey = `zs_customer_phone_${slug}`;
-  const savedOrdersKey = `zs_customer_orders_${slug}`;
-
-  const [phoneSearch, setPhoneSearch] = useState(() => {
-    try { return localStorage.getItem(savedPhoneKey) || ''; } catch { return ''; }
-  });
-  const [activeSearchPhone, setActiveSearchPhone] = useState(phoneSearch);
   const [actionError, setActionError] = useState('');
   const [expandedDateKeys, setExpandedDateKeys] = useState<Record<string, boolean>>({});
 
-  const savedOrderNumbers = useMemo((): string[] => {
-    try {
-      const raw = localStorage.getItem(savedOrdersKey);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  }, [savedOrdersKey]);
+  // Orders are looked up only by the access tokens this device received at checkout (SF-1).
+  // Re-read on every open so an order placed a moment ago shows up.
+  const savedOrderRefs = useMemo(() => (isOpen ? getCustomerOrderRefs(slug) : []), [slug, isOpen]);
 
   const ordersQuery = useQuery({
-    queryKey: ['customer-orders', slug, activeSearchPhone, savedOrderNumbers.join(',')],
+    queryKey: ['customer-orders', slug, savedOrderRefs.map((r) => r.orderNumber).join(',')],
     queryFn: async () => {
-      const res = await storefrontApi.getCustomerOrders(slug, activeSearchPhone, savedOrderNumbers);
+      const res = await storefrontApi.lookupCustomerOrders(slug, savedOrderRefs);
       return res.orders || [];
     },
-    enabled: isOpen && (Boolean(activeSearchPhone) || savedOrderNumbers.length > 0),
+    enabled: isOpen && savedOrderRefs.length > 0,
     staleTime: 5 * 1000,
     refetchInterval: isOpen ? 10 * 1000 : false,
   });
 
   const cancelMutation = useMutation({
-    mutationFn: (orderNumber: string) => storefrontApi.cancelCustomerOrder(slug, orderNumber),
+    mutationFn: (orderNumber: string) => {
+      const token = getCustomerOrderToken(slug, orderNumber);
+      if (!token) throw new Error('تعذر التحقق من ملكية الطلب على هذا الجهاز، يرجى التواصل مع المتجر');
+      return storefrontApi.cancelCustomerOrder(slug, orderNumber, token);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer-orders', slug] });
       setActionError('');
@@ -116,15 +111,6 @@ export function StorefrontMyOrdersModal({
       ...prev,
       [dateKey]: !prev[dateKey],
     }));
-  };
-
-  const handleSearchPhone = (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = phoneSearch.trim();
-    setActiveSearchPhone(clean);
-    try {
-      localStorage.setItem(savedPhoneKey, clean);
-    } catch {}
   };
 
   const handleCancelOrder = (order: OnlineOrderRecord) => {
@@ -235,41 +221,11 @@ export function StorefrontMyOrdersModal({
           </div>
         </div>
 
-        {/* Phone Lookup Bar */}
-        <div style={{ padding: '14px 24px', background: '#ffffff', borderBottom: '1px solid #f1f5f9' }}>
-          <form onSubmit={handleSearchPhone} style={{ display: 'flex', gap: '8px' }}>
-            <input
-              type="tel"
-              placeholder="ابحث برقم هاتفك المسجل به الطلب (مثال: 01018017523)..."
-              value={phoneSearch}
-              onChange={(e) => setPhoneSearch(e.target.value)}
-              style={{
-                flex: 1,
-                padding: '9px 14px',
-                borderRadius: '8px',
-                border: '1.5px solid #cbd5e1',
-                fontSize: '13px',
-                direction: 'rtl',
-                outline: 'none',
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                padding: '9px 16px',
-                borderRadius: '8px',
-                background: '#170e5e',
-                color: '#ffffff',
-                border: 'none',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              بحث
-            </button>
-          </form>
+        {/* Device notice + errors */}
+        <div style={{ padding: '12px 24px', background: '#ffffff', borderBottom: '1px solid #f1f5f9' }}>
+          <p style={{ margin: 0, fontSize: '12px', color: '#64748b', lineHeight: 1.6 }}>
+            تظهر هنا الطلبات التي تمت من هذا الجهاز فقط حفاظاً على خصوصية بياناتك. لمتابعة طلب من جهاز آخر تواصل مع المتجر برقم الطلب.
+          </p>
           {actionError && (
             <div
               style={{
@@ -306,7 +262,7 @@ export function StorefrontMyOrdersModal({
                 لا توجد طلبات مسجلة حالياً
               </h4>
               <p style={{ margin: 0, fontSize: '12.5px', color: '#94a3b8' }}>
-                إذا قمت بالطلب مسبقاً، أدخل رقم هاتفك أعلاه للبحث عن طلباتك فوراً.
+                ستظهر طلباتك هنا تلقائياً بعد إتمام أي طلب من هذا الجهاز.
               </p>
             </div>
           ) : (
@@ -319,6 +275,7 @@ export function StorefrontMyOrdersModal({
                   onToggle={() => toggleGroup(group.dateKey)}
                   info={info}
                   onEditOrder={onEditOrder}
+                  onReorder={onReorder}
                   onCancelOrder={handleCancelOrder}
                   isCancelling={cancelMutation.isPending}
                 />
