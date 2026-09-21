@@ -119,29 +119,29 @@ export function StorefrontProductQuickViewModal({
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 1000,
+        zIndex: 10000,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'rgba(15, 23, 42, 0.65)',
         backdropFilter: 'blur(5px)',
-        padding: '16px',
+        padding: 'min(16px, 3vw)',
       }}
       onClick={onClose}
     >
       <div
         style={{
           backgroundColor: '#ffffff',
-          borderRadius: '18px',
-          maxWidth: '680px',
+          borderRadius: '16px',
+          maxWidth: '540px',
           width: '100%',
-          maxHeight: '92vh',
-          overflowY: 'auto',
+          maxHeight: '90vh',
           boxShadow: '0 24px 48px -12px rgba(15, 23, 42, 0.25)',
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
           border: '1px solid #e2e8f0',
+          overflow: 'hidden',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -151,11 +151,10 @@ export function StorefrontProductQuickViewModal({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '14px 20px',
+            padding: '12px 18px',
             borderBottom: '1px solid #f1f5f9',
             background: '#ffffff',
-            position: 'sticky',
-            top: 0,
+            flexShrink: 0,
             zIndex: 10,
           }}
         >
@@ -173,7 +172,7 @@ export function StorefrontProductQuickViewModal({
             >
               {product.categoryName || 'تفاصيل الصنف'}
             </span>
-            {product.rating && product.rating >= 4.5 && (
+            {Boolean(product.rating && product.rating >= 4.5) && (
               <span
                 style={{
                   display: 'flex',
@@ -226,14 +225,15 @@ export function StorefrontProductQuickViewModal({
         </div>
 
         {/* Modal Body */}
-        <div style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Main Product Image & Multi-photo Gallery */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div
               style={{
                 width: '100%',
-                height: '280px',
-                borderRadius: '14px',
+                height: '240px',
+                maxHeight: '35vh',
+                borderRadius: '12px',
                 overflow: 'hidden',
                 backgroundColor: '#f8fafc',
                 border: '1px solid #e2e8f0',
@@ -260,8 +260,8 @@ export function StorefrontProductQuickViewModal({
                 <div
                   style={{
                     position: 'absolute',
-                    top: '12px',
-                    right: '12px',
+                    top: '10px',
+                    right: '10px',
                     background: '#ef4444',
                     color: '#ffffff',
                     fontSize: '11px',
@@ -289,8 +289,8 @@ export function StorefrontProductQuickViewModal({
                     type="button"
                     onClick={() => setActivePhoto(imgUrl)}
                     style={{
-                      width: '54px',
-                      height: '54px',
+                      width: '48px',
+                      height: '48px',
                       borderRadius: '8px',
                       border: activePhoto === imgUrl ? '2px solid #170e5e' : '1px solid #e2e8f0',
                       padding: '2px',
@@ -310,8 +310,8 @@ export function StorefrontProductQuickViewModal({
 
           {/* Product Title, Barcode & Price */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '0 0 6px 0', lineHeight: 1.35 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', margin: '0 0 4px 0', lineHeight: 1.35 }}>
                 {product.name}
               </h2>
               {product.barcode && (
@@ -319,8 +319,8 @@ export function StorefrontProductQuickViewModal({
                   style={{
                     fontSize: '11px',
                     fontWeight: 700,
-                    padding: '3px 8px',
-                    borderRadius: '6px',
+                    padding: '2px 7px',
+                    borderRadius: '5px',
                     backgroundColor: '#f1f5f9',
                     color: '#64748b',
                     fontFamily: 'monospace',
@@ -333,9 +333,9 @@ export function StorefrontProductQuickViewModal({
             </div>
 
             {/* Price & Stock status */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '26px', fontWeight: 900, color: brandColor, letterSpacing: '-0.5px' }}>
+                <span style={{ fontSize: '24px', fontWeight: 900, color: brandColor, letterSpacing: '-0.5px' }}>
                   {basePrice.toLocaleString()}
                 </span>
                 <span style={{ fontSize: '13px', fontWeight: 800, color: '#64748b' }}>
@@ -345,9 +345,9 @@ export function StorefrontProductQuickViewModal({
 
               <span
                 style={{
-                  fontSize: '12px',
+                  fontSize: '11.5px',
                   fontWeight: 800,
-                  padding: '3px 10px',
+                  padding: '3px 9px',
                   borderRadius: '20px',
                   backgroundColor: inStock ? '#dcfce7' : '#fee2e2',
                   color: inStock ? '#15803d' : '#b91c1c',
@@ -364,12 +364,12 @@ export function StorefrontProductQuickViewModal({
 
             {/* Product Variants (e.g. Size / Options) */}
             {variants.length > 0 && (
-              <div style={{ marginTop: '16px', padding: '12px 14px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <TagIcon size={13} color="#170e5e" />
+              <div style={{ marginTop: '12px', padding: '10px 12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <TagIcon size={12} color="#170e5e" />
                   <span>اختر المقاس / الحجم:</span>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {variants.map((v, idx) => {
                     const isSelected = selectedVariantIndex === idx;
                     return (
@@ -378,17 +378,17 @@ export function StorefrontProductQuickViewModal({
                         type="button"
                         onClick={() => setSelectedVariantIndex(idx)}
                         style={{
-                          padding: '7px 14px',
-                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
                           border: isSelected ? '2px solid #170e5e' : '1px solid #cbd5e1',
                           background: isSelected ? '#170e5e' : '#ffffff',
                           color: isSelected ? '#ffffff' : '#1e293b',
-                          fontSize: '12.5px',
+                          fontSize: '12px',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '6px',
+                          gap: '5px',
                           transition: 'all 0.15s ease',
                         }}
                       >
@@ -405,15 +405,15 @@ export function StorefrontProductQuickViewModal({
             {product.description && (
               <div
                 style={{
-                  marginTop: '14px',
-                  fontSize: '13px',
-                  lineHeight: '1.6',
+                  marginTop: '10px',
+                  fontSize: '12.5px',
+                  lineHeight: '1.55',
                   color: '#334155',
                   textAlign: 'justify',
                   textJustify: 'inter-word',
                   backgroundColor: '#f8fafc',
-                  padding: '12px 16px',
-                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
                   border: '1px solid #f1f5f9',
                 }}
               >
@@ -425,28 +425,28 @@ export function StorefrontProductQuickViewModal({
           {/* Social Proof & Delivery Highlights */}
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '10px',
-              padding: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              padding: '10px 14px',
               background: '#f8fafc',
-              borderRadius: '12px',
+              borderRadius: '10px',
               border: '1px solid #e2e8f0',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TruckIcon size={14} color="#170e5e" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <TruckIcon size={13} color="#170e5e" />
               </div>
-              <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
                 توصيل سريع حتى باب منزلك
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ClockIcon size={14} color="#b45309" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ClockIcon size={13} color="#b45309" />
               </div>
-              <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
                 تجهيز فوري طازج عند الطلب
               </span>
             </div>
@@ -458,12 +458,12 @@ export function StorefrontProductQuickViewModal({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '10px 0',
+              padding: '8px 0',
               borderTop: '1px solid #f1f5f9',
             }}
           >
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>مشاركة الصنف:</span>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>مشاركة الصنف:</span>
+            <div style={{ display: 'flex', gap: '6px' }}>
               <button
                 type="button"
                 onClick={handleShareWhatsApp}
@@ -471,12 +471,12 @@ export function StorefrontProductQuickViewModal({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '5px',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
+                  padding: '5px 10px',
+                  borderRadius: '6px',
                   backgroundColor: '#25d366',
                   color: '#ffffff',
                   border: 'none',
-                  fontSize: '12px',
+                  fontSize: '11.5px',
                   fontWeight: 700,
                   cursor: 'pointer',
                 }}
@@ -490,126 +490,144 @@ export function StorefrontProductQuickViewModal({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '5px',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
+                  padding: '5px 10px',
+                  borderRadius: '6px',
                   backgroundColor: '#f1f5f9',
                   color: '#334155',
                   border: '1px solid #e2e8f0',
-                  fontSize: '12px',
+                  fontSize: '11.5px',
                   fontWeight: 700,
                   cursor: 'pointer',
                 }}
               >
-                {copied ? <CheckIcon size={14} color="#16a34a" /> : <Share2Icon size={14} />}
+                {copied ? <CheckIcon size={13} color="#16a34a" /> : <Share2Icon size={13} />}
                 <span>{copied ? 'تم النسخ!' : 'نسخ الرابط'}</span>
               </button>
             </div>
           </div>
+        </div>
 
-          {/* Action Row: Quantity + Add to Cart */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
-            {/* Quantity Stepper */}
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                backgroundColor: '#f8fafc',
-                border: '1.5px solid #e2e8f0',
-                borderRadius: '10px',
-                padding: '4px',
-              }}
-            >
-              <button
-                type="button"
-                disabled={qty <= 1 || !inStock}
-                onClick={() => setQty((prev) => Math.max(1, prev - 1))}
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: qty <= 1 || !inStock ? 'not-allowed' : 'pointer',
-                  opacity: qty <= 1 ? 0.4 : 1,
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                  fontWeight: 800,
-                  fontSize: '16px',
-                }}
-              >
-                -
-              </button>
-              <span
-                style={{
-                  minWidth: '40px',
-                  textAlign: 'center',
-                  fontSize: '15px',
-                  fontWeight: 800,
-                  color: '#0f172a',
-                }}
-              >
-                {qty}
-              </span>
-              <button
-                type="button"
-                disabled={!inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty)}
-                onClick={() => setQty((prev) => prev + 1)}
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: !inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty) ? 'not-allowed' : 'pointer',
-                  opacity: product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty ? 0.4 : 1,
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                }}
-              >
-                <PlusIcon size={16} color="#0f172a" />
-              </button>
-            </div>
-
-            {/* Add to Cart CTA */}
+        {/* Sticky Pinned Bottom Footer (Always Visible, Zero Clipping) */}
+        <div
+          style={{
+            flexShrink: 0,
+            background: '#ffffff',
+            borderTop: '1px solid #f1f5f9',
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            boxShadow: '0 -4px 16px rgba(15, 23, 42, 0.05)',
+            boxSizing: 'border-box',
+            width: '100%',
+          }}
+        >
+          {/* Quantity Stepper */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              padding: '2px',
+              flexShrink: 0,
+            }}
+          >
             <button
               type="button"
-              disabled={!inStock}
-              onClick={handleAdd}
+              disabled={qty <= 1 || !inStock}
+              onClick={() => setQty((prev) => Math.max(1, prev - 1))}
               style={{
-                flex: 1,
-                height: '48px',
-                borderRadius: '10px',
-                backgroundColor: inStock ? brandColor : '#94a3b8',
-                color: '#ffffff',
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
                 border: 'none',
-                fontSize: '15px',
-                fontWeight: 800,
-                cursor: inStock ? 'pointer' : 'not-allowed',
+                backgroundColor: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                boxShadow: inStock ? '0 4px 14px rgba(23, 14, 94, 0.25)' : 'none',
-                transition: 'all 0.2s ease',
+                cursor: qty <= 1 || !inStock ? 'not-allowed' : 'pointer',
+                opacity: qty <= 1 ? 0.4 : 1,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                fontWeight: 800,
+                fontSize: '15px',
+                color: '#0f172a',
               }}
             >
-              {addedAnimation ? (
-                <>
-                  <CheckIcon size={18} color="#ffffff" />
-                  <span>تمت الإضافة بنجاح!</span>
-                </>
-              ) : (
-                <>
-                  <ShoppingBagIcon size={18} color="#ffffff" />
-                  <span>إضافة إلى السلة ({(basePrice * qty).toLocaleString()} <CurrencySymbol />)</span>
-                </>
-              )}
+              -
+            </button>
+            <span
+              style={{
+                minWidth: '28px',
+                textAlign: 'center',
+                fontSize: '14px',
+                fontWeight: 800,
+                color: '#0f172a',
+              }}
+            >
+              {qty}
+            </span>
+            <button
+              type="button"
+              disabled={!inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty)}
+              onClick={() => setQty((prev) => prev + 1)}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: !inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty) ? 'not-allowed' : 'pointer',
+                opacity: product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty ? 0.4 : 1,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              }}
+            >
+              <PlusIcon size={14} color="#0f172a" />
             </button>
           </div>
+
+          {/* Add to Cart CTA */}
+          <button
+            type="button"
+            disabled={!inStock}
+            onClick={handleAdd}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              height: '42px',
+              borderRadius: '8px',
+              backgroundColor: inStock ? brandColor : '#94a3b8',
+              color: '#ffffff',
+              border: 'none',
+              fontSize: '13.5px',
+              fontWeight: 800,
+              cursor: inStock ? 'pointer' : 'not-allowed',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              boxShadow: inStock ? '0 2px 8px rgba(23, 14, 94, 0.2)' : 'none',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+              padding: '0 10px',
+            }}
+          >
+            {addedAnimation ? (
+              <>
+                <CheckIcon size={16} color="#ffffff" />
+                <span>تمت الإضافة بنجاح!</span>
+              </>
+            ) : (
+              <>
+                <ShoppingBagIcon size={16} color="#ffffff" />
+                <span>إضافة إلى السلة ({(basePrice * qty).toLocaleString()} <CurrencySymbol />)</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

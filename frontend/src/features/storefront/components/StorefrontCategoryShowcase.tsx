@@ -2,7 +2,6 @@ import { useRef, useEffect } from 'react';
 import { StorefrontCategory } from '../types/storefront.types';
 import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { IconShoppingBag, IconFolder } from './StorefrontIcons';
-import { useDragScroll } from '../hooks/useDragScroll';
 
 interface StorefrontCategoryShowcaseProps {
   categories: StorefrontCategory[];
@@ -19,7 +18,7 @@ export function StorefrontCategoryShowcase({
   onOpenCategoriesModal,
   categoryCounts,
 }: StorefrontCategoryShowcaseProps) {
-  const { ref: containerRef, onMouseDown, onClickCapture } = useDragScroll<HTMLDivElement>();
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const selectedItemRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -45,8 +44,6 @@ export function StorefrontCategoryShowcase({
   return (
     <div
       ref={containerRef}
-      onMouseDown={onMouseDown}
-      onClickCapture={onClickCapture}
       className="storefront-cat-showcase"
       style={{
         background: '#ffffff',
@@ -55,10 +52,7 @@ export function StorefrontCategoryShowcase({
         overflowX: 'auto',
         WebkitOverflowScrolling: 'touch',
         direction: 'rtl',
-        cursor: 'grab',
-        userSelect: 'none',
         width: '100%',
-        maxWidth: '100vw',
         boxSizing: 'border-box',
       }}
     >

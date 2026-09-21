@@ -19,14 +19,16 @@ export function usePublicStorefront(cleanSlug: string) {
     queryKey: ['storefront-info', cleanSlug],
     queryFn: () => storefrontApi.getInfo(cleanSlug),
     enabled: Boolean(cleanSlug),
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const catalogQuery = useQuery({
     queryKey: ['storefront-catalog', cleanSlug],
     queryFn: () => storefrontApi.getCatalog(cleanSlug),
     enabled: Boolean(cleanSlug),
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // State

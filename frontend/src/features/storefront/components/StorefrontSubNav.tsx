@@ -14,6 +14,7 @@ interface StorefrontSubNavProps {
   onlyFavorites?: boolean;
   onToggleFavorites?: () => void;
   favoritesCount?: number;
+  onClearFilters?: () => void;
 }
 
 export function StorefrontSubNav({
@@ -27,6 +28,7 @@ export function StorefrontSubNav({
   onlyFavorites = false,
   onToggleFavorites,
   favoritesCount = 0,
+  onClearFilters,
 }: StorefrontSubNavProps) {
   return (
     <div
@@ -251,50 +253,42 @@ export function StorefrontSubNav({
           )}
         </div>
 
-        {/* Right Side: Active Selection Breadcrumb / Reset */}
-        {onlyFavorites ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>التصفية:</span>
-            <span
+        {/* Left Side (RTL End): Clean Reset Button if any filter is active */}
+        {(onlyFavorites || onlyDeals || inStockOnly) ? (
+          onClearFilters ? (
+            <button
+              type="button"
+              onClick={onClearFilters}
               style={{
-                fontSize: '12px',
-                fontWeight: 800,
-                color: '#dc2626',
-                background: '#fef2f2',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                border: '1px solid #fecaca',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
+                gap: '4px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                color: '#64748b',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                padding: '5px 10px',
+                borderRadius: '7px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#fee2e2';
+                e.currentTarget.style.color = '#dc2626';
+                e.currentTarget.style.borderColor = '#fca5a5';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#f8fafc';
+                e.currentTarget.style.color = '#64748b';
+                e.currentTarget.style.borderColor = '#e2e8f0';
               }}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-              <span>المفضلة ({favoritesCount})</span>
-            </span>
-            {onToggleFavorites && (
-              <button
-                type="button"
-                onClick={onToggleFavorites}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  background: 'none',
-                  border: 'none',
-                  color: '#ef4444',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                <span>إلغاء</span>
-                <IconClose size={12} strokeWidth={2.5} />
-              </button>
-            )}
-          </div>
+              <IconClose size={12} strokeWidth={2.5} />
+              <span>مسح التصفية</span>
+            </button>
+          ) : null
         ) : (
           <div className="storefront-subnav-hint" style={{ fontSize: '11.5px', color: '#64748b' }}>
             تصفح المتجر حسب الأقسام

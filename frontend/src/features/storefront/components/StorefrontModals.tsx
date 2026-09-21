@@ -121,20 +121,22 @@ export function StorefrontModals({
       />
 
       {/* Unified Live Cart Dock */}
-      <StorefrontLiveCartDock
-        cartItems={cartItems}
-        info={info}
-        deliveryFee={info.deliveryFee}
-        minOrder={info.minOrder}
-        isOpen={isCartOpen}
-        onOpen={onOpenCart}
-        onClose={onCloseCart}
-        onUpdateQuantity={onUpdateQuantity}
-        onClearCart={onClearCart}
-        onProceedToCheckout={onProceedToCheckout}
-        suggestedProducts={allProducts}
-        onAddToCart={onAddToCart}
-      />
+      {!quickViewProduct && (
+        <StorefrontLiveCartDock
+          cartItems={cartItems}
+          info={info}
+          deliveryFee={info.deliveryFee}
+          minOrder={info.minOrder}
+          isOpen={isCartOpen}
+          onOpen={onOpenCart}
+          onClose={onCloseCart}
+          onUpdateQuantity={onUpdateQuantity}
+          onClearCart={onClearCart}
+          onProceedToCheckout={onProceedToCheckout}
+          suggestedProducts={allProducts}
+          onAddToCart={onAddToCart}
+        />
+      )}
 
       {/* Checkout Modal */}
       <StorefrontCheckoutModal

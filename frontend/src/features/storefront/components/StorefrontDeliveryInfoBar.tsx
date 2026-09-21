@@ -21,59 +21,47 @@ function formatMoney(value: number, currency: string): string {
   return `${rounded.toLocaleString('ar-EG')} ${currency}`;
 }
 
+/**
+ * شريط الحوافز الترويجية للتوصيل (Smart Incentive Banner):
+ * - يظهر فقط كأداة تسويقية محفزة إذا كان هناك حد أدنى للشحن المجاني (Upselling).
+ * - لا يظهر إطلاقاً إذا كانت رسوم التوصيل عادية بمقابل، حتى لا يُنفر العميل قبل الشراء.
+ * - رسوم التوصيل العادية تُعرض بشفافية تامة داخل السلة وشاشة إتمام الطلب حسب منطقة العميل.
+ */
 export function StorefrontDeliveryInfoBar({ info }: Props) {
   const signals = useMemo(() => {
-    const currency = info.currency || 'ج.م';
-    const zones = (info.deliveryZones || []).filter((z) => z.isActive !== false);
+    const currency = info.currency === 'EGP' ? 'ج.م' : (info.currency || 'ج.م');
+    const freeShippingAt = info.freeShippingEnabled ? Number(info.freeShippingMinOrder || 0) : 0;
 
-    // رسوم التوصيل: نطاق عبر المناطق إن اختلفت، وإلا القيمة الأساسية
+    const zones = (info.deliveryZones || []).filter((z) => z.isActive !== false);
     const zoneFees = zones.map((z) => Number(z.deliveryFee || 0)).filter((n) => Number.isFinite(n));
     const baseFee = Number(info.deliveryFee || 0);
     const fees = zoneFees.length > 0 ? zoneFees : [baseFee];
-    const minFee = Math.min(...fees);
-    const maxFee = Math.max(...fees);
+    const isAllFree = fees.length > 0 && fees.every((f) => f <= 0);
 
-    let feeLabel: string;
-    if (minFee <= 0 && maxFee <= 0) feeLabel = 'توصيل مجاني';
-    else if (minFee === maxFee) feeLabel = formatMoney(minFee, currency);
-    else feeLabel = `${minFee.toLocaleString('ar-EG')} – ${formatMoney(maxFee, currency)}`;
+    // إذا لم يكن التوصيل مجانياً بالكامل ولا يوجد شحن مجاني مشروط بمبلغ أكبر من صفر -> يختفي البانر
+    if (!isAllFree && freeShippingAt <= 0) {
+      return null;
+    }
 
-    // الوقت المتوقع: أول قيمة غير فارغة من المناطق
     const estimatedTime = zones.map((z) => String(z.estimatedTime || '').trim()).find(Boolean) || '';
-
     const minOrder = Number(info.minOrder || 0);
-    const freeShippingAt = info.freeShippingEnabled ? Number(info.freeShippingMinOrder || 0) : 0;
 
-    return { currency, feeLabel, estimatedTime, minOrder, freeShippingAt };
+    let promoText = '';
+    if (freeShippingAt > 0) {
+      promoText = `توصيل مجاني لجميع الطلبات بقيمة ${formatMoney(freeShippingAt, currency)} فأكثر`;
+    } else if (isAllFree) {
+      promoText = 'توصيل مجاني لجميع الطلبات';
+    } else {
+      return null;
+    }
+
+    return { currency, estimatedTime, minOrder, promoText };
   }, [info]);
 
-  const items: Array<{ key: string; label: string; value: string; tone: 'default' | 'good' }> = [];
-
-  if (signals.estimatedTime) {
-    items.push({ key: 'eta', label: 'التوصيل خلال', value: signals.estimatedTime, tone: 'default' });
-  }
-  items.push({
-    key: 'fee',
-    label: 'رسوم التوصيل',
-    value: signals.feeLabel,
-    tone: signals.feeLabel === 'توصيل مجاني' ? 'good' : 'default',
-  });
-  if (signals.minOrder > 0) {
-    items.push({ key: 'min', label: 'أقل طلب', value: formatMoney(signals.minOrder, signals.currency), tone: 'default' });
-  }
-  if (signals.freeShippingAt > 0) {
-    items.push({
-      key: 'free',
-      label: 'توصيل مجاني من',
-      value: formatMoney(signals.freeShippingAt, signals.currency),
-      tone: 'good',
-    });
-  }
-
-  if (items.length === 0) return null;
+  if (!signals) return null;
 
   return (
-    <div className="storefront-delivery-info-bar" style={{ borderBottom: '1px solid #e2e8f0', background: '#ffffff' }}>
+    <div className="storefront-delivery-info-bar" style={{ borderBottom: '1px solid #bbf7d0', background: '#f0fdf4' }}>
       <div
         className="storefront-delivery-info-inner"
         style={{
@@ -82,19 +70,22 @@ export function StorefrontDeliveryInfoBar({ info }: Props) {
           padding: '8px 24px',
           display: 'flex',
           alignItems: 'center',
-          gap: '20px',
+          justifyContent: 'center',
+          gap: '16px',
           flexWrap: 'wrap',
           boxSizing: 'border-box',
+          fontSize: '0.8125rem',
         }}
       >
-        {items.map((item) => (
-          <div key={item.key} style={{ display: 'flex', alignItems: 'baseline', gap: '6px', fontSize: '0.8rem' }}>
-            <span style={{ color: '#64748b', fontWeight: 600 }}>{item.label}</span>
-            <strong style={{ color: item.tone === 'good' ? '#047857' : '#0f172a', fontWeight: 800 }}>
-              {item.value}
-            </strong>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#166534', fontWeight: 700 }}>
+          <span>{signals.promoText}</span>
+        </div>
+        {signals.estimatedTime && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#15803d', fontSize: '0.78rem' }}>
+            <span style={{ opacity: 0.85 }}>• التوصيل المتوقع:</span>
+            <strong>{signals.estimatedTime}</strong>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

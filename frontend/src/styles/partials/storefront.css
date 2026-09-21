@@ -11,13 +11,6 @@
   --storefront-dock-height: 84px;
 }
 
-html, body {
-  overflow-x: hidden;
-  max-width: 100vw;
-  width: 100%;
-  box-sizing: border-box;
-}
-
 .storefront-container {
   max-width: var(--storefront-container);
   width: 100%;
@@ -39,22 +32,27 @@ html, body {
 }
 
 /*
- * رفوف الصفحة الرئيسية: تمرير أفقي بدل شبكة.
- *
- * كانت الرفوف تعرض 4 منتجات ثابتة (`slice(0, 4)`) داخل شبكة `auto-fill`، فعلى أي
- * شاشة تتسع لأكثر من 4 أعمدة تبقى الأعمدة الزائدة **فارغة** — وهو ما يجعل نصف
- * عرض الصفحة أبيض على الشاشات الكبيرة. الرفّ الأفقي يملأ العرض دائماً مهما كان،
- * ولا يترك عنصراً يتيماً في سطر ثانٍ، وهو نفس نمط طلبات/نون/أمازون.
+ * رفوف الصفحة الرئيسية (Amazon-Style Single-Row Carousel):
+ * - على أجهزة الكمبيوتر (min-width: 641px): صف واحد متزن وأنيق (Single Row)
+ *   يعرض 6 منتجات بتناسق تام مع أسهم تنقل جانبية عائمة (Floating Chevrons) بنقرة واحدة.
+ * - على الموبايل (max-width: 640px): شريط تمرير أفقي سريع بالتاتش (Touch-Swipe Shelf).
  */
+.storefront-shelf-wrapper {
+  position: relative;
+  width: 100%;
+}
+
 .storefront-shelf {
   display: flex;
+  align-items: stretch;
   gap: 16px;
   overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x proximity;
+  overflow-y: visible;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
   scroll-padding-inline: 4px;
   padding-bottom: 6px;
-  /* شريط تمرير رفيع لا يزاحم المحتوى */
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
 }
@@ -73,17 +71,100 @@ html, body {
 .storefront-shelf-item {
   flex: 0 0 210px;
   max-width: 210px;
-  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+}
+
+.storefront-shelf-item > .storefront-product-card {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* Amazon-Style Floating Navigation Chevrons */
+.storefront-shelf-floating-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 64px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.16);
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: opacity 0.22s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.storefront-shelf-wrapper:hover .storefront-shelf-floating-arrow,
+.storefront-section-card:hover .storefront-shelf-floating-arrow {
+  opacity: 0.92;
+  pointer-events: auto;
+}
+
+.storefront-shelf-floating-arrow:hover {
+  opacity: 1 !important;
+  background: #ffffff;
+  transform: translateY(-50%) scale(1.06);
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.25);
+  border-color: #cbd5e1;
+  color: #170e5e;
+}
+
+.storefront-shelf-floating-arrow:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.storefront-shelf-arrow-prev {
+  right: -6px;
+}
+
+.storefront-shelf-arrow-next {
+  left: -6px;
+}
+
+@media (min-width: 641px) {
+  .storefront-shelf {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: none; /* Hide scrollbar on desktop */
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+    scroll-behavior: smooth;
+  }
+  .storefront-shelf::-webkit-scrollbar {
+    display: none;
+  }
+  .storefront-shelf-item {
+    flex: 0 0 calc((100% - (16px * 5)) / 6);
+    min-width: 185px;
+    max-width: 230px;
+  }
+  .storefront-shelf-arrows {
+    display: none !important;
+  }
 }
 
 @media (max-width: 640px) {
   .storefront-shelf {
     gap: 8px;
+    scroll-snap-type: none !important;
+    cursor: default !important;
   }
   .storefront-shelf-item {
-    /* عنصران ونصف ظاهران: إشارة بصرية واضحة أن الرفّ قابل للتمرير */
-    flex-basis: 43vw;
+    flex: 0 0 43vw;
     max-width: 43vw;
+  }
+  .storefront-shelf-floating-arrow {
+    display: none !important;
   }
 }
 
@@ -184,12 +265,30 @@ html, body {
     content: 'عرض الكل';
     font-size: 12.5px;
   }
+  .storefront-shelf {
+    scroll-snap-type: none !important;
+    cursor: default !important;
+  }
+  .storefront-product-card {
+    transition: none !important;
+  }
+  .storefront-product-card:hover {
+    transform: none !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+    border-color: #e2e8f0 !important;
+  }
 }
 
 /*
  * منع جلتش تعليق الماوس عند السحب والتصفح (Anti-Mouse-Stuck Standard)
  * حظر السحب الأصلي للصور وتحديد النصوص في الرفوف والأقسام والكروت لمنع المتصفح من التعليق
  */
+.storefront-cat-showcase,
+.storefront-subnav {
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+}
+
 .storefront-cat-showcase,
 .storefront-shelf,
 .storefront-banner-carousel-wrapper,

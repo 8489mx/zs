@@ -278,19 +278,6 @@ export function PublicStorefrontPage() {
       {/* إشارات التوصيل (المدة، الرسوم، أقل طلب) قبل أي تصفح */}
       <StorefrontDeliveryInfoBar info={info} />
 
-      {/* Free Shipping Progress Notification Banner (if enabled) */}
-      {info.freeShippingEnabled && (
-        <div style={{ maxWidth: 'var(--storefront-container, 1440px)', width: '100%', margin: '0 auto', padding: '10px 20px 0', boxSizing: 'border-box' }}>
-          <StorefrontFreeShippingBar
-            subtotal={cartSubtotal}
-            freeShippingEnabled={info.freeShippingEnabled}
-            freeShippingMinOrder={info.freeShippingMinOrder}
-            currency={info.currency}
-            compact
-          />
-        </div>
-      )}
-
       {/* Dine-In QR Table Banner */}
       {tableParam && (
         <div
@@ -368,6 +355,12 @@ export function PublicStorefrontPage() {
         onlyFavorites={onlyFavorites}
         onToggleFavorites={handleToggleFavorites}
         favoritesCount={favoriteIds.size}
+        onClearFilters={() => {
+          setOnlyDeals(false);
+          setOnlyFavorites(false);
+          setInStockOnly(false);
+          setSelectedCategory('all');
+        }}
       />
 
       {/* Horizontal Circular Category Showcase - Always visible unless searching */}

@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { StorefrontProductCard } from './StorefrontProductCard';
 import { IconArrowUpRight } from './StorefrontIcons';
-import { useDragScroll } from '../hooks/useDragScroll';
 
 /**
  * رفّ منتجات موحّد: ترويسة + شريط تمرير أفقي.
@@ -37,8 +36,6 @@ type Props = {
   onQuickView?: (product: StorefrontProduct) => void;
 };
 
-const SCROLL_STEP = 320;
-
 export const StorefrontShelfSection = React.memo(function StorefrontShelfSection({
   badge,
   subtitle,
@@ -56,14 +53,14 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
   onQuickView,
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null);
-  const { ref: dragRef, onMouseDown, onClickCapture } = useDragScroll<HTMLDivElement>();
   const [canScroll, setCanScroll] = useState(false);
 
   // الأسهم تظهر فقط عندما يكون هناك ما يُمرَّر إليه فعلاً
   const syncScrollability = useCallback(() => {
     const el = trackRef.current;
     if (!el) return;
-    setCanScroll(el.scrollWidth - el.clientWidth > 8);
+    const scrollable = el.scrollWidth - el.clientWidth > 8;
+    setCanScroll((prev) => (prev !== scrollable ? scrollable : prev));
   }, []);
 
   useEffect(() => {
@@ -82,7 +79,9 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
   const scrollBy = (direction: 'prev' | 'next') => {
     const el = trackRef.current;
     if (!el) return;
-    el.scrollBy({ left: direction === 'next' ? SCROLL_STEP : -SCROLL_STEP, behavior: 'smooth' });
+    const firstItem = el.querySelector<HTMLElement>('.storefront-shelf-item');
+    const step = firstItem ? firstItem.offsetWidth + 16 : 226;
+    el.scrollBy({ left: direction === 'next' ? step : -step, behavior: 'smooth' });
   };
 
   const arrowStyle: React.CSSProperties = {
@@ -216,33 +215,58 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
         </div>
       </div>
 
-      <div
-        className="storefront-shelf"
-        ref={(el) => {
-          trackRef.current = el;
-          dragRef.current = el;
-        }}
-        onMouseDown={onMouseDown}
-        onClickCapture={onClickCapture}
-        onScroll={syncScrollability}
-        style={{ cursor: 'grab' }}
-      >
-        {products.map((product) => (
-          <div className="storefront-shelf-item" key={product.id}>
-            <StorefrontProductCard
-              product={product}
-              cartQuantity={cartMap.get(product.id) || 0}
-              whatsappPhone={whatsappPhone}
-              isSmartDeal={isSmartDeal}
-              onAddToCart={onAddToCart}
-              onUpdateQuantity={onUpdateQuantity}
-              onOpenReviewModal={onOpenReviewModal}
-              isFavorite={favoriteIds?.has(product.id)}
-              onToggleFavorite={onToggleFavorite}
-              onQuickView={onQuickView}
-            />
-          </div>
-        ))}
+      <div className="storefront-shelf-wrapper">
+        {/* Floating Right Chevron (Previous in RTL) */}
+        {canScroll && (
+          <button
+            type="button"
+            className="storefront-shelf-floating-arrow storefront-shelf-arrow-prev"
+            onClick={() => scrollBy('prev')}
+            aria-label="السابق"
+            title="السابق"
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.8" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
+
+        <div
+          className="storefront-shelf"
+          ref={trackRef}
+        >
+          {products.map((product) => (
+            <div className="storefront-shelf-item" key={product.id}>
+              <StorefrontProductCard
+                product={product}
+                cartQuantity={cartMap.get(product.id) || 0}
+                whatsappPhone={whatsappPhone}
+                isSmartDeal={isSmartDeal}
+                onAddToCart={onAddToCart}
+                onUpdateQuantity={onUpdateQuantity}
+                onOpenReviewModal={onOpenReviewModal}
+                isFavorite={favoriteIds?.has(product.id)}
+                onToggleFavorite={onToggleFavorite}
+                onQuickView={onQuickView}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Floating Left Chevron (Next in RTL) */}
+        {canScroll && (
+          <button
+            type="button"
+            className="storefront-shelf-floating-arrow storefront-shelf-arrow-next"
+            onClick={() => scrollBy('next')}
+            aria-label="التالي"
+            title="التالي"
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.8" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );

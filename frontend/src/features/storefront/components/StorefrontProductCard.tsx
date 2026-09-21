@@ -82,6 +82,8 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
+        height: '100%',
+        boxSizing: 'border-box',
         transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
         position: 'relative',
         boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
@@ -244,14 +246,13 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 position: 'absolute',
                 bottom: '6px',
                 insetInlineStart: '6px',
-                background: 'rgba(15, 23, 42, 0.62)',
+                background: 'rgba(15, 23, 42, 0.78)',
                 color: '#ffffff',
                 fontSize: '0.6rem',
                 fontWeight: 700,
                 padding: '2px 6px',
                 borderRadius: '5px',
                 pointerEvents: 'none',
-                backdropFilter: 'blur(2px)',
               }}
             >
               صورة توضيحية
@@ -276,12 +277,11 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 style={{
                   fontSize: '10.5px',
                   fontWeight: 800,
-                  background: 'rgba(254, 242, 242, 0.95)',
+                  background: '#fef2f2',
                   color: '#991b1b',
                   padding: '2px 8px',
                   borderRadius: '6px',
                   border: '1px solid #fecaca',
-                  backdropFilter: 'blur(4px)',
                 }}
               >
                 غير متوفر
@@ -293,12 +293,11 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                   style={{
                     fontSize: '10.5px',
                     fontWeight: 800,
-                    background: 'rgba(240, 253, 244, 0.95)',
+                    background: '#f0fdf4',
                     color: '#166534',
                     padding: '2px 8px',
                     borderRadius: '6px',
                     border: '1px solid #bbf7d0',
-                    backdropFilter: 'blur(4px)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
@@ -467,7 +466,18 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
         </div>
 
         {/* Category & Star Rating Row */}
-        <div className="storefront-product-meta-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+        <div
+          className="storefront-product-meta-row"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            height: '22px',
+            minHeight: '22px',
+            maxHeight: '22px',
+            marginBottom: '6px',
+          }}
+        >
           <span
             className="storefront-product-cat-tag"
             style={{
@@ -527,30 +537,45 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           </button>
         </div>
 
-        {/* Product Title */}
+        {/* Product Title - Strictly 38px, max 2 lines with ellipsis */}
         <h3
           className="storefront-product-title"
           onClick={() => onQuickView?.(product)}
           style={{
             cursor: onQuickView ? 'pointer' : 'default',
-            margin: '0 0 3px',
-            fontSize: '14px',
+            margin: '0 0 4px',
+            fontSize: '13.5px',
             fontWeight: 800,
             color: '#0f172a',
-            lineHeight: '1.35',
+            lineHeight: '1.38',
+            height: '38px',
+            minHeight: '38px',
+            maxHeight: '38px',
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            wordBreak: 'break-word',
           }}
           title={product.name}
         >
           {product.name}
         </h3>
 
-        {/* Price Row: Immediately under product title */}
+        {/* Price Row: Immediately under product title, strictly 26px */}
         {isZeroPrice ? (
-          <div className="storefront-product-price-row" style={{ display: 'flex', alignItems: 'center', minHeight: '26px', margin: '2px 0 4px' }}>
+          <div
+            className="storefront-product-price-row"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              height: '26px',
+              minHeight: '26px',
+              maxHeight: '26px',
+              margin: '2px 0 4px',
+            }}
+          >
             <span
               style={{
                 fontSize: '11.5px',
@@ -570,10 +595,14 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             style={{
               display: 'flex',
               alignItems: 'baseline',
-              flexWrap: 'wrap',
+              flexWrap: 'nowrap',
               gap: '4px',
               margin: '2px 0 4px',
+              height: '26px',
               minHeight: '26px',
+              maxHeight: '26px',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
             }}
           >
             <span
@@ -621,8 +650,8 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
         )}
       </div>
 
-      {/* Action CTA Container (Pinned at card bottom) */}
-      <div className="storefront-product-action-box" style={{ marginTop: 'auto', paddingTop: '8px' }}>
+      {/* Action CTA Container (Pinned at card bottom, strictly 48px) */}
+      <div className="storefront-product-action-box" style={{ marginTop: 'auto', paddingTop: '8px', height: '48px', minHeight: '48px', boxSizing: 'border-box' }}>
         {/* Action Button */}
         {isOutOfStock ? (
           <button
@@ -631,7 +660,8 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             disabled
             style={{
               width: '100%',
-              padding: '10px 12px',
+              height: '40px',
+              padding: '0 12px',
               borderRadius: '10px',
               border: '1px solid #e2e8f0',
               background: '#f8fafc',
@@ -639,6 +669,10 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               fontSize: '12.5px',
               fontWeight: 700,
               cursor: 'not-allowed',
+              boxSizing: 'border-box',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             غير متوفر حالياً
@@ -655,7 +689,8 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             rel="noopener noreferrer"
             style={{
               width: '100%',
-              padding: '9px 12px',
+              height: '40px',
+              padding: '0 12px',
               borderRadius: '10px',
               border: '1px solid #cbd5e1',
               background: '#ffffff',
@@ -667,6 +702,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
+              boxSizing: 'border-box',
             }}
           >
             <span>استفسر عن السعر</span>
@@ -676,6 +712,8 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           <div
             className="storefront-product-stepper"
             style={{
+              width: '100%',
+              height: '40px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -683,6 +721,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               borderRadius: '10px',
               padding: '3px',
               boxShadow: '0 4px 14px rgba(23, 14, 94, 0.22)',
+              boxSizing: 'border-box',
             }}
           >
             <button
@@ -691,12 +730,12 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               onClick={() => onUpdateQuantity(product.id, cartQuantity + 1)}
               title="زيادة الكمية"
               style={{
-                width: '36px',
-                height: '36px',
-                minWidth: '36px',
-                minHeight: '36px',
-                maxWidth: '36px',
-                maxHeight: '36px',
+                width: '34px',
+                height: '34px',
+                minWidth: '34px',
+                minHeight: '34px',
+                maxWidth: '34px',
+                maxHeight: '34px',
                 padding: 0,
                 boxSizing: 'border-box',
                 borderRadius: '8px',
@@ -735,12 +774,12 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               onClick={() => onUpdateQuantity(product.id, cartQuantity - 1)}
               title="تقليل الكمية"
               style={{
-                width: '36px',
-                height: '36px',
-                minWidth: '36px',
-                minHeight: '36px',
-                maxWidth: '36px',
-                maxHeight: '36px',
+                width: '34px',
+                height: '34px',
+                minWidth: '34px',
+                minHeight: '34px',
+                maxWidth: '34px',
+                maxHeight: '34px',
                 padding: 0,
                 boxSizing: 'border-box',
                 borderRadius: '8px',
@@ -769,7 +808,8 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             onClick={() => onAddToCart(product)}
             style={{
               width: '100%',
-              padding: '11px 14px',
+              height: '40px',
+              padding: '0 14px',
               borderRadius: '10px',
               border: 'none',
               background: '#170e5e',
@@ -782,6 +822,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               justifyContent: 'center',
               gap: '6px',
               boxShadow: '0 4px 14px rgba(23, 14, 94, 0.22)',
+              boxSizing: 'border-box',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => {
