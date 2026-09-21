@@ -1,11 +1,15 @@
-import { Body, Controller, Get, Header, Headers, Param, Post, Put, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Header, Headers, Param, ParseIntPipe, Post, Put, Query, Req, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { StorefrontService } from './storefront.service';
 import { StorefrontPaymentService } from './storefront-payment.service';
 import { StorefrontSocialPreviewService } from './storefront-social-preview.service';
+import { StorefrontMediaService } from './storefront-media.service';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { CreateOnlineOrderDto } from './dto/create-online-order.dto';
 import { CreateProductReviewDto } from './dto/create-product-review.dto';
 import { RecordAbandonedCartDto } from './dto/abandoned-cart.dto';
+import { CustomerOrderLookupDto } from './dto/customer-order-lookup.dto';
+import { ORDER_ACCESS_TOKEN_HEADER } from './engines/online-order-access.engine';
 
 @Controller('api/storefront')
 export class StorefrontPublicController {
@@ -13,14 +17,38 @@ export class StorefrontPublicController {
     private readonly service: StorefrontService,
     private readonly paymentService: StorefrontPaymentService,
     private readonly socialPreviewService: StorefrontSocialPreviewService,
+    private readonly mediaService: StorefrontMediaService,
   ) {}
 
+  /**
+   * SF-9: storefront images. Declared first so no `:slug/...` route can shadow it. The URL is
+   * content-addressed (id + sha256), so the response never changes and is cached for a year.
+   */
+  @Get('media/:id/:sha')
+  async getMedia(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('sha') sha: string,
+    @Res() res: Response,
+  ) {
+    const media = await this.mediaService.getMedia(id, String(sha || '').toLowerCase());
+    res.setHeader('Content-Type', media.mime);
+    res.setHeader('Content-Length', String(media.content.length));
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.end(media.content);
+  }
+
+  // Short shared cache + revalidation (Express adds an ETag, so an unchanged catalog costs a 304).
+  // The server keeps its own 60 s catalog cache; this lets browsers and any CDN skip the round trip
+  // on quick re-visits and back-navigation.
   @Get(':slug/info')
+  @Header('Cache-Control', 'public, max-age=30, stale-while-revalidate=300')
   getInfo(@Param('slug') slug: string) {
     return this.service.getStorefrontInfo(slug);
   }
 
   @Get(':slug/catalog')
+  @Header('Cache-Control', 'public, max-age=30, stale-while-revalidate=300')
   getCatalog(@Param('slug') slug: string) {
     return this.service.getStorefrontCatalog(slug);
   }
@@ -109,26 +137,28 @@ export class StorefrontPublicController {
   }
 
   @Post(':slug/orders')
-  createOrder(@Param('slug') slug: string, @Body() body: CreateOnlineOrderDto) {
-    return this.service.createOnlineOrder(slug, body);
+  createOrder(@Param('slug') slug: string, @Body() body: CreateOnlineOrderDto, @Req() req: RequestWithAuth) {
+    // The origin the shopper is on, so the tracking link sent to them opens the same store.
+    return this.service.createOnlineOrder(slug, body, this.resolveOrigin(req));
   }
 
-  @Get(':slug/orders')
-  getCustomerOrders(
+  // SF-1: every route below that names a specific order requires that order's access token
+  // (header `x-order-token`). The list is a POST so tokens never travel in a URL / access log.
+  @Post(':slug/orders/lookup')
+  lookupCustomerOrders(
     @Param('slug') slug: string,
-    @Query('phone') phone?: string,
-    @Query('orderNumbers') orderNumbers?: string,
+    @Body() body: CustomerOrderLookupDto,
   ) {
-    const list = orderNumbers ? orderNumbers.split(',').map((s) => s.trim()).filter(Boolean) : [];
-    return this.service.listCustomerOrders(slug, phone, list);
+    return this.service.lookupCustomerOrders(slug, body?.orders || []);
   }
 
   @Post(':slug/orders/:orderNumber/cancel')
   cancelCustomerOrder(
     @Param('slug') slug: string,
     @Param('orderNumber') orderNumber: string,
+    @Headers(ORDER_ACCESS_TOKEN_HEADER) token?: string,
   ) {
-    return this.service.cancelCustomerOrder(slug, orderNumber);
+    return this.service.cancelCustomerOrder(slug, orderNumber, token);
   }
 
   @Put(':slug/orders/:orderNumber')
@@ -136,8 +166,9 @@ export class StorefrontPublicController {
     @Param('slug') slug: string,
     @Param('orderNumber') orderNumber: string,
     @Body() body: CreateOnlineOrderDto,
+    @Headers(ORDER_ACCESS_TOKEN_HEADER) token?: string,
   ) {
-    return this.service.updateCustomerOrder(slug, orderNumber, body);
+    return this.service.updateCustomerOrder(slug, orderNumber, token, body);
   }
 
   @Post(':slug/abandoned-cart')
@@ -154,16 +185,18 @@ export class StorefrontPublicController {
   createPaymentSession(
     @Param('slug') slug: string,
     @Param('orderNumber') orderNumber: string,
+    @Headers(ORDER_ACCESS_TOKEN_HEADER) token?: string,
   ) {
-    return this.paymentService.initiatePaymentSession(slug, orderNumber);
+    return this.paymentService.initiatePaymentSession(slug, orderNumber, token);
   }
 
   @Get(':slug/orders/:orderNumber/payment-status')
   getPaymentStatus(
     @Param('slug') slug: string,
     @Param('orderNumber') orderNumber: string,
+    @Headers(ORDER_ACCESS_TOKEN_HEADER) token?: string,
   ) {
-    return this.paymentService.getOrderPaymentStatus(slug, orderNumber);
+    return this.paymentService.getOrderPaymentStatus(slug, orderNumber, token);
   }
 
   @Post(':slug/orders/:orderNumber/mock-pay')
@@ -171,8 +204,9 @@ export class StorefrontPublicController {
     @Param('slug') slug: string,
     @Param('orderNumber') orderNumber: string,
     @Body() body: { cardNumber?: string; cardHolder?: string },
+    @Headers(ORDER_ACCESS_TOKEN_HEADER) token?: string,
   ) {
-    return this.paymentService.processMockPayment(slug, orderNumber, body);
+    return this.paymentService.processMockPayment(slug, orderNumber, token, body);
   }
 
   @Post('webhooks/paymob')

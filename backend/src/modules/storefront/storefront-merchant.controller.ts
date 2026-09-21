@@ -1,13 +1,22 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { StorefrontService } from './storefront.service';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
+import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
+import { RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { UpdateStorefrontSettingsDto } from './dto/update-storefront-settings.dto';
 import { CreateCouponDto, UpdateCouponDto } from './dto/coupon.dto';
 import { CreateDeliveryZoneDto, UpdateDeliveryZoneDto } from './dto/delivery-zone.dto';
 
+// O59: every route used to need only a session, so any user of the tenant (a cashier included) could
+// rewrite storefront settings, coupons and delivery prices — and read the payment gateways' secret keys.
+// Day-to-day order handling (list, status, load into POS, convert, confirm transfer) stays open to
+// 'sales' because cashiers do it from the POS; store configuration needs 'storefront' or 'settings'.
+const CONFIG_PERMISSIONS = ['storefront', 'settings'] as const;
+
 @Controller('api/storefront/admin')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireAnyPermission('storefront', 'sales')
 export class StorefrontMerchantController {
   constructor(private readonly service: StorefrontService) {}
 
@@ -31,6 +40,15 @@ export class StorefrontMerchantController {
     return this.service.updateOrderStatus(id, status, req.authContext!, saleId ? Number(saleId) : undefined);
   }
 
+  @Post('orders/:id/confirm-payment')
+  confirmManualPayment(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('reference') reference: string | undefined,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.service.confirmManualPayment(id, reference, req.authContext!);
+  }
+
   @Post('orders/:id/convert-to-sale')
   convertToSale(
     @Param('id', ParseIntPipe) id: number,
@@ -46,16 +64,19 @@ export class StorefrontMerchantController {
   }
 
   @Get('settings')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   getSettings(@Req() req: RequestWithAuth) {
     return this.service.getStorefrontSettings(req.authContext!);
   }
 
   @Post('settings')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   updateSettings(@Body() payload: UpdateStorefrontSettingsDto, @Req() req: RequestWithAuth) {
     return this.service.updateStorefrontSettings(payload, req.authContext!);
   }
 
   @Patch('products/:id/image')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   updateProductImage(
     @Param('id', ParseIntPipe) id: number,
     @Body('imageUrl') imageUrl: string,
@@ -65,6 +86,7 @@ export class StorefrontMerchantController {
   }
 
   @Patch('categories/:id/image')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   updateCategoryImage(
     @Param('id', ParseIntPipe) id: number,
     @Body('imageUrl') imageUrl: string,
@@ -74,16 +96,19 @@ export class StorefrontMerchantController {
   }
 
   @Get('coupons')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   listCoupons(@Req() req: RequestWithAuth) {
     return this.service.listCoupons(req.authContext!);
   }
 
   @Post('coupons')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   createCoupon(@Body() body: CreateCouponDto, @Req() req: RequestWithAuth) {
     return this.service.createCoupon(body, req.authContext!);
   }
 
   @Put('coupons/:id')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   updateCoupon(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateCouponDto,
@@ -93,21 +118,25 @@ export class StorefrontMerchantController {
   }
 
   @Delete('coupons/:id')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   deleteCoupon(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.service.deleteCoupon(id, req.authContext!);
   }
 
   @Get('delivery-zones')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   listDeliveryZones(@Req() req: RequestWithAuth) {
     return this.service.listDeliveryZones(req.authContext!);
   }
 
   @Post('delivery-zones')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   createDeliveryZone(@Body() body: CreateDeliveryZoneDto, @Req() req: RequestWithAuth) {
     return this.service.createDeliveryZone(body, req.authContext!);
   }
 
   @Put('delivery-zones/:id')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   updateDeliveryZone(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateDeliveryZoneDto,
@@ -117,21 +146,25 @@ export class StorefrontMerchantController {
   }
 
   @Delete('delivery-zones/:id')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   deleteDeliveryZone(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.service.deleteDeliveryZone(id, req.authContext!);
   }
 
   @Get('abandoned-carts')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   listAbandonedCarts(@Req() req: RequestWithAuth) {
     return this.service.listAbandonedCarts(req.authContext!);
   }
 
   @Delete('abandoned-carts/:id')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   deleteAbandonedCart(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.service.deleteAbandonedCart(id, req.authContext!);
   }
 
   @Get('analytics')
+  @RequireAnyPermission(...CONFIG_PERMISSIONS)
   getAnalytics(@Req() req: RequestWithAuth) {
     return this.service.getStorefrontAnalytics(req.authContext!);
   }

@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql, type Transaction } from 'kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
@@ -11,15 +11,140 @@ import { CreateCouponDto, UpdateCouponDto } from './dto/coupon.dto';
 import { CreateDeliveryZoneDto, UpdateDeliveryZoneDto } from './dto/delivery-zone.dto';
 import { RecordAbandonedCartDto } from './dto/abandoned-cart.dto';
 import { SalesService } from '../sales/sales.service';
+import { KdsService } from '../sales/services/kds.service';
+import { StorefrontMediaService } from './storefront-media.service';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
+import { CustomerOrderRefDto } from './dto/customer-order-lookup.dto';
+import { resolveOrderLinePrice, formatVariantLineName } from './engines/online-order-pricing.engine';
+import { maskGatewaySecret, isMaskedGatewaySecret } from './engines/gateway-secret-mask.engine';
+import {
+  issueOrderAccessToken,
+  verifyOrderAccessToken,
+  resolveOnlineOrderCollection,
+  MANUALLY_CONFIRMED_PAYMENT_METHODS,
+  buildOrderTrackingUrl,
+} from './engines/online-order-access.engine';
+
+/** Country-aware phone rule shared by order creation and edit (O56: edit used to accept Egypt only). */
+function assertValidCustomerPhone(rawPhone: string | undefined, countryCode: string): void {
+  const cleanCustomerPhone = String(rawPhone || '').replace(/[^0-9+]/g, '');
+  const digitsOnly = cleanCustomerPhone.replace(/\D/g, '');
+  if (countryCode === 'EG' && (cleanCustomerPhone.startsWith('01') || cleanCustomerPhone.length === 11)) {
+    if (!/^01[0125]\d{8}$/.test(digitsOnly)) {
+      throw new BadRequestException('يرجى إدخال رقم هاتف محمول مصري صحيح مكون من 11 رقماً ويبدأ بـ (010، 011، 012، 015)');
+    }
+  } else if (digitsOnly.length < 7 || digitsOnly.length > 16) {
+    throw new BadRequestException('يرجى إدخال رقم هاتف صحيح');
+  }
+}
+
+function catalogImageRef(value: unknown): string {
+  return typeof value === 'string' && value && !value.startsWith('data:') ? value : '';
+}
+
+/** Same rule the public catalog uses to show items as orderable when stock is zero. */
+function isOutOfStockOrderingAllowed(settings: Map<string, string>, tenantSlug: string): boolean {
+  return settings.get('storefront_allow_out_of_stock') === 'true' ||
+    settings.get('storefront_unlimited_stock') === 'true' ||
+    settings.get('industry') === 'restaurant' ||
+    settings.get('business_type') === 'restaurant' ||
+    tenantSlug === 'zs';
+}
+
+/**
+ * O58: the old check was `stock_qty <= 0`, so a product with 1 unit left accepted an order for 50.
+ * It is still an advisory check (the stock is actually moved when the cashier posts the sale through
+ * SalesService, which enforces it for real), but it stops the store from promising what it cannot ship.
+ */
+function assertOnlineStockAvailable(name: string, stockQty: number, requestedQty: number, allowOutOfStock: boolean): void {
+  if (allowOutOfStock) return;
+  if (stockQty <= 0) {
+    throw new BadRequestException(`عفواً، نفد مخزون الصنف "${name}"، يرجى حذفه من السلة لإتمام الطلب.`);
+  }
+  if (requestedQty > stockQty) {
+    throw new BadRequestException(`عفواً، المتاح من الصنف "${name}" هو ${stockQty} فقط، يرجى تعديل الكمية في السلة.`);
+  }
+}
 
 @Injectable()
 export class StorefrontService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly salesService: SalesService,
+    private readonly kdsService: KdsService,
+    private readonly media: StorefrontMediaService,
     @Optional() private readonly whatsappService?: WhatsAppGatewayService,
   ) {}
+
+  /**
+   * O53: removes a dine-in order's kitchen DRAFT sale once the real invoice is posted (or the order
+   * is cancelled), and hands the kitchen ticket's progress to the posted sale.
+   *
+   * Deleting is correct here and only here: the draft is not a financial document (status 'draft',
+   * no stock movement, no journal, no payments), and the WHERE clause refuses to touch anything that
+   * is not still a draft. `postedSaleId` must be a posted sale of the same tenant, otherwise the draft
+   * is kept — the kitchen keeps the ticket rather than losing it to a bad link.
+   */
+  private async retireKitchenDraft(tenantId: string, orderId: number, postedSaleId: number | null): Promise<void> {
+    const order = await this.db
+      .selectFrom('online_orders')
+      .select(['id', 'kitchen_draft_sale_id'])
+      .where('id', '=', orderId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .executeTakeFirst();
+    const draftSaleId = order?.kitchen_draft_sale_id ? Number(order.kitchen_draft_sale_id) : 0;
+    if (!draftSaleId) return;
+
+    if (postedSaleId) {
+      if (postedSaleId === draftSaleId) return;
+      const posted = await this.db
+        .selectFrom('sales')
+        .select(['id'])
+        .where('id', '=', postedSaleId)
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .where('status', '=', 'posted')
+        .executeTakeFirst();
+      if (!posted) return;
+    }
+
+    const removed = await this.db.transaction().execute(async (trx) => {
+      const draft = await trx
+        .selectFrom('sales')
+        .select(['id'])
+        .where('id', '=', draftSaleId)
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .where('status', '=', 'draft')
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (draft) {
+        await trx
+          .deleteFrom('sale_items')
+          .where('sale_id', '=', draftSaleId)
+          .where(sql<boolean>`tenant_id = ${tenantId}`)
+          .execute();
+        await trx
+          .deleteFrom('sales')
+          .where('id', '=', draftSaleId)
+          .where(sql<boolean>`tenant_id = ${tenantId}`)
+          .where('status', '=', 'draft')
+          .execute();
+      }
+
+      await trx
+        .updateTable('online_orders')
+        .set({ kitchen_draft_sale_id: null, updated_at: new Date() })
+        .where('id', '=', orderId)
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .execute();
+
+      return Boolean(draft);
+    });
+
+    if (removed) {
+      await this.kdsService.transferTicketState(tenantId, draftSaleId, postedSaleId).catch(() => undefined);
+    }
+  }
 
   private async getTenantBySlug(slug: string) {
     const cleanSlug = String(slug || '').trim().toLowerCase();
@@ -244,6 +369,7 @@ export class StorefrontService {
     // Prices/stock shown here are display-only: order creation re-prices and re-checks stock server-side.
     const serveStale = Boolean(cached && cached.staleUntil > now);
 
+
     // 3. Initiate singleflight worker promise
     const fetchPromise = (async () => {
       try {
@@ -281,6 +407,8 @@ export class StorefrontService {
               'item_type',
             ])
             .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            // O52: soft-deleted products (is_active = false) must not be sold online.
+            .where('is_active', '=', true)
             .where((eb) => eb.or([
               eb('item_type', '=', 'product'),
               eb('item_type', 'is', null)
@@ -314,7 +442,7 @@ export class StorefrontService {
         const formattedCategories = categories.map((c) => ({
           id: c.id,
           name: c.name,
-          imageUrl: catImageMap[String(c.id)] || '',
+          imageUrl: catalogImageRef(catImageMap[String(c.id)]),
         }));
 
         const catMap = new Map<number, string>();
@@ -350,8 +478,11 @@ export class StorefrontService {
           const isLowStock = !allowOutOfStock && rawStock > 0 && rawStock <= 5;
           const retailPrice = Number(p.retail_price ?? 0);
           const reviewStats = ratingMap.get(Number(p.id)) || { avgRating: 0, reviewCount: 0 };
-          const mainImg = meta.imageUrl || meta.image || '';
-          const gallery = Array.isArray(meta.gallery) ? meta.gallery.filter(Boolean) : [mainImg].filter(Boolean);
+          // SF-9: the catalog never ships inline base64. Migration 135 moved existing images to
+          // storefront_media and every writer now stores URLs; this guard keeps one stray data URL
+          // (written by some other path) from re-bloating the response for every visitor.
+          const mainImg = catalogImageRef(meta.imageUrl || meta.image);
+          const gallery = Array.isArray(meta.gallery) ? meta.gallery.map(catalogImageRef).filter(Boolean) : [mainImg].filter(Boolean);
           const variants = Array.isArray(meta.variants) ? meta.variants : [];
           const addOns = Array.isArray(meta.addOns) ? meta.addOns : (Array.isArray(meta.add_ons) ? meta.add_ons : []);
 
@@ -458,7 +589,135 @@ export class StorefrontService {
     };
   }
 
-  async createOnlineOrder(slug: string, dto: CreateOnlineOrderDto) {
+  /**
+   * Delivery fee, zone, free-shipping rule and coupon for an order — ONE implementation for create
+   * and edit. O56: the edit path had its own copy that reset the fee to the flat default and dropped
+   * the zone, the coupon, the free-shipping rule and the pickup/dine-in exemption, so editing an
+   * order silently changed what the customer owed.
+   *
+   * `alreadyClaimedCouponCode`: the coupon this order already consumed a use of. Re-applying it on
+   * edit neither re-checks its remaining uses nor claims another one.
+   */
+  private async resolveOrderCharges(
+    tenantId: string,
+    settings: Map<string, string>,
+    params: {
+      isDineIn: boolean;
+      isPickup: boolean;
+      deliveryZoneId?: number | null;
+      deliveryZoneName?: string | null;
+      subtotal: number;
+      couponCode?: string | null;
+      alreadyClaimedCouponCode?: string | null;
+    },
+  ): Promise<{
+    deliveryFee: number;
+    deliveryZoneId: number | null;
+    deliveryZoneName: string | null;
+    discountAmount: number;
+    appliedCouponCode: string | null;
+    /** Coupon whose use must be claimed in the order transaction (null when none, or already claimed). */
+    couponId: number | null;
+  }> {
+    const { isDineIn, isPickup, subtotal } = params;
+    let deliveryFee = (isDineIn || isPickup) ? 0 : Number(settings.get('storefront_delivery_fee') || 0);
+    let deliveryZoneId: number | null = null;
+    let deliveryZoneName: string | null = null;
+
+    if (!isDineIn && !isPickup && params.deliveryZoneId) {
+      const zone = await this.db
+        .selectFrom('storefront_delivery_zones')
+        .selectAll()
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .where('id', '=', params.deliveryZoneId)
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+
+      if (zone) {
+        deliveryZoneId = zone.id;
+        deliveryZoneName = zone.name;
+        deliveryFee = Number(zone.delivery_fee || 0);
+      }
+    } else if (!isDineIn && !isPickup && params.deliveryZoneName && params.deliveryZoneName.trim()) {
+      deliveryZoneName = params.deliveryZoneName.trim();
+    }
+
+    // Automatic free-shipping rule
+    const freeShippingEnabled = settings.get('storefront_free_shipping_enabled') === 'true';
+    const freeShippingMinOrder = Number(settings.get('storefront_free_shipping_min_order') || 0);
+    if (freeShippingEnabled && freeShippingMinOrder > 0 && subtotal >= freeShippingMinOrder) {
+      deliveryFee = 0;
+    }
+
+    let discountAmount = 0;
+    let appliedCouponCode: string | null = null;
+    let couponId: number | null = null;
+
+    const codeUpper = String(params.couponCode || '').trim().toUpperCase();
+    if (codeUpper) {
+      const coupon = await this.db
+        .selectFrom('storefront_coupons')
+        .selectAll()
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .where('code', '=', codeUpper)
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+
+      if (coupon) {
+        const alreadyClaimed = String(params.alreadyClaimedCouponCode || '').toUpperCase() === coupon.code.toUpperCase();
+        const nowDate = new Date();
+        const isStarted = !coupon.start_date || new Date(coupon.start_date) <= nowDate;
+        const isNotExpired = !coupon.end_date || new Date(coupon.end_date) >= nowDate;
+        const hasRemainingUsage = alreadyClaimed || coupon.usage_limit === null || Number(coupon.times_used || 0) < coupon.usage_limit;
+        const meetsMinOrder = subtotal >= Number(coupon.min_order_amount || 0);
+
+        if (isStarted && isNotExpired && hasRemainingUsage && meetsMinOrder) {
+          appliedCouponCode = coupon.code;
+          if (coupon.discount_type === 'free_shipping') {
+            deliveryFee = 0;
+          } else if (coupon.discount_type === 'percentage') {
+            const rawDiscount = (subtotal * Number(coupon.discount_value)) / 100;
+            discountAmount = coupon.max_discount_amount
+              ? Math.min(rawDiscount, Number(coupon.max_discount_amount))
+              : rawDiscount;
+          } else if (coupon.discount_type === 'fixed') {
+            discountAmount = Math.min(subtotal, Number(coupon.discount_value));
+          }
+          discountAmount = Math.round(discountAmount * 100) / 100;
+          // The use is claimed inside the caller's transaction (O57), never here.
+          couponId = alreadyClaimed ? null : Number(coupon.id);
+        }
+      }
+    }
+
+    return { deliveryFee, deliveryZoneId, deliveryZoneName, discountAmount, appliedCouponCode, couponId };
+  }
+
+  /** Atomic conditional claim of one coupon use (lost-update safe, enforces usage_limit on the live row). */
+  private async claimCouponUse(trx: Transaction<Database>, tenantId: string, couponId: number): Promise<void> {
+    const claim = await trx
+      .updateTable('storefront_coupons')
+      .set({ times_used: sql`times_used + 1`, updated_at: new Date() })
+      .where('id', '=', couponId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where(sql<boolean>`(usage_limit IS NULL OR times_used < usage_limit)`)
+      .executeTakeFirst();
+    if (Number(claim?.numUpdatedRows || 0) === 0) {
+      throw new BadRequestException('تم استنفاد عدد مرات استخدام كوبون الخصم.');
+    }
+  }
+
+  /** Gives back a use claimed by an order that no longer carries that coupon (edit swapped/removed it). */
+  private async releaseCouponUse(trx: Transaction<Database>, tenantId: string, couponCode: string): Promise<void> {
+    await trx
+      .updateTable('storefront_coupons')
+      .set({ times_used: sql`GREATEST(times_used - 1, 0)`, updated_at: new Date() })
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('code', '=', couponCode.toUpperCase())
+      .execute();
+  }
+
+  async createOnlineOrder(slug: string, dto: CreateOnlineOrderDto, publicOrigin?: string) {
     const tenant = await this.getTenantBySlug(slug);
     const settings = await this.getTenantSettingsMap(tenant.id);
 
@@ -470,19 +729,8 @@ export class StorefrontService {
     const isPickup = dto.fulfillmentType === 'pickup';
     const countryCode = (dto.countryCode || 'EG').toUpperCase();
 
-    const cleanCustomerPhone = (dto.customerPhone || '').replace(/[^0-9+]/g, '');
     if (!isDineIn) {
-      if (countryCode === 'EG' && (cleanCustomerPhone.startsWith('01') || cleanCustomerPhone.length === 11)) {
-        const digitsOnly = cleanCustomerPhone.replace(/\D/g, '');
-        if (!/^01[0125]\d{8}$/.test(digitsOnly)) {
-          throw new BadRequestException('يرجى إدخال رقم هاتف محمول مصري صحيح مكون من 11 رقماً ويبدأ بـ (010، 011، 012، 015)');
-        }
-      } else {
-        const digitsOnly = cleanCustomerPhone.replace(/\D/g, '');
-        if (digitsOnly.length < 7 || digitsOnly.length > 16) {
-          throw new BadRequestException('يرجى إدخال رقم هاتف صحيح');
-        }
-      }
+      assertValidCustomerPhone(dto.customerPhone, countryCode);
     }
 
     const cleanCustomerName = (dto.customerName || (isDineIn ? `عميل طاولة ${dto.tableNumber}` : '')).trim();
@@ -505,27 +753,6 @@ export class StorefrontService {
     }
 
     const minOrder = isDineIn ? 0 : Number(settings.get('storefront_min_order') || 0);
-    let deliveryFee = (isDineIn || isPickup) ? 0 : Number(settings.get('storefront_delivery_fee') || 0);
-    let deliveryZoneId: number | null = null;
-    let deliveryZoneName: string | null = null;
-
-    if (!isDineIn && !isPickup && dto.deliveryZoneId) {
-      const zone = await this.db
-        .selectFrom('storefront_delivery_zones')
-        .selectAll()
-        .where(sql<boolean>`tenant_id = ${tenant.id}`)
-        .where('id', '=', dto.deliveryZoneId)
-        .where('is_active', '=', true)
-        .executeTakeFirst();
-
-      if (zone) {
-        deliveryZoneId = zone.id;
-        deliveryZoneName = zone.name;
-        deliveryFee = Number(zone.delivery_fee || 0);
-      }
-    } else if (dto.deliveryZoneName && dto.deliveryZoneName.trim()) {
-      deliveryZoneName = dto.deliveryZoneName.trim();
-    }
 
     // Fetch products in order to verify price and names
     const numericIds = dto.items.map((i) => Number(i.productId)).filter((id) => !isNaN(id) && id > 0);
@@ -533,8 +760,12 @@ export class StorefrontService {
 
     const dbProducts = await this.db
       .selectFrom('products')
-      .select(['id', 'name', 'retail_price', 'barcode', 'stock_qty'])
+      .select(['id', 'name', 'retail_price', 'barcode', 'stock_qty', 'metadata'])
       .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      // Same visibility rule as the public catalog (O52): an order may only contain what the
+      // catalog shows. Anything else is "not available" — including deleted items still in a cart.
+      .where('is_active', '=', true)
+      .where((eb) => eb.or([eb('item_type', '=', 'product'), eb('item_type', 'is', null)]))
       .where((eb) => {
         const conditions = [];
         if (numericIds.length > 0) {
@@ -558,29 +789,37 @@ export class StorefrontService {
       }
     }
 
-    const allowOutOfStock = settings.get('storefront_allow_out_of_stock') === 'true' ||
-      settings.get('storefront_unlimited_stock') === 'true' ||
-      settings.get('industry') === 'restaurant' ||
-      settings.get('business_type') === 'restaurant' ||
-      tenant.slug === 'zs';
+    const allowOutOfStock = isOutOfStockOrderingAllowed(settings, tenant.slug);
 
     let subtotal = 0;
+    // One line per product: the sales engine that will invoice this order rejects two rows of the
+    // same product and unit (ensureUniqueFlowItems), so two variants of one product cannot both be
+    // invoiced. The storefront cart already keeps a single variant per product.
+    const seenProductIds = new Set<number>();
     const validatedItems = dto.items.map((item) => {
       const prod = productMap.get(item.productId) ?? productMap.get(Number(item.productId)) ?? productMap.get(String(item.productId));
       if (!prod) {
         throw new BadRequestException(`عفواً، أحد الأصناف المطلوبة غير متاح في المتجر حالياً، يرجى تحديث السلة.`);
       }
-      if (!allowOutOfStock && Number(prod.stock_qty ?? 0) <= 0) {
-        throw new BadRequestException(`عفواً، نفد مخزون الصنف "${prod.name}"، يرجى حذفه من السلة لإتمام الطلب.`);
+      if (seenProductIds.has(Number(prod.id))) {
+        throw new BadRequestException(`لا يمكن طلب أكثر من مقاس أو سطر للصنف "${prod.name}" في نفس الطلب، يرجى توحيده في سطر واحد.`);
       }
-      const unitPrice = Number(prod.retail_price || 0);
+      seenProductIds.add(Number(prod.id));
+      assertOnlineStockAvailable(prod.name, Number(prod.stock_qty ?? 0), Math.max(1, Number(item.quantity || 1)), allowOutOfStock);
+      // SF-4 / O54: the chosen variant is priced here, from the product's own metadata.
+      const priced = resolveOrderLinePrice(Number(prod.retail_price || 0), prod.metadata, item.variantName);
+      if (!priced.ok) {
+        throw new BadRequestException(`عفواً، المقاس المختار للصنف "${prod.name}" لم يعد متاحاً، يرجى تحديث السلة.`);
+      }
+      const unitPrice = priced.unitPrice;
       const quantity = Math.max(1, Number(item.quantity || 1));
-      const lineTotal = unitPrice * quantity;
+      const lineTotal = Math.round(unitPrice * quantity * 100) / 100;
       subtotal += lineTotal;
 
       return {
         productId: prod.id,
-        name: prod.name,
+        name: formatVariantLineName(prod.name, priced.variantName),
+        variantName: priced.variantName,
         barcode: prod.barcode || '',
         quantity,
         unitPrice,
@@ -593,74 +832,21 @@ export class StorefrontService {
       throw new BadRequestException(`الحد الأدنى للطلب هو ${minOrder} ج`);
     }
 
-    // Automatic Free Shipping Rule Check
-    const freeShippingEnabled = settings.get('storefront_free_shipping_enabled') === 'true';
-    const freeShippingMinOrder = Number(settings.get('storefront_free_shipping_min_order') || 0);
-    if (freeShippingEnabled && freeShippingMinOrder > 0 && subtotal >= freeShippingMinOrder) {
-      deliveryFee = 0;
-    }
-
-    // Coupon Validation & Application
-    let discountAmount = 0;
-    let appliedCouponCode: string | null = null;
-
-    if (dto.couponCode && dto.couponCode.trim()) {
-      const codeUpper = dto.couponCode.trim().toUpperCase();
-      const coupon = await this.db
-        .selectFrom('storefront_coupons')
-        .selectAll()
-        .where(sql<boolean>`tenant_id = ${tenant.id}`)
-        .where('code', '=', codeUpper)
-        .where('is_active', '=', true)
-        .executeTakeFirst();
-
-      if (coupon) {
-        const nowDate = new Date();
-        const isStarted = !coupon.start_date || new Date(coupon.start_date) <= nowDate;
-        const isNotExpired = !coupon.end_date || new Date(coupon.end_date) >= nowDate;
-        const hasRemainingUsage = coupon.usage_limit === null || Number(coupon.times_used || 0) < coupon.usage_limit;
-        const meetsMinOrder = subtotal >= Number(coupon.min_order_amount || 0);
-
-        if (isStarted && isNotExpired && hasRemainingUsage && meetsMinOrder) {
-          appliedCouponCode = coupon.code;
-          if (coupon.discount_type === 'free_shipping') {
-            deliveryFee = 0;
-          } else if (coupon.discount_type === 'percentage') {
-            const rawDiscount = (subtotal * Number(coupon.discount_value)) / 100;
-            discountAmount = coupon.max_discount_amount
-              ? Math.min(rawDiscount, Number(coupon.max_discount_amount))
-              : rawDiscount;
-          } else if (coupon.discount_type === 'fixed') {
-            discountAmount = Math.min(subtotal, Number(coupon.discount_value));
-          }
-
-          // Claim one use ATOMICALLY.
-          //
-          // The previous read-modify-write (`times_used = read_value + 1`) was a lost update: two
-          // concurrent checkouts both read N and both wrote N+1, so a coupon capped at N uses could
-          // be redeemed many more times. The usage_limit check above also ran on an unlocked read,
-          // so it could not stop the overrun either.
-          //
-          // Incrementing in a single conditional statement makes the database enforce the cap: the
-          // WHERE clause re-tests the limit against the live row, and a zero-row result means
-          // another checkout took the last use while we were deciding.
-          const claim = await this.db
-            .updateTable('storefront_coupons')
-            .set({
-              times_used: sql`times_used + 1`,
-              updated_at: new Date(),
-            })
-            .where('id', '=', coupon.id)
-            .where(sql<boolean>`tenant_id = ${tenant.id}`)
-            .where(sql<boolean>`(usage_limit IS NULL OR times_used < usage_limit)`)
-            .executeTakeFirst();
-
-          if (Number(claim?.numUpdatedRows || 0) === 0) {
-            throw new BadRequestException('تم استنفاد عدد مرات استخدام كوبون الخصم.');
-          }
-        }
-      }
-    }
+    const {
+      deliveryFee,
+      deliveryZoneId,
+      deliveryZoneName,
+      discountAmount,
+      appliedCouponCode,
+      couponId: couponIdToClaim,
+    } = await this.resolveOrderCharges(tenant.id, settings, {
+      isDineIn,
+      isPickup,
+      deliveryZoneId: dto.deliveryZoneId,
+      deliveryZoneName: dto.deliveryZoneName,
+      subtotal,
+      couponCode: dto.couponCode,
+    });
 
     const totalAmount = Math.max(0, subtotal - discountAmount) + deliveryFee;
 
@@ -682,34 +868,32 @@ export class StorefrontService {
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const datePrefix = `${yy}${mm}${dd}`;
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    let orderNumber = '';
+    const accessToken = issueOrderAccessToken();
 
-    let nextSeq = 1;
-    try {
-      const lastDoc = await this.db
+    // The order and (for dine-in) its kitchen draft are written together: a QR order the kitchen never
+    // sees, or a kitchen ticket with no order behind it, are both worse than a clear error.
+    const insertedOrder = await this.db.transaction().execute(async (trx) => {
+      // O57: numbering was MAX+1 outside any lock, so two checkouts in the same instant got the same
+      // ON-YYMMDD-NNNN. A per-tenant transaction-scoped advisory lock serialises only this step (it is
+      // released at commit/rollback), and the unique index from migration 134 backs it up.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'online_orders:' + tenant.id}))`.execute(trx);
+      const lastDoc = await trx
         .selectFrom('online_orders')
-        .select(
-          sql<number>`COALESCE(MAX(CASE WHEN order_number ~ '^[A-Za-z]+-[0-9]+-[0-9]+$' THEN CAST(SPLIT_PART(order_number, '-', 3) AS INTEGER) ELSE 0 END), 0)`.as('last_seq')
-        )
+        .select(sql<number>`COALESCE(MAX(CAST(SPLIT_PART(order_number, '-', 3) AS INTEGER)), 0)`.as('last_seq'))
         .where(sql<boolean>`tenant_id = ${tenant.id}`)
-        .where('created_at', '>=', startOfDay)
+        .where(sql<boolean>`order_number ~ ${'^ON-' + datePrefix + '-[0-9]+$'}`)
         .executeTakeFirst();
+      orderNumber = `ON-${datePrefix}-${String(Number(lastDoc?.last_seq || 0) + 1).padStart(4, '0')}`;
 
-      nextSeq = Number(lastDoc?.last_seq || 0) + 1;
-    } catch {
-      const countRow = await this.db
-        .selectFrom('online_orders')
-        .select(sql<number>`COUNT(*)::int`.as('cnt'))
-        .where(sql<boolean>`tenant_id = ${tenant.id}`)
-        .where('created_at', '>=', startOfDay)
-        .executeTakeFirst();
-      nextSeq = Number(countRow?.cnt || 0) + 1;
-    }
+      // Claim one coupon use ATOMICALLY, in the same transaction as the order (O57): the conditional
+      // increment makes the database enforce usage_limit on the live row (no lost update), and a
+      // failed order rolls the claim back instead of burning a use.
+      if (couponIdToClaim) {
+        await this.claimCouponUse(trx, tenant.id, couponIdToClaim);
+      }
 
-    const seq = String(nextSeq).padStart(4, '0');
-    const orderNumber = `ON-${datePrefix}-${seq}`;
-
-    const insertedOrder = await (this.db as any)
+      const inserted = await trx
       .insertInto('online_orders')
       .values({
         tenant_id: tenant.id,
@@ -737,9 +921,94 @@ export class StorefrontService {
         pickup_branch_id: isPickup ? (dto.pickupBranchId || branchId) : null,
         table_number: dto.tableNumber ? String(dto.tableNumber).trim() : null,
         sale_id: null,
+        access_token_hash: accessToken.hash,
       })
       .returning(['id', 'order_number', 'total_amount', 'created_at'])
       .executeTakeFirstOrThrow();
+
+
+      if (isDineIn) {
+        // O53: a DRAFT sale, not a posted one. It exists only so the kitchen display (which reads
+        // `sales`) shows the ticket immediately. It moves no stock, posts no journal and counts as no
+        // revenue. The cashier posts the real invoice through SalesService (load into POS cart or
+        // convert); retireKitchenDraft() then removes this draft and hands its ticket state over.
+        const draft = await trx
+          .insertInto('sales')
+          .values({
+            tenant_id: tenant.id,
+            account_id: accountId,
+            doc_no: orderNumber,
+            customer_id: null,
+            customer_name: cleanCustomerName,
+            customer_phone: null,
+            customer_address: null,
+            payment_type: 'cash',
+            payment_channel: 'cash',
+            subtotal,
+            discount: discountAmount,
+            tax_rate: 0,
+            tax_amount: 0,
+            delivery_fee: 0,
+            prices_include_tax: false,
+            total: totalAmount,
+            paid_amount: 0,
+            tendered_amount: 0,
+            change_amount: 0,
+            store_credit_used: 0,
+            status: 'draft',
+            note: `طلب ذاتي من الطاولة (${dto.tableNumber}) بالـ QR — مسودة للمطبخ، تُرحَّل من الكاشير`,
+            branch_id: branchId,
+            location_id: null,
+            created_by: null,
+            cancelled_at: null,
+            cancelled_by: null,
+            cancel_reason: '',
+            delivery_rep_id: null,
+            delivery_status: null,
+            collection_status: null,
+            settled_at: null,
+            settled_by: null,
+            eta_uuid: null,
+            eta_submission_id: null,
+            order_type: 'dine_in',
+            table_number: String(dto.tableNumber).trim(),
+          })
+          .returning(['id'])
+          .executeTakeFirstOrThrow();
+
+        const draftSaleId = Number(draft.id);
+        for (const it of validatedItems) {
+          await trx
+            .insertInto('sale_items')
+            .values({
+              tenant_id: tenant.id,
+              account_id: accountId,
+              sale_id: draftSaleId,
+              product_id: Number(it.productId),
+              product_name: it.name,
+              qty: it.quantity,
+              unit_price: it.unitPrice,
+              line_total: it.total,
+              unit_name: 'قطعة',
+              unit_multiplier: 1,
+              cost_price: 0,
+              price_type: 'retail',
+              notes: it.notes || '',
+              modifiers: null,
+            })
+            .execute();
+        }
+
+        await trx
+          .updateTable('online_orders')
+          .set({ kitchen_draft_sale_id: draftSaleId })
+          .where('id', '=', inserted.id)
+          .where(sql<boolean>`tenant_id = ${tenant.id}`)
+          .execute();
+      }
+
+      return inserted;
+    });
 
     // Mark matching abandoned carts as recovered
     try {
@@ -755,68 +1024,17 @@ export class StorefrontService {
       }
     } catch {}
 
-    // Auto-create sale for Dine-In so it flows directly to KDS
-    if (isDineIn) {
-      try {
-        const insertedSale = await (this.db as any)
-          .insertInto('sales')
-          .values({
-            tenant_id: tenant.id,
-            account_id: accountId,
-            doc_no: orderNumber,
-            customer_name: cleanCustomerName,
-            payment_type: dto.paymentMethod || 'cash',
-            payment_channel: dto.paymentMethod || 'cash',
-            subtotal,
-            total: totalAmount,
-            paid_amount: 0,
-            status: 'posted',
-            note: `طلب ذاتي من الطاولة (${dto.tableNumber}) بالـ QR`,
-            branch_id: branchId,
-            order_type: 'dine_in',
-            table_number: String(dto.tableNumber).trim(),
-            created_at: now,
-            updated_at: now,
-          })
-          .returning(['id'])
-          .executeTakeFirst();
-
-        if (insertedSale?.id) {
-          const sid = Number(insertedSale.id);
-          for (const it of validatedItems) {
-            await (this.db as any)
-              .insertInto('sale_items')
-              .values({
-                tenant_id: tenant.id,
-                account_id: accountId,
-                sale_id: sid,
-                product_id: it.productId,
-                product_name: it.name,
-                qty: it.quantity,
-                unit_price: it.unitPrice,
-                line_total: it.total,
-                unit_name: 'قطعة',
-                unit_multiplier: 1,
-                notes: it.notes || '',
-              })
-              .execute();
-          }
-
-          await (this.db as any)
-            .updateTable('online_orders')
-            .set({ sale_id: sid })
-            .where('id', '=', insertedOrder.id)
-            .where('tenant_id', '=', tenant.id)
-            .execute();
-        }
-      } catch {
-        // Non-blocking catch
-      }
-    }
+    // Tracking link for the shopper. The token rides in the URL FRAGMENT (#t=...): browsers never send
+    // fragments to a server, so it stays out of access logs and referrers (SF-1). Opening the link on
+    // any device registers the order there, which is how "my orders" follows the customer without an
+    // account.
+    const trackingUrl = buildOrderTrackingUrl(publicOrigin, slug, String(insertedOrder.order_number), accessToken.token);
 
     // Non-blocking auto WhatsApp notification via gateway if enabled
     if (this.whatsappService) {
-      void this.whatsappService.sendOnlineOrderNotification(insertedOrder.id, tenant.id).catch(() => undefined);
+      void this.whatsappService
+        .sendOnlineOrderNotification(insertedOrder.id, tenant.id, { trackingUrl })
+        .catch(() => undefined);
     }
 
     // Prepare WhatsApp Message Text
@@ -858,6 +1076,9 @@ export class StorefrontService {
       ok: true,
       orderId: insertedOrder.id,
       orderNumber: insertedOrder.order_number,
+      // Returned exactly once. The customer's browser keeps it; the server only has its hash (SF-1).
+      accessToken: accessToken.token,
+      trackingUrl,
       totalAmount: Number(insertedOrder.total_amount),
       subtotal,
       deliveryFee,
@@ -870,16 +1091,25 @@ export class StorefrontService {
     };
   }
 
-  async listCustomerOrders(slug: string, phone?: string, orderNumbers?: string[]) {
+  /**
+   * Public "my orders". Each order is reachable only with its own access token (SF-1).
+   * Lookup by phone number was removed: a phone number is not a secret, and it returned the
+   * name, address and order history of whoever owned that number.
+   */
+  async lookupCustomerOrders(slug: string, refs: CustomerOrderRefDto[]) {
     const tenant = await this.getTenantBySlug(slug);
-    const cleanPhone = String(phone || '').trim().replace(/\D/g, '');
-    const validOrderNumbers = (orderNumbers || []).filter(Boolean);
+    const tokenByNumber = new Map<string, string>();
+    for (const ref of (refs || []).slice(0, 30)) {
+      const num = String(ref?.orderNumber || '').trim();
+      const tok = String(ref?.token || '').trim();
+      if (num && tok) tokenByNumber.set(num, tok);
+    }
 
-    if (!cleanPhone && validOrderNumbers.length === 0) {
+    if (tokenByNumber.size === 0) {
       return { ok: true, orders: [] };
     }
 
-    let qb = this.db
+    const qb = this.db
       .selectFrom('online_orders as o')
       .leftJoin('sales as s', 's.id', 'o.sale_id')
       .leftJoin('delivery_representatives as dr', 'dr.id', 's.delivery_rep_id')
@@ -906,21 +1136,15 @@ export class StorefrontService {
         'dr.name as delivery_rep_name',
         'dr.phone as delivery_rep_phone',
         's.delivery_status as sale_delivery_status',
+        'o.access_token_hash',
       ])
-      .where(sql<boolean>`o.tenant_id = ${tenant.id}`);
+      .where(sql<boolean>`o.tenant_id = ${tenant.id}`)
+      .where('o.order_number', 'in', Array.from(tokenByNumber.keys()));
 
-    qb = qb.where((eb) => {
-      const conditions: any[] = [];
-      if (cleanPhone) {
-        conditions.push(eb('o.customer_phone', 'like', `%${cleanPhone.slice(-9)}%`));
-      }
-      if (validOrderNumbers.length > 0) {
-        conditions.push(eb('o.order_number', 'in', validOrderNumbers));
-      }
-      return eb.or(conditions);
-    });
-
-    const rows = await qb.orderBy('o.created_at', 'desc').limit(20).execute();
+    const candidates = await qb.orderBy('o.created_at', 'desc').limit(60).execute();
+    // order_number is not unique even inside a tenant, so every candidate row is checked against
+    // its own hash — a token proves ownership of one row, not of a number.
+    const rows = candidates.filter((r) => verifyOrderAccessToken(tokenByNumber.get(r.order_number), r.access_token_hash));
 
     return {
       ok: true,
@@ -966,77 +1190,115 @@ export class StorefrontService {
     };
   }
 
-  async cancelCustomerOrder(slug: string, orderNumber: string) {
-    const tenant = await this.getTenantBySlug(slug);
+  /**
+   * SF-1: resolves a public order reference to the single row whose token hash matches.
+   * A missing order and a wrong token return the same 404, so the route is not an oracle for
+   * which order numbers exist.
+   */
+  private async findCustomerOrderByToken(tenantId: string, orderNumber: string, token: string | undefined) {
     const cleanOrderNumber = String(orderNumber || '').trim();
-
-    const order = await this.db
-      .selectFrom('online_orders')
-      .selectAll()
-      .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      .where('order_number', '=', cleanOrderNumber)
-      .executeTakeFirst();
-
-    if (!order) {
+    if (!cleanOrderNumber || !token) {
       throw new NotFoundException('الطلب غير موجود');
     }
 
+    const candidates = await this.db
+      .selectFrom('online_orders')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('order_number', '=', cleanOrderNumber)
+      .limit(10)
+      .execute();
+
+    const order = candidates.find((row) => verifyOrderAccessToken(token, row.access_token_hash));
+    if (!order) {
+      throw new NotFoundException('الطلب غير موجود');
+    }
+    return order;
+  }
+
+  async cancelCustomerOrder(slug: string, orderNumber: string, token: string | undefined) {
+    const tenant = await this.getTenantBySlug(slug);
+    const order = await this.findCustomerOrderByToken(tenant.id, orderNumber, token);
+
     if (order.status !== 'pending') {
       throw new BadRequestException('لا يمكن إلغاء الطلب لأنه قيد التجهيز أو تم اعتماده بالفعل من المتجر');
+    }
+
+    // A dine-in order is already on the kitchen screen; changes go through the staff.
+    if (order.kitchen_draft_sale_id) {
+      throw new BadRequestException('تم إرسال طلبك للمطبخ بالفعل، يرجى طلب الإلغاء من فريق الخدمة');
     }
 
     if (order.sale_id) {
       throw new BadRequestException('لا يمكن إلغاء الطلب لأنه تم إصدار فاتورة له');
     }
 
-    await this.db
-      .updateTable('online_orders')
-      .set({
-        status: 'cancelled',
-        updated_at: new Date(),
-      })
-      .where('id', '=', order.id)
-      .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      .execute();
+    // Paid online orders are not cancelled from the public side: the money has to be refunded,
+    // and that is a merchant decision.
+    if (order.payment_status === 'paid') {
+      throw new BadRequestException('لا يمكن إلغاء طلب تم سداده إلكترونياً من هنا، يرجى التواصل مع المتجر لاسترداد المبلغ');
+    }
+
+    await this.db.transaction().execute(async (trx) => {
+      const cancelled = await trx
+        .updateTable('online_orders')
+        .set({
+          status: 'cancelled',
+          updated_at: new Date(),
+        })
+        .where('id', '=', order.id)
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .where('status', '=', 'pending')
+        .where('sale_id', 'is', null)
+        .executeTakeFirst();
+
+      if (Number(cancelled?.numUpdatedRows || 0) === 0) {
+        // The store picked the order up (loaded it into the POS cart / started preparing it) between
+        // our read and this write.
+        throw new BadRequestException('لا يمكن إلغاء الطلب لأن المتجر بدأ في تجهيزه بالفعل');
+      }
+
+      // A cancelled order gives its coupon use back (only the transition to 'cancelled' reaches here).
+      if (order.coupon_code) {
+        await this.releaseCouponUse(trx, tenant.id, String(order.coupon_code));
+      }
+    });
 
     return { ok: true, message: 'تم إلغاء الطلب بنجاح' };
   }
 
-  async updateCustomerOrder(slug: string, orderNumber: string, dto: CreateOnlineOrderDto) {
+  async updateCustomerOrder(slug: string, orderNumber: string, token: string | undefined, dto: CreateOnlineOrderDto) {
     const tenant = await this.getTenantBySlug(slug);
-    const cleanOrderNumber = String(orderNumber || '').trim();
-
-    const order = await this.db
-      .selectFrom('online_orders')
-      .selectAll()
-      .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      .where('order_number', '=', cleanOrderNumber)
-      .executeTakeFirst();
-
-    if (!order) {
-      throw new NotFoundException('الطلب غير موجود');
-    }
+    const order = await this.findCustomerOrderByToken(tenant.id, orderNumber, token);
 
     if (order.status !== 'pending') {
       throw new BadRequestException('لا يمكن تعديل الطلب لأنه قيد التجهيز أو تم اعتماده من المتجر');
+    }
+
+    if (order.kitchen_draft_sale_id) {
+      throw new BadRequestException('تم إرسال طلبك للمطبخ بالفعل، يرجى طلب التعديل من فريق الخدمة');
     }
 
     if (order.sale_id) {
       throw new BadRequestException('لا يمكن تعديل الطلب لأنه تم إصدار فاتورة له');
     }
 
+    // Changing items after payment would leave the paid amount out of step with the order total.
+    if (order.payment_status === 'paid') {
+      throw new BadRequestException('لا يمكن تعديل طلب تم سداده، يرجى التواصل مع المتجر');
+    }
+
     const settings = await this.getTenantSettingsMap(tenant.id);
     const isEnabled = settings.get('storefront_enabled') !== 'false';
     if (!isEnabled) throw new BadRequestException('المتجر الإلكتروني متوقف حالياً');
 
-    const deliveryFee = Number(settings.get('storefront_delivery_fee') || 0);
-    const minOrder = Number(settings.get('storefront_min_order') || 0);
+    // The order keeps how it is fulfilled; an edit changes items, address, zone, coupon and notes.
+    const isPickup = order.fulfillment_type === 'pickup';
+    const isDineIn = order.fulfillment_type === 'dine_in' || order.order_type === 'dine_in';
+    const minOrder = isDineIn ? 0 : Number(settings.get('storefront_min_order') || 0);
 
     if (dto.customerPhone) {
-      const cleanCustomerPhone = dto.customerPhone.replace(/\D/g, '');
-      if (!/^01[0125]\d{8}$/.test(cleanCustomerPhone)) {
-        throw new BadRequestException('يرجى إدخال رقم هاتف محمول مصري صحيح مكون من 11 رقماً ويبدأ بـ (010، 011، 012، 015)');
-      }
+      assertValidCustomerPhone(dto.customerPhone, String(dto.countryCode || order.country_code || 'EG').toUpperCase());
     }
 
     if (dto.customerName) {
@@ -1062,8 +1324,10 @@ export class StorefrontService {
 
     const catalogProducts = await this.db
       .selectFrom('products')
-      .select(['id', 'name', 'retail_price', 'stock_qty'])
+      .select(['id', 'name', 'retail_price', 'stock_qty', 'metadata'])
       .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('is_active', '=', true)
+      .where((eb) => eb.or([eb('item_type', '=', 'product'), eb('item_type', 'is', null)]))
       .where('id', 'in', rawProductIds)
       .execute();
 
@@ -1073,24 +1337,37 @@ export class StorefrontService {
     const validatedItems: Array<{
       productId: number;
       name: string;
+      variantName: string | null;
       quantity: number;
       unitPrice: number;
       total: number;
       notes?: string;
     }> = [];
 
+    const updateAllowsOutOfStock = isOutOfStockOrderingAllowed(settings, tenant.slug);
+    const seenProductIds = new Set<number>();
     for (const item of dto.items) {
       const p = productMap.get(Number(item.productId));
       if (!p) continue;
+      if (seenProductIds.has(Number(p.id))) {
+        throw new BadRequestException(`لا يمكن طلب أكثر من مقاس أو سطر للصنف "${p.name}" في نفس الطلب، يرجى توحيده في سطر واحد.`);
+      }
+      seenProductIds.add(Number(p.id));
+      assertOnlineStockAvailable(p.name, Number(p.stock_qty ?? 0), Math.max(1, Number(item.quantity || 1)), updateAllowsOutOfStock);
 
+      const priced = resolveOrderLinePrice(Number(p.retail_price || 0), p.metadata, item.variantName);
+      if (!priced.ok) {
+        throw new BadRequestException(`عفواً، المقاس المختار للصنف "${p.name}" لم يعد متاحاً، يرجى تحديث السلة.`);
+      }
       const qty = Math.max(1, Number(item.quantity || 1));
-      const price = Number(p.retail_price || 0);
-      const lineTotal = price * qty;
+      const price = priced.unitPrice;
+      const lineTotal = Math.round(price * qty * 100) / 100;
 
       subtotal += lineTotal;
       validatedItems.push({
         productId: Number(p.id),
-        name: p.name,
+        name: formatVariantLineName(p.name, priced.variantName),
+        variantName: priced.variantName,
         quantity: qty,
         unitPrice: price,
         total: lineTotal,
@@ -1106,14 +1383,38 @@ export class StorefrontService {
       throw new BadRequestException(`الحد الأدنى للطلب هو ${minOrder} ج`);
     }
 
-    const totalAmount = subtotal + deliveryFee;
+    const previousCoupon = order.coupon_code ? String(order.coupon_code) : null;
+    const charges = await this.resolveOrderCharges(tenant.id, settings, {
+      isDineIn,
+      isPickup,
+      deliveryZoneId: dto.deliveryZoneId ?? order.delivery_zone_id ?? null,
+      deliveryZoneName: dto.deliveryZoneName ?? order.delivery_zone_name ?? null,
+      subtotal,
+      couponCode: dto.couponCode,
+      alreadyClaimedCouponCode: previousCoupon,
+    });
+    const { deliveryFee, discountAmount } = charges;
+    const totalAmount = Math.max(0, subtotal - discountAmount) + deliveryFee;
 
-    await this.db
+    await this.db.transaction().execute(async (trx) => {
+      if (charges.couponId) {
+        await this.claimCouponUse(trx, tenant.id, charges.couponId);
+      }
+      // The order no longer carries the coupon it consumed (removed, swapped, or no longer eligible).
+      if (previousCoupon && previousCoupon.toUpperCase() !== String(charges.appliedCouponCode || '').toUpperCase()) {
+        await this.releaseCouponUse(trx, tenant.id, previousCoupon);
+      }
+
+      const result = await trx
       .updateTable('online_orders')
       .set({
         items_json: JSON.stringify(validatedItems),
         subtotal,
         delivery_fee: deliveryFee,
+        delivery_zone_id: charges.deliveryZoneId,
+        delivery_zone_name: charges.deliveryZoneName,
+        discount_amount: discountAmount,
+        coupon_code: charges.appliedCouponCode,
         total_amount: totalAmount,
         customer_name: (dto.customerName || order.customer_name).trim(),
         customer_phone: (dto.customerPhone || order.customer_phone).trim(),
@@ -1124,7 +1425,17 @@ export class StorefrontService {
       })
       .where('id', '=', order.id)
       .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      .execute();
+      // SF-6: the edit only lands while the store has not picked the order up. Without this, an edit
+      // racing the cashier's "load into cart" rewrote an order the cashier was already billing.
+      .where('status', '=', 'pending')
+      .where('sale_id', 'is', null)
+      .executeTakeFirst();
+
+      // Throwing inside the transaction also rolls back the coupon claim/release above.
+      if (Number(result?.numUpdatedRows || 0) === 0) {
+        throw new BadRequestException('لا يمكن تعديل الطلب لأن المتجر بدأ في تجهيزه بالفعل');
+      }
+    });
 
     return {
       ok: true,
@@ -1132,6 +1443,8 @@ export class StorefrontService {
       totalAmount,
       subtotal,
       deliveryFee,
+      discountAmount,
+      couponCode: charges.appliedCouponCode,
       items: validatedItems,
       message: 'تم تحديث طلبك بنجاح!',
     };
@@ -1285,14 +1598,106 @@ export class StorefrontService {
       updatePayload.sale_id = saleId;
     }
 
-    await this.db
-      .updateTable('online_orders')
-      .set(updatePayload)
-      .where('id', '=', id)
-      .where(sql<boolean>`tenant_id = ${tenantId}`)
-      .execute();
+    await this.db.transaction().execute(async (trx) => {
+      let becameCancelled = false;
+      if (status === 'cancelled') {
+        // Only the first transition to 'cancelled' releases the coupon use; re-saving an already
+        // cancelled order must not hand the use back twice.
+        const r = await trx
+          .updateTable('online_orders')
+          .set(updatePayload)
+          .where('id', '=', id)
+          .where(sql<boolean>`tenant_id = ${tenantId}`)
+          .where('status', '<>', 'cancelled')
+          .executeTakeFirst();
+        becameCancelled = Number(r?.numUpdatedRows || 0) > 0;
+      } else {
+        await trx
+          .updateTable('online_orders')
+          .set(updatePayload)
+          .where('id', '=', id)
+          .where(sql<boolean>`tenant_id = ${tenantId}`)
+          .execute();
+      }
+
+      if (becameCancelled) {
+        const row = await trx
+          .selectFrom('online_orders')
+          .select(['coupon_code'])
+          .where('id', '=', id)
+          .where(sql<boolean>`tenant_id = ${tenantId}`)
+          .executeTakeFirst();
+        if (row?.coupon_code) {
+          await this.releaseCouponUse(trx, tenantId, String(row.coupon_code));
+        }
+      }
+    });
+
+    if (saleId !== undefined && saleId > 0) {
+      await this.retireKitchenDraft(tenantId, id, saleId);
+    } else if (status === 'cancelled') {
+      await this.retireKitchenDraft(tenantId, id, null);
+    }
 
     return { ok: true, status, saleId };
+  }
+
+  /**
+   * SF-3: a merchant user confirms that an out-of-gateway transfer (InstaPay / wallet) actually
+   * arrived. Only after this does the delivery invoice skip cash collection.
+   * The conditional UPDATE is the guard: a concurrent confirmation or conversion changes zero rows.
+   */
+  async confirmManualPayment(id: number, reference: string | undefined, actor: AuthContext) {
+    const { tenantId } = requireTenantScope(actor);
+    const order = await this.db
+      .selectFrom('online_orders')
+      .select(['id', 'payment_method', 'payment_status', 'status', 'sale_id'])
+      .where('id', '=', id)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .executeTakeFirst();
+
+    if (!order) throw new NotFoundException('الطلب غير موجود');
+    if (!(MANUALLY_CONFIRMED_PAYMENT_METHODS as readonly string[]).includes(order.payment_method)) {
+      throw new BadRequestException('تأكيد الدفع اليدوي متاح لطلبات التحويل (إنستاباي / محفظة) فقط');
+    }
+    if (order.payment_status === 'paid') {
+      throw new BadRequestException('تم تأكيد سداد هذا الطلب مسبقاً');
+    }
+    if (order.status === 'cancelled') {
+      throw new BadRequestException('لا يمكن تأكيد سداد طلب ملغي');
+    }
+    if (order.sale_id) {
+      throw new BadRequestException('تم إصدار فاتورة لهذا الطلب بالفعل؛ يُسجَّل التحصيل من شاشة الفاتورة');
+    }
+
+    const cleanReference = String(reference || '').trim().slice(0, 120);
+    const now = new Date();
+    const result = await this.db
+      .updateTable('online_orders')
+      .set({
+        payment_status: 'paid',
+        gateway_provider: 'manual',
+        gateway_transaction_id: cleanReference || null,
+        paid_at: now,
+        gateway_response_json: JSON.stringify({
+          manual: true,
+          confirmedByUserId: actor.userId ?? null,
+          reference: cleanReference || null,
+          confirmedAt: now.toISOString(),
+        }),
+        updated_at: now,
+      })
+      .where('id', '=', id)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where(sql<boolean>`COALESCE(payment_status, 'pending') <> 'paid'`)
+      .where('sale_id', 'is', null)
+      .executeTakeFirst();
+
+    if (Number(result?.numUpdatedRows || 0) === 0) {
+      throw new BadRequestException('تغيرت حالة الطلب أثناء التأكيد، يرجى تحديث الصفحة');
+    }
+
+    return { ok: true, paymentStatus: 'paid' };
   }
 
   async convertToSale(id: number, actor: AuthContext, explicitRepId?: number) {
@@ -1306,6 +1711,22 @@ export class StorefrontService {
 
     if (order.status === 'cancelled') {
       throw new BadRequestException('لا يمكن تحويل طلب ملغي إلى فاتورة');
+    }
+
+    // SF-6: take the order before billing it, then bill the version that is now locked.
+    if (order.status === 'pending') {
+      await this.db
+        .updateTable('online_orders')
+        .set({ status: 'processing', updated_at: new Date() })
+        .where('id', '=', id)
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .where('status', '=', 'pending')
+        .execute();
+      const lockedOrder = await this.getOrder(id, actor);
+      Object.assign(order, lockedOrder);
+      if (lockedOrder.status === 'cancelled') {
+        throw new BadRequestException('لا يمكن تحويل طلب ملغي إلى فاتورة');
+      }
     }
 
     // 1. Auto-Register / Find Customer in Customers Directory
@@ -1360,7 +1781,7 @@ export class StorefrontService {
       unitMultiplier: 1,
       priceType: 'retail',
       discount: 0,
-      notes: 'طلب متجر إلكتروني #' + order.order_number,
+      notes: (i.variantName ? `المقاس: ${i.variantName} - ` : '') + 'طلب متجر إلكتروني #' + order.order_number,
     }));
 
     // Find primary location for branch
@@ -1406,12 +1827,14 @@ export class StorefrontService {
       repName = activeRep.name;
     }
 
-    // 3. Call SalesService to create formal sale delivery invoice
-    // If order was already paid online (via Paymob, XPay, Tap, Stripe, or Instapay), paidAmount is total and collectionStatus is 'collected'
-    // For COD (Cash on Delivery): paidAmount is 0 and collectionStatus is 'cod' (custody on delivery rep)
-    const isPaidOnline = order.payment_status === 'paid' || order.payment_method === 'instapay_wallet';
-    const isInstapay = order.payment_method === 'instapay_wallet';
-    const paymentChannel = isInstapay ? 'instapay' : (order.gateway_provider || (isPaidOnline ? 'card' : 'cash'));
+    // 3. Call SalesService to create formal sale delivery invoice.
+    // SF-3: the invoice is born "collected" only when a real gateway webhook or a merchant user
+    // confirmed the money. Choosing InstaPay at checkout, or paying in the sandbox simulator, is
+    // not a payment — those stay cash-on-delivery until confirmed (confirmManualPayment).
+    const { collected: isPaidOnline, paymentChannel, provider } = resolveOnlineOrderCollection(order);
+    // O55: the coupon discount the customer was quoted at checkout must reach the invoice, or the
+    // courier collects the undiscounted total at the door.
+    const orderDiscount = Math.max(0, Number(order.discountAmount || 0));
     const salePayload: any = {
       customerId: customer ? Number(customer.id) : undefined,
       customerName: customer ? customer.name : order.customer_name,
@@ -1427,8 +1850,13 @@ export class StorefrontService {
       branchId,
       locationId,
       deliveryFee: Number(order.deliveryFee || 0),
+      discount: orderDiscount,
       items: lines,
-      note: `طلب متجر إلكتروني #${order.order_number}`,
+      note: [
+        `طلب متجر إلكتروني #${order.order_number}`,
+        order.couponCode ? `كوبون ${order.couponCode}` : '',
+        provider ? `مسدد عبر ${provider === 'manual' ? 'تحويل مؤكد يدوياً' : provider}` : '',
+      ].filter(Boolean).join(' - '),
       paidAmount: isPaidOnline ? order.totalAmount : 0,
       tenderedAmount: isPaidOnline ? order.totalAmount : 0,
       payments: isPaidOnline
@@ -1441,7 +1869,14 @@ export class StorefrontService {
         : [],
     };
 
-    const saleResult = await this.salesService.createSale(salePayload, actor);
+    // Terms fixed by the server at checkout (coupon + catalog prices, SF-4) are pre-approved; anything
+    // beyond them still goes through the normal cashier gates.
+    const approvedUnitPrices: Record<number, number> = {};
+    for (const line of lines) approvedUnitPrices[line.productId] = line.unitPrice;
+    const saleResult = await this.salesService.createSale(salePayload, actor, {
+      approvedDiscount: orderDiscount,
+      approvedUnitPrices,
+    });
     const saleId = Number((saleResult as any)?.id || (saleResult as any)?.sale?.id || (typeof saleResult === 'number' ? saleResult : 0));
 
     // Update order with saleId and status 'shipped' (خرجت للتوصيل مع المندوب)
@@ -1455,6 +1890,10 @@ export class StorefrontService {
       .where('id', '=', id)
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .execute();
+
+    if (saleId > 0) {
+      await this.retireKitchenDraft(tenantId, id, saleId);
+    }
 
     const fullSale = saleId > 0 ? await this.salesService.getSaleById(saleId, actor) : null;
 
@@ -1479,6 +1918,28 @@ export class StorefrontService {
     if (order.sale_id) {
       throw new BadRequestException(`هذا الطلب تم تحويله لفاتورة مسبقاً برقم #${order.sale_id}`);
     }
+
+    // SF-6: loading the order into the POS cart is the moment the store takes it. Moving it out of
+    // 'pending' here is what stops the customer from editing or cancelling it from the storefront
+    // while the cashier bills the version they loaded (both customer routes require 'pending').
+    // Before this, the order stayed 'pending' until the sale was posted.
+    if (order.status === 'pending') {
+      await this.db
+        .updateTable('online_orders')
+        .set({ status: 'processing', updated_at: new Date() })
+        .where('id', '=', id)
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .where('status', '=', 'pending')
+        .execute();
+    }
+
+    // Re-read after taking the order, so the cart gets exactly the version that is now locked
+    // (a customer edit may have landed between the first read and the status change).
+    const lockedOrder = await this.getOrder(id, actor);
+    if (lockedOrder.status === 'cancelled') {
+      throw new BadRequestException('هذا الطلب تم إلغاؤه من قبل العميل ولا يمكن تنزيله في السلة');
+    }
+    Object.assign(order, lockedOrder);
 
     // 1. Ensure Customer Exists
     const rawPhone = (order.customer_phone || '').trim();
@@ -1548,7 +2009,8 @@ export class StorefrontService {
       const p = productMap.get(Number(it.productId));
       return {
         productId: Number(it.productId),
-        name: p?.name || it.name,
+        // Keep the variant in the name ("Pizza (Large)") so the cashier sees what was ordered.
+        name: it.variantName ? it.name : (p?.name || it.name),
         price: Number(it.unitPrice ?? it.price ?? p?.retail_price ?? 0),
         costPrice: Number(p?.cost_price || 0),
         qty: Number(it.quantity ?? it.qty ?? 1),
@@ -1567,6 +2029,12 @@ export class StorefrontService {
       customerAddress: customer?.address || order.customer_address || '',
       deliveryFee: Number(order.deliveryFee || 0),
       totalAmount: Number(order.totalAmount || 0),
+      discountAmount: Number(order.discountAmount || 0),
+      couponCode: order.couponCode || null,
+      // A QR table order is posted as dine-in for that table, so the kitchen ticket that replaces its
+      // draft (retireKitchenDraft) keeps the right table and order type.
+      orderType: order.order_type === 'dine_in' ? 'dine_in' : 'delivery',
+      tableNumber: order.table_number || '',
       items: mappedItems,
       customerNotes: order.customer_notes || '',
       paymentMethod: order.payment_method || 'cod',
@@ -1629,20 +2097,20 @@ export class StorefrontService {
       currency: settings.get('currency') || 'EGP',
       onlinePaymentEnabled: settings.get('storefront_online_payment_enabled') === 'true',
       onlinePaymentProvider: settings.get('storefront_online_payment_provider') || 'paymob',
-      paymobApiKey: settings.get('storefront_paymob_api_key') || '',
+      paymobApiKey: maskGatewaySecret(settings.get('storefront_paymob_api_key')),
       paymobIntegrationId: settings.get('storefront_paymob_integration_id') || '',
       paymobIframeId: settings.get('storefront_paymob_iframe_id') || '',
-      paymobHmacSecret: settings.get('storefront_paymob_hmac_secret') || '',
+      paymobHmacSecret: maskGatewaySecret(settings.get('storefront_paymob_hmac_secret')),
       paymobTestMode: settings.get('storefront_paymob_test_mode') !== 'false',
-      xpayApiKey: settings.get('storefront_xpay_api_key') || '',
+      xpayApiKey: maskGatewaySecret(settings.get('storefront_xpay_api_key')),
       xpayCommunityId: settings.get('storefront_xpay_community_id') || '',
       xpayTestMode: settings.get('storefront_xpay_test_mode') !== 'false',
-      tapSecretKey: settings.get('storefront_tap_secret_key') || '',
+      tapSecretKey: maskGatewaySecret(settings.get('storefront_tap_secret_key')),
       tapPublishableKey: settings.get('storefront_tap_publishable_key') || '',
       tapTestMode: settings.get('storefront_tap_test_mode') !== 'false',
-      stripeSecretKey: settings.get('storefront_stripe_secret_key') || '',
+      stripeSecretKey: maskGatewaySecret(settings.get('storefront_stripe_secret_key')),
       stripePublishableKey: settings.get('storefront_stripe_publishable_key') || '',
-      stripeWebhookSecret: settings.get('storefront_stripe_webhook_secret') || '',
+      stripeWebhookSecret: maskGatewaySecret(settings.get('storefront_stripe_webhook_secret')),
       stripeTestMode: settings.get('storefront_stripe_test_mode') !== 'false',
       brandColor: settings.get('storefront_brand_color') || '#170e5e',
       metaPixelId: settings.get('storefront_meta_pixel_id') || '',
@@ -1655,6 +2123,19 @@ export class StorefrontService {
 
   async updateStorefrontSettings(payload: UpdateStorefrontSettingsDto, actor: AuthContext) {
     const { tenantId, accountId } = requireTenantScope(actor);
+
+    // SF-9: banners are the heaviest images in /info; store them once and keep only URLs.
+    if (payload.bannerUrl !== undefined) {
+      payload.bannerUrl = await this.media.normalizeImageRef(tenantId, payload.bannerUrl);
+    }
+    if (Array.isArray(payload.bannerUrls)) {
+      const normalized: string[] = [];
+      for (const url of payload.bannerUrls) {
+        const ref = await this.media.normalizeImageRef(tenantId, url);
+        if (ref) normalized.push(ref);
+      }
+      payload.bannerUrls = normalized;
+    }
 
     if (payload.customDomain !== undefined) {
       const cleanDomain = payload.customDomain?.trim()
@@ -1734,20 +2215,20 @@ export class StorefrontService {
     if (payload.whatsappPhone !== undefined) entries.push({ key: 'storefront_whatsapp', value: payload.whatsappPhone });
     if (payload.onlinePaymentEnabled !== undefined) entries.push({ key: 'storefront_online_payment_enabled', value: payload.onlinePaymentEnabled });
     if (payload.onlinePaymentProvider !== undefined) entries.push({ key: 'storefront_online_payment_provider', value: payload.onlinePaymentProvider });
-    if (payload.paymobApiKey !== undefined) entries.push({ key: 'storefront_paymob_api_key', value: payload.paymobApiKey });
+    if (payload.paymobApiKey !== undefined && !isMaskedGatewaySecret(payload.paymobApiKey)) entries.push({ key: 'storefront_paymob_api_key', value: payload.paymobApiKey });
     if (payload.paymobIntegrationId !== undefined) entries.push({ key: 'storefront_paymob_integration_id', value: payload.paymobIntegrationId });
     if (payload.paymobIframeId !== undefined) entries.push({ key: 'storefront_paymob_iframe_id', value: payload.paymobIframeId });
-    if (payload.paymobHmacSecret !== undefined) entries.push({ key: 'storefront_paymob_hmac_secret', value: payload.paymobHmacSecret });
+    if (payload.paymobHmacSecret !== undefined && !isMaskedGatewaySecret(payload.paymobHmacSecret)) entries.push({ key: 'storefront_paymob_hmac_secret', value: payload.paymobHmacSecret });
     if (payload.paymobTestMode !== undefined) entries.push({ key: 'storefront_paymob_test_mode', value: payload.paymobTestMode });
-    if (payload.xpayApiKey !== undefined) entries.push({ key: 'storefront_xpay_api_key', value: payload.xpayApiKey });
+    if (payload.xpayApiKey !== undefined && !isMaskedGatewaySecret(payload.xpayApiKey)) entries.push({ key: 'storefront_xpay_api_key', value: payload.xpayApiKey });
     if (payload.xpayCommunityId !== undefined) entries.push({ key: 'storefront_xpay_community_id', value: payload.xpayCommunityId });
     if (payload.xpayTestMode !== undefined) entries.push({ key: 'storefront_xpay_test_mode', value: payload.xpayTestMode });
-    if (payload.tapSecretKey !== undefined) entries.push({ key: 'storefront_tap_secret_key', value: payload.tapSecretKey });
+    if (payload.tapSecretKey !== undefined && !isMaskedGatewaySecret(payload.tapSecretKey)) entries.push({ key: 'storefront_tap_secret_key', value: payload.tapSecretKey });
     if (payload.tapPublishableKey !== undefined) entries.push({ key: 'storefront_tap_publishable_key', value: payload.tapPublishableKey });
     if (payload.tapTestMode !== undefined) entries.push({ key: 'storefront_tap_test_mode', value: payload.tapTestMode });
-    if (payload.stripeSecretKey !== undefined) entries.push({ key: 'storefront_stripe_secret_key', value: payload.stripeSecretKey });
+    if (payload.stripeSecretKey !== undefined && !isMaskedGatewaySecret(payload.stripeSecretKey)) entries.push({ key: 'storefront_stripe_secret_key', value: payload.stripeSecretKey });
     if (payload.stripePublishableKey !== undefined) entries.push({ key: 'storefront_stripe_publishable_key', value: payload.stripePublishableKey });
-    if (payload.stripeWebhookSecret !== undefined) entries.push({ key: 'storefront_stripe_webhook_secret', value: payload.stripeWebhookSecret });
+    if (payload.stripeWebhookSecret !== undefined && !isMaskedGatewaySecret(payload.stripeWebhookSecret)) entries.push({ key: 'storefront_stripe_webhook_secret', value: payload.stripeWebhookSecret });
     if (payload.stripeTestMode !== undefined) entries.push({ key: 'storefront_stripe_test_mode', value: payload.stripeTestMode });
     if (payload.brandColor !== undefined) entries.push({ key: 'storefront_brand_color', value: payload.brandColor });
     if (payload.metaPixelId !== undefined) entries.push({ key: 'storefront_meta_pixel_id', value: payload.metaPixelId });
@@ -1785,8 +2266,10 @@ export class StorefrontService {
       throw new NotFoundException('الصنف غير موجود');
     }
 
+    // SF-9: store the picture as binary and keep only its URL in metadata (never the base64 itself).
+    const storedUrl = await this.media.normalizeImageRef(tenantId, imageUrl);
     const currentMeta = typeof existing.metadata === 'object' && existing.metadata ? existing.metadata : {};
-    const updatedMeta = { ...currentMeta, imageUrl };
+    const updatedMeta = { ...currentMeta, imageUrl: storedUrl };
 
     await this.db
       .updateTable('products')
@@ -1800,11 +2283,12 @@ export class StorefrontService {
 
     this.invalidateCatalogCache();
 
-    return { success: true, productId, imageUrl };
+    return { success: true, productId, imageUrl: storedUrl };
   }
 
-  async updateCategoryImage(categoryId: number, imageUrl: string, actor: AuthContext) {
+  async updateCategoryImage(categoryId: number, rawImageUrl: string, actor: AuthContext) {
     const { tenantId, accountId } = requireTenantScope(actor);
+    const imageUrl = await this.media.normalizeImageRef(tenantId, rawImageUrl);
 
     // Fetch existing category image map
     const existing = await this.db
@@ -1849,6 +2333,7 @@ export class StorefrontService {
       .select(['id', 'name'])
       .where('id', '=', productId)
       .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('is_active', '=', true)
       .executeTakeFirst();
 
     if (!product) {

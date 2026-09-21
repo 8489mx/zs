@@ -25,6 +25,23 @@ import { WhatsAppGatewayService } from '../../settings/services/whatsapp-gateway
 import { CashierFraudRadarService } from './cashier-fraud-radar.service';
 import { PlanFeatureService } from '../../../core/auth/services/plan-feature.service';
 
+/**
+ * Pre-approved commercial terms for a sale created by the system on behalf of a merchant user
+ * (e.g. converting a storefront order). Internal-only: it is a second argument, never part of the
+ * HTTP DTO, so no client can claim it.
+ *
+ * Why it exists: an online order's coupon discount and line prices were fixed by the server at
+ * checkout (from the merchant's own coupon and catalog). Re-running the POS cashier gates on them
+ * (canDiscount / canEditPrice / manager PIN) forced whoever converts the order either to drop the
+ * discount — overcharging the customer at the door — or to fail the conversion.
+ */
+export interface SystemApprovedSaleTerms {
+  /** Discount amount already approved; only the excess (if any) goes through the discount gate. */
+  approvedDiscount?: number;
+  /** productId -> approved unit price; a line at exactly this price skips the price-edit gate. */
+  approvedUnitPrices?: Record<number, number>;
+}
+
 @Injectable()
 export class SalesWriteService {
   private readonly logger = new Logger(SalesWriteService.name);
@@ -544,7 +561,7 @@ export class SalesWriteService {
     return { ok: true };
   }
 
-  async createSale(payload: UpsertSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {
+  async createSale(payload: UpsertSaleDto, auth: AuthContext, approvedTerms?: SystemApprovedSaleTerms): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const requestStartedAt = Date.now();
 
@@ -745,7 +762,11 @@ export class SalesWriteService {
           qty: item.qty,
           unitMultiplier: item.unitMultiplier,
         });
-        this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
+        const approvedUnitPrice = approvedTerms?.approvedUnitPrices?.[item.productId];
+        const isApprovedPrice = approvedUnitPrice !== undefined && Math.abs(Number(item.price || 0) - Number(approvedUnitPrice)) <= 0.0001;
+        if (!isApprovedPrice) {
+          this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
+        }
 
         let availableStockQty = 0;
         const productStockRows = stockRowsByProductId.get(item.productId) || [];
@@ -861,7 +882,8 @@ export class SalesWriteService {
         pointsAfterRedeem = Math.max(0, Number((availablePoints - normalized.loyaltyPointsRedeemed).toFixed(2)));
       }
 
-      await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, normalized.managerPin, subtotal);
+      const unapprovedDiscount = Math.max(0, Number((normalized.discount - Number(approvedTerms?.approvedDiscount || 0)).toFixed(2)));
+      await this.assertDiscountChangeAllowed(trx, auth, unapprovedDiscount, normalized.managerPin, subtotal);
       if (effectiveDiscount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
       const { taxAmount, total } = computeInvoiceTotals(subtotal, effectiveDiscount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);

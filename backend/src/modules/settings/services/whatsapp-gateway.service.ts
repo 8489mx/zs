@@ -246,7 +246,11 @@ export class WhatsAppGatewayService {
     return this.sendRawMessage(tenantId, phone, text);
   }
 
-  async sendOnlineOrderNotification(orderId: number, tenantId: string): Promise<{ success: boolean; message?: string }> {
+  async sendOnlineOrderNotification(
+    orderId: number,
+    tenantId: string,
+    options?: { trackingUrl?: string | null },
+  ): Promise<{ success: boolean; message?: string }> {
     const cfg = await this.getRawConfig(tenantId);
     if (!cfg.whatsapp_gateway_enabled || !cfg.whatsapp_gateway_auto_order) {
       return { success: false, message: 'الإرسال التلقائي لطلبات المتجر عبر الواتساب غير مفعل' };
@@ -274,7 +278,8 @@ export class WhatsAppGatewayService {
 
     // Send confirmation to customer
     if (customerPhone) {
-      const customerMsg = `مرحباً بك ${order.customer_name || 'عميلنا العزيز'}!\nتم استلام طلبك رقم #${orderNo} بنجاح من متجر ${businessName} بقيمة ${total} ج.م.\nسنقوم بتجهيزه وتأكيده في أقرب وقت. شكراً لتسوقك معنا!`;
+      const trackingLine = options?.trackingUrl ? `\nتابع حالة طلبك من هنا: ${options.trackingUrl}` : '';
+      const customerMsg = `مرحباً بك ${order.customer_name || 'عميلنا العزيز'}!\nتم استلام طلبك رقم #${orderNo} بنجاح من متجر ${businessName} بقيمة ${total} ج.م.\nسنقوم بتجهيزه وتأكيده في أقرب وقت.${trackingLine}\nشكراً لتسوقك معنا!`;
       void this.sendRawMessage(tenantId, customerPhone, customerMsg).catch(() => undefined);
     }
 

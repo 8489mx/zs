@@ -511,7 +511,13 @@ async function testOnlinePaidOrderSaleConversion(): Promise<void> {
   assert.equal(res.ok, true);
   assert.equal(capturedSalePayload.collectionStatus, 'collected', 'Online paid orders must have collectionStatus = collected');
   assert.equal(capturedSalePayload.paidAmount, 500, 'Online paid orders must have paidAmount equal to order total');
-  assert.equal(capturedSalePayload.paymentChannel, 'paymob', 'Online paid orders must preserve gateway payment channel');
+  // Was asserting 'paymob' — but normalizeSalePayload maps every channel outside
+  // cash|card|wallet|instapay to 'cash', so that value booked card money into the cash drawer.
+  // The gateway name now travels in the note; the channel is 'card' (SF-3).
+  assert.equal(capturedSalePayload.paymentChannel, 'card', 'Gateway-paid orders must post on the card channel');
+  assert.equal(capturedSalePayload.payments[0].paymentChannel, 'card');
+  assert.ok(String(capturedSalePayload.note).includes('paymob'), 'The gateway is recorded on the invoice note');
+  assert.equal(capturedSalePayload.discount, 0, 'An order without a coupon carries no discount');
 
   console.log('  -> Storefront convertToSale: online paid order sets collectionStatus = collected and paidAmount.');
 }

@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, Matches, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, Matches, Max, MaxLength, MinLength, ValidateNested } from 'class-validator';
 
 export class OnlineOrderItemDto {
   @IsNumber()
@@ -8,23 +8,30 @@ export class OnlineOrderItemDto {
 
   @IsNumber()
   @IsPositive()
+  @Max(1000, { message: 'الكمية المطلوبة للصنف الواحد لا تتجاوز 1000' })
   quantity!: number;
 
   @IsOptional()
   @IsString()
   notes?: string;
+
+  /** Chosen variant (size/option) name; priced by the server from the product's metadata (SF-4). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  variantName?: string;
 }
 
 export class CreateOnlineOrderDto {
-  @IsString()
-  @IsNotEmpty({ message: 'يرجى إدخال اسم المستلم' })
   @MinLength(3, { message: 'اسم المستلم يجب ألا يقل عن 3 أحرف' })
+  @IsString({ message: 'اسم المستلم يجب أن يكون نصاً' })
+  @IsNotEmpty({ message: 'يرجى إدخال اسم المستلم' })
   customerName!: string;
 
-  @Transform(({ value }) => (typeof value === 'string' ? value.replace(/[^0-9+]/g, '').trim() : value))
-  @IsString()
-  @IsNotEmpty({ message: 'يرجى إدخال رقم الهاتف' })
   @Matches(/^[+]?[0-9]{7,16}$/, { message: 'يرجى إدخال رقم هاتف صحيح (بين 7 إلى 16 رقماً)' })
+  @IsString({ message: 'رقم الهاتف يجب أن يكون نصاً' })
+  @IsNotEmpty({ message: 'يرجى إدخال رقم الهاتف' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.replace(/[^0-9+]/g, '').trim() : value))
   customerPhone!: string;
 
   @IsOptional()
@@ -39,10 +46,12 @@ export class CreateOnlineOrderDto {
   @IsString()
   customerNotes?: string;
 
-  @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => OnlineOrderItemDto)
+  @ArrayMaxSize(100, { message: 'عدد أصناف الطلب لا يتجاوز 100' })
+  @ArrayMinSize(1, { message: 'يجب اختيار صنف واحد على الأقل لإتمام الطلب' })
+  @IsArray({ message: 'يجب تحديد أصناف الطلب في قائمة صالحة' })
+  @IsNotEmpty({ message: 'يجب تحديد أصناف الطلب' })
   items!: OnlineOrderItemDto[];
 
   @IsOptional()

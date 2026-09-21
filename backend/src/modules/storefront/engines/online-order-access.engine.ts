@@ -1,0 +1,114 @@
+import { createHash, randomBytes, timingSafeEqual } from 'crypto';
+
+// Invariants SF-1 / SF-2 / SF-3 (ARCHITECTURE_INVARIANTS.md section 4).
+//
+// SF-1  A public storefront route reaches a specific order only with that order's secret
+//       access token. `order_number` is per-tenant sequential (ON-YYMMDD-0001) — anyone can
+//       enumerate it, so it is a label, never a credential (same lesson as F15).
+// SF-2  A sandbox ("mock") payment is a UI simulation. It may only run when the tenant has
+//       explicitly put its gateway in test mode, and it NEVER counts as money collected.
+// SF-3  An online order is "collected" only when a real gateway confirmed it (webhook) or a
+//       merchant user confirmed the transfer by hand. The customer choosing a payment method
+//       is a claim, not a payment.
+
+export const ORDER_ACCESS_TOKEN_HEADER = 'x-order-token';
+
+/** Issues a new token. Only the hash is stored; the raw token goes back to the customer once. */
+export function issueOrderAccessToken(): { token: string; hash: string } {
+  const token = randomBytes(24).toString('base64url');
+  return { token, hash: hashOrderAccessToken(token) };
+}
+
+export function hashOrderAccessToken(token: string): string {
+  return createHash('sha256').update(token, 'utf8').digest('hex');
+}
+
+/** Fails closed: an order with no stored hash (legacy rows) is never reachable publicly. */
+export function verifyOrderAccessToken(presented: unknown, storedHash: string | null | undefined): boolean {
+  if (typeof presented !== 'string' || typeof storedHash !== 'string' || !/^[0-9a-f]{64}$/.test(storedHash)) {
+    return false;
+  }
+  const token = presented.trim();
+  if (token.length < 16 || token.length > 128) return false;
+  const a = Buffer.from(hashOrderAccessToken(token), 'hex');
+  const b = Buffer.from(storedHash, 'hex');
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+export interface SandboxGatewayFlags {
+  enabled: boolean;
+  provider: string;
+  testMode: boolean;
+  xpayTestMode: boolean;
+  tapTestMode: boolean;
+  stripeTestMode: boolean;
+}
+
+/** SF-2: sandbox payment only when the merchant enabled online payment AND chose test mode. */
+export function isSandboxPaymentAllowed(config: SandboxGatewayFlags): boolean {
+  if (!config.enabled) return false;
+  switch (config.provider) {
+    case 'mock':
+      return true;
+    case 'paymob':
+      return config.testMode === true;
+    case 'xpay':
+      return config.xpayTestMode === true;
+    case 'tap':
+      return config.tapTestMode === true;
+    case 'stripe':
+      return config.stripeTestMode === true;
+    default:
+      return false;
+  }
+}
+
+/** Providers whose `paid` status is backed by a verified webhook or a merchant's confirmation. */
+export const COLLECTING_PAYMENT_PROVIDERS = ['paymob', 'xpay', 'tap', 'stripe', 'manual'] as const;
+
+export interface OnlineOrderPaymentState {
+  payment_status?: string | null;
+  payment_method?: string | null;
+  gateway_provider?: string | null;
+}
+
+export interface OnlineOrderCollection {
+  collected: boolean;
+  /**
+   * A channel the sales engine understands. `normalizeSalePayload` maps anything outside
+   * cash|card|wallet|instapay to 'cash', so passing the gateway name ('stripe', 'paymob'...) used to
+   * book a card payment into the cash drawer (account 1110) instead of the bank side.
+   */
+  paymentChannel: 'cash' | 'card' | 'instapay';
+  /** Which gateway / confirmation backs the payment — for notes and audit, never for routing. */
+  provider: string | null;
+}
+
+/** SF-3: decides whether the delivery invoice is already paid or is cash-on-delivery. */
+export function resolveOnlineOrderCollection(order: OnlineOrderPaymentState): OnlineOrderCollection {
+  const provider = String(order.gateway_provider || '').trim().toLowerCase();
+  const collected =
+    order.payment_status === 'paid' &&
+    (COLLECTING_PAYMENT_PROVIDERS as readonly string[]).includes(provider);
+
+  if (!collected) {
+    return { collected: false, paymentChannel: 'cash', provider: null };
+  }
+  if (provider === 'manual') {
+    return { collected: true, paymentChannel: 'instapay', provider };
+  }
+  return { collected: true, paymentChannel: 'card', provider };
+}
+
+/** Payment methods whose money arrives outside any gateway and must be confirmed by a merchant user. */
+export const MANUALLY_CONFIRMED_PAYMENT_METHODS = ['instapay_wallet'] as const;
+
+/**
+ * SF-1 tracking link sent to the shopper. The token goes in the URL FRAGMENT (#t=...), which browsers
+ * never send to a server — it stays out of access logs, proxies and Referer headers.
+ */
+export function buildOrderTrackingUrl(origin: string | undefined, slug: string, orderNumber: string, token: string): string | null {
+  const base = String(origin || '').trim().replace(/\/$/, '');
+  if (!/^https?:\/\/[^\s/]+$/i.test(base)) return null;
+  return `${base}/store/${encodeURIComponent(String(slug || '').trim().toLowerCase())}/track/${encodeURIComponent(orderNumber)}#t=${encodeURIComponent(token)}`;
+}

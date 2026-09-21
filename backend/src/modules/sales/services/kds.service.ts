@@ -120,6 +120,31 @@ export class KdsService {
     }
   }
 
+  /**
+   * Hands a kitchen ticket's progress from one sale to another — used when a storefront QR order's
+   * DRAFT sale (what the kitchen was cooking from) is replaced by the cashier's POSTED sale. Without it
+   * the kitchen would see the order vanish and reappear as a brand-new pending ticket.
+   * With `toSaleId = null` the draft's state is simply dropped (order cancelled).
+   * Item-level status is keyed by sale_item id, which changes with the new sale, so only the ticket
+   * status carries over.
+   */
+  async transferTicketState(tenantId: string, fromSaleId: number, toSaleId: number | null): Promise<void> {
+    const state = await this.getKdsStoreState(tenantId);
+    const fromKey = String(fromSaleId);
+    const stored = state.tickets?.[fromKey];
+    if (!stored) return;
+
+    delete state.tickets[fromKey];
+    if (toSaleId) {
+      state.tickets[String(toSaleId)] = {
+        status: stored.status,
+        itemsStatus: {},
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    await this.saveKdsStoreState(tenantId, state);
+  }
+
   private inferItemStation(name: string, categoryName?: string): KdsStation {
     const lower = `${name} ${categoryName || ''}`.toLowerCase();
     if (lower.includes('مشوي') || lower.includes('كباب') || lower.includes('كفتة') || lower.includes('ستيك') || lower.includes('grill')) {

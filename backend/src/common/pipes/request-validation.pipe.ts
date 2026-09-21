@@ -54,6 +54,13 @@ const FIELD_LABELS: Record<string, string> = {
   isSaleUnit: 'وحدة البيع',
   isPurchaseUnit: 'وحدة الشراء',
   value: 'القيمة',
+  customerName: 'اسم المستلم',
+  customerPhone: 'رقم الهاتف',
+  customerAddress: 'العنوان',
+  customerNotes: 'ملاحظات العميل',
+  items: 'أصناف الطلب',
+  totalAmount: 'إجمالي المبلغ',
+  subtotal: 'المجموع الفرعي',
 };
 
 function cleanFieldPath(field: string): string {
@@ -73,6 +80,11 @@ function formatFieldName(field: string): string {
 }
 
 function translateConstraint(message: string, field: string): string {
+  // If the constraint message already contains Arabic text (custom message on DTO), preserve it directly
+  if (/[\u0600-\u06FF]/.test(message)) {
+    return message;
+  }
+
   const label = formatFieldName(field);
 
   if (message.includes('should not exist')) {

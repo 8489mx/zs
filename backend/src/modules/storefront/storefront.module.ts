@@ -6,6 +6,7 @@ import { SettingsModule } from '../settings/settings.module';
 import { StorefrontService } from './storefront.service';
 import { StorefrontPaymentService } from './storefront-payment.service';
 import { StorefrontSocialPreviewService } from './storefront-social-preview.service';
+import { StorefrontMediaService } from './storefront-media.service';
 import { StorefrontPublicController } from './storefront-public.controller';
 import { StorefrontMerchantController } from './storefront-merchant.controller';
 import { MarketplaceSyncService } from './services/marketplace-sync.service';
@@ -22,6 +23,7 @@ import { MarketplaceSyncController } from './controllers/marketplace-sync.contro
     StorefrontService,
     StorefrontPaymentService,
     StorefrontSocialPreviewService,
+    StorefrontMediaService,
     MarketplaceSyncService,
   ],
   exports: [

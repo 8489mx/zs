@@ -33,6 +33,7 @@ import { AddonsModule } from './modules/addons/addons.module';
 import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 import { LoginRateLimitMiddleware } from './common/middleware/login-rate-limit.middleware';
 import { AuthBurstRateLimitMiddleware } from './common/middleware/auth-burst-rate-limit.middleware';
+import { StorefrontPublicRateLimitMiddleware } from './common/middleware/storefront-public-rate-limit.middleware';
 import { InMemoryRateLimitService } from './common/security/in-memory-rate-limit.service';
 import { TaxIntegrationModule } from './modules/tax-integration/tax-integration.module';
 import { ImportSalesModule } from './modules/import-sales/import-sales.module';
@@ -100,7 +101,7 @@ import { ContractingModule } from './modules/contracting/contracting.module';
     MaritimeFreightModule,
   ],
 
-  providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],
+  providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware, StorefrontPublicRateLimitMiddleware],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
@@ -123,5 +124,11 @@ export class AppModule implements NestModule {
         { path: 'api/auth/sessions/:id', method: RequestMethod.DELETE },
         { path: 'api/developer/*', method: RequestMethod.ALL },
       );
+
+    // O60: public storefront writes. The middleware itself decides which paths are limited
+    // (classifyStorefrontPublicRequest) and lets reads, webhooks and admin routes through untouched.
+    consumer
+      .apply(StorefrontPublicRateLimitMiddleware)
+      .forRoutes({ path: 'api/storefront/*', method: RequestMethod.ALL });
   }
 }

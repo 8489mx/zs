@@ -4,6 +4,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 import { planWebhookOrderLookup, selectUnambiguousOrder } from './engines/webhook-order-resolution.engine';
+import { verifyOrderAccessToken, isSandboxPaymentAllowed } from './engines/online-order-access.engine';
 import * as crypto from 'crypto';
 
 export interface TenantPaymentConfig {
@@ -92,6 +93,37 @@ export class StorefrontPaymentService {
     return tenant;
   }
 
+  /** SF-1: same contract as StorefrontService.findCustomerOrderByToken — one 404 for "missing" and "wrong token". */
+  private async findOrderByToken(tenantId: string, orderNumber: string, token: string | undefined) {
+    const cleanOrderNumber = String(orderNumber || '').trim();
+    if (!cleanOrderNumber || !token) {
+      throw new NotFoundException('الطلب غير موجود');
+    }
+    const candidates = await this.db
+      .selectFrom('online_orders')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('order_number', '=', cleanOrderNumber)
+      .limit(10)
+      .execute();
+    const order = candidates.find((row) => verifyOrderAccessToken(token, row.access_token_hash));
+    if (!order) {
+      throw new NotFoundException('الطلب غير موجود');
+    }
+    return order;
+  }
+
+  /**
+   * SF-2: the simulator screen is offered only in test mode. With live credentials a failed
+   * gateway call must surface as an error, never silently degrade into a fake checkout.
+   */
+  private sandboxSessionOrThrow(config: TenantPaymentConfig, session: Record<string, unknown>) {
+    if (!isSandboxPaymentAllowed(config)) {
+      throw new BadRequestException('تعذر بدء جلسة الدفع الإلكتروني حالياً، يرجى المحاولة لاحقاً أو اختيار الدفع عند الاستلام');
+    }
+    return session;
+  }
+
   async getTenantPaymentConfig(tenantId: string): Promise<TenantPaymentConfig> {
     const rows = await this.db
       .selectFrom('settings')
@@ -167,18 +199,9 @@ export class StorefrontPaymentService {
     };
   }
 
-  async initiatePaymentSession(slug: string, orderNumber: string) {
+  async initiatePaymentSession(slug: string, orderNumber: string, token: string | undefined) {
     const tenant = await this.getTenantBySlug(slug);
-    const order = await this.db
-      .selectFrom('online_orders')
-      .selectAll()
-      .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      .where('order_number', '=', orderNumber)
-      .executeTakeFirst();
-
-    if (!order) {
-      throw new NotFoundException(`الطلب رقم ${orderNumber} غير موجود`);
-    }
+    const order = await this.findOrderByToken(tenant.id, orderNumber, token);
 
     if (order.payment_status === 'paid') {
       return {
@@ -189,6 +212,10 @@ export class StorefrontPaymentService {
         transactionId: order.gateway_transaction_id,
         message: 'تم سداد هذا الطلب بالفعل.',
       };
+    }
+
+    if (order.status === 'cancelled' || order.sale_id) {
+      throw new BadRequestException('لا يمكن سداد هذا الطلب إلكترونياً في حالته الحالية.');
     }
 
     const totalAmount = Number(order.total_amount || 0);
@@ -367,7 +394,7 @@ export class StorefrontPaymentService {
       }
 
       // Default XPay Sandbox Simulator
-      return {
+      return this.sandboxSessionOrThrow(config, {
         ok: true,
         mode: 'mock',
         provider: 'xpay',
@@ -375,7 +402,7 @@ export class StorefrontPaymentService {
         amount: totalAmount,
         testMode: true,
         message: 'تم تجهيز جلسة الدفع عبر إكس باي في الوضع التجريبي (XPay Sandbox Mode).',
-      };
+      });
     }
 
     // 3. Tap Payments (GCC - Mada 🇸🇦, KNET 🇰🇼, NAPS 🇶🇦, Apple Pay 🍎)
@@ -510,7 +537,7 @@ export class StorefrontPaymentService {
       }
 
       // Default Tap Sandbox Simulator
-      return {
+      return this.sandboxSessionOrThrow(config, {
         ok: true,
         mode: 'mock',
         provider: 'tap',
@@ -518,7 +545,7 @@ export class StorefrontPaymentService {
         amount: totalAmount,
         testMode: true,
         message: 'تم تجهيز جلسة الدفع عبر تاب للمدفوعات (Tap Payments GCC Sandbox - مدى / KNET / Apple Pay).',
-      };
+      });
     }
 
     // 4. Stripe (International Cards & Apple Pay / Google Pay)
@@ -608,7 +635,7 @@ export class StorefrontPaymentService {
       }
 
       // Default Stripe Sandbox Simulator
-      return {
+      return this.sandboxSessionOrThrow(config, {
         ok: true,
         mode: 'mock',
         provider: 'stripe',
@@ -616,11 +643,11 @@ export class StorefrontPaymentService {
         amount: totalAmount,
         testMode: true,
         message: 'تم تجهيز جلسة الدفع عبر سترايب في الوضع التجريبي (Stripe Sandbox Mode).',
-      };
+      });
     }
 
     // Default: Mock / Sandbox Simulator Mode
-    return {
+    return this.sandboxSessionOrThrow(config, {
       ok: true,
       mode: 'mock',
       provider: config.provider || 'mock',
@@ -628,7 +655,7 @@ export class StorefrontPaymentService {
       amount: totalAmount,
       testMode: true,
       message: 'تم تجهيز جلسة الدفع بالبطاقة البنكية في الوضع التجريبي الآمن (Sandbox Mode).',
-    };
+    });
   }
 
   /**
@@ -890,21 +917,34 @@ export class StorefrontPaymentService {
     }
   }
 
-  async processMockPayment(slug: string, orderNumber: string, payload?: { cardNumber?: string; cardHolder?: string }) {
+  async processMockPayment(
+    slug: string,
+    orderNumber: string,
+    token: string | undefined,
+    payload?: { cardNumber?: string; cardHolder?: string },
+  ) {
     const tenant = await this.getTenantBySlug(slug);
-    const order = await this.db
-      .selectFrom('online_orders')
-      .selectAll()
-      .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      .where('order_number', '=', orderNumber)
-      .executeTakeFirst();
+    const order = await this.findOrderByToken(tenant.id, orderNumber, token);
 
-    if (!order) {
-      throw new NotFoundException(`الطلب رقم ${orderNumber} غير موجود`);
+    // SF-2 / F11: the simulator is callable directly, so it re-checks everything the UI assumes.
+    const config = await this.getTenantPaymentConfig(tenant.id);
+    if (!isSandboxPaymentAllowed(config)) {
+      throw new BadRequestException('الدفع التجريبي غير متاح في هذا المتجر');
+    }
+    if (order.payment_status === 'paid') {
+      throw new BadRequestException('تم سداد هذا الطلب بالفعل');
+    }
+    if (order.status === 'cancelled' || order.sale_id) {
+      throw new BadRequestException('لا يمكن سداد هذا الطلب');
+    }
+    if (order.gateway_provider && order.gateway_provider !== 'mock') {
+      throw new BadRequestException('هذا الطلب مرتبط بجلسة دفع حقيقية ولا يقبل الدفع التجريبي');
     }
 
     const transactionId = `MOCK-TXN-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    // gateway_provider = 'mock' is what keeps this out of the books: resolveOnlineOrderCollection
+    // never treats a mock payment as collected, so the delivery invoice stays cash-on-delivery.
     await this.db
       .updateTable('online_orders')
       .set({
@@ -923,6 +963,7 @@ export class StorefrontPaymentService {
       })
       .where('id', '=', order.id)
       .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
+      .where(sql<boolean>`COALESCE(payment_status, 'pending') <> 'paid'`)
       .execute();
 
     // Trigger WhatsApp notification
@@ -939,18 +980,9 @@ export class StorefrontPaymentService {
     };
   }
 
-  async getOrderPaymentStatus(slug: string, orderNumber: string) {
+  async getOrderPaymentStatus(slug: string, orderNumber: string, token: string | undefined) {
     const tenant = await this.getTenantBySlug(slug);
-    const order = await this.db
-      .selectFrom('online_orders')
-      .selectAll()
-      .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      .where('order_number', '=', orderNumber)
-      .executeTakeFirst();
-
-    if (!order) {
-      throw new NotFoundException(`الطلب رقم ${orderNumber} غير موجود`);
-    }
+    const order = await this.findOrderByToken(tenant.id, orderNumber, token);
 
     return {
       ok: true,
