@@ -2,18 +2,25 @@
 # نسخة احتياطية يومية لقاعدة بيانات الإنتاج على سيرفر أوراكل.
 # التثبيت على السيرفر: /var/www/zsystems/backup.sh ويُشغَّل من crontab المستخدم ubuntu.
 #
-# 1) نسخة محلية في /var/backups/zsystems (تُحذف بعد 14 يوماً).
-# 2) Oracle Object Storage: إن وُجد الملف /etc/zsystems/backup-par-url وفيه رابط
-#    Pre-Authenticated Request (صلاحية كتابة فقط)، تُرفع النسخة إليه.
-# 3) Google Drive (خارج حساب أوراكل بالكامل): إن كان rclone مضبوطاً بـ remote اسمه
-#    gdrive للمستخدم ubuntu، تُنسخ إلى gdrive:zsystems-backups وتُحذف منه بعد 90 يوماً.
+# الناتج ملف واحد مجمّع (bundle) فيه:
+#   full/zsystems_db.sql.gz   نسخة السيرفر كله (pg_dump) لإعادة بناء سيرفر كامل
+#   tenants/<slug>__<id>.zsbak حزمة جاهزة لكل عميل، لنقله لنسخة الديسكتوب أو استرجاعه وحده
+#   manifest.json             القائمة وبصمة كل ملف
+# مشفّر إن وُجد /etc/zsystems/backup-passphrase (متوافق مع openssl enc -aes-256-cbc -pbkdf2).
+# الاسترجاع: deploy/scripts/zsystems-restore.sh — ودليل كامل في docs/DISASTER_RECOVERY.md.
 #
-# الوجهتان الخارجيتان مستقلتان: فشل واحدة لا يمنع الأخرى، لكن السكربت يخرج بخطأ
-# في النهاية حتى يظهر الفشل في السجل.
+# الوجهات: محلياً في /var/backups/zsystems (14 يوماً)، وOracle Object Storage عبر رابط PAR في
+# /etc/zsystems/backup-par-url، وGoogle Drive عبر rclone remote اسمه gdrive (90 يوماً).
+# الوجهتان الخارجيتان مستقلتان: فشل واحدة لا يمنع الأخرى، لكن السكربت يخرج بخطأ في النهاية.
+#
+# لو فشل تجميع الحزم لأي سبب، تُرفع نسخة pg_dump العادية بدلاً منها: نسخة السيرفر لا تضيع أبداً
+# بسبب خطأ في الحزم.
 set -euo pipefail
 
 BACKUP_DIR="/var/backups/zsystems"
 PAR_URL_FILE="/etc/zsystems/backup-par-url"
+PASSPHRASE_FILE="/etc/zsystems/backup-passphrase"
+APP_BACKEND="/var/www/zsystems/app/backend"
 GDRIVE_REMOTE="gdrive"
 GDRIVE_DIR="zsystems-backups"
 GDRIVE_KEEP_DAYS=90
@@ -24,8 +31,9 @@ KEEP_DAYS=14
 
 mkdir -p "$BACKUP_DIR"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_FILE="$BACKUP_DIR/zsystems_db_$TIMESTAMP.sql.gz"
-TMP_FILE="$BACKUP_FILE.partial"
+DUMP_FILE="$BACKUP_DIR/zsystems_db_$TIMESTAMP.sql.gz"
+TMP_FILE="$DUMP_FILE.partial"
+FAILED=0
 
 # بدون -t: الطرفية الوهمية تحقن \r في المخرجات فتفسد ملف SQL.
 sudo docker exec "$CONTAINER" pg_dump -U "$DB_USER" "$DB_NAME" | gzip > "$TMP_FILE"
@@ -36,18 +44,45 @@ if ! gzip -cd "$TMP_FILE" | tail -n 5 | grep -q "PostgreSQL database dump comple
   echo "[$(date)] ERROR: pg_dump output incomplete, backup discarded" >&2
   exit 1
 fi
-mv "$TMP_FILE" "$BACKUP_FILE"
-echo "[$(date)] Local backup created: $BACKUP_FILE ($(du -h "$BACKUP_FILE" | cut -f1))"
+mv "$TMP_FILE" "$DUMP_FILE"
+echo "[$(date)] Database dump created: $DUMP_FILE ($(du -h "$DUMP_FILE" | cut -f1))"
 
-find "$BACKUP_DIR" -type f -name "*.sql.gz" -mtime +"$KEEP_DAYS" -delete
+# الملف المجمّع
+UPLOAD_FILE="$DUMP_FILE"
+BUNDLE_FILE="$BACKUP_DIR/zsystems_backup_$TIMESTAMP.zip"
+PASS_ARGS=()
+if [ -r "$PASSPHRASE_FILE" ]; then
+  BUNDLE_FILE="$BUNDLE_FILE.enc"
+  PASS_ARGS=(--passphrase-file "$PASSPHRASE_FILE")
+else
+  echo "[$(date)] WARNING: $PASSPHRASE_FILE missing - bundle is NOT encrypted" >&2
+fi
 
-OBJECT_NAME=$(basename "$BACKUP_FILE")
-FAILED=0
+set +e
+(cd "$APP_BACKEND" && /usr/bin/node --env-file=.env dist/tools/zs-backup-tool.js bundle \
+  --full "$DUMP_FILE" --out "$BUNDLE_FILE" "${PASS_ARGS[@]}")
+BUNDLE_STATUS=$?
+set -e
+
+if [ "$BUNDLE_STATUS" -eq 0 ] || [ "$BUNDLE_STATUS" -eq 2 ]; then
+  [ "$BUNDLE_STATUS" -eq 2 ] && FAILED=1   # some tenants could not be packaged; the full dump has them
+  UPLOAD_FILE="$BUNDLE_FILE"
+  rm -f "$DUMP_FILE"                        # the bundle contains it
+  echo "[$(date)] Bundle created: $BUNDLE_FILE ($(du -h "$BUNDLE_FILE" | cut -f1))"
+else
+  rm -f "$BUNDLE_FILE"
+  FAILED=1
+  echo "[$(date)] ERROR: bundle failed (exit $BUNDLE_STATUS) - uploading the plain database dump instead" >&2
+fi
+
+find "$BACKUP_DIR" -type f \( -name "zsystems_db_*.sql.gz" -o -name "zsystems_backup_*" \) -mtime +"$KEEP_DAYS" -delete
+
+OBJECT_NAME=$(basename "$UPLOAD_FILE")
 
 if [ -r "$PAR_URL_FILE" ]; then
   PAR_URL=$(tr -d '[:space:]' < "$PAR_URL_FILE")
-  HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 600 -X PUT \
-    --data-binary @"$BACKUP_FILE" "${PAR_URL%/}/$OBJECT_NAME" || echo "000")
+  HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 900 -X PUT \
+    --data-binary @"$UPLOAD_FILE" "${PAR_URL%/}/$OBJECT_NAME" || echo "000")
   if [ "$HTTP_CODE" = "200" ]; then
     echo "[$(date)] Oracle Object Storage copy uploaded: $OBJECT_NAME"
   else
@@ -59,9 +94,10 @@ else
 fi
 
 if command -v rclone > /dev/null && rclone listremotes 2>/dev/null | grep -qx "$GDRIVE_REMOTE:"; then
-  if rclone copy "$BACKUP_FILE" "$GDRIVE_REMOTE:$GDRIVE_DIR" --retries 3; then
+  if rclone copy "$UPLOAD_FILE" "$GDRIVE_REMOTE:$GDRIVE_DIR" --retries 3; then
     echo "[$(date)] Google Drive copy uploaded: $OBJECT_NAME"
-    rclone delete "$GDRIVE_REMOTE:$GDRIVE_DIR" --min-age "${GDRIVE_KEEP_DAYS}d" --include "zsystems_db_*.sql.gz" \
+    rclone delete "$GDRIVE_REMOTE:$GDRIVE_DIR" --min-age "${GDRIVE_KEEP_DAYS}d" \
+      --include "zsystems_db_*.sql.gz" --include "zsystems_backup_*" \
       || echo "[$(date)] WARNING: Google Drive cleanup of old backups failed" >&2
   else
     echo "[$(date)] ERROR: Google Drive upload failed" >&2

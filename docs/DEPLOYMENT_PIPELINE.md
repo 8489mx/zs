@@ -39,6 +39,8 @@ GitHub branch: main
 
 - السكربت المرجعي: `deploy/scripts/zsystems-backup.sh`، يُثبَّت على السيرفر في `/var/www/zsystems/backup.sh` ويعمل يومياً 3 فجراً من crontab المستخدم `ubuntu`، وسجله في `/var/backups/zsystems/backup.log`.
 - النسخة المحلية في `/var/backups/zsystems` تُحفظ 14 يوماً.
+- **الملف المجمّع (منذ 22 سبتمبر 2026):** الملف `zsystems_backup_<التاريخ>.zip.enc` فيه `full/zsystems_db.sql.gz` (نسخة السيرفر كله) و`tenants/<slug>__<id>.zsbak` (حزمة جاهزة لكل منشأة) و`manifest.json`. بيتعمل بـ `node dist/tools/zs-backup-tool.js bundle`، ومشفّر بكلمة السر اللي في `/etc/zsystems/backup-passphrase`. لو الملف ده مش موجود، الملف المجمّع بيتعمل من غير تشفير ويتكتب تحذير في السجل. ولو التجميع فشل، بيترفع `pg_dump` العادي بدله.
+- **الاسترجاع منه مباشرة:** `bash deploy/scripts/zsystems-restore.sh list|full|tenant|tenant-file ...` (التفاصيل في `docs/DISASTER_RECOVERY.md`).
 - النسخة خارج السيرفر تُرفع إلى Oracle Object Storage عبر رابط Pre-Authenticated Request (كتابة فقط) محفوظ في `/etc/zsystems/backup-par-url`. بدون هذا الملف تبقى النسخة على السيرفر فقط.
 - نسخة ثالثة **خارج حساب أوراكل** (تحمي من إغلاق الحساب نفسه): Google Drive عبر `rclone` بـ remote اسمه `gdrive` للمستخدم `ubuntu`، بصلاحية `drive.file` (يرى فقط الملفات التي أنشأها هو). المجلد `zsystems-backups`، والنسخ الأقدم من 90 يوماً تُحذف منه تلقائياً. الإعداد يتم مرة واحدة بـ `rclone config` عبر نفق SSH على المنفذ 53682.
 - الوجهتان الخارجيتان مستقلتان: فشل واحدة لا يمنع الأخرى، والسكربت يخرج بخطأ إن فشلت أي منهما.
@@ -50,6 +52,7 @@ GitHub branch: main
 - Oracle Ampere A1: **1 OCPU، 5.8 جيجا رام، بلا Swap**، قرص 45 جيجا، و PostgreSQL 16 في Docker على نفس السيرفر.
 - الباك إند عملية PM2 واحدة (`fork`). لا يجوز تحويلها إلى `cluster` قبل نقل الحالة الموجودة في الذاكرة (`auth-cache`، `LoginAttemptLimiter`، طابور المهام) إلى تخزين مشترك — انظر O13 في `ARCHITECTURE_INVARIANTS.md`. ومع نواة واحدة لا فائدة منها أصلاً.
 - السعة التقديرية كانت 15 إلى 25 عميلاً نشطاً في نفس الوقت بأربعة كاشيرات لكل عميل. **رُفع الـ instance في نفس اليوم إلى 4 OCPU / 24 جيجا** (داخل حد Always Free) وأُضيف Swap 4 جيجا، فصارت السعة التقديرية 40 إلى 80 عميلاً.
+- **تصحيح (22 سبتمبر 2026):** حد Always Free لـ Ampere A1 صار **2 OCPU / 12 جيجا** للحساب كله منذ 15 يونيو 2026 (مُطبَّق منذ 18 أغسطس)، وليس 4 / 24 كما كُتب هنا أولاً. الـ 4 / 24 الحالية تعمل على رصيد الفترة التجريبية (Promo) الذي ينتهي نحو 30 سبتمبر 2026، وبعدها قد يوقف أوراكل السيرفر. **صُغِّر فعلاً إلى 2 OCPU / 12 جيجا في نفس اليوم** (تم التحقق: nproc=2، رام 11Gi، Swap 4 جيجا، الباك إند سليم). أي زيادة فوق ذلك تتطلب Pay As You Go ودفع الفرق. السعة التقديرية على 2 / 12 مع الـ Swap: 25 إلى 45 عميلاً نشطاً بأربعة كاشيرات. المصدر: https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm
 - الحساب Free Tier (بلا وسيلة دفع): أوراكل قد توقف السيرفر إذا بقي خاملاً 7 أيام. الإيقاف لا يمسح البيانات، والتشغيل يتم من اللوحة.
 
 ---

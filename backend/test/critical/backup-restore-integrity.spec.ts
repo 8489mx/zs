@@ -62,11 +62,16 @@ function testOrphanGateRunsBeforeCommit(): void {
   assert.ok(txEndAt > gateAt && snapshotAt > txEndAt, 'the gate must run inside the transaction, before it commits');
 
   const gate = service.slice(service.indexOf('private async assertNoOrphanedReferences('), service.indexOf('async restoreBackup('));
-  assert.ok(/c\.conrelid::regclass::text = any\(/.test(gate), 'FKs declared on the restored tables are checked');
-  assert.ok(/c\.confrelid::regclass::text = any\(/.test(gate),
-    'FKs from tenant tables outside BACKUP_TABLES that point at restored tables are checked too');
+  assert.ok(gate.includes('findOrphanedReferences(trx, specs, tenantId, extra)'),
+    'the restore gate delegates to the shared tenant-transfer gate over ALL tenant tables');
   assert.ok(/throw new AppError\([\s\S]*RESTORE_ORPHANED_REFERENCES/.test(gate), 'orphans must fail the restore, not be skipped');
+
+  const engine = readFileSync(join(__dirname, '..', '..', 'src', 'core', 'tenant-transfer', 'tenant-package.ts'), 'utf8');
+  const shared = engine.slice(engine.indexOf('export async function findOrphanedReferences('), engine.indexOf('export async function importTenantPackage('));
+  assert.ok(shared.includes('not exists (select 1 from ${sql.table(fk.foreign_table)} as parent where ${matches})'), 'missing parents are counted');
+  assert.ok(shared.includes('parent.tenant_id <> ${tenantId}'), 'parents that belong to another tenant are counted too');
 }
+
 
 function run(): void {
   testAccountIdFkIsRemapped();

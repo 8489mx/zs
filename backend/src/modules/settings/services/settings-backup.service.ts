@@ -10,6 +10,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import * as crypto from 'crypto';
 import AdmZip from 'adm-zip';
+import { findOrphanedReferences, listTenantTables } from '../../../core/tenant-transfer/tenant-package';
 
 type BackupTableName = Exclude<keyof Database, 'backup_snapshots'>;
 
@@ -405,48 +406,23 @@ export class SettingsBackupService {
     return true;
   }
 
+  // Same gate as tenant packages (src/core/tenant-transfer): every FK of every tenant table is
+  // checked for this tenant — missing parents AND parents that belong to another tenant.
   private async assertNoOrphanedReferences(trx: Kysely<Database>, tableNames: string[], tenantId: string): Promise<void> {
     if (!tableNames.length) return;
-    const fks = await sql<{ table_name: string; constraint_name: string; foreign_table: string; cols: string[]; fcols: string[] }>`
-      select c.conrelid::regclass::text as table_name,
-             c.conname::text as constraint_name,
-             c.confrelid::regclass::text as foreign_table,
-             array(select a.attname::text from unnest(c.conkey) with ordinality k(attnum, ord)
-                   join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum order by k.ord) as cols,
-             array(select a.attname::text from unnest(c.confkey) with ordinality k(attnum, ord)
-                   join pg_attribute a on a.attrelid = c.confrelid and a.attnum = k.attnum order by k.ord) as fcols
-      from pg_constraint c
-      where c.contype = 'f'
-        and (
-          c.conrelid::regclass::text = any(${tableNames})
-          -- Tenant tables outside BACKUP_TABLES are neither cleared nor restored, but their rows
-          -- still point at restored parents that were deleted and re-inserted with new ids.
-          or (c.confrelid::regclass::text = any(${tableNames})
-              and exists (select 1 from pg_attribute t where t.attrelid = c.conrelid and t.attname = 'tenant_id' and not t.attisdropped))
-        )
-    `.execute(trx);
-
-    const problems: string[] = [];
-    for (const fk of fks.rows) {
-      const notNull = sql.join(fk.cols.map((col) => sql`child.${sql.ref(col)} is not null`), sql` and `);
-      const matches = sql.join(fk.cols.map((col, i) => sql`parent.${sql.ref(fk.fcols[i])} = child.${sql.ref(col)}`), sql` and `);
-      const result = await sql<{ orphans: string }>`
-        select count(*)::text as orphans from ${sql.table(fk.table_name)} as child
-        where child.tenant_id = ${tenantId} and ${notNull}
-          and not exists (select 1 from ${sql.table(fk.foreign_table)} as parent where ${matches})
-      `.execute(trx);
-      const orphans = Number(result.rows[0]?.orphans || 0);
-      if (orphans > 0) problems.push(`${fk.table_name}.${fk.cols.join('+')} -> ${fk.foreign_table}: ${orphans}`);
-    }
-
+    const specs = await listTenantTables(trx);
+    // tables restored here that tenant packages treat as platform/session tables (sessions, trial_signups)
+    const extra = tableNames.filter((name) => !specs.has(name));
+    const problems = await findOrphanedReferences(trx, specs, tenantId, extra);
     if (problems.length) {
       throw new AppError(
-        `تم إلغاء الاسترجاع ولم يتغير شيء: بعد الاسترجاع ستبقى سطور تشير إلى سجلات غير موجودة (${problems.join(' | ')})`,
+        `تم إلغاء الاسترجاع ولم يتغير شيء: بعد الاسترجاع ستبقى سطور تشير إلى سجلات غير موجودة أو تابعة لمنشأة أخرى (${problems.join(' | ')})`,
         'RESTORE_ORPHANED_REFERENCES',
         400,
       );
     }
   }
+
 
   async restoreBackup(payload: unknown, actor: AuthContext, dryRun = false): Promise<Record<string, unknown>> {
     if (!dryRun) {

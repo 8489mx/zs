@@ -30,6 +30,12 @@
 - Never use `docker exec -t` in the backup script; never commit an Object Storage pre-authenticated URL (the repo is public).
 - Guard: `backend/test/critical/deploy-pipeline.spec.ts` (in `npm run guards`). If it fails, the guard is right — fix the code, not the guard.
 
+## 1-d. Backup Restore & Tenant Transfer Invariants (`ARCHITECTURE_INVARIANTS.md` §2.8 RESTORE-1..3, §2.9 TRANSFER-1..5)
+- Never renumber ids when moving or restoring a tenant; keep original ids (offline rows use the tenant's reserved block above 1,000,000,000).
+- Whoever disables FK checks (`session_replication_role = 'replica'`) must run `findOrphanedReferences` before commit; never weaken it to let a restore pass.
+- Never decide a column's meaning from its name (`account_id` is an FK on `journal_entry_lines`).
+- Guards: `backup-restore-integrity.spec.ts`, `tenant-transfer.spec.ts`.
+
 ## 2. Inviolable Core Invariants
 - Financial transactions & journal entries are immutable double-entry ledgers.
 - Passwords MUST always be hashed with `bcrypt` (never plaintext).

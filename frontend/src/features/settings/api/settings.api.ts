@@ -68,6 +68,21 @@ export interface BackupAutomationConfig {
   lastSavedPath?: string;
 }
 
+export interface TenantImportReport {
+  ok: boolean;
+  rows: number;
+  tables: number;
+  warnings: string[];
+  sourceTenant: { id: string; slug: string; businessName: string };
+}
+
+export interface TenantPickOption {
+  tenantId: string;
+  slug: string;
+  businessName: string;
+  rows: number;
+}
+
 export interface BackupConfigResponse {
   ok: boolean;
   defaultFolderPath: string;
@@ -233,6 +248,16 @@ export const settingsApi = {
     }),
   saveUsers: (users: ManagedUserRecord[]) => http<{ ok: boolean; users: ManagedUserRecord[] }>('/api/users', { method: 'PUT', body: JSON.stringify({ users: users.map(sanitizeUserPayload) }) }),
   backupDownloadUrl: () => resolveRequestUrl('/api/backup'),
+  tenantTransferInfo: () => http<{ mode: 'desktop' | 'cloud' }>('/api/tenant-transfer/info'),
+  tenantTransferExportUrl: () => resolveRequestUrl('/api/tenant-transfer/export'),
+  importTenantPackage: (file: File, options: { confirmation: string; passphrase?: string; pick?: string }) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('confirmation', options.confirmation);
+    if (options.passphrase) formData.append('passphrase', options.passphrase);
+    if (options.pick) formData.append('pick', options.pick);
+    return http<TenantImportReport>('/api/tenant-transfer/import', { method: 'POST', body: formData, timeoutMs: BACKUP_RESTORE_TIMEOUT_MS * 5 });
+  },
   supportBundleDownloadUrl: () => resolveRequestUrl('/api/support-bundle/download'),
   sendSupportBundleToServer: () =>
     http<{ success: boolean; message: string }>('/api/support-bundle/send-to-server', {

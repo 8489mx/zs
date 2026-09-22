@@ -7,6 +7,7 @@ import { SnapshotList, type BackupSnapshotRecord } from '@/features/settings/com
 import { settingsApi, type BackupConfigResponse } from '@/features/settings/api/settings.api';
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin, isDesktopOfflineApp } from '@/app/router/access';
+import { TenantTransferCard } from './TenantTransferCard';
 
 
 export interface BackupConfigQueryState {
@@ -1518,6 +1519,9 @@ export function SettingsBackupImportSection({
 
       {/* Database Maintenance Strip (Super Admin only) */}
       {isPlatformSuperAdmin && <DatabaseOptimizationCard canManage={isPlatformSuperAdmin} />}
+
+      {/* Move this business between the cloud and the desktop app */}
+      <TenantTransferCard canManage={canManageBackups || user?.role === 'super_admin'} />
 
       {/* Inventory Stock Reset & Catalog Wipe for Operational Setup (Admin & Super Admin) */}
       <InventoryOperationsResetCard canManage={canRestore} />

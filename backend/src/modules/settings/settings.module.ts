@@ -20,6 +20,8 @@ import { WhatsAppGatewayService } from './services/whatsapp-gateway.service';
 import { DailyDigestController } from './controllers/daily-digest.controller';
 import { DailyDigestService } from './services/daily-digest.service';
 import { CloudBackupService } from './services/cloud-backup.service';
+import { TenantTransferService } from './services/tenant-transfer.service';
+import { TenantTransferController } from './controllers/tenant-transfer.controller';
 import { DiagnosticsSchedulerService } from './services/diagnostics-scheduler.service';
 import { AiCopilotModule } from '../ai-copilot/ai-copilot.module';
 
@@ -29,6 +31,7 @@ import { AiCopilotModule } from '../ai-copilot/ai-copilot.module';
     SettingsController,
     SettingsAdminController,
     SettingsBackupController,
+    TenantTransferController,
     SettingsSupportController,
     SettingsImportController,
     WhatsAppGatewayController,
@@ -43,6 +46,7 @@ import { AiCopilotModule } from '../ai-copilot/ai-copilot.module';
     SettingsAdminService,
     SettingsBackupService,
     CloudBackupService,
+    TenantTransferService,
     SettingsSupportService,
     DiagnosticsSchedulerService,
     SettingsImportService,
