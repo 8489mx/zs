@@ -875,9 +875,11 @@ export function StorefrontSettingsTab() {
                   background: '#f8fafc',
                   borderRadius: '8px',
                   border: '1px solid #e2e8f0',
+                  gap: '10px',
+                  minWidth: 0,
                 }}
               >
-                <div>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
                     تفعيل استلام الطلبات من الفرع (Click & Collect)
                   </span>
@@ -889,7 +891,7 @@ export function StorefrontSettingsTab() {
                   type="checkbox"
                   checked={formState.pickupEnabled}
                   onChange={(e) => setFormState({ ...formState, pickupEnabled: e.target.checked })}
-                  style={{ width: '16px', height: '16px', accentColor: '#170e5e', cursor: 'pointer' }}
+                  style={{ width: '16px', height: '16px', accentColor: '#170e5e', cursor: 'pointer', flexShrink: 0 }}
                 />
               </div>
 
@@ -963,9 +965,11 @@ export function StorefrontSettingsTab() {
                   background: '#f8fafc',
                   borderRadius: '8px',
                   border: '1px solid #e2e8f0',
+                  gap: '10px',
+                  minWidth: 0,
                 }}
               >
-                <div>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
                     تفعيل استقبال الطلبات أونلاين
                   </span>
@@ -977,7 +981,7 @@ export function StorefrontSettingsTab() {
                   type="checkbox"
                   checked={formState.enabled}
                   onChange={(e) => setFormState({ ...formState, enabled: e.target.checked })}
-                  style={{ width: '16px', height: '16px', accentColor: '#170e5e', cursor: 'pointer' }}
+                  style={{ width: '16px', height: '16px', accentColor: '#170e5e', cursor: 'pointer', flexShrink: 0 }}
                 />
               </div>
 
@@ -992,9 +996,11 @@ export function StorefrontSettingsTab() {
                   borderRadius: '8px',
                   border: formState.smartDealsEnabled ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
                   transition: 'all 0.15s ease',
+                  gap: '10px',
+                  minWidth: 0,
                 }}
               >
-                <div>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
                     تفعيل العروض التسويقية الذكية (Smart Deals)
                   </span>
@@ -1006,7 +1012,7 @@ export function StorefrontSettingsTab() {
                   type="checkbox"
                   checked={formState.smartDealsEnabled}
                   onChange={(e) => setFormState({ ...formState, smartDealsEnabled: e.target.checked })}
-                  style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
+                  style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer', flexShrink: 0 }}
                 />
               </div>
 
@@ -1021,9 +1027,11 @@ export function StorefrontSettingsTab() {
                   borderRadius: '8px',
                   border: formState.allowOutOfStockOrders ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
                   transition: 'all 0.15s ease',
+                  gap: '10px',
+                  minWidth: 0,
                 }}
               >
-                <div>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
                     السماح بالطلب دون التقيد بالرصيد المخزني (مناسب للمطاعم وتجهيز الوجبات)
                   </span>
@@ -1035,12 +1043,12 @@ export function StorefrontSettingsTab() {
                   type="checkbox"
                   checked={formState.allowOutOfStockOrders}
                   onChange={(e) => setFormState({ ...formState, allowOutOfStockOrders: e.target.checked })}
-                  style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
+                  style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer', flexShrink: 0 }}
                 />
               </div>
 
               {/* Delivery Fee & Min Order */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '10px', minWidth: 0 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
                     رسوم التوصيل (${getGlobalCurrencySymbol()}):
@@ -1095,9 +1103,11 @@ export function StorefrontSettingsTab() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: '8px',
+                  flexWrap: 'wrap',
+                  minWidth: 0,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: '1 1 180px' }}>
                   <LightbulbIcon size={14} color="#170e5e" />
                   <span style={{ fontSize: '11px', color: '#170e5e', fontWeight: 600 }}>
                     هل تريد تحديد أسعار دليفري مختلفة لكل حي أو محافظة تخدمها؟
@@ -1111,11 +1121,12 @@ export function StorefrontSettingsTab() {
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '4px',
-                    padding: '4px 10px',
+                    padding: '5px 12px',
                     fontSize: '11px',
                     fontWeight: 700,
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
+                    flexShrink: 0,
                   }}
                 >
                   إدارة مصفوفة المناطق ↗
@@ -1133,11 +1144,12 @@ export function StorefrontSettingsTab() {
                   flexDirection: 'column',
                   gap: '8px',
                   transition: 'all 0.15s ease',
+                  minWidth: 0,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', minWidth: 0 }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                       <TruckIcon size={15} color="#170e5e" />
                       <span>تفعيل الشحن المجاني التلقائي (Free Shipping Rule)</span>
                     </span>
@@ -1149,7 +1161,7 @@ export function StorefrontSettingsTab() {
                     type="checkbox"
                     checked={formState.freeShippingEnabled}
                     onChange={(e) => setFormState({ ...formState, freeShippingEnabled: e.target.checked })}
-                    style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
+                    style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer', flexShrink: 0 }}
                   />
                 </div>
 
@@ -1159,35 +1171,39 @@ export function StorefrontSettingsTab() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
+                      flexWrap: 'wrap',
                       paddingTop: '6px',
                       borderTop: '1px dashed #bbf7d0',
+                      minWidth: 0,
                     }}
                   >
-                    <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#166534', whiteSpace: 'nowrap' }}>
+                    <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#166534' }}>
                       شحن مجاني عند الطلب بمبلغ (${getGlobalCurrencySymbol()}) أو أكثر:
                     </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={formState.freeShippingMinOrder}
-                      onChange={(e) =>
-                        setFormState({ ...formState, freeShippingMinOrder: Math.max(1, Number(e.target.value)) })
-                      }
-                      style={{
-                        width: '100px',
-                        padding: '5px 8px',
-                        borderRadius: '6px',
-                        border: '1.5px solid #86efac',
-                        fontSize: '12.5px',
-                        fontWeight: 800,
-                        color: '#166534',
-                        background: '#ffffff',
-                        textAlign: 'center',
-                      }}
-                    />
-                    <span style={{ fontSize: '11px', color: '#15803d' }}>
-                      (مثال: 500 جنيه)
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formState.freeShippingMinOrder}
+                        onChange={(e) =>
+                          setFormState({ ...formState, freeShippingMinOrder: Math.max(1, Number(e.target.value)) })
+                        }
+                        style={{
+                          width: '90px',
+                          padding: '5px 8px',
+                          borderRadius: '6px',
+                          border: '1.5px solid #86efac',
+                          fontSize: '12.5px',
+                          fontWeight: 800,
+                          color: '#166534',
+                          background: '#ffffff',
+                          textAlign: 'center',
+                        }}
+                      />
+                      <span style={{ fontSize: '11px', color: '#15803d' }}>
+                        (مثال: 500 جنيه)
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1492,7 +1508,7 @@ export function StorefrontSettingsTab() {
                       يقف التقليب تلقائياً بمجرد وقوف الماوس فوق البنر
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', minWidth: 0 }}>
                     {[2, 3, 4, 5, 7, 10].map((sec) => (
                       <button
                         key={sec}
@@ -1554,12 +1570,13 @@ export function StorefrontSettingsTab() {
                       justifyContent: 'space-between',
                       flexWrap: 'wrap',
                       gap: '8px',
+                      minWidth: 0,
                     }}
                   >
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>
                       طريقة ملء إطار البنر:
                     </span>
-                    <div style={{ display: 'flex', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', minWidth: 0 }}>
                       <button
                         type="button"
                         onClick={() => setFormState((prev) => ({ ...prev, bannerFit: 'cover' }))}
@@ -1574,7 +1591,8 @@ export function StorefrontSettingsTab() {
                           cursor: 'pointer',
                         }}
                       >
-                        ملء كامل الإطار (Cover - مفضل للسحب)
+                        <span className="banner-fit-full">ملء كامل الإطار (Cover - مفضل للسحب)</span>
+                        <span className="banner-fit-short">ملء الإطار (Cover)</span>
                       </button>
                       <button
                         type="button"
@@ -1590,7 +1608,8 @@ export function StorefrontSettingsTab() {
                           cursor: 'pointer',
                         }}
                       >
-                        احتواء كامل (Contain)
+                        <span className="banner-fit-full">احتواء كامل (Contain)</span>
+                        <span className="banner-fit-short">احتواء (Contain)</span>
                       </button>
                     </div>
                   </div>

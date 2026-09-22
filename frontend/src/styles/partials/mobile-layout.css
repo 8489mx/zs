@@ -1204,13 +1204,15 @@
 /* Responsive label visibility default (Desktop: full label visible, short label hidden) */
 .settings-tab-short-label,
 .subnav-short-label,
-.sf-tab-short {
+.sf-tab-short,
+.banner-fit-short {
   display: none;
 }
 
 .settings-tab-full-label,
 .subnav-full-label,
-.sf-tab-full {
+.sf-tab-full,
+.banner-fit-full {
   display: inline;
 }
 
@@ -1443,13 +1445,15 @@
   /* Responsive label toggle on mobile */
   .settings-tab-short-label,
   .subnav-short-label,
-  .sf-tab-short {
+  .sf-tab-short,
+  .banner-fit-short {
     display: inline !important;
   }
 
   .settings-tab-full-label,
   .subnav-full-label,
-  .sf-tab-full {
+  .sf-tab-full,
+  .banner-fit-full {
     display: none !important;
   }
 
@@ -1488,6 +1492,7 @@
   .settings-tabs-shell {
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 0 !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
     margin-left: 0 !important;
@@ -1499,30 +1504,48 @@
   .settings-page-shell .page-header {
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 0 !important;
     box-sizing: border-box !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
   }
 
-  /* Storefront Settings Polish on Mobile */
+  /* Storefront Settings Polish on Mobile - Strict Zero Overflow Boundary */
   .storefront-tab-root {
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
     box-sizing: border-box !important;
   }
 
   .storefront-settings-grid {
-    grid-template-columns: 1fr !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     gap: 12px !important;
     width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     box-sizing: border-box !important;
   }
 
   .storefront-settings-grid > div {
-    padding: 14px 14px !important;
+    padding: 14px 12px !important;
     box-sizing: border-box !important;
     width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
     border-radius: 10px !important;
+  }
+
+  .storefront-settings-grid input[type="checkbox"] {
+    flex-shrink: 0 !important;
+  }
+
+  .storefront-settings-grid * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .storefront-link-banner {
@@ -1532,6 +1555,7 @@
     align-items: stretch !important;
     border-radius: 10px !important;
     width: 100% !important;
+    min-width: 0 !important;
     box-sizing: border-box !important;
     margin-bottom: 12px !important;
   }
@@ -1542,6 +1566,7 @@
     grid-template-columns: 1fr 1fr !important;
     gap: 8px !important;
     width: 100% !important;
+    min-width: 0 !important;
   }
 
   .storefront-link-actions > *,
