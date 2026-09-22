@@ -23,7 +23,7 @@ export const RESERVED_STORE_SLUGS: ReadonlySet<string> = new Set([
   'status', 'docs', 'help', 'support', 'blog', 'dev', 'staging', 'test', 'demo', 'erp', 'portal',
   'dashboard', 'billing', 'pay', 'payment', 'payments', 'webhook', 'webhooks', 'auth', 'sso', 'oauth',
   'login', 'logout', 'register', 'signup', 'trial', 'store', 'st', 'shop', 'profile', 'settings', 'pos',
-  'system', 'driver', 'track', 'public', 'default', 'root', 'ns1', 'ns2',
+  'system', 'driver', 'track', 'public', 'default', 'root', 'ns1', 'ns2', 'uptime-probe',
 ]);
 
 const DNS_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;

@@ -1,3 +1,4 @@
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import assert from 'node:assert/strict';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { HealthController } from '../../src/core/health/health.controller';
@@ -44,6 +45,16 @@ async function run(): Promise<void> {
   }
 
   assert.equal(threw, true);
+
+  // O22: operations endpoints need a platform super admin; the probes stay public.
+  const guardNames = (method: keyof HealthController) =>
+    ((Reflect.getMetadata(GUARDS_METADATA, HealthController.prototype[method] as object) || []) as Array<{ name: string }>).map((g) => g.name);
+  for (const method of ['getDatabaseStats', 'getSystemMetrics', 'testTelegramAlert', 'runDatabaseOptimization'] as const) {
+    assert.deepEqual(guardNames(method), ['SessionAuthGuard', 'SuperAdminRoleGuard'], `${method} is super-admin only`);
+  }
+  for (const method of ['getHealth', 'getLiveness', 'getReadiness'] as const) {
+    assert.deepEqual(guardNames(method), [], `${method} stays public for uptime probes`);
+  }
   console.log('health controller checks passed');
 }
 

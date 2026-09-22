@@ -20,6 +20,7 @@ import * as fsSync from 'fs';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { SuperAdminRoleGuard } from '../../core/auth/guards/super-admin-role.guard';
 import { SaasDiagnosticsService, UploadDiagnosticDto } from './saas-diagnostics.service';
+import { DiagnosticsUploadRateLimitGuard } from './diagnostics-upload-rate-limit.guard';
 
 @Controller(['api/saas-admin/diagnostics', 'api/v1/saas-admin/diagnostics'])
 export class SaasDiagnosticsController {
@@ -41,6 +42,7 @@ export class SaasDiagnosticsController {
    * Public upload endpoint for desktop / offline clients
    */
   @Post('upload')
+  @UseGuards(DiagnosticsUploadRateLimitGuard)
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: 30 * 1024 * 1024 }, // 30MB limit

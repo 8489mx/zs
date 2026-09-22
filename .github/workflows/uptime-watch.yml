@@ -21,20 +21,36 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Probe /api/health/live
+      # Probes the server directly AND through Cloudflare. The public hosts can break while the
+      # server is fine (DNS record removed, origin certificate expired, SSL mode changed, Pages
+      # project down), and customers only ever use the public hosts.
+      #   server   : the VPS itself (IP, self-signed allowed)
+      #   app      : the ERP host through Cloudflare
+      #   stores   : any <slug>.zsystemai.com host (wildcard DNS + origin cert + nginx store block)
+      #   website  : the marketing site on Cloudflare Pages
+      - name: Probe server and public hosts
         id: probe
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST || '92.5.178.54' }}
         run: |
-          UP=0
-          for i in 1 2 3; do
-            CODE=$(curl -sk -m 15 -o /dev/null -w "%{http_code}" "https://${ORACLE_HOST}/api/health/live" || echo 000)
-            echo "attempt $i: $CODE"
-            if [ "$CODE" = "200" ]; then UP=1; break; fi
-            sleep 20
-          done
-          echo "up=$UP" >> "$GITHUB_OUTPUT"
-          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          probe() {
+            local name="$1" url="$2" flags="$3" code=000
+            for i in 1 2 3; do
+              code=$(curl -s $flags -m 15 -o /dev/null -w "%{http_code}" "$url" || echo 000)
+              echo "$name attempt $i: $code"
+              if [ "$code" = "200" ]; then return 0; fi
+              sleep 15
+            done
+            FAILED="${FAILED}${name} (HTTP ${code})%0A"
+            return 1
+          }
+          FAILED=""
+          probe server  "https://${ORACLE_HOST}/api/health/live" "-k" || true
+          probe app     "https://app.zsystemai.com/api/health/live" "" || true
+          probe stores  "https://uptime-probe.zsystemai.com/api/health/live" "" || true
+          probe website "https://zsystemai.com/" "" || true
+          if [ -z "$FAILED" ]; then echo "up=1" >> "$GITHUB_OUTPUT"; else echo "up=0" >> "$GITHUB_OUTPUT"; fi
+          echo "failed=$FAILED" >> "$GITHUB_OUTPUT"
 
       - name: Alert on state change
         env:
@@ -42,16 +58,16 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           UP: ${{ steps.probe.outputs.up }}
-          CODE: ${{ steps.probe.outputs.code }}
+          FAILED: ${{ steps.probe.outputs.failed }}
         run: |
           PREV=$(gh run list -R "$GITHUB_REPOSITORY" --workflow uptime-watch.yml --status completed -L 1 \
             --json conclusion -q '.[0].conclusion' 2>/dev/null || echo "")
           echo "previous run: ${PREV:-none}, now up=$UP"
           TEXT=""
           if [ "$UP" != "1" ] && [ "$PREV" != "failure" ]; then
-            TEXT="🔴 Z-Systems DOWN%0Aالسيرفر مش بيرد من برّه (HTTP ${CODE}).%0Aممكن السيرفر نفسه واقف."
+            TEXT="🔴 Z-Systems DOWN%0Aاللي مش بيرد من برّه:%0A${FAILED}لو server واقف يبقى السيرفر نفسه، لو الباقي بس يبقى Cloudflare أو DNS أو الشهادة."
           elif [ "$UP" = "1" ] && [ "$PREV" = "failure" ]; then
-            TEXT="🟢 Z-Systems UP%0Aالسيرفر رجع يرد تاني."
+            TEXT="🟢 Z-Systems UP%0Aكل الروابط رجعت ترد تاني."
           fi
           if [ -n "$TEXT" ] && [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \

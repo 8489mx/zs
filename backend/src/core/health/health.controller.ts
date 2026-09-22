@@ -82,7 +82,9 @@ export class HealthController {
     return payload;
   }
 
+  // O22: platform operations data, super admin only (like optimize-db). Monitors use /live and /ready.
   @Get('db-stats')
+  @UseGuards(SessionAuthGuard, SuperAdminRoleGuard)
   async getDatabaseStats(): Promise<Record<string, unknown>> {
     try {
       // Database size
@@ -167,6 +169,7 @@ export class HealthController {
   }
 
   @Get('metrics')
+  @UseGuards(SessionAuthGuard, SuperAdminRoleGuard)
   async getSystemMetrics(): Promise<Record<string, unknown>> {
     const memory = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
@@ -195,6 +198,7 @@ export class HealthController {
   }
 
   @Post('telegram-test')
+  @UseGuards(SessionAuthGuard, SuperAdminRoleGuard)
   async testTelegramAlert(): Promise<{ ok: boolean; message: string }> {
     const settings = await this.telegramAlerts.getSettings();
     if (!settings.botToken || !settings.chatId) {

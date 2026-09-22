@@ -1,3 +1,5 @@
+import { InMemoryRateLimitService } from '../../common/security/in-memory-rate-limit.service';
+import { DiagnosticsUploadRateLimitGuard } from './diagnostics-upload-rate-limit.guard';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../database/database.module';
 import { AuthFoundationModule } from '../../core/auth/auth.module';
@@ -13,7 +15,7 @@ import { SaasDiagnosticsService } from './saas-diagnostics.service';
 @Module({
   imports: [DatabaseModule, AuthFoundationModule, AuditModule, SettingsModule],
   controllers: [SaasAdminController, DeveloperController, SaasDiagnosticsController],
-  providers: [SaasAdminService, TrialTenantProvisioningService, SaasDiagnosticsService],
+  providers: [SaasAdminService, TrialTenantProvisioningService, SaasDiagnosticsService, InMemoryRateLimitService, DiagnosticsUploadRateLimitGuard],
   exports: [TrialTenantProvisioningService, SaasDiagnosticsService],
 })
 export class SaasAdminModule {}

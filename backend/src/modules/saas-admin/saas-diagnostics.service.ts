@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { Kysely } from 'kysely';
@@ -6,6 +6,18 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import AdmZip from 'adm-zip';
+
+/** O36: everything the public upload may keep on disk, across all clients. */
+export const DIAGNOSTICS_STORAGE_CAP_BYTES = 2 * 1024 * 1024 * 1024;
+/** Bundles kept per client identifier; older ones are deleted after each upload. */
+export const DIAGNOSTICS_KEEP_PER_CLIENT = 20;
+/** A log entry larger than this is not inflated for analysis (zip bomb). */
+export const DIAGNOSTICS_MAX_INFLATED_ENTRY_BYTES = 20 * 1024 * 1024;
+
+/** A real bundle is a zip archive: local file header `PK`. */
+export function isZipBuffer(buffer: Buffer | undefined): boolean {
+  return !!buffer && buffer.length >= 4 && buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04;
+}
 
 export interface UploadDiagnosticDto {
   clientName: string;
@@ -35,6 +47,19 @@ export class SaasDiagnosticsService {
     // Same allow-list as clientIdentifier above.
     const logPeriod = rawLogPeriod.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40) || 'unknown-period';
 
+    // O36: public endpoint — only real zip bundles, and never past the global disk budget.
+    if (!isZipBuffer(file.buffer)) {
+      throw new BadRequestException('ملف التشخيص يجب أن يكون ملف ZIP.');
+    }
+    const stored = await this.db
+      .selectFrom('saas_client_diagnostics')
+      .select((eb) => eb.fn.coalesce(eb.fn.sum<number>('file_size_bytes'), eb.lit(0)).as('total'))
+      .executeTakeFirst();
+    if (Number(stored?.total || 0) + file.size > DIAGNOSTICS_STORAGE_CAP_BYTES) {
+      this.logger.warn(`Diagnostics storage cap reached; rejected upload from ${clientIdentifier}`);
+      throw new ServiceUnavailableException('مساحة ملفات التشخيص ممتلئة حالياً، يرجى المحاولة لاحقاً.');
+    }
+
     // 1. Prepare storage directory
     const baseStorageDir = path.join(process.cwd(), 'storage', 'diagnostics', clientIdentifier);
     await fs.mkdir(baseStorageDir, { recursive: true });
@@ -61,6 +86,7 @@ export class SaasDiagnosticsService {
       const zipEntries = zip.getEntries();
       for (const entry of zipEntries) {
         if (entry.entryName.includes('system-errors.log') || entry.entryName.includes('backend.log')) {
+          if (Number(entry.header.size) > DIAGNOSTICS_MAX_INFLATED_ENTRY_BYTES) continue;
           const content = entry.getData().toString('utf8');
           const lines = content.split('\n');
           for (const line of lines) {
@@ -100,6 +126,8 @@ export class SaasDiagnosticsService {
       .returning(['id', 'client_name', 'log_period', 'error_count_500'])
       .executeTakeFirstOrThrow();
 
+    await this.pruneOldBundles(clientIdentifier);
+
     // 4. Send webhook alert if errorCount500 > 0
     if (errorCount500 > 0) {
       this.dispatchWebhookAlert({
@@ -119,6 +147,26 @@ export class SaasDiagnosticsService {
       logPeriod: inserted.log_period,
       errorCount500: inserted.error_count_500,
     };
+  }
+
+  /** O36: keep the newest bundles per client so one identifier cannot pile up files. */
+  private async pruneOldBundles(clientIdentifier: string): Promise<void> {
+    const stale = await this.db
+      .selectFrom('saas_client_diagnostics')
+      .select(['id', 'file_path'])
+      .where('client_identifier', '=', clientIdentifier)
+      .orderBy('id', 'desc')
+      .offset(DIAGNOSTICS_KEEP_PER_CLIENT)
+      .limit(1000)
+      .execute();
+    if (!stale.length) return;
+    for (const row of stale) {
+      if (row.file_path) await fs.unlink(row.file_path).catch(() => undefined);
+    }
+    await this.db
+      .deleteFrom('saas_client_diagnostics')
+      .where('id', 'in', stale.map((row) => row.id))
+      .execute();
   }
 
   async listDiagnostics(query: { page?: number; limit?: number; search?: string }) {
