@@ -48,8 +48,28 @@ const BACKUP_FOLDER_SETTING_KEY = 'backupFolderPath';
 const BACKUP_AUTOMATION_SETTING_KEY = 'backupAutomation';
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
-function normalizeRowForInsert(row: Record<string, unknown>, scope: { tenantId: string; accountId: string }, tableName?: string): Record<string, unknown> { const normalized: Record<string, unknown> = {}; for (const [key, value] of Object.entries(row)) normalized[key] = key.endsWith('_json') && typeof value !== 'string' && value != null ? JSON.stringify(value) : value; normalized.tenant_id = scope.tenantId; if (tableName !== 'journal_entry_lines') normalized.account_id = scope.accountId; return normalized; }
-const sortSelfReferencing = (rows: any[], parentCol: string) => { const sorted = []; const inserted = new Set(); const pending = [...rows]; let iterations = 0; while (pending.length > 0 && iterations < 1000) { for (let i = pending.length - 1; i >= 0; i--) { const row = pending[i]; if (row[parentCol] == null || inserted.has(String(row[parentCol]))) { sorted.push(row); if (row.id != null) inserted.add(String(row.id)); pending.splice(i, 1); } } iterations++; } sorted.push(...pending); return sorted; };
+// account_id is the tenancy column on most tables and is forced to the restoring tenant — unless the
+// table declares it as a foreign key (journal_entry_lines.account_id -> accounting_accounts).
+function normalizeRowForInsert(row: Record<string, unknown>, scope: { tenantId: string; accountId: string }, fkColumns: Set<string>): Record<string, unknown> { const normalized: Record<string, unknown> = {}; for (const [key, value] of Object.entries(row)) normalized[key] = key.endsWith('_json') && typeof value !== 'string' && value != null ? JSON.stringify(value) : value; normalized.tenant_id = scope.tenantId; if (!fkColumns.has('account_id')) normalized.account_id = scope.accountId; return normalized; }
+// Only tenant_id is skipped. account_id is *not* skipped by name: it is the tenancy column on most
+// tables (no FK there, so it never reaches this map), but on journal_entry_lines it is the FK to
+// accounting_accounts. Skipping it by name left every restored journal line pointing at the old
+// chart-of-accounts ids (O65 in ARCHITECTURE_INVARIANTS.md).
+export function remapForeignKeys(
+  row: Record<string, unknown>,
+  fkMap: { column_name: string; foreign_table_name: string }[],
+  idMap: Map<string, Map<string, string>>,
+): void {
+  for (const fk of fkMap) {
+    if (fk.column_name === 'tenant_id') continue;
+    const oldFkVal = row[fk.column_name];
+    if (oldFkVal == null) continue;
+    const newFkVal = idMap.get(fk.foreign_table_name)?.get(String(oldFkVal));
+    if (newFkVal !== undefined) row[fk.column_name] = newFkVal;
+  }
+}
+
+const sortSelfReferencing =(rows: any[], parentCol: string) => { const sorted = []; const inserted = new Set(); const pending = [...rows]; let iterations = 0; while (pending.length > 0 && iterations < 1000) { for (let i = pending.length - 1; i >= 0; i--) { const row = pending[i]; if (row[parentCol] == null || inserted.has(String(row[parentCol]))) { sorted.push(row); if (row.id != null) inserted.add(String(row.id)); pending.splice(i, 1); } } iterations++; } sorted.push(...pending); return sorted; };
 
 function remapPolymorphicReferences(
   tableName: string,
@@ -190,12 +210,10 @@ export class SettingsBackupService {
   assertAdmin(auth?: AuthContext | null): asserts auth is AuthContext { if (!auth) throw new ForbiddenException('Authentication required'); const canManage = auth.role === 'super_admin' || auth.permissions.includes('settings') || auth.permissions.includes('canManageSettings'); if (!canManage) throw new ForbiddenException('Missing required permissions'); requireTenantScope(auth); }
   private assertCanRestoreBackup(auth?: AuthContext | null): asserts auth is AuthContext {
     if (!auth) throw new ForbiddenException('Authentication required');
-    const canRestore =
-      auth.role === 'super_admin' ||
-      auth.role === 'admin' ||
-      auth.permissions.includes('canManageBackups') ||
-      auth.permissions.includes('canManageSettings') ||
-      auth.permissions.includes('settings');
+    // A restore wipes and rewrites the whole tenant. Same rule as the UI (SettingsBackupImportSection)
+    // and as the original hardening (01ab7902): an explicit canManageBackups grant, not just any
+    // admin or anyone with the settings screen. Tenant owners get it with SUPER_ADMIN_PERMISSIONS.
+    const canRestore = auth.role === 'super_admin' || auth.permissions.includes('canManageBackups');
     if (!canRestore) throw new ForbiddenException('عملية استعادة النسخة الاحتياطية محصورة بحساب الإدارة المعتمد فقط لحماية البيانات');
     requireTenantScope(auth);
   }
@@ -365,6 +383,71 @@ export class SettingsBackupService {
   private async getTableColumns(trx: Kysely<Database>, table: string): Promise<Map<string, { data_type: string, column_default: string | null, identity_generation: string | null }>> { const result = await sql<{ column_name: string, data_type: string, column_default: string | null, identity_generation: string | null }>`select column_name, data_type, column_default, identity_generation from information_schema.columns where table_schema = 'public' and table_name = ${table}`.execute(trx); return new Map(result.rows.map(r => [r.column_name, r])); }
   private async getAlwaysIdentityColumns(trx: Kysely<Database>, table: string): Promise<Set<string>> { const result = await sql<{ column_name: string }>`select column_name from information_schema.columns where table_schema = 'public' and table_name = ${table} and identity_generation = 'ALWAYS'`.execute(trx).catch(() => ({ rows: [] })); return new Set(result.rows.map(r => r.column_name)); }
 
+  // Runs after the tenant's rows were cleared, so any id still present belongs to another tenant.
+  private async canKeepOriginalIds(trx: Kysely<Database>, envelope: BackupEnvelope): Promise<boolean> {
+    for (const table of BACKUP_TABLES) {
+      const tableName = String(table);
+      const rows = (envelope.tables[table] || []).filter(isObjectRecord);
+      if (!rows.length || !(await this.tableExists(tableName))) continue;
+      const colMeta = await this.getTableColumns(trx, tableName);
+      const idMeta = colMeta.get('id');
+      if (!idMeta || !colMeta.has('tenant_id')) continue;
+      const ids = rows.map((row) => row.id);
+      if (ids.some((id) => id == null)) return false;
+      const taken = await sql<{ taken: boolean }>`
+        select exists (
+          select 1 from ${sql.table(tableName)}
+          where id::text = any(${ids.map(String)}::text[])
+        ) as taken
+      `.execute(trx);
+      if (taken.rows[0]?.taken) return false;
+    }
+    return true;
+  }
+
+  private async assertNoOrphanedReferences(trx: Kysely<Database>, tableNames: string[], tenantId: string): Promise<void> {
+    if (!tableNames.length) return;
+    const fks = await sql<{ table_name: string; constraint_name: string; foreign_table: string; cols: string[]; fcols: string[] }>`
+      select c.conrelid::regclass::text as table_name,
+             c.conname::text as constraint_name,
+             c.confrelid::regclass::text as foreign_table,
+             array(select a.attname::text from unnest(c.conkey) with ordinality k(attnum, ord)
+                   join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum order by k.ord) as cols,
+             array(select a.attname::text from unnest(c.confkey) with ordinality k(attnum, ord)
+                   join pg_attribute a on a.attrelid = c.confrelid and a.attnum = k.attnum order by k.ord) as fcols
+      from pg_constraint c
+      where c.contype = 'f'
+        and (
+          c.conrelid::regclass::text = any(${tableNames})
+          -- Tenant tables outside BACKUP_TABLES are neither cleared nor restored, but their rows
+          -- still point at restored parents that were deleted and re-inserted with new ids.
+          or (c.confrelid::regclass::text = any(${tableNames})
+              and exists (select 1 from pg_attribute t where t.attrelid = c.conrelid and t.attname = 'tenant_id' and not t.attisdropped))
+        )
+    `.execute(trx);
+
+    const problems: string[] = [];
+    for (const fk of fks.rows) {
+      const notNull = sql.join(fk.cols.map((col) => sql`child.${sql.ref(col)} is not null`), sql` and `);
+      const matches = sql.join(fk.cols.map((col, i) => sql`parent.${sql.ref(fk.fcols[i])} = child.${sql.ref(col)}`), sql` and `);
+      const result = await sql<{ orphans: string }>`
+        select count(*)::text as orphans from ${sql.table(fk.table_name)} as child
+        where child.tenant_id = ${tenantId} and ${notNull}
+          and not exists (select 1 from ${sql.table(fk.foreign_table)} as parent where ${matches})
+      `.execute(trx);
+      const orphans = Number(result.rows[0]?.orphans || 0);
+      if (orphans > 0) problems.push(`${fk.table_name}.${fk.cols.join('+')} -> ${fk.foreign_table}: ${orphans}`);
+    }
+
+    if (problems.length) {
+      throw new AppError(
+        `تم إلغاء الاسترجاع ولم يتغير شيء: بعد الاسترجاع ستبقى سطور تشير إلى سجلات غير موجودة (${problems.join(' | ')})`,
+        'RESTORE_ORPHANED_REFERENCES',
+        400,
+      );
+    }
+  }
+
   async restoreBackup(payload: unknown, actor: AuthContext, dryRun = false): Promise<Record<string, unknown>> {
     if (!dryRun) {
       this.assertCanRestoreBackup(actor);
@@ -389,18 +472,27 @@ export class SettingsBackupService {
           await sql`delete from ${sql.table(table)} where tenant_id = ${scope.tenantId}`.execute(trx);
         }
 
-        // 2. Universal Remapping & Safe Insertion for all tables
+        // 2. Keep the backup's own ids whenever none of them is taken by another tenant (the normal
+        // case: a tenant restoring its own backup on the same server). Then every FK, every
+        // polymorphic reference_id/source_id, and rows in tables outside BACKUP_TABLES that point
+        // at restored rows stay valid with no remapping at all. Remapping is only the fallback for
+        // backups from another database, and step 4 refuses it if it cannot keep references whole.
+        const keepOriginalIds = await this.canKeepOriginalIds(trx as unknown as Kysely<Database>, envelope);
+
+        // 3. Insertion for all tables
+        const restoredTables: string[] = [];
         for (const table of BACKUP_TABLES) {
           const tableName = String(table);
           if (!(await this.tableExists(tableName))) continue;
           const colMeta = await this.getTableColumns(trx as unknown as Kysely<Database>, tableName);
           const hasTenant = colMeta.has('tenant_id');
           if (!hasTenant) continue;
+          restoredTables.push(tableName);
 
           let rows = Array.isArray(envelope.tables[table]) ? envelope.tables[table]! : [];
           if (!rows.length) continue;
 
-          if (colMeta.has('parent_id') && colMeta.has('id')) {
+          if (!keepOriginalIds && colMeta.has('parent_id') && colMeta.has('id')) {
             rows = sortSelfReferencing(rows, 'parent_id');
           }
 
@@ -414,6 +506,7 @@ export class SettingsBackupService {
             WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = ${tableName}
           `.execute(trx);
           const fkMap = fksResult.rows;
+          const fkColumns = new Set(fkMap.map((fk) => fk.column_name));
 
           if (!idMap.has(tableName)) idMap.set(tableName, new Map());
           const tableIdMap = idMap.get(tableName)!;
@@ -421,38 +514,33 @@ export class SettingsBackupService {
           const idMeta = colMeta.get('id');
           const isIdAutoGenerated = Boolean(
             idMeta && (idMeta.column_default !== null || idMeta.identity_generation !== null)
-          );
+          ) && !keepOriginalIds;
+          const overridingIdentity = keepOriginalIds && idMeta?.identity_generation === 'ALWAYS'
+            ? sql`overriding system value`
+            : sql``;
 
           const preparedRows: { oldId: unknown; row: Record<string, unknown> }[] = [];
           for (const rawRow of rows) {
             if (!isObjectRecord(rawRow)) continue;
             const row: Record<string, unknown> = { ...rawRow };
 
-            // Remap Foreign Keys
-            for (const fk of fkMap) {
-              if (fk.column_name === 'tenant_id' || fk.column_name === 'account_id') continue;
-              const oldFkVal = row[fk.column_name];
-              if (oldFkVal != null && idMap.has(fk.foreign_table_name)) {
-                const newFkVal = idMap.get(fk.foreign_table_name)!.get(String(oldFkVal));
-                if (newFkVal !== undefined) {
-                  row[fk.column_name] = newFkVal;
+            if (!keepOriginalIds) {
+              remapForeignKeys(row, fkMap, idMap);
+
+              // Remap Self-referencing parent_id
+              if (colMeta.has('parent_id') && row.parent_id != null) {
+                const newParentId = tableIdMap.get(String(row.parent_id));
+                if (newParentId !== undefined) {
+                  row.parent_id = newParentId;
                 }
               }
-            }
 
-            // Remap Self-referencing parent_id
-            if (colMeta.has('parent_id') && row.parent_id != null) {
-              const newParentId = tableIdMap.get(String(row.parent_id));
-              if (newParentId !== undefined) {
-                row.parent_id = newParentId;
-              }
+              // Remap Polymorphic References
+              remapPolymorphicReferences(tableName, row, idMap);
             }
-
-            // Remap Polymorphic References
-            remapPolymorphicReferences(tableName, row, idMap);
 
             // Normalize for Tenant
-            const normalized = normalizeRowForInsert(row, scope, tableName);
+            const normalized = normalizeRowForInsert(row, scope, fkColumns);
             const filteredRow: Record<string, unknown> = {};
             for (const key of Object.keys(normalized)) {
               if (colMeta.has(key)) {
@@ -541,13 +629,17 @@ export class SettingsBackupService {
               );
 
               await sql`
-                insert into ${sql.table(tableName)} (${colsSql}) values ${valsSql}
+                insert into ${sql.table(tableName)} (${colsSql}) ${overridingIdentity} values ${valsSql}
               `.execute(trx);
             }
           }
 
           await this.resetIdentity(trx as unknown as Kysely<Database>, tableName);
         }
+
+        // 4. replica mode above disables FK enforcement, so nothing would stop a bad remap from
+        // committing. Check every FK of the restored tables ourselves before the commit.
+        await this.assertNoOrphanedReferences(trx as unknown as Kysely<Database>, restoredTables, scope.tenantId);
       });
     } catch (error: any) {
       throw new AppError(
