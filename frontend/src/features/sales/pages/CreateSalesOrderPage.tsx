@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { salesOrdersApi, type CreateSalesOrderPayload, type SalesOrderItem } from '../api/sales-orders.api';
-import { customersApi } from '@/features/customers/api/customers.api';
+import { useCreateSalesOrderForm, type SalesOrderItem } from '../hooks/useCreateSalesOrderForm';
 import { useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { PageHeader } from '@/shared/components/page-header';
@@ -33,7 +31,6 @@ export function CreateSalesOrderPage() {
   ]);
 
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   // Header State
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
@@ -89,14 +86,18 @@ export function CreateSalesOrderPage() {
     },
   ]);
 
-  // Data Queries
+  // Feature Hook for Data Access
   const { data: catalogProducts = [] } = useProductsQuery();
-  const { data: customersData } = useQuery({
-    queryKey: ['customers-list-for-sales-order'],
-    queryFn: () => customersApi.list(),
+  const {
+    customers,
+    createSalesOrder,
+    isSubmitting,
+  } = useCreateSalesOrderForm({
+    onSuccess: () => {
+      clearDraft();
+      navigate('/sales/orders');
+    },
   });
-
-  const customers = Array.isArray(customersData) ? customersData : [];
 
   const customerOptions = useMemo(() => {
     return (customers || []).map((c: any) => ({
@@ -350,20 +351,6 @@ export function CreateSalesOrderPage() {
   const taxAmount = (taxableAmount * taxRate) / 100;
   const totalAmount = Math.max(0, taxableAmount + taxAmount);
 
-  // Mutation
-  const createMutation = useMutation({
-    mutationFn: (payload: CreateSalesOrderPayload) => salesOrdersApi.create(payload),
-    onSuccess: (res) => {
-      clearDraft();
-      queryClient.invalidateQueries({ queryKey: ['sales-orders-list'] });
-      toast.success(res.message || 'تم اعتماد أمر البيع بنجاح');
-      navigate('/sales/orders');
-    },
-    onError: (err: any) => {
-      toast.error(err.message || 'فشل حفظ أمر البيع');
-    },
-  });
-
   const handleSubmit = () => {
     if (!customerName.trim()) {
       toast.error('يرجى إدخال اسم العميل');
@@ -376,7 +363,7 @@ export function CreateSalesOrderPage() {
       return;
     }
 
-    createMutation.mutate({
+    createSalesOrder({
       customerId: selectedCustomerId,
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim() || undefined,
@@ -443,10 +430,10 @@ export function CreateSalesOrderPage() {
                 type="button"
                 className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary"
                 onClick={() => handleSubmit()}
-                disabled={createMutation.isPending}
+                disabled={isSubmitting}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                <span>{createMutation.isPending ? 'جارٍ الاعتماد...' : 'اعتماد أمر البيع'}</span>
+                <span>{isSubmitting ? 'جارٍ الاعتماد...' : 'اعتماد أمر البيع'}</span>
               </Button>
             </div>
           }

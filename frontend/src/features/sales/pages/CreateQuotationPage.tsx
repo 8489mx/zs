@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { quotationsApi, type CreateQuotationPayload, type QuotationItem } from '../api/quotations.api';
-import { customersApi } from '@/features/customers/api/customers.api';
+import { useCreateQuotationForm, type QuotationItem } from '../hooks/useCreateQuotationForm';
 import { useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { PageHeader } from '@/shared/components/page-header';
@@ -40,7 +38,6 @@ export function CreateQuotationPage() {
   ]);
 
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   // Customer & Header State
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
@@ -94,14 +91,18 @@ export function CreateQuotationPage() {
     },
   ]);
 
-  // Data Queries
+  // Feature Hook for Data Access
   const { data: catalogProducts = [] } = useProductsQuery();
-  const { data: customersData } = useQuery({
-    queryKey: ['customers-list-for-quotation'],
-    queryFn: () => customersApi.list(),
+  const {
+    customers,
+    createQuotation,
+    isSubmitting,
+  } = useCreateQuotationForm({
+    onSuccess: () => {
+      clearDraft();
+      navigate('/quotations');
+    },
   });
-
-  const customers = Array.isArray(customersData) ? customersData : [];
 
   const productOptions = useMemo(() => {
     return (catalogProducts || []).map((p: Product) => ({
@@ -219,20 +220,6 @@ export function CreateQuotationPage() {
       grandTotal,
     };
   }, [items, discountValue, discountMode, taxRate]);
-
-  // Mutations
-  const createMutation = useMutation({
-    mutationFn: (payload: CreateQuotationPayload) => quotationsApi.create(payload),
-    onSuccess: () => {
-      toast.success('تم إنشاء وحفظ عرض السعر بنجاح');
-      clearDraft();
-      queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      navigate('/quotations');
-    },
-    onError: (err: any) => {
-      toast.error(err.message || 'فشل حفظ عرض السعر');
-    },
-  });
 
   // Handlers
   const handleCustomerSelect = (customerIdStr: string) => {
@@ -355,7 +342,7 @@ export function CreateQuotationPage() {
       })),
     };
 
-    createMutation.mutate(payload);
+    createQuotation(payload);
   };
 
   return (
@@ -401,17 +388,17 @@ export function CreateQuotationPage() {
               <Button
                 variant="secondary"
                 onClick={handleSubmit}
-                disabled={createMutation.isPending}
+                disabled={isSubmitting}
               >
                 حفظ كمسودة
               </Button>
               <Button
                 variant="primary"
                 onClick={handleSubmit}
-                disabled={createMutation.isPending}
+                disabled={isSubmitting}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff', minWidth: '130px' }}
               >
-                {createMutation.isPending ? 'جاري الحفظ...' : 'اعتماد عرض السعر'}
+                {isSubmitting ? 'جاري الحفظ...' : 'اعتماد عرض السعر'}
               </Button>
             </div>
           }
@@ -1078,7 +1065,7 @@ export function CreateQuotationPage() {
                 <Button
                   variant="primary"
                   onClick={handleSubmit}
-                  disabled={createMutation.isPending}
+                  disabled={isSubmitting}
                   style={{
                     backgroundColor: '#170e5e',
                     color: '#ffffff',
@@ -1088,7 +1075,7 @@ export function CreateQuotationPage() {
                     fontWeight: 700,
                   }}
                 >
-                  {createMutation.isPending ? 'جاري الحفظ...' : 'اعتماد وحفظ عرض السعر'}
+                  {isSubmitting ? 'جاري الحفظ...' : 'اعتماد وحفظ عرض السعر'}
                 </Button>
                 <Button
                   variant="secondary"

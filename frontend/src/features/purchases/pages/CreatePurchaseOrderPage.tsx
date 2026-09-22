@@ -1,9 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { purchaseOrdersApi, type CreatePurchaseOrderPayload, type PurchaseOrderItem } from '../api/purchase-orders.api';
-import { suppliersApi } from '@/shared/api/suppliers.api';
-import { sharedProductsApi } from '@/shared/api/products';
+import { useCreatePurchaseOrderForm, type PurchaseOrderItem } from '../hooks/useCreatePurchaseOrderForm';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -30,7 +27,6 @@ export function CreatePurchaseOrderPage() {
   ]);
 
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   // Header State
   const [selectedSupplierId, setSelectedSupplierId] = useState<number | null>(null);
@@ -114,19 +110,18 @@ export function CreatePurchaseOrderPage() {
     }
   };
 
-  // Data Queries
-  const { data: suppliersData } = useQuery({
-    queryKey: ['suppliers-list-for-po-page'],
-    queryFn: () => suppliersApi.list(),
+  // Feature Hook for Data Access
+  const {
+    suppliers,
+    products,
+    createPurchaseOrder,
+    isSubmitting,
+  } = useCreatePurchaseOrderForm({
+    onSuccess: () => {
+      clearDraft();
+      navigate('/purchases/orders');
+    },
   });
-
-  const { data: productsData } = useQuery({
-    queryKey: ['products-list-for-po-page'],
-    queryFn: () => sharedProductsApi.list(),
-  });
-
-  const suppliers = Array.isArray(suppliersData) ? suppliersData : [];
-  const products = Array.isArray(productsData) ? productsData : [];
 
   const supplierOptions = useMemo(() => {
     return (suppliers || []).map((s: any) => ({
@@ -308,20 +303,6 @@ export function CreatePurchaseOrderPage() {
     );
   };
 
-  // Submit Mutation
-  const createMutation = useMutation({
-    mutationFn: (payload: CreatePurchaseOrderPayload) => purchaseOrdersApi.create(payload),
-    onSuccess: (res) => {
-      toast.success(res.message || 'تم اعتماد أمر الشراء بنجاح');
-      clearDraft();
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders-list'] });
-      navigate('/purchases/orders');
-    },
-    onError: (err: any) => {
-      toast.error(err?.message || 'فشل اعتماد أمر الشراء');
-    },
-  });
-
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!supplierName.trim()) {
@@ -335,7 +316,7 @@ export function CreatePurchaseOrderPage() {
       return;
     }
 
-    createMutation.mutate({
+    createPurchaseOrder({
       supplierId: selectedSupplierId || undefined,
       supplierName: supplierName.trim(),
       supplierPhone: supplierPhone.trim() || undefined,
@@ -400,9 +381,9 @@ export function CreatePurchaseOrderPage() {
                 type="button"
                 className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary"
                 onClick={() => handleSubmit()}
-                disabled={createMutation.isPending}
+                disabled={isSubmitting}
               >
-                <span>{createMutation.isPending ? 'جارٍ الاعتماد...' : 'اعتماد أمر الشراء'}</span>
+                <span>{isSubmitting ? 'جارٍ الاعتماد...' : 'اعتماد أمر الشراء'}</span>
               </Button>
             </div>
           }
