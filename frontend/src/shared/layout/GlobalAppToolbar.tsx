@@ -48,36 +48,38 @@ export function GlobalAppToolbar() {
           <button
             type="button"
             onClick={handleGoBack}
+            className="toolbar-back-btn"
             style={{
               background: '#ffffff',
-              border: '1px solid #e2e8f0',
+              border: '1.5px solid #94a3b8',
               borderRadius: '8px',
-              width: '30px',
-              height: '30px',
+              width: '34px',
+              height: '34px',
+              minWidth: '34px',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: '#475569',
-              marginLeft: '6px',
+              color: '#170e5e',
+              marginInlineEnd: '6px',
               flexShrink: 0,
-              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.1)',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f8fafc';
-              e.currentTarget.style.borderColor = '#cbd5e1';
-              e.currentTarget.style.color = '#0f172a';
+              e.currentTarget.style.backgroundColor = '#ede9fe';
+              e.currentTarget.style.borderColor = '#7c3aed';
+              e.currentTarget.style.color = '#170e5e';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = '#ffffff';
-              e.currentTarget.style.borderColor = '#e2e8f0';
-              e.currentTarget.style.color = '#475569';
+              e.currentTarget.style.borderColor = '#94a3b8';
+              e.currentTarget.style.color = '#170e5e';
             }}
             title="رجوع للصفحة السابقة (Alt + Backspace)"
-            aria-label="Back"
+            aria-label="رجوع للصفحة السابقة"
           >
-            <ArrowRightIcon size={15} strokeWidth={2.4} />
+            <ArrowRightIcon size={20} strokeWidth={2.8} color="currentColor" />
           </button>
         )}
 

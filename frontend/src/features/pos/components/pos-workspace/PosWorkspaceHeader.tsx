@@ -280,7 +280,7 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           )}
 
           {/* 6. Screens Dropdown Menu */}
-          <div ref={screensMenuContainerRef} style={{ position: 'relative' }}>
+          <div ref={screensMenuContainerRef} className="desktop-only-toolbar-item pos-screens-menu-container" style={{ position: 'relative' }}>
             <Button
               type="button"
               variant="secondary"
@@ -434,7 +434,7 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           )}
 
           {/* 8. Compact Window Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginInlineStart: 'auto' }}>
+          <div className="desktop-only-toolbar-item pos-window-controls" style={{ display: 'flex', alignItems: 'center', gap: '4px', marginInlineStart: 'auto' }}>
             <button
               type="button"
               onClick={() => dispatchPosChromeToggle()}

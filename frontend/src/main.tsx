@@ -66,6 +66,80 @@ if (typeof document !== 'undefined') {
     document.querySelectorAll('form').forEach(suppressAutofill);
     document.querySelectorAll('input, textarea').forEach(suppressAutofill);
   });
+
+  // Mobile & Touch-Emulation Stuck-Pointer & Drag-Lock Shield
+  let isPointerDown = false;
+
+  const clearStraySelection = () => {
+    if (window.innerWidth <= 900) {
+      const sel = window.getSelection();
+      if (sel && sel.type === 'Range') {
+        const active = document.activeElement;
+        if (!active || (!active.matches('input, textarea') && !active.closest('[contenteditable="true"]'))) {
+          sel.removeAllRanges();
+        }
+      }
+    }
+  };
+
+  const handlePointerRelease = (e?: Event) => {
+    if (isPointerDown) {
+      isPointerDown = false;
+      clearStraySelection();
+      // If an element holds pointer capture, release it to prevent stuck drag
+      if (e && 'pointerId' in e && e.target && 'releasePointerCapture' in (e.target as any)) {
+        try {
+          (e.target as any).releasePointerCapture((e as any).pointerId);
+        } catch (_) {}
+      }
+    }
+  };
+
+  window.addEventListener('pointerdown', () => { isPointerDown = true; }, true);
+  window.addEventListener('mousedown', () => { isPointerDown = true; }, true);
+  window.addEventListener('touchstart', () => { isPointerDown = true; }, { passive: true, capture: true });
+
+  window.addEventListener('pointerup', handlePointerRelease, true);
+  window.addEventListener('mouseup', handlePointerRelease, true);
+  window.addEventListener('touchend', handlePointerRelease, { passive: true, capture: true });
+  window.addEventListener('touchcancel', handlePointerRelease, { passive: true, capture: true });
+  window.addEventListener('pointercancel', handlePointerRelease, true);
+  window.addEventListener('mouseleave', handlePointerRelease, true);
+  window.addEventListener('blur', handlePointerRelease);
+
+  // Active Drag-Lock Breaker: When cursor moves with buttons === 0, force-break any stuck drag state
+  const checkButtonsState = (e: MouseEvent | PointerEvent) => {
+    if (window.innerWidth <= 900 && e.buttons === 0) {
+      if (isPointerDown) {
+        handlePointerRelease(e);
+        // Dispatch synthetic release to force any browser emulation layer to end the touch
+        try {
+          e.target?.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
+        } catch (_) {}
+      }
+      clearStraySelection();
+    }
+  };
+
+  window.addEventListener('mousemove', checkButtonsState, { passive: true, capture: true });
+  window.addEventListener('pointermove', checkButtonsState, { passive: true, capture: true });
+
+  // Suppress accidental text selection & HTML5 drag-and-drop on mobile
+  document.addEventListener('selectstart', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (target && !target.closest('input, textarea, [contenteditable="true"], .selectable-text')) {
+      if (window.innerWidth <= 900) {
+        e.preventDefault();
+      }
+    }
+  });
+
+  document.addEventListener('dragstart', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (target && target.getAttribute('draggable') !== 'true' && !target.closest?.('[draggable="true"]')) {
+      e.preventDefault();
+    }
+  });
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

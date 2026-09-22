@@ -228,15 +228,6 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
       id: 'welcome',
       sender: 'ai',
       text: 'أهلاً بك يا فندم! أنا **زاد AI**، مستشارك الذكي في المنظومة.\nيمكنك سؤالي عن مبيعاتك وأرباحك اليوم، النواقص في المخزن، ديون العملاء، فواتير الموردين والمصاريف، أو طلب تحليلات فورية لأداء نشاطك!',
-      suggestedQuestions: [
-        'كسبت كام النهاردة؟',
-        'فلوس الخزينة والدرج الحالية',
-        'مين أكتر عملاء عليهم فلوس؟',
-        'ايه نواقص المخزن الحرجة؟',
-        'مستحقات وفواتير الموردين',
-        'صرفنا كام مصاريف النهاردة؟',
-        'ازاي أزود أرباحي النهاردة؟',
-      ],
     },
   ]);
 
@@ -306,7 +297,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
   };
 
   return (
-    <DialogShell open={open} onClose={onClose} ariaLabel="مستشارك الذكي - زاد AI" width="640px">
+    <DialogShell open={open} onClose={onClose} ariaLabel="مستشارك الذكي - زاد AI" width="min(640px, 94vw)">
       <style>{`
         .ai-chips-bar::-webkit-scrollbar {
           display: none !important;
@@ -316,25 +307,26 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
           scrollbar-width: none !important;
         }
       `}</style>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '580px', maxHeight: '82vh' }} dir="rtl">
+      <div style={{ display: 'flex', flexDirection: 'column', height: 'min(580px, 82vh)', maxHeight: '82vh' }} dir="rtl">
         {/* Header */}
         <div
           style={{
-            padding: '14px 18px',
+            padding: '12px 16px',
             borderBottom: '1px solid #e2e8f0',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             background: '#f8fafc',
             borderRadius: '12px 12px 0 0',
+            gap: '8px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
             <div
               style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
+                width: '38px',
+                height: '38px',
+                borderRadius: '11px',
                 background: 'linear-gradient(135deg, #170e5e 0%, #2e1065 100%)',
                 display: 'flex',
                 alignItems: 'center',
@@ -344,31 +336,32 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                 flexShrink: 0,
               }}
             >
-              <AiRobotIcon size={25} />
+              <AiRobotIcon size={24} />
             </div>
 
             {/* Vertical accent stripe spanning both title and subtitle */}
             <div
               style={{
-                width: '4px',
-                height: '36px',
+                width: '3.5px',
+                height: '34px',
                 borderRadius: '999px',
                 background: 'linear-gradient(180deg, #170e5e 0%, #312e81 100%)',
                 flexShrink: 0,
               }}
             />
 
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '2px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '2px', minWidth: 0 }}>
               <div
                 style={{
                   margin: 0,
-                  fontSize: '15px',
+                  fontSize: '14.5px',
                   fontWeight: 900,
                   color: '#0f172a',
                   lineHeight: '1.25',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 <span>زاد AI</span>
@@ -380,16 +373,17 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  fontSize: '11px',
+                  fontSize: '10.5px',
                   color: '#059669',
                   fontWeight: 700,
                   lineHeight: '1.2',
+                  flexWrap: 'wrap',
                 }}
               >
-                <span style={{ fontSize: '8px', lineHeight: 1, color: '#10b981' }}>●</span>
-                <span>متصل بالبيانات الحية</span>
+                <span style={{ fontSize: '7px', lineHeight: 1, color: '#10b981' }}>●</span>
+                <span style={{ whiteSpace: 'nowrap' }}>متصل بالبيانات الحية</span>
                 <span style={{ color: '#cbd5e1' }}>|</span>
-                <span style={{ background: '#ecfdf5', color: '#047857', padding: '1px 6px', borderRadius: '4px', fontSize: '10.5px', display: 'inline-flex', alignItems: 'center' }}>
+                <span style={{ background: '#ecfdf5', color: '#047857', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
                   <span>مدعوم بالذكاء الاصطناعي (AI Copilot)</span>
                 </span>
               </div>
@@ -399,20 +393,34 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
           <button
             type="button"
             onClick={onClose}
+            aria-label="إغلاق"
             style={{
-              background: '#f1f5f9',
-              border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-              width: '30px',
-              height: '30px',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '9px',
+              width: '34px',
+              height: '34px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#64748b',
+              color: '#0f172a',
               cursor: 'pointer',
+              flexShrink: 0,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#fee2e2';
+              e.currentTarget.style.borderColor = '#fca5a5';
+              e.currentTarget.style.color = '#dc2626';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#ffffff';
+              e.currentTarget.style.borderColor = '#cbd5e1';
+              e.currentTarget.style.color = '#0f172a';
             }}
           >
-            <XIcon size={14} />
+            <XIcon size={18} strokeWidth={2.4} />
           </button>
         </div>
 
