@@ -128,59 +128,137 @@
   }
 }
 
-/* Tablet & Mobile Screens: keep balanced pairs */
-@media (max-width: 768px) {
-  .product-form-grid-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.65rem !important;
+/* Tablet & Mobile Screens: clean full-width fields without horizontal squeezing (matches Image 2 standard) */
+@media (max-width: 900px) {
+  .new-product-form-root,
+  .new-product-form-root.document-prototype-shell,
+  .document-prototype-shell.purchase-new-prototype,
+  .document-prototype-shell {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: transparent !important;
+    box-sizing: border-box !important;
   }
 
-  .product-form-grid-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 0.5rem !important;
+  .purchase-prototype-sticky-stack {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 0 8px 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
   }
 
-  .product-form-grid-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.65rem !important;
+  .purchase-prototype-document-surface {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
   }
 
+  .document-prototype-topbar {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 10px 14px !important;
+    border-radius: 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  .document-prototype-back-link {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    background: #ffffff !important;
+    border: 1.5px solid #94a3b8 !important;
+    color: #170e5e !important;
+    border-radius: 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+    cursor: pointer !important;
+  }
+
+  .document-prototype-back-link svg {
+    width: 20px !important;
+    height: 20px !important;
+    stroke-width: 2.8 !important;
+  }
+
+  .product-form-container {
+    padding: 0 !important;
+    margin: 0 0 2rem 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  .product-compact-card {
+    padding: 14px 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+  }
+
+  .product-form-grid-2,
+  .product-form-grid-3,
+  .product-form-grid-4,
   .product-form-grid-5 {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.65rem !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
   }
 
   .product-compact-card-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
     gap: 8px !important;
+  }
+
+  .product-compact-card .field > label,
+  .product-form-container .field > label,
+  .product-compact-card .field > span,
+  .product-form-container .field > span {
+    white-space: normal !important;
+    height: auto !important;
+    min-height: 20px !important;
+    line-height: 1.35 !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    font-size: 0.82rem !important;
   }
 }
 
 @media (max-width: 480px) {
+  .product-form-container {
+    padding: 0 8px !important;
+  }
+
   .product-compact-card {
-    padding: 0.75rem !important;
+    padding: 12px 14px !important;
   }
 
   .product-form-grid-2,
+  .product-form-grid-3,
   .product-form-grid-4,
   .product-form-grid-5 {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.5rem !important;
-  }
-
-  .product-form-grid-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 0.4rem !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
   }
 
   .product-form-grid-3 label,
   .product-form-grid-2 label,
   .product-form-grid-4 label {
-    font-size: 0.76rem !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    font-size: 0.82rem !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    line-height: 1.35 !important;
   }
 }
 

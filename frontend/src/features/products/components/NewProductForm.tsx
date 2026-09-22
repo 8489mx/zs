@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category, Product, ProductUnit, Supplier } from '@/types/domain';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
-import { SmartphoneIcon } from '@/shared/components/icons/AppIcons';
+import { SmartphoneIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useProductsQuery, useLocationsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useCreateProductMutation } from '@/features/products/hooks/useCreateProductMutation';
 import { productsApi } from '@/features/products/api/products.api';
@@ -359,7 +359,9 @@ export function NewProductForm({
           <div className="document-prototype-topbar">
             <div className="document-prototype-topbar-right">
               {mode === 'page' ? (
-                <button type="button" className="document-prototype-back-link" onClick={handleCancelAction} aria-label="الرجوع">←</button>
+                <button type="button" className="document-prototype-back-link" onClick={handleCancelAction} aria-label="الرجوع" title="الرجوع">
+                  <ArrowRightIcon size={20} strokeWidth={2.8} />
+                </button>
               ) : null}
               <h1 style={{ fontSize: mode === 'modal' ? '1.25rem' : '1.5rem', margin: 0 }}>
                 {modalTitle || (mode === 'modal' ? 'إضافة صنف جديد سريعاً إلى السلة' : 'إضافة صنف جديد')}

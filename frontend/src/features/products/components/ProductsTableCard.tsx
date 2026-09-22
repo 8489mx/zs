@@ -314,7 +314,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <div className="products-category-select-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
             <select
               value={selectedCategoryId}
               onChange={(e) => setSelectedCategoryId(e.target.value)}
@@ -351,12 +351,25 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
           </div>
         </div>
 
-        <div className="filter-chip-row toolbar-chip-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('all')}>الكل</Button>
-          <Button variant={props.viewFilter === 'low' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('low')}>منخفضة</Button>
-          <Button variant={props.viewFilter === 'out' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('out')}>نافدة</Button>
-          <Button variant={props.viewFilter === 'offers' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('offers')}>بعروض</Button>
-          <Button variant={props.viewFilter === 'special' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('special')}>أسعار خاصة</Button>
+        <div
+          className="filter-chip-row toolbar-chip-row"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            flexWrap: 'nowrap',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            maxWidth: '100%',
+            paddingBottom: '4px',
+          }}
+        >
+          <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('all')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>الكل</Button>
+          <Button variant={props.viewFilter === 'low' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('low')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>منخفضة</Button>
+          <Button variant={props.viewFilter === 'out' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('out')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>نافدة</Button>
+          <Button variant={props.viewFilter === 'offers' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('offers')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>بعروض</Button>
+          <Button variant={props.viewFilter === 'special' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('special')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>أسعار خاصة</Button>
         </div>
       </div>
       {props.selectedIds.length ? (
