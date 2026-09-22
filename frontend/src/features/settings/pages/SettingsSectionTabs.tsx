@@ -51,7 +51,8 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
     currentSection;
 
   useEffect(() => {
-    if (activeTabRef.current) {
+    // scrollIntoView is missing in jsdom (component specs), so call it only when it exists.
+    if (activeTabRef.current?.scrollIntoView) {
       activeTabRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'nearest',
@@ -69,6 +70,8 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
             key={section.key}
             ref={isCurrentActive ? activeTabRef : undefined}
             to={`/settings/${section.key}`}
+            // Both labels are in the DOM (CSS picks one per screen size); the full label is the name.
+            aria-label={section.label}
             onMouseEnter={() => prefetchRouteData(`/settings/${section.key}`)}
             onTouchStart={() => prefetchRouteData(`/settings/${section.key}`)}
             className={({ isActive }) => `btn ${isActive || isCurrentActive ? 'btn-primary' : 'btn-secondary'}`}
