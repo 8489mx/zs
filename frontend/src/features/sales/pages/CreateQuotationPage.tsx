@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCreateQuotationForm, type QuotationItem } from '../hooks/useCreateQuotationForm';
+import { useCreateQuotationForm, type CreateQuotationPayload, type QuotationItem } from '../hooks/useCreateQuotationForm';
 import { useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { PageHeader } from '@/shared/components/page-header';
