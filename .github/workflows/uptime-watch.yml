@@ -1,0 +1,61 @@
+name: Uptime Watch
+
+# External liveness probe. The on-server watch script cannot alert when the whole VPS is down,
+# so this runs from GitHub and reuses the same Telegram bot. It alerts only on state changes
+# (up -> down, down -> up) by comparing with the previous completed run, so a long outage
+# sends one message, not one every 5 minutes.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+
+concurrency:
+  group: uptime-watch
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe /api/health/live
+        id: probe
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST || '92.5.178.54' }}
+        run: |
+          UP=0
+          for i in 1 2 3; do
+            CODE=$(curl -sk -m 15 -o /dev/null -w "%{http_code}" "https://${ORACLE_HOST}/api/health/live" || echo 000)
+            echo "attempt $i: $CODE"
+            if [ "$CODE" = "200" ]; then UP=1; break; fi
+            sleep 20
+          done
+          echo "up=$UP" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Alert on state change
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          UP: ${{ steps.probe.outputs.up }}
+          CODE: ${{ steps.probe.outputs.code }}
+        run: |
+          PREV=$(gh run list -R "$GITHUB_REPOSITORY" --workflow uptime-watch.yml --status completed -L 1 \
+            --json conclusion -q '.[0].conclusion' 2>/dev/null || echo "")
+          echo "previous run: ${PREV:-none}, now up=$UP"
+          TEXT=""
+          if [ "$UP" != "1" ] && [ "$PREV" != "failure" ]; then
+            TEXT="🔴 Z-Systems DOWN%0Aالسيرفر مش بيرد من برّه (HTTP ${CODE}).%0Aممكن السيرفر نفسه واقف."
+          elif [ "$UP" = "1" ] && [ "$PREV" = "failure" ]; then
+            TEXT="🟢 Z-Systems UP%0Aالسيرفر رجع يرد تاني."
+          fi
+          if [ -n "$TEXT" ] && [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" -d "text=${TEXT}" > /dev/null || true
+          fi
+          # The job's own conclusion is the stored state for the next run.
+          [ "$UP" = "1" ]
