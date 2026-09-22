@@ -146,6 +146,7 @@ export function CashierFraudRadarSection() {
     <div className="cashier-fraud-radar-section" dir="rtl" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Control Header */}
       <div
+        className="cashier-fraud-radar-header"
         style={{
           background: '#ffffff',
           border: '1px solid #e2e8f0',
@@ -159,9 +160,9 @@ export function CashierFraudRadarSection() {
           boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         }}
       >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+        <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
               رادار كشف تلاعب وسرقات الكاشير ومنع الخسائر
             </h3>
             <span
@@ -173,6 +174,8 @@ export function CashierFraudRadarSection() {
                 padding: '2px 8px',
                 borderRadius: '6px',
                 border: '1px solid #bfdbfe',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               محدث آلياً (Radar Active)
@@ -183,15 +186,27 @@ export function CashierFraudRadarSection() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div
+          className="cashier-fraud-radar-controls"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            flexWrap: 'wrap',
+          }}
+        >
           {/* Timeframe selector pills */}
           <div
+            className="cashier-fraud-timeframe-pills"
             style={{
               display: 'inline-flex',
               background: '#f1f5f9',
               padding: '3px',
               borderRadius: '8px',
               border: '1px solid #e2e8f0',
+              maxWidth: '100%',
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
             }}
           >
             <button
@@ -209,6 +224,7 @@ export function CashierFraudRadarSection() {
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 userSelect: 'none',
+                flexShrink: 0,
                 transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
               }}
             >
@@ -229,6 +245,7 @@ export function CashierFraudRadarSection() {
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 userSelect: 'none',
+                flexShrink: 0,
                 transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
               }}
             >
@@ -249,6 +266,7 @@ export function CashierFraudRadarSection() {
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 userSelect: 'none',
+                flexShrink: 0,
                 transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
               }}
             >
@@ -259,6 +277,7 @@ export function CashierFraudRadarSection() {
           <Button
             variant="secondary"
             onClick={handleRefresh}
+            className="cashier-fraud-refresh-btn"
             style={{ fontSize: '13px', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
             <RefreshCwIcon size={14} />
@@ -332,13 +351,15 @@ export function CashierFraudRadarSection() {
 
       {/* 4 Metric Summary Cards */}
       <div
+        className="cashier-fraud-metrics-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
           gap: '14px',
         }}
       >
         <div
+          className="cashier-fraud-metric-card"
           style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
@@ -357,6 +378,7 @@ export function CashierFraudRadarSection() {
         </div>
 
         <div
+          className="cashier-fraud-metric-card"
           style={{
             background: '#ffffff',
             border: summary && summary.highRiskCashiersCount > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0',
@@ -375,6 +397,7 @@ export function CashierFraudRadarSection() {
         </div>
 
         <div
+          className="cashier-fraud-metric-card"
           style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
@@ -393,6 +416,7 @@ export function CashierFraudRadarSection() {
         </div>
 
         <div
+          className="cashier-fraud-metric-card"
           style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
@@ -413,6 +437,7 @@ export function CashierFraudRadarSection() {
 
       {/* Symmetrical 2-Column Section: Cashiers Risk Ranking + Live Audit Feed */}
       <div
+        className="cashier-fraud-radar-split"
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',

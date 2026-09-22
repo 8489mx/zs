@@ -137,6 +137,7 @@ export function AuditPage() {
 
         {/* Workspace Tab Switcher */}
         <div
+          className="audit-workspace-tabs"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -144,6 +145,11 @@ export function AuditPage() {
             borderBottom: '1px solid #e2e8f0',
             paddingBottom: '12px',
             marginBottom: '16px',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            maxWidth: '100%',
+            paddingInline: '2px',
           }}
         >
           <button
@@ -163,6 +169,8 @@ export function AuditPage() {
               gap: '8px',
               boxShadow: activeTab === 'trail' ? '0 1px 3px rgba(23, 14, 94, 0.2)' : 'none',
               transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             <FileTextIcon size={16} />
@@ -186,6 +194,8 @@ export function AuditPage() {
               gap: '8px',
               boxShadow: activeTab === 'fraudRadar' ? '0 1px 3px rgba(23, 14, 94, 0.2)' : 'none',
               transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             <ShieldAlertIcon size={16} />
@@ -198,6 +208,8 @@ export function AuditPage() {
                 background: activeTab === 'fraudRadar' ? '#ef4444' : '#fee2e2',
                 color: activeTab === 'fraudRadar' ? '#ffffff' : '#991b1b',
                 fontWeight: 700,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               Radar Live
@@ -221,6 +233,8 @@ export function AuditPage() {
               gap: '8px',
               boxShadow: activeTab === 'tamperTrail' ? '0 1px 3px rgba(23, 14, 94, 0.2)' : 'none',
               transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             <ShieldCheckIcon size={16} />
@@ -233,6 +247,8 @@ export function AuditPage() {
                 background: activeTab === 'tamperTrail' ? '#16a34a' : '#dcfce7',
                 color: activeTab === 'tamperTrail' ? '#ffffff' : '#15803d',
                 fontWeight: 700,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               Zero Tamper

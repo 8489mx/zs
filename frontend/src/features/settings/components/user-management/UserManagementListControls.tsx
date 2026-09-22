@@ -29,15 +29,17 @@ export function UserManagementQuickActions({
         display: 'flex',
         gap: '6px',
         alignItems: 'center',
-        flexWrap: 'wrap',
         padding: '8px 12px',
         background: '#f8fafc',
         border: '1px solid #e2e8f0',
         borderRadius: '10px',
         marginBottom: '12px',
+        maxWidth: '100%',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
       }}
     >
-      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', marginInlineEnd: '4px' }}>قوالب الصلاحيات السريعة:</span>
+      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', marginInlineEnd: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>قوالب الصلاحيات السريعة:</span>
       <Button
         type="button"
         variant="secondary"

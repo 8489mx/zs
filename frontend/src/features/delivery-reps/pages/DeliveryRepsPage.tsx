@@ -38,7 +38,22 @@ export default function DeliveryRepsPage() {
               </div>
             ) : (
               <div>
-                <div style={{ display: 'inline-flex', gap: '6px', padding: '4px', background: '#f1f5f9', borderRadius: '10px', marginBottom: '20px' }}>
+                <div
+                  className="delivery-rep-tabs"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px',
+                    background: '#f1f5f9',
+                    borderRadius: '10px',
+                    marginBottom: '20px',
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch',
+                    scrollbarWidth: 'none',
+                    maxWidth: '100%',
+                  }}
+                >
                   <button
                     type="button"
                     onClick={() => setActiveTab('performance')}
@@ -52,6 +67,7 @@ export default function DeliveryRepsPage() {
                       cursor: 'pointer',
                       fontSize: '13px',
                       whiteSpace: 'nowrap',
+                      flexShrink: 0,
                       userSelect: 'none',
                       transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
                       boxShadow: activeTab === 'performance' ? '0 2px 6px rgba(15, 23, 42, 0.15)' : 'none',
@@ -72,6 +88,7 @@ export default function DeliveryRepsPage() {
                       cursor: 'pointer',
                       fontSize: '13px',
                       whiteSpace: 'nowrap',
+                      flexShrink: 0,
                       userSelect: 'none',
                       transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
                       boxShadow: activeTab === 'orders' ? '0 2px 6px rgba(15, 23, 42, 0.15)' : 'none',
@@ -92,6 +109,7 @@ export default function DeliveryRepsPage() {
                       cursor: 'pointer',
                       fontSize: '13px',
                       whiteSpace: 'nowrap',
+                      flexShrink: 0,
                       userSelect: 'none',
                       transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
                       boxShadow: activeTab === 'settlements' ? '0 2px 6px rgba(15, 23, 42, 0.15)' : 'none',

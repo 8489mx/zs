@@ -196,6 +196,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
         {/* Tab Navigation */}
         {!setupMode && (
           <div
+            className="settings-subtabs-scroll"
             style={{
               display: 'flex',
               gap: '6px',
@@ -204,8 +205,11 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               borderRadius: '10px',
               margin: '16px 0',
               border: '1px solid #e2e8f0',
-              width: 'fit-content',
-              flexWrap: 'wrap',
+              width: '100%',
+              maxWidth: '100%',
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              flexWrap: 'nowrap',
             }}
           >
             <button
@@ -224,6 +228,8 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
                 fontSize: '13px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               <UsersIcon size={16} color={activeTab === 'erp-users' ? '#ffffff' : '#64748b'} />
@@ -258,6 +264,8 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
                 fontSize: '13px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               <TruckIcon size={16} color={activeTab === 'drivers' ? '#ffffff' : '#64748b'} />
@@ -280,6 +288,8 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
                 fontSize: '13px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               <SmartphoneIcon size={16} color={activeTab === 'employees' ? '#ffffff' : '#64748b'} />

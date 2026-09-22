@@ -311,7 +311,7 @@ export function GeneralSettingsTab({
   return (
     <div style={{ display: activeTab === 'general' ? 'flex' : 'none', flexDirection: 'column', gap: '16px' }}>
       {/* Top 2-Column Balanced Dashboard */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: '16px' }}>
         
         {/* Card 1: الهوية وبيانات النشاط (Store Identity & Basic Info) */}
         <div style={{
@@ -344,9 +344,10 @@ export function GeneralSettingsTab({
             border: '1px solid #e2e8f0',
             borderRadius: '10px',
             padding: '10px 14px',
+            flexWrap: 'wrap',
           }}>
             {/* Right: Logo Preview box + Brand details */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: '1 1 200px' }}>
               {/* Logo Preview box */}
               <div style={{
                 width: '50px',
@@ -370,11 +371,11 @@ export function GeneralSettingsTab({
               </div>
 
               {/* Brand details + upload trigger */}
-              <div style={{ minWidth: 0 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {storeName || 'اسم النشاط / المتجر'}
                 </div>
-                <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                <div style={{ fontSize: '0.74rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {brandName || 'Z Systems'}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
@@ -428,7 +429,7 @@ export function GeneralSettingsTab({
               </div>
             </div>
 
-            {/* Left: Compact Enterprise Sector & Activity Badge (Strictly on the same line) */}
+            {/* Left: Compact Enterprise Sector & Activity Badge */}
             <div
               style={{
                 display: 'inline-flex',

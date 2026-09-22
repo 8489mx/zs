@@ -184,15 +184,17 @@ export function MerchantOnlineOrdersPage() {
 
         {/* KPI Summary Cards Grid */}
         <div
+          className="merchant-orders-kpi-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
             gap: '12px',
             marginBottom: '16px',
           }}
         >
           {/* Card 1: Revenue */}
           <div
+            className="merchant-orders-kpi-card"
             style={{
               background: '#ffffff',
               borderRadius: '12px',
@@ -218,6 +220,7 @@ export function MerchantOnlineOrdersPage() {
 
           {/* Card 2: Orders Count */}
           <div
+            className="merchant-orders-kpi-card"
             style={{
               background: '#ffffff',
               borderRadius: '12px',
@@ -243,6 +246,7 @@ export function MerchantOnlineOrdersPage() {
 
           {/* Card 3: AOV */}
           <div
+            className="merchant-orders-kpi-card"
             style={{
               background: '#ffffff',
               borderRadius: '12px',
@@ -268,6 +272,7 @@ export function MerchantOnlineOrdersPage() {
 
           {/* Card 4: Conversion Rate & Abandoned */}
           <div
+            className="merchant-orders-kpi-card"
             style={{
               background: '#ffffff',
               borderRadius: '12px',
@@ -293,7 +298,20 @@ export function MerchantOnlineOrdersPage() {
         </div>
 
         {/* View Mode Switcher: Orders vs Abandoned Carts */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+        <div
+          className="merchant-orders-view-switcher"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '14px',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            maxWidth: '100%',
+            paddingBottom: '4px',
+          }}
+        >
           <button
             type="button"
             onClick={() => setViewMode('orders')}
@@ -311,6 +329,8 @@ export function MerchantOnlineOrdersPage() {
               gap: '6px',
               boxShadow: viewMode === 'orders' ? '0 2px 6px rgba(23, 14, 94, 0.2)' : 'none',
               transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             <span>طلبات المتجر الواردة</span>
@@ -320,6 +340,8 @@ export function MerchantOnlineOrdersPage() {
               borderRadius: '999px',
               background: viewMode === 'orders' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
               color: viewMode === 'orders' ? '#ffffff' : '#0f172a',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}>
               {counts?.all || 0}
             </span>
@@ -342,6 +364,8 @@ export function MerchantOnlineOrdersPage() {
               gap: '6px',
               boxShadow: viewMode === 'abandoned' ? '0 2px 6px rgba(23, 14, 94, 0.2)' : 'none',
               transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             <span>السلات المتروكة (Abandoned Carts)</span>
@@ -353,6 +377,8 @@ export function MerchantOnlineOrdersPage() {
                 background: viewMode === 'abandoned' ? '#ef4444' : '#fee2e2',
                 color: viewMode === 'abandoned' ? '#ffffff' : '#991b1b',
                 fontWeight: 800,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}>
                 {analyticsQuery.data?.unrecoveredAbandoned}
               </span>
@@ -377,11 +403,14 @@ export function MerchantOnlineOrdersPage() {
         >
           {/* Status Filter Tabs */}
           <div
+            className="merchant-orders-status-tabs"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
               overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none',
               paddingBottom: '8px',
               borderBottom: '1px solid #f1f5f9',
             }}
@@ -410,6 +439,7 @@ export function MerchantOnlineOrdersPage() {
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   userSelect: 'none',
+                  flexShrink: 0,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -426,6 +456,8 @@ export function MerchantOnlineOrdersPage() {
                       borderRadius: '999px',
                       background: statusFilter === tab.id ? 'rgba(255, 255, 255, 0.25)' : '#f1f5f9',
                       color: statusFilter === tab.id ? '#ffffff' : '#64748b',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
                     }}
                   >
                     {tab.count}

@@ -124,16 +124,23 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+      <div
+        className="delivery-rep-kpi-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
+          gap: '14px',
+        }}
+      >
         {/* Card 1: Total Orders */}
-        <div style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="delivery-rep-kpi-card" style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>إجمالي الطلبات المسندة</span>
           <span style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>{kpis.totalOrders}</span>
           <span style={{ fontSize: '11px', color: '#94a3b8' }}>إجمالي رحلات التوصيل</span>
         </div>
         
         {/* Card 2: Success Rate */}
-        <div style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="delivery-rep-kpi-card" style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>معدل التوصيل الناجح</span>
           <span style={{ fontSize: '24px', fontWeight: 800, color: kpis.successRate >= 90 ? '#15803d' : kpis.successRate >= 75 ? '#d97706' : '#dc2626' }}>
             {kpis.successRate}%
@@ -144,7 +151,7 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
         </div>
 
         {/* Card 3: Returns */}
-        <div style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="delivery-rep-kpi-card" style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>معدل المرتجعات</span>
           <span style={{ fontSize: '24px', fontWeight: 800, color: kpis.returnedOrders === 0 ? '#15803d' : '#dc2626' }}>
             {kpis.returnedOrders} <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>طلب</span>
@@ -155,7 +162,7 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
         </div>
 
         {/* Card 4: Average Delay */}
-        <div style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="delivery-rep-kpi-card" style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>متوسط سرعة التوريد</span>
           <span style={{ fontSize: '20px', fontWeight: 800, color: (kpis.averageDelayHours || 0) < 1 ? '#15803d' : (kpis.averageDelayHours || 0) < 24 ? '#ea580c' : '#dc2626' }}>
             {formatDuration(totalMinutes)}
