@@ -180,8 +180,10 @@ jobs:
           echo "Deployed $DEPLOY_SHA successfully"
           REMOTE
 
+      # Telegram is for critical alerts only: a failed or rolled-back deploy can mean production is
+      # affected. Successful deploys are visible in GitHub and would only flood the chat.
       - name: Send Telegram Deployment Notification
-        if: always()
+        if: failure()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
