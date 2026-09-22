@@ -94,6 +94,10 @@ GitHub branch: main
 9. Pages ← Custom domains ← `zsystemai.com` (Cloudflare بيستبدل سجل الجذر لوحده). `www` يفضل على السيرفر وnginx بيحوّله للجذر.
 10. بعد ما الجذر يبقى على Pages: SSL/TLS ← **Full (strict)**.
 
+**إعدادات اتضافت على السيرفر في نفس اليوم (لازم تتعمل تاني لو السيرفر اتبنى من جديد):**
+- `backend/.env`: `APP_LOGIN_URL=https://app.zsystemai.com/login` (رابط الدخول في إيميل التجربة المجانية؛ كان ناقص فالإيميل كان فيه `/login` لوحده) و`APP_PUBLIC_URL=https://app.zsystemai.com` (روابط بوابة الناقلين وتتبع الشحنات؛ كانت بترجع لـ`app.z-systems.io`).
+- `/etc/nginx/conf.d/cloudflare-realip.conf`: الـIP الحقيقي للزائر من ترويسة `CF-Connecting-IP` لعناوين Cloudflare بس. طريقة توليده في `deploy/nginx/cloudflare-realip.conf`. من غيره كل حدود المحاولات في الباك إند (الدخول، طلبات المتجر) كانت بتحسب كل الزوار كأنهم عناوين Cloudflare. اتجرّب: طلب من `197.54.10.191` اتسجل بعنوانه الحقيقي.
+
 **بعد (ب):** `zsystemai.com/api/...` مبقاش بيوصل للسيرفر. أي حاجة لسه بتكلم الجذر (جهاز ديسكتوب مربوط بالسحابة، سكربت) لازم تتغير لـ`app.zsystemai.com`. المراقبة الخارجية مش متأثرة لأنها بتكلم IP السيرفر.
 
 ---
@@ -119,7 +123,9 @@ GitHub branch: main
 NODE_ENV=production
 APP_MODE=CLOUD_SAAS
 PLATFORM_TENANT_ID=zsystems
-APP_LOGIN_URL=https://app.zsystems.io/login
+APP_LOGIN_URL=https://app.zsystemai.com/login
+APP_PUBLIC_URL=https://app.zsystemai.com
+STOREFRONT_ROOT_DOMAIN=zsystemai.com
 MAIL_DELIVERY_MODE=smtp
 PUBLIC_TRIAL_DEBUG_CREDENTIALS=false
 ENABLE_BOOTSTRAP_ADMIN=false
