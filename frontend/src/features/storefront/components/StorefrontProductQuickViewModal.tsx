@@ -1,3 +1,4 @@
+import { buildStorePublicUrl } from '@/lib/store-public-url';
 import { useState, useEffect } from 'react';
 import { StorefrontProduct, StorefrontInfo } from '../types/storefront.types';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -83,7 +84,7 @@ export function StorefrontProductQuickViewModal({
    * واتساب/فيسبوك ولا جوجل، وبالتالي لا بطاقة معاينة ولا فهرسة. صار مساراً
    * حقيقياً `/p/:id` يقرؤه الخادم ويرد عليه بوسوم OG.
    */
-  const productUrl = `${window.location.origin}${effectiveSlug ? `/store/${effectiveSlug}` : window.location.pathname.replace(/\/p\/\d+$/, '')}/p/${product.id}`;
+  const productUrl = `${effectiveSlug ? buildStorePublicUrl(effectiveSlug) : `${window.location.origin}${window.location.pathname.replace(/\/p\/\d+$/, '')}`}/p/${product.id}`;
 
   const handleShareWhatsApp = () => {
     const text = `شاهد هذا المنتج في ${info?.title || 'متجرنا'}:\n*${product.name}*\nالسعر: ${basePrice} ${info?.currency || 'ج.م'}\n${productUrl}`;

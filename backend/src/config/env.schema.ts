@@ -174,5 +174,25 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     }
   }
 
+  // SF-10: every store is its own subdomain of STOREFRONT_ROOT_DOMAIN and runs merchant-controlled
+  // content (pixels, descriptions). A session cookie scoped to the root would be sent to all of them,
+  // letting one store's page call the ERP API as whichever merchant or admin visits it.
+  const storefrontRoot = normalizeCookieDomain(config.STOREFRONT_ROOT_DOMAIN);
+  const cookieDomain = normalizeCookieDomain(config.SESSION_COOKIE_DOMAIN);
+  if (storefrontRoot && cookieDomain && (cookieDomain === storefrontRoot || storefrontRoot.endsWith(`.${cookieDomain}`))) {
+    throw new Error(
+      `SESSION_COOKIE_DOMAIN (${cookieDomain}) would share the ERP session with every store under ${storefrontRoot}; leave it empty (host-only cookie)`,
+    );
+  }
+
   return parsed;
+}
+
+function normalizeCookieDomain(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/^\.+|\.+$/g, '');
 }

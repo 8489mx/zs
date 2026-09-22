@@ -1,4 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
+import { buildStorePublicBase } from './store-public-url.engine';
 
 // Invariants SF-1 / SF-2 / SF-3 (ARCHITECTURE_INVARIANTS.md section 4).
 //
@@ -107,8 +108,14 @@ export const MANUALLY_CONFIRMED_PAYMENT_METHODS = ['instapay_wallet'] as const;
  * SF-1 tracking link sent to the shopper. The token goes in the URL FRAGMENT (#t=...), which browsers
  * never send to a server — it stays out of access logs, proxies and Referer headers.
  */
-export function buildOrderTrackingUrl(origin: string | undefined, slug: string, orderNumber: string, token: string): string | null {
-  const base = String(origin || '').trim().replace(/\/$/, '');
-  if (!/^https?:\/\/[^\s/]+$/i.test(base)) return null;
-  return `${base}/store/${encodeURIComponent(String(slug || '').trim().toLowerCase())}/track/${encodeURIComponent(orderNumber)}#t=${encodeURIComponent(token)}`;
+export function buildOrderTrackingUrl(
+  origin: string | undefined,
+  slug: string,
+  orderNumber: string,
+  token: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  const base = buildStorePublicBase(origin, slug, { legacyPrefix: 'store', env });
+  if (!base) return null;
+  return `${base}/track/${encodeURIComponent(orderNumber)}#t=${encodeURIComponent(token)}`;
 }

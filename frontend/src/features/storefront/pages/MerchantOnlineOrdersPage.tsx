@@ -1,3 +1,4 @@
+import { buildStorePublicUrl } from '@/lib/store-public-url';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -97,7 +98,7 @@ export function MerchantOnlineOrdersPage() {
   const settings = settingsQuery.data;
 
   const storeSlug = settings?.slug || 'store';
-  const storeUrl = `${window.location.origin}/store/${storeSlug}`;
+  const storeUrl = buildStorePublicUrl(storeSlug);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(storeUrl);

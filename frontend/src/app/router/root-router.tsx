@@ -10,6 +10,7 @@ import { appRoutes, navigationItems } from '@/app/router/registry';
 import { canAccessPath, findFirstAccessibleRoute } from '@/app/router/access';
 import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
 import { AppCloseGuard } from '@/shared/layout/AppCloseGuard';
+import { getStoreHostSlug } from '@/lib/store-public-url';
 
 const ActivationPage = lazy(() => import('@/features/activation/pages/ActivationPage').then(m => ({ default: m.ActivationPage })));
 const FirstRunSetupPage = lazy(() => import('@/features/activation/pages/FirstRunSetupPage').then(m => ({ default: m.FirstRunSetupPage })));
@@ -27,6 +28,23 @@ const isElectron = typeof window !== 'undefined' && (
 );
 
 const createRouter = isElectron ? createHashRouter : createBrowserRouter;
+
+/*
+ * SF-10: on `<slug>.<root>` the whole host is one store, so it gets only storefront routes —
+ * no ERP shell, no login redirect. The slug comes from the host (see PublicStorefrontPage).
+ */
+const storeHostSlug = isElectron ? null : getStoreHostSlug();
+
+function storeHostRoutes() {
+  const storefront = () => createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage })));
+  return [
+    { path: '/', element: storefront() },
+    { path: '/table/:tableNo', element: storefront() },
+    { path: '/p/:productId', element: storefront() },
+    { path: '/track/:orderNumber', element: storefront() },
+    { path: '*', element: <Navigate to="/" replace /> },
+  ];
+}
 
 function NoWorkspaceAccess() {
   const clearSession = useAuthStore((state) => state.clearSession);
@@ -126,7 +144,7 @@ function LoginRoute() {
   return createLazyRoute(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })));
 }
 
-const router = createRouter([
+const router = storeHostSlug ? createRouter(storeHostRoutes()) : createRouter([
   { path: '/activate', element: <AppGateGuard expected="activation"><Suspense fallback={<div className="screen-center"><div className="loading-card">جاري التجهيز...</div></div>}><ActivationPage /></Suspense></AppGateGuard> },
   { path: '/setup', element: <AppGateGuard expected="setup"><Suspense fallback={<div className="screen-center"><div className="loading-card">جاري التجهيز...</div></div>}><FirstRunSetupPage /></Suspense></AppGateGuard> },
   { path: '/onboarding', element: <Suspense fallback={<div className="screen-center"><div className="loading-card">جاري التجهيز...</div></div>}><SaaSOnboardingPage /></Suspense> },

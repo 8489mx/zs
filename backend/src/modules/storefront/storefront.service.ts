@@ -17,6 +17,7 @@ import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.se
 import { CustomerOrderRefDto } from './dto/customer-order-lookup.dto';
 import { resolveOrderLinePrice, formatVariantLineName } from './engines/online-order-pricing.engine';
 import { maskGatewaySecret, isMaskedGatewaySecret } from './engines/gateway-secret-mask.engine';
+import { buildStorePublicBase, isReservedStoreSlug } from './engines/store-public-url.engine';
 import {
   issueOrderAccessToken,
   verifyOrderAccessToken,
@@ -2179,25 +2180,43 @@ export class StorefrontService {
         .toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '')
-        .replace(/-+/g, '-');
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
 
-      if (cleanSlug && cleanSlug.length >= 3) {
-        const reserved = ['admin', 'api', 'trial', 'login', 'store', 'st', 'shop', 'profile', 'settings', 'pos', 'system'];
-        if (!reserved.includes(cleanSlug)) {
-          const existing = await this.db
-            .selectFrom('tenants')
-            .select('id')
-            .where('slug', '=', cleanSlug)
-            .where('id', '!=', tenantId)
-            .executeTakeFirst();
+      // A store that already carries a now-reserved name keeps working and can still save its
+      // other settings; only switching TO a reserved name is refused.
+      let keepsReservedSlug = false;
+      if (isReservedStoreSlug(cleanSlug)) {
+        const [current, currentSetting] = await Promise.all([
+          this.db.selectFrom('tenants').select('slug').where('id', '=', tenantId).executeTakeFirst(),
+          this.db
+            .selectFrom('settings')
+            .select('value')
+            .where(sql<boolean>`tenant_id = ${tenantId}`)
+            .where('key', '=', 'storefront_slug')
+            .executeTakeFirst(),
+        ]);
+        const currentStoreSlug = String(currentSetting?.value ?? '').replace(/^"|"$/g, '').trim().toLowerCase();
+        keepsReservedSlug = cleanSlug === String(current?.slug || '').toLowerCase() || cleanSlug === currentStoreSlug;
+        if (!keepsReservedSlug) {
+          throw new BadRequestException('هذا الاسم محجوز للنظام ولا يمكن استخدامه كرابط للمتجر');
+        }
+      }
 
-          if (!existing) {
-            await this.db
-              .updateTable('tenants')
-              .set({ slug: cleanSlug, updated_at: new Date() })
-              .where('id', '=', tenantId)
-              .execute();
-          }
+      if (cleanSlug && cleanSlug.length >= 3 && !keepsReservedSlug) {
+        const existing = await this.db
+          .selectFrom('tenants')
+          .select('id')
+          .where('slug', '=', cleanSlug)
+          .where('id', '!=', tenantId)
+          .executeTakeFirst();
+
+        if (!existing) {
+          await this.db
+            .updateTable('tenants')
+            .set({ slug: cleanSlug, updated_at: new Date() })
+            .where('id', '=', tenantId)
+            .execute();
         }
       }
     }
@@ -2209,8 +2228,9 @@ export class StorefrontService {
         .toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '')
-        .replace(/-+/g, '-');
-      if (cleanSlug && cleanSlug.length >= 3) {
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      if (cleanSlug && cleanSlug.length >= 3 && !isReservedStoreSlug(cleanSlug)) {
         entries.push({ key: 'storefront_slug', value: cleanSlug });
       }
     }
@@ -2728,8 +2748,9 @@ export class StorefrontService {
     const end = Math.min(100, Math.max(start, Number(toTable || 20)));
 
     const tables = [];
+    const storeBase = buildStorePublicBase(origin, slug) || `${origin}/st/${slug}`;
     for (let i = start; i <= end; i++) {
-      const qrUrl = `${origin}/st/${slug}?table=${i}`;
+      const qrUrl = `${storeBase}?table=${i}`;
       tables.push({
         tableNumber: i,
         tableName: `طاولة ${i}`,

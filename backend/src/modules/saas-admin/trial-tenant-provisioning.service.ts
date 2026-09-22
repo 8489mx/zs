@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { isReservedStoreSlug } from '../storefront/engines/store-public-url.engine';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
@@ -232,6 +233,10 @@ export class TrialTenantProvisioningService {
         return normalized.slice(0, 60).replace(/-+$/g, '');
       }
       throw new BadRequestException('المعرف (Slug) يجب ألا يتجاوز 60 حرفًا.');
+    }
+    if (isReservedStoreSlug(normalized)) {
+      if (isFallback) return `${normalized}-store`;
+      throw new BadRequestException('هذا المعرف محجوز للنظام ولا يمكن استخدامه.');
     }
 
     return normalized;

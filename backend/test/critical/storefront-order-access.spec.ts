@@ -100,16 +100,22 @@ function testCollectionRequiresVerifiedMoney(): void {
 
 function testTrackingLink(): void {
   const { token, hash } = issueOrderAccessToken();
-  const url = buildOrderTrackingUrl('https://shop.example.com/', 'MyShop', 'ON-260921-0007', token);
+  const url = buildOrderTrackingUrl('https://shop.example.com/', 'MyShop', 'ON-260921-0007', token, {});
   assert.ok(url, 'link is built for a valid origin');
   const [path, fragment] = String(url).split('#');
   assert.equal(path, 'https://shop.example.com/store/myshop/track/ON-260921-0007');
   assert.ok(!path.includes(token), 'the token never appears in the path or query (it would reach server logs)');
   const t = new URLSearchParams(fragment).get('t');
   assert.equal(verifyOrderAccessToken(t, hash), true, 'the fragment token opens exactly this order');
-  assert.equal(buildOrderTrackingUrl('', 's', 'ON-1', token), null, 'no origin, no link');
-  assert.equal(buildOrderTrackingUrl('javascript:alert(1)', 's', 'ON-1', token), null);
-  assert.equal(buildOrderTrackingUrl('https://evil.com/path', 's', 'ON-1', token), null, 'origin only, no path smuggling');
+  assert.equal(buildOrderTrackingUrl('', 's', 'ON-1', token, {}), null, 'no origin, no link');
+  assert.equal(buildOrderTrackingUrl('javascript:alert(1)', 's', 'ON-1', token, {}), null);
+  assert.equal(buildOrderTrackingUrl('https://evil.com/path', 's', 'ON-1', token, {}), null, 'origin only, no path smuggling');
+
+  // SF-10: with subdomain stores on, the link is the store's own host and ignores the request origin.
+  const env = { STOREFRONT_ROOT_DOMAIN: 'zsystemai.com' } as NodeJS.ProcessEnv;
+  const sub = buildOrderTrackingUrl('https://evil.com', 'MyShop', 'ON-1', token, env);
+  assert.equal(String(sub).split('#')[0], 'https://myshop.zsystemai.com/track/ON-1');
+  assert.equal(new URLSearchParams(String(sub).split('#')[1]).get('t'), token, 'token stays in the fragment');
 }
 
 testTokenRoundTrip();

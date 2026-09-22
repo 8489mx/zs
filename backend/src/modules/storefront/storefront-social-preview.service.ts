@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { StorefrontService } from './storefront.service';
+import { buildStorePublicBase } from './engines/store-public-url.engine';
 
 /**
  * يولّد صفحة HTML صغيرة تحمل وسوم Open Graph / Twitter Card لزواحف التواصل.
@@ -53,7 +54,7 @@ export class StorefrontSocialPreviewService {
     const info: any = await this.storefront.getStorefrontInfo(slug);
     const siteName = String(info?.businessName || info?.title || 'المتجر الإلكتروني').trim();
     const currency = String(info?.currency || 'ج.م');
-    const storeUrl = `${origin.replace(/\/$/, '')}/st/${encodeURIComponent(slug)}`;
+    const storeUrl = buildStorePublicBase(origin, slug) || `${origin.replace(/\/$/, '')}/st/${encodeURIComponent(slug)}`;
 
     let payload: PreviewPayload = {
       title: String(info?.title || siteName),

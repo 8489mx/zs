@@ -64,6 +64,38 @@ GitHub branch: main
 - **تصحيح (22 سبتمبر 2026):** حد Always Free لـ Ampere A1 صار **2 OCPU / 12 جيجا** للحساب كله منذ 15 يونيو 2026 (مُطبَّق منذ 18 أغسطس)، وليس 4 / 24 كما كُتب هنا أولاً. الـ 4 / 24 الحالية تعمل على رصيد الفترة التجريبية (Promo) الذي ينتهي نحو 30 سبتمبر 2026، وبعدها قد يوقف أوراكل السيرفر. **صُغِّر فعلاً إلى 2 OCPU / 12 جيجا في نفس اليوم** (تم التحقق: nproc=2، رام 11Gi، Swap 4 جيجا، الباك إند سليم). أي زيادة فوق ذلك تتطلب Pay As You Go ودفع الفرق. السعة التقديرية على 2 / 12 مع الـ Swap: 25 إلى 45 عميلاً نشطاً بأربعة كاشيرات. المصدر: https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm
 - الحساب Free Tier (بلا وسيلة دفع): أوراكل قد توقف السيرفر إذا بقي خاملاً 7 أيام. الإيقاف لا يمسح البيانات، والتشغيل يتم من اللوحة.
 
+### 2-d. الدومينات: الموقع التسويقي والـERP والمتاجر (SF-10، من 22 سبتمبر 2026)
+
+| الرابط | بيروح فين |
+|---|---|
+| `zsystemai.com` | الموقع التسويقي (ريبو `8489mx/zs-web-purble`) على Cloudflare Pages |
+| `app.zsystemai.com` | الـERP على سيرفر أوراكل |
+| `<slug>.zsystemai.com` | متجر العميل، على نفس السيرفر ونفس قاعدة البيانات |
+
+الكود جاهز والميزة **مطفأة** لحد ما المتغيرين يتضبطوا. من غيرهم كل حاجة شغالة زي الأول (`/st/<slug>`).
+**الترتيب مهم:** المرحلة (أ) كلها قبل (ب)، وإلا روابط المتاجر الحالية هتقف.
+
+**(أ) الـERP والمتاجر على السب دومينات** — الدومين الرئيسي لسه على السيرفر طول المرحلة دي:
+1. Cloudflare ← SSL/TLS ← Origin Server ← Create Certificate للاسمين `zsystemai.com` و`*.zsystemai.com`. على السيرفر:
+   `sudo mkdir -p /etc/ssl/zsystemai` واحفظ الشهادة في `origin.pem` والمفتاح في `origin.key` (`sudo chmod 600 origin.key`).
+2. على السيرفر في `backend/.env`: اتأكد إن `SESSION_COOKIE_DOMAIN` **فاضي أو مش موجود** (لو على الجذر الباك إند هيرفض يشتغل، F38)، وضيف `STOREFRONT_ROOT_DOMAIN=zsystemai.com`.
+3. nginx: `sudo cp deploy/nginx/zsystemai-subdomains.conf /etc/nginx/sites-available/zsystemai-subdomains` ثم
+   `sudo ln -s /etc/nginx/sites-available/zsystemai-subdomains /etc/nginx/sites-enabled/` ثم `sudo nginx -t && sudo systemctl reload nginx`.
+   الملف بيسمع على 80 و443 مع بعض، فبيشتغل مع وضع SSL الحالي في Cloudflare أياً كان.
+4. Cloudflare DNS: سجل `A` اسمه `app` وسجل `A` اسمه `*`، الاتنين على IP السيرفر و**Proxied** (البرتقالي).
+5. GitHub ← Settings ← Secrets and variables ← Actions ← **Variables**: `VITE_STOREFRONT_ROOT_DOMAIN` = `zsystemai.com`، وبعدها نشر جديد (push أو Run workflow).
+6. اتأكد: `https://app.zsystemai.com/login` بيفتح الدخول، و`https://<slug>.zsystemai.com` بيفتح المتجر، ورابط المتجر في إعدادات المتجر بقى بالشكل الجديد، و`https://app.zsystemai.com/st/<slug>` بيحوّل للسب دومين.
+
+**(ب) الموقع التسويقي على الدومين الرئيسي:**
+7. Cloudflare ← Workers & Pages ← Create ← Pages ← Connect to Git ← `zs-web-purble`. Build command `npm run build`، Output `dist`.
+8. Cloudflare ← Rules ← Redirect Rules: تلات قواعد Wildcard، كل واحدة Status 301 ومع **Preserve query string**:
+   `https://zsystemai.com/st/*` ← `https://app.zsystemai.com/st/${1}`، ونفسها لـ`/store/*` و`/shop/*`.
+   السيرفر بعدها بيحوّل من `app` لسب دومين المتجر. الـ`#t=` في روابط التتبع بيفضل مع التحويل.
+9. Pages ← Custom domains ← `zsystemai.com` (Cloudflare بيستبدل سجل الجذر لوحده). `www` يفضل على السيرفر وnginx بيحوّله للجذر.
+10. بعد ما الجذر يبقى على Pages: SSL/TLS ← **Full (strict)**.
+
+**بعد (ب):** `zsystemai.com/api/...` مبقاش بيوصل للسيرفر. أي حاجة لسه بتكلم الجذر (جهاز ديسكتوب مربوط بالسحابة، سكربت) لازم تتغير لـ`app.zsystemai.com`. المراقبة الخارجية مش متأثرة لأنها بتكلم IP السيرفر.
+
 ---
 
 ## 3. أسرار GitHub المطلوبة (GitHub Actions Secrets)

@@ -1,3 +1,4 @@
+import { buildStorePublicUrl, storePublicUrlParts } from '@/lib/store-public-url';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -238,7 +239,8 @@ export function StorefrontSettingsTab() {
   });
 
   const storeSlug = settingsQuery.data?.slug || 'default';
-  const storeUrl = `${window.location.origin}/st/${storeSlug}`;
+  const storeUrl = buildStorePublicUrl(storeSlug);
+  const slugUrlParts = storePublicUrlParts();
 
   const handleCopy = () => {
     navigator.clipboard.writeText(storeUrl);
@@ -702,7 +704,7 @@ export function StorefrontSettingsTab() {
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', direction: 'ltr', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden' }}>
                   <span className="storefront-slug-prefix" style={{ padding: '6px 12px', background: '#f8fafc', color: '#170e5e', fontSize: '13px', borderRight: '1.5px solid #cbd5e1', fontWeight: 800, userSelect: 'none', whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'monospace' }}>
-                    /st/
+                    {slugUrlParts.prefix}
                   </span>
                   <input
                     type="text"
@@ -725,6 +727,11 @@ export function StorefrontSettingsTab() {
                       color: '#170e5e',
                     }}
                   />
+                  {slugUrlParts.suffix && (
+                    <span className="storefront-slug-prefix" style={{ padding: '6px 12px', background: '#f8fafc', color: '#170e5e', fontSize: '13px', borderLeft: '1.5px solid #cbd5e1', fontWeight: 800, userSelect: 'none', whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'monospace' }}>
+                      {slugUrlParts.suffix}
+                    </span>
+                  )}
                 </div>
                 <span style={{ display: 'block', fontSize: '10.5px', color: '#64748b', marginTop: '3px' }}>
                   يُستخدم في رابط متجرك المباشر (أحرف إنجليزية وأرقام فقط)

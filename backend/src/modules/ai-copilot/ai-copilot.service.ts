@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { buildStorePublicBase } from '../storefront/engines/store-public-url.engine';
 
 export type AiProvider = 'gemini' | 'openai' | 'custom';
 
@@ -989,7 +990,7 @@ ${JSON.stringify(snapshot, null, 2)}
     const storefrontUrl = tenant?.custom_domain
       ? `https://${tenant.custom_domain}`
       : tenant?.slug
-        ? `https://zsystems.app/store/${tenant.slug}`
+        ? buildStorePublicBase(process.env.APP_PUBLIC_URL, tenant.slug) || undefined
         : undefined;
 
     // 2. Read custom bot prompt & currency

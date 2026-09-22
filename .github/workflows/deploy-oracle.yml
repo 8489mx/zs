@@ -60,6 +60,9 @@ jobs:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || '' }}
           VITE_CSRF_COOKIE_NAME: ${{ vars.VITE_CSRF_COOKIE_NAME || 'zs_cloud_csrf_token' }}
           VITE_PLATFORM_TENANT_ID: ${{ vars.VITE_PLATFORM_TENANT_ID || 'zsystems-main' }}
+          # SF-10: set to the root domain (e.g. zsystemai.com) only after wildcard DNS + nginx are live;
+          # must match STOREFRONT_ROOT_DOMAIN in backend/.env. Empty = stores stay on /st/<slug>.
+          VITE_STOREFRONT_ROOT_DOMAIN: ${{ vars.VITE_STOREFRONT_ROOT_DOMAIN || '' }}
         run: |
           npm ci
           npm run build

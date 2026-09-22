@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { isReservedStoreSlug } from '../storefront/engines/store-public-url.engine';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { Response } from 'express';
@@ -942,8 +943,7 @@ export class SaasAdminService {
       throw new BadRequestException('معرّف النسخة يجب أن يتكون من 3 أحرف إنجليزية أو أرقام على الأقل');
     }
 
-    const reserved = ['admin', 'api', 'trial', 'login', 'store', 'st', 'shop', 'profile', 'settings', 'pos', 'system'];
-    if (reserved.includes(cleanSlug)) {
+    if (isReservedStoreSlug(cleanSlug)) {
       throw new BadRequestException('هذا المعرّف محجوز للنظام ولا يمكن استخدامه');
     }
 

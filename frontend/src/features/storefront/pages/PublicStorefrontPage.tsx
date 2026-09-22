@@ -18,6 +18,7 @@ import { IconStore } from '../components/StorefrontIcons';
 import { UtensilsIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { saveCustomerOrderRef } from '../lib/customer-order-refs';
+import { getStoreHostSlug } from '@/lib/store-public-url';
 
 export function PublicStorefrontPage() {
   const { slug, tableNo, productId, orderNumber: trackOrderNumber } = useParams<{ slug?: string; tableNo?: string; productId?: string; orderNumber?: string }>();
@@ -25,17 +26,22 @@ export function PublicStorefrontPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const tableParam = (tableNo || searchParams.get('table') || '').trim();
-  const cleanSlug = String(slug || 'default').trim();
+  // SF-10: on `<slug>.<root>` there is no slug in the path; the host is the store.
+  const hostSlug = useMemo(() => (slug ? null : getStoreHostSlug()), [slug]);
+  const cleanSlug = String(slug || hostSlug || 'default').trim();
   const [quickViewProduct, setQuickViewProduct] = useState<StorefrontProduct | null>(null);
 
   /**
    * جذر المتجر الحالي (`/st/:slug` أو `/store/:slug` أو `/shop/:slug`).
    * يُشتق من المسار الفعلي حتى يبقى العميل على نفس البادئة التي دخل منها.
+   * على سب دومين المتجر الجذر هو `/` نفسه، فالبادئة فارغة.
    */
   const storeBasePath = useMemo(() => {
+    if (hostSlug) return '';
     const match = location.pathname.match(/^\/(st|store|shop)\/[^/]+/);
     return match ? match[0] : `/st/${cleanSlug}`;
-  }, [location.pathname, cleanSlug]);
+  }, [location.pathname, cleanSlug, hostSlug]);
+  const storeHomePath = storeBasePath || '/';
 
   /** فتح منتج = تغيير الرابط؛ المودال يتبع الرابط لا العكس. */
   const openProduct = useCallback(
@@ -47,9 +53,9 @@ export function PublicStorefrontPage() {
 
   /** الإغلاق يرجع خطوة في التاريخ حتى يعمل زر الرجوع طبيعياً. */
   const closeProduct = useCallback(() => {
-    if (productId) navigate(storeBasePath, { replace: false });
+    if (productId) navigate(storeHomePath, { replace: false });
     else setQuickViewProduct(null);
-  }, [navigate, productId, storeBasePath]);
+  }, [navigate, productId, storeHomePath]);
 
   const {
     infoQuery,
@@ -119,7 +125,7 @@ export function PublicStorefrontPage() {
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     const token = hashParams.get('t');
     if (token) saveCustomerOrderRef(cleanSlug, trackOrderNumber, token);
-    navigate(storeBasePath, { replace: true });
+    navigate(storeHomePath, { replace: true });
     setIsMyOrdersOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackOrderNumber]);

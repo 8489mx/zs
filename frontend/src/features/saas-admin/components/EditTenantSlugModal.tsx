@@ -1,3 +1,4 @@
+import { buildStorePublicUrl } from '@/lib/store-public-url';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -112,7 +113,7 @@ export function EditTenantSlugModal({ tenant, onClose, onSuccess }: EditTenantSl
           <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl space-y-1">
             <span className="text-xs font-bold text-indigo-900">معاينة الرابط الجديد للعميل:</span>
             <div className="text-xs font-mono font-bold text-indigo-700 break-all" dir="ltr">
-              {window.location.origin}/st/{cleanInput}
+              {buildStorePublicUrl(cleanInput)}
             </div>
           </div>
         )}
