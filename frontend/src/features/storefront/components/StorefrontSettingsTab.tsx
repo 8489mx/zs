@@ -92,6 +92,22 @@ export function StorefrontSettingsTab() {
     return () => clearInterval(interval);
   }, [formState.bannerUrls.length, formState.bannerIntervalSeconds, isPreviewHovered, isDragging]);
 
+  // Ensure dragging is released if pointer leaves window or gesture ends
+  useEffect(() => {
+    const handleGlobalPointerRelease = () => {
+      if (isDragging) {
+        setIsDragging(false);
+        dragStartRef.current = null;
+      }
+    };
+    window.addEventListener('pointerup', handleGlobalPointerRelease);
+    window.addEventListener('pointercancel', handleGlobalPointerRelease);
+    return () => {
+      window.removeEventListener('pointerup', handleGlobalPointerRelease);
+      window.removeEventListener('pointercancel', handleGlobalPointerRelease);
+    };
+  }, [isDragging]);
+
   useEffect(() => {
     if (settingsQuery.data) {
       const urls = settingsQuery.data.bannerUrls && settingsQuery.data.bannerUrls.length > 0
@@ -145,6 +161,7 @@ export function StorefrontSettingsTab() {
   const currentCoords = parsePosition(currentSlidePosition);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
     setIsDragging(true);
     dragStartRef.current = {
       clientX: e.clientX,
@@ -152,7 +169,9 @@ export function StorefrontSettingsTab() {
       initX: currentCoords.x,
       initY: currentCoords.y,
     };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -313,9 +332,10 @@ export function StorefrontSettingsTab() {
   }
 
   return (
-    <div style={{ width: '100%', direction: 'rtl' }}>
+    <div className="storefront-tab-root" style={{ width: '100%', direction: 'rtl' }}>
       {/* Top Store URL Card - Compact ERP Style */}
       <div
+        className="storefront-link-banner"
         style={{
           background: '#ffffff',
           borderRadius: '10px',
@@ -362,12 +382,12 @@ export function StorefrontSettingsTab() {
               معرّف النسخة (Slug): <strong style={{ color: '#170e5e', fontFamily: 'monospace' }}>{storeSlug}</strong>
             </span>
           </div>
-          <div style={{ fontSize: '13px', fontFamily: 'monospace', direction: 'ltr', color: '#170e5e', fontWeight: 700 }}>
+          <div className="storefront-link-url" style={{ fontSize: '13px', fontFamily: 'monospace', direction: 'ltr', color: '#170e5e', fontWeight: 700, wordBreak: 'break-all' }}>
             {storeUrl}
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="storefront-link-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
             type="button"
             onClick={handleCopy}
@@ -410,10 +430,16 @@ export function StorefrontSettingsTab() {
 
       {/* Sub-Navigation Tabs - Compact */}
       <div
+        className="filter-chip-row storefront-sub-tabs"
         style={{
           display: 'flex',
           gap: '6px',
           marginBottom: '14px',
+          overflowX: 'auto',
+          maxWidth: '100%',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          paddingBottom: '4px',
         }}
       >
         <button
@@ -429,11 +455,13 @@ export function StorefrontSettingsTab() {
             background: activeTab === 'settings' ? '#170e5e' : '#ffffff',
             color: activeTab === 'settings' ? '#ffffff' : '#475569',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
             userSelect: 'none',
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          بيانات المتجر والبنر
+          <span className="sf-tab-full">بيانات المتجر والبنر</span>
+          <span className="sf-tab-short">البيانات والبنر</span>
         </button>
         <button
           type="button"
@@ -448,11 +476,13 @@ export function StorefrontSettingsTab() {
             background: activeTab === 'coupons' ? '#170e5e' : '#ffffff',
             color: activeTab === 'coupons' ? '#ffffff' : '#475569',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
             userSelect: 'none',
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          كوبونات الخصم والعروض
+          <span className="sf-tab-full">كوبونات الخصم والعروض</span>
+          <span className="sf-tab-short">الكوبونات والعروض</span>
         </button>
         <button
           type="button"
@@ -467,11 +497,13 @@ export function StorefrontSettingsTab() {
             background: activeTab === 'zones' ? '#170e5e' : '#ffffff',
             color: activeTab === 'zones' ? '#ffffff' : '#475569',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
             userSelect: 'none',
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          مناطق وأسعار التوصيل
+          <span className="sf-tab-full">مناطق وأسعار التوصيل</span>
+          <span className="sf-tab-short">مناطق التوصيل</span>
         </button>
         <button
           type="button"
@@ -486,11 +518,13 @@ export function StorefrontSettingsTab() {
             background: activeTab === 'payments' ? '#170e5e' : '#ffffff',
             color: activeTab === 'payments' ? '#ffffff' : '#475569',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
             userSelect: 'none',
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          بوابات الدفع الإلكتروني
+          <span className="sf-tab-full">بوابات الدفع الإلكتروني</span>
+          <span className="sf-tab-short">بوابات الدفع</span>
         </button>
         <button
           type="button"
@@ -505,11 +539,13 @@ export function StorefrontSettingsTab() {
             background: activeTab === 'images' ? '#170e5e' : '#ffffff',
             color: activeTab === 'images' ? '#ffffff' : '#475569',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
             userSelect: 'none',
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          استوديو صور الأصناف
+          <span className="sf-tab-full">استوديو صور الأصناف</span>
+          <span className="sf-tab-short">صور المنتجات</span>
         </button>
         <button
           type="button"
@@ -524,6 +560,7 @@ export function StorefrontSettingsTab() {
             background: activeTab === 'bosta' ? '#170e5e' : '#ffffff',
             color: activeTab === 'bosta' ? '#ffffff' : '#475569',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
             userSelect: 'none',
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
@@ -543,11 +580,13 @@ export function StorefrontSettingsTab() {
             background: activeTab === 'gcc-shipping' ? '#170e5e' : '#ffffff',
             color: activeTab === 'gcc-shipping' ? '#ffffff' : '#475569',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
             userSelect: 'none',
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          شحن خليجي (أرامكس / سمسا)
+          <span className="sf-tab-full">شحن خليجي (أرامكس / سمسا)</span>
+          <span className="sf-tab-short">شحن خليجي</span>
         </button>
       </div>
 
@@ -578,6 +617,7 @@ export function StorefrontSettingsTab() {
       {activeTab === 'settings' && (
         <form onSubmit={handleSubmit} style={{ width: '100%' }}>
           <div
+            className="storefront-settings-grid"
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
@@ -632,11 +672,11 @@ export function StorefrontSettingsTab() {
 
               {/* Store Address / Location Subtitle */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px', gap: '6px' }}>
                   <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>
                     عنوان أو مقر المتجر:
                   </label>
-                  <span style={{ fontSize: '10.5px', color: '#64748b' }}>يظهر كسطر فرعي بالهيدر</span>
+                  <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 500 }}>(سطر فرعي بالهيدر)</span>
                 </div>
                 <input
                   type="text"
@@ -661,8 +701,8 @@ export function StorefrontSettingsTab() {
                   معرّف المتجر في الرابط (Slug):
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', direction: 'ltr', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden' }}>
-                  <span style={{ padding: '6px 10px', background: '#f8fafc', color: '#64748b', fontSize: '12px', borderRight: '1px solid #cbd5e1', fontWeight: 600, userSelect: 'none' }}>
-                    {window.location.origin}/st/
+                  <span className="storefront-slug-prefix" style={{ padding: '6px 12px', background: '#f8fafc', color: '#170e5e', fontSize: '13px', borderRight: '1.5px solid #cbd5e1', fontWeight: 800, userSelect: 'none', whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'monospace' }}>
+                    /st/
                   </span>
                   <input
                     type="text"
@@ -674,6 +714,7 @@ export function StorefrontSettingsTab() {
                     placeholder="almhnds"
                     style={{
                       flex: 1,
+                      minWidth: '60px',
                       padding: '6px 10px',
                       border: 'none',
                       outline: 'none',

@@ -3,6 +3,7 @@ export type SettingsSectionKey = 'core' | 'demo-data' | 'daily-digest' | 'subscr
 export interface SettingsSectionDefinition {
   key: SettingsSectionKey;
   label: string;
+  shortLabel?: string;
   adminOnly?: boolean;
   superAdminOnly?: boolean;
   offlineOnly?: boolean;
@@ -22,33 +23,35 @@ export interface SettingsStandaloneLinkDefinition {
 }
 
 const allSections: SettingsSectionDefinition[] = [
-  { key: 'core', label: 'إعدادات النظام الأساسية' },
-  { key: 'reference', label: 'الفروع وأماكن التخزين' },
-  { key: 'users', label: 'المستخدمون والصلاحيات', adminOnly: true },
-  { key: 'tax-integration', label: 'الضرائب والفاتورة الإلكترونية', adminOnly: true },
+  { key: 'core', label: 'إعدادات النظام الأساسية', shortLabel: 'إعدادات عامة' },
+  { key: 'reference', label: 'الفروع وأماكن التخزين', shortLabel: 'الفروع والمخازن' },
+  { key: 'users', label: 'المستخدمون والصلاحيات', shortLabel: 'المستخدمون', adminOnly: true },
+  { key: 'tax-integration', label: 'الضرائب والفاتورة الإلكترونية', shortLabel: 'الضرائب والفاتورة', adminOnly: true },
   {
     key: 'storefront',
     label: 'التجارة الإلكترونية والمنصات',
+    shortLabel: 'المتجر والمنصات',
     adminOnly: true,
     requiredFeature: 'storefront',
     requiredModule: (s) => s?.storefrontModuleEnabled === true,
   },
-  { key: 'whatsapp', label: 'بوابة الواتساب والتقارير الذكية', adminOnly: true },
-  { key: 'backup', label: 'النسخ والبيانات والصيانة', adminOnly: true },
-  { key: 'subscription', label: 'الاشتراك والفوترة', adminOnly: true },
-  { key: 'demo-data', label: 'بيانات تجريبية حسب النشاط', hiddenInTabs: true, superAdminOnly: true },
+  { key: 'whatsapp', label: 'بوابة الواتساب والتقارير الذكية', shortLabel: 'واتساب والتقارير', adminOnly: true },
+  { key: 'backup', label: 'النسخ والبيانات والصيانة', shortLabel: 'النسخ الاحتياطي', adminOnly: true },
+  { key: 'subscription', label: 'الاشتراك والفوترة', shortLabel: 'الاشتراك', adminOnly: true },
+  { key: 'demo-data', label: 'بيانات تجريبية حسب النشاط', shortLabel: 'بيانات تجريبية', hiddenInTabs: true, superAdminOnly: true },
   {
     key: 'marketplaces',
     label: 'الربط مع منصات أمازون ونون',
+    shortLabel: 'أمازون ونون',
     adminOnly: true,
     hiddenInTabs: true,
     requiredFeature: 'storefront',
     requiredModule: (s) => s?.storefrontModuleEnabled === true,
   },
-  { key: 'daily-digest', label: 'الملخص اليومي للمدير', adminOnly: true, hiddenInTabs: true },
-  { key: 'lan-network', label: 'شبكة محلية متعددة الأجهزة', offlineOnly: true, superAdminOnly: true },
-  { key: 'system-updates', label: 'الإصدارات والتحديثات', offlineOnly: true },
-  { key: 'monitoring', label: 'المراقبة ورصد السيرفر (APM)', superAdminOnly: true },
+  { key: 'daily-digest', label: 'الملخص اليومي للمدير', shortLabel: 'الملخص اليومي', adminOnly: true, hiddenInTabs: true },
+  { key: 'lan-network', label: 'شبكة محلية متعددة الأجهزة', shortLabel: 'شبكة محلية', offlineOnly: true, superAdminOnly: true },
+  { key: 'system-updates', label: 'الإصدارات والتحديثات', shortLabel: 'التحديثات', offlineOnly: true },
+  { key: 'monitoring', label: 'المراقبة ورصد السيرفر (APM)', shortLabel: 'رصد السيرفر', superAdminOnly: true },
 ];
 
 export const settingsSections: SettingsSectionDefinition[] = allSections.filter(s => s.key !== 'lan-network' || (typeof window !== 'undefined' && !!(window as any).electronRuntime));

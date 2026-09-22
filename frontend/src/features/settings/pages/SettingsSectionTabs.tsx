@@ -1,4 +1,5 @@
 
+import { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { settingsSections, type SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
@@ -14,6 +15,7 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
   const user = useAuthStore((state) => state.user);
   const tenant = useAuthStore((state) => state.tenant);
   const isPlatform = isPlatformAdmin(user);
+  const activeTabRef = useRef<HTMLAnchorElement | null>(null);
 
   const { data: settings } = useQuery({
     queryKey: queryKeys.settings,
@@ -48,19 +50,34 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
     currentSection === 'daily-digest' ? 'whatsapp' :
     currentSection;
 
+  useEffect(() => {
+    if (activeTabRef.current) {
+      activeTabRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  }, [activeSectionKey]);
+
   return (
     <div className="filter-chip-row toolbar-chip-row settings-section-tabs">
-      {visibleSections.map((section) => (
-        <NavLink
-          key={section.key}
-          to={`/settings/${section.key}`}
-          onMouseEnter={() => prefetchRouteData(`/settings/${section.key}`)}
-          onTouchStart={() => prefetchRouteData(`/settings/${section.key}`)}
-          className={({ isActive }) => `btn ${isActive || activeSectionKey === section.key ? 'btn-primary' : 'btn-secondary'}`}
-        >
-          {section.label}
-        </NavLink>
-      ))}
+      {visibleSections.map((section) => {
+        const isCurrentActive = activeSectionKey === section.key;
+        return (
+          <NavLink
+            key={section.key}
+            ref={isCurrentActive ? activeTabRef : undefined}
+            to={`/settings/${section.key}`}
+            onMouseEnter={() => prefetchRouteData(`/settings/${section.key}`)}
+            onTouchStart={() => prefetchRouteData(`/settings/${section.key}`)}
+            className={({ isActive }) => `btn ${isActive || isCurrentActive ? 'btn-primary' : 'btn-secondary'}`}
+          >
+            <span className="settings-tab-full-label">{section.label}</span>
+            <span className="settings-tab-short-label">{section.shortLabel || section.label}</span>
+          </NavLink>
+        );
+      })}
     </div>
   );
 }

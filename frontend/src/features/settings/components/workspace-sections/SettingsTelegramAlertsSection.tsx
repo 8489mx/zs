@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
 import { BellIcon, LightbulbIcon } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
 
 interface TelegramSettings {
   enabled: boolean;
@@ -184,10 +185,13 @@ export function SettingsTelegramAlertsSection() {
               <BellIcon size={22} color="#0284c7" />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                تنبيهات الأعطال الفورية عبر تيليجرام (Telegram Incident Alerts)
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.35 }}>
+                تنبيهات الأعطال الفورية عبر تيليجرام
+                <span style={{ display: 'block', fontSize: '0.78rem', color: '#64748b', fontWeight: 600, direction: 'ltr', textAlign: 'right', marginTop: '2px' }}>
+                  (Telegram Incident Alerts)
+                </span>
               </h3>
-              <p style={{ margin: '3px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+              <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5 }}>
                 استقبال إشعارات فورية على هاتفك عند تعطل قاعدة البيانات أو سقوط السيرفر، مع تقارير النشر التلقائي للـ CI/CD.
               </p>
             </div>
@@ -264,13 +268,15 @@ export function SettingsTelegramAlertsSection() {
         )}
 
         {/* Footer Actions */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#64748b' }}>
-            <LightbulbIcon size={15} color="#64748b" />
-            <span>يمكنك أيضاً ضبط المتغيرات في ملف <code>.env</code> عبر <code>TELEGRAM_BOT_TOKEN</code> و <code>TELEGRAM_CHAT_ID</code></span>
+        <div className="telegram-alerts-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '16px', flexWrap: 'wrap', gap: '14px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#64748b', minWidth: 0 }}>
+            <LightbulbIcon size={15} color="#64748b" style={{ flexShrink: 0 }} />
+            <span style={{ lineHeight: 1.5 }}>
+              يمكنك أيضاً ضبط المتغيرات في ملف <code>.env</code> عبر <code>TELEGRAM_BOT_TOKEN</code> و <code>TELEGRAM_CHAT_ID</code>
+            </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div className="telegram-alerts-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <Button
               variant="secondary"
               onClick={() => testMutation.mutate()}
@@ -280,9 +286,9 @@ export function SettingsTelegramAlertsSection() {
               {testMutation.isPending ? 'جاري الإرسال...' : 'إرسال تنبيه اختباري'}
             </Button>
             <Button
-              onClick={() => {
-                http('/api/settings/whatsapp', { method: 'POST', body: JSON.stringify(form) }).catch(() => {});
-                alert('تم حفظ إعدادات تنبيهات التيليجرام بنجاح!');
+              onClick={async () => {
+                await http('/api/settings/whatsapp', { method: 'POST', body: JSON.stringify(form) }).catch(() => {});
+                toast.success('تم حفظ إعدادات تنبيهات التيليجرام بنجاح!');
               }}
               style={{
                 background: '#170e5e',

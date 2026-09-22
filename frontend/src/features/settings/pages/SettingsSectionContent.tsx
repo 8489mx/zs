@@ -78,7 +78,7 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
   if (section === 'storefront' || section === 'marketplaces') {
     return (
       <div className="page-stack">
-        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', marginBottom: '16px' }}>
+        <div className="settings-subnav-row" style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', marginBottom: '16px', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
           <NavLink
             to="/settings/storefront"
             className="btn"
@@ -91,9 +91,12 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
               fontSize: '0.84rem',
               fontWeight: 700,
               textDecoration: 'none',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
             }}
           >
-            المتجر الإلكتروني الخاص
+            <span className="subnav-full-label">المتجر الإلكتروني الخاص</span>
+            <span className="subnav-short-label">المتجر الخاص</span>
           </NavLink>
           <NavLink
             to="/settings/marketplaces"
@@ -107,9 +110,12 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
               fontSize: '0.84rem',
               fontWeight: 700,
               textDecoration: 'none',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
             }}
           >
-            الربط مع أمازون ونون
+            <span className="subnav-full-label">الربط مع أمازون ونون</span>
+            <span className="subnav-short-label">أمازون ونون</span>
           </NavLink>
         </div>
         <Suspense fallback={<LazySectionFallback />}>
@@ -121,7 +127,7 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
   if (section === 'whatsapp' || section === 'daily-digest') {
     return (
       <div className="page-stack">
-        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', marginBottom: '16px' }}>
+        <div className="settings-subnav-row" style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', marginBottom: '16px', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
           <NavLink
             to="/settings/whatsapp"
             className="btn"
@@ -134,9 +140,12 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
               fontSize: '0.84rem',
               fontWeight: 700,
               textDecoration: 'none',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
             }}
           >
-            بوابة الواتساب والرد الآلي الذكي
+            <span className="subnav-full-label">بوابة الواتساب والرد الآلي الذكي</span>
+            <span className="subnav-short-label">بوابة الواتساب</span>
           </NavLink>
           <NavLink
             to="/settings/daily-digest"
@@ -150,9 +159,12 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
               fontSize: '0.84rem',
               fontWeight: 700,
               textDecoration: 'none',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
             }}
           >
-            الملخص اليومي للمدير
+            <span className="subnav-full-label">الملخص اليومي للمدير</span>
+            <span className="subnav-short-label">الملخص اليومي</span>
           </NavLink>
         </div>
         <Suspense fallback={<LazySectionFallback />}>
