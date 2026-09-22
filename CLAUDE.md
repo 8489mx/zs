@@ -18,6 +18,10 @@
 >    migration.** Guarded by `performance-hot-paths.spec.ts` and `npm --prefix frontend run qa:perf`
 >    (both inside `npm run guards`). A failing perf guard is almost always right — fix the code, not the guard.
 
+7. **Production deploy & backup** are guarded by DEPLOY-1..6 (`ARCHITECTURE_INVARIANTS.md` §2.7,
+   guard `deploy-pipeline.spec.ts`). Never move the build back onto the server, never `rm -rf` a live
+   `dist`, never switch PM2 to cluster mode.
+
 ---
 
 ## 0. Documentation Duty (إلزامي بعد كل إصلاح)

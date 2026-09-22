@@ -22,6 +22,14 @@
 - The POS offline catalog (IndexedDB) must stay: it lets cashiers sell without internet. Its version must never be built from `products.updated_at` (moves on every sale) — use `catalog_updated_at` (PERF-9).
 - Guards: `performance-hot-paths.spec.ts` + `npm --prefix frontend run qa:perf` (both in `npm run guards`). A failing perf guard is almost always right.
 
+## 1-c. Production Deploy & Backup Invariants (`ARCHITECTURE_INVARIANTS.md` §2.7, DEPLOY-1..6)
+- Read §2.7 before touching `.github/workflows/deploy-oracle.yml` or `deploy/scripts/zsystems-backup.sh`.
+- Never build on the production server: `npm run build` / `vite build` / `nest build` run on the GitHub runner only; the server receives a prebuilt `release.tgz`.
+- Never `rm -rf` a live `dist` folder; the server swaps folders with `mv` and rolls back automatically on a failed health check. Migrations run before the swap.
+- Never switch PM2 to `cluster` / `-i max`: auth cache, login limiter and job queue live in process memory (O13).
+- Never use `docker exec -t` in the backup script; never commit an Object Storage pre-authenticated URL (the repo is public).
+- Guard: `backend/test/critical/deploy-pipeline.spec.ts` (in `npm run guards`). If it fails, the guard is right — fix the code, not the guard.
+
 ## 2. Inviolable Core Invariants
 - Financial transactions & journal entries are immutable double-entry ledgers.
 - Passwords MUST always be hashed with `bcrypt` (never plaintext).
