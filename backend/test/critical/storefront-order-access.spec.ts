@@ -6,6 +6,8 @@ import {
   isSandboxPaymentAllowed,
   resolveOnlineOrderCollection,
   buildOrderTrackingUrl,
+  buildPaymentReturnUrl,
+  buildGatewayWebhookUrl,
   type SandboxGatewayFlags,
 } from '../../src/modules/storefront/engines/online-order-access.engine';
 
@@ -118,7 +120,24 @@ function testTrackingLink(): void {
   assert.equal(new URLSearchParams(String(sub).split('#')[1]).get('t'), token, 'token stays in the fragment');
 }
 
+function testGatewayReturnAndWebhookUrls(): void {
+  // O67: Tap/Stripe used to return shoppers to `<slug>.z-systems.cloud/storefront/orders` and post
+  // Tap webhooks to `z-systems.cloud` — neither is ours, so card payments were never confirmed.
+  const on = { STOREFRONT_ROOT_DOMAIN: 'zsystemai.com', APP_PUBLIC_URL: 'https://app.zsystemai.com' } as NodeJS.ProcessEnv;
+  assert.equal(buildPaymentReturnUrl('https://evil.com', 'MyShop', 'ON-1', on), 'https://myshop.zsystemai.com/track/ON-1');
+  assert.equal(buildPaymentReturnUrl('https://zsystemai.com', 'myshop', 'ON-1', {}), 'https://zsystemai.com/st/myshop/track/ON-1');
+  assert.equal(buildPaymentReturnUrl('', 'myshop', 'ON-1', {}), null);
+  const returnUrl = String(buildPaymentReturnUrl('https://x.test', 'myshop', 'ON-1', {}));
+  assert.ok(!returnUrl.includes('#') && !returnUrl.includes('t='), 'no order token is handed to the gateway (SF-1)');
+
+  assert.equal(buildGatewayWebhookUrl('https://evil.com', 'tap', on), 'https://app.zsystemai.com/api/storefront/webhooks/tap', 'configured URL wins over the request host');
+  assert.equal(buildGatewayWebhookUrl('https://app.zsystemai.com/', 'stripe', {}), 'https://app.zsystemai.com/api/storefront/webhooks/stripe');
+  assert.equal(buildGatewayWebhookUrl('https://evil.com/path', 'tap', {}), null);
+  assert.equal(buildGatewayWebhookUrl(undefined, 'tap', {}), null);
+}
+
 testTokenRoundTrip();
+testGatewayReturnAndWebhookUrls();
 testTrackingLink();
 testTokenFailsClosed();
 testSandboxOnlyInTestMode();

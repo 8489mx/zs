@@ -186,8 +186,9 @@ export class StorefrontPublicController {
     @Param('slug') slug: string,
     @Param('orderNumber') orderNumber: string,
     @Headers(ORDER_ACCESS_TOKEN_HEADER) token?: string,
+    @Req() req?: RequestWithAuth,
   ) {
-    return this.paymentService.initiatePaymentSession(slug, orderNumber, token);
+    return this.paymentService.initiatePaymentSession(slug, orderNumber, token, req ? this.resolveOrigin(req) : undefined);
   }
 
   @Get(':slug/orders/:orderNumber/payment-status')

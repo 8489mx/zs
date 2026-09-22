@@ -119,3 +119,31 @@ export function buildOrderTrackingUrl(
   if (!base) return null;
   return `${base}/track/${encodeURIComponent(orderNumber)}#t=${encodeURIComponent(token)}`;
 }
+
+/**
+ * Where a card gateway (Tap / Stripe) sends the shopper after paying: the order's page in the store
+ * (SF-10 address). No access token — the URL is handed to a third party and lands in its logs (SF-1).
+ * The shopper's device already holds the token from checkout, so "My orders" opens the order.
+ */
+export function buildPaymentReturnUrl(
+  origin: string | undefined,
+  slug: string,
+  orderNumber: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  const base = buildStorePublicBase(origin, slug, { env });
+  return base ? `${base}/track/${encodeURIComponent(orderNumber)}` : null;
+}
+
+/** Server-to-server callback a gateway posts to. Prefers the configured public app URL over the request host. */
+export function buildGatewayWebhookUrl(
+  origin: string | undefined,
+  provider: 'tap' | 'stripe' | 'paymob' | 'xpay',
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  for (const candidate of [env.APP_PUBLIC_URL, origin]) {
+    const base = String(candidate || '').trim().replace(/\/$/, '');
+    if (/^https?:\/\/[^\s/]+$/i.test(base)) return `${base}/api/storefront/webhooks/${provider}`;
+  }
+  return null;
+}

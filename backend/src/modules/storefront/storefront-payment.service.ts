@@ -4,7 +4,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 import { planWebhookOrderLookup, selectUnambiguousOrder } from './engines/webhook-order-resolution.engine';
-import { verifyOrderAccessToken, isSandboxPaymentAllowed } from './engines/online-order-access.engine';
+import { verifyOrderAccessToken, isSandboxPaymentAllowed, buildPaymentReturnUrl, buildGatewayWebhookUrl } from './engines/online-order-access.engine';
 import * as crypto from 'crypto';
 
 export interface TenantPaymentConfig {
@@ -199,7 +199,7 @@ export class StorefrontPaymentService {
     };
   }
 
-  async initiatePaymentSession(slug: string, orderNumber: string, token: string | undefined) {
+  async initiatePaymentSession(slug: string, orderNumber: string, token: string | undefined, origin?: string) {
     const tenant = await this.getTenantBySlug(slug);
     const order = await this.findOrderByToken(tenant.id, orderNumber, token);
 
@@ -450,7 +450,13 @@ export class StorefrontPaymentService {
             phoneNum = rawPhone.slice(1);
           }
 
-          const domain = tenant.custom_domain || `${tenant.slug}.z-systems.cloud`;
+          // O67: these pointed at `<slug>.z-systems.cloud` (not our domain) and the merchant-only
+          // `/storefront/orders`; the webhook never reached us, so Tap payments were never confirmed.
+          const returnUrl = buildPaymentReturnUrl(origin, slug, order.order_number);
+          const webhookUrl = buildGatewayWebhookUrl(origin, 'tap');
+          if (!returnUrl || !webhookUrl) {
+            throw new BadRequestException('تعذر تحديد رابط المتجر للرجوع بعد الدفع.');
+          }
           const tapPayload = {
             amount: Number(totalAmount.toFixed(2)),
             currency: currency.toUpperCase(),
@@ -481,10 +487,10 @@ export class StorefrontPaymentService {
             },
             source: { id: 'src_all' }, // Unified checkout: Mada, KNET, NAPS, Benefit, Apple Pay, Visa, MC
             redirect: {
-              url: `https://${domain}/storefront/orders?orderNumber=${order.order_number}`,
+              url: returnUrl,
             },
             post: {
-              url: `https://z-systems.cloud/api/storefront/webhooks/tap`,
+              url: webhookUrl,
             },
           };
 
@@ -568,9 +574,13 @@ export class StorefrontPaymentService {
             }
           }
 
-          const domain = tenant.custom_domain || `${tenant.slug}.z-systems.cloud`;
-          const successUrl = `https://${domain}/storefront/orders?orderNumber=${order.order_number}&payment=success`;
-          const cancelUrl = `https://${domain}/storefront/orders?orderNumber=${order.order_number}&payment=cancel`;
+          // O67: same broken `<slug>.z-systems.cloud/storefront/orders` target as Tap.
+          const returnUrl = buildPaymentReturnUrl(origin, slug, order.order_number);
+          if (!returnUrl) {
+            throw new BadRequestException('تعذر تحديد رابط المتجر للرجوع بعد الدفع.');
+          }
+          const successUrl = returnUrl;
+          const cancelUrl = returnUrl;
 
           const params = new URLSearchParams();
           params.append('payment_method_types[0]', 'card');
