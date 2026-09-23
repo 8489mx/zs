@@ -278,6 +278,26 @@ const payload = verifyPortalToken<T>(authHeader, PORTAL_TOKEN_ERRORS);
 | F36 | تحديد معنى عمود من **اسمه** (`account_id` = عمود التأجير) | `account_id` عمود تأجير في أغلب الجداول، لكنه في `journal_entry_lines` مفتاح لدليل الحسابات. القرار يُبنى على ما تعلنه القاعدة (هل هو مفتاح أجنبي؟ لأي جدول؟) لا على الاسم |
 | F37 | بناء رابط متجر بتركيب نص (`${origin}/st/${slug}` أو `/store/` أو دومين مكتوب في الكود) خارج محرك SF-10 | كانت سبعة أماكن تبني الرابط كلٌّ على طريقته (`/st/` هنا و`/store/` هناك، و`zsystems.app` في رد بوت الذكاء الاصطناعي، و`z-systems.cloud` في الدفع)، فلا يمكن نقل المتاجر لدومين جديد بتعديل واحد. استخدم `buildStorePublicBase` (باك إند) أو `buildStorePublicUrl` (واجهة) |
 | F38 | `SESSION_COOKIE_DOMAIN` على الدومين الجذر (`.zsystemai.com`) مع متاجر على سب دومين | كوكي جلسة الـERP يُرسَل لكل متجر، وصفحة المتجر فيها محتوى يتحكم فيه التاجر (بكسلات، أوصاف)، فيستطيع متجر أن ينادي API الـERP بجلسة أي تاجر أو أدمن يزوره. ملف المثال `.env.cloud-saas.example` كان يضبطه هكذا؛ الآن `validateEnv` يرفض التشغيل بهذا الضبط |
+| F39 | كسر حاوية الـ 1280px المركزية على الديسكتوب بـ `!important` أو تسريب أكواد الموبايل خارج الـ `@media` | كود قديم في `settings-detail-polish` فرض `max-width: 100% !important` على الديسكتوب فشوه الصفحة وجعل التابات والكروت تتشتت؛ وبانر `DraftStateNotice` بـ `position: fixed; left: 24px` طفا وحيداً في أقصى يسار شاشات الكمبيوتر. القاعدة: كل تعديل للموبايل محصور بـ `@media (max-width: 900px)`، والديسكتوب يلتزم بـ `max-width: 1280px; margin: 0 auto` ثابتاً، والبانرات تتمركز أفقياً (`left: 50%`). الحارس: `desktop-mobile-isolation.spec.ts` و `desktop-mobile-isolation-check.mjs` في `npm run guards` |
+
+---
+
+### 2.10 ثوابت عزل واجهات الديسكتوب والموبايل وحاوية 1280px الموحدة (UI-ISOLATION-1..5)
+
+**الملفات الحاكمة:**
+- `frontend/src/styles/partials/document-form-prototype.css`
+- `frontend/src/styles/partials/settings-detail-polish.css`
+- `frontend/src/styles/partials/mobile-layout.css`
+- `frontend/src/shared/components/draft-state-notice.tsx`
+- الحارسان: `frontend/src/features/settings/desktop-mobile-isolation.spec.ts` و `frontend/scripts/desktop-mobile-isolation-check.mjs` (ضمن `npm run guards`)
+
+1. **UI-ISOLATION-1 (الحاوية المركزية 1280px ثابتاً):** جميع شاشات ووثائق وإعدادات النظام على الديسكتوب (>= 901px) تلتزم بـ:
+   `max-width: 1280px !important; width: min(100%, 1280px) !important; margin: 0 auto !important;`
+   ممنوع منعاً باتاً فرض `max-width: 100% !important; margin: 0 !important;` على الديسكتوب.
+2. **UI-ISOLATION-2 (حصر كود الموبايل داخل وسائط الميديا):** أي كود CSS تجاوبي للموبايل يُكتب حصرياً وبشكل قاطع داخل `@media (max-width: 900px)` في `mobile-layout.css`. ممنوع تسريب أي قاعدة للموبايل لتؤثر على الديسكتوب خارج الميديا كويري.
+3. **UI-ISOLATION-3 (تمركز البانرات العائمة أفقياً):** أي بانر تنبيه أو حالة مسودة عائم (`DraftStateNotice` / `system-toast`) يجب أن يتمركز أفقياً (`left: 50%; transform: translateX(-50%)`) ويحظر استخدام `left: 24px` أو `right: 24px` المطلقة التي تنفيه إلى أطراف الشاشات العريضة.
+4. **UI-ISOLATION-4 (منع تكرار المكونات العائمة في نفس النموذج):** يحظر استدعاء أكثر من نسخة واحدة من `DraftStateNotice` داخل الصفحة الواحدة.
+5. **UI-ISOLATION-5 (الحراسة الآلية في CI/CD):** اختبار `desktop-mobile-isolation.spec.ts` وفحص `desktop-mobile-isolation-check.mjs` يعملان تلقائياً ضمن `npm run guards` ويفشلان البناء فوراً إن حدث أي كسر للعزل.
 
 ---
 
