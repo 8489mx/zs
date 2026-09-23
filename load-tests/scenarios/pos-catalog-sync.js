@@ -45,14 +45,19 @@ export const options = {
 };
 
 /**
- * تسجيل دخول يُفشل الاختبار **فوراً** إن فشل.
+ * تسجيل دخول يُفشل الاختبار **فوراً** إن فشل، ويكتشف اسم كوكي الجلسة بنفسه.
  *
- * كان `setup()` يتجاهل نتيجة الدخول ويعيد `res.cookies`، وهي بنية k6 تختلف عن الشكل الذي
- * يقبله معامل `cookies` في الطلبات — فالكوكي لم تكن تُرسَل أصلاً. النتيجة: كل طلب يرجع 401،
- * والتقرير يقول "100% فشل" بلا سبب ظاهر، بينما الخطأ في بيانات الدخول لا في السيرفر.
+ * ثلاث محاولات سابقة فشلت هنا، وكل واحدة علّمت شيئاً:
+ *  1. `setup()` كان يعيد `res.cookies` ويمرّرها كـ`cookies` في الطلبات — بنيتان مختلفتان في k6،
+ *     فلم تُرسَل كوكي قط وكل طلب رجع 401.
+ *  2. ترويسة `X-Session-Id` مرفوضة في وضع السحابة عمداً
+ *     (`session-auth.guard.ts:allowSessionIdHeaderFallback`)، وليس على الإنتاج أن يخفّف حمايته
+ *     ليمر اختبار.
+ *  3. اسم كوكي الجلسة **ليس** `session_id` على هذا النشر: `SESSION_COOKIE_NAME` مضبوط
+ *     (الكوكي المرافقة اسمها `zs_cloud_csrf_token`)، فأي اسم مكتوب هنا يدوياً سيصيب نشراً ويخطئ آخر.
  *
- * الجلسة تُمرَّر في **كوكي** لا في ترويسة: `ALLOW_SESSION_ID_HEADER` معطَّل في وضع السحابة عمداً،
- * فالاختبار يتصرف كالمتصفح بدل أن يطلب من الإنتاج تخفيف حمايته من أجله.
+ * لذلك لا يُكتب الاسم: نقرأه من ردّ الدخول — الكوكي التي قيمتها تساوي `sessionId` في الجسم هي
+ * كوكي الجلسة، أياً كان اسمها.
  */
 function loginOrDie() {
   const res = http.post(`${BASE_URL}/api/auth/login`, JSON.stringify({
@@ -75,20 +80,35 @@ function loginOrDie() {
     throw new Error(`login returned a body k6 could not parse: ${String(res.body || '').slice(0, 200)}`);
   }
   if (!sessionId) throw new Error('login succeeded but returned no sessionId');
-  return sessionId;
+
+  let cookieName = '';
+  const jar = res.cookies || {};
+  for (const name of Object.keys(jar)) {
+    const entries = jar[name] || [];
+    for (let i = 0; i < entries.length; i += 1) {
+      if (entries[i] && entries[i].value === sessionId) { cookieName = name; break; }
+    }
+    if (cookieName) break;
+  }
+  if (!cookieName) {
+    cookieName = SESSION_COOKIE_NAME;
+    console.warn(`could not spot the session cookie in the login response; falling back to "${cookieName}"`);
+  }
+
+  return { sessionId, cookieName };
 }
 
 /**
  * Setup: one login for every simulated cashier terminal.
  */
 export function setup() {
-  return { sessionId: loginOrDie() };
+  return loginOrDie();
 }
 
 export default function (data) {
   const requestParams = {
     headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) },
-    cookies: { [SESSION_COOKIE_NAME]: data.sessionId },
+    cookies: { [data.cookieName]: data.sessionId },
   };
 
   group('POS Fast Version Check (PERF-9)', () => {

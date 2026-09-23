@@ -232,7 +232,13 @@ function testLoadSuiteIsUsable(): void {
     assert.ok(/throw new Error\(/.test(source), `${scenario} must abort when the login fails, not iterate on 401s`);
     // The session travels in a cookie, like a browser. ALLOW_SESSION_ID_HEADER is off in
     // CLOUD_SAAS on purpose, and a load test does not get to ask production to loosen that.
-    assert.ok(/cookies: \{ \[SESSION_COOKIE_NAME\]: data\.sessionId \}/.test(source), `${scenario} must carry the session cookie`);
+    assert.ok(/cookies: \{ \[data\.cookieName\]: data\.sessionId \}/.test(source), `${scenario} must carry the session cookie`);
+    // The cookie name is deployment-specific (SESSION_COOKIE_NAME); this deployment uses
+    // zs_cloud_* names, so anything hard-coded works on one server and silently 401s on another.
+    assert.ok(
+      /entries\[i\]\.value === sessionId/.test(source),
+      `${scenario} must discover the session cookie name from the login response, not assume it`,
+    );
     assert.ok(
       !/'X-Session-Id'/.test(source),
       `${scenario} must not rely on the session header: the cloud guard rejects it`,
