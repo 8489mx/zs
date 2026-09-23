@@ -1572,6 +1572,8 @@ export class StorefrontService {
           gcc_shipping_status: r.gcc_shipping_status,
           gcc_awb_url: r.gcc_awb_url,
           gcc_shipping_created_at: r.gcc_shipping_created_at,
+          countryCode: r.country_code || null,
+          country_code: r.country_code || null,
           createdAt: r.created_at,
           items,
         };

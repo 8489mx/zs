@@ -9,6 +9,7 @@ import {
   MapPinIcon,
   AlertTriangleIcon,
 } from '@/shared/components/icons/AppIcons';
+import { isOrderDestinedForEgypt, isOrderDestinedForGcc } from '../lib/order-shipping-destination';
 
 interface MerchantOrderDetailModalProps {
   order: OnlineOrderRecord | null;
@@ -67,6 +68,11 @@ export function MerchantOrderDetailModal({
   if (!order) return null;
 
   const payment = describeOrderPayment(order);
+  const isEgypt = isOrderDestinedForEgypt(order);
+  const isGcc = isOrderDestinedForGcc(order);
+  const showBosta = (isEgypt && !isGcc) || Boolean(order.bostaTrackingNumber || order.bostaDeliveryId);
+  const showGcc = (isGcc && !isEgypt) || Boolean(order.gccTrackingNumber || (order as any).gcc_tracking_number);
+
   const canConfirmTransfer =
     order.paymentMethod === 'instapay_wallet' &&
     order.paymentStatus !== 'paid' &&
@@ -609,51 +615,55 @@ export function MerchantOrderDetailModal({
                 <span>دليفري داخلي</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => onShipBosta(order)}
-                style={{
-                  flex: 1,
-                  background: '#e11d48',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '13px',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                }}
-              >
-                <PackageIcon size={14} color="#ffffff" />
-                <span>شحن بوسطة</span>
-              </button>
+              {showBosta && (
+                <button
+                  type="button"
+                  onClick={() => onShipBosta(order)}
+                  style={{
+                    flex: 1,
+                    background: '#e11d48',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <PackageIcon size={14} color="#ffffff" />
+                  <span>شحن بوسطة</span>
+                </button>
+              )}
 
-              <button
-                type="button"
-                onClick={() => onShipGcc(order)}
-                style={{
-                  flex: 1,
-                  background: '#ea580c',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '13px',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                }}
-              >
-                <TruckIcon size={14} color="#ffffff" />
-                <span>شحن خليجي</span>
-              </button>
+              {showGcc && (
+                <button
+                  type="button"
+                  onClick={() => onShipGcc(order)}
+                  style={{
+                    flex: 1,
+                    background: '#ea580c',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <TruckIcon size={14} color="#ffffff" />
+                  <span>شحن خليجي</span>
+                </button>
+              )}
             </div>
           )}
         </div>

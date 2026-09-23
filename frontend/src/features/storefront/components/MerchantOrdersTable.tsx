@@ -8,6 +8,7 @@ import {
   MapPinIcon,
   ChevronDownIcon,
 } from '@/shared/components/icons/AppIcons';
+import { isOrderDestinedForEgypt, isOrderDestinedForGcc } from '../lib/order-shipping-destination';
 
 interface MerchantOrdersTableProps {
   orders: OnlineOrderRecord[];
@@ -57,6 +58,11 @@ function OrderShippingDropdown({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
 
+  const isEgypt = isOrderDestinedForEgypt(order);
+  const isGcc = isOrderDestinedForGcc(order);
+  const showBosta = (isEgypt && !isGcc) || Boolean(order.bostaTrackingNumber || order.bostaDeliveryId);
+  const showGcc = (isGcc && !isEgypt) || Boolean(order.gccTrackingNumber || (order as any).gcc_tracking_number);
+
   const updateCoords = () => {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
@@ -66,9 +72,11 @@ function OrderShippingDropdown({
     if (left + menuWidth > window.innerWidth - 10) {
       left = Math.max(10, window.innerWidth - menuWidth - 10);
     }
+    const itemCount = 1 + (showBosta ? 1 : 0) + (showGcc ? 1 : 0);
+    const estimatedHeight = 35 + itemCount * 46;
     let top = rect.bottom + 4;
-    if (top + 170 > window.innerHeight) {
-      top = Math.max(10, rect.top - 170 - 4);
+    if (top + estimatedHeight > window.innerHeight) {
+      top = Math.max(10, rect.top - estimatedHeight - 4);
     }
     setCoords({ top, left, width: menuWidth });
   };
@@ -226,91 +234,95 @@ function OrderShippingDropdown({
             </div>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setIsOpen(false);
-              onShipBosta(order);
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 10px',
-              borderRadius: '7px',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              textAlign: 'right',
-              width: '100%',
-              boxSizing: 'border-box',
-              transition: 'background 0.1s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#fff1f2')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          >
-            <div
+          {showBosta && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                onShipBosta(order);
+              }}
               style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '6px',
-                background: '#ffe4e6',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
+                gap: '8px',
+                padding: '8px 10px',
+                borderRadius: '7px',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'right',
+                width: '100%',
+                boxSizing: 'border-box',
+                transition: 'background 0.1s',
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#fff1f2')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              <PackageIcon size={14} color="#e11d48" />
-            </div>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#e11d48' }}>شحن بوسطة إكسبريس</div>
-              <div style={{ fontSize: '10.5px', color: '#64748b' }}>توليد بوليصة AWB مصر</div>
-            </div>
-          </button>
+              <div
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '6px',
+                  background: '#ffe4e6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <PackageIcon size={14} color="#e11d48" />
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#e11d48' }}>شحن بوسطة إكسبريس</div>
+                <div style={{ fontSize: '10.5px', color: '#64748b' }}>توليد بوليصة AWB مصر</div>
+              </div>
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={() => {
-              setIsOpen(false);
-              onShipGcc(order);
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 10px',
-              borderRadius: '7px',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              textAlign: 'right',
-              width: '100%',
-              boxSizing: 'border-box',
-              transition: 'background 0.1s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#fff7ed')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          >
-            <div
+          {showGcc && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                onShipGcc(order);
+              }}
               style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '6px',
-                background: '#ffedd5',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
+                gap: '8px',
+                padding: '8px 10px',
+                borderRadius: '7px',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'right',
+                width: '100%',
+                boxSizing: 'border-box',
+                transition: 'background 0.1s',
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#fff7ed')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              <TruckIcon size={14} color="#ea580c" />
-            </div>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#ea580c' }}>شحن خليجي (أرامكس / سمسا)</div>
-              <div style={{ fontSize: '10.5px', color: '#64748b' }}>بوليصة دولية للسعودية والخليج</div>
-            </div>
-          </button>
+              <div
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '6px',
+                  background: '#ffedd5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <TruckIcon size={14} color="#ea580c" />
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#ea580c' }}>شحن خليجي (أرامكس / سمسا)</div>
+                <div style={{ fontSize: '10.5px', color: '#64748b' }}>بوليصة دولية للسعودية والخليج</div>
+              </div>
+            </button>
+          )}
         </div>,
         document.body
       )}
