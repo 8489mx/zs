@@ -21,6 +21,10 @@ import {
   AUTH_PASSWORD,
   generateRandomPhone,
   STANDARD_THRESHOLDS,
+  rampProfile,
+  clientIpHeaders,
+  RAMP_SECONDS,
+  HOLD_SECONDS,
 } from '../config.js';
 
 const combinedDuration = new Trend('stress_all_duration_ms');
@@ -32,29 +36,21 @@ export const options = {
     pos_traffic: {
       executor: 'ramping-vus',
       startVUs: 5,
-      stages: [
-        { duration: '15s', target: 20 },
-        { duration: '30s', target: 40 },
-        { duration: '15s', target: 0 },
-      ],
+      stages: rampProfile(),
       exec: 'posScenario',
     },
     // Storefront Customers
     storefront_traffic: {
       executor: 'ramping-vus',
       startVUs: 5,
-      stages: [
-        { duration: '15s', target: 20 },
-        { duration: '30s', target: 40 },
-        { duration: '15s', target: 0 },
-      ],
+      stages: rampProfile(),
       exec: 'storefrontScenario',
     },
     // Health and Metrics monitoring
     health_probes: {
       executor: 'constant-vus',
       vus: 2,
-      duration: '60s',
+      duration: `${RAMP_SECONDS + HOLD_SECONDS + 10}s`,
       exec: 'healthScenario',
     },
   },
@@ -69,10 +65,10 @@ export function setup() {
   const loginRes = http.post(`${BASE_URL}/api/auth/login`, JSON.stringify({
     username: AUTH_USERNAME,
     password: AUTH_PASSWORD,
-  }), { headers: DEFAULT_HEADERS });
+  }), { headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) } });
 
   // Get Storefront product IDs
-  const catalogRes = http.get(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/catalog`, { headers: DEFAULT_HEADERS });
+  const catalogRes = http.get(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/catalog`, { headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) } });
   let productIds = [1];
   try {
     const data = JSON.parse(catalogRes.body);
@@ -90,7 +86,7 @@ export function setup() {
 
 export function posScenario(data) {
   const params = {
-    headers: DEFAULT_HEADERS,
+    headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) },
     cookies: data?.cookies || {},
   };
 
@@ -119,7 +115,7 @@ export function storefrontScenario(data) {
 
   const start = Date.now();
   const res = http.post(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/orders`, orderPayload, {
-    headers: DEFAULT_HEADERS,
+    headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) },
   });
   combinedDuration.add(Date.now() - start);
 

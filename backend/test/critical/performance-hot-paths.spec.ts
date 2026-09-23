@@ -201,7 +201,55 @@ async function run(): Promise<void> {
   testHotPathIndexMigration();
   await testStorefrontStaleWhileRevalidate();
   // eslint-disable-next-line no-console
-  console.log('performance-hot-paths.spec: all performance invariants hold (PERF-1..PERF-4, PERF-9)');
+  testLoadSuiteIsUsable();
+
+  // eslint-disable-next-line no-console
+  console.log('performance-hot-paths.spec: all performance invariants hold (PERF-1..PERF-4, PERF-9) and the load suite is wired');
+}
+
+/**
+ * The k6 suite is the only thing that measures the box under real concurrency, and two mistakes in
+ * it are silent: a header the app never reads, and load sizes that cannot be dialled up without
+ * editing files (so nobody dials them up).
+ */
+function testLoadSuiteIsUsable(): void {
+  const ROOT = join(__dirname, '..', '..', '..');
+  const loadFile = (relative: string) => readFileSync(join(ROOT, 'load-tests', relative), 'utf8').replace(/\r\n/g, '\n');
+
+  const config = loadFile('config.js');
+  assert.ok(/export function rampProfile/.test(config), 'load sizes must be adjustable from the environment');
+  assert.ok(/PEAK_VUS/.test(config) && /HOLD_SECONDS/.test(config), 'the profile must expose peak and hold');
+  assert.ok(
+    /SPOOF_CLIENT_IPS/.test(config) && /!== 'true'\) return \{\}/.test(config),
+    'per-VU client addresses must stay behind an explicit opt-in, or a broken rate limit hides behind them',
+  );
+
+  // `resolveClientIp` reads X-Real-IP only. X-Forwarded-For is sent and ignored, so a scenario
+  // using it silently fails to control the address it thinks it controls. Comments are stripped
+  // first: the scenarios explain the distinction in prose, and prose is not what runs.
+  const codeOf = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+  for (const scenario of ['auth-login-burst.js', 'pos-catalog-sync.js', 'storefront-checkout.js', 'stress-all.js']) {
+    const source = codeOf(loadFile(join('scenarios', scenario)));
+    assert.ok(
+      !/X-Forwarded-For/.test(source),
+      `${scenario} must address the client with X-Real-IP: the app never reads X-Forwarded-For`,
+    );
+  }
+
+  for (const scenario of ['pos-catalog-sync.js', 'storefront-checkout.js', 'stress-all.js']) {
+    const source = loadFile(join('scenarios', scenario));
+    assert.ok(/stages: rampProfile\(\)/.test(source), `${scenario} must take its load size from the shared profile`);
+  }
+
+  // The three launchers must agree, or the profile you asked for is not the profile you ran.
+  const launchers: Array<[string, string]> = [['run.sh', loadFile('run.sh')], ['run.bat', loadFile('run.bat')], ['runner.cjs', loadFile('runner.cjs')]];
+  for (const [name, source] of launchers) {
+    for (const profile of ['heavy', 'extreme', 'soak']) {
+      assert.ok(source.includes(profile), `${name} is missing the ${profile} profile`);
+    }
+    assert.ok(/no-thresholds/.test(source), `${name} must drop SLA thresholds for the measurement profile`);
+    assert.ok(/PEAK_VUS/.test(source), `${name} must pass the load size to k6 explicitly (k6 does not inherit the shell env)`);
+  }
 }
 
 run().then(

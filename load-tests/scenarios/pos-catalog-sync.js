@@ -17,6 +17,8 @@ import {
   AUTH_PASSWORD,
   STANDARD_THRESHOLDS,
   FAST_THRESHOLDS,
+  rampProfile,
+  clientIpHeaders,
 } from '../config.js';
 
 // Custom metrics
@@ -29,11 +31,7 @@ export const options = {
     cashier_warmup_and_sync: {
       executor: 'ramping-vus',
       startVUs: 5,
-      stages: [
-        { duration: '15s', target: 25 },  // Ramp-up to 25 cashiers
-        { duration: '30s', target: 50 },  // Peak load: 50 concurrent cashiers
-        { duration: '15s', target: 10 },  // Ramp-down
-      ],
+      stages: rampProfile(),
       gracefulRampDown: '5s',
     },
   },
@@ -68,7 +66,7 @@ export function setup() {
 
 export default function (data) {
   const requestParams = {
-    headers: DEFAULT_HEADERS,
+    headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) },
     cookies: data?.cookies || {},
   };
 

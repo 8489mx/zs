@@ -17,6 +17,7 @@ import {
   AUTH_USERNAME,
   AUTH_PASSWORD,
   STANDARD_THRESHOLDS,
+  clientIpHeaders,
 } from '../config.js';
 
 // Custom metrics
@@ -53,9 +54,13 @@ export default function () {
       password: `WrongPassword_${Date.now()}`,
     });
 
+    // `X-Real-IP` لا `X-Forwarded-For`: التطبيق يشتق عنوان العميل من الأولى حصراً
+    // (`resolveClientIp`)، فالترويسة الثانية كانت تُرسَل ولا تُقرأ — أي أن هذا السيناريو كان
+    // يظن أنه يتحكم في عنوان المهاجم بينما كل طلباته تُحسب على `127.0.0.1`. تصادف أن النتيجة
+    // كانت صحيحة (دلو واحد = مهاجم واحد)، لكن أول محاولة لمحاكاة عدة مهاجمين كانت ستفشل بصمت.
     const headers = {
       ...DEFAULT_HEADERS,
-      'X-Forwarded-For': attackerIp,
+      'X-Real-IP': attackerIp,
     };
 
     const start = Date.now();

@@ -18,6 +18,8 @@ import {
   DEFAULT_HEADERS,
   generateRandomPhone,
   STANDARD_THRESHOLDS,
+  rampProfile,
+  clientIpHeaders,
 } from '../config.js';
 
 // Custom metrics
@@ -30,11 +32,7 @@ export const options = {
     concurrent_shoppers: {
       executor: 'ramping-vus',
       startVUs: 2,
-      stages: [
-        { duration: '10s', target: 20 }, // Ramp-up to 20 shoppers
-        { duration: '25s', target: 50 }, // Peak concurrent checkout: 50 VUs
-        { duration: '10s', target: 5 },  // Ramp-down
-      ],
+      stages: rampProfile(),
       gracefulRampDown: '5s',
     },
   },
@@ -51,7 +49,7 @@ export const options = {
  */
 export function setup() {
   const catalogUrl = `${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/catalog`;
-  const res = http.get(catalogUrl, { headers: DEFAULT_HEADERS });
+  const res = http.get(catalogUrl, { headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) } });
 
   let productIds = [1]; // fallback product ID
   if (res.status === 200) {
@@ -74,7 +72,7 @@ export default function (data) {
 
   group('Storefront Product Browsing (SF-9 / PERF-4)', () => {
     const catalogUrl = `${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/catalog`;
-    const res = http.get(catalogUrl, { headers: DEFAULT_HEADERS });
+    const res = http.get(catalogUrl, { headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) } });
     check(res, {
       'catalog load is 200': (r) => r.status === 200,
     });
@@ -98,7 +96,7 @@ export default function (data) {
     });
 
     const start = Date.now();
-    const res = http.post(orderUrl, orderPayload, { headers: DEFAULT_HEADERS });
+    const res = http.post(orderUrl, orderPayload, { headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) } });
     const duration = Date.now() - start;
     orderDuration.add(duration);
 
