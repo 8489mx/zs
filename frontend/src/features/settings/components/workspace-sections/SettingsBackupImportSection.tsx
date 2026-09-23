@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QueryCard } from '@/shared/components/query-card';
 import { Button } from '@/shared/ui/button';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { ImportWorkbench } from '@/features/settings/components/ImportWorkbench';
 import { SnapshotList, type BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 import { settingsApi, type BackupConfigResponse } from '@/features/settings/api/settings.api';
@@ -571,28 +572,23 @@ function DemoDataSandboxCard() {
         )}
       </div>
 
-      {modalMode && (
+      <DialogShell
+        open={Boolean(modalMode)}
+        onClose={() => {
+          if (!mutation.isPending) {
+            setModalMode(null);
+            setPassword('');
+            setFeedback(null);
+          }
+        }}
+        width="min(480px, 95vw)"
+        ariaLabel={modalMode === 'wipe' ? 'مسح بيانات العمليات والمبيعات' : 'ملء بيانات تجريبية مؤسسية'}
+      >
         <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 99999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '16px',
+          background: '#ffffff',
+          padding: '24px',
+          direction: 'rtl',
         }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '480px',
-            width: '100%',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            border: modalMode === 'wipe' ? '1px solid #fecdd3' : '1px solid #e2e8f0',
-            direction: 'rtl',
-          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
               <div style={{
                 width: '44px',
@@ -649,7 +645,7 @@ function DemoDataSandboxCard() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && password && !mutation.isPending) {
+                    if (e.key === 'Enter' && password && !mutation.isPending && modalMode) {
                       mutation.mutate({ mode: modalMode, pass: password });
                     }
                   }}
@@ -737,8 +733,8 @@ function DemoDataSandboxCard() {
 
               <Button
                 type="button"
-                disabled={!password || mutation.isPending}
-                onClick={() => mutation.mutate({ mode: modalMode, pass: password })}
+                disabled={!password || !modalMode || mutation.isPending}
+                onClick={() => modalMode && mutation.mutate({ mode: modalMode, pass: password })}
                 style={{
                   padding: '8px 22px',
                   background: modalMode === 'wipe' ? '#dc2626' : '#170e5e',
@@ -753,9 +749,8 @@ function DemoDataSandboxCard() {
                 {mutation.isPending ? 'جاري التنفيذ وأخذ النسخة...' : modalMode === 'wipe' ? 'تأكيد المسح والتصفير' : 'تأكيد ملء البيانات التجريبية'}
               </Button>
             </div>
-          </div>
         </div>
-      )}
+      </DialogShell>
     </>
   );
 }
@@ -950,28 +945,23 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
       </QueryCard>
 
       {/* Confirmation Modal */}
-      {modalMode && (
+      <DialogShell
+        open={Boolean(modalMode)}
+        onClose={() => {
+          if (!mutation.isPending) {
+            setModalMode(null);
+            setPassword('');
+            setFeedback(null);
+          }
+        }}
+        width="min(500px, 95vw)"
+        ariaLabel={modalMode === 'wipe_catalog' ? 'مسح وحذف سجل الأصناف بالكامل' : 'تصفير أرصدة المخزون وحركات البيع'}
+      >
         <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 99999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '16px',
+          background: '#ffffff',
+          padding: '24px',
+          direction: 'rtl',
         }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '500px',
-            width: '100%',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            border: modalMode === 'wipe_catalog' ? '1px solid #fecdd3' : '1px solid #e2e8f0',
-            direction: 'rtl',
-          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
               <div style={{
                 width: '44px',
@@ -1036,7 +1026,7 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && password && !mutation.isPending) {
+                    if (e.key === 'Enter' && password && !mutation.isPending && (modalMode === 'reset_stock' || modalMode === 'wipe_catalog')) {
                       mutation.mutate({ mode: modalMode, pass: password });
                     }
                   }}
@@ -1124,8 +1114,8 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
 
               <Button
                 type="button"
-                disabled={!password || mutation.isPending}
-                onClick={() => mutation.mutate({ mode: modalMode, pass: password })}
+                disabled={!password || !modalMode || mutation.isPending}
+                onClick={() => (modalMode === 'reset_stock' || modalMode === 'wipe_catalog') && mutation.mutate({ mode: modalMode, pass: password })}
                 style={{
                   padding: '8px 22px',
                   background: modalMode === 'wipe_catalog' ? '#dc2626' : '#170e5e',
@@ -1140,9 +1130,8 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
                 {mutation.isPending ? 'جاري التنفيذ...' : modalMode === 'reset_stock' ? 'تأكيد تصفير الأرصدة' : 'تأكيد مسح الأصناف'}
               </Button>
             </div>
-          </div>
         </div>
-      )}
+      </DialogShell>
     </>
   );
 }

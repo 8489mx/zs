@@ -4,6 +4,7 @@ import { bostaApi, BostaShipmentResult } from '../api/bosta.api';
 import { OnlineOrderRecord } from '../types/storefront.types';
 import { formatCurrency } from '@/lib/format';
 import { Button } from '@/shared/ui/button';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import {
   PackageIcon,
   XIcon,
@@ -65,39 +66,27 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
   };
 
   return (
-    <div
-      dir="rtl"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        padding: '16px',
-      }}
+    <DialogShell
+      open={true}
+      onClose={onClose}
+      width="min(580px, 95vw)"
+      ariaLabel="شحن الطلب عبر بوسطة"
     >
       <div
+        dir="rtl"
         style={{
-          background: '#ffffff',
-          borderRadius: '16px',
-          width: '100%',
-          maxWidth: '560px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
           display: 'flex',
           flexDirection: 'column',
           maxHeight: '90vh',
           overflow: 'hidden',
+          background: '#ffffff',
         }}
       >
         {/* Modal Header */}
         <div
           style={{
-            padding: '18px 24px',
-            borderBottom: '1px solid #f1f5f9',
+            padding: '16px 20px',
+            borderBottom: '1px solid #e2e8f0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -105,21 +94,22 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <PackageIcon size={24} color="#170e5e" />
+            <PackageIcon size={22} color="#170e5e" />
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+              <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: '#170e5e' }}>
                 شحن الطلب عبر بوسطة (Bosta Express)
               </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
                 طلب رقم #{order.orderNumber} • العميل: {order.customerName}
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             style={{
-              background: '#f1f5f9',
-              border: 'none',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
               borderRadius: '8px',
               width: '32px',
               height: '32px',
@@ -128,10 +118,9 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
               alignItems: 'center',
               justifyContent: 'center',
               color: '#64748b',
-              fontWeight: 'bold',
             }}
           >
-            <XIcon size={14} />
+            <XIcon size={16} />
           </button>
         </div>
 
@@ -457,6 +446,6 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
           </div>
         )}
       </div>
-    </div>
+    </DialogShell>
   );
 }

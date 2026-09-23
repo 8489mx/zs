@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import {
@@ -586,59 +587,54 @@ export function AccountingFiscalYearsPage() {
       </div>
 
       {/* Delete Confirmation Dialog */}
-      {yearToDelete && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-        >
+      <StandardDialog
+        open={!!yearToDelete}
+        onClose={() => setYearToDelete(null)}
+        title="تأكيد حذف السنة المالية"
+        subtitle="حذف النطاق الزمني للسنة المالية دون المساس بالقيود"
+        width="440px"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
           <div
             style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              padding: '24px',
-              maxWidth: '440px',
-              width: '90%',
-              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: '#fee2e2',
+              color: '#dc2626',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-              <AlertCircleIcon size={24} color="#b91c1c" />
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                تأكيد حذف السنة المالية
-              </h3>
-            </div>
-            <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6, marginBottom: '20px' }}>
-              هل أنت متأكد من حذف السنة المالية «{yearToDelete.name}»؟ لن يتم حذف أي قيود أو حركات يومية، ولكن سيتم حذف النطاق الزمني للسنة المالية.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setYearToDelete(null)}
-                disabled={deleteMutation.isPending}
-              >
-                إلغاء
-              </Button>
-              <Button
-                type="button"
-                variant="danger"
-                onClick={() => deleteMutation.mutate(yearToDelete.id)}
-                disabled={deleteMutation.isPending}
-                style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
-              >
-                {deleteMutation.isPending ? 'جاري الحذف...' : 'تأكيد الحذف'}
-              </Button>
-            </div>
+            <AlertCircleIcon size={22} color="#dc2626" />
           </div>
+          <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6, margin: 0 }}>
+            هل أنت متأكد من حذف السنة المالية «{yearToDelete?.name}»؟ لن يتم حذف أي قيود أو حركات يومية، ولكن سيتم حذف النطاق الزمني للسنة المالية.
+          </p>
         </div>
-      )}
+
+        <StandardDialogFooter>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setYearToDelete(null)}
+            disabled={deleteMutation.isPending}
+          >
+            إلغاء
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={() => yearToDelete && deleteMutation.mutate(yearToDelete.id)}
+            disabled={deleteMutation.isPending}
+            style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
+          >
+            {deleteMutation.isPending ? 'جاري الحذف...' : 'تأكيد الحذف'}
+          </Button>
+        </StandardDialogFooter>
+      </StandardDialog>
 
       {/* Modals */}
       <CreateFiscalYearModal

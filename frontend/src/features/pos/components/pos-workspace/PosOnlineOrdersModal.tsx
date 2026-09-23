@@ -8,6 +8,8 @@ import { loadOnlineOrderIntoPosCart } from '@/features/storefront/lib/storefront
 import type { OnlineOrderRecord } from '@/features/storefront/types/storefront.types';
 import { Button } from '@/shared/ui/button';
 import { CheckCircleIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { DialogShell } from '@/shared/components/dialog-shell';
+import { toast } from '@/shared/components/system-alert';
 
 interface PosOnlineOrdersModalProps {
   isOpen: boolean;
@@ -44,36 +46,23 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
   const orders = ordersQuery.data?.orders || [];
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 99999,
-        background: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(3px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-        direction: 'rtl',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '560px',
-          maxHeight: '85vh',
-          background: '#ffffff',
-          borderRadius: '16px',
-          boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.3)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          border: '1px solid #e2e8f0',
-        }}
-        onClick={(e) => e.stopPropagation()}
+    <>
+      <DialogShell
+        open={isOpen}
+        onClose={onClose}
+        width="min(580px, 95vw)"
+        ariaLabel="طلبات المتجر الإلكتروني الواردة"
       >
+        <div
+          dir="rtl"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            maxHeight: '85vh',
+            overflow: 'hidden',
+            background: '#ffffff',
+          }}
+        >
         {/* Header */}
         <div
           style={{
@@ -336,7 +325,8 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
             <span>←</span>
           </Link>
         </div>
-      </div>
+        </div>
+      </DialogShell>
 
       <ConvertDeliveryModal
         order={deliveryModalOrder}
@@ -346,13 +336,12 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
           queryClient.invalidateQueries({ queryKey: ['pos-online-orders-quick'] });
           queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders-count'] });
           const custMsg = data.isNewCustomer
-            ? `\nتم تسجيل (${data.customerName}) كعميل جديد في النظام تلقائياً!`
-            : `\nالعميل: ${data.customerName}`;
-          const repMsg = data.deliveryRepName ? `\nالمندوب: ${data.deliveryRepName}` : '';
-          alert(`تم تحويل الطلب بنجاح إلى فاتورة مبيعات دليفري رقم #${data.saleId} وتخصيم المخزون!${custMsg}${repMsg}`);
+            ? ` وتم تسجيل (${data.customerName}) كعميل جديد في النظام!`
+            : ` (العميل: ${data.customerName})`;
+          toast.success(`تم تحويل الطلب بنجاح إلى فاتورة مبيعات دليفري رقم #${data.saleId}${custMsg}`);
         }}
         onLoadToPos={handleLoadToPos}
       />
-    </div>
+    </>
   );
 }

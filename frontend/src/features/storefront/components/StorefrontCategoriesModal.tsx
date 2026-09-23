@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { StorefrontCategory } from '../types/storefront.types';
 import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { IconFolder, IconClose, IconSearch, IconShoppingBag } from './StorefrontIcons';
+import { DialogShell } from '@/shared/components/dialog-shell';
 
 interface StorefrontCategoriesModalProps {
   isOpen: boolean;
@@ -31,34 +32,22 @@ export function StorefrontCategoriesModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        background: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(5px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-        direction: 'rtl',
-      }}
-      onClick={onClose}
+    <DialogShell
+      open={isOpen}
+      onClose={onClose}
+      width="min(900px, 95vw)"
+      ariaLabel="جميع أقسام وتصنيفات المتجر"
     >
       <div
         style={{
           background: '#ffffff',
-          borderRadius: '16px',
           width: '100%',
-          maxWidth: '900px',
           maxHeight: '88vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.25)',
           overflow: 'hidden',
+          direction: 'rtl',
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header with Search */}
         <div
@@ -312,6 +301,6 @@ export function StorefrontCategoriesModal({
           })}
         </div>
       </div>
-    </div>
+    </DialogShell>
   );
 }

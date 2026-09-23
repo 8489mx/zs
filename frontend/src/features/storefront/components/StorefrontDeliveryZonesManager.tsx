@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { StorefrontDeliveryZone, CreateDeliveryZonePayload } from '../types/storefront.types';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import {
   TruckIcon,
   BuildingIcon,
@@ -602,35 +603,19 @@ export function StorefrontDeliveryZonesManager() {
       )}
 
       {/* Create / Edit Zone Modal */}
-      {isModalOpen && (
+      <DialogShell
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        width="min(480px, 95vw)"
+        ariaLabel={editingZone ? 'تعديل منطقة التوصيل' : 'إضافة منطقة توصيل جديدة'}
+      >
         <div
+          dir="rtl"
           style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            background: 'rgba(15, 23, 42, 0.5)',
-            backdropFilter: 'blur(3px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-            direction: 'rtl',
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseModal();
+            background: '#ffffff',
+            overflow: 'hidden',
           }}
         >
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              width: '100%',
-              maxWidth: '480px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-              overflow: 'hidden',
-            }}
-          >
             {/* Modal Header */}
             <div
               style={{
@@ -861,9 +846,8 @@ export function StorefrontDeliveryZonesManager() {
                 </button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </DialogShell>
     </div>
   );
 }

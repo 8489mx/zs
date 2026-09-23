@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { demoDataApi, type SeedDemoDataResult } from '@/features/settings/api/demo-data.api';
 import { Button } from '@/shared/ui/button';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin } from '@/app/router/access';
 import {
@@ -816,58 +817,55 @@ export function SettingsDemoDataWizardSection() {
 
       {/* ─── Modal: Confirmation Password when DB is not empty ──────────────────── */}
       {showPasswordModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.6)',
-            backdropFilter: 'blur(3px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '20px',
+        <DialogShell
+          open={showPasswordModal}
+          onClose={() => {
+            setShowPasswordModal(false);
+            setPassword('');
+            setErrorMessage(null);
           }}
+          width="min(480px, 95vw)"
         >
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '28px',
-              maxWidth: '460px',
-              width: '100%',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
+          <div className="standard-dialog-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div
                 style={{
-                  width: '42px',
-                  height: '42px',
+                  width: '38px',
+                  height: '38px',
                   borderRadius: '10px',
                   background: '#fef3c7',
                   color: '#b45309',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '20px',
                 }}
               >
                 <ShieldCheckIcon size={20} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                <h3 className="standard-dialog-title" style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#170e5e' }}>
                   تأكيد استبدال البيانات الحالية
                 </h3>
-                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                <span className="standard-dialog-subtitle" style={{ fontSize: '0.8rem', color: '#64748b' }}>
                   يوجد حالياً بيانات مسجلة في المتجر، سيتم أخذ نسخة احتياطية تلقائياً
                 </span>
               </div>
             </div>
+            <button
+              type="button"
+              className="standard-dialog-close-btn"
+              onClick={() => {
+                setShowPasswordModal(false);
+                setPassword('');
+                setErrorMessage(null);
+              }}
+              aria-label="إغلاق"
+            >
+              <XIcon size={18} />
+            </button>
+          </div>
 
+          <div className="standard-dialog-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
               يرجى إدخال كلمة مرور السوبر أدمن لتأكيد تفريغ البيانات القديمة واستيراد نشاط (
               <strong>{selectedActivity?.name}</strong>):
@@ -886,6 +884,7 @@ export function SettingsDemoDataWizardSection() {
                 border: '1px solid #cbd5e1',
                 fontSize: '0.95rem',
                 outline: 'none',
+                boxSizing: 'border-box',
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && password.trim()) {
@@ -899,106 +898,101 @@ export function SettingsDemoDataWizardSection() {
                 {errorMessage}
               </div>
             )}
-
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '6px' }}>
-              <button
-                type="button"
-                disabled={seedMutation.isPending}
-                onClick={() => {
-                  setShowPasswordModal(false);
-                  setPassword('');
-                  setErrorMessage(null);
-                }}
-                style={{
-                  background: '#f1f5f9',
-                  color: '#475569',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '9px 18px',
-                  fontWeight: 700,
-                  fontSize: '0.86rem',
-                  cursor: 'pointer',
-                }}
-              >
-                إلغاء
-              </button>
-
-              <Button
-                type="button"
-                disabled={!password.trim() || seedMutation.isPending}
-                onClick={() => seedMutation.mutate({ activityType: selectedActivityKey, pass: password })}
-                style={{
-                  background: '#170e5e',
-                  color: '#ffffff',
-                  borderRadius: '8px',
-                  padding: '9px 20px',
-                  fontWeight: 800,
-                  fontSize: '0.86rem',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                {seedMutation.isPending ? 'جاري الاستيراد...' : 'تأكيد واستيراد الآن'}
-              </Button>
-            </div>
           </div>
-        </div>
+
+          <div className="standard-dialog-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '14px 20px', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+            <button
+              type="button"
+              disabled={seedMutation.isPending}
+              onClick={() => {
+                setShowPasswordModal(false);
+                setPassword('');
+                setErrorMessage(null);
+              }}
+              style={{
+                background: '#ffffff',
+                color: '#475569',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '9px 18px',
+                fontWeight: 700,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+              }}
+            >
+              إلغاء
+            </button>
+
+            <Button
+              type="button"
+              disabled={!password.trim() || seedMutation.isPending}
+              onClick={() => seedMutation.mutate({ activityType: selectedActivityKey, pass: password })}
+              style={{
+                background: '#170e5e',
+                color: '#ffffff',
+                borderRadius: '8px',
+                padding: '9px 20px',
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {seedMutation.isPending ? 'جاري الاستيراد...' : 'تأكيد واستيراد الآن'}
+            </Button>
+          </div>
+        </DialogShell>
       )}
 
       {/* ─── Modal: Clear Demo Data (Super Admin Only) ─────────────────────────── */}
       {isPlatform && showClearModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.6)',
-            backdropFilter: 'blur(3px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '20px',
+        <DialogShell
+          open={showClearModal}
+          onClose={() => {
+            setShowClearModal(false);
+            setClearPassword('');
           }}
+          width="min(480px, 95vw)"
         >
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '28px',
-              maxWidth: '460px',
-              width: '100%',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
+          <div className="standard-dialog-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div
                 style={{
-                  width: '42px',
-                  height: '42px',
+                  width: '38px',
+                  height: '38px',
                   borderRadius: '10px',
                   background: '#fee2e2',
                   color: '#dc2626',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '20px',
                 }}
               >
                 <Trash2Icon size={20} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                <h3 className="standard-dialog-title" style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#170e5e' }}>
                   تفريغ الأصناف والبيانات التجريبية
                 </h3>
-                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                <span className="standard-dialog-subtitle" style={{ fontSize: '0.8rem', color: '#64748b' }}>
                   سيتم حذف الأصناف والفواتير التجريبية فقط بأمان
                 </span>
               </div>
             </div>
+            <button
+              type="button"
+              className="standard-dialog-close-btn"
+              onClick={() => {
+                setShowClearModal(false);
+                setClearPassword('');
+              }}
+              aria-label="إغلاق"
+            >
+              <XIcon size={18} />
+            </button>
+          </div>
 
+          <div className="standard-dialog-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
               سيتم إزالة كافة الأصناف والعملاء والموردين التجريبيين الذين تم استيرادهم بواسطة المعالج، وتهيئة المخزن للعمل الحقيقي. أدخل كلمة مرور الأدمن للتأكيد:
             </p>
@@ -1015,101 +1009,79 @@ export function SettingsDemoDataWizardSection() {
                 border: '1px solid #cbd5e1',
                 fontSize: '0.95rem',
                 outline: 'none',
+                boxSizing: 'border-box',
               }}
             />
-
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '6px' }}>
-              <button
-                type="button"
-                disabled={clearMutation.isPending}
-                onClick={() => {
-                  setShowClearModal(false);
-                  setClearPassword('');
-                }}
-                style={{
-                  background: '#f1f5f9',
-                  color: '#475569',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '9px 18px',
-                  fontWeight: 700,
-                  fontSize: '0.86rem',
-                  cursor: 'pointer',
-                }}
-              >
-                إلغاء
-              </button>
-
-              <button
-                type="button"
-                disabled={clearMutation.isPending}
-                onClick={() => clearMutation.mutate(clearPassword)}
-                style={{
-                  background: '#dc2626',
-                  color: '#ffffff',
-                  borderRadius: '8px',
-                  padding: '9px 20px',
-                  fontWeight: 800,
-                  fontSize: '0.86rem',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                {clearMutation.isPending ? 'جاري الحذف...' : 'تأكيد الحذف والتنظيف'}
-              </button>
-            </div>
           </div>
-        </div>
+
+          <div className="standard-dialog-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '14px 20px', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+            <button
+              type="button"
+              disabled={clearMutation.isPending}
+              onClick={() => {
+                setShowClearModal(false);
+                setClearPassword('');
+              }}
+              style={{
+                background: '#ffffff',
+                color: '#475569',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '9px 18px',
+                fontWeight: 700,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+              }}
+            >
+              إلغاء
+            </button>
+
+            <button
+              type="button"
+              disabled={clearMutation.isPending}
+              onClick={() => clearMutation.mutate(clearPassword)}
+              style={{
+                background: '#dc2626',
+                color: '#ffffff',
+                borderRadius: '8px',
+                padding: '9px 20px',
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {clearMutation.isPending ? 'جاري الحذف...' : 'تأكيد الحذف والتنظيف'}
+            </button>
+          </div>
+        </DialogShell>
       )}
 
       {/* ─── Modal: Success Celebration Dialog ───────────────────────────────────── */}
       {successResult && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.6)',
-            backdropFilter: 'blur(3px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '20px',
-          }}
+        <DialogShell
+          open={!!successResult}
+          onClose={() => setSuccessResult(null)}
+          width="min(520px, 95vw)"
         >
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '20px',
-              padding: '32px',
-              maxWidth: '520px',
-              width: '100%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              gap: '18px',
-            }}
-          >
+          <div className="standard-dialog-body" style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '18px' }}>
             <div
               style={{
-                width: '68px',
-                height: '68px',
+                width: '64px',
+                height: '64px',
                 borderRadius: '50%',
                 background: '#ecfdf5',
                 color: '#10b981',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '34px',
               }}
             >
               <CheckCircleIcon size={36} color="#10b981" />
             </div>
 
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#0f172a' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
                 تم استيراد البيانات التجريبية بنجاح!
               </h3>
               <p style={{ margin: '6px 0 0', fontSize: '0.9rem', color: '#64748b' }}>
@@ -1231,7 +1203,7 @@ export function SettingsDemoDataWizardSection() {
               </button>
             </div>
           </div>
-        </div>
+        </DialogShell>
       )}
     </div>
   );

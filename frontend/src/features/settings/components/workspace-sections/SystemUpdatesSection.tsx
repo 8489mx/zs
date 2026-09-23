@@ -622,32 +622,21 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
 
       {/* 3. Update Check Result Modal - Luxury Enterprise Standard */}
       {updateCheckResult && updateCheckResult.open && (
-        <ClientPortal targetId="root">
+        <DialogShell
+          open={Boolean(updateCheckResult && updateCheckResult.open)}
+          onClose={() => setUpdateCheckResult(null)}
+          width="min(540px, 95vw)"
+          ariaLabel="نتيجة فحص التحديثات"
+        >
           <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            zIndex: 999999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px',
-            animation: 'fadeIn 0.2s ease'
+            width: '100%',
+            background: '#ffffff',
+            overflow: 'hidden',
+            textAlign: 'right',
+            color: '#0f172a',
+            position: 'relative',
+            direction: 'rtl',
           }}>
-            <div style={{
-              width: '100%',
-              maxWidth: '540px',
-              background: '#ffffff',
-              borderRadius: '20px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05)',
-              overflow: 'hidden',
-              textAlign: 'right',
-              color: '#0f172a',
-              position: 'relative'
-            }}>
               <div style={{ padding: '24px 28px 26px' }}>
                 {/* Header with Brand & Close */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
@@ -844,39 +833,27 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                   </div>
                 )}
               </div>
-            </div>
           </div>
-        </ClientPortal>
+        </DialogShell>
       )}
 
       {/* 4. Local ZIP Update Modal - Luxury Enterprise Standard */}
       {localUpdateState.open && (
-        <ClientPortal targetId="root">
+        <DialogShell
+          open={localUpdateState.open}
+          onClose={() => localUpdateState.status !== 'uploading' && setLocalUpdateState(s => ({ ...s, open: false }))}
+          width="min(540px, 95vw)"
+          ariaLabel="تطبيق حزمة التحديث"
+        >
           <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            zIndex: 999999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px',
-            animation: 'fadeIn 0.2s ease'
+            width: '100%',
+            background: '#ffffff',
+            overflow: 'hidden',
+            textAlign: 'right',
+            color: '#0f172a',
+            position: 'relative',
+            direction: 'rtl',
           }}>
-            <div style={{
-              width: '100%',
-              maxWidth: '540px',
-              background: '#ffffff',
-              borderRadius: '20px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05)',
-              overflow: 'hidden',
-              textAlign: 'right',
-              color: '#0f172a',
-              position: 'relative'
-            }}>
               <div style={{ padding: '24px 28px 26px' }}>
                 {/* Header with Brand & Close */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
@@ -1137,9 +1114,8 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                   </div>
                 )}
               </div>
-            </div>
           </div>
-        </ClientPortal>
+        </DialogShell>
       )}
     </div>
   );

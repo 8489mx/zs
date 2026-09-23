@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
+import { DialogShell } from '@/shared/components/dialog-shell';
+import { toast } from '@/shared/components/system-alert';
 import { formatDateTimeArabic } from '@/lib/format';
 import {
   marketplaceSyncApi,
@@ -977,33 +979,22 @@ export const SettingsMarketplacesSection: React.FC = () => {
       ) : null}
 
       {/* MODAL: ADD SKU MAPPING */}
-      {showAddModal ? (
+      <DialogShell
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        width="min(520px, 95vw)"
+        ariaLabel="ربط صنف بالمنصات الإلكترونية"
+      >
         <div
+          dir="rtl"
           style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.45)',
+            background: '#ffffff',
+            padding: '24px',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '16px',
+            flexDirection: 'column',
+            gap: '16px',
           }}
         >
-          <div
-            dir="rtl"
-            style={{
-              background: '#ffffff',
-              borderRadius: '14px',
-              padding: '24px',
-              width: '100%',
-              maxWidth: '520px',
-              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
                 ربط صنف مع أمازون أو نون (Add Marketplace SKU)
@@ -1080,7 +1071,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
                 variant="primary"
                 onClick={() => {
                   if (!newMapping.productId || !newMapping.marketplaceSku) {
-                    alert('يرجى إدخال معرّف الصنف وكود المنصة');
+                    toast.error('يرجى إدخال معرّف الصنف وكود المنصة');
                     return;
                   }
                   addMappingMutation.mutate({
@@ -1099,9 +1090,8 @@ export const SettingsMarketplacesSection: React.FC = () => {
                 {addMappingMutation.isPending ? 'جاري الحفظ...' : 'حفظ وتفعيل الربط'}
               </Button>
             </div>
-          </div>
         </div>
-      ) : null}
+      </DialogShell>
     </div>
   );
 };

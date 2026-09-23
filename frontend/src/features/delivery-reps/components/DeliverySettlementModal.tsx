@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { DeliveryOrder, SettleOrderPayload } from '../api/delivery-reps.api';
 import { Button } from '@/shared/ui/button';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { XIcon, Trash2Icon, CameraIcon, MapPinIcon } from '@/shared/components/icons/AppIcons';
 
 interface DeliverySettlementModalProps {
@@ -157,71 +158,59 @@ export function DeliverySettlementModal({
   };
 
   return (
-    <div
-      dir="rtl"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 10005,
-        background: 'rgba(15, 23, 42, 0.75)',
-        backdropFilter: 'blur(5px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '14px',
-        animation: 'fadeIn 0.2s ease',
-      }}
+    <DialogShell
+      open={isOpen && Boolean(order)}
+      onClose={onClose}
+      width="min(500px, 95vw)"
+      ariaLabel="تأكيد تسليم وتحصيل الشحنة"
     >
       <div
+        dir="rtl"
         style={{
           width: '100%',
-          maxWidth: '480px',
-          maxHeight: 'min(94vh, 750px)',
+          maxHeight: 'min(92vh, 760px)',
           background: '#ffffff',
-          borderRadius: '18px',
-          boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          border: '1px solid #cbd5e1',
         }}
       >
         {/* Header */}
         <div
           style={{
             padding: '16px 20px',
-            background: '#16a34a',
-            color: '#ffffff',
+            background: '#ffffff',
+            borderBottom: '1px solid #e2e8f0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
           <div>
-            <div style={{ fontSize: '15px', fontWeight: 900 }}>تأكيد تسليم وتحصيل الشحنة</div>
-            <div style={{ fontSize: '12px', opacity: 0.9 }}>
-              طلب رقم: #{order.docNo} • {order.customerName}
+            <div style={{ fontSize: '16px', fontWeight: 800, color: '#170e5e' }}>تأكيد تسليم وتحصيل الشحنة</div>
+            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+              طلب رقم: #{order?.docNo} • {order?.customerName}
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             style={{
-              background: 'rgba(255,255,255,0.2)',
-              border: 'none',
-              borderRadius: '50%',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
               width: '32px',
               height: '32px',
-              color: '#ffffff',
-              fontSize: '16px',
+              color: '#64748b',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <XIcon size={16} color="#ffffff" />
+            <XIcon size={16} />
           </button>
+        </div>
         </div>
 
         {/* Modal Body */}
@@ -479,7 +468,6 @@ export function DeliverySettlementModal({
             {isSubmitting ? 'جاري التأكيد...' : 'تأكيد التسليم والتحصيل'}
           </Button>
         </div>
-      </div>
-    </div>
+    </DialogShell>
   );
 }

@@ -2,6 +2,8 @@ import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState } from 'react';
 import { employeePortalApi } from '../../api/employee-portal.api';
 import { CreditCardIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { DialogShell } from '@/shared/components/dialog-shell';
+import { toast } from '@/shared/components/system-alert';
 
 export interface PortalAdvanceModalProps {
   open: boolean;
@@ -25,7 +27,7 @@ export function PortalAdvanceModal({
     e.preventDefault();
     const amt = Number(advanceAmount);
     if (!amt || amt <= 0) {
-      alert('يرجى إدخال مبلغ سلفة صالح');
+      toast.error('يرجى إدخال مبلغ سلفة صالح');
       return;
     }
 
@@ -41,38 +43,26 @@ export function PortalAdvanceModal({
       onClose();
       onSuccess(res.message);
     } catch (err: any) {
-      alert(err?.response?.data?.message || err?.message || 'تعذر تقديم طلب السلفة');
+      toast.error(err?.response?.data?.message || err?.message || 'تعذر تقديم طلب السلفة');
     } finally {
       setAdvanceSubmitting(false);
     }
   }
 
   return (
-    <div
-      dir="rtl"
-      style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 100,
-            padding: '20px',
-          }}
-        >
-          <div
-            className="portal-modal-card"
-            style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '18px',
-              border: '1px solid #e2e8f0',
-              padding: '28px',
-              maxWidth: '460px',
-              width: '100%',
-              boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.2)',
-            }}
-          >
+    <DialogShell
+      open={open}
+      onClose={onClose}
+      width="min(480px, 95vw)"
+      ariaLabel="طلب سلفة مالية من الراتب"
+    >
+      <div
+        dir="rtl"
+        style={{
+          backgroundColor: '#ffffff',
+          padding: '24px',
+        }}
+      >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CreditCardIcon size={20} color="#170e5e" />
@@ -195,6 +185,6 @@ export function PortalAdvanceModal({
               </div>
             </form>
           </div>
-        </div>
+    </DialogShell>
   );
 }

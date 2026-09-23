@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { Field } from '@/shared/ui/field';
@@ -593,46 +594,31 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
 
         {/* نافذة اعتماد وتوثيق قرار الاستشاري */}
         {reviewingItem && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(0, 0, 0, 0.45)',
-              zIndex: 9999,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+          <DialogShell
+            open={!!reviewingItem}
+            onClose={() => setReviewingItem(null)}
+            width="min(500px, 92vw)"
           >
-            <div
-              style={{
-                background: '#ffffff',
-                borderRadius: '12px',
-                width: 'min(500px, 92vw)',
-                padding: '20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '14px',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
-              }}
-              dir="rtl"
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#170e5e', margin: 0 }}>
-                  توثيق قرار الاستشاري - {reviewingItem.requestNumber}
+            <div className="standard-dialog-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', padding: '16px 20px' }}>
+              <div>
+                <h3 className="standard-dialog-title" style={{ fontSize: '1rem', fontWeight: 800, color: '#170e5e', margin: 0 }}>
+                  توثيق قرار الاستشاري
                 </h3>
-                <button
-                  type="button"
-                  onClick={() => setReviewingItem(null)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
-                >
-                  <AppIcons.X size={18} />
-                </button>
+                <span className="standard-dialog-subtitle" style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  طلب فحص رقم {reviewingItem.requestNumber}
+                </span>
               </div>
+              <button
+                type="button"
+                className="standard-dialog-close-btn"
+                onClick={() => setReviewingItem(null)}
+                aria-label="إغلاق"
+              >
+                <AppIcons.X size={18} />
+              </button>
+            </div>
 
+            <div className="standard-dialog-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <Field label="قرار المعاينة والاستلام *">
                 <CustomSelect
                   value={reviewStatus}
@@ -651,7 +637,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                   value={reviewConsultantName}
                   onChange={(e) => setReviewConsultantName(e.target.value)}
                   placeholder="اسم الاستشاري الممضي على المحضر..."
-                  style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem' }}
+                  style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', boxSizing: 'border-box' }}
                 />
               </Field>
 
@@ -661,47 +647,49 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
                   placeholder="اكتب التوجيهات الفنية أو شروط الصب أو أسباب الرفض بدقة..."
-                  style={{ width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '8px 10px', fontSize: '0.8125rem', resize: 'vertical' }}
+                  style={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 10px', fontSize: '0.8125rem', resize: 'vertical', boxSizing: 'border-box' }}
                 />
               </Field>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
-                <button
-                  type="button"
-                  onClick={() => setReviewingItem(null)}
-                  style={{
-                    height: '34px',
-                    padding: '0 14px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    background: '#ffffff',
-                    color: '#475569',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="button"
-                  disabled={isSavingDecision}
-                  onClick={handleSaveDecision}
-                  style={{
-                    height: '34px',
-                    padding: '0 18px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: '#170e5e',
-                    color: '#ffffff',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {isSavingDecision ? 'جاري الحفظ...' : 'تثبيت القرار الهندسي'}
-                </button>
-              </div>
             </div>
-          </div>
+
+            <div className="standard-dialog-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '14px 20px', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+              <button
+                type="button"
+                onClick={() => setReviewingItem(null)}
+                style={{
+                  height: '36px',
+                  padding: '0 16px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#475569',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                }}
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                disabled={isSavingDecision}
+                onClick={handleSaveDecision}
+                style={{
+                  height: '36px',
+                  padding: '0 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {isSavingDecision ? 'جاري الحفظ...' : 'تثبيت القرار الهندسي'}
+              </button>
+            </div>
+          </DialogShell>
         )}
       </div>
     </StandardDialog>

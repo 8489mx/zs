@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Button } from '@/shared/ui/button';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
 import { formatCurrency } from '@/lib/format';
 import { formatSalePaymentText, paymentLabel } from '@/lib/pos-printing/shared';
@@ -160,43 +160,22 @@ export function PosSaleSuccessDialog({
     };
   }, [onClose, onNewSale, onPrintA4, onPrintDualReceipt, onPrintReceipt, open, sale, triggerWhatsapp]);
 
-  if (!open || !sale || typeof document === 'undefined') return null;
+  if (!open || !sale) return null;
 
-  return createPortal(
-    <div
-      className="dialog-overlay pos-sale-success-modal-overlay"
-      role="presentation"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 10000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        background: 'rgba(15, 23, 42, 0.45)',
-        backdropFilter: 'blur(3px)',
-        WebkitBackdropFilter: 'blur(3px)',
-      }}
+  return (
+    <DialogShell
+      open={open}
+      onClose={onClose}
+      width="min(760px, 95vw)"
+      ariaLabel="تم البيع بنجاح"
     >
-      <section
+      <div
         className="pos-sale-success-modal-shell pos-sale-success-dialog"
         dir="rtl"
-        role="dialog"
-        aria-modal="true"
-        aria-label="تم البيع بنجاح"
         style={{
-          position: 'relative',
-          width: 'min(760px, calc(100vw - 32px))',
-          maxHeight: 'calc(100vh - 32px)',
+          maxHeight: 'calc(90vh - 32px)',
           overflowY: 'auto',
-          borderRadius: 8,
-          border: '1px solid rgba(148, 163, 184, 0.26)',
           background: '#ffffff',
-          boxShadow: '0 28px 70px rgba(15, 23, 42, 0.28)',
           padding: 18,
         }}
       >
@@ -445,8 +424,7 @@ export function PosSaleSuccessDialog({
             <Button type="button" variant="secondary" onClick={() => openWhatsapp(manualPhone)}>إرسال مرة واحدة F8</Button>
           </div>
         ) : null}
-      </section>
-    </div>,
-    document.body
+      </div>
+    </DialogShell>
   );
 }

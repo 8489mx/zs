@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { addonsApi, type ModifierGroup } from '@/shared/api/addons.api';
 import type { PosItem } from '@/features/pos/types/pos.types';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { XIcon, CheckIcon, AlertCircleIcon, LayersIcon } from '@/shared/components/icons/AppIcons';
 
 interface PosItemModifiersModalProps {
@@ -201,36 +201,22 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
     0
   );
 
-  return createPortal(
-    <div
-      className="modal-backdrop"
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        background: 'rgba(15, 23, 42, 0.45)',
-        backdropFilter: 'blur(2px)',
-      }}
+  return (
+    <DialogShell
+      open={open}
+      onClose={onClose}
+      width="min(750px, 96vw)"
+      ariaLabel="إضافات وتعديلات الصنف"
     >
       <div
         className="modal-surface"
-        onClick={e => e.stopPropagation()}
         style={{
-          width: '750px',
-          maxWidth: '96vw',
+          width: '100%',
           maxHeight: '92vh',
-          borderRadius: 16,
           background: '#ffffff',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          border: '1px solid #e2e8f0',
         }}
         dir="rtl"
       >
@@ -585,8 +571,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
           </div>
         </footer>
       </div>
-    </div>,
-    document.body
+    </DialogShell>
   );
 }
 

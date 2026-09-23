@@ -11,6 +11,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { formatCurrency } from '@/lib/format';
 
 import { systemAlert } from '@/shared/components/system-alert';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 
 export function TaxDispatcherPage() {
@@ -176,43 +177,46 @@ export function TaxDispatcherPage() {
         )}
 
         {/* Inspect ZATCA Modal */}
-        {selectedZatcaModal.open && (
+        <DialogShell
+          open={selectedZatcaModal.open}
+          onClose={() => setSelectedZatcaModal({ open: false, loading: false })}
+          width="min(850px, 95vw)"
+          ariaLabel="فحص حزمة الفاتورة ZATCA"
+        >
           <div style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
+            background: '#ffffff',
+            padding: '24px',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
+            flexDirection: 'column',
+            gap: '16px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            direction: 'rtl',
           }}>
-            <div style={{
-              background: '#fff',
-              borderRadius: '12px',
-              padding: '24px',
-              width: '100%',
-              maxWidth: '850px',
-              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              maxHeight: '90vh',
-              overflowY: 'auto'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                  فحص حزمة الفاتورة (ZATCA Phase 2) - #{selectedZatcaModal.invoiceNo}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setSelectedZatcaModal({ open: false, loading: false })}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
-                  aria-label="إغلاق"
-                >
-                  <XIcon size={16} />
-                </button>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: '#170e5e' }}>
+                فحص حزمة الفاتورة (ZATCA Phase 2) - #{selectedZatcaModal.invoiceNo}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSelectedZatcaModal({ open: false, loading: false })}
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  width: '32px',
+                  height: '32px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#64748b'
+                }}
+                aria-label="إغلاق"
+              >
+                <XIcon size={16} />
+              </button>
+            </div>
 
               {selectedZatcaModal.loading ? (
                 <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
@@ -255,9 +259,8 @@ export function TaxDispatcherPage() {
                   </div>
                 </div>
               ) : null}
-            </div>
           </div>
-        )}
+        </DialogShell>
       </main>
     </div>
   );

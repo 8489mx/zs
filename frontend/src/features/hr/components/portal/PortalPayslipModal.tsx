@@ -1,6 +1,7 @@
 import { formatCurrency } from '@/lib/format';
 import type { EmployeePayslipItem } from '../../api/employee-portal.api';
 import { ReceiptIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { DialogShell } from '@/shared/components/dialog-shell';
 
 export interface PortalPayslipModalProps {
   payslip: EmployeePayslipItem | null;
@@ -13,31 +14,19 @@ export function PortalPayslipModal({ payslip, onClose }: PortalPayslipModalProps
   const selectedPayslip = payslip;
 
   return (
-    <div
-      dir="rtl"
-      style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 100,
-            padding: '20px',
-          }}
-        >
-          <div
-            className="portal-modal-card"
-            style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '20px',
-              border: '1px solid #e2e8f0',
-              padding: '28px',
-              maxWidth: '520px',
-              width: '100%',
-              boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.2)',
-            }}
-          >
+    <DialogShell
+      open={Boolean(payslip)}
+      onClose={onClose}
+      width="min(520px, 95vw)"
+      ariaLabel={`قسيمة راتب شهر ${selectedPayslip.period}`}
+    >
+      <div
+        dir="rtl"
+        style={{
+          backgroundColor: '#ffffff',
+          padding: '24px',
+        }}
+      >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <ReceiptIcon size={22} color="#170e5e" />
@@ -129,6 +118,6 @@ export function PortalPayslipModal({ payslip, onClose }: PortalPayslipModalProps
               </div>
             </div>
           </div>
-        </div>
+    </DialogShell>
   );
 }

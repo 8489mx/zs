@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { StorefrontCoupon, CreateCouponPayload } from '../types/storefront.types';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import {
   TagIcon,
   ShoppingCartIcon,
@@ -536,33 +537,19 @@ export function StorefrontCouponsManager() {
       </div>
 
       {/* Create / Edit Coupon Modal */}
-      {isModalOpen && (
+      <DialogShell
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        width="min(480px, 95vw)"
+        ariaLabel={editingCoupon ? `تعديل الكوبون: ${editingCoupon.code}` : 'إنشاء كوبون خصم جديد'}
+      >
         <div
+          dir="rtl"
           style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 10000,
-            background: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
+            background: '#ffffff',
+            overflow: 'hidden',
           }}
-          onClick={handleCloseModal}
         >
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '480px',
-              background: '#ffffff',
-              borderRadius: '14px',
-              boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
-              overflow: 'hidden',
-              border: '1px solid #e2e8f0',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
             {/* Modal Header */}
             <div
               style={{
@@ -877,9 +864,8 @@ export function StorefrontCouponsManager() {
                 </button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </DialogShell>
     </div>
   );
 }
