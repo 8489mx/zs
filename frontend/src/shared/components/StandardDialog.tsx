@@ -29,6 +29,7 @@ export interface StandardDialogProps {
   shellClassName?: string;
   containerStyle?: CSSProperties;
   bodyStyle?: CSSProperties;
+  autoFocus?: boolean;
 }
 
 /**
@@ -65,6 +66,7 @@ export function StandardDialog({
   shellClassName = '',
   containerStyle,
   bodyStyle,
+  autoFocus = true,
 }: StandardDialogProps) {
   const isVisible = open !== undefined ? open : Boolean(isOpen);
   if (!isVisible) return null;
@@ -105,6 +107,7 @@ export function StandardDialog({
       zIndex={zIndex}
       shellClassName={finalShellClass}
       ariaLabel={ariaLabel || (typeof title === 'string' ? title : 'نافذة منبثقة')}
+      autoFocus={autoFocus}
     >
       <div
         className={`standard-dialog-container ${compact ? 'standard-dialog-compact' : ''}`}

@@ -168,6 +168,7 @@ export function PosSaleSuccessDialog({
       onClose={onClose}
       width="min(760px, 95vw)"
       ariaLabel="تم البيع بنجاح"
+      autoFocus={false}
     >
       <div
         className="pos-sale-success-modal-shell pos-sale-success-dialog"

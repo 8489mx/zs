@@ -17,6 +17,7 @@ interface DialogShellProps {
   ariaLabel?: string;
   overlayClassName?: string;
   shellClassName?: string;
+  autoFocus?: boolean;
 }
 
 function getFocusableElements(root: HTMLElement) {
@@ -41,6 +42,7 @@ export function DialogShell({
   ariaLabel,
   overlayClassName = '',
   shellClassName = '',
+  autoFocus = true,
 }: DialogShellProps) {
   const isVisible = open !== undefined ? open : Boolean(isOpen);
   const shellRef = useRef<HTMLDivElement | null>(null);
@@ -60,6 +62,8 @@ export function DialogShell({
     const focusDialog = () => {
       const shell = shellRef.current;
       if (!shell) return;
+      // Do not steal focus if an element inside the dialog shell is already focused
+      if (shell.contains(document.activeElement) && document.activeElement !== shell) return;
       const target =
         shell.querySelector<HTMLElement>('[data-autofocus]') ||
         shell.querySelector<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]):not(.dialog-shell-close-btn)');
@@ -70,7 +74,10 @@ export function DialogShell({
       }
     };
 
-    const frameId = window.requestAnimationFrame(focusDialog);
+    let frameId: number | null = null;
+    if (autoFocus) {
+      frameId = window.requestAnimationFrame(focusDialog);
+    }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -105,12 +112,12 @@ export function DialogShell({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      window.cancelAnimationFrame(frameId);
+      if (frameId !== null) window.cancelAnimationFrame(frameId);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeyDown);
       previousActiveElementRef.current?.focus();
     };
-  }, [isVisible]);
+  }, [isVisible, autoFocus]);
 
   if (!isVisible || typeof document === 'undefined') return null;
 
