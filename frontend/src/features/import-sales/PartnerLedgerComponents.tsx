@@ -7,6 +7,7 @@ import { usePartnerLedgerQuery, useRecordCapitalTransactionMutation, Partner } f
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { useQuery } from '@tanstack/react-query';
 import { http } from '@/lib/http';
+import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 export function CapitalTransactionDialog({ 
   partner, 

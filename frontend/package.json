@@ -39,6 +39,7 @@
     "qa:phase58": "node scripts/run-phase60-qa.mjs",
     "qa:phase59": "node scripts/run-phase60-qa.mjs",
     "qa:phase60": "node scripts/run-phase60-qa.mjs",
+    "typecheck": "node ./node_modules/typescript/lib/tsc.js -b",
     "lint": "node ./node_modules/eslint/bin/eslint.js .",
     "lint:fix": "node ./node_modules/eslint/bin/eslint.js . --fix",
     "qa:architecture": "node scripts/feature-structure-check.mjs && node scripts/feature-boundary-check.mjs && node scripts/import-layer-check.mjs && node scripts/dev-proxy-check.mjs && node scripts/password-policy-sync-check.mjs && node scripts/literal-interpolation-check.mjs && node scripts/auth-setup-hardening-check.mjs && node scripts/auth-ui-test-coverage-check.mjs",
