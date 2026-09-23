@@ -75,6 +75,17 @@ export class TrialSignupMailService {
     const safePassword = escapeHtml(payload.temporaryPassword);
     const safeLoginUrl = escapeHtml(loginUrl);
     const year = new Date().getFullYear();
+    const logoUrl = 'https://app.zsystemai.com/logo_cropped.png';
+
+    // Brand tokens mirrored from frontend/src/styles/partials/base.css — keep this in sync
+    // with that file so system emails always match the app's own look.
+    const primary = '#170c5c';
+    const primaryTint = 'rgba(23, 12, 92, 0.08)';
+    const text = '#1e293b';
+    const muted = '#64748b';
+    const border = '#e2e8f0';
+    const surface2 = '#f8fafc';
+    const font = "'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif";
 
     return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -82,121 +93,119 @@ export class TrialSignupMailService {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>بيانات الدخول إلى النسخة التجريبية - Z Systems Pro</title>
+  <!--[if !mso]><!-->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!--<![endif]-->
 </head>
-<body style="margin: 0; padding: 24px 12px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; -webkit-font-smoothing: antialiased;">
-  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03); border: 1px solid #e2e8f0;">
-    
+<body style="margin: 0; padding: 28px 12px; background-color: ${surface2}; font-family: ${font}; color: ${text}; -webkit-font-smoothing: antialiased;">
+  <div style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid ${border}; box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);">
+
     <!-- HEADER -->
-    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #312e81 100%); padding: 36px 24px; text-align: center;">
-      <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 0.5px;">Z SYSTEMS PRO</h1>
-      <p style="margin: 8px 0 0 0; color: #c7d2fe; font-size: 13px; font-weight: 500;">المنظومة المحاسبية والإدارية السحابية المتكاملة • Cloud ERP</p>
-      <div style="display: inline-block; margin-top: 16px; padding: 6px 18px; background-color: rgba(99, 102, 241, 0.25); border: 1px solid rgba(199, 210, 254, 0.35); border-radius: 20px; color: #ffffff; font-size: 12px; font-weight: 600;">
-        تفعيل النسخة التجريبية | Free Trial Active
-      </div>
+    <div style="padding: 32px 28px 24px; text-align: center; border-bottom: 1px solid ${border};">
+      <img src="${logoUrl}" alt="Z Systems" width="56" height="56" style="display: block; margin: 0 auto 12px; border: 0;" />
+      <div style="font-size: 19px; font-weight: 800; color: ${primary}; letter-spacing: 0.2px;">Z Systems Pro</div>
+      <div style="margin-top: 4px; font-size: 12px; font-weight: 600; color: ${muted};">المنظومة المحاسبية والإدارية السحابية المتكاملة</div>
     </div>
 
     <!-- MAIN BODY -->
-    <div style="padding: 32px 28px;">
-      
+    <div style="padding: 28px 28px 8px;">
+
       <!-- ARABIC SECTION -->
       <div dir="rtl" style="text-align: right;">
-        <h2 style="margin: 0 0 12px 0; color: #0f172a; font-size: 20px; font-weight: 700;">مرحباً ${safeBusinessName}</h2>
-        <p style="margin: 0 0 18px 0; color: #334155; font-size: 15px; line-height: 1.7;">
-          يسعدنا انضمامك إلى <strong>Z Systems Pro</strong>. تم تجهيز وتفعيل مساحة العمل السحابية الخاصة بنشاطك التجاري بنجاح، ونسختك التجريبية جاهزة للاستخدام الفوري بكافة الصلاحيات والمميزات لمدة <strong>${trialDays} أيام</strong>.
+        <div style="display: inline-block; margin-bottom: 16px; padding: 5px 14px; background-color: ${primaryTint}; border-radius: 6px; color: ${primary}; font-size: 12px; font-weight: 700;">
+          تفعيل النسخة التجريبية — ${trialDays} يوم
+        </div>
+        <h1 style="margin: 0 0 10px 0; color: #0f172a; font-size: 19px; font-weight: 800; line-height: 1.3;">مرحباً ${safeBusinessName}</h1>
+        <p style="margin: 0 0 20px 0; color: ${text}; font-size: 14px; line-height: 1.7;">
+          تم تجهيز وتفعيل مساحة العمل السحابية الخاصة بنشاطك التجاري بنجاح، ونسختك التجريبية جاهزة للاستخدام الفوري بكافة الصلاحيات لمدة <strong>${trialDays} أيام</strong>.
         </p>
 
         <!-- CREDENTIALS BOX -->
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 22px; margin: 24px 0;">
-          <div style="margin: 0 0 16px 0; color: #1e1b4b; font-size: 15px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; display: flex; align-items: center;">
-            بيانات تسجيل الدخول إلى حسابك:
+        <div style="background-color: ${surface2}; border: 1px solid ${border}; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <div style="margin: 0 0 14px 0; color: #0f172a; font-size: 13px; font-weight: 700;">
+            بيانات تسجيل الدخول إلى حسابك
           </div>
 
-          <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #334155;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: ${text};">
             <tr>
-              <td style="padding: 9px 0; color: #64748b; font-weight: 600; width: 140px; vertical-align: middle;">رابط النظام:</td>
-              <td style="padding: 9px 0; font-weight: 600; vertical-align: middle;">
-                <a href="${safeLoginUrl}" target="_blank" style="color: #4f46e5; text-decoration: none; word-break: break-all;" dir="ltr">${safeLoginUrl}</a>
+              <td style="padding: 8px 0; color: ${muted}; font-weight: 600; width: 120px; vertical-align: middle;">رابط النظام:</td>
+              <td style="padding: 8px 0; font-weight: 600; vertical-align: middle;">
+                <a href="${safeLoginUrl}" target="_blank" style="color: ${primary}; text-decoration: none; word-break: break-all;" dir="ltr">${safeLoginUrl}</a>
               </td>
             </tr>
             <tr>
-              <td style="padding: 9px 0; color: #64748b; font-weight: 600; vertical-align: middle;">اسم المستخدم:</td>
-              <td style="padding: 9px 0; font-weight: 700; color: #0f172a; vertical-align: middle;">
-                <span dir="ltr" style="background-color: #e2e8f0; color: #1e293b; padding: 4px 10px; border-radius: 6px; font-family: -apple-system, sans-serif; display: inline-block;">${safeUsername}</span>
+              <td style="padding: 8px 0; color: ${muted}; font-weight: 600; vertical-align: middle;">اسم المستخدم:</td>
+              <td style="padding: 8px 0; font-weight: 700; color: #0f172a; vertical-align: middle;">
+                <span dir="ltr" style="background-color: #ffffff; border: 1px solid ${border}; color: ${text}; padding: 3px 9px; border-radius: 6px; display: inline-block;">${safeUsername}</span>
               </td>
             </tr>
             <tr>
-              <td style="padding: 9px 0; color: #64748b; font-weight: 600; vertical-align: middle;">البريد الإلكتروني:</td>
-              <td style="padding: 9px 0; font-weight: 600; color: #0f172a; vertical-align: middle;">
-                <span dir="ltr" style="color: #334155;">${safeEmail}</span>
+              <td style="padding: 8px 0; color: ${muted}; font-weight: 600; vertical-align: middle;">البريد الإلكتروني:</td>
+              <td style="padding: 8px 0; font-weight: 600; color: #0f172a; vertical-align: middle;">
+                <span dir="ltr" style="color: ${text};">${safeEmail}</span>
               </td>
             </tr>
             <tr>
-              <td style="padding: 9px 0; color: #64748b; font-weight: 600; vertical-align: middle;">كلمة المرور المؤقتة:</td>
-              <td style="padding: 9px 0; vertical-align: middle;">
-                <span dir="ltr" style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 15px; font-weight: 700; background-color: #e0e7ff; color: #3730a3; padding: 6px 12px; border-radius: 6px; border: 1px dashed #6366f1; letter-spacing: 0.5px; display: inline-block;">${safePassword}</span>
+              <td style="padding: 8px 0; color: ${muted}; font-weight: 600; vertical-align: middle;">كلمة المرور المؤقتة:</td>
+              <td style="padding: 8px 0; vertical-align: middle;">
+                <span dir="ltr" style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 14px; font-weight: 700; background-color: ${primaryTint}; color: ${primary}; padding: 5px 10px; border-radius: 6px; letter-spacing: 0.3px; display: inline-block;">${safePassword}</span>
               </td>
             </tr>
           </table>
-          <p style="margin: 14px 0 0 0; color: #64748b; font-size: 12px; line-height: 1.5;">
+          <p style="margin: 12px 0 0 0; color: ${muted}; font-size: 11.5px; line-height: 1.5;">
             * يمكنك تسجيل الدخول باستخدام اسم المستخدم أو البريد الإلكتروني.
           </p>
         </div>
 
         <!-- CTA BUTTON -->
-        <div style="text-align: center; margin: 28px 0;">
-          <a href="${safeLoginUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 34px; border-radius: 10px; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <a href="${safeLoginUrl}" target="_blank" style="display: inline-block; background-color: ${primary}; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 700; padding: 13px 32px; border-radius: 8px;">
             الدخول إلى النظام الآن
           </a>
         </div>
 
         <!-- SECURITY NOTICE -->
-        <div style="background-color: #fffbeb; border-right: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; margin-bottom: 24px;">
-          <p style="margin: 0; color: #92400e; font-size: 13px; line-height: 1.6;">
-            <strong>تنبيه أمني:</strong> يُرجى تغيير كلمة المرور المؤقتة فور تسجيل الدخول لأول مرة من إعدادات المستخدم لضمان أعلى مستويات الحماية.
+        <div style="background-color: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px;">
+          <p style="margin: 0; color: #9a3412; font-size: 12.5px; line-height: 1.6;">
+            <strong>تنبيه أمني:</strong> يُرجى تغيير كلمة المرور المؤقتة فور تسجيل الدخول لأول مرة من إعدادات المستخدم.
           </p>
         </div>
       </div>
 
       <!-- SEPARATOR -->
-      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+      <hr style="border: none; border-top: 1px solid ${border}; margin: 0 0 24px 0;" />
 
       <!-- ENGLISH SECTION -->
       <div dir="ltr" style="text-align: left;">
-        <h3 style="margin: 0 0 8px 0; color: #0f172a; font-size: 17px; font-weight: 700;">Welcome to Z Systems Pro</h3>
-        <p style="margin: 0 0 16px 0; color: #475569; font-size: 14px; line-height: 1.6;">
-          Hello <strong>${safeBusinessName}</strong>, your cloud workspace is ready. You have full trial access for <strong>${trialDays} days</strong>.
+        <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 15px; font-weight: 700;">Welcome to Z Systems Pro</h2>
+        <p style="margin: 0 0 14px 0; color: ${muted}; font-size: 13px; line-height: 1.6;">
+          Hello <strong>${safeBusinessName}</strong>, your cloud workspace is ready for <strong>${trialDays} days</strong>.
         </p>
 
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin: 16px 0;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #334155;">
-            <tr>
-              <td style="padding: 6px 0; color: #64748b; font-weight: 600; width: 140px;">Portal URL:</td>
-              <td style="padding: 6px 0;"><a href="${safeLoginUrl}" target="_blank" style="color: #4f46e5; text-decoration: none; font-weight: 600;">${safeLoginUrl}</a></td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Username:</td>
-              <td style="padding: 6px 0; font-weight: 700; color: #0f172a;">${safeUsername}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Temp Password:</td>
-              <td style="padding: 6px 0;">
-                <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 14px; font-weight: 700; background-color: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; border: 1px dashed #6366f1;">${safePassword}</span>
-              </td>
-            </tr>
-          </table>
-        </div>
-
-        <p style="margin: 0; color: #64748b; font-size: 12px;">
-          * Please make sure to change your temporary password upon first login.
-        </p>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; color: ${text};">
+          <tr>
+            <td style="padding: 5px 0; color: ${muted}; font-weight: 600; width: 120px;">Portal URL:</td>
+            <td style="padding: 5px 0;"><a href="${safeLoginUrl}" target="_blank" style="color: ${primary}; text-decoration: none; font-weight: 600;">${safeLoginUrl}</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; color: ${muted}; font-weight: 600;">Username:</td>
+            <td style="padding: 5px 0; font-weight: 700; color: #0f172a;">${safeUsername}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; color: ${muted}; font-weight: 600;">Temp Password:</td>
+            <td style="padding: 5px 0;">
+              <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px; font-weight: 700; background-color: ${primaryTint}; color: ${primary}; padding: 3px 8px; border-radius: 4px;">${safePassword}</span>
+            </td>
+          </tr>
+        </table>
       </div>
 
     </div>
 
     <!-- FOOTER -->
-    <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 24px; text-align: center; color: #64748b; font-size: 12px; line-height: 1.6;">
-      <p style="margin: 0 0 6px 0; font-weight: 600; color: #334155;">Z Systems Pro • Cloud ERP Solutions</p>
-      <p style="margin: 0;">جميع الحقوق محفوظة © ${year} Z Systems Pro. All rights reserved.</p>
+    <div style="background-color: ${surface2}; border-top: 1px solid ${border}; padding: 20px; text-align: center; color: ${muted}; font-size: 11.5px; line-height: 1.6;">
+      <p style="margin: 0 0 4px 0; font-weight: 700; color: ${text};">Z Systems Pro</p>
+      <p style="margin: 0;">© ${year} Z Systems Pro. جميع الحقوق محفوظة.</p>
     </div>
 
   </div>
