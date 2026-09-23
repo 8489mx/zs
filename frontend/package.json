@@ -20,7 +20,7 @@
     "qa": "npm run lint && npm run qa:functional && npm run qa:api && npm run qa:routes && npm run qa:architecture && npm run build",
     "qa:functional": "node scripts/functional-smoke.mjs && node scripts/feature-route-map.mjs",
     "qa:composition": "node scripts/page-composition-check.mjs && node scripts/feature-contract-check.mjs",
-    "qa:api": "node scripts/api-contract-alignment.mjs && node scripts/api-envelope-check.mjs",
+    "qa:api": "node scripts/api-contract-alignment.mjs && node scripts/api-envelope-check.mjs && node scripts/api-call-coverage-check.mjs",
     "qa:decoupling": "node scripts/feature-api-decoupling-check.mjs",
     "qa:critical": "node scripts/critical-flow-check.mjs",
     "qa:route-live": "node scripts/route-live-sweep.mjs",

@@ -1,0 +1,4 @@
+[
+  "/api   <- src/features/storefront/lib/storefront-media-url.ts",
+  "/api/admin   <- src/test/helpers/mock-app-api.tsx"
+]

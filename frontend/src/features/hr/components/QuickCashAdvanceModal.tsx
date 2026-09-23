@@ -36,15 +36,17 @@ export function QuickCashAdvanceModal() {
     enabled: isOpen && canManageLoans,
   });
 
-  // Fetch active cashier shift if any
+  // Fetch active cashier shift if any.
+  // `/api/pos/shifts/current` never existed, so this query 404'd on every open and the advance was
+  // always recorded without a shift. The real endpoint lists shifts and takes a status filter.
   const { data: shiftData } = useQuery({
     queryKey: ['pos.shifts.current'],
-    queryFn: () => http<any>('/api/pos/shifts/current'),
+    queryFn: () => http<{ cashierShifts?: Array<Record<string, unknown>> }>('/api/cashier-shifts?status=open&pageSize=1'),
     enabled: isOpen && canManageLoans,
   });
 
   const employees = employeesData?.employees || [];
-  const activeShift = shiftData?.shift;
+  const activeShift = (shiftData?.cashierShifts || [])[0];
 
   const mutation = useMutation({
     mutationFn: async (payload: any) => {
