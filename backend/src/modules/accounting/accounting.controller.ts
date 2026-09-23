@@ -589,6 +589,14 @@ export class AccountingController {
     return this.fiscalYearService.listFiscalPeriods(req.authContext!, id);
   }
 
+  @Post('fiscal-years/:id/periods/generate')
+  generateFiscalPeriods(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.fiscalYearService.generateFiscalPeriods(req.authContext!, id);
+  }
+
   @Post('fiscal-periods/:periodId/close')
   closeFiscalPeriod(
     @Param('periodId', ParseIntPipe) periodId: number,

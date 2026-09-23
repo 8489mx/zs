@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -26,10 +26,34 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
   const [reopenReason, setReopenReason] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { data: periods = [], isLoading, refetch } = useQuery({
+  const { data: periods = [], isLoading, isFetched, refetch } = useQuery({
     queryKey: ['accounting', 'fiscal-periods', fiscalYear.id],
     queryFn: () => fiscalYearsApi.listPeriods(fiscalYear.id),
   });
+
+  /**
+   * السنوات التي أُنشئت قبل وجود الفترات الشهرية لا فترات لها. التوليد نداء `POST` صريح هنا،
+   * لأن قراءة الفترات صارت قراءة بحتة على السيرفر (نمط O33: مسار `GET` لا يكتب).
+   * يُجرَّب مرة واحدة لكل فتح للنافذة، فلا يدخل في حلقة إن رفض السيرفر.
+   */
+  const generateAttempted = useRef(false);
+  const generateMutation = useMutation({
+    mutationFn: () => fiscalYearsApi.generatePeriods(fiscalYear.id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['accounting', 'fiscal-periods', fiscalYear.id] });
+    },
+    onError: (err: any) => {
+      setErrorMessage(err?.message || 'تعذر توليد الفترات الشهرية لهذه السنة المالية.');
+    },
+  });
+
+  useEffect(() => {
+    if (!isFetched || generateAttempted.current) return;
+    if (periods.length > 0) return;
+    generateAttempted.current = true;
+    generateMutation.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFetched, periods.length]);
 
   const closeMutation = useMutation({
     mutationFn: ({ periodId, notes }: { periodId: number; notes: string }) =>

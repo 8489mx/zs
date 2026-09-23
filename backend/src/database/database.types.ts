@@ -2690,6 +2690,11 @@ export interface AccountingFiscalPeriodTable {
   closed_at: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
   closed_by: number | null;
   closing_notes: string | null;
+  /**
+   * FP-5: قيمة `accounting_settings.lock_date_all` قبل أن يرفعها إقفال هذه الفترة.
+   * تُستعاد عند إعادة الفتح، فلا يمحو إقفال شهرٍ قفلاً يدوياً أقدم منه.
+   */
+  previous_lock_date_all: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }

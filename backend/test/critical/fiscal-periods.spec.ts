@@ -1,5 +1,8 @@
 import { strict as assert } from 'node:assert';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { AppError } from '../../src/common/errors/app-error';
+import { buildMonthlyFiscalPeriods } from '../../src/modules/accounting/engines/fiscal-period-generation.engine';
 
 // =============================================================================
 // CRITICAL FINANCIAL AUDIT SUITE: Fiscal Periods & Monthly Closing (O6)
@@ -14,59 +17,14 @@ console.log('=== بدء اختبارات الفترات المحاسبية ال�
 function testPeriodGenerationAlgorithm() {
   console.log('--- 1. اختبارات تقسيم وتوليد الفترات الشهرية (12 شهراً وسنوات كبيسة) ---');
 
-  function generateMonthlyPeriods(startDateStr: string, endDateStr: string) {
-    const start = new Date(startDateStr);
-    const end = new Date(endDateStr);
-
-    const monthNamesAr = [
-      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
-    ];
-
-    let periodNumber = 1;
-    let curr = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
-    const endUtc = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
-
-    const periods: Array<{
-      periodNumber: number;
-      name: string;
-      code: string;
-      startDate: string;
-      endDate: string;
-    }> = [];
-
-    while (curr <= endUtc) {
-      const yearNum = curr.getUTCFullYear();
-      const monthIdx = curr.getUTCMonth();
-      const monthName = monthNamesAr[monthIdx];
-
-      const pStart = periodNumber === 1
-        ? startDateStr
-        : new Date(Date.UTC(yearNum, monthIdx, 1)).toISOString().slice(0, 10);
-
-      const lastDayOfMonth = new Date(Date.UTC(yearNum, monthIdx + 1, 0));
-      const pEnd = lastDayOfMonth > endUtc
-        ? endDateStr
-        : lastDayOfMonth.toISOString().slice(0, 10);
-
-      const code = `${yearNum}-${String(monthIdx + 1).padStart(2, '0')}`;
-      const name = `${monthName} ${yearNum}`;
-
-      periods.push({
-        periodNumber,
-        name,
-        code,
-        startDate: pStart,
-        endDate: pEnd,
-      });
-
-      periodNumber++;
-      curr = new Date(Date.UTC(yearNum, monthIdx + 1, 1));
-      if (pEnd >= endDateStr) break;
-    }
-
-    return periods;
-  }
+  /**
+   * **المحرك الحقيقي**، لا نسخة منه.
+   *
+   * كان هذا الاختبار يعيد كتابة الخوارزمية داخله ثم يفحص النسخة — فالخدمة تستطيع أن تتغير
+   * والجناح يبقى أخضر. الحساب الآن في `fiscal-period-generation.engine.ts` وتستورده الخدمة
+   * والاختبار معاً.
+   */
+  const generateMonthlyPeriods = buildMonthlyFiscalPeriods;
 
   // 1.1 سنة قياسية كاملة 2025 (12 شهر)
   {
@@ -290,10 +248,117 @@ function testJournalPostingPeriodLockGuard() {
   console.log('✔ السماح بترحيل قيد بتاريخ يقع ضمن شهر مفتوح (مارس 2025)');
 }
 
+/**
+ * 4. حراسة الإصلاحات التي كشفتها مراجعة هجرة 143 (FP-7 و FP-8 وعزل المستأجر).
+ *
+ * الأقسام 1-3 تختبر المنطق على نسخة مكتوبة داخل الاختبار. هذا القسم يقرأ **الكود الحقيقي**
+ * ليمنع عودة ثلاثة أشياء تحديداً، كلٌّ منها كان موجوداً فعلاً وأُصلح:
+ *   - فحص الترتيب الزمني وفحص المسودات خارج المعاملة (نافذة سباق).
+ *   - إعادة الفتح تكتب `lock_date_all` بلا شرط فتمحو قفلاً يدوياً أقدم.
+ *   - مفتاح أجنبي أحادي العمود لا يفرض عزل المستأجر في القاعدة (نمط O45).
+ */
+function testFiscalPeriodHardeningGuards() {
+  console.log('\n--- 4. حراسة إصلاحات المراجعة: السباقات وقفل الدفاتر وعزل المستأجر ---');
+
+  const root = join(__dirname, '..', '..');
+  const read = (relative: string) => readFileSync(join(root, relative), 'utf8').replace(/\r\n/g, '\n');
+  const service = read('src/modules/accounting/services/fiscal-year.service.ts');
+  const migration = read('src/database/migrations/2040000000144_fiscal_periods_tenant_fk_and_lock_snapshot.ts');
+
+  const closeBody = service.slice(
+    service.indexOf('async closeFiscalPeriod('),
+    service.indexOf('async reopenFiscalPeriod('),
+  );
+  const reopenBody = service.slice(service.indexOf('async reopenFiscalPeriod('));
+  assert.ok(closeBody.length > 0 && reopenBody.length > 0, 'closeFiscalPeriod/reopenFiscalPeriod must exist');
+
+  // FP-7: الفحص والكتابة في معاملة واحدة تحت قفل الصف.
+  for (const [label, body] of [['close', closeBody], ['reopen', reopenBody]] as const) {
+    const txIndex = body.indexOf('this.db.transaction()');
+    assert.ok(txIndex > 0, `${label}FiscalPeriod must run inside a transaction`);
+    const beforeTx = body.slice(0, txIndex);
+    assert.ok(
+      !/this\.db\s*\n?\s*\.selectFrom\('accounting_fiscal_periods'\)[\s\S]{0,400}?status'?,\s*'='/.test(beforeTx),
+      `${label}FiscalPeriod must not decide on period status before the transaction opens`,
+    );
+    assert.ok(body.slice(txIndex).includes('.forUpdate()'), `${label}FiscalPeriod must lock the period row it decides on`);
+  }
+
+  assert.ok(
+    closeBody.indexOf("status', '=', 'draft'") > closeBody.indexOf('this.db.transaction()'),
+    'the draft-entries check must run inside the transaction, or a draft saved in the gap lands in a closed month',
+  );
+  assert.ok(
+    /const draftEntries = await trx/.test(closeBody),
+    'the draft-entries check must read through the transaction, not this.db',
+  );
+  assert.ok(
+    /const prevOpen = await trx/.test(closeBody),
+    'the chronological-order check must read through the transaction, not this.db',
+  );
+
+  // FP-8: اللقطة تُحفظ عند الإقفال وتُستعاد عند إعادة الفتح، والقفل لا يتراجع.
+  assert.ok(/previous_lock_date_all: previousLock/.test(closeBody), 'closing must snapshot the lock date before raising it');
+  assert.ok(
+    /previous_lock_date_all/.test(reopenBody) && /candidates/.test(reopenBody),
+    'reopening must restore the snapshot, not recompute the lock from closed periods alone',
+  );
+  assert.ok(
+    !/const newLock = latestClosedPeriod \? this\.formatDate\(latestClosedPeriod\.end_date\) : null;/.test(reopenBody),
+    'reopening must never overwrite lock_date_all with only the latest closed period (it wipes a manual lock)',
+  );
+
+  // المحرك مصدر واحد: الخدمة تستورده ولا تعيد كتابته.
+  assert.ok(
+    /buildMonthlyFiscalPeriods/.test(service),
+    'the service must generate periods through the shared engine, not a private copy',
+  );
+  assert.ok(
+    !/const monthNamesAr = \[/.test(service),
+    'a second copy of the month table in the service means the engine is being bypassed',
+  );
+
+  // قراءة الفترات لا تكتب (نمط O33).
+  // التعليقات تُزال أولاً: توثيق `generateFiscalPeriods` يذكر الاسم، والمقصود هنا الكود لا النص.
+  const listBody = service
+    .slice(service.indexOf('async listFiscalPeriods('), service.indexOf('async generateFiscalPeriods('))
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  assert.ok(listBody.length > 0, 'listFiscalPeriods must exist and sit before generateFiscalPeriods');
+  assert.ok(
+    !/ensurePeriodsForFiscalYear/.test(listBody),
+    'listFiscalPeriods is a read path: generating rows there makes a GET write (the O33 pattern)',
+  );
+  assert.ok(
+    /async generateFiscalPeriods\([\s\S]{0,200}this\.assertAdmin\(auth\)/.test(service),
+    'generation must be an explicit admin-only write path',
+  );
+
+  // عزل المستأجر مفروض من القاعدة (نمط O45).
+  assert.ok(
+    /FOREIGN KEY \(tenant_id, fiscal_year_id\)[\s\S]{0,80}REFERENCES accounting_fiscal_years \(tenant_id, id\)/.test(migration),
+    'the period -> fiscal year link must be a composite (tenant_id, id) foreign key',
+  );
+  assert.ok(
+    /DROP CONSTRAINT IF EXISTS accounting_fiscal_periods_fiscal_year_id_fkey/.test(migration),
+    'the old single-column foreign key must be dropped, not left alongside',
+  );
+  assert.ok(
+    /UNIQUE \(tenant_id, id\)/.test(migration),
+    'the composite foreign key needs a matching unique key on accounting_fiscal_years',
+  );
+
+  console.log('✔ فحوص الترتيب الزمني والمسودات داخل المعاملة وتحت قفل الصف');
+  console.log('✔ إعادة الفتح تستعيد لقطة القفل ولا تمحو قفلاً يدوياً أقدم');
+  console.log('✔ ربط الفترة بالسنة المالية بمفتاح مركّب يفرض عزل المستأجر من القاعدة');
+  console.log('✔ توليد الفترات في محرك واحد مستورَد، ومسار القراءة لا يكتب');
+}
+
 // تشغيل كافة الاختبارات
 testPeriodGenerationAlgorithm();
 testClosingAndReopeningInvariants();
 testJournalPostingPeriodLockGuard();
+testFiscalPeriodHardeningGuards();
 
 console.log('\n=============================================================');
 console.log('✅ نجحت كافة اختبارات الفترات المحاسبية الشهرية وإقفال الشهور (100%)');

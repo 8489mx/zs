@@ -4,6 +4,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { CloseFiscalPeriodDto, ReopenFiscalPeriodDto, FiscalPeriodResponse } from '../dto/fiscal-period.dto';
+import { buildMonthlyFiscalPeriods } from '../engines/fiscal-period-generation.engine';
 
 export interface CreateFiscalYearDto {
   name: string;
@@ -901,54 +902,20 @@ export class FiscalYearService {
 
     if (existing) return;
 
-    const start = new Date(startDateStr);
-    const end = new Date(endDateStr);
+    const generated = buildMonthlyFiscalPeriods(startDateStr, endDateStr);
 
-    const monthNamesAr = [
-      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
-    ];
-
-    let periodNumber = 1;
-    let curr = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
-    const endUtc = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
-
-    const periodsToInsert: any[] = [];
-
-    while (curr <= endUtc) {
-      const yearNum = curr.getUTCFullYear();
-      const monthIdx = curr.getUTCMonth();
-      const monthName = monthNamesAr[monthIdx];
-
-      const pStart = periodNumber === 1
-        ? startDateStr
-        : new Date(Date.UTC(yearNum, monthIdx, 1)).toISOString().slice(0, 10);
-
-      const lastDayOfMonth = new Date(Date.UTC(yearNum, monthIdx + 1, 0));
-      const pEnd = lastDayOfMonth > endUtc
-        ? endDateStr
-        : lastDayOfMonth.toISOString().slice(0, 10);
-
-      const code = `${yearNum}-${String(monthIdx + 1).padStart(2, '0')}`;
-      const name = `${monthName} ${yearNum}`;
-
-      periodsToInsert.push({
-        tenant_id: tenantId,
-        fiscal_year_id: fiscalYearId,
-        period_number: periodNumber,
-        name,
-        code,
-        start_date: pStart as any,
-        end_date: pEnd as any,
-        status: 'open',
-        created_at: sql`NOW()` as any,
-        updated_at: sql`NOW()` as any,
-      });
-
-      periodNumber++;
-      curr = new Date(Date.UTC(yearNum, monthIdx + 1, 1));
-      if (pEnd >= endDateStr) break;
-    }
+    const periodsToInsert = generated.map((period) => ({
+      tenant_id: tenantId,
+      fiscal_year_id: fiscalYearId,
+      period_number: period.periodNumber,
+      name: period.name,
+      code: period.code,
+      start_date: period.startDate as any,
+      end_date: period.endDate as any,
+      status: 'open' as const,
+      created_at: sql`NOW()` as any,
+      updated_at: sql`NOW()` as any,
+    }));
 
     if (periodsToInsert.length > 0) {
       await this.db
@@ -962,7 +929,11 @@ export class FiscalYearService {
   }
 
   /**
-   * عرض الفترات الشهرية لسنة مالية مع توليدها تلقائياً إن لم تكن موجودة.
+   * عرض الفترات الشهرية لسنة مالية — **قراءة بحتة**.
+   *
+   * كانت هذه الدالة تولّد الفترات وتكتبها في القاعدة إن لم تجدها، أي أن نداء `GET` كان يكتب.
+   * نفس نمط O33 (`GET subscription/me` كان يُنشئ صف اشتراك) الذي أُغلق قبل يوم واحد: مسار
+   * القراءة لا يكتب، والتوليد له مسار `POST` صريح يملكه مدير النظام.
    */
   async listFiscalPeriods(auth: AuthContext, fiscalYearId: number): Promise<FiscalPeriodResponse[]> {
     const tenantId = String(auth.tenantId || '');
@@ -977,13 +948,6 @@ export class FiscalYearService {
     if (!fy) {
       throw new NotFoundException('السنة المالية غير موجودة.');
     }
-
-    await this.ensurePeriodsForFiscalYear(
-      tenantId,
-      fiscalYearId,
-      this.formatDate(fy.start_date),
-      this.formatDate(fy.end_date),
-    );
 
     const rows = await this.db
       .selectFrom('accounting_fiscal_periods')
@@ -1001,6 +965,37 @@ export class FiscalYearService {
       created_at: p.created_at ? new Date(p.created_at as any).toISOString() : '',
       updated_at: p.updated_at ? new Date(p.updated_at as any).toISOString() : '',
     })) as FiscalPeriodResponse[];
+  }
+
+  /**
+   * توليد الفترات الشهرية لسنة مالية قائمة (للسنوات التي أُنشئت قبل وجود الفترات الشهرية).
+   *
+   * مسار كتابة صريح ومحصور بمدير النظام، ولا يفعل شيئاً إن كانت الفترات موجودة بالفعل
+   * (`ensurePeriodsForFiscalYear` تفحص أولاً، والإدراج بـ`onConflict ... doNothing`).
+   */
+  async generateFiscalPeriods(auth: AuthContext, fiscalYearId: number): Promise<FiscalPeriodResponse[]> {
+    this.assertAdmin(auth);
+    const tenantId = String(auth.tenantId || '');
+
+    const fy = await this.db
+      .selectFrom('accounting_fiscal_years')
+      .select(['id', 'start_date', 'end_date'])
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', fiscalYearId)
+      .executeTakeFirst();
+
+    if (!fy) {
+      throw new NotFoundException('السنة المالية غير موجودة.');
+    }
+
+    await this.ensurePeriodsForFiscalYear(
+      tenantId,
+      fiscalYearId,
+      this.formatDate(fy.start_date),
+      this.formatDate(fy.end_date),
+    );
+
+    return this.listFiscalPeriods(auth, fiscalYearId);
   }
 
   /**
@@ -1041,56 +1036,67 @@ export class FiscalYearService {
       throw new BadRequestException('السنة المالية التابعة لها هذه الفترة مقفلة بالكامل.');
     }
 
-    // 1. الترتيب الزمني الصارم: لا يجوز إقفال شهر قبل إقفال الشهر السابق له
-    const prevOpen = await this.db
-      .selectFrom('accounting_fiscal_periods')
-      .select(['id', 'name', 'period_number'])
-      .where('tenant_id', '=', tenantId)
-      .where('fiscal_year_id', '=', period.fiscal_year_id)
-      .where('period_number', '<', period.period_number)
-      .where('status', '=', 'open')
-      .orderBy('period_number', 'asc')
-      .executeTakeFirst();
-
-    if (prevOpen) {
-      throw new BadRequestException(
-        `لا يمكن إقفال الفترة [${period.name}] قبل إقفال الفترة السابقة [${prevOpen.name}]. يجب إقفال الفترات المحاسبية بترتيب زمني متسلسل.`,
-      );
-    }
-
     const startDateStr = this.formatDate(period.start_date);
     const endDateStr = this.formatDate(period.end_date);
 
-    // 2. التحقق من القيود المعلقة (Draft entries)
-    const draftEntries = await this.db
-      .selectFrom('journal_entries')
-      .select(this.db.fn.count('id').as('cnt'))
-      .where('tenant_id', '=', tenantId)
-      .where('status', '=', 'draft')
-      .where('entry_date', '>=', startDateStr as any)
-      .where('entry_date', '<=', endDateStr as any)
-      .executeTakeFirst();
-
-    const draftCount = Number(draftEntries?.cnt || 0);
-    if (draftCount > 0) {
-      throw new BadRequestException(
-        `توجد ${draftCount} مسودات قيود محاسبية غير مرحّلة في هذه الفترة (${startDateStr} إلى ${endDateStr}). يجب ترحيلها أو حذفها قبل إقفال الفترة.`,
-      );
-    }
-
+    /**
+     * FP-7: FP-2 (الترتيب الزمني) و FP-3 (المسودات) يُفحصان **داخل** المعاملة وتحت قفل الصف، لا قبلها.
+     *
+     * كانا يُقرآن على `this.db` قبل فتح المعاملة، فبين الفحص والكتابة توجد نافذة: مسودة تُحفظ
+     * في تلك اللحظة تقع داخل شهر يُقفل بعدها مباشرةً، فلا تصلح للترحيل أبداً (يمنعها FP-3)
+     * ولا يظهر سببها؛ وإقفالان متزامنان لشهرين يمكن أن يتجاوزا الترتيب الزمني معاً.
+     * نفس درس F6 وحجز الكوبون واستهلاك رمز الاستعادة: الفحص والكتابة في معاملة واحدة.
+     */
     await this.db.transaction().execute(async (trx) => {
-      await trx
-        .updateTable('accounting_fiscal_periods')
-        .set({
-          status: 'closed',
-          closed_at: sql`NOW()` as any,
-          closed_by: userId,
-          closing_notes: dto?.notes ? String(dto.notes).trim() : null,
-          updated_at: sql`NOW()` as any,
-        })
-        .where('id', '=', period.id)
+      const locked = await trx
+        .selectFrom('accounting_fiscal_periods')
+        .select(['id', 'status', 'period_number'])
         .where('tenant_id', '=', tenantId)
-        .execute();
+        .where('id', '=', period.id)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!locked) {
+        throw new NotFoundException('الفترة المحاسبية غير موجودة.');
+      }
+      if (locked.status === 'closed') {
+        throw new BadRequestException('هذه الفترة المحاسبية مقفلة بالفعل.');
+      }
+
+      // 1. الترتيب الزمني الصارم: لا يجوز إقفال شهر قبل إقفال الشهر السابق له
+      const prevOpen = await trx
+        .selectFrom('accounting_fiscal_periods')
+        .select(['id', 'name', 'period_number'])
+        .where('tenant_id', '=', tenantId)
+        .where('fiscal_year_id', '=', period.fiscal_year_id)
+        .where('period_number', '<', period.period_number)
+        .where('status', '=', 'open')
+        .orderBy('period_number', 'asc')
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (prevOpen) {
+        throw new BadRequestException(
+          `لا يمكن إقفال الفترة [${period.name}] قبل إقفال الفترة السابقة [${prevOpen.name}]. يجب إقفال الفترات المحاسبية بترتيب زمني متسلسل.`,
+        );
+      }
+
+      // 2. التحقق من القيود المعلقة (Draft entries)
+      const draftEntries = await trx
+        .selectFrom('journal_entries')
+        .select(trx.fn.count('id').as('cnt'))
+        .where('tenant_id', '=', tenantId)
+        .where('status', '=', 'draft')
+        .where('entry_date', '>=', startDateStr as any)
+        .where('entry_date', '<=', endDateStr as any)
+        .executeTakeFirst();
+
+      const draftCount = Number(draftEntries?.cnt || 0);
+      if (draftCount > 0) {
+        throw new BadRequestException(
+          `توجد ${draftCount} مسودات قيود محاسبية غير مرحّلة في هذه الفترة (${startDateStr} إلى ${endDateStr}). يجب ترحيلها أو حذفها قبل إقفال الفترة.`,
+        );
+      }
 
       // تحديث lock_date_all في accounting_settings
       const currentSettings = await trx
@@ -1100,9 +1106,25 @@ export class FiscalYearService {
         .where('id', '=', 1)
         .executeTakeFirst();
 
+      const previousLock = currentSettings?.lock_date_all ? this.formatDate(currentSettings.lock_date_all) : null;
+
+      await trx
+        .updateTable('accounting_fiscal_periods')
+        .set({
+          status: 'closed',
+          closed_at: sql`NOW()` as any,
+          closed_by: userId,
+          closing_notes: dto?.notes ? String(dto.notes).trim() : null,
+          // FP-8: اللقطة تُلتقط هنا، قبل رفع القفل — وهي ما يُستعاد عند إعادة الفتح.
+          previous_lock_date_all: previousLock as any,
+          updated_at: sql`NOW()` as any,
+        })
+        .where('id', '=', period.id)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
       if (currentSettings) {
-        const curLock = currentSettings.lock_date_all ? this.formatDate(currentSettings.lock_date_all) : '';
-        if (!curLock || curLock < endDateStr) {
+        if (!previousLock || previousLock < endDateStr) {
           await trx
             .updateTable('accounting_settings')
             .set({ lock_date_all: endDateStr as any, updated_at: sql`NOW()` as any })
@@ -1171,24 +1193,41 @@ export class FiscalYearService {
       );
     }
 
-    // الترتيب العكسي: لا يمكن إعادة فتح شهر طالما هناك شهر بعده مقفل
-    const nextClosed = await this.db
-      .selectFrom('accounting_fiscal_periods')
-      .select(['id', 'name', 'period_number'])
-      .where('tenant_id', '=', tenantId)
-      .where('fiscal_year_id', '=', period.fiscal_year_id)
-      .where('period_number', '>', period.period_number)
-      .where('status', '=', 'closed')
-      .orderBy('period_number', 'desc')
-      .executeTakeFirst();
-
-    if (nextClosed) {
-      throw new BadRequestException(
-        `لا يمكن إعادة فتح الفترة [${period.name}] لأن الفترة اللاحقة [${nextClosed.name}] مقفلة. يجب إعادة فتح الفترات بترتيب زمني عكسي.`,
-      );
-    }
-
+    // FP-7: FP-4 يُفحص داخل المعاملة وتحت قفل الصف، لنفس سبب الإقفال.
     await this.db.transaction().execute(async (trx) => {
+      const locked = await trx
+        .selectFrom('accounting_fiscal_periods')
+        .select(['id', 'status'])
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', period.id)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!locked) {
+        throw new NotFoundException('الفترة المحاسبية غير موجودة.');
+      }
+      if (locked.status !== 'closed') {
+        throw new BadRequestException('هذه الفترة المحاسبية مفتوحة بالفعل.');
+      }
+
+      // الترتيب العكسي: لا يمكن إعادة فتح شهر طالما هناك شهر بعده مقفل
+      const nextClosed = await trx
+        .selectFrom('accounting_fiscal_periods')
+        .select(['id', 'name', 'period_number'])
+        .where('tenant_id', '=', tenantId)
+        .where('fiscal_year_id', '=', period.fiscal_year_id)
+        .where('period_number', '>', period.period_number)
+        .where('status', '=', 'closed')
+        .orderBy('period_number', 'desc')
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (nextClosed) {
+        throw new BadRequestException(
+          `لا يمكن إعادة فتح الفترة [${period.name}] لأن الفترة اللاحقة [${nextClosed.name}] مقفلة. يجب إعادة فتح الفترات بترتيب زمني عكسي.`,
+        );
+      }
+
       const reopenNote = `\n[أعيد فتحها بتاريخ ${new Date().toISOString().slice(0, 10)} بواسطة مستخدم #${auth.userId} - السبب: ${reason}]`;
       await trx
         .updateTable('accounting_fiscal_periods')
@@ -1197,13 +1236,23 @@ export class FiscalYearService {
           closed_at: null,
           closed_by: null,
           closing_notes: sql`CONCAT(COALESCE(closing_notes, ''), ${reopenNote})` as any,
+          // اللقطة استُهلكت؛ إقفال لاحق يلتقط قيمة القفل السارية وقتها لا قيمة قديمة.
+          previous_lock_date_all: null,
           updated_at: sql`NOW()` as any,
         })
         .where('id', '=', period.id)
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      // تعديل lock_date_all ليكون تاريخ نهاية آخر فترة لا تزال مقفلة عبر كل السنوات
+      /**
+       * FP-8: إعادة الفتح **تستعيد** القفل ولا تعيد حسابه من الصفر.
+       *
+       * كان هذا السطر يكتب `lock_date_all` بتاريخ آخر فترة شهرية مقفلة، و`NULL` إن لم توجد —
+       * فمنشأة قفلت دفاترها يدوياً حتى 2025-12-31 (الطريقة الوحيدة قبل الفترات الشهرية)، ثم
+       * أقفلت شهراً وأعادت فتحه، كان قفلها اليدوي **يُمحى وتُفتح دفاتر سنوات سابقة** بلا أن
+       * يطلب أحد ذلك. الآن: نأخذ **الأبعد** بين اللقطة المحفوظة وقت الإقفال وبين نهاية آخر
+       * فترة لا تزال مقفلة. القفل لا يتراجع أبداً عن حدٍّ لم يضعه إقفال هذه الفترة.
+       */
       const latestClosedPeriod = await trx
         .selectFrom('accounting_fiscal_periods')
         .select(['end_date'])
@@ -1212,7 +1261,10 @@ export class FiscalYearService {
         .orderBy('end_date', 'desc')
         .executeTakeFirst();
 
-      const newLock = latestClosedPeriod ? this.formatDate(latestClosedPeriod.end_date) : null;
+      const fromClosedPeriods = latestClosedPeriod ? this.formatDate(latestClosedPeriod.end_date) : null;
+      const snapshot = period.previous_lock_date_all ? this.formatDate(period.previous_lock_date_all) : null;
+      const candidates = [fromClosedPeriods, snapshot].filter((value): value is string => Boolean(value));
+      const newLock = candidates.length > 0 ? candidates.sort().at(-1)! : null;
 
       await trx
         .updateTable('accounting_settings')

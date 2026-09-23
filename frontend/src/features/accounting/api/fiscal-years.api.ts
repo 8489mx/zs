@@ -50,6 +50,12 @@ export const fiscalYearsApi = {
   listPeriods: (fiscalYearId: number) =>
     http<FiscalPeriodRecord[]>(`/api/accounting/fiscal-years/${fiscalYearId}/periods`),
 
+  // مسار كتابة صريح: قراءة الفترات لا تولّدها (نمط O33).
+  generatePeriods: (fiscalYearId: number) =>
+    http<FiscalPeriodRecord[]>(`/api/accounting/fiscal-years/${fiscalYearId}/periods/generate`, {
+      method: 'POST',
+    }),
+
   closePeriod: (periodId: number, payload?: CloseFiscalPeriodPayload) =>
     http<{ success: boolean; message: string }>(`/api/accounting/fiscal-periods/${periodId}/close`, {
       method: 'POST',
