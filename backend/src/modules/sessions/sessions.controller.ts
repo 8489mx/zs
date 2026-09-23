@@ -15,10 +15,15 @@ import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
-import { SessionService } from '../../core/auth/services/session.service';
+import { SessionService, isMfaChallenge, type AuthenticatedSessionResult } from '../../core/auth/services/session.service';
 import { AuditService } from '../../core/audit/audit.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
+import { ConfirmPasswordResetDto, RequestPasswordResetDto, ValidatePasswordResetTokenDto } from './dto/password-reset.dto';
+import { PasswordResetService } from './password-reset.service';
+import { MfaService } from './mfa.service';
+import { DisableMfaDto, MfaCodeDto, MfaLoginDto } from './dto/mfa.dto';
+import { resolveClientIp } from '../../common/middleware/storefront-public-rate-limit.middleware';
 import { createCsrfToken } from '../../core/auth/utils/csrf-token';
 import { ActivationService } from '../activation/activation.service';
 import { clearKnownAuthCookies } from '../../core/auth/utils/auth-cookie-cleanup';
@@ -30,7 +35,24 @@ export class SessionsController {
     private readonly auditService: AuditService,
     private readonly configService: ConfigService,
     private readonly activationService: ActivationService,
+    private readonly passwordResetService: PasswordResetService,
+    private readonly mfaService: MfaService,
   ) {}
+
+  /**
+   * عنوان العميل الحقيقي خلف nginx/Cloudflare. `req.ip` وحده هو عنوان البروكسي، فكان كل
+   * الزوار يقعون في دلو واحد لحدود المحاولات (O69). نفس الدالة التي تستعملها حدود المتجر.
+   */
+  private clientIp(req: RequestWithAuth): string {
+    return resolveClientIp(req.ip || req.socket?.remoteAddress, req.headers['x-real-ip']);
+  }
+
+  /** أصل الطلب كما وصل عبر البروكسي — يُستخدم كبديل حين لا يُضبط `APP_PUBLIC_URL`. */
+  private requestOrigin(req: RequestWithAuth): string | undefined {
+    const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() || 'https';
+    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+    return host ? `${proto}://${host}` : undefined;
+  }
 
   private sharedCookieDomain(req?: RequestWithAuth): string | undefined {
     if (req) {
@@ -130,6 +152,37 @@ export class SessionsController {
       throw new UnauthorizedException('Invalid username or password');
     }
 
+    // MFA-1: كلمة المرور وحدها لم تُنشئ جلسة لهذا الحساب — لا كوكي ولا صف في `sessions`.
+    if (isMfaChallenge(result)) {
+      return { ok: true, mfaRequired: true, mfaToken: result.mfaToken, username: result.username };
+    }
+
+    return this.finishLogin(result, req, res);
+  }
+
+  /** الخطوة الثانية لمن فعّل المصادقة الثنائية: التحدي + رمز التطبيق (أو رمز استرداد). */
+  @Post('login/mfa')
+  async loginMfa(
+    @Body() payload: MfaLoginDto,
+    @Req() req: RequestWithAuth,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<Record<string, unknown>> {
+    await this.activationService.assertLoginAllowed();
+
+    const result = await this.sessionService.completeMfaLogin(payload.mfaToken, payload.code, {
+      ipAddress: req.ip,
+      userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : '',
+    });
+
+    return this.finishLogin(result, req, res);
+  }
+
+  /** النصف المشترك بين الدخول العادي والدخول بعد العامل الثاني: الكوكي والتدقيق والحمولة. */
+  private async finishLogin(
+    result: AuthenticatedSessionResult,
+    req: RequestWithAuth,
+    res: Response,
+  ): Promise<Record<string, unknown>> {
     this.setAuthCookies(res, result.sessionId, result.expiresAt, req);
 
     await this.auditService.log('تسجيل دخول', `تم تسجيل دخول المستخدم ${result.auth.username}`, result.auth);
@@ -140,6 +193,60 @@ export class SessionsController {
       sessionId: result.sessionId,
       expiresAt: result.expiresAt.toISOString(),
     };
+  }
+
+  /** إعداد المصادقة الثنائية — محروس بالجلسة: المستخدم يعدّل عامله الثاني وحده. */
+  @Get('mfa/status')
+  @UseGuards(SessionAuthGuard)
+  async mfaStatus(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.mfaService.getStatus(req.authContext!);
+  }
+
+  @Post('mfa/setup')
+  @UseGuards(SessionAuthGuard)
+  async mfaSetup(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.mfaService.beginSetup(req.authContext!);
+  }
+
+  @Post('mfa/confirm')
+  @UseGuards(SessionAuthGuard)
+  async mfaConfirm(@Body() payload: MfaCodeDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.mfaService.confirmSetup(req.authContext!, payload.code);
+  }
+
+  @Post('mfa/disable')
+  @UseGuards(SessionAuthGuard)
+  async mfaDisable(@Body() payload: DisableMfaDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.mfaService.disable(req.authContext!, payload.currentPassword, payload.code);
+  }
+
+  @Post('mfa/recovery-codes')
+  @UseGuards(SessionAuthGuard)
+  async mfaRegenerateRecoveryCodes(@Body() payload: MfaCodeDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.mfaService.regenerateRecoveryCodes(req.authContext!, payload.code);
+  }
+
+  /**
+   * استعادة كلمة المرور — ثلاثة مسارات **عامة** عمداً: من نسي كلمته لا يملك جلسة.
+   * الحماية هنا ليست حارساً بل: حدّ محاولات لكل IP ولكل بريد، ورد ثابت لا يكشف وجود الحساب،
+   * ورمز ذو حالة يُستهلك مرة واحدة (`password-reset-token.ts`).
+   */
+  @Post('password-reset/request')
+  async requestPasswordReset(@Body() payload: RequestPasswordResetDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.passwordResetService.requestReset(payload, {
+      ip: this.clientIp(req),
+      origin: this.requestOrigin(req),
+    });
+  }
+
+  @Post('password-reset/validate')
+  async validatePasswordResetToken(@Body() payload: ValidatePasswordResetTokenDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.passwordResetService.validateToken(payload, { ip: this.clientIp(req) });
+  }
+
+  @Post('password-reset/confirm')
+  async confirmPasswordReset(@Body() payload: ConfirmPasswordResetDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.passwordResetService.confirmReset(payload, { ip: this.clientIp(req) });
   }
 
   @Post('logout')

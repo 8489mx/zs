@@ -127,12 +127,17 @@ sudo certbot --nginx -d الدومين_بتاعك
 ```bash
 sudo mkdir -p /var/backups/zsystems && sudo chown ubuntu:ubuntu /var/backups/zsystems
 sed 's/\r$//' /var/www/zsystems/app/deploy/scripts/zsystems-backup.sh > /tmp/zb.sh && install -m 755 /tmp/zb.sh /var/www/zsystems/backup.sh
-(crontab -l 2>/dev/null; echo "0 3 * * * /var/www/zsystems/backup.sh >> /var/backups/zsystems/backup.log 2>&1") | crontab -
+sed 's/$//' /var/www/zsystems/app/deploy/scripts/zsystems-restore-drill.sh > /tmp/zd.sh && install -m 755 /tmp/zd.sh /var/www/zsystems/restore-drill.sh
+
+# ثلاثة أسطر: النسخة الكاملة يومياً، نسخة خفيفة كل ساعة، وتمرين استرجاع كل أحد
+(crontab -l 2>/dev/null;  echo "0 3 * * * /var/www/zsystems/backup.sh >> /var/backups/zsystems/backup.log 2>&1";  echo "30 * * * * /var/www/zsystems/backup.sh hourly >> /var/backups/zsystems/backup.log 2>&1";  echo "15 4 * * 0 /var/www/zsystems/restore-drill.sh >> /var/backups/zsystems/restore-drill.log 2>&1") | crontab -
 ```
 
 - **Google Drive:** `rclone config` بنفس الخطوات (remote اسمه `gdrive` وصلاحية `drive.file`)، عبر نفق `ssh -L 53682:127.0.0.1:53682`.
 - **Oracle Bucket (لو لسه على أوراكل):** اعمل رابط Pre-Authenticated Request (كتابة بس)، وحطه في `/etc/zsystems/backup-par-url`، وخلي صاحب الملف `ubuntu` وصلاحياته `600`.
-- جرّب: `/var/www/zsystems/backup.sh`
+- جرّب: `/var/www/zsystems/backup.sh` ثم `/var/www/zsystems/backup.sh hourly` ثم `/var/www/zsystems/restore-drill.sh`.
+- **النسخة الساعية** (`zsystems_hourly_*.sql.gz.enc`): `pg_dump` مشفَّر بلا حزم العملاء — محلياً 3 أيام، وGoogle Drive 7 أيام. **مش بتروح Oracle عمداً**: رابط الـPAR كتابة بس ومش بيحذف، فـ24 ملف في اليوم هيملوا الحاوية. الحماية الجغرافية الكاملة على النسخة اليومية.
+- **تمرين الاسترجاع الأسبوعي** يسترجع أحدث نسخة في قاعدة منفصلة اسمها `zsystems_restore_drill` جوه نفس الحاوية، يقارنها بالإنتاج (جداول، صفوف، هجرات، مفاتيح مرجعية)، يحذفها، ويبعت تليجرام لو فشل. **قاعدة الإنتاج ما بتتلمسش** — كل استعلاماته عليها قراءة.
 
 ---
 
@@ -144,7 +149,10 @@ pm2 ls                                              # zsystems-backend = online
 ```
 
 - ادخل بحساب المنصة، وبحساب عميل، واتأكد إن آخر فواتير يوم النسخة موجودة.
-- **اللي بيضيع:** أي عمليات حصلت بعد وقت آخر نسخة. النسخ اليومي معناه إنك ممكن تخسر لحد 24 ساعة.
+- **اللي بيضيع (RPO):** أي عمليات حصلت بعد وقت آخر نسخة.
+  - بالنسخة اليومية وحدها: **لحد 24 ساعة**.
+  - بالنسخة الساعية مفعّلة (DEPLOY-7): **لحد ساعة واحدة** — والنسخة الساعية موجودة محلياً وعلى Google Drive، فحتى لو السيرفر نفسه راح، أقصى ما يضيع ساعة.
+  - **لسه مش لحظي:** استرجاع نقطة-في-الزمن الحقيقي (WAL / PITR) محتاج تغيير إعداد Postgres جوه الحاوية وأرشيف WAL، وده قرار مستقل — شوف O73.
 
 ---
 
@@ -178,4 +186,6 @@ pm2 ls                                              # zsystems-backend = online
 | 22 سبتمبر 2026 (بعد إصلاح O65) | نفس النسخة، بعد تطبيق سكربت الإصلاح عليها محلياً، ثم `pg_dump` واسترجاعها من جديد | ✅ **صفر أخطاء، و427 من 427 قيد مرجعي.** `migration:run` على البيانات المسترجعة: مفيش هجرات ناقصة. **الباك إند اشتغل فعلاً** على البيانات المسترجعة (بعد ما قفلت تليجرام والإيميل والـ webhooks)، و`/api/health/ready` رد بـ `ok`، وكتالوج متجر `almhnds` الحقيقي ظهر من البيانات المسترجعة. |
 | 22 سبتمبر 2026 (الملف المجمّع) | ملف مجمّع مشفّر اتعمل من نفس البيانات (5 منشآت، 927 كيلو، في 3 ثواني) | ✅ openssl فك التشفير، والنسخة الكاملة طلعت منه مطابقة بايت ببايت. بعدها `almhnds` اتنقلت لديسكتوب جديد (1162 سجل، 0 فروق)، واتعمل عليها شغل أوفلاين، ورجعت للسحابة من غير أي فروق، والمنشآت التانية مااتلمستش. الملف التالف وكلمة السر الغلط والمنشأة الغلط اترفضوا كلهم من غير أي تغيير. |
 
-كرر التجربة **كل 3 شهور**، أو بعد أي تغيير في سكربت النسخ، وسجّلها هنا.
+| 23 سبتمبر 2026 | — (تغيير في السكربتات) | ⚙️ **أُتمتت التجربة:** `zsystems-restore-drill.sh` بيعمل نفس الفحوص كل أحد الساعة 4:15 ويبعت تليجرام لو فشل. الحارس `deploy-pipeline.spec.ts` (DEPLOY-8) بيمنع أي نسخة من السكربت تكتب على قاعدة الإنتاج، وجُرّب بكسر متعمَّد. **التجربة اليدوية الكاملة لسه مطلوبة كل 3 شهور** (التمرين الآلي بيتحقق من الاسترجاع، مش من تشغيل الباك إند على البيانات المسترجعة).
+
+كرر التجربة اليدوية **كل 3 شهور**، أو بعد أي تغيير في سكربت النسخ، وسجّلها هنا.

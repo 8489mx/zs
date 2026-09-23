@@ -1,7 +1,21 @@
 import { strict as assert } from 'node:assert';
 import { createHash } from 'node:crypto';
-import { SessionService } from '../../src/core/auth/services/session.service';
+import { SessionService, isMfaChallenge, type AuthenticatedSessionResult } from '../../src/core/auth/services/session.service';
 import type { AuthContext } from '../../src/core/auth/interfaces/auth-context.interface';
+
+/**
+ * كل نداء `authenticate` في هذا الجناح يخص حساباً بلا مصادقة ثنائية، فالنتيجة يجب أن تكون
+ * جلسة جاهزة لا تحدياً. هذا يضيّق النوع **ويحرس في الوقت نفسه**: لو عاد مسار الدخول يوماً
+ * يطلب عاملاً ثانياً من حساب لم يفعّله، يفشل الجناح هنا بدل أن يمر بصمت.
+ */
+function expectSession(
+  result: Awaited<ReturnType<SessionService['authenticate']>>,
+): AuthenticatedSessionResult {
+  assert.ok(result, 'expected a successful login');
+  assert.ok(!isMfaChallenge(result), 'an account without MFA must get a session, not a challenge');
+  return result as AuthenticatedSessionResult;
+}
+
 
 function hashPassword(password: string, salt: string): string {
   return createHash('sha256').update(`${password}:${salt}`).digest('hex');
@@ -50,6 +64,7 @@ class FakeConfigService {
 
 class FakeDb {
   public tenants: Array<{ id: string; slug: string; business_name: string; status: string; trial_ends_at: Date | null; created_at: Date }> = [];
+  public userMfa: Array<{ user_id: number; tenant_id: string; confirmed_at: Date | null }> = [];
   constructor(
     public users: UserRow[],
     public sessions: SessionRow[] = [],
@@ -62,6 +77,7 @@ class FakeDb {
     if (table === 'settings') return new SettingsSelectBuilder(this);
     if (table === 'user_branches') return new UserBranchesSelectBuilder(this);
     if (table === 'tenants') return new TenantsSelectBuilder(this);
+    if (table === 'user_mfa') return new UserMfaSelectBuilder(this);
     if (table === 'tenant_tax_settings') {
       return {
         select: () => ({
@@ -174,6 +190,27 @@ class TenantsSelectBuilder {
   }
   async executeTakeFirst() {
     return this.db.tenants.find((row) => row.id === this.id) ?? undefined;
+  }
+}
+
+class UserMfaSelectBuilder {
+  private userId?: number;
+  private tenantId?: string;
+  private confirmedOnly = false;
+  constructor(private readonly db: FakeDb) {}
+  select(_cols: string[]) { return this; }
+  where(column: string, op: string, value: any) {
+    if (column === 'user_id') this.userId = value;
+    if (column === 'tenant_id') this.tenantId = value;
+    if (column === 'confirmed_at' && op === 'is not') this.confirmedOnly = true;
+    return this;
+  }
+  async executeTakeFirst() {
+    return this.db.userMfa.find((row) => (
+      row.user_id === this.userId
+      && (this.tenantId === undefined || row.tenant_id === this.tenantId)
+      && (!this.confirmedOnly || row.confirmed_at !== null)
+    )) ?? undefined;
   }
 }
 
@@ -295,7 +332,7 @@ async function run(): Promise<void> {
   db.users[0].locked_until = null;
   const oldHash = db.users[0].password_hash;
   const oldSalt = db.users[0].password_salt;
-  const valid = await service.authenticate('admin', password, { ipAddress: '127.0.0.1', userAgent: 'spec' });
+  const valid = expectSession(await service.authenticate('admin', password, { ipAddress: '127.0.0.1', userAgent: 'spec' }));
   assert.ok(valid);
   assert.equal(db.sessions.length, 1);
   assert.equal(db.sessions[0].tenant_id, 'default');
@@ -346,7 +383,7 @@ async function run(): Promise<void> {
     account_id: 'account-99',
   };
   db.users.push(tenantUser);
-  const tenantLogin = await service.authenticate('tenant_owner', password);
+  const tenantLogin = expectSession(await service.authenticate('tenant_owner', password));
   assert.ok(tenantLogin);
   assert.equal(tenantLogin!.auth.role, 'admin', 'Session auth.role for non-platform tenant MUST be admin, never super_admin');
   const tenantPayload = await service.buildLoginPayload(tenantLogin!.auth);
@@ -394,25 +431,109 @@ async function run(): Promise<void> {
   }, /مسجلة لدى أكثر من منشأة/);
 
   // 2. Logging in with Ragab's phone MUST succeed and lock to Ragab
-  const ragabLogin = await service.authenticate('01011111111', cashierPass);
+  const ragabLogin = expectSession(await service.authenticate('01011111111', cashierPass));
   assert.ok(ragabLogin);
   assert.equal(ragabLogin?.auth.tenantId, 'tenant-ragab');
   assert.equal(ragabLogin?.auth.userId, 101);
 
   // 3. Logging in with Mahmoud's phone MUST succeed and lock to Mahmoud
-  const mahmoudLogin = await service.authenticate('01022222222', cashierPass);
+  const mahmoudLogin = expectSession(await service.authenticate('01022222222', cashierPass));
   assert.ok(mahmoudLogin);
   assert.equal(mahmoudLogin?.auth.tenantId, 'tenant-mahmoud');
   assert.equal(mahmoudLogin?.auth.userId, 102);
 
   // 4. Logging in with username + companyCode MUST succeed and lock to that company
-  const scopedRagab = await service.authenticate('cashier_common', cashierPass, { companyCode: 'tenant-ragab' });
+  const scopedRagab = expectSession(await service.authenticate('cashier_common', cashierPass, { companyCode: 'tenant-ragab' }));
   assert.ok(scopedRagab);
   assert.equal(scopedRagab?.auth.tenantId, 'tenant-ragab');
   assert.equal(scopedRagab?.auth.userId, 101);
 }
 
-run().then(() => {
-  console.log('session-auth.spec: ok');
-});
+/**
+ * MFA-1: كلمة المرور الصحيحة وحدها **لا تُنشئ جلسة** لحساب فعّل المصادقة الثنائية.
+ *
+ * هذا هو الثابت الذي تقوم عليه الميزة كلها. لو عاد `authenticate` يوماً يُنشئ الجلسة ثم
+ * "يطلب" الرمز، صار العامل الثاني نافذة في الواجهة لا بوابة: صف الجلسة موجود والكوكي صدر،
+ * ومن يتكلم مع الـAPI مباشرة لا يمر على الواجهة أصلاً.
+ */
+async function runMfaGate(): Promise<void> {
+  const password = 'Str0ngPass!';
+  const salt = 'mfa-salt';
+  const db = new FakeDb([
+    {
+      id: 1,
+      username: 'owner',
+      phone: '01000000000',
+      password_hash: hashPassword(password, salt),
+      password_salt: salt,
+      role: 'admin',
+      display_name: 'Owner',
+      default_branch_id: null,
+      permissions_json: JSON.stringify(['sales']),
+      is_active: true,
+      locked_until: null,
+      failed_login_count: 0,
+      must_change_password: false,
+      last_login_at: null,
+      tenant_id: 'default',
+      account_id: 'default',
+    },
+  ]);
+  const service = new SessionService(
+    db as any,
+    new FakeConfigService({ LOGIN_MAX_ATTEMPTS: 3, LOGIN_LOCKOUT_MINUTES: 15 }) as any,
+    { log: async () => {} } as any,
+  );
+
+  // بلا صف مصادقة ثنائية: جلسة كالمعتاد.
+  expectSession(await service.authenticate('owner', password));
+  assert.equal(db.sessions.length, 1, 'an account without MFA still logs in normally');
+
+  // إعداد بدأ ولم يُؤكَّد (confirmed_at = null) يجب ألّا يحجب الدخول — وإلا قفلنا من بدأ ولم يُكمل.
+  db.sessions.length = 0;
+  db.userMfa.push({ user_id: 1, tenant_id: 'default', confirmed_at: null });
+  expectSession(await service.authenticate('owner', password));
+  assert.equal(db.sessions.length, 1, 'an unconfirmed MFA setup must not lock the user out');
+
+  // مؤكَّد + بلا سر توقيع في السحابة: يُرفض إصدار التحدي بدل أن يُوقَّع بمفتاح معروف
+  // (نفس قاعدة الفشل الآمن في `portal-token.ts` §2.5).
+  db.sessions.length = 0;
+  db.userMfa[0].confirmed_at = new Date();
+  const savedSecret = process.env.SESSION_SECRET;
+  const savedMode = process.env.APP_MODE;
+  process.env.APP_MODE = 'CLOUD_SAAS';
+  delete process.env.SESSION_SECRET;
+  await assert.rejects(
+    async () => service.authenticate('owner', password),
+    /PORTAL_TOKEN_SECRET_MISSING|إعداد الأمان/,
+    'issuing an MFA challenge must fail closed when no signing secret is configured',
+  );
+  assert.equal(db.sessions.length, 0, 'a failed challenge must not leave a session behind');
+
+  // مؤكَّد + السر مضبوط: تحدٍّ بلا جلسة.
+  process.env.SESSION_SECRET = 'session-secret-for-spec-0123456789';
+  const challenge = await service.authenticate('owner', password);
+  assert.ok(challenge, 'a correct password must still be accepted');
+  assert.ok(isMfaChallenge(challenge), 'a confirmed MFA account must get a challenge, not a session');
+  assert.equal(db.sessions.length, 0, 'NO session row may exist before the second factor');
+  assert.ok((challenge as any).mfaToken, 'the challenge must carry a signed token');
+  assert.ok(!(challenge as any).sessionId, 'the challenge must not leak a session id');
+
+  // كلمة مرور خاطئة تبقى خاطئة: لا تحدٍّ ولا جلسة.
+  db.userMfa[0].confirmed_at = new Date();
+  const wrong = await service.authenticate('owner', 'wrong-pass');
+  assert.equal(wrong, null, 'MFA must not turn a wrong password into a challenge');
+  assert.equal(db.sessions.length, 0);
+
+  if (savedSecret === undefined) delete process.env.SESSION_SECRET;
+  else process.env.SESSION_SECRET = savedSecret;
+  if (savedMode === undefined) delete process.env.APP_MODE;
+  else process.env.APP_MODE = savedMode;
+}
+
+run()
+  .then(() => runMfaGate())
+  .then(() => {
+    console.log('session-auth.spec: ok');
+  });
 

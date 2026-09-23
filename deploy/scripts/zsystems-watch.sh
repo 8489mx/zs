@@ -73,6 +73,27 @@ elif [ -r "$BACKUP_LOG" ] && tail -n 15 "$BACKUP_LOG" | grep -q "ERROR"; then
   ALERTS+=("آخر نسخة احتياطية فيها خطأ: $(tail -n 15 "$BACKUP_LOG" | grep ERROR | tail -1 | cut -c1-200)")
 fi
 
+# 3-b. Hourly backup freshness (DEPLOY-7). Only checked on a server where hourly backups are
+# actually installed: the absence of any hourly file at all means the cron line was never added,
+# which is a setup choice, not an incident. Once they exist, a gap means they stopped.
+HOURLY_ANY=$(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'zsystems_hourly_*' -print -quit 2>/dev/null)
+if [ -n "$HOURLY_ANY" ]; then
+  HOURLY_FRESH=$(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'zsystems_hourly_*' -mmin -185 -print -quit 2>/dev/null)
+  if [ -z "$HOURLY_FRESH" ]; then
+    ALERTS+=("النسخة الساعية متوقفة من أكتر من 3 ساعات — اللي ممكن يضيع رجع لـ24 ساعة. راجع ${BACKUP_LOG}")
+  fi
+fi
+
+# 3-c. Weekly restore drill (DEPLOY-8): same logic — only judged where it is installed.
+DRILL_LOG="$BACKUP_DIR/restore-drill.log"
+if [ -r "$DRILL_LOG" ]; then
+  if [ -z "$(find "$DRILL_LOG" -mmin -12960 -print -quit 2>/dev/null)" ]; then
+    ALERTS+=("تمرين الاسترجاع الأسبوعي ما اشتغلش من أكتر من 9 أيام. راجع ${DRILL_LOG}")
+  elif ! tail -n 40 "$DRILL_LOG" | grep -q "RESTORE DRILL OK"; then
+    ALERTS+=("آخر تمرين استرجاع فشل: $(tail -n 40 "$DRILL_LOG" | grep -i "فشل\|ERROR" | tail -1 | cut -c1-200)")
+  fi
+fi
+
 # 4. Disk
 DISK=$(df --output=pcent / | tail -1 | tr -dc '0-9')
 if [ "${DISK:-0}" -ge 85 ]; then

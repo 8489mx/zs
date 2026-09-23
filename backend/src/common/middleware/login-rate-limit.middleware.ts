@@ -3,13 +3,20 @@ import { ConfigService } from '@nestjs/config';
 import type { NextFunction, Response } from 'express';
 import type { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { InMemoryRateLimitService } from '../security/in-memory-rate-limit.service';
+import { resolveClientIp } from './storefront-public-rate-limit.middleware';
 
 function normalizeUsername(value: unknown): string {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
+/**
+ * O72: هذا كان `request.ip` وحده. خلف nginx (بلا `trust proxy` في Express) هذا هو عنوان
+ * البروكسي نفسه لكل الزوار، فالمفتاح `auth:login:ip:<nginx>` كان **دلواً واحداً للمنصة كلها**:
+ * عشر محاولات دخول من أي عشرة مستخدمين خلال عشر دقائق تُغلق تسجيل الدخول على الجميع، بينما
+ * المهاجم من عنوان واحد لا يُميَّز عن بقية الناس. نفس العلاج المطبَّق على المتجر في O69.
+ */
 function normalizeIp(request: RequestWithAuth): string {
-  return String(request.ip || request.socket?.remoteAddress || 'unknown').trim() || 'unknown';
+  return resolveClientIp(request.ip || request.socket?.remoteAddress, request.headers?.['x-real-ip']);
 }
 
 @Injectable()

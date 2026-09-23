@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
 import { systemAlert } from '@/shared/components/system-alert';
+import { TwoFactorCard } from '@/features/auth/components/TwoFactorCard';
 
 function UserIcon() {
   return (
@@ -449,6 +450,19 @@ export function ProfilePage() {
               </Button>
             </div>
           </form>
+        </div>
+
+        <div style={cardStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
+            <ShieldCheckIcon />
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>التحقق بخطوتين</h2>
+              <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                طبقة حماية ثانية بعد كلمة المرور
+              </p>
+            </div>
+          </div>
+          <TwoFactorCard />
         </div>
       </div>
     </div>

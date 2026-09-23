@@ -92,8 +92,12 @@ export function LoginPage() {
     showCompanyCodeInput,
     setShowCompanyCodeInput,
     isDesktop,
+    mfaChallenge,
+    submitMfaCode,
+    cancelMfa,
   } = useLoginForm();
   const [showPassword, setShowPassword] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
 
   const features = [
     "متابعة المبيعات والأرباح والتقارير لحظة بلحظة",
@@ -159,6 +163,58 @@ export function LoginPage() {
               </div>
             )}
 
+            {mfaChallenge ? (
+              <div
+                className="login-form-pro"
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitMfaCode(mfaCode); } }}
+              >
+                <p className="auth-note" style={{ marginTop: 0 }}>
+                  الحساب <strong dir="ltr">{mfaChallenge.username}</strong> عليه تحقق بخطوتين. افتح تطبيق المصادقة واكتب الرمز الحالي.
+                </p>
+
+                <div className="login-field-group">
+                  <div className="login-field-label">
+                    <label htmlFor="login-mfa-code">رمز التحقق</label>
+                  </div>
+                  <div className="login-input-pro-wrap">
+                    <input
+                      id="login-mfa-code"
+                      value={mfaCode}
+                      onChange={(e) => setMfaCode(e.target.value)}
+                      type="text"
+                      inputMode="numeric"
+                      dir="ltr"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      placeholder="000000"
+                      className="login-input-pro"
+                      autoFocus
+                    />
+                  </div>
+                  <span className="auth-field-hint">فقدت هاتفك؟ اكتب أحد رموز الاسترداد التي حفظتها عند التفعيل.</span>
+                </div>
+
+                <button
+                  type="button"
+                  className="login-submit-pro-btn"
+                  disabled={isSubmitting}
+                  onClick={() => submitMfaCode(mfaCode)}
+                >
+                  <span>{isSubmitting ? 'جاري التحقق...' : 'تأكيد الرمز'}</span>
+                  {!isSubmitting && <ArrowLeftIcon />}
+                </button>
+
+                <button
+                  type="button"
+                  className="auth-inline-link-btn"
+                  onClick={() => { setMfaCode(''); cancelMfa(); }}
+                >
+                  الرجوع لتسجيل الدخول
+                </button>
+              </div>
+            ) : (
             <div className="login-form-pro" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleSubmit(onSubmit)(); } }}>
               {!isDesktop && rememberedCompanyCode && !showCompanyCodeInput ? (() => {
                 const isRememberedUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rememberedCompanyCode);
@@ -268,7 +324,7 @@ export function LoginPage() {
               <div className="login-field-group">
                 <div className="login-field-label flex-between">
                   <label htmlFor="login-password">كلمة المرور</label>
-                  <a href="#" className="forgot-password-link" tabIndex={-1} onClick={(e) => e.preventDefault()}>نسيت كلمة المرور؟</a>
+                  {!isDesktop && <Link to="/forgot-password" className="forgot-password-link">نسيت كلمة المرور؟</Link>}
                 </div>
                 <div className="login-input-pro-wrap">
                   <input 
@@ -319,6 +375,7 @@ export function LoginPage() {
                 {!isSubmitting && <ArrowLeftIcon />}
               </button>
             </div>
+            )}
 
             {disambiguationTenants && disambiguationTenants.length > 0 && (
               <div

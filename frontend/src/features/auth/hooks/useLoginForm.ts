@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { DEFAULT_STORE_NAME, DEFAULT_THEME, useAuthStore } from '@/stores/auth-store';
 import { authApi } from '@/features/auth/api/auth.api';
+import type { LoginResponse } from '@/shared/api/auth';
 import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
 import { clearQueryClientData } from '@/lib/query-client-session';
 import { ApiError, setLocalSessionFallback } from '@/lib/http';
@@ -41,6 +42,7 @@ export function useLoginForm() {
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [disambiguationTenants, setDisambiguationTenants] = useState<DisambiguationTenant[] | null>(null);
+  const [mfaChallenge, setMfaChallenge] = useState<{ token: string; username: string } | null>(null);
   const [showCompanyCodeInput, setShowCompanyCodeInput] = useState(false);
 
   const [rememberedCompanyCode, setRememberedCompanyCode] = useState<string | null>(() => {
@@ -89,6 +91,42 @@ export function useLoginForm() {
         password: values.password,
         ...(activeCompanyCode ? { companyCode: activeCompanyCode } : {}),
       });
+
+      // MFA-1: كلمة المرور صحيحة لكن السيرفر لم ينشئ جلسة — لا كوكي ولا `sessionId`. الشاشة
+      // تنتقل لخطوة الرمز، ولا يُلمس أي شيء في المتجر (`setSession`) قبل العامل الثاني.
+      if (loginResult.mfaRequired && loginResult.mfaToken) {
+        setMfaChallenge({ token: loginResult.mfaToken, username: loginResult.username || values.username.trim() });
+        return;
+      }
+
+      await completeSession(loginResult);
+    } catch (err) {
+      setLocalSessionFallback(null);
+
+      // Check if multiple tenants disambiguation payload was returned
+      if (err instanceof ApiError) {
+        const details = err.details as any;
+        const tenants = details?.tenants || details?.error?.tenants;
+        const code = err.code || details?.code || details?.error?.code;
+
+        if (code === 'MULTIPLE_TENANTS' && Array.isArray(tenants) && tenants.length > 0) {
+          setDisambiguationTenants(tenants);
+          return;
+        }
+      }
+
+      const message = err instanceof Error ? err.message : 'تعذر تسجيل الدخول';
+      setSubmitError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  /**
+   * تثبيت الجلسة بعد أن يصدرها السيرفر — مشترك بين الدخول العادي والدخول بعد العامل الثاني،
+   * حتى لا يوجد مساران مختلفان لبناء حالة المستخدم في الواجهة.
+   */
+  async function completeSession(loginResult: LoginResponse) {
       setLocalSessionFallback(loginResult.sessionId);
 
       let storeName = DEFAULT_STORE_NAME;
@@ -136,27 +174,38 @@ export function useLoginForm() {
         setRememberedCompanyName(friendlyCompanyName);
       }
       setDisambiguationTenants(null);
+      setMfaChallenge(null);
       navigate(getPostLoginRoute(user, storeName, { tenant, deploymentMode: useAuthStore.getState().activationStatus?.deploymentMode, onboardingCompleted }), { replace: true });
+  }
+
+  /** الخطوة الثانية: رمز تطبيق المصادقة أو رمز استرداد. */
+  async function submitMfaCode(code: string) {
+    if (!mfaChallenge || isSubmitting) return;
+    setSubmitError('');
+    setIsSubmitting(true);
+
+    try {
+      const loginResult = await authApi.loginMfa({ mfaToken: mfaChallenge.token, code: code.trim() });
+      await completeSession(loginResult);
     } catch (err) {
       setLocalSessionFallback(null);
-
-      // Check if multiple tenants disambiguation payload was returned
-      if (err instanceof ApiError) {
-        const details = err.details as any;
-        const tenants = details?.tenants || details?.error?.tenants;
-        const code = err.code || details?.code || details?.error?.code;
-
-        if (code === 'MULTIPLE_TENANTS' && Array.isArray(tenants) && tenants.length > 0) {
-          setDisambiguationTenants(tenants);
-          return;
-        }
+      const code = err instanceof ApiError ? err.code : undefined;
+      // التحدي مات (5 دقائق) — نرجع لخطوة كلمة المرور بدل أن يعلق المستخدم في شاشة لا تعمل.
+      if (code === 'MFA_CHALLENGE_EXPIRED' || code === 'MFA_CHALLENGE_INVALID') {
+        setMfaChallenge(null);
+        setSubmitError(err instanceof Error ? err.message : 'انتهت مهلة التحقق. أعد تسجيل الدخول.');
+        return;
       }
-
-      const message = err instanceof Error ? err.message : 'تعذر تسجيل الدخول';
-      setSubmitError(message);
+      setSubmitError(err instanceof Error ? err.message : 'رمز التحقق غير صحيح');
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function cancelMfa() {
+    setMfaChallenge(null);
+    setSubmitError('');
+    form.setValue('password', '');
   }
 
   async function onSubmit(values: LoginSchema) {
@@ -190,6 +239,9 @@ export function useLoginForm() {
     onSubmit,
     submitError,
     isSubmitting,
+    mfaChallenge,
+    submitMfaCode,
+    cancelMfa,
     disambiguationTenants,
     setDisambiguationTenants,
     handleSelectTenant,

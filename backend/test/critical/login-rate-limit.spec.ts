@@ -169,9 +169,53 @@ function runEnvGuards(): void {
   );
 }
 
+/**
+ * O72: خلف nginx يكون `req.ip` هو عنوان البروكسي لكل الزوار. لو عاد الحدّ يعتمد عليه وحده،
+ * صار كل مستخدمي المنصة في دلو واحد: عشر محاولات دخول من عشرة أشخاص مختلفين تُغلق تسجيل
+ * الدخول على الجميع. هذا الاختبار يثبت أن زائرين خلف نفس البروكسي لهما دلوان مستقلان،
+ * وأن ترويسة `X-Real-IP` لا تُصدَّق إلا حين يكون القرين بروكسي داخلياً فعلاً.
+ */
+async function runProxyAwareLoginBuckets(): Promise<void> {
+  const service = new InMemoryRateLimitService();
+  const middleware = new LoginRateLimitMiddleware(
+    new FakeConfigService({ LOGIN_RATE_LIMIT_MAX: 2, LOGIN_RATE_LIMIT_WINDOW_SECONDS: 60 }) as any,
+    service,
+  );
+  const next = () => undefined;
+  const behindProxy = (realIp: string, username: string) => ({
+    ip: '127.0.0.1',
+    headers: { 'x-real-ip': realIp },
+    body: { username },
+  }) as any;
+
+  // الزائر الأول يستهلك حصته كاملة.
+  await middleware.use(behindProxy('41.0.0.1', 'first'), createResponse(), next);
+  await middleware.use(behindProxy('41.0.0.1', 'first'), createResponse(), next);
+  await expectTooManyRequests(async () => {
+    await middleware.use(behindProxy('41.0.0.1', 'first'), createResponse(), next);
+  });
+
+  // زائر آخر خلف نفس البروكسي يجب ألّا يتأثر إطلاقاً.
+  await middleware.use(behindProxy('41.0.0.2', 'second'), createResponse(), next);
+  await middleware.use(behindProxy('41.0.0.2', 'second'), createResponse(), next);
+
+  // عميل يتحدث مع التطبيق مباشرة لا يستطيع انتحال عنوان آخر بترويسة يزوّرها بنفسه.
+  const forgedService = new InMemoryRateLimitService();
+  const forgedMiddleware = new LoginRateLimitMiddleware(
+    new FakeConfigService({ LOGIN_RATE_LIMIT_MAX: 1, LOGIN_RATE_LIMIT_WINDOW_SECONDS: 60 }) as any,
+    forgedService,
+  );
+  const forged = (realIp: string) => ({ ip: '203.0.113.9', headers: { 'x-real-ip': realIp }, body: { username: 'victim' } }) as any;
+  await forgedMiddleware.use(forged('8.8.8.1'), createResponse(), next);
+  await expectTooManyRequests(async () => {
+    await forgedMiddleware.use(forged('8.8.8.2'), createResponse(), next);
+  });
+}
+
 async function main(): Promise<void> {
   await runLoginLimit();
   await runBurstLimit();
+  await runProxyAwareLoginBuckets();
   await runProductionRateLimitStoreGuard();
   runEnvGuards();
   console.log('login-rate-limit.spec: ok');

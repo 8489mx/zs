@@ -3,9 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import type { NextFunction, Response } from 'express';
 import type { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { InMemoryRateLimitService } from '../security/in-memory-rate-limit.service';
+import { resolveClientIp } from './storefront-public-rate-limit.middleware';
 
+/** O72: انظر التعليق في `login-rate-limit.middleware.ts` — نفس الدلو المشترك كان هنا أيضاً. */
 function normalizeIp(request: RequestWithAuth): string {
-  return String(request.ip || request.socket?.remoteAddress || 'unknown').trim() || 'unknown';
+  return resolveClientIp(request.ip || request.socket?.remoteAddress, request.headers?.['x-real-ip']);
 }
 
 @Injectable()

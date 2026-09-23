@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Guard for the production deploy and backup invariants DEPLOY-1..DEPLOY-6
+// Guard for the production deploy and backup invariants DEPLOY-1..DEPLOY-8
 // (ARCHITECTURE_INVARIANTS.md §2.7, docs/DEPLOYMENT_PIPELINE.md).
 // Each of these was a real production incident on 2026-09-22: the old flow deleted dist and rebuilt
 // on the 1-OCPU server (1754 failed PM2 restarts), and the nightly backup had silently not run for
@@ -15,6 +15,8 @@ const read = (relative: string) => readFileSync(join(ROOT, relative), 'utf8').re
 
 const workflow = read('.github/workflows/deploy-oracle.yml');
 const backupScript = read('deploy/scripts/zsystems-backup.sh');
+const drillScript = read('deploy/scripts/zsystems-restore-drill.sh');
+const watchScript = read('deploy/scripts/zsystems-watch.sh');
 
 function remoteScript(): string {
   const match = workflow.match(/<< 'REMOTE'\n([\s\S]*?)\n\s*REMOTE\n/);
@@ -78,6 +80,67 @@ function testNoCommittedParUrl(): void {
   }
 }
 
+// DEPLOY-7: the hourly copy exists, is encrypted, and cleans up after itself.
+// A daily-only backup means an outage at 5pm loses a full working day (RPO = 24h). The hourly mode
+// cuts that to one hour. Two things make it safe rather than merely frequent: it must be encrypted
+// before it leaves the server, and it must delete its own old copies — 24 files a day with no
+// retention fills both the disk and a Free Tier bucket.
+function testHourlyBackupMode(): void {
+  assert.ok(/MODE="\$\{1:-daily\}"/.test(backupScript), 'the backup script must take a daily|hourly mode');
+  assert.ok(/daily\|hourly\)/.test(backupScript), 'an unknown mode must be rejected, not silently treated as daily');
+  assert.ok(/zsystems_hourly_/.test(backupScript), 'the hourly copy needs its own filename prefix so retention can target it');
+  assert.ok(
+    /openssl enc -aes-256-cbc -pbkdf2[^\n]*-pass "file:\$PASSPHRASE_FILE"/.test(backupScript),
+    'the hourly copy must be encrypted with the same scheme as the bundle before it is uploaded',
+  );
+  assert.ok(
+    /name "zsystems_hourly_\*" -mtime \+"\$HOURLY_KEEP_DAYS" -delete/.test(backupScript),
+    'hourly copies must expire locally',
+  );
+  assert.ok(
+    /--min-age "\$\{GDRIVE_HOURLY_KEEP_DAYS\}d"[\s\S]{0,120}zsystems_hourly_/.test(backupScript),
+    'hourly copies must expire off-site too',
+  );
+  assert.ok(/zsystems_hourly_\*' -mmin/.test(watchScript), 'the watchdog must notice when hourly backups stop');
+}
+
+// DEPLOY-8: the weekly restore drill exists and can never touch the live database.
+// A backup that has never been restored is a file, not a backup. The drill restores the newest copy
+// into a throwaway database and compares it with production — but the only thing worse than an
+// unverified backup is a verification that damages what it was meant to protect, so most of this
+// guard is about what the drill is forbidden to do.
+function testRestoreDrill(): void {
+  assert.ok(/DRILL_DB="zsystems_restore_drill"/.test(drillScript), 'the drill must restore into its own database');
+  assert.ok(/CREATE DATABASE \$DRILL_DB/.test(drillScript), 'the drill creates its scratch database');
+  assert.ok(/DROP DATABASE IF EXISTS \$DRILL_DB/.test(drillScript), 'the drill drops its scratch database');
+  assert.ok(/trap cleanup EXIT/.test(drillScript), 'the scratch database must be dropped even when the drill fails');
+
+  // Nothing in the drill may drop, truncate, delete from or write to the production database.
+  const forbidden: RegExp[] = [
+    /DROP DATABASE[^\n]*\$DB_NAME/,
+    /DROP DATABASE[^\n]*zsystems_db\b/,
+    /TRUNCATE/i,
+    /DELETE FROM/i,
+    /UPDATE\s+\w+\s+SET/i,
+  ];
+  for (const pattern of forbidden) {
+    assert.ok(!pattern.test(drillScript), `the restore drill must never write to production (found ${pattern})`);
+  }
+  const liveQueries = drillScript.match(/live_q "[^"]+"/g) || [];
+  assert.ok(liveQueries.length > 0, 'the drill must compare the restored copy against production');
+  for (const query of liveQueries) {
+    assert.ok(/^live_q "select /i.test(query), `every production query in the drill must be read-only (found ${query})`);
+  }
+
+  // What it actually verifies: a restore that "succeeds" into an empty database proves nothing.
+  assert.ok(/PostgreSQL database dump complete/.test(drillScript), 'the drill must reject a truncated dump before restoring it');
+  assert.ok(/grep -c "\^ERROR"/.test(drillScript), 'errors during the restore must be counted, not ignored');
+  assert.ok(/pg_constraint where contype='f'/.test(drillScript), 'the drill must compare foreign keys (the O65 failure mode)');
+  assert.ok(/kysely_migration/.test(drillScript), 'the drill must reject a copy older than the live schema');
+  assert.ok(/RESTORE DRILL OK/.test(drillScript), 'a successful drill must leave a line the watchdog can look for');
+  assert.ok(/RESTORE DRILL OK/.test(watchScript), 'the watchdog must notice a failed or missing drill');
+}
+
 function run(): void {
   testNoBuildOnServer();
   testNoLiveDistDeletion();
@@ -85,8 +148,10 @@ function run(): void {
   testDeploysTestedCommit();
   testBackupScript();
   testNoCommittedParUrl();
+  testHourlyBackupMode();
+  testRestoreDrill();
   // eslint-disable-next-line no-console
-  console.log('deploy-pipeline.spec: all deploy and backup invariants hold (DEPLOY-1..DEPLOY-6)');
+  console.log('deploy-pipeline.spec: all deploy and backup invariants hold (DEPLOY-1..DEPLOY-8)');
 }
 
 try {

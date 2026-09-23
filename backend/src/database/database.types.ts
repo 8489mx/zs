@@ -35,6 +35,33 @@ export interface SessionTable {
   impersonated_by: ColumnType<number | null, number | null | undefined, number | null | undefined>;
 }
 
+export interface PasswordResetTokenTable {
+  id: string;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  user_id: number;
+  /** SHA-256 of the emailed token. The token itself is never stored. */
+  token_hash: string;
+  expires_at: Date;
+  used_at: ColumnType<Date | null, Date | null | undefined, Date | null | undefined>;
+  invalidated_at: ColumnType<Date | null, Date | null | undefined, Date | null | undefined>;
+  requested_ip: ColumnType<string, string | undefined, string | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface UserMfaTable {
+  user_id: number;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  /** TOTP secret, AES-256-GCM encrypted. The key lives in the environment, never in the database. */
+  secret_encrypted: string;
+  confirmed_at: ColumnType<Date | null, Date | null | undefined, Date | null | undefined>;
+  last_used_step: ColumnType<number, number | undefined, number | undefined>;
+  recovery_codes: ColumnType<string[], string | undefined, string | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface UserTable {
   id: Generated<number>;
   username: string;
@@ -1759,6 +1786,8 @@ export interface Database {
   sessions: SessionTable;
   users: UserTable;
   tenants: TenantTable;
+  password_reset_tokens: PasswordResetTokenTable;
+  user_mfa: UserMfaTable;
   trial_signups: TrialSignupTable;
   settings: SettingTable;
   accounting_accounts: AccountingAccountTable;

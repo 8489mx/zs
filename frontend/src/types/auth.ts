@@ -53,4 +53,8 @@ export interface AuthLoginResponse extends AuthMeResponse {
   mustChangePassword?: boolean;
   expiresAt?: string;
   sessionId?: string;
+  /** MFA-1: كلمة المرور صحت لكن لا جلسة بعد — الرد يحمل تحدياً قصير العمر بدل `sessionId`. */
+  mfaRequired?: boolean;
+  mfaToken?: string;
+  username?: string;
 }

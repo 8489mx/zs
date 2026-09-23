@@ -6,8 +6,12 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import type { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AuditService } from '../../audit/audit.service';
+import { AppError } from '../../../common/errors/app-error';
 import { createPasswordRecord, verifyPassword } from '../utils/password-hasher';
 import { assertStrongPassword } from '../utils/password-policy';
+import { signPortalToken, verifyPortalToken, type PortalTokenErrorSpec } from '../utils/portal-token';
+import { verifyTotpCode } from '../utils/totp';
+import { decryptMfaSecret, hashRecoveryCode } from '../utils/mfa-secret-cipher';
 import { resolveTenantContext } from '../utils/tenant-context';
 import { requireTenantScope } from '../utils/tenant-boundary';
 import { SUPER_ADMIN_PERMISSIONS } from '../constants/super-admin-permissions';
@@ -32,6 +36,29 @@ function safeJsonArray(value: unknown): string[] {
 
 function toNonEmpty(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+/**
+ * التحدي الذي يُعاد بعد كلمة مرور صحيحة لحساب مفعَّل عليه العامل الثاني. موقَّع بـ`portal-token.ts`
+ * (لا `createHmac` خام — §2.5) ويحمل `kind` مميَّزاً حتى لا يُقبل رمز بوابة موظف مكانه.
+ * خمس دقائق: مدة كافية لفتح تطبيق المصادقة، قصيرة بما يكفي ألّا تكون بديلاً عن الجلسة.
+ */
+const MFA_CHALLENGE_KIND = 'mfa-challenge';
+const MFA_CHALLENGE_TTL_MS = 5 * 60 * 1000;
+const MFA_CHALLENGE_ERRORS: PortalTokenErrorSpec = {
+  missing: { message: 'انتهت جلسة التحقق. أعد تسجيل الدخول.', code: 'MFA_CHALLENGE_INVALID' },
+  invalid: { message: 'انتهت جلسة التحقق. أعد تسجيل الدخول.', code: 'MFA_CHALLENGE_INVALID' },
+  signature: { message: 'انتهت جلسة التحقق. أعد تسجيل الدخول.', code: 'MFA_CHALLENGE_INVALID' },
+  expired: { message: 'انتهت مهلة التحقق. أعد تسجيل الدخول.', code: 'MFA_CHALLENGE_EXPIRED' },
+};
+
+export type MfaChallengeResult = { mfaRequired: true; mfaToken: string; username: string };
+export type AuthenticatedSessionResult = { sessionId: string; auth: AuthContext; expiresAt: Date };
+export type AuthenticateResult = AuthenticatedSessionResult | MfaChallengeResult;
+
+/** يميّز التحدي عن الجلسة الجاهزة في نتيجة `authenticate`. */
+export function isMfaChallenge(result: AuthenticateResult | null): result is MfaChallengeResult {
+  return Boolean(result && (result as MfaChallengeResult).mfaRequired === true);
 }
 
 @Injectable()
@@ -274,7 +301,7 @@ export class SessionService {
     identifier: string,
     password: string,
     meta?: { ipAddress?: string; userAgent?: string; companyCode?: string },
-  ): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date } | null> {
+  ): Promise<AuthenticateResult | null> {
     const normalized = identifier.trim();
     const rawCompanyCode = meta?.companyCode?.trim();
     let resolvedTenantId = rawCompanyCode;
@@ -499,14 +526,69 @@ export class SessionService {
     }
     const tenantContext = this.resolveUserTenantContext(user);
     await this.assertTenantLoginAllowed(tenantContext.tenantId);
+
+    // MFA-1: كلمة المرور الصحيحة لم تعد كافية وحدها لمن فعّل المصادقة الثنائية. **لا تُنشأ جلسة
+    // هنا إطلاقاً** — يُعاد تحدٍّ موقَّع قصير العمر، والجلسة تُنشأ في `completeMfaLogin` بعد
+    // التحقق من الرمز. أي مسار يُنشئ جلسة قبل العامل الثاني يُلغي الميزة كلها.
+    const mfaEnabled = await this.hasConfirmedMfa(user.id, tenantContext.tenantId);
+    if (mfaEnabled) {
+      await this.db
+        .updateTable('users')
+        .set({ failed_login_count: 0, locked_until: null })
+        .where('id', '=', user.id)
+        .where(sql<boolean>`tenant_id = ${tenantContext.tenantId}`)
+        .execute();
+
+      return {
+        mfaRequired: true,
+        mfaToken: signPortalToken(
+          { kind: MFA_CHALLENGE_KIND, userId: user.id, tenantId: tenantContext.tenantId, accountId: tenantContext.accountId },
+          MFA_CHALLENGE_TTL_MS,
+        ),
+        username: user.username,
+      };
+    }
+
+    return this.createAuthenticatedSession(user, meta, { rehashPassword: passwordCheck.needsRehash ? password : null });
+  }
+
+  /** هل لهذا المستخدم مصادقة ثنائية **مؤكَّدة**؟ الإعداد غير المؤكَّد لا يحجب الدخول. */
+  private async hasConfirmedMfa(userId: number, tenantId: string): Promise<boolean> {
+    const row = await this.db
+      .selectFrom('user_mfa')
+      .select(['user_id'])
+      .where('user_id', '=', userId)
+      .where('tenant_id', '=', tenantId)
+      .where('confirmed_at', 'is not', null)
+      .executeTakeFirst();
+    return Boolean(row);
+  }
+
+  /**
+   * النصف الثاني من تسجيل الدخول: إنشاء الجلسة وبناء سياق الهوية. مشترك بين الدخول العادي
+   * والدخول بعد العامل الثاني حتى لا يوجد مساران مختلفان لإنشاء الجلسة.
+   */
+  private async createAuthenticatedSession(
+    user: {
+      id: number;
+      username: string;
+      role: 'super_admin' | 'admin' | 'cashier';
+      permissions_json: string;
+      tenant_id: string;
+      account_id: string;
+    },
+    meta?: { ipAddress?: string; userAgent?: string },
+    options?: { rehashPassword?: string | null },
+  ): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date }> {
+    const tenantContext = this.resolveUserTenantContext(user);
     const sessionId = randomUUID();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     // Parallel: session insert + user security update (independent operations)
     const userSecurityUpdates: Record<string, unknown> = { failed_login_count: 0, last_login_at: now, locked_until: null };
-    if (passwordCheck.needsRehash) {
-      const upgradedPassword = await createPasswordRecord(password);
+    if (options?.rehashPassword) {
+      const upgradedPassword = await createPasswordRecord(options.rehashPassword);
       userSecurityUpdates.password_hash = upgradedPassword.hash;
       userSecurityUpdates.password_salt = upgradedPassword.salt;
     }
@@ -520,6 +602,106 @@ export class SessionService {
     const effectiveRole = (user.role === 'super_admin' && !isPlatformTenant) ? 'admin' : user.role;
     const userPermissions = effectiveRole === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(user.permissions_json)])) : safeJsonArray(user.permissions_json);
     return { sessionId, expiresAt, auth: { userId: user.id, sessionId, username: user.username, role: effectiveRole, permissions: userPermissions, ...tenantContext } };
+  }
+
+  /**
+   * يُكمل تسجيل الدخول بعد رمز المصادقة الثنائية (أو رمز استرداد).
+   *
+   * التحدي موقَّع بـ`portal-token.ts` (فشل آمن على السر، مقارنة ثابتة الزمن، عمر موحَّد) ويحمل
+   * `kind` مميَّزاً حتى لا يُقبل رمز بوابة موظف مكانه. وهو لا يُعفي من أي فحص: حالة المستخدم
+   * وحالة المستأجر تُعاد قراءتهما من القاعدة، لأن دقائق مرّت منذ التحقق من كلمة المرور.
+   */
+  async completeMfaLogin(
+    mfaToken: string,
+    code: string,
+    meta?: { ipAddress?: string; userAgent?: string },
+  ): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date }> {
+    const payload = verifyPortalToken<{ kind?: string; userId?: number; tenantId?: string }>(
+      `Bearer ${String(mfaToken || '')}`,
+      MFA_CHALLENGE_ERRORS,
+    );
+    if (payload.kind !== MFA_CHALLENGE_KIND) {
+      throw new AppError('انتهت جلسة التحقق. أعد تسجيل الدخول.', 'MFA_CHALLENGE_INVALID', 401);
+    }
+
+    const userId = Number(payload.userId || 0);
+    const tenantId = String(payload.tenantId || '').trim();
+    if (!userId || !tenantId) {
+      throw new AppError('انتهت جلسة التحقق. أعد تسجيل الدخول.', 'MFA_CHALLENGE_INVALID', 401);
+    }
+
+    const user = await this.db
+      .selectFrom('users')
+      .select(['id', 'username', 'role', 'permissions_json', 'tenant_id', 'account_id', 'is_active', 'locked_until'])
+      .where('id', '=', userId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .executeTakeFirst();
+
+    if (!user || !user.is_active || (user.locked_until && user.locked_until > new Date())) {
+      throw new AppError('انتهت جلسة التحقق. أعد تسجيل الدخول.', 'MFA_CHALLENGE_INVALID', 401);
+    }
+
+    const tenantContext = this.resolveUserTenantContext(user);
+    await this.assertTenantLoginAllowed(tenantContext.tenantId);
+
+    const accepted = await this.consumeMfaCode(userId, tenantContext.tenantId, code);
+    if (!accepted) {
+      await this.audit.log(
+        'رمز مصادقة ثنائية خاطئ',
+        `محاولة فاشلة بالعامل الثاني للمستخدم ${user.username}`,
+        { userId, tenantId: tenantContext.tenantId, accountId: tenantContext.accountId },
+        { targetTenantId: tenantContext.tenantId },
+      );
+      throw new AppError('رمز التحقق غير صحيح.', 'MFA_CODE_INVALID', 401);
+    }
+
+    return this.createAuthenticatedSession(user as never, meta);
+  }
+
+  /**
+   * يتحقق من رمز TOTP أو رمز استرداد **ويستهلكه**.
+   *
+   * الاستهلاك هو جوهر الأمان هنا: بدون `last_used_step` يمكن إعادة استعمال رمز ملتقط داخل
+   * نافذته، وبدون حذف رمز الاسترداد المستعمَل يبقى صالحاً للأبد. كل ذلك داخل معاملة واحدة مع
+   * `FOR UPDATE` حتى لا يمرّ طلبان متزامنان بنفس الرمز.
+   */
+  private async consumeMfaCode(userId: number, tenantId: string, code: string): Promise<boolean> {
+    return this.db.transaction().execute(async (trx) => {
+      const row = await trx
+        .selectFrom('user_mfa')
+        .select(['user_id', 'secret_encrypted', 'last_used_step', 'recovery_codes', 'confirmed_at'])
+        .where('user_id', '=', userId)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!row || !row.confirmed_at) return false;
+
+      const step = verifyTotpCode(decryptMfaSecret(row.secret_encrypted), code);
+      if (step !== null) {
+        if (step <= Number(row.last_used_step || 0)) return false; // نفس الرمز مرة ثانية
+        await trx
+          .updateTable('user_mfa')
+          .set({ last_used_step: step, updated_at: new Date() })
+          .where('user_id', '=', userId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+        return true;
+      }
+
+      const stored = Array.isArray(row.recovery_codes) ? row.recovery_codes : [];
+      const providedHash = hashRecoveryCode(code);
+      const remaining = stored.filter((entry) => String(entry) !== providedHash);
+      if (remaining.length === stored.length) return false;
+
+      await trx
+        .updateTable('user_mfa')
+        .set({ recovery_codes: JSON.stringify(remaining), updated_at: new Date() })
+        .where('user_id', '=', userId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+      return true;
+    });
   }
 
   async logout(sessionId: string, auth?: AuthContext): Promise<void> {

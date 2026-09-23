@@ -152,6 +152,16 @@ const router = storeHostSlug ? createRouter(storeHostRoutes()) : createRouter([
     path: '/trial',
     element: createLazyRoute(() => import('@/features/public-trial/pages/TrialSignupPage').then((module) => ({ default: module.TrialSignupPage }))),
   },
+  // استعادة كلمة المرور: عامة بلا `AppGateGuard` عمداً — من نسي كلمته لا يملك جلسة، ولا يصح
+  // أن تحوّله بوابة التفعيل/التهيئة بعيداً عن الرابط الذي وصله في البريد.
+  {
+    path: '/forgot-password',
+    element: createLazyRoute(() => import('@/features/auth/pages/ForgotPasswordPage').then((module) => ({ default: module.ForgotPasswordPage }))),
+  },
+  {
+    path: '/reset-password',
+    element: createLazyRoute(() => import('@/features/auth/pages/ResetPasswordPage').then((module) => ({ default: module.ResetPasswordPage }))),
+  },
   {
     path: '/public/track/:token',
     element: createLazyRoute(() => import('@/features/maritime-freight/pages/PublicShipmentTrackingPage').then((module) => ({ default: module.PublicShipmentTrackingPage }))),
