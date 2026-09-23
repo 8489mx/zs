@@ -22,15 +22,16 @@ export function DraftStateNotice({
       style={{
         position: 'fixed',
         top: '20px',
-        left: '24px',
-        width: 'min(420px, calc(100vw - 48px))',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 'min(460px, calc(100vw - 32px))',
         zIndex: 9990,
-        padding: '12px 16px',
-        borderRadius: '10px',
+        padding: '12px 18px',
+        borderRadius: '12px',
         border: '1px solid #fde68a',
         background: 'linear-gradient(180deg, #fffdf5 0%, #ffffff 100%)',
         boxShadow: '0 12px 28px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(245, 158, 11, 0.08)',
-        pointerEvents: 'none',
+        pointerEvents: 'auto',
         transition: 'all 0.2s ease-in-out',
       }}
     >

@@ -1,7 +1,7 @@
 .settings-page-shell .document-prototype-column {
-  max-width: 100% !important;
-  width: 100% !important;
-  margin: 0 !important;
+  max-width: 1280px !important;
+  width: min(100%, 1280px) !important;
+  margin: 0 auto !important;
 }
 
 .settings-page-shell .page-header {
@@ -149,7 +149,8 @@
   }
 }
 .settings-page-shell .settings-main-grid {
-  max-width: 1160px;
+  max-width: 1280px;
+  width: 100%;
   margin-inline: auto;
 }
 

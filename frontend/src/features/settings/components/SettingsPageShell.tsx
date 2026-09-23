@@ -29,7 +29,7 @@ export function SettingsPageShell({
 
   return (
     <div className="page-stack page-shell settings-page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', width: 'min(100%, 1280px)', margin: '0 auto' }}>
       <PageHeader title={title} description={description} badge={<span className="nav-pill">{badgeLabel}</span>} />
 
       {setupMode ? <SettingsSetupFlowCard currentSection={setupSection} /> : null}
