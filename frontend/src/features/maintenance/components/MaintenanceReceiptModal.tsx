@@ -291,7 +291,7 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, borderTop: '1px dashed #cbd5e1', paddingTop: '4px', marginTop: '4px' }}>
                 <span>المتبقي:</span>
                 <span style={{ color: '#16a34a' }}>
-                  {ticket.status === 'delivered' ? '0.00 ${getGlobalCurrencySymbol()} (خالص بالكامل)' : `${remainingAmount.toFixed(2)} ${getGlobalCurrencySymbol()}`}
+                  {ticket.status === 'delivered' ? `0.00 ${getGlobalCurrencySymbol()} (خالص بالكامل)` : `${remainingAmount.toFixed(2)} ${getGlobalCurrencySymbol()}`}
                 </span>
               </div>
             </div>

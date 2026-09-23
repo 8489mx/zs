@@ -106,7 +106,9 @@
 }
 
 .enterprise-compact-modal .field span,
-.dialog-shell .field span {
+.dialog-shell .field span,
+.enterprise-compact-modal .field label,
+.dialog-shell .field label {
   font-size: 0.78rem !important;
   font-weight: 600 !important;
   color: #475569 !important;

@@ -718,7 +718,7 @@ export function StorefrontCouponsManager() {
                   <div style={{ display: 'grid', gridTemplateColumns: formDiscountType === 'percentage' ? '1fr 1fr' : '1fr', gap: '10px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                        {formDiscountType === 'percentage' ? 'نسبة الخصم (%):' : 'مبلغ الخصم (${getGlobalCurrencySymbol()}):'}
+                        {formDiscountType === 'percentage' ? 'نسبة الخصم (%):' : `مبلغ الخصم (${getGlobalCurrencySymbol()}):`}
                       </label>
                       <input
                         type="number"

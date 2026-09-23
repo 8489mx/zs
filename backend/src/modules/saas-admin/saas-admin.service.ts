@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { isReservedStoreSlug } from '../storefront/engines/store-public-url.engine';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -23,6 +23,7 @@ type TenantStatus = 'trial' | 'active' | 'expired' | 'suspended';
 
 @Injectable()
 export class SaasAdminService {
+  private readonly logger = new Logger(SaasAdminService.name);
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly audit: AuditService,
@@ -31,7 +32,9 @@ export class SaasAdminService {
     private readonly sessionService: SessionService,
     private readonly demoDataService: SettingsDemoDataService,
     private readonly settingsService: SettingsService,
-    private readonly authCache: AuthCacheService = new AuthCacheService(),
+    // O39: no default instance. A second, private cache would answer with stale roles and
+    // permissions after an invalidation, and the trap only springs when injection changes.
+    private readonly authCache: AuthCacheService,
   ) {}
 
   private plansCache: { data: Record<string, unknown>[]; expiresAt: number } | null = null;
@@ -1050,11 +1053,34 @@ export class SaasAdminService {
       const effectiveExtra = dto.extraFeatures !== undefined ? dto.extraFeatures : (typeof tenant.extra_features === 'string' ? JSON.parse(tenant.extra_features || '[]') : tenant.extra_features || []);
       await this.syncTenantModuleSettingsForPlan(tenant.id, effectivePlanId, effectiveExtra);
 
-      // No auth context for this automated action, passing null is handled by the audit log silently or we just mock auth.
+      // O40: the actor used to carry no tenant/account, so requireTenantScope threw inside the audit
+      // service and the catch below swallowed it — a plan change with no trace anywhere. The developer
+      // panel acts on a specific tenant, so the entry is written under that tenant's scope, and a
+      // failure is logged instead of disappearing.
+      const accountRow = await this.db
+        .selectFrom('users')
+        .select('account_id')
+        .where('tenant_id', '=', tenant.id)
+        .executeTakeFirst()
+        .catch(() => undefined);
+      const developerActor = {
+        id: 'developer',
+        userId: null,
+        username: 'developer-panel',
+        role: 'super_admin',
+        tenantId: tenant.id,
+        accountId: accountRow?.account_id ?? tenant.id,
+      } as unknown as AuthContext;
+      const featuresText = Array.isArray(effectiveExtra) && effectiveExtra.length ? effectiveExtra.join(', ') : 'بدون';
       try {
-        await this.audit.log('تفعيل مطور', `تم تفعيل الباقة والميزات محلياً بواسطة لوحة المطورين`, { id: 'developer', role: 'super_admin' } as unknown as AuthContext, { targetTenantId: tenant.id });
-      } catch (e) {
-        // ignore audit failure if context missing
+        await this.audit.log(
+          'تفعيل مطور',
+          `تم تفعيل الباقة والميزات محلياً بواسطة لوحة المطورين | الباقة: ${effectivePlanId || 'بدون'} | ميزات إضافية: ${featuresText}`,
+          developerActor,
+          { targetTenantId: tenant.id },
+        );
+      } catch (error) {
+        this.logger.error(`developer plan change for ${tenant.id} was not audited: ${(error as Error)?.message || error}`);
       }
     }
 

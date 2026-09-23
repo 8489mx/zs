@@ -94,7 +94,9 @@
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-meta-grid-aux .field > span,
-.pos-workspace.pos-sale-mode-touch .pos-meta-grid-aux .field > span {
+.pos-workspace.pos-sale-mode-touch .pos-meta-grid-aux .field > span,
+.pos-workspace.pos-sale-mode-scanner .pos-meta-grid-aux .field > label,
+.pos-workspace.pos-sale-mode-touch .pos-meta-grid-aux .field > label {
   margin: 0;
   font-size: 10px;
   white-space: nowrap;

@@ -257,7 +257,8 @@
   padding: 4px 7px;
 }
 
-.pos-workspace .field > span {
+.pos-workspace .field > span,
+.pos-workspace .field > label {
   font-size: 11px;
   margin-bottom: 3px;
 }
@@ -785,7 +786,10 @@
 
 .pos-workspace .pos-payment-grid-premium-compact .field > span,
 .pos-workspace .pos-inline-create-grid-compact .field > span,
-.pos-workspace .pos-meta-grid-compact .field > span {
+.pos-workspace .pos-meta-grid-compact .field > span,
+.pos-workspace .pos-payment-grid-premium-compact .field > label,
+.pos-workspace .pos-inline-create-grid-compact .field > label,
+.pos-workspace .pos-meta-grid-compact .field > label {
   font-size: 10px;
   margin-bottom: 2px;
 }
@@ -1115,7 +1119,8 @@
   gap: 4px;
 }
 
-.pos-workspace .pos-inline-create-grid-compact .field > span {
+.pos-workspace .pos-inline-create-grid-compact .field > span,
+.pos-workspace .pos-inline-create-grid-compact .field > label {
   font-size: 10px;
   margin-bottom: 1px;
 }
@@ -1142,7 +1147,8 @@
   margin: 0;
 }
 
-.pos-workspace .pos-payment-grid-premium-compact .field > span {
+.pos-workspace .pos-payment-grid-premium-compact .field > span,
+.pos-workspace .pos-payment-grid-premium-compact .field > label {
   font-size: 10px;
   margin-bottom: 1px;
 }
@@ -1323,7 +1329,9 @@
 }
 
 .pos-workspace .pos-products-card .field > span,
-.pos-workspace .pos-checkout-card .field > span {
+.pos-workspace .pos-checkout-card .field > span,
+.pos-workspace .pos-products-card .field > label,
+.pos-workspace .pos-checkout-card .field > label {
   font-size: 10px;
 }
 

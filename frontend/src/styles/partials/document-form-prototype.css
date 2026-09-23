@@ -673,7 +673,8 @@
   margin-bottom: 0;
 }
 
-.purchase-prototype-create-grid .field > span {
+.purchase-prototype-create-grid .field > span,
+.purchase-prototype-create-grid .field > label {
   color: #475569;
   font-family: "IBM Plex Sans Arabic", "Cairo", "Tajawal", system-ui, sans-serif;
   font-size: 14px;
@@ -747,7 +748,8 @@
   color: #dbeafe;
 }
 
-.purchase-prototype-dark .purchase-prototype-create-grid .field > span {
+.purchase-prototype-dark .purchase-prototype-create-grid .field > span,
+.purchase-prototype-dark .purchase-prototype-create-grid .field > label {
   color: #cbd5e1;
 }
 
@@ -1172,7 +1174,8 @@
   gap: 0.32rem;
 }
 
-.document-prototype-shell .field > span {
+.document-prototype-shell .field > span,
+.document-prototype-shell .field > label {
   color: #334155;
   font-family: "IBM Plex Sans Arabic", "Cairo", "Tajawal", system-ui, sans-serif;
   font-size: 13.5px;
@@ -1761,7 +1764,8 @@
 .purchase-prototype-dark .purchase-prototype-popover-option span,
 .purchase-prototype-dark .document-line-items-table th,
 .purchase-prototype-dark .document-line-items-table .line-total,
-.purchase-prototype-dark .document-prototype-bottom-grid .document-prototype-section label {
+.purchase-prototype-dark .document-prototype-bottom-grid .document-prototype-section label,
+.purchase-prototype-dark .document-prototype-shell .field > label {
   font-family: "IBM Plex Sans Arabic", "Cairo", "Tajawal", system-ui, sans-serif;
   color: #cbd5e1;
 }
@@ -1839,7 +1843,9 @@
 }
 
 .document-prototype-shell .field > span,
-.document-prototype-shell .document-prototype-create-grid .field > span {
+.document-prototype-shell .document-prototype-create-grid .field > span,
+.document-prototype-shell .field > label,
+.document-prototype-shell .document-prototype-create-grid .field > label {
   color: #334155;
   font-size: 14px;
   font-weight: 700;
@@ -2593,7 +2599,9 @@
 }
 
 .document-prototype-shell .field > span,
-.document-prototype-shell .purchase-prototype-create-grid .field > span {
+.document-prototype-shell .purchase-prototype-create-grid .field > span,
+.document-prototype-shell .field > label,
+.document-prototype-shell .purchase-prototype-create-grid .field > label {
   color: #334155 !important;
   font-family: "IBM Plex Sans Arabic", "Cairo", "Tajawal", system-ui, sans-serif !important;
   font-size: 14px !important;
@@ -2689,7 +2697,9 @@
 }
 
 .purchase-prototype-dark .document-prototype-shell .field > span,
-.purchase-prototype-dark .document-prototype-shell .purchase-prototype-create-grid .field > span {
+.purchase-prototype-dark .document-prototype-shell .purchase-prototype-create-grid .field > span,
+.purchase-prototype-dark .document-prototype-shell .field > label,
+.purchase-prototype-dark .document-prototype-shell .purchase-prototype-create-grid .field > label {
   color: #cbd5e1 !important;
 }
 

@@ -72,7 +72,7 @@ export function CapitalTransactionDialog({
             value={amount} 
             onChange={e => setAmount(e.target.value)} 
             required 
-            placeholder="0.00 ${getGlobalCurrencySymbol()}"
+            placeholder={`0.00 ${getGlobalCurrencySymbol()}`}
             style={{
               width: '100%',
               height: '38px',

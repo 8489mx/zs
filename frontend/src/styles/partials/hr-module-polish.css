@@ -50,7 +50,8 @@
 }
 
 .page-shell[dir='rtl']:has(.hr-section-nav) .field > span:first-child,
-.page-shell[dir='rtl']:has(.hr-section-nav) .field label > span:first-child {
+.page-shell[dir='rtl']:has(.hr-section-nav) .field label > span:first-child,
+.page-shell[dir='rtl']:has(.hr-section-nav) .field > label:first-child {
   color: rgba(51, 65, 85, 0.92);
   font-weight: 700;
 }

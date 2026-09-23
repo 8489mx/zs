@@ -36,18 +36,10 @@ const product: Product = {
   offers: [],
 };
 
-// `Field` (src/shared/ui/field.tsx) renders its caption as a plain <span> inside a <div>,
-// not as a <label>, so getByLabelText cannot associate it with the input. Until that is
-// fixed (open item O30) the tests locate the control through its field container.
+// `Field` (src/shared/ui/field.tsx) now renders its caption as a real <label> bound to the control
+// (O30), so the caption is how a user — and a screen reader — finds the input.
 function fieldInput(caption: string | RegExp): HTMLInputElement {
-  const matches = (text: string) => (typeof caption === 'string' ? text === caption : caption.test(text));
-  const field = Array.from(document.querySelectorAll('.field')).find(
-    (node) => matches(node.querySelector('span')?.textContent?.trim() || ''),
-  );
-  if (!field) throw new Error(`Field not found: ${caption}`);
-  const input = field.querySelector('input');
-  if (!input) throw new Error(`Field has no input: ${caption}`);
-  return input as HTMLInputElement;
+  return screen.getByLabelText(caption) as HTMLInputElement;
 }
 
 function renderDialog() {

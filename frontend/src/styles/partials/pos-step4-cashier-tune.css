@@ -1139,7 +1139,8 @@
   background: #fff;
 }
 
-.pos-customer-inline-create .pos-inline-create-grid-compact .field > span {
+.pos-customer-inline-create .pos-inline-create-grid-compact .field > span,
+.pos-customer-inline-create .pos-inline-create-grid-compact .field > label {
   font-size: 12px;
   color: #64748b;
 }
@@ -1573,7 +1574,8 @@
 .pos-workspace .pos-customer-trigger-label,
 .pos-workspace .pos-customer-inline-search-row input,
 .pos-workspace .pos-customer-inline-create .pos-inline-create-grid-compact .field > span,
-.pos-workspace .pos-customer-inline-create .pos-inline-create-grid-compact input {
+.pos-workspace .pos-customer-inline-create .pos-inline-create-grid-compact input,
+.pos-workspace .pos-customer-inline-create .pos-inline-create-grid-compact .field > label {
   font-size: 12px;
 }
 
@@ -1849,7 +1851,8 @@
   margin: 0;
 }
 
-.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-meta-grid-aux .field > span {
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-meta-grid-aux .field > span,
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-meta-grid-aux .field > label {
   margin: 0;
   font-size: 10px;
   white-space: nowrap;

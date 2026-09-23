@@ -1835,7 +1835,7 @@ export class HrService {
         COALESCE(SUM(lr.days_count), 0) AS approved_leave_days,
         COALESCE(SUM(CASE WHEN COALESCE(lt.is_paid, TRUE) = FALSE OR LOWER(COALESCE(lt.code, '')) = 'unpaid' OR LOWER(COALESCE(lr.leave_type, '')) = 'unpaid' THEN lr.days_count ELSE 0 END), 0) AS unpaid_leave_days
       FROM hr_leave_requests lr
-      LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id
+      LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id AND lt.tenant_id = lr.tenant_id
       WHERE lr.employee_id IN (${sql.join(employeeIds)})
         AND lr.status = 'approved'
         AND lr.start_date <= ${range.to}::date
@@ -2922,6 +2922,8 @@ export class HrService {
         };
       }
 
+      // O41: distinguish "no notes in this request" from "clear the notes".
+      const notesProvided = payload.notes !== undefined;
       const hasCompletedSession = Boolean(existingRow?.check_in_at && existingRow?.check_out_at);
       if (startsNewSession(payload, hasCompletedSession)) {
         const prevCheckIn = formatTimeInTimezone(existingRow!.check_in_at, tenantTimezone);
@@ -2967,7 +2969,7 @@ export class HrService {
           ${checkInAt ? checkInAt.toISOString() : null},
           ${checkOutAt ? checkOutAt.toISOString() : null},
           ${normalizeAttendanceSource(payload.source)},
-          ${clean(payload.notes) || null},
+          ${notesProvided ? clean(payload.notes) || null : null},
           ${auth.userId},
           ${auth.userId},
           NOW(),
@@ -2979,7 +2981,10 @@ export class HrService {
           check_in_at = COALESCE(EXCLUDED.check_in_at, hr_attendance_records.check_in_at),
           check_out_at = COALESCE(EXCLUDED.check_out_at, hr_attendance_records.check_out_at),
           source = EXCLUDED.source,
-          notes = EXCLUDED.notes,
+          -- O41: a checkout punch carries no notes, and this used to overwrite the note written at
+          -- check-in (or by the previous-session merge) with NULL. Only a notes field that is
+          -- actually present in the request changes it, like check_in_at / check_out_at above.
+          notes = CASE WHEN ${notesProvided} THEN EXCLUDED.notes ELSE hr_attendance_records.notes END,
           updated_by = ${auth.userId},
           updated_at = NOW()
       `.execute(trx);
@@ -3458,7 +3463,8 @@ export class HrService {
       JOIN hr_employees e ON e.id = r.employee_id
       LEFT JOIN hr_departments d ON d.id = e.department_id
       LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
-      LEFT JOIN hr_leave_types t ON t.id = r.leave_type_id
+      -- O24: leave_type_id has no foreign key binding it to the tenant, so the join must scope it.
+      LEFT JOIN hr_leave_types t ON t.id = r.leave_type_id AND t.tenant_id = r.tenant_id
       ORDER BY r.created_at DESC, r.id DESC
     `.execute(this.db);
 
@@ -3516,6 +3522,19 @@ export class HrService {
     if (endDate < startDate) throw new AppError('Leave end date must be after start date', 'HR_LEAVE_DATE_RANGE_INVALID', 400);
     const leaveTypeId = toId(payload.leaveTypeId);
     const leaveType = clean(payload.leaveType);
+
+    // O24: both ids arrive in the request body and neither is bound to the tenant by a foreign key,
+    // so a request could be filed against another tenant's employee or leave type.
+    const employeeCheck = await sql<{ id: number }>`
+      SELECT id FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${auth.tenantId}
+    `.execute(this.db);
+    if (employeeCheck.rows.length === 0) throw new AppError('Employee is required', 'HR_LEAVE_EMPLOYEE_REQUIRED', 400);
+    if (leaveTypeId) {
+      const typeCheck = await sql<{ id: number }>`
+        SELECT id FROM hr_leave_types WHERE id = ${leaveTypeId} AND tenant_id = ${auth.tenantId}
+      `.execute(this.db);
+      if (typeCheck.rows.length === 0) throw new AppError('Leave type is invalid', 'HR_LEAVE_TYPE_INVALID', 400);
+    }
     const computedDays = inclusiveDaysBetween(startDate, endDate);
     const daysCount = Number(payload.daysCount || computedDays);
     if (!Number.isFinite(daysCount) || daysCount <= 0) throw new AppError('Leave days count is invalid', 'HR_LEAVE_DAYS_COUNT_INVALID', 400);
@@ -4004,7 +4023,7 @@ export class HrService {
           COALESCE(SUM(CASE WHEN lr.status = 'approved' AND (COALESCE(lt.is_paid, TRUE) = FALSE OR LOWER(COALESCE(lt.code, '')) = 'unpaid' OR LOWER(COALESCE(lr.leave_type, '')) = 'unpaid') THEN lr.days_count ELSE 0 END), 0) AS unpaid_leave_days
         FROM hr_leave_requests lr
         JOIN hr_employees e ON e.id = lr.employee_id
-        LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id
+        LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id AND lt.tenant_id = lr.tenant_id
         WHERE e.tenant_id = ${auth.tenantId}
           AND lr.start_date <= ${range.to}::date
           AND lr.end_date >= ${range.from}::date

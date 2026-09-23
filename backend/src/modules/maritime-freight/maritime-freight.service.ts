@@ -524,27 +524,6 @@ export class MaritimeFreightService {
   // --------------------------------------------------------------------------
   // 2.5 Maritime Client Inquiries Engine (Customer Freight Requests)
   // --------------------------------------------------------------------------
-  private getDailyPrefix(type: string): string {
-    const now = new Date();
-    const yy = String(now.getFullYear()).slice(-2);
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    return `${type}-${yy}${mm}${dd}-`;
-  }
-
-  private async generateNextInquiryNumber(tenantId: string): Promise<string> {
-    const prefix = this.getDailyPrefix('INQ');
-    const countResult = await this.db
-      .selectFrom('maritime_inquiries')
-      .select((eb) => eb.fn.count('id').as('count'))
-      .where('tenant_id', '=', tenantId)
-      .where('inquiry_number', 'like', `${prefix}%`)
-      .executeTakeFirst();
-
-    const nextSeq = Number(countResult?.count || 0) + 1;
-    return formatDailyDocumentNumber('INQ', nextSeq);
-  }
-
   async createInquiry(auth: AuthContext, dto: CreateMaritimeInquiryDto) {
     const { tenantId } = requireTenantScope(auth);
 
@@ -690,19 +669,6 @@ export class MaritimeFreightService {
   // --------------------------------------------------------------------------
   // 3. Maritime RFQs Engine
   // --------------------------------------------------------------------------
-  private async generateNextRfqNumber(tenantId: string): Promise<string> {
-    const prefix = this.getDailyPrefix('RFQ');
-    const countResult = await this.db
-      .selectFrom('maritime_rfqs')
-      .select((eb) => eb.fn.count('id').as('count'))
-      .where('tenant_id', '=', tenantId)
-      .where('rfq_number', 'like', `${prefix}%`)
-      .executeTakeFirst();
-
-    const nextSeq = Number(countResult?.count || 0) + 1;
-    return formatDailyDocumentNumber('RFQ', nextSeq);
-  }
-
   async createRfq(auth: AuthContext, dto: CreateMaritimeRfqDto) {
     const { tenantId } = requireTenantScope(auth);
     const pipelineConfig = await this.getTenantPipelineConfig(tenantId);
@@ -1391,19 +1357,6 @@ export class MaritimeFreightService {
   // --------------------------------------------------------------------------
   // 5. Client Quotations Engine
   // --------------------------------------------------------------------------
-  private async generateNextQuotationNumber(tenantId: string): Promise<string> {
-    const prefix = this.getDailyPrefix('QUO');
-    const countResult = await this.db
-      .selectFrom('maritime_quotations')
-      .select((eb) => eb.fn.count('id').as('count'))
-      .where('tenant_id', '=', tenantId)
-      .where('quotation_number', 'like', `${prefix}%`)
-      .executeTakeFirst();
-
-    const nextSeq = Number(countResult?.count || 0) + 1;
-    return formatDailyDocumentNumber('QUO', nextSeq);
-  }
-
   async createQuotation(auth: AuthContext, dto: CreateMaritimeQuotationDto) {
     const { tenantId } = requireTenantScope(auth);
 
@@ -1526,19 +1479,6 @@ export class MaritimeFreightService {
   // --------------------------------------------------------------------------
   // 6. Shipment Jobs Engine (Operations & Cost Centers)
   // --------------------------------------------------------------------------
-  private async generateNextJobNumber(tenantId: string): Promise<string> {
-    const prefix = this.getDailyPrefix('JOB');
-    const countResult = await this.db
-      .selectFrom('maritime_jobs')
-      .select((eb) => eb.fn.count('id').as('count'))
-      .where('tenant_id', '=', tenantId)
-      .where('job_number', 'like', `${prefix}%`)
-      .executeTakeFirst();
-
-    const nextSeq = Number(countResult?.count || 0) + 1;
-    return formatDailyDocumentNumber('JOB', nextSeq);
-  }
-
   async createJob(auth: AuthContext, dto: CreateMaritimeJobDto) {
     const { tenantId } = requireTenantScope(auth);
     const trackingToken = crypto.randomBytes(16).toString('hex');
