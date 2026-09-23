@@ -5,6 +5,7 @@ import { Database } from '../../database/database.types';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 import { planWebhookOrderLookup, selectUnambiguousOrder } from './engines/webhook-order-resolution.engine';
 import { verifyOrderAccessToken, isSandboxPaymentAllowed, buildPaymentReturnUrl, buildGatewayWebhookUrl } from './engines/online-order-access.engine';
+import { platformNoReplyEmail } from './engines/store-public-url.engine';
 import * as crypto from 'crypto';
 
 export interface TenantPaymentConfig {
@@ -271,7 +272,7 @@ export class StorefrontPaymentService {
                 billing_data: {
                   first_name: order.customer_name?.split(' ')[0] || 'Customer',
                   last_name: order.customer_name?.split(' ').slice(1).join(' ') || 'Storefront',
-                  email: 'customer@z-systems.cloud',
+                  email: platformNoReplyEmail(),
                   phone_number: order.customer_phone || '01000000000',
                   apartment: 'NA',
                   floor: 'NA',
@@ -342,7 +343,7 @@ export class StorefrontPaymentService {
             body: JSON.stringify({
               billing_data: {
                 name: order.customer_name || 'Customer',
-                email: 'customer@z-systems.cloud',
+                email: platformNoReplyEmail(),
                 phone_number: formattedPhone,
               },
               amount: totalAmount,
@@ -479,7 +480,7 @@ export class StorefrontPaymentService {
             customer: {
               first_name: order.customer_name?.split(' ')[0] || 'Customer',
               last_name: order.customer_name?.split(' ').slice(1).join(' ') || 'Storefront',
-              email: 'customer@z-systems.cloud',
+              email: platformNoReplyEmail(),
               phone: {
                 country_code: countryCode,
                 number: phoneNum || '500000000',

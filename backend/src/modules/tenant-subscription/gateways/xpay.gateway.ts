@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { IPaymentGateway, PaymentInitiateInput, PaymentInitiateResult, WebhookValidationResult } from './payment-gateway.interface';
 import * as crypto from 'crypto';
+import { platformNoReplyEmail } from '../../storefront/engines/store-public-url.engine';
 
 @Injectable()
 export class XPayGatewayService implements IPaymentGateway {
@@ -38,7 +39,7 @@ export class XPayGatewayService implements IPaymentGateway {
           body: JSON.stringify({
             billing_data: {
               name: input.ownerName || input.businessName,
-              email: input.ownerEmail || `${input.tenantSlug}@z-systems.cloud`,
+              email: input.ownerEmail || platformNoReplyEmail(),
               phone_number: input.ownerPhone || '01000000000',
             },
             amount: input.amount,

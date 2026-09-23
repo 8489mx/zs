@@ -16,7 +16,7 @@ Before deploying or scaling the SaaS offering, verify the environment (`.env` or
 - [x] `ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION=false`: Prevents accidental or forced re-seeding of the root owner in production.
 - [x] `PUBLIC_TRIAL_DEBUG_CREDENTIALS=false`: Ensures temporary passwords are not returned in the API response payload.
 - [x] `SESSION_COOKIE_SECURE=true`: Only allows cookies over HTTPS.
-- [x] `SESSION_COOKIE_SAME_SITE=lax`: Given the domain configuration (`api.zsystems.io` and `app.zsystems.io`), `lax` allows cookies to flow properly during top-level navigation while `strict` may block cross-subdomain top-level navigation. `lax` is secure if `SESSION_COOKIE_DOMAIN=zsystems.io` is configured correctly, and the CSRF token handles cross-site request forgery protection.
+- [x] `SESSION_COOKIE_SAME_SITE=lax`: the app and its API share one host (`app.zsystemai.com`), so `lax` is enough for top-level navigation and the CSRF token covers cross-site requests. **`SESSION_COOKIE_DOMAIN` must stay empty (host-only).** Scoping the session cookie to the root domain would send it to every store subdomain, which runs merchant-controlled content — the app refuses to start with that combination (invariant F38 / SF-10).
 - [x] `DATABASE_SSL=false`: (Or `true` if connecting to external DB over SSL. On Oracle VPS running local PostgreSQL, SSL can be false).
 
 ## 2. Database Connection and Operations Review (Oracle Cloud VPS)

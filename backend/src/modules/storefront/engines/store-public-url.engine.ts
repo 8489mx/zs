@@ -48,6 +48,23 @@ export function canUseStoreSubdomain(slug: unknown): boolean {
   return DNS_LABEL.test(clean) && !RESERVED_STORE_SLUGS.has(clean);
 }
 
+/**
+ * A sender/contact address on our own domain, for the places a payment gateway demands an email but
+ * we have none (a storefront shopper gives a phone, not an email). It used to be a literal
+ * `@z-systems.cloud`, a domain that is not ours and does not resolve.
+ */
+export function platformNoReplyEmail(env: NodeJS.ProcessEnv = process.env): string {
+  const root =
+    storefrontRootDomain(env) ||
+    String(env.APP_PUBLIC_URL || '')
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/[:/].*$/, '')
+      .replace(/^app\./, '');
+  return root ? `no-reply@${root}` : 'no-reply@localhost';
+}
+
 function cleanOrigin(origin: string | undefined): string | null {
   const base = String(origin || '').trim().replace(/\/$/, '');
   return /^https?:\/\/[^\s/]+$/i.test(base) ? base : null;

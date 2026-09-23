@@ -2,6 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { IPaymentGateway, PaymentInitiateInput, PaymentInitiateResult, WebhookValidationResult } from './payment-gateway.interface';
 
+function subscriptionPageUrl(): string {
+  const base = String(process.env.APP_PUBLIC_URL || '').trim().replace(/\/$/, '');
+  return `${/^https?:\/\/[^\s/]+$/i.test(base) ? base : ''}/settings/subscription`;
+}
+
 @Injectable()
 export class StripeGatewayService implements IPaymentGateway {
   readonly gatewayName = 'stripe' as const;
@@ -27,8 +32,10 @@ export class StripeGatewayService implements IPaymentGateway {
           'line_items[0][price_data][unit_amount]': String(Math.round(input.amount * 100)),
           'line_items[0][quantity]': '1',
           'mode': 'payment',
-          'success_url': input.redirectUrl || 'https://app.z-systems.cloud/settings/subscription?status=success',
-          'cancel_url': input.redirectUrl || 'https://app.z-systems.cloud/settings/subscription?status=cancelled',
+          // The default used to be app.z-systems.cloud, which is not our domain: a merchant paying
+          // their own subscription landed nowhere. APP_PUBLIC_URL is where this deployment lives.
+          'success_url': input.redirectUrl || `${subscriptionPageUrl()}?status=success`,
+          'cancel_url': input.redirectUrl || `${subscriptionPageUrl()}?status=cancelled`,
           'client_reference_id': input.tenantId,
           'metadata[tenant_id]': input.tenantId,
           'metadata[plan_id]': String(input.planId),

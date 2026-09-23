@@ -135,16 +135,19 @@ ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION=false
 
 بيئة بناء الفرونت إند:
 ```env
-VITE_API_BASE_URL=https://api.zsystems.io
+VITE_API_BASE_URL=            # فاضي: الـAPI على نفس الدومين (app.zsystemai.com/api)
 VITE_PLATFORM_TENANT_ID=zsystems
+VITE_STOREFRONT_ROOT_DOMAIN=zsystemai.com
 ```
 
 ---
 
 ## 5. روابط الفحص المباشر بعد النشر (Health Check Verification)
 
-- **فحص جاهزية الخادم:** `https://api.zsystems.io/api/health/live`
-- **فحص جاهزية قاعدة البيانات:** `https://api.zsystems.io/api/health/ready`
-- **لوحة الدخول:** `https://app.zsystems.io/login`
-- **بوابة السائقين:** `https://app.zsystems.io/driver`
+- **فحص جاهزية الخادم:** `https://app.zsystemai.com/api/health/live`
+- **فحص جاهزية قاعدة البيانات:** `https://app.zsystemai.com/api/health/ready`
+- **لوحة الدخول:** `https://app.zsystemai.com/login`
+- **بوابة السائقين:** `https://app.zsystemai.com/driver`
+- **متجر عميل:** `https://<slug>.zsystemai.com`
+- **الموقع التسويقي:** `https://zsystemai.com` (Cloudflare Pages)
 

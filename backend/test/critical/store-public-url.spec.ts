@@ -4,6 +4,7 @@ import {
   canUseStoreSubdomain,
   isReservedStoreSlug,
   storefrontRootDomain,
+  platformNoReplyEmail,
 } from '../../src/modules/storefront/engines/store-public-url.engine';
 import { validateEnv } from '../../src/config/env.schema';
 
@@ -69,8 +70,17 @@ function testRootScopedSessionCookieIsRefused(): void {
   assert.doesNotThrow(() => validateEnv({ ...base, STOREFRONT_ROOT_DOMAIN: '', SESSION_COOKIE_DOMAIN: '.zsystemai.com' }), 'no stores, no conflict');
 }
 
+function testNoReplyAddressIsOnOurDomain(): void {
+  // The gateways demand an email and a storefront shopper only gives a phone; the old literal was
+  // `customer@z-systems.cloud`, a domain we do not own.
+  assert.equal(platformNoReplyEmail(ON), 'no-reply@zsystemai.com');
+  assert.equal(platformNoReplyEmail({ APP_PUBLIC_URL: 'https://app.zsystemai.com' } as NodeJS.ProcessEnv), 'no-reply@zsystemai.com');
+  assert.equal(platformNoReplyEmail(OFF), 'no-reply@localhost', 'desktop / unconfigured stays local');
+}
+
 testPathModeIsTheDefault();
 testSubdomainMode();
 testReservedAndInvalidFallBackToPath();
 testRootScopedSessionCookieIsRefused();
+testNoReplyAddressIsOnOurDomain();
 console.log('store-public-url.spec: all checks passed');
