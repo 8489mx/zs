@@ -10,6 +10,16 @@ export const AUTH_PASSWORD = __ENV.AUTH_PASSWORD || 'admin';
 export const TENANT_ID = __ENV.TENANT_ID || 'dev-tenant';
 
 /**
+ * اسم كوكي الجلسة كما يضبطه الباك إند (`SESSION_COOKIE_NAME`).
+ *
+ * الجلسة تُحمل في **كوكي** لا في ترويسة: `ALLOW_SESSION_ID_HEADER` معطَّل عمداً في وضع السحابة
+ * (`session-auth.guard.ts:allowSessionIdHeaderFallback` — الترويسة مسموحة في التطوير والديسكتوب
+ * فقط). وهذا سلوك صحيح لا يُلتف عليه: الاختبار يتصرف كالمتصفح.
+ * وCSRF لا يُفحص على طلبات القراءة، فالكوكي وحدها تكفي لسيناريوهات الكاشير.
+ */
+export const SESSION_COOKIE_NAME = __ENV.SESSION_COOKIE_NAME || 'session_id';
+
+/**
  * حجم الحمل قابل للضبط من البيئة، فالملف الواحد يخدم "تأكد إن حاجة ما اتكسرتش" و"اضغط
  * السيرفر لحد ما يقول لأ" بلا تعديل كود.
  *   PEAK_VUS=200 RAMP_SECONDS=30 HOLD_SECONDS=120 bash run.sh scenarios/stress-all.js

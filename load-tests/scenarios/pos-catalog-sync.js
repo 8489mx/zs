@@ -19,6 +19,7 @@ import {
   FAST_THRESHOLDS,
   rampProfile,
   clientIpHeaders,
+  SESSION_COOKIE_NAME,
 } from '../config.js';
 
 // Custom metrics
@@ -50,8 +51,8 @@ export const options = {
  * يقبله معامل `cookies` في الطلبات — فالكوكي لم تكن تُرسَل أصلاً. النتيجة: كل طلب يرجع 401،
  * والتقرير يقول "100% فشل" بلا سبب ظاهر، بينما الخطأ في بيانات الدخول لا في السيرفر.
  *
- * الجلسة تُمرَّر بترويسة `X-Session-Id` لأن الباك إند يدعمها صراحةً (`ALLOW_SESSION_ID_HEADER`)
- * وهي أبسط من إدارة الكوكي وCSRF داخل k6.
+ * الجلسة تُمرَّر في **كوكي** لا في ترويسة: `ALLOW_SESSION_ID_HEADER` معطَّل في وضع السحابة عمداً،
+ * فالاختبار يتصرف كالمتصفح بدل أن يطلب من الإنتاج تخفيف حمايته من أجله.
  */
 function loginOrDie() {
   const res = http.post(`${BASE_URL}/api/auth/login`, JSON.stringify({
@@ -86,7 +87,8 @@ export function setup() {
 
 export default function (data) {
   const requestParams = {
-    headers: { ...DEFAULT_HEADERS, 'X-Session-Id': data.sessionId, ...clientIpHeaders(__VU) },
+    headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) },
+    cookies: { [SESSION_COOKIE_NAME]: data.sessionId },
   };
 
   group('POS Fast Version Check (PERF-9)', () => {

@@ -230,7 +230,13 @@ function testLoadSuiteIsUsable(): void {
   for (const scenario of ['pos-catalog-sync.js', 'stress-all.js']) {
     const source = loadFile(join('scenarios', scenario));
     assert.ok(/throw new Error\(/.test(source), `${scenario} must abort when the login fails, not iterate on 401s`);
-    assert.ok(/'X-Session-Id'/.test(source), `${scenario} must carry the session by header`);
+    // The session travels in a cookie, like a browser. ALLOW_SESSION_ID_HEADER is off in
+    // CLOUD_SAAS on purpose, and a load test does not get to ask production to loosen that.
+    assert.ok(/cookies: \{ \[SESSION_COOKIE_NAME\]: data\.sessionId \}/.test(source), `${scenario} must carry the session cookie`);
+    assert.ok(
+      !/'X-Session-Id'/.test(source),
+      `${scenario} must not rely on the session header: the cloud guard rejects it`,
+    );
     assert.ok(
       !/cookies: data/.test(source),
       `${scenario} must not pass k6 response cookies as request cookies: the shapes differ and nothing is sent`,
