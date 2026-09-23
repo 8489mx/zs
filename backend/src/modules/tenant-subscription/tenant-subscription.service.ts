@@ -6,12 +6,62 @@ import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { AuditService } from '../../core/audit/audit.service';
 import { RequestRenewalDto } from './dto/tenant-subscription.dto';
 
+/** Display-only plan list used when the catalogue table is empty; never written to the database. */
+const STANDARD_PLAN_FALLBACK: Array<any> = [
+  { id: 1, code: 'basic', name: 'الباقة الأساسية', price: 3500, currency: 'EGP', billing_period_months: 12, max_users: 2, max_branches: 1, feature_plan_id: 'plan_basic' },
+  { id: 2, code: 'pro', name: 'الباقة الاحترافية', price: 7500, currency: 'EGP', billing_period_months: 12, max_users: 10, max_branches: 3, feature_plan_id: 'plan_pro' },
+  { id: 3, code: 'enterprise', name: 'باقة المؤسسات والتصنيع', price: 15000, currency: 'EGP', billing_period_months: 12, max_users: 999, max_branches: 999, feature_plan_id: 'plan_ultimate' },
+  { id: 4, code: 'omnichannel', name: 'باقة التجارة الشاملة (Omnichannel)', price: 24000, currency: 'EGP', billing_period_months: 12, max_users: 999, max_branches: 999, feature_plan_id: 'plan_omnichannel' },
+];
+
 @Injectable()
 export class TenantSubscriptionService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly audit: AuditService,
   ) {}
+
+  /**
+   * O33: what a page load is allowed to do — read. `ensureTenant`/`ensureStandardPlans` below write
+   * rows (a tenant, the platform plan catalogue, a 10-year "active" subscription), and they used to
+   * run on this GET, so simply opening the subscription screen could invent platform revenue records.
+   * They stay for the write paths (renewal request, online payment), where an admin really acts.
+   */
+  private async readTenantOrPlaceholder(tenantId: string, auth: AuthContext) {
+    const normalizedTenantId = tenantId.trim() || 'default';
+    const existing = await this.db
+      .selectFrom('tenants')
+      .selectAll()
+      .where('id', '=', normalizedTenantId)
+      .executeTakeFirst()
+      .catch(() => undefined);
+    if (existing) return existing as any;
+
+    // Nothing is written: the screen renders with what we know, and no row is created.
+    return {
+      id: normalizedTenantId,
+      slug: normalizedTenantId,
+      business_name: 'المنشأة الرئيسية',
+      owner_name: auth.role === 'super_admin' ? 'مدير المنظومة' : 'مسؤول النظام',
+      owner_phone: '',
+      status: 'unknown',
+      trial_starts_at: null,
+      trial_ends_at: null,
+      created_at: new Date(),
+    } as any;
+  }
+
+  /** O33: the plan catalogue as it is; the static list is a display fallback, not a seed. */
+  private async readPlans(): Promise<Array<any>> {
+    const plans = await this.db
+      .selectFrom('saas_plans')
+      .selectAll()
+      .where('is_active', '=', true)
+      .orderBy('price', 'asc')
+      .execute()
+      .catch(() => []);
+    return plans.length ? plans : STANDARD_PLAN_FALLBACK;
+  }
 
   private async ensureTenant(tenantId: string, auth: AuthContext): Promise<{
     id: string;
@@ -202,12 +252,7 @@ export class TenantSubscriptionService {
     }
 
     if (plans.length === 0) {
-      return [
-        { id: 1, code: 'basic', name: 'الباقة الأساسية', price: 3500, currency: 'EGP', billing_period_months: 12, max_users: 2, max_branches: 1, feature_plan_id: 'plan_basic' },
-        { id: 2, code: 'pro', name: 'الباقة الاحترافية', price: 7500, currency: 'EGP', billing_period_months: 12, max_users: 10, max_branches: 3, feature_plan_id: 'plan_pro' },
-        { id: 3, code: 'enterprise', name: 'باقة المؤسسات والتصنيع', price: 15000, currency: 'EGP', billing_period_months: 12, max_users: 999, max_branches: 999, feature_plan_id: 'plan_ultimate' },
-        { id: 4, code: 'omnichannel', name: 'باقة التجارة الشاملة (Omnichannel)', price: 24000, currency: 'EGP', billing_period_months: 12, max_users: 999, max_branches: 999, feature_plan_id: 'plan_omnichannel' },
-      ];
+      return STANDARD_PLAN_FALLBACK;
     }
 
     return plans;
@@ -215,8 +260,8 @@ export class TenantSubscriptionService {
 
   async getMySubscription(auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantId = String(auth.tenantId || '').trim() || 'default';
-    const tenant = await this.ensureTenant(tenantId, auth);
-    const availablePlans = await this.ensureStandardPlans();
+    const tenant = await this.readTenantOrPlaceholder(tenantId, auth);
+    const availablePlans = await this.readPlans();
 
     // 1. Get latest/active subscription
     let subscription = await this.db
@@ -244,75 +289,8 @@ export class TenantSubscriptionService {
       .executeTakeFirst()
       .catch(() => undefined);
 
-    // Auto-create active subscription for main tenant if none exists
-    if (!subscription) {
-      const defaultPlan = availablePlans.find((p: any) => p.code === 'pro') || availablePlans[0];
-      const now = new Date();
-      const tenYearsLater = new Date(now);
-      tenYearsLater.setFullYear(tenYearsLater.getFullYear() + 10);
-
-      try {
-        if (defaultPlan?.id) {
-          const insertedSub = await this.db
-            .insertInto('tenant_subscriptions')
-            .values({
-              tenant_id: tenant.id,
-              plan_id: defaultPlan.id,
-              status: 'active',
-              starts_at: now,
-              ends_at: tenYearsLater,
-              grace_ends_at: null,
-              auto_renew: false,
-              created_at: now,
-              updated_at: now,
-            } as any)
-            .returningAll()
-            .executeTakeFirst();
-
-          if (insertedSub) {
-            subscription = {
-              id: insertedSub.id,
-              status: insertedSub.status,
-              starts_at: insertedSub.starts_at,
-              ends_at: insertedSub.ends_at,
-              grace_ends_at: insertedSub.grace_ends_at,
-              auto_renew: insertedSub.auto_renew,
-              created_at: insertedSub.created_at,
-              plan_id: defaultPlan.id,
-              plan_name: defaultPlan.name,
-              plan_code: defaultPlan.code,
-              plan_price: defaultPlan.price,
-              plan_currency: defaultPlan.currency,
-              billing_period_months: defaultPlan.billing_period_months,
-              max_users: defaultPlan.max_users,
-              max_branches: defaultPlan.max_branches,
-            } as any;
-          }
-        }
-      } catch {
-        // ignore
-      }
-
-      if (!subscription) {
-        subscription = {
-          id: 1,
-          status: 'active',
-          starts_at: now,
-          ends_at: tenYearsLater,
-          grace_ends_at: null,
-          auto_renew: false,
-          created_at: now,
-          plan_id: defaultPlan?.id || 1,
-          plan_name: defaultPlan?.name || 'الباقة الاحترافية',
-          plan_code: defaultPlan?.code || 'pro',
-          plan_price: defaultPlan?.price || 7500,
-          plan_currency: defaultPlan?.currency || 'EGP',
-          billing_period_months: 12,
-          max_users: defaultPlan?.max_users || 10,
-          max_branches: defaultPlan?.max_branches || 3,
-        } as any;
-      }
-    }
+    // O33: no subscription row means no subscription. Inventing an "active for 10 years" one here
+    // (and inserting it) turned a page load into a billing record. The screen handles null.
 
     // 2. Resource usage calculation
     const [usersRes, branchesRes, locationsRes, productsRes, salesRes] = await Promise.all([

@@ -405,7 +405,7 @@ export class VanSalesService {
 
         const avail = Number(sourceStock?.qty || 0);
         if (avail < qty) {
-          const prod = await trxAny.selectFrom('products').select(['name']).where('id', '=', pid).executeTakeFirst();
+          const prod = await trxAny.selectFrom('products').select(['name']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
           throw new AppError(
             `رصيد المستودع المصدر لا يكفي للصنف "${prod?.name || pid}". المتوفر: ${avail}، المطلوب: ${qty}`,
             'INSUFFICIENT_SOURCE_STOCK',
@@ -443,7 +443,7 @@ export class VanSalesService {
           referenceId: 0,
         });
 
-        const prod = await trxAny.selectFrom('products').select(['retail_price']).where('id', '=', pid).executeTakeFirst();
+        const prod = await trxAny.selectFrom('products').select(['retail_price']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
         const price = Number(prod?.retail_price || 0);
         totalLoadedValue += price * qty;
       }
@@ -519,6 +519,7 @@ export class VanSalesService {
       .select(['vt.id', 'vt.van_location_id', 'vt.status'])
       .where('vt.id', '=', payload.tripId)
       .where('vt.tenant_id', '=', tenantId)
+      .where('vt.rep_id', '=', repId)
       .executeTakeFirst();
 
     if (!trip || trip.status !== 'open') {
@@ -548,8 +549,17 @@ export class VanSalesService {
       resolvedCustomerId = Number(newCust.id);
       customerName = newCust.name;
     } else if (resolvedCustomerId) {
-      const cust = await this.anyDb.selectFrom('customers').select(['name']).where('id', '=', resolvedCustomerId).executeTakeFirst();
-      if (cust) customerName = cust.name;
+      // O27: customerId comes from the driver's request body. Without the tenant filter this read
+      // returned another tenant's customer name, and the balance update below (correctly scoped)
+      // then matched nothing, writing balance_after = 0 into customer_ledger.
+      const cust = await this.anyDb
+        .selectFrom('customers')
+        .select(['name'])
+        .where('id', '=', resolvedCustomerId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      if (!cust) throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
+      customerName = cust.name;
     }
 
     let docNo = '';
@@ -576,7 +586,7 @@ export class VanSalesService {
 
         const currentQty = Number(vanStock?.qty || 0);
         if (currentQty < qty) {
-          const prod = await trxAny.selectFrom('products').select(['name']).where('id', '=', pid).executeTakeFirst();
+          const prod = await trxAny.selectFrom('products').select(['name']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
           throw new AppError(
             `رصيد سيارة التوزيع لا يكفي للصنف "${prod?.name || pid}". المتوفر بالسيارة: ${currentQty}، المطلوب: ${qty}`,
             'INSUFFICIENT_VAN_STOCK',
@@ -584,8 +594,9 @@ export class VanSalesService {
           );
         }
 
-        const prod = await trxAny.selectFrom('products').select(['name', 'cost_price', 'retail_price']).where('id', '=', pid).executeTakeFirst();
+        const prod = await trxAny.selectFrom('products').select(['name', 'cost_price', 'retail_price']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
 
+        // O27: name, price and cost must come from this tenant's product, never from a foreign row.
         // A van sale leaves the company for good, so unlike a load it DOES reduce global stock.
         await this.moveVanStock(trx, {
           productId: pid,
@@ -750,6 +761,7 @@ export class VanSalesService {
       .select(['vt.id'])
       .where('vt.id', '=', payload.tripId)
       .where('vt.tenant_id', '=', tenantId)
+      .where('vt.rep_id', '=', repId)
       .executeTakeFirst();
 
     if (!trip) throw new AppError('رحلة التوزيع المحددة غير صالحة', 'INVALID_TRIP', 400);
@@ -853,6 +865,7 @@ export class VanSalesService {
       .select(['vt.id', 'vt.van_location_id'])
       .where('vt.id', '=', payload.tripId)
       .where('vt.tenant_id', '=', tenantId)
+      .where('vt.rep_id', '=', repId)
       .executeTakeFirstOrThrow();
 
     const vanLocId = Number(trip.van_location_id);
@@ -967,6 +980,7 @@ export class VanSalesService {
       .selectAll()
       .where('vt.id', '=', payload.tripId)
       .where('vt.tenant_id', '=', tenantId)
+      .where('vt.rep_id', '=', repId)
       .where('vt.status', '=', 'open')
       .executeTakeFirst();
 

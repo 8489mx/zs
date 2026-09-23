@@ -1581,8 +1581,20 @@ export class HrService {
     `.execute(db);
   }
 
-  private async rebuildPayrollRunItems(db: Kysely<Database>, runId: number, itemStatus: 'draft' | 'reviewed' | 'approved'): Promise<void> {
-    const runResult = await sql<any>`SELECT period_month, tenant_id, account_id, to_char(start_date, 'YYYY-MM-DD') as start_date_text, to_char(end_date, 'YYYY-MM-DD') as end_date_text, pay_frequency FROM hr_payroll_runs WHERE id = ${runId} LIMIT 1`.execute(db);
+  /**
+   * O28: `runId` comes from the request path, and the whole rebuild derives its tenant from the row
+   * it reads. Reading that row by id alone meant a payroll id from another tenant would have set the
+   * scope for every write below. The caller's tenant is now required, and a run outside it is not found.
+   */
+  private async rebuildPayrollRunItems(
+    db: Kysely<Database>,
+    runId: number,
+    itemStatus: 'draft' | 'reviewed' | 'approved',
+    scopeTenantId: string,
+  ): Promise<void> {
+    const callerTenantId = clean(scopeTenantId);
+    if (!callerTenantId) throw new AppError('نطاق المنشأة مطلوب', 'HR_PAYROLL_TENANT_REQUIRED', 400);
+    const runResult = await sql<any>`SELECT period_month, tenant_id, account_id, to_char(start_date, 'YYYY-MM-DD') as start_date_text, to_char(end_date, 'YYYY-MM-DD') as end_date_text, pay_frequency FROM hr_payroll_runs WHERE id = ${runId} AND tenant_id = ${callerTenantId} LIMIT 1`.execute(db);
     const run = runResult.rows[0];
     if (!run) return;
     const periodMonth = normalizePayrollMonth(run.period_month || run.periodMonth);
@@ -2236,7 +2248,7 @@ export class HrService {
           RETURNING id
         `.execute(trx);
         runId = Number(inserted.rows[0]?.id || 0);
-        await this.rebuildPayrollRunItems(trx, runId, 'draft');
+        await this.rebuildPayrollRunItems(trx, runId, 'draft', auth.tenantId || '');
       }
     });
     await this.audit.log('Create HR payroll run', `Payroll run ${periodMonth} prepared by ${auth.username}`, auth);
@@ -2247,7 +2259,7 @@ export class HrService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
       if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_RECALCULATE_LOCKED', 400);
-      await this.rebuildPayrollRunItems(trx, id, status);
+      await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || '');
     });
     await this.audit.log('Recalculate HR payroll run', `Payroll run #${id} recalculated by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
@@ -2353,7 +2365,7 @@ export class HrService {
         }
       }
 
-      await this.rebuildPayrollRunItems(trx, id, status);
+      await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || '');
     });
 
     await this.audit.log('Apply HR attendance deductions', `Attendance deductions applied to payroll run #${id} by ${auth.username}`, auth);
@@ -2366,7 +2378,7 @@ export class HrService {
       if (status !== 'draft') throw new AppError('Only draft payroll runs can be reviewed', 'HR_PAYROLL_REVIEW_LOCKED', 400);
       
       // Auto-recalculate before reviewing to ensure all new loans/deductions are captured
-      await this.rebuildPayrollRunItems(trx, id, 'draft');
+      await this.rebuildPayrollRunItems(trx, id, 'draft', auth.tenantId || '');
 
       await sql`UPDATE hr_payroll_run_items SET status = 'reviewed', updated_at = NOW() WHERE run_id = ${id} AND status = 'draft' AND tenant_id = ${auth.tenantId}`.execute(trx);
       await sql`UPDATE hr_payroll_runs SET status = 'reviewed', reviewed_by = ${auth.userId}, reviewed_at = NOW(), updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
