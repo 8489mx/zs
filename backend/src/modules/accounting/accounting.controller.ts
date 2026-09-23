@@ -36,6 +36,7 @@ import {
   CloseFiscalYearDto,
   ReopenFiscalYearDto,
 } from './services/fiscal-year.service';
+import { CloseFiscalPeriodDto, ReopenFiscalPeriodDto } from './dto/fiscal-period.dto';
 import { FixedAssetsSchedulerService } from './services/fixed-assets-scheduler.service';
 import { CostCenterAllocationsService } from './services/cost-center-allocations.service';
 import { ForexRevaluationService, ExecuteForexRevaluationDto } from './services/forex-revaluation.service';
@@ -578,6 +579,32 @@ export class AccountingController {
   @Delete('fiscal-years/:id')
   deleteFiscalYear(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.fiscalYearService.deleteFiscalYear(req.authContext!, id);
+  }
+  // --- Monthly Fiscal Periods Engine (الفترات المحاسبية الشهرية وإقفال الشهور — البند O6) ---
+  @Get('fiscal-years/:id/periods')
+  listFiscalPeriods(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.fiscalYearService.listFiscalPeriods(req.authContext!, id);
+  }
+
+  @Post('fiscal-periods/:periodId/close')
+  closeFiscalPeriod(
+    @Param('periodId', ParseIntPipe) periodId: number,
+    @Body() dto: CloseFiscalPeriodDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.fiscalYearService.closeFiscalPeriod(req.authContext!, periodId, dto);
+  }
+
+  @Post('fiscal-periods/:periodId/reopen')
+  reopenFiscalPeriod(
+    @Param('periodId', ParseIntPipe) periodId: number,
+    @Body() dto: ReopenFiscalPeriodDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.fiscalYearService.reopenFiscalPeriod(req.authContext!, periodId, dto);
   }
 }
 

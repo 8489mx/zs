@@ -669,39 +669,55 @@ export class AccountingService {
       .where('id', '=', 1)
       .executeTakeFirst();
 
-    if (!settings) return;
-
     const dateStr = typeof entryDate === 'string' ? entryDate.slice(0, 10) : entryDate.toISOString().slice(0, 10);
 
-    // 1. Hard lock (All users)
-    if (settings.lock_date_all) {
-      const lockAllStr = String(settings.lock_date_all).slice(0, 10);
-      if (dateStr <= lockAllStr) {
-        throw new BadRequestException(
-          `الفترة المحاسبية مقفلة نهائياً حتى تاريخ ${lockAllStr}. لا يمكن إضافة أو تعديل قيود في فترة مغلقة.`
-        );
+    if (settings) {
+      // 1. Hard lock (All users)
+      if (settings.lock_date_all) {
+        const lockAllStr = String(settings.lock_date_all).slice(0, 10);
+        if (dateStr <= lockAllStr) {
+          throw new BadRequestException(
+            `الفترة المحاسبية مقفلة نهائياً حتى تاريخ ${lockAllStr}. لا يمكن إضافة أو تعديل قيود في فترة مغلقة.`
+          );
+        }
+      }
+
+      // 2. Operational lock (Non-advisers)
+      if (settings.lock_date_non_adviser) {
+        const lockNonAdvStr = String(settings.lock_date_non_adviser).slice(0, 10);
+        const isAdviser = options?.auth?.role === 'admin' || options?.auth?.role === 'super_admin';
+        if (!isAdviser && dateStr <= lockNonAdvStr) {
+          throw new BadRequestException(
+            `الفترة المحاسبية مقفلة للعمليات التشغيلية حتى تاريخ ${lockNonAdvStr}. يرجى مراجعة الإدارة المالية.`
+          );
+        }
+      }
+
+      // 3. Tax lock
+      if (options?.isTaxOperation && settings.lock_date_tax) {
+        const lockTaxStr = String(settings.lock_date_tax).slice(0, 10);
+        if (dateStr <= lockTaxStr) {
+          throw new BadRequestException(
+            `الفترة الضريبية مقفلة حتى تاريخ ${lockTaxStr}. لا يمكن إجراء عمليات تؤثر على ضريبة هذه الفترة المغلقة.`
+          );
+        }
       }
     }
 
-    // 2. Operational lock (Non-advisers)
-    if (settings.lock_date_non_adviser) {
-      const lockNonAdvStr = String(settings.lock_date_non_adviser).slice(0, 10);
-      const isAdviser = options?.auth?.role === 'admin' || options?.auth?.role === 'super_admin';
-      if (!isAdviser && dateStr <= lockNonAdvStr) {
-        throw new BadRequestException(
-          `الفترة المحاسبية مقفلة للعمليات التشغيلية حتى تاريخ ${lockNonAdvStr}. يرجى مراجعة الإدارة المالية.`
-        );
-      }
-    }
+    // 4. Monthly fiscal period lock (البند O6)
+    const closedPeriod = await this.db
+      .selectFrom('accounting_fiscal_periods')
+      .select(['name', 'period_number'])
+      .where('tenant_id', '=', tenantId)
+      .where('status', '=', 'closed')
+      .where('start_date', '<=', dateStr as any)
+      .where('end_date', '>=', dateStr as any)
+      .executeTakeFirst();
 
-    // 3. Tax lock
-    if (options?.isTaxOperation && settings.lock_date_tax) {
-      const lockTaxStr = String(settings.lock_date_tax).slice(0, 10);
-      if (dateStr <= lockTaxStr) {
-        throw new BadRequestException(
-          `الفترة الضريبية مقفلة حتى تاريخ ${lockTaxStr}. لا يمكن إجراء عمليات تؤثر على ضريبة هذه الفترة المغلقة.`
-        );
-      }
+    if (closedPeriod) {
+      throw new BadRequestException(
+        `الفترة المحاسبية الشهرية [${closedPeriod.name}] مقفلة. لا يمكن إضافة أو تعديل قيود في فترة مغلقة.`
+      );
     }
   }
 

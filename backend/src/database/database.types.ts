@@ -1797,6 +1797,7 @@ export interface Database {
   bank_statement_lines: BankStatementLineTable;
   accounting_cheques: AccountingChequeTable;
   accounting_fiscal_years: AccountingFiscalYearTable;
+  accounting_fiscal_periods: AccountingFiscalPeriodTable;
   withholding_tax_transactions: WithholdingTaxTransactionTable;
   cost_centers: CostCenterTable;
   crm_deals: CrmDealTable;
@@ -2064,6 +2065,7 @@ export interface Database {
   bank_statement_lines: BankStatementLineTable;
   accounting_settings: AccountingSettingsTable;
   accounting_fiscal_years: AccountingFiscalYearTable;
+  accounting_fiscal_periods: AccountingFiscalPeriodTable;
   audit_logs: AuditLogTable;
   branches: BranchTable;
   stock_locations: StockLocationTable;
@@ -2668,6 +2670,23 @@ export interface AccountingFiscalYearTable {
   total_revenue: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   total_expense: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   retained_earnings_account_id: number | null;
+  closed_at: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
+  closed_by: number | null;
+  closing_notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface AccountingFiscalPeriodTable {
+  id: Generated<number>;
+  tenant_id: string;
+  fiscal_year_id: number;
+  period_number: number;
+  name: string;
+  code: string | null;
+  start_date: ColumnType<Date | string, Date | string | undefined, Date | string | undefined>;
+  end_date: ColumnType<Date | string, Date | string | undefined, Date | string | undefined>;
+  status: ColumnType<'open' | 'closed', 'open' | 'closed' | undefined, 'open' | 'closed' | undefined>;
   closed_at: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
   closed_by: number | null;
   closing_notes: string | null;

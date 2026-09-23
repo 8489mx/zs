@@ -6,6 +6,9 @@ import type {
   CreateFiscalYearPayload,
   CloseFiscalYearPayload,
   ReopenFiscalYearPayload,
+  FiscalPeriodRecord,
+  CloseFiscalPeriodPayload,
+  ReopenFiscalPeriodPayload,
 } from '../types/fiscal-years.types';
 
 export const fiscalYearsApi = {
@@ -42,5 +45,20 @@ export const fiscalYearsApi = {
   deleteFiscalYear: (id: number) =>
     http<{ success: boolean; message: string }>(`/api/accounting/fiscal-years/${id}`, {
       method: 'DELETE',
+    }),
+
+  listPeriods: (fiscalYearId: number) =>
+    http<FiscalPeriodRecord[]>(`/api/accounting/fiscal-years/${fiscalYearId}/periods`),
+
+  closePeriod: (periodId: number, payload?: CloseFiscalPeriodPayload) =>
+    http<{ success: boolean; message: string }>(`/api/accounting/fiscal-periods/${periodId}/close`, {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    }),
+
+  reopenPeriod: (periodId: number, payload: ReopenFiscalPeriodPayload) =>
+    http<{ success: boolean; message: string }>(`/api/accounting/fiscal-periods/${periodId}/reopen`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
     }),
 };

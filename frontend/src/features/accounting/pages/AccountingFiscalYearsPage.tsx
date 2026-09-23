@@ -21,6 +21,7 @@ import type { FiscalYearRecord } from '../types/fiscal-years.types';
 import { CreateFiscalYearModal } from '../components/fiscal-years/CreateFiscalYearModal';
 import { FiscalYearCloseWizardModal } from '../components/fiscal-years/FiscalYearCloseWizardModal';
 import { ReopenFiscalYearModal } from '../components/fiscal-years/ReopenFiscalYearModal';
+import { FiscalPeriodsModal } from '../components/fiscal-years/FiscalPeriodsModal';
 
 export function AccountingFiscalYearsPage() {
   useAppToolbar([
@@ -36,6 +37,7 @@ export function AccountingFiscalYearsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedYearForClose, setSelectedYearForClose] = useState<FiscalYearRecord | null>(null);
   const [selectedYearForReopen, setSelectedYearForReopen] = useState<FiscalYearRecord | null>(null);
+  const [selectedYearForPeriods, setSelectedYearForPeriods] = useState<FiscalYearRecord | null>(null);
   const [yearToDelete, setYearToDelete] = useState<FiscalYearRecord | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
@@ -523,6 +525,25 @@ export function AccountingFiscalYearsPage() {
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => setSelectedYearForPeriods(fy)}
+                          style={{
+                            fontSize: '12px',
+                            padding: '6px 10px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            backgroundColor: '#f8fafc',
+                            borderColor: '#cbd5e1',
+                            color: '#1e293b',
+                          }}
+                          title="إدارة وإقفال الفترات المحاسبية الشهرية"
+                        >
+                          <CalendarIcon size={14} />
+                          <span>الفترات الشهرية</span>
+                        </Button>
                         {!isClosed ? (
                           <>
                             <Button
@@ -656,6 +677,14 @@ export function AccountingFiscalYearsPage() {
         fiscalYear={selectedYearForReopen}
         onReopened={() => showNotice('تمت إعادة فتح السنة المالية وإلغاء قيد الإقفال بنجاح.')}
       />
+
+      {selectedYearForPeriods && (
+        <FiscalPeriodsModal
+          fiscalYear={selectedYearForPeriods}
+          onClose={() => setSelectedYearForPeriods(null)}
+          onNotice={(msg) => showNotice(msg)}
+        />
+      )}
     </div>
   );
 }

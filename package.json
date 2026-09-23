@@ -26,6 +26,7 @@
     "lint": "npm --prefix frontend run lint",
     "typecheck": "npm --prefix backend run typecheck",
     "test:critical": "npm --prefix backend run test:critical",
+    "test:load": "node ./load-tests/runner.cjs",
     "e2e:backend": "npm --prefix backend run test:e2e",
     "compose:up": "docker compose up --build -d",
     "compose:down": "docker compose down",

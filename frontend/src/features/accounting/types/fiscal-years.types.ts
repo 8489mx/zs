@@ -80,3 +80,28 @@ export interface CloseFiscalYearPayload {
 export interface ReopenFiscalYearPayload {
   reason: string;
 }
+
+export interface FiscalPeriodRecord {
+  id: number;
+  tenant_id: string;
+  fiscal_year_id: number;
+  period_number: number;
+  name: string;
+  code: string | null;
+  start_date: string;
+  end_date: string;
+  status: 'open' | 'closed';
+  closed_at: string | null;
+  closed_by: number | null;
+  closing_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CloseFiscalPeriodPayload {
+  notes?: string;
+}
+
+export interface ReopenFiscalPeriodPayload {
+  reason: string;
+}

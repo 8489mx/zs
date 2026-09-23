@@ -499,6 +499,24 @@ export class AccountingPostingService {
       }
     }
 
+    // Direct check against closed monthly periods (البند O6)
+    const closedMonthlyPeriod = await queryable
+      .selectFrom('accounting_fiscal_periods')
+      .select(['name', 'period_number'])
+      .where('tenant_id', '=', params.tenantId)
+      .where('status', '=', 'closed')
+      .where('start_date', '<=', (params.entryDate instanceof Date ? params.entryDate.toISOString().slice(0, 10) : String(params.entryDate || '').slice(0, 10)) as any)
+      .where('end_date', '>=', (params.entryDate instanceof Date ? params.entryDate.toISOString().slice(0, 10) : String(params.entryDate || '').slice(0, 10)) as any)
+      .executeTakeFirst();
+
+    if (closedMonthlyPeriod) {
+      throw new AppError(
+        `الفترة المحاسبية الشهرية [${closedMonthlyPeriod.name}] مقفلة. لا يمكن ترحيل حركات مالية في فترة مغلقة.`,
+        'ACCOUNTING_PERIOD_LOCKED',
+        400,
+      );
+    }
+
     const tempEntryNo = `JE-TMP-${params.sourceType}-${params.sourceId}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const inserted = await queryable
       .insertInto('journal_entries')
