@@ -51,6 +51,17 @@ function matchesCreatedCustomer(customer: Customer, name: string, phone: string)
   return customerName === name;
 }
 
+/** O62: the storefront order the current POS cart was loaded from, if any. */
+function readActiveOnlineOrderId(): number {
+  try {
+    const raw = localStorage.getItem('zs_pos_online_order_id');
+    const parsed = raw ? Number(raw) : 0;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export function createPosWorkspaceAsyncActions(
   params: PosWorkspaceActionParams,
   base: ReturnType<typeof createPosWorkspaceBaseActions>,
@@ -232,6 +243,8 @@ export function createPosWorkspaceAsyncActions(
 
     params.setPostSaleSaleKey('');
 
+    const activeOnlineOrderId = readActiveOnlineOrderId();
+
     try {
       const createdSale = await params.createSale.mutateAsync({
         source: 'pos',
@@ -263,6 +276,10 @@ export function createPosWorkspaceAsyncActions(
         deliveryRepId: params.deliveryRepId,
         collectionStatus: params.collectionStatus,
         deliveryFeeMode: params.deliveryFeeMode,
+        // O62: tells the server this cart is a storefront order, so it re-approves that order's own
+        // coupon discount and line prices instead of treating them as a cashier discount (which asks
+        // a cashier without canDiscount for a manager PIN).
+        onlineOrderId: activeOnlineOrderId > 0 ? activeOnlineOrderId : undefined,
       });
       const rawOnlineNumber = localStorage.getItem('zs_pos_online_order_number');
       const hydratedSale: Sale = {
@@ -275,8 +292,6 @@ export function createPosWorkspaceAsyncActions(
 
       // Link online order if this sale originated from an online store order
       try {
-        const rawOnlineId = localStorage.getItem('zs_pos_online_order_id');
-        const activeOnlineOrderId = rawOnlineId ? Number(rawOnlineId) : 0;
         const saleId = Number((createdSale as any)?.id || (createdSale as any)?.sale?.id || (typeof createdSale === 'number' ? createdSale : 0));
         if (activeOnlineOrderId > 0 && saleId > 0) {
           storefrontApi.updateOrderStatus(activeOnlineOrderId, 'processing', saleId)

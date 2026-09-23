@@ -561,6 +561,47 @@ export class SalesWriteService {
     return { ok: true };
   }
 
+  /**
+   * O62: reads the storefront order and returns what the server already approved for it: the coupon
+   * discount it was quoted with, and the unit price each line was sold at. A cancelled or already
+   * invoiced order approves nothing.
+   */
+  private async resolveOnlineOrderTerms(
+    onlineOrderId: number,
+    tenantId: string,
+    existing?: SystemApprovedSaleTerms,
+  ): Promise<SystemApprovedSaleTerms | undefined> {
+    const order = await this.db
+      .selectFrom('online_orders')
+      .select(['id', 'status', 'sale_id', 'discount_amount', 'items_json'])
+      .where('id', '=', onlineOrderId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .executeTakeFirst()
+      .catch(() => undefined);
+
+    if (!order || order.status === 'cancelled' || order.sale_id) return existing;
+
+    let items: Array<Record<string, unknown>> = [];
+    try {
+      const raw = (order as any).items_json;
+      items = (typeof raw === 'string' ? JSON.parse(raw) : raw) || [];
+    } catch {
+      items = [];
+    }
+
+    const approvedUnitPrices: Record<number, number> = { ...(existing?.approvedUnitPrices || {}) };
+    for (const item of items) {
+      const productId = Number((item as any).productId);
+      const unitPrice = Number((item as any).unitPrice ?? (item as any).price);
+      if (productId > 0 && Number.isFinite(unitPrice) && unitPrice >= 0) approvedUnitPrices[productId] = unitPrice;
+    }
+
+    return {
+      approvedDiscount: Math.max(Number(existing?.approvedDiscount || 0), Math.max(0, Number(order.discount_amount || 0))),
+      approvedUnitPrices,
+    };
+  }
+
   async createSale(payload: UpsertSaleDto, auth: AuthContext, approvedTerms?: SystemApprovedSaleTerms): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const requestStartedAt = Date.now();
@@ -578,6 +619,13 @@ export class SalesWriteService {
         return cached.response as Record<string, unknown>;
       }
     }
+
+    // O62: a cart loaded from a storefront order carries that order's id. The terms the server fixed
+    // at checkout are read here from the order row itself — never from the request — and added to any
+    // terms an internal caller already passed (convertToSale).
+    const effectiveTerms = payload.onlineOrderId
+      ? await this.resolveOnlineOrderTerms(Number(payload.onlineOrderId), scope.tenantId, approvedTerms)
+      : approvedTerms;
 
     const normalized = normalizeSalePayload(payload);
     if (!normalized.items.length) throw new AppError('Sale must include at least one item', 'SALE_ITEMS_REQUIRED', 400);
@@ -762,7 +810,7 @@ export class SalesWriteService {
           qty: item.qty,
           unitMultiplier: item.unitMultiplier,
         });
-        const approvedUnitPrice = approvedTerms?.approvedUnitPrices?.[item.productId];
+        const approvedUnitPrice = effectiveTerms?.approvedUnitPrices?.[item.productId];
         const isApprovedPrice = approvedUnitPrice !== undefined && Math.abs(Number(item.price || 0) - Number(approvedUnitPrice)) <= 0.0001;
         if (!isApprovedPrice) {
           this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
@@ -882,7 +930,7 @@ export class SalesWriteService {
         pointsAfterRedeem = Math.max(0, Number((availablePoints - normalized.loyaltyPointsRedeemed).toFixed(2)));
       }
 
-      const unapprovedDiscount = Math.max(0, Number((normalized.discount - Number(approvedTerms?.approvedDiscount || 0)).toFixed(2)));
+      const unapprovedDiscount = Math.max(0, Number((normalized.discount - Number(effectiveTerms?.approvedDiscount || 0)).toFixed(2)));
       await this.assertDiscountChangeAllowed(trx, auth, unapprovedDiscount, normalized.managerPin, subtotal);
       if (effectiveDiscount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
       const { taxAmount, total } = computeInvoiceTotals(subtotal, effectiveDiscount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);

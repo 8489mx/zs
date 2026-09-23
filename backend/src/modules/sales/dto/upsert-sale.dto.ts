@@ -152,6 +152,18 @@ export class UpsertSaleDto {
   @Min(1)
   deliveryRepId?: number;
 
+  /**
+   * O62: the storefront order this cart came from. The server reads that order and pre-approves the
+   * terms it fixed at checkout (coupon discount, line prices), so a cashier without canDiscount is
+   * not asked for a manager PIN — and cannot use it to grant a discount of their own: only the
+   * stored order's numbers are approved.
+   */
+  @Transform(({ value }: { value: unknown }) => (value && Number(value) > 0 ? Number(value) : undefined))
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  onlineOrderId?: number;
+
   @IsOptional()
   @IsString()
   deliveryStatus?: string;

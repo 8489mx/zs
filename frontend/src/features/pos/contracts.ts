@@ -34,6 +34,12 @@ export interface CreatePosSaleInput {
   deliveryRepId?: string | number | null;
   collectionStatus?: string | null;
   deliveryFeeMode?: 'freelance_courier' | 'store_fleet' | string | null;
+  /**
+   * O62: set when this cart was loaded from a storefront order. The server uses it to re-approve
+   * that order's own coupon discount and line prices, so a cashier without canDiscount is not asked
+   * for a manager PIN just to bill an order the store already priced.
+   */
+  onlineOrderId?: number;
 }
 
 function normalizeMoney(value: number) {
@@ -147,6 +153,7 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
     source: input.source || 'pos',
     orderType: input.orderType || 'direct',
     deliveryFeeMode: input.deliveryFeeMode || 'freelance_courier',
+    ...(Number(input.onlineOrderId) > 0 ? { onlineOrderId: Number(input.onlineOrderId) } : {}),
     collectionStatus: input.collectionStatus || (input.orderType === 'delivery' ? 'cod' : null),
     ...(input.deliveryRepId && Number(input.deliveryRepId) > 0 ? {
       deliveryRepId: Number(input.deliveryRepId),
@@ -193,6 +200,7 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
     source: input.source || 'pos',
     orderType: input.orderType || 'direct',
     collectionStatus: input.collectionStatus || (input.orderType === 'delivery' ? 'cod' : null),
+    ...(Number(input.onlineOrderId) > 0 ? { onlineOrderId: Number(input.onlineOrderId) } : {}),
     ...(input.deliveryRepId && Number(input.deliveryRepId) > 0 ? {
       deliveryRepId: Number(input.deliveryRepId),
     } : {}),
@@ -219,6 +227,7 @@ export function buildMinimalPosSalePayload(input: CreatePosSaleInput) {
     paymentType: input.paymentType,
     ...(String(input.managerPin || '').trim() ? { managerPin: String(input.managerPin || '').trim() } : {}),
     source: input.source || 'pos',
+    ...(Number(input.onlineOrderId) > 0 ? { onlineOrderId: Number(input.onlineOrderId) } : {}),
     items: normalizedItems.map((item) => ({
       productId: item.productId,
       qty: item.qty,

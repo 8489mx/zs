@@ -92,4 +92,34 @@ describe('POS sale contracts', () => {
       expectedTotal: 25,
     })).toThrow('لا يمكن استخدام قناة آجل مع بيع نقدي');
   });
+
+  it('carries the storefront order id on every payload builder (O62)', () => {
+    const input = {
+      cart,
+      customerId: '7',
+      paymentType: 'cash' as const,
+      paymentChannel: 'cash' as const,
+      discount: 5,
+      deliveryFee: 0,
+      note: '',
+      paidAmount: 20,
+      tenderedAmount: 20,
+      payments: [{ paymentChannel: 'cash' as const, amount: 20 }],
+      taxRate: 0,
+      pricesIncludeTax: false,
+      expectedTotal: 20,
+      onlineOrderId: 41,
+    };
+
+    // The discount belongs to the storefront order, so the server must know which order it is;
+    // without this the cashier is asked for a manager PIN (or the discount is lost).
+    for (const build of [buildPosSalePayload, buildLegacyPosSalePayload, buildMinimalPosSalePayload]) {
+      expect((build(input) as { onlineOrderId?: number }).onlineOrderId).toBe(41);
+    }
+
+    const withoutOrder = { ...input, onlineOrderId: undefined };
+    for (const build of [buildPosSalePayload, buildLegacyPosSalePayload, buildMinimalPosSalePayload]) {
+      expect('onlineOrderId' in (build(withoutOrder) as object)).toBe(false);
+    }
+  });
 });
