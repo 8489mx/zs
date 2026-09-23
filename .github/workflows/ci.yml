@@ -137,3 +137,11 @@ jobs:
       - name: Build frontend (type-check + bundle)
         run: npm run build
         working-directory: frontend
+
+      # PERF-5..PERF-8 can only be measured on a real build: this is the check that catches a heavy
+      # library sneaking into the startup bundle (jsPDF, pdfjs, the camera scanner, Sentry). It used
+      # to depend on someone remembering to run it by hand after a build, so in practice it never ran
+      # on a push. The build above is right here, so it costs seconds.
+      - name: Frontend bundle budget on the built output (qa:perf:dist)
+        run: npm run qa:perf:dist
+        working-directory: frontend
