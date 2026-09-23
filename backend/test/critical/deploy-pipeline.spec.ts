@@ -136,6 +136,11 @@ function testRestoreDrill(): void {
   assert.ok(/PostgreSQL database dump complete/.test(drillScript), 'the drill must reject a truncated dump before restoring it');
   assert.ok(/grep -c "\^ERROR"/.test(drillScript), 'errors during the restore must be counted, not ignored');
   assert.ok(/pg_constraint where contype='f'/.test(drillScript), 'the drill must compare foreign keys (the O65 failure mode)');
+  // The first real run reported "a constraint was dropped" with no name, and identifying it took a
+  // full manual diagnosis. An alert that cannot be acted on without a second investigation is half
+  // an alert, so the drill must name the constraint and quote the error.
+  assert.ok(/MISSING_FK=/.test(drillScript), 'a dropped foreign key must be named in the alert');
+  assert.ok(/FIRST_ERROR=/.test(drillScript), 'the first restore error must be quoted in the alert');
   assert.ok(/kysely_migration/.test(drillScript), 'the drill must reject a copy older than the live schema');
   assert.ok(/RESTORE DRILL OK/.test(drillScript), 'a successful drill must leave a line the watchdog can look for');
   assert.ok(/RESTORE DRILL OK/.test(watchScript), 'the watchdog must notice a failed or missing drill');

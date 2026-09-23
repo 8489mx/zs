@@ -114,12 +114,19 @@ if ! sudo docker exec "$CONTAINER" psql -U "$DB_USER" -d postgres -q -c "CREATE 
 fi
 
 START=$(date +%s)
-RESTORE_ERRORS=$(gzip -cd "$SQL_GZ" \
-  | sudo docker exec -i "$CONTAINER" psql -U "$DB_USER" -d "$DRILL_DB" -q 2>&1 \
-  | grep -c "^ERROR" || true)
+RESTORE_LOG="$WORK_DIR/restore.log"
+gzip -cd "$SQL_GZ" \
+  | sudo docker exec -i "$CONTAINER" psql -U "$DB_USER" -d "$DRILL_DB" -q > "$RESTORE_LOG" 2>&1 || true
 ELAPSED=$(( $(date +%s) - START ))
 NOTES+=("الاسترجاع خلص في ${ELAPSED} ثانية")
-[ "${RESTORE_ERRORS:-0}" -gt 0 ] && FAILURES+=("${RESTORE_ERRORS} سطر ERROR أثناء الاسترجاع")
+
+RESTORE_ERRORS=$(grep -c "^ERROR" "$RESTORE_LOG" || true)
+if [ "${RESTORE_ERRORS:-0}" -gt 0 ]; then
+  # نص الخطأ نفسه، لا مجرد عدده. التمرين الأول قال "قيد سقط" بلا اسم، فاحتاج تشخيصاً يدوياً
+  # كاملاً لمعرفة أيّ قيد ولماذا — وهو ما يُفترض أن يحمله التنبيه.
+  FIRST_ERROR=$(grep -m1 -A1 "^ERROR" "$RESTORE_LOG" | tr '\n' ' ' | cut -c1-300)
+  FAILURES+=("${RESTORE_ERRORS} سطر ERROR أثناء الاسترجاع: ${FIRST_ERROR}")
+fi
 
 # ── 4. المقارنة بالإنتاج (قراءة فقط) ─────────────────────────────────────────
 DRILL_TABLES=$(drill_q "select count(*) from pg_tables where schemaname='public'")
@@ -152,7 +159,12 @@ fi
 DRILL_FK=$(drill_q "select count(*) from pg_constraint where contype='f'")
 LIVE_FK=$(live_q "select count(*) from pg_constraint where contype='f'")
 if [ -n "${DRILL_FK:-}" ] && [ -n "${LIVE_FK:-}" ] && [ "$DRILL_FK" -lt "$LIVE_FK" ]; then
-  FAILURES+=("المفاتيح المرجعية: ${DRILL_FK} في النسخة مقابل ${LIVE_FK} في الإنتاج — قيد سقط أثناء الاسترجاع (نمط O65)")
+  # القيد الساقط بالاسم: الفرق بين قائمة قيود الإنتاج وقائمة قيود النسخة.
+  MISSING_FK=$(comm -23 \
+    <(live_q "select conname from pg_constraint where contype='f' order by conname" | sort) \
+    <(drill_q "select conname from pg_constraint where contype='f' order by conname" | sort) \
+    | tr '\n' ' ' | cut -c1-200)
+  FAILURES+=("المفاتيح المرجعية: ${DRILL_FK} في النسخة مقابل ${LIVE_FK} في الإنتاج — الساقط: ${MISSING_FK:-؟} (نمط O65)")
 else
   NOTES+=("المفاتيح المرجعية: ${DRILL_FK:-?} مقابل ${LIVE_FK:-?}")
 fi
