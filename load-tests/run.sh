@@ -35,6 +35,22 @@ case "$PROFILE" in
   *) echo "[ERROR] PROFILE غير معروف: $PROFILE (default|heavy|extreme|soak)" >&2; exit 1 ;;
 esac
 
+# بيانات الدخول للسيناريوهات التي تحتاج جلسة (مسار الكاشير).
+# تُقرأ من ملف على السيرفر بدل كتابتها في سطر الأوامر — نفس نمط `/etc/zsystems/backup-passphrase`
+# و`/etc/zsystems/telegram.env`: السر لا يدخل سجل الصدفة ولا يُرى في `ps`.
+#   sudo install -m 600 -o $USER /dev/null /etc/zsystems/loadtest.env
+#   sudo tee /etc/zsystems/loadtest.env <<'EOF'
+#   AUTH_USERNAME=...
+#   AUTH_PASSWORD=...
+#   EOF
+CREDENTIALS_FILE="${CREDENTIALS_FILE:-/etc/zsystems/loadtest.env}"
+if [ -r "$CREDENTIALS_FILE" ]; then
+  # shellcheck disable=SC1090
+  . "$CREDENTIALS_FILE"
+  export AUTH_USERNAME AUTH_PASSWORD
+  echo "[INFO] بيانات الدخول من ${CREDENTIALS_FILE}"
+fi
+
 export PEAK_VUS="${PEAK_VUS:-$DEF_PEAK}"
 export RAMP_SECONDS="${RAMP_SECONDS:-$DEF_RAMP}"
 export HOLD_SECONDS="${HOLD_SECONDS:-$DEF_HOLD}"

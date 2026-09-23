@@ -102,6 +102,25 @@ PEAK_VUS=500 HOLD_SECONDS=180 bash load-tests/run.sh   # ضبط يدوي يتج�
 وk6 يخرج بكود فشل عند خرق أي عتبة — فتبدو النتيجة «فشلاً» بينما هي الرقم المطلوب نفسه.
 الملف يطفئها ويطبع الأرقام.
 
+### بيانات الدخول (سيناريوهات الكاشير)
+
+`pos-catalog-sync.js` و`stress-all.js` يحتاجان جلسة حقيقية. الافتراضي في `config.js` هو
+`admin/admin` للتطوير المحلي فقط؛ على أي سيرفر حقيقي لا بد من بيانات صحيحة، وإلا **يتوقف
+الاختبار فوراً** برسالة صريحة بدل أن يعدّ 401 ويقول «100% فشل».
+
+ضعها في ملف على السيرفر بدل سطر الأوامر — السر لا يدخل سجل الصدفة ولا يظهر في `ps`:
+
+```bash
+sudo mkdir -p /etc/zsystems
+printf 'AUTH_USERNAME=%s
+AUTH_PASSWORD=%s
+' 'اسم_المستخدم' 'كلمة_المرور' | sudo tee /etc/zsystems/loadtest.env > /dev/null
+sudo chmod 600 /etc/zsystems/loadtest.env && sudo chown "$USER" /etc/zsystems/loadtest.env
+```
+
+`run.sh` يقرأه تلقائياً (أو من `CREDENTIALS_FILE=...`). الجلسة تُمرَّر بترويسة `X-Session-Id`
+التي يدعمها الباك إند صراحةً — أبسط من إدارة الكوكي وCSRF داخل k6.
+
 ### `SPOOF_CLIENT_IPS` — متى ولماذا
 
 حدود المحاولات مفتاحها **عنوان العميل** (O60 للمتجر: 30 طلباً/10 دقائق لكل IP · O72 للدخول).

@@ -224,6 +224,19 @@ function testLoadSuiteIsUsable(): void {
     'per-VU client addresses must stay behind an explicit opt-in, or a broken rate limit hides behind them',
   );
 
+  // A scenario that needs a session must fail on a bad login instead of counting 401s: the first
+  // real run reported "100% failed" with fast responses, which reads like the server fell over
+  // when the actual cause was the placeholder admin/admin credentials never being replaced.
+  for (const scenario of ['pos-catalog-sync.js', 'stress-all.js']) {
+    const source = loadFile(join('scenarios', scenario));
+    assert.ok(/throw new Error\(/.test(source), `${scenario} must abort when the login fails, not iterate on 401s`);
+    assert.ok(/'X-Session-Id'/.test(source), `${scenario} must carry the session by header`);
+    assert.ok(
+      !/cookies: data/.test(source),
+      `${scenario} must not pass k6 response cookies as request cookies: the shapes differ and nothing is sent`,
+    );
+  }
+
   // `resolveClientIp` reads X-Real-IP only. X-Forwarded-For is sent and ignored, so a scenario
   // using it silently fails to control the address it thinks it controls. Comments are stripped
   // first: the scenarios explain the distinction in prose, and prose is not what runs.

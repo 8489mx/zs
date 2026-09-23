@@ -60,12 +60,42 @@ export const options = {
   },
 };
 
-export function setup() {
-  // Login to get POS session
-  const loginRes = http.post(`${BASE_URL}/api/auth/login`, JSON.stringify({
+/**
+ * تسجيل دخول يُفشل الاختبار **فوراً** إن فشل.
+ *
+ * كان `setup()` يتجاهل نتيجة الدخول ويعيد `res.cookies`، وهي بنية k6 تختلف عن الشكل الذي
+ * يقبله معامل `cookies` في الطلبات — فالكوكي لم تكن تُرسَل أصلاً. النتيجة: كل طلب يرجع 401،
+ * والتقرير يقول "100% فشل" بلا سبب ظاهر، بينما الخطأ في بيانات الدخول لا في السيرفر.
+ *
+ * الجلسة تُمرَّر بترويسة `X-Session-Id` لأن الباك إند يدعمها صراحةً (`ALLOW_SESSION_ID_HEADER`)
+ * وهي أبسط من إدارة الكوكي وCSRF داخل k6.
+ */
+function loginOrDie() {
+  const res = http.post(`${BASE_URL}/api/auth/login`, JSON.stringify({
     username: AUTH_USERNAME,
     password: AUTH_PASSWORD,
-  }), { headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) } });
+  }), { headers: DEFAULT_HEADERS });
+
+  if (res.status !== 200 && res.status !== 201) {
+    throw new Error(
+      `login failed (HTTP ${res.status}) for user "${AUTH_USERNAME}". `
+      + 'Set AUTH_USERNAME / AUTH_PASSWORD (see docs/LOAD_TESTING.md). '
+      + `Response: ${String(res.body || '').slice(0, 200)}`,
+    );
+  }
+
+  let sessionId = '';
+  try {
+    sessionId = JSON.parse(res.body).sessionId || '';
+  } catch (error) {
+    throw new Error(`login returned a body k6 could not parse: ${String(res.body || '').slice(0, 200)}`);
+  }
+  if (!sessionId) throw new Error('login succeeded but returned no sessionId');
+  return sessionId;
+}
+
+export function setup() {
+  const sessionId = loginOrDie();
 
   // Get Storefront product IDs
   const catalogRes = http.get(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/catalog`, { headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) } });
@@ -79,15 +109,14 @@ export function setup() {
   } catch {}
 
   return {
-    cookies: loginRes.cookies,
+    sessionId,
     productIds,
   };
 }
 
 export function posScenario(data) {
   const params = {
-    headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) },
-    cookies: data?.cookies || {},
+    headers: { ...DEFAULT_HEADERS, 'X-Session-Id': data.sessionId, ...clientIpHeaders(__VU) },
   };
 
   const start = Date.now();
