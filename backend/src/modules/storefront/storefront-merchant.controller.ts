@@ -164,7 +164,7 @@ export class StorefrontMerchantController {
   }
 
   @Get('analytics')
-  @RequireAnyPermission(...CONFIG_PERMISSIONS)
+  @RequireAnyPermission('storefront', 'sales', 'settings')
   getAnalytics(@Req() req: RequestWithAuth) {
     return this.service.getStorefrontAnalytics(req.authContext!);
   }

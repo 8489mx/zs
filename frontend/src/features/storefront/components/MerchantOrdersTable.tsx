@@ -1,9 +1,12 @@
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { OnlineOrderRecord } from '../types/storefront.types';
 import {
   PackageIcon,
   TruckIcon,
   CheckIcon,
   MapPinIcon,
+  ChevronDownIcon,
 } from '@/shared/components/icons/AppIcons';
 
 interface MerchantOrdersTableProps {
@@ -36,6 +39,283 @@ export function getStatusBadge(status: string) {
     default:
       return { label: status, bg: '#f8fafc', text: '#475569', border: '#e2e8f0' };
   }
+}
+
+function OrderShippingDropdown({
+  order,
+  onConvertToDelivery,
+  onShipBosta,
+  onShipGcc,
+}: {
+  order: OnlineOrderRecord;
+  onConvertToDelivery: (order: OnlineOrderRecord) => void;
+  onShipBosta: (order: OnlineOrderRecord) => void;
+  onShipGcc: (order: OnlineOrderRecord) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  const updateCoords = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const menuWidth = 220;
+    let left = rect.right - menuWidth;
+    if (left < 10) left = 10;
+    if (left + menuWidth > window.innerWidth - 10) {
+      left = Math.max(10, window.innerWidth - menuWidth - 10);
+    }
+    let top = rect.bottom + 4;
+    if (top + 170 > window.innerHeight) {
+      top = Math.max(10, rect.top - 170 - 4);
+    }
+    setCoords({ top, left, width: menuWidth });
+  };
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isOpen) {
+      setIsOpen(false);
+    } else {
+      updateCoords();
+      setIsOpen(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (e: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+
+    const handleScroll = () => {
+      setIsOpen(false);
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown, true);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleScroll);
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown, true);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [isOpen]);
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={handleToggle}
+        title="تحديد مسار الشحن والتوصيل"
+        style={{
+          width: '100%',
+          height: '32px',
+          fontSize: '11px',
+          fontWeight: 700,
+          borderRadius: '7px',
+          background: '#170e5e',
+          color: '#ffffff',
+          border: 'none',
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '4px',
+          boxShadow: '0 1px 2px rgba(23,14,94,0.2)',
+          boxSizing: 'border-box',
+          padding: '0 6px',
+        }}
+      >
+        <TruckIcon size={13} color="#ffffff" />
+        <span>شحن وتوصيل</span>
+        <ChevronDownIcon
+          size={11}
+          color="#ffffff"
+          style={{
+            transform: isOpen ? 'rotate(180deg)' : 'none',
+            transition: 'transform 0.15s ease',
+          }}
+        />
+      </button>
+
+      {isOpen && coords && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: 'fixed',
+            top: coords.top,
+            left: coords.left,
+            width: coords.width,
+            zIndex: 999999,
+            background: '#ffffff',
+            borderRadius: '10px',
+            border: '1px solid #cbd5e1',
+            boxShadow: '0 12px 30px -4px rgba(15, 23, 42, 0.18), 0 4px 12px -2px rgba(15, 23, 42, 0.08)',
+            padding: '6px',
+            direction: 'rtl',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+            boxSizing: 'border-box',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#64748b', padding: '4px 8px 6px', borderBottom: '1px solid #f1f5f9' }}>
+            توجيه الشحن والتسليم:
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsOpen(false);
+              onConvertToDelivery(order);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 10px',
+              borderRadius: '7px',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'right',
+              width: '100%',
+              boxSizing: 'border-box',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <div
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '6px',
+                background: '#f0f3ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <TruckIcon size={14} color="#170e5e" />
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>مندوب دليفري داخلي</div>
+              <div style={{ fontSize: '10.5px', color: '#64748b' }}>إصدار فاتورة وتعيين مندوب</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsOpen(false);
+              onShipBosta(order);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 10px',
+              borderRadius: '7px',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'right',
+              width: '100%',
+              boxSizing: 'border-box',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#fff1f2')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <div
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '6px',
+                background: '#ffe4e6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <PackageIcon size={14} color="#e11d48" />
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#e11d48' }}>شحن بوسطة إكسبريس</div>
+              <div style={{ fontSize: '10.5px', color: '#64748b' }}>توليد بوليصة AWB مصر</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsOpen(false);
+              onShipGcc(order);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 10px',
+              borderRadius: '7px',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'right',
+              width: '100%',
+              boxSizing: 'border-box',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#fff7ed')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <div
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '6px',
+                background: '#ffedd5',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <TruckIcon size={14} color="#ea580c" />
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#ea580c' }}>شحن خليجي (أرامكس / سمسا)</div>
+              <div style={{ fontSize: '10.5px', color: '#64748b' }}>بوليصة دولية للسعودية والخليج</div>
+            </div>
+          </button>
+        </div>,
+        document.body
+      )}
+    </>
+  );
 }
 
 export function MerchantOrdersTable({
@@ -85,7 +365,7 @@ export function MerchantOrdersTable({
             <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>الأصناف</th>
             <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>الإجمالي</th>
             <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center', minWidth: '344px' }}>الإجراءات</th>
           </tr>
         </thead>
         <tbody>
@@ -189,7 +469,7 @@ export function MerchantOrdersTable({
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '102px 120px 58px 32px',
+                      gridTemplateColumns: '102px 124px 58px 32px',
                       gap: '6px',
                       alignItems: 'center',
                       margin: '0 auto',
@@ -345,10 +625,11 @@ export function MerchantOrdersTable({
                           justifyContent: 'center',
                           gap: '4px',
                           boxSizing: 'border-box',
+                          padding: '0 6px',
                         }}
                       >
                         <PackageIcon size={13} color="#e11d48" />
-                        <span>بوسطة #{order.bostaTrackingNumber}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>بوسطة #{order.bostaTrackingNumber}</span>
                       </button>
                     ) : (order.gccTrackingNumber || order.gcc_tracking_number) ? (
                       <button
@@ -371,94 +652,21 @@ export function MerchantOrdersTable({
                           justifyContent: 'center',
                           gap: '4px',
                           boxSizing: 'border-box',
+                          padding: '0 6px',
                         }}
                       >
                         <TruckIcon size={13} color={(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? '#dc2626' : '#ea580c'} />
-                        <span>{(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? 'أرامكس' : 'سمسا'} #{order.gccTrackingNumber || order.gcc_tracking_number}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? 'أرامكس' : 'سمسا'} #{order.gccTrackingNumber || order.gcc_tracking_number}
+                        </span>
                       </button>
                     ) : !order.saleId && order.status !== 'cancelled' ? (
-                      <div style={{ display: 'flex', gap: '3px', width: '100%' }}>
-                        <button
-                          type="button"
-                          onClick={() => onConvertToDelivery(order)}
-                          title="تحويل فوري لدليفري واختيار مندوب التوصيل"
-                          style={{
-                            flex: 1,
-                            height: '32px',
-                            fontSize: '10.5px',
-                            fontWeight: 700,
-                            borderRadius: '7px',
-                            background: '#170e5e',
-                            color: '#ffffff',
-                            border: 'none',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '1px',
-                            boxShadow: '0 1px 2px rgba(23,14,94,0.2)',
-                            boxSizing: 'border-box',
-                            padding: '0 2px',
-                          }}
-                        >
-                          <span>دليفري</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onShipBosta(order)}
-                          title="شحن فوري عبر بوسطة وتوليد البوليصة"
-                          style={{
-                            flex: 1,
-                            height: '32px',
-                            fontSize: '10.5px',
-                            fontWeight: 700,
-                            borderRadius: '7px',
-                            background: '#e11d48',
-                            color: '#ffffff',
-                            border: 'none',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '2px',
-                            boxShadow: '0 1px 2px rgba(225,29,72,0.2)',
-                            boxSizing: 'border-box',
-                            padding: '0 2px',
-                          }}
-                        >
-                          <PackageIcon size={12} color="#ffffff" />
-                          <span>بوسطة</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onShipGcc(order)}
-                          title="شحن خليجي عبر أرامكس أو سمسا"
-                          style={{
-                            flex: 1,
-                            height: '32px',
-                            fontSize: '10.5px',
-                            fontWeight: 700,
-                            borderRadius: '7px',
-                            background: '#ea580c',
-                            color: '#ffffff',
-                            border: 'none',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '2px',
-                            boxShadow: '0 1px 2px rgba(234,88,12,0.2)',
-                            boxSizing: 'border-box',
-                            padding: '0 2px',
-                          }}
-                        >
-                          <TruckIcon size={12} color="#ffffff" />
-                          <span>خليجي</span>
-                        </button>
-                      </div>
+                      <OrderShippingDropdown
+                        order={order}
+                        onConvertToDelivery={onConvertToDelivery}
+                        onShipBosta={onShipBosta}
+                        onShipGcc={onShipGcc}
+                      />
                     ) : order.status === 'delivered' ? (
                       <div
                         style={{

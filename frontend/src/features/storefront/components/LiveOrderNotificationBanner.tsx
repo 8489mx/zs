@@ -1,8 +1,8 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import React, { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useLocation } from 'react-router-dom';
 import { storefrontApi } from '../api/storefront.api';
 import { OnlineOrderRecord } from '../types/storefront.types';
 import { playOrderChime, isOrderSoundEnabled, setOrderSoundEnabled } from '@/shared/audio/order-sound';
@@ -10,6 +10,9 @@ import { useAuthStore } from '@/stores/auth-store';
 
 export function LiveOrderNotificationBanner() {
   const user = useAuthStore((state) => state.user);
+  const queryClient = useQueryClient();
+  const location = useLocation();
+  const isOnOrdersPage = location.pathname.includes('/online-orders');
   const [latestNewOrder, setLatestNewOrder] = useState<OnlineOrderRecord | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(() => isOrderSoundEnabled());
   const previousKnownIdsRef = useRef<Set<number>>(new Set());
@@ -43,8 +46,13 @@ export function LiveOrderNotificationBanner() {
 
     if (newlyArrived.length > 0) {
       const mostRecent = newlyArrived[0];
-      setLatestNewOrder(mostRecent);
       playOrderChime();
+      queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['storefront-admin-analytics'] });
+      if (!isOnOrdersPage) {
+        setLatestNewOrder(mostRecent);
+      }
     }
 
     previousKnownIdsRef.current = currentIds;
@@ -65,6 +73,13 @@ export function LiveOrderNotificationBanner() {
     setLatestNewOrder(null);
   };
 
+
+  useEffect(() => {
+    if (isOnOrdersPage && latestNewOrder) {
+      setLatestNewOrder(null);
+    }
+  }, [isOnOrdersPage, latestNewOrder]);
+
   if (!latestNewOrder) return null;
 
   return (

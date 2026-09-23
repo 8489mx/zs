@@ -13,11 +13,10 @@ import { loadOnlineOrderIntoPosCart } from '../lib/storefront-pos-loader';
 import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/PosSaleSuccessDialog';
 import { printPostedSaleReceipt } from '@/lib/pos-printing';
 import type { Sale } from '@/types/domain';
-import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { toast } from '@/shared/components/system-alert';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
-import { TrendingUpIcon, MessageSquareIcon, Trash2Icon } from '@/shared/components/icons/AppIcons';
+import { TrendingUpIcon, MessageSquareIcon, Trash2Icon, CopyIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 
 export function MerchantOnlineOrdersPage() {
   const navigate = useNavigate();
@@ -97,6 +96,28 @@ export function MerchantOnlineOrdersPage() {
   const counts = ordersQuery.data?.counts;
   const settings = settingsQuery.data;
 
+  // Real-time KPI calculations with fallback to active orders
+  const totalOrdersCount = (analyticsQuery.data?.totalOrders && analyticsQuery.data.totalOrders > 0)
+    ? analyticsQuery.data.totalOrders
+    : (counts?.all ?? orders.length);
+
+  const pendingOrdersCount = counts?.pending ?? orders.filter((o) => o.status === 'pending').length;
+  const validOrdersSum = orders.filter((o) => o.status !== 'cancelled').reduce((acc, o) => acc + (Number(o.totalAmount) || 0), 0);
+  const totalRevenueAmount = (analyticsQuery.data?.totalRevenue && analyticsQuery.data.totalRevenue > 0)
+    ? analyticsQuery.data.totalRevenue
+    : validOrdersSum;
+
+  const averageOrderVal = (analyticsQuery.data?.averageOrderValue && analyticsQuery.data.averageOrderValue > 0)
+    ? analyticsQuery.data.averageOrderValue
+    : (totalOrdersCount > 0 ? Math.round(totalRevenueAmount / totalOrdersCount) : 0);
+
+  const unrecoveredCount = analyticsQuery.data?.unrecoveredAbandoned ?? 0;
+  const conversionRateVal = analyticsQuery.data?.conversionRate ?? (
+    (totalOrdersCount + unrecoveredCount) > 0
+      ? Math.round((totalOrdersCount / (totalOrdersCount + unrecoveredCount)) * 100)
+      : (totalOrdersCount > 0 ? 100 : 0)
+  );
+
   const storeSlug = settings?.slug || 'store';
   const storeUrl = buildStorePublicUrl(storeSlug);
 
@@ -149,15 +170,30 @@ export function MerchantOnlineOrdersPage() {
             </div>
           }
           actions={
-            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <Button
+            <div className="actions compact-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
                 type="button"
-                variant="secondary"
                 onClick={handleCopyLink}
-                style={{ fontWeight: 700, fontSize: '13px', padding: '6px 14px' }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  height: '36px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  background: '#ffffff',
+                  color: copySuccess ? '#166534' : '#334155',
+                  border: copySuccess ? '1.5px solid #22c55e' : '1px solid #cbd5e1',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                  boxSizing: 'border-box',
+                }}
               >
-                {copySuccess ? 'تم نسخ الرابط!' : 'نسخ رابط المتجر'}
-              </Button>
+                {copySuccess ? <CheckIcon size={14} color="#166534" /> : <CopyIcon size={14} color="#64748b" />}
+                <span>{copySuccess ? 'تم نسخ الرابط!' : 'نسخ رابط المتجر'}</span>
+              </button>
               <a
                 href={storeUrl}
                 target="_blank"
@@ -165,8 +201,9 @@ export function MerchantOnlineOrdersPage() {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 14px',
+                  gap: '6px',
+                  height: '36px',
+                  padding: '0 14px',
                   borderRadius: '8px',
                   background: '#170e5e',
                   color: '#ffffff',
@@ -174,9 +211,11 @@ export function MerchantOnlineOrdersPage() {
                   fontWeight: 700,
                   textDecoration: 'none',
                   boxShadow: '0 1px 3px rgba(23,14,94,0.2)',
+                  boxSizing: 'border-box',
                 }}
               >
-                <span>معاينة المتجر كزبون ↗</span>
+                <span>معاينة المتجر كزبون</span>
+                <span style={{ fontSize: '13px' }}>↗</span>
               </a>
             </div>
           }
@@ -212,10 +251,10 @@ export function MerchantOnlineOrdersPage() {
               <TrendingUpIcon size={16} color="#16a34a" />
             </div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
-              {(analyticsQuery.data?.totalRevenue ?? 0).toLocaleString()} <span style={{ fontSize: '13px', fontWeight: 600 }}>{getGlobalCurrencySymbol()}</span>
+              {totalRevenueAmount.toLocaleString()} <span style={{ fontSize: '13px', fontWeight: 600 }}>{getGlobalCurrencySymbol()}</span>
             </div>
             <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>
-              الطلبات المكتملة والمسلمة
+              الطلبات الصالحة والمسلمة
             </span>
           </div>
 
@@ -238,10 +277,10 @@ export function MerchantOnlineOrdersPage() {
               <span style={{ fontSize: '11px', color: '#170e5e', fontWeight: 700, background: '#f0f3ff', padding: '1px 6px', borderRadius: '4px' }}>متجر</span>
             </div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
-              {(analyticsQuery.data?.totalOrders ?? 0).toLocaleString()} <span style={{ fontSize: '13px', fontWeight: 600 }}>طلب</span>
+              {totalOrdersCount.toLocaleString()} <span style={{ fontSize: '13px', fontWeight: 600 }}>طلب</span>
             </div>
             <span style={{ fontSize: '11px', color: '#64748b' }}>
-              قيد التنفيذ: {counts?.pending || 0} طلبات
+              قيد التنفيذ: {pendingOrdersCount} طلبات
             </span>
           </div>
 
@@ -264,7 +303,7 @@ export function MerchantOnlineOrdersPage() {
               <span style={{ fontSize: '11px', color: '#0369a1', fontWeight: 700, background: '#f0f9ff', padding: '1px 6px', borderRadius: '4px' }}>معدل</span>
             </div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
-              {(analyticsQuery.data?.averageOrderValue ?? 0).toLocaleString()} <span style={{ fontSize: '13px', fontWeight: 600 }}>{getGlobalCurrencySymbol()}</span>
+              {averageOrderVal.toLocaleString()} <span style={{ fontSize: '13px', fontWeight: 600 }}>{getGlobalCurrencySymbol()}</span>
             </div>
             <span style={{ fontSize: '11px', color: '#64748b' }}>
               متوسط الفاتورة لكل عميل
@@ -290,10 +329,10 @@ export function MerchantOnlineOrdersPage() {
               <span style={{ fontSize: '11px', color: '#d97706', fontWeight: 700, background: '#fffbeb', padding: '1px 6px', borderRadius: '4px' }}>تحويل</span>
             </div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
-              {analyticsQuery.data?.conversionRate ?? 0}%
+              {conversionRateVal}%
             </div>
             <span style={{ fontSize: '11px', color: '#b45309', fontWeight: 600 }}>
-              سلات متروكة: {analyticsQuery.data?.unrecoveredAbandoned ?? 0} سلة
+              سلات متروكة: {unrecoveredCount} سلة
             </span>
           </div>
         </div>
@@ -329,7 +368,6 @@ export function MerchantOnlineOrdersPage() {
               alignItems: 'center',
               gap: '6px',
               boxShadow: viewMode === 'orders' ? '0 2px 6px rgba(23, 14, 94, 0.2)' : 'none',
-              transition: 'all 0.15s ease',
               whiteSpace: 'nowrap',
               flexShrink: 0,
             }}
@@ -364,7 +402,6 @@ export function MerchantOnlineOrdersPage() {
               alignItems: 'center',
               gap: '6px',
               boxShadow: viewMode === 'abandoned' ? '0 2px 6px rgba(23, 14, 94, 0.2)' : 'none',
-              transition: 'all 0.15s ease',
               whiteSpace: 'nowrap',
               flexShrink: 0,
             }}
@@ -444,7 +481,6 @@ export function MerchantOnlineOrdersPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
                 }}
               >
                 <span>{tab.label}</span>
