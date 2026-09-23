@@ -64,8 +64,12 @@ if (k6Check.status === 0) {
   process.exit(run.status || 0);
 }
 
-// Check docker
-const dockerCheck = spawnSync('docker', ['--version'], { stdio: 'pipe' });
+// Check docker. `docker --version` succeeds even when the daemon socket is not readable, so the
+// probe has to be `docker info`; on the production server the ubuntu user needs sudo for it, which
+// is why every script in this repo calls `sudo docker`.
+const dockerDirect = spawnSync('docker', ['info'], { stdio: 'pipe' }).status === 0;
+const dockerSudo = !dockerDirect && spawnSync('sudo', ['-n', 'docker', 'info'], { stdio: 'pipe' }).status === 0;
+const dockerCheck = { status: dockerDirect || dockerSudo ? 0 : 1 };
 if (dockerCheck.status === 0) {
   console.log(`[INFO] k6 binary not found locally. Running via Docker container...`);
   const rootDir = path.resolve(__dirname, '..');
@@ -78,7 +82,9 @@ if (dockerCheck.status === 0) {
     'grafana/k6',
     'run', ...extraArgs, ...envArgs, relScenario,
   ];
-  const run = spawnSync('docker', dockerArgs, { stdio: 'inherit' });
+  const run = dockerSudo
+    ? spawnSync('sudo', ['-n', 'docker', ...dockerArgs], { stdio: 'inherit' })
+    : spawnSync('docker', dockerArgs, { stdio: 'inherit' });
   process.exit(run.status || 0);
 }
 

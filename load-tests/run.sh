@@ -73,9 +73,24 @@ if command -v k6 > /dev/null 2>&1; then
     exec k6 run "${K6_EXTRA_ARGS[@]}" "${K6_ENV_ARGS[@]}" "${DIR}/${SCENARIO}"
 fi
 
+# المستخدم `ubuntu` على سيرفر الإنتاج ليس في مجموعة `docker`، فكل سكربتات المستودع تنادي
+# `sudo docker`. نجرّب المباشر أولاً ثم بـsudo بلا كلمة مرور — بدل أن نفشل بـ"permission denied"
+# بعد طباعة رأس جميل يوهم أن الاختبار يعمل. ولاحظ أن `docker --version` ينجح حتى بلا صلاحية
+# على المقبس، فالفحص الصحيح هو `docker info`.
+DOCKER_CMD=""
 if command -v docker > /dev/null 2>&1; then
-    echo "[INFO] k6 غير مثبّت — التشغيل عبر حاوية grafana/k6."
-    exec docker run --rm -i --network=host \
+  if docker info > /dev/null 2>&1; then
+    DOCKER_CMD="docker"
+  elif sudo -n docker info > /dev/null 2>&1; then
+    DOCKER_CMD="sudo docker"
+  fi
+fi
+
+if [ -n "$DOCKER_CMD" ]; then
+    echo "[INFO] k6 غير مثبّت — التشغيل عبر حاوية grafana/k6 (${DOCKER_CMD})."
+    echo "[WARN] الحاوية تتنافس مع التطبيق على نفس النواتين، فأرقام الضغط الأقصى تصير متحفظة."
+    echo "[WARN] لقياس أدق ثبّت k6 محلياً — التعليمات في docs/LOAD_TESTING.md §3."
+    exec $DOCKER_CMD run --rm -i --network=host \
       -v "${DIR}/..:/work" -w /work/load-tests \
       grafana/k6 run "${K6_EXTRA_ARGS[@]}" "${K6_ENV_ARGS[@]}" "${SCENARIO}"
 fi

@@ -250,6 +250,19 @@ function testLoadSuiteIsUsable(): void {
     assert.ok(/no-thresholds/.test(source), `${name} must drop SLA thresholds for the measurement profile`);
     assert.ok(/PEAK_VUS/.test(source), `${name} must pass the load size to k6 explicitly (k6 does not inherit the shell env)`);
   }
+
+  // `docker --version` succeeds without access to the daemon socket, so probing the binary told us
+  // docker was usable and every run then died on "permission denied" after printing a header that
+  // looked like the test was starting. The ubuntu user on the server needs sudo, as the rest of the
+  // repo's scripts already assume.
+  for (const [name, source] of [launchers[0], launchers[2]]) {
+    assert.ok(/docker info/.test(source), `${name} must probe the docker daemon, not just the binary`);
+    // Shell spells it `sudo -n docker`, Node spells it spawnSync('sudo', ['-n', 'docker', …]).
+    assert.ok(
+      /sudo[^A-Za-z0-9]{1,8}-n[^A-Za-z0-9]{1,8}docker/.test(source),
+      `${name} must fall back to sudo docker like every other script here`,
+    );
+  }
 }
 
 run().then(
