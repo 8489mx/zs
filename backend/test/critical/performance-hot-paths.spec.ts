@@ -463,7 +463,7 @@ function testLoadSuiteIsUsable(): void {
       ['purchases', /\/api\/purchases/],
       ['storefront orders', /\/orders`/],
       ['catalogue sync', /pos-products\/version/],
-      ['reports under write load', /\/api\/reports\//],
+      ['reports under write load', /\/api\/accounting\/reports\//],
     ] as Array<[string, RegExp]>) {
       assert.ok(pattern.test(full), `full-system.js must exercise ${what}: a path it never touches is a path it never cleared`);
     }
@@ -480,6 +480,26 @@ function testLoadSuiteIsUsable(): void {
     assert.ok(
       /CUSTOMER_REQUIRED_FOR_CREDIT/.test(full),
       'full-system.js must refuse to start without customers, or the credit half measures refusals',
+    );
+    // A return needs manager authorization (MANAGER_AUTH_REQUIRED); the cashier's own password is
+    // accepted. Omitting it refused 337 of 337 returns on the first run.
+    assert.ok(
+      /managerPin: session\.password,\s*\}\), writeParams/.test(full)
+      || /note: 'load test return',[^]{0,400}managerPin: session\.password/.test(full),
+      'a return must carry manager authorization, or every one of them is refused with 403',
+    );
+    // The accounting reports live under api/accounting. The bare /api/reports path 404s in 3ms and
+    // looks exactly like a failing report.
+    assert.ok(
+      /\/api\/accounting\/reports\//.test(full) && !/\$\{BASE_URL\}\/api\/reports\//.test(full),
+      'reports are mounted under api/accounting; the short path returns 404 and measures nothing',
+    );
+    // __VU is GLOBAL across k6 scenarios. Gating the "why was this refused" log on it meant three
+    // whole paths failed 100% with not one line explaining why — the exact failure the
+    // classification work exists to prevent.
+    assert.ok(
+      /loggedPerLabel/.test(full) && !/__VU <= 2/.test(full),
+      'the refusal log must be gated per path, not on __VU: k6 numbers VUs globally across scenarios',
     );
   }
 

@@ -286,6 +286,16 @@ function pickItems(pool, maxLines) {
   return chosen;
 }
 
+/**
+ * عدّاد لكل مسار على حدة.
+ *
+ * البوابة السابقة كانت `__VU <= 2`، و`__VU` في k6 **عام عبر كل المجموعات** لا مرقَّم داخل كل
+ * واحدة. فمع 167 مستخدماً موزّعين على تسع مجموعات، لم يقع المستخدمان الأول والثاني في
+ * `credit_sales` ولا `returns` ولا `reports` قط — فرُفض 1,543 طلباً **بلا سطر واحد يقول لماذا**،
+ * وهو بالضبط ما بُني التصنيف كله لمنعه. البوابة الآن لكل تسمية، فأول رفضين في كل مسار يُطبعان.
+ */
+const loggedPerLabel = {};
+
 function recordFailure(res, label) {
   const body = String(res.body || '');
   if (body.includes('40P01') || body.toLowerCase().includes('deadlock')) deadlocks.add(1);
@@ -293,9 +303,12 @@ function recordFailure(res, label) {
   if (reason === 'rate_limited') rateLimited.add(1);
   else if (reason === 'server_error' || reason === 'no_response') serverErrors.add(1);
   else businessRejects.add(1);
-  if (__VU <= 2 && __ITER < 2) {
+
+  const seen = loggedPerLabel[label] || 0;
+  if (seen < 2) {
+    loggedPerLabel[label] = seen + 1;
     // eslint-disable-next-line no-console
-    console.warn(`[${label} refused: ${reason}] HTTP ${res.status} - ${body.slice(0, 200)}`);
+    console.warn(`[${label} refused: ${reason}] HTTP ${res.status} - ${body.slice(0, 220)}`);
   }
 }
 
@@ -335,11 +348,12 @@ export function cashSaleScenario(data) {
 /** البيع الآجل: قيد ذمم، و**تزاحم على صف العميل** — نوع تزاحم لا يظهر في البيع النقدي. */
 export function creditSaleScenario(data) {
   const customerId = data.customers[Math.floor(Math.random() * data.customers.length)];
-  const items = pickItems(data.sellable, 2);
-  const total = Math.round(items.reduce((sum, i) => sum + i.price * i.qty, 0) * 100) / 100;
+  // لا `total` هنا: ليس حقلاً في `UpsertSaleDto`، والأنبوب العام `forbidNonWhitelisted: true`
+  // (`request-validation.pipe.ts`) فيرد 400 على أي حقل زائد. أُرسل في أول جولة فرُفضت 959 فاتورة
+  // آجلة من 959 — والسيرفر يحسب الإجمالي بنفسه على أي حال.
   postSale(
-    sessionFor(data), items, data.branchId,
-    { paymentType: 'credit', paymentChannel: 'credit', customerId, payments: [], tenderedAmount: 0, total },
+    sessionFor(data), pickItems(data.sellable, 2), data.branchId,
+    { paymentType: 'credit', paymentChannel: 'credit', customerId, payments: [], tenderedAmount: 0 },
     creditSaleMs, creditSaleOk, 'credit sale',
   );
   sleep(1.2);
@@ -366,6 +380,9 @@ export function returnScenario(data) {
     settlementMode: 'refund',
     refundMethod: 'cash',
     note: 'load test return',
+    // المرتجع يحتاج اعتماداً (`MANAGER_AUTH_REQUIRED` 403)، ويقبل كلمة مرور المستخدم نفسه كما
+    // يقبل رمز المشرف (`verifyManagerAuthorization`). غيابه رفض 337 مرتجعاً من 337 في أول جولة.
+    managerPin: session.password,
   }), writeParams(session, {
     ...clientIpHeaders(__VU),
     'x-idempotency-key': `fs-return-${__VU}-${__ITER}-${Date.now()}`,
@@ -443,13 +460,15 @@ export function catalogSyncScenario(data) {
 /** تقارير مالية تُقرأ بينما كل ما سبق يكتب. */
 export function reportScenario(data) {
   const params = sessionParams(sessionFor(data), clientIpHeaders(__VU));
+  // المسار تحت `api/accounting` لا `api` (`@Controller('api/accounting')`). العنوان الخاطئ ردّ 404
+  // في ثلاث مللي ثانية، فبدت التقارير «تفشل» بينما لم تُستدعَ أصلاً.
   const reports = ['financial-summary', 'receivables-payables', 'inventory-value', 'cash-movement'];
   const report = reports[Math.floor(Math.random() * reports.length)];
   const start = Date.now();
-  const res = http.get(`${BASE_URL}/api/reports/${report}`, params);
+  const res = http.get(`${BASE_URL}/api/accounting/reports/${report}`, params);
   reportMs.add(Date.now() - start);
-  check(res, { 'report is 200': (r) => r.status === 200 });
-  if (res.status >= 500) serverErrors.add(1);
+  const ok = check(res, { 'report is 200': (r) => r.status === 200 });
+  if (!ok) recordFailure(res, 'report');
   sleep(3);
 }
 
