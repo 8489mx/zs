@@ -1453,7 +1453,7 @@ export class SalesWriteService {
           );
         }
 
-        // When a delivery order with a freelance courier is paid electronically (online/card/wallet/instapay/credit),
+        // When a delivery order with a freelance courier is fully prepaid online (prepaid_online),
         // the courier takes their delivery fee in cash directly from the active cash drawer.
         // Auto-record a cash_out treasury transaction so the cashier's expected cash in drawer decreases accurately.
         if (
@@ -1461,12 +1461,21 @@ export class SalesWriteService {
           resolvedDeliveryFeeMode === 'freelance_courier' &&
           normalized.deliveryFee > 0
         ) {
-          const nonCashPaidTotal = payments
-            .filter((p) => p.paymentChannel !== 'cash')
-            .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+          // Only eligible when customer prepaid online in full (never for credit/COD)
 
-          const isElectronicPrepaidOrCredit = collectionStatus === 'prepaid_online' || nonCashPaidTotal > 0 || effectivePaymentType === 'credit';
-          if (collectionStatus !== 'prepaid_by_rep' && isElectronicPrepaidOrCredit) {
+
+
+          const isElectronicPaidInFull =
+            payments.length > 0 &&
+            payments.every((p) => p.paymentChannel === 'wallet' || p.paymentChannel === 'instapay') &&
+            paidAmount + 0.0001 >= collectibleTotal;
+
+          const isEligiblePrepaidOnlineDelivery =
+            (collectionStatus === 'prepaid_online' || isElectronicPaidInFull) &&
+            effectivePaymentType !== 'credit' &&
+            collectionStatus !== 'cod' &&
+            paidAmount + 0.0001 >= collectibleTotal;
+          if (collectionStatus !== 'prepaid_by_rep' && isEligiblePrepaidOnlineDelivery) {
             const openShift = await trx
               .selectFrom('cashier_shifts')
               .select(['id', 'branch_id', 'location_id'])

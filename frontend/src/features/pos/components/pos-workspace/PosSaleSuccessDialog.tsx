@@ -64,6 +64,7 @@ export function PosSaleSuccessDialog({
   const paidAmount = Number(sale?.paidAmount || 0);
   const total = Number(sale?.total || 0);
   const deliveryFee = Number((sale as any)?.deliveryFee || (sale as any)?.delivery_fee || 0);
+  const deliveryFeeMode = (sale as any)?.deliveryFeeMode || (sale as any)?.delivery_fee_mode;
   const remainingDebt = Math.max(0, total - paidAmount);
   const isFullyPaid = paidAmount + 0.009 >= total;
   const isCreditSale = sale?.paymentType === 'credit';
@@ -231,20 +232,16 @@ export function PosSaleSuccessDialog({
                 <span><b>المتبقي على العميل</b><strong style={{ color: '#dc2626' }}>{formatCurrency(remainingDebt)}</strong></span>
                 <span><b>حالة الفاتورة</b><strong style={{ color: '#d97706' }}>{paidAmount === 0 ? 'آجل بالكامل على حساب العميل' : 'سداد جزئي (متبقي آجل)'}</strong></span>
                 {repName && <span><b>المندوب</b>{repName} (تسليم فقط — الحساب مسجل على العميل)</span>}
-                {deliveryFee > 0 && (
-                  <span style={{ gridColumn: '1 / -1', background: '#fffbeb', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fef3c7', color: '#92400e' }}>
-                    <b>تسوية المندوب:</b> تم صرف {formatCurrency(deliveryFee)} نقداً من الدرج لأجرة التوصيل
-                  </span>
-                )}
+                {deliveryFee > 0 && <span><b>أجرة التوصيل</b>{formatCurrency(deliveryFee)} (على حساب العميل)</span>}
               </>
             ) : (
               <>
                 {paidAmount > 0 && <span><b>المدفوع</b>{formatCurrency(paidAmount)}</span>}
                 <span><b>حالة التحصيل</b><strong style={{ color: '#16a34a' }}>مدفوع مسبقاً بالكامل</strong></span>
                 {repName && <span><b>المندوب</b>{repName} (تسليم فقط)</span>}
-                {deliveryFee > 0 && collectionStatus !== 'prepaid_by_rep' && (collectionStatus === 'prepaid_online' || sale?.paymentChannel === 'wallet' || sale?.paymentChannel === 'instapay' || sale?.paymentChannel === 'card') && (
+                {deliveryFee > 0 && deliveryFeeMode !== 'store_fleet' && collectionStatus !== 'cod' && collectionStatus !== 'prepaid_by_rep' && (collectionStatus === 'prepaid_online' || sale?.paymentChannel === 'wallet' || sale?.paymentChannel === 'instapay') && (
                   <span style={{ gridColumn: '1 / -1', background: '#fffbeb', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fef3c7', color: '#92400e' }}>
-                    <b>تسوية المندوب:</b> تم صرف {formatCurrency(deliveryFee)} نقداً من الدرج لأجرة التوصيل
+                    <b>تسوية المندوب:</b> تم صرف {formatCurrency(deliveryFee)} نقداً من الدرج لأجرة التوصيل (الطلب مسدد أونلاين بالكامل)
                   </span>
                 )}
               </>
