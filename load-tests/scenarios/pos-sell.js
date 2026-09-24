@@ -28,7 +28,7 @@ import {
   DEFAULT_HEADERS,
   AUTH_USERNAME,
   AUTH_PASSWORD,
-  STANDARD_THRESHOLDS,
+  WRITE_THRESHOLDS,
   rampProfile,
   clientIpHeaders,
   writerIpHeaders,
@@ -108,7 +108,7 @@ export const options = {
     },
   },
   thresholds: {
-    ...STANDARD_THRESHOLDS,
+    ...WRITE_THRESHOLDS,
     sale_duration_ms: ['p(95)<1500', 'p(99)<3000'],
     sale_success_rate: ['rate>0.95'],
     hot_product_sale_success_rate: ['rate>0.90'], // تزاحم مقصود على صف واحد
