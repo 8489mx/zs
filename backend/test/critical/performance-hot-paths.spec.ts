@@ -517,6 +517,13 @@ function testLoadSuiteIsUsable(): void {
       /sessionParams\(data\.admin/.test(full),
       'financial reports must be read with the owner session: a cashier gets 403 and the run measures authorization',
     );
+    // An owner session from a DIFFERENT tenant read that tenant's branches and the run died with
+    // "no branch has sellable stock". Nothing else would have caught it; the login payload carries
+    // the tenant, so setup compares them.
+    assert.ok(
+      /different tenant from the cashiers/.test(full) && /tenantOf\(admin\) !== cashierTenant/.test(full),
+      'setup must refuse to run when the owner and the cashiers are on different tenants',
+    );
   }
 
   // The integrity questions are the point of the readiness run; the scenario is only how they get asked.

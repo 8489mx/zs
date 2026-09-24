@@ -239,7 +239,15 @@ export function loginOrDie(username = AUTH_USERNAME, password = AUTH_PASSWORD) {
 
   // كلمة المرور تُعاد لأن إقفال الوردية يتحقق من كلمة مرور **الكاشير نفسه**
   // (`assertCurrentUserPassword`) لا من رمز مدير. تبقى في ذاكرة k6 وحدها.
-  return { username, password, sessionId, cookieName, csrfName, csrfValue };
+  // معرّف المنشأة من ردّ الدخول. بدونه يمكن أن تعمل جلستان على **مستأجرين مختلفين** في نفس
+  // الجولة دون أن يلاحظ أحد — وقد حدث: جلسة «المالك» جاءت من `/etc/zsystems/loadtest.env` وكانت
+  // لمنشأة أخرى، فقرأ الإعداد فروعها هي وفشلت الجولة بـ«لا فرع فيه بضاعة».
+  let tenantId = '';
+  try {
+    tenantId = String(JSON.parse(res.body).user?.tenantId || '');
+  } catch {}
+
+  return { username, password, tenantId, sessionId, cookieName, csrfName, csrfValue };
 }
 
 /** ترويسات ومعاملات طلب **قراءة** بجلسة. */

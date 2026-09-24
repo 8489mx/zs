@@ -172,11 +172,36 @@ function ensureOpenShift(session, branchId) {
 
 export function setup() {
   const sessions = cashierCredentials().map((c) => loginOrDie(c.username, c.password));
-  // جلسة المالك من `AUTH_USERNAME`/`AUTH_PASSWORD`: للتقارير ولقراءات الإعداد التي لا يملكها كاشير.
+
+  /**
+   * جلسة المالك من `AUTH_USERNAME`/`AUTH_PASSWORD` — **ويجب أن تكون على نفس المنشأة**.
+   *
+   * جولةٌ سابقة فشلت بـ«لا فرع فيه بضاعة» لأن ملف بيانات الدخول كان لمستخدم منشأة أخرى: الكاشيرات
+   * على `hesham` والمالك على منشأة غيرها، فقرأ الإعداد فروعها هي. لم يكن ذلك خطأً في السيرفر —
+   * كان خلطاً بين مستأجرين في المحاكاة، ولا شيء كان ليكشفه. الآن يُكشف في ثانية.
+   */
   const admin = loginOrDie();
+  const tenantOf = (session) => String(session.tenantId || '');
+  const cashierTenant = tenantOf(sessions[0]);
+  for (const session of sessions) {
+    if (tenantOf(session) !== cashierTenant) {
+      throw new Error(
+        `cashiers are not on one tenant: "${sessions[0].username}" is on ${cashierTenant} but `
+        + `"${session.username}" is on ${tenantOf(session)}.`,
+      );
+    }
+  }
+  if (tenantOf(admin) !== cashierTenant) {
+    throw new Error(
+      `the owner session is on a different tenant from the cashiers: "${admin.username}" is on `
+      + `${tenantOf(admin) || 'an unknown tenant'} while the cashiers are on ${cashierTenant}. `
+      + 'Set AUTH_USERNAME / AUTH_PASSWORD in /etc/zsystems/loadtest.env to an owner of the SAME tenant, '
+      + "or the run reads one tenant's branches and writes to another's.",
+    );
+  }
 
   // --- فرع فيه بضاعة فعلاً (لا فرع «له مخزن» فقط) ---
-  const branches = (jsonOrDie(http.get(`${BASE_URL}/api/branches`, sessionParams(admin)), 'branches').branches || [])
+  const branches = (jsonOrDie(http.get(`${BASE_URL}/api/branches`, sessionParams(sessions[0])), 'branches').branches || [])
     .filter((b) => b && b.id && b.defaultStockLocationId);
   if (branches.length === 0) {
     throw new Error('no branch has a default stock location; a POS sale is refused with POS_DEFAULT_STOCK_REQUIRED');
@@ -189,7 +214,7 @@ export function setup() {
   for (const branch of branches) {
     const candidate = Number(branch.id);
     const body = jsonOrDie(
-      http.get(`${BASE_URL}/api/catalog/pos-products?limit=500&branchId=${candidate}`, sessionParams(admin)),
+      http.get(`${BASE_URL}/api/catalog/pos-products?limit=500&branchId=${candidate}`, sessionParams(sessions[0])),
       'POS catalog',
     );
     const rows = body.products || body.items || [];
@@ -221,9 +246,9 @@ export function setup() {
   }
 
   // --- عملاء للبيع الآجل، وموردون للمشتريات ---
-  const customers = (jsonOrDie(http.get(`${BASE_URL}/api/customers?pageSize=500`, sessionParams(admin)), 'customers').customers || [])
+  const customers = (jsonOrDie(http.get(`${BASE_URL}/api/customers?pageSize=500`, sessionParams(sessions[0])), 'customers').customers || [])
     .map((c) => Number(c.id)).filter((id) => id > 0).slice(0, 500);
-  const suppliersRes = http.get(`${BASE_URL}/api/suppliers?pageSize=500`, sessionParams(admin));
+  const suppliersRes = http.get(`${BASE_URL}/api/suppliers?pageSize=500`, sessionParams(sessions[0]));
   let suppliers = [];
   try {
     suppliers = (JSON.parse(suppliersRes.body).suppliers || []).map((s) => Number(s.id)).filter((id) => id > 0).slice(0, 500);
@@ -237,7 +262,7 @@ export function setup() {
   for (const session of sessions) ensureOpenShift(session, branchId);
 
   // --- فاتورة تجريبية واحدة: أرخص من اكتشاف الرفض بعد ثلاث دقائق ---
-  const probe = http.post(`${BASE_URL}/api/sales`, buildSaleBody([{ ...sellable[0], qty: 1 }], branchId), writeParams(admin, {
+  const probe = http.post(`${BASE_URL}/api/sales`, buildSaleBody([{ ...sellable[0], qty: 1 }], branchId), writeParams(sessions[0], {
     'x-idempotency-key': `fs-probe-${Date.now()}`,
   }));
   if (probe.status !== 200 && probe.status !== 201) {
