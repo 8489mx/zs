@@ -13,6 +13,7 @@ import { WithholdingTaxService } from './services/withholding-tax.service';
 import { PaymentAllocationService } from './services/payment-allocation.service';
 import { FiscalYearService } from './services/fiscal-year.service';
 import { FixedAssetsSchedulerService } from './services/fixed-assets-scheduler.service';
+import { AccountingRecoveryService } from './services/accounting-recovery.service';
 import { CostCenterAllocationsService } from './services/cost-center-allocations.service';
 import { ForexRevaluationService } from './services/forex-revaluation.service';
 
@@ -31,6 +32,7 @@ import { ForexRevaluationService } from './services/forex-revaluation.service';
     PaymentAllocationService,
     FiscalYearService,
     FixedAssetsSchedulerService,
+    AccountingRecoveryService,
     CostCenterAllocationsService,
     ForexRevaluationService,
   ],
@@ -46,6 +48,7 @@ import { ForexRevaluationService } from './services/forex-revaluation.service';
     PaymentAllocationService,
     FiscalYearService,
     FixedAssetsSchedulerService,
+    AccountingRecoveryService,
     CostCenterAllocationsService,
     ForexRevaluationService,
   ],

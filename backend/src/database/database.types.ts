@@ -219,6 +219,23 @@ export interface BankStatementLineTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+/**
+ * قيدٌ محاسبي فشل ترحيله. صفٌّ هنا يعني: الفاتورة موجودة والدفتر ناقص، وأحدٌ ما يجب أن يعرف.
+ * انظر الهجرة 147 و`accounting-recovery.service.ts`.
+ */
+export interface AccountingPostingFailureTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  source_type: string;
+  source_id: number;
+  error_message: ColumnType<string, string | undefined, string | undefined>;
+  attempts: ColumnType<number, number | undefined, number | undefined>;
+  first_failed_at: ColumnType<Date, Date | string | undefined, never>;
+  last_attempt_at: ColumnType<Date, Date | string | undefined, Date | string | undefined>;
+  resolved_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null | undefined>;
+}
+
 export interface AccountingSettingsTable {
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
@@ -1816,6 +1833,7 @@ export interface Database {
   crm_deals: CrmDealTable;
   crm_activities: CrmActivityTable;
   accounting_settings: AccountingSettingsTable;
+  accounting_posting_failures: AccountingPostingFailureTable;
   audit_logs: AuditLogTable;
   branches: BranchTable;
   stock_locations: StockLocationTable;
@@ -2077,6 +2095,7 @@ export interface Database {
   bank_statements: BankStatementTable;
   bank_statement_lines: BankStatementLineTable;
   accounting_settings: AccountingSettingsTable;
+  accounting_posting_failures: AccountingPostingFailureTable;
   accounting_fiscal_years: AccountingFiscalYearTable;
   accounting_fiscal_periods: AccountingFiscalPeriodTable;
   audit_logs: AuditLogTable;

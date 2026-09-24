@@ -1,18 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Kysely, Transaction, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import {
+  buildSettingsMapping,
+  findMissingAccountCodes,
+  findMissingSettingsColumns,
+} from './engines/accounting-foundation.engine';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 type Scope = { tenantId: string; accountId: string };
-
-function defaultScope(): Scope {
-  return {
-    tenantId: String(process.env.TENANT_ID || 'default').trim() || 'default',
-    accountId: String(process.env.ACCOUNT_ID || 'default').trim() || 'default',
-  };
-}
 
 type SeedAccount = {
   code: string;
@@ -83,7 +81,6 @@ const DEFAULT_SEED_ACCOUNTS: SeedAccount[] = [
 
 @Injectable()
 export class AccountingTenantFoundationService {
-  private readonly logger = new Logger(AccountingTenantFoundationService.name);
   private readonly initializedTenants = new Set<string>();
 
   private toScope(auth: AuthContext): Scope {
@@ -95,191 +92,156 @@ export class AccountingTenantFoundationService {
     await this.ensureForScope(queryable, this.toScope(auth));
   }
 
-  private async resolveSourceTenantId(queryable: DbOrTx): Promise<string> {
-    const preferred = 'default';
-    const envFallback = defaultScope().tenantId;
-    const candidates = Array.from(new Set([preferred, envFallback].filter((value) => String(value || '').trim() !== '')));
-
-    for (const candidate of candidates) {
-      const countRow = await queryable
-        .selectFrom('accounting_accounts')
-        .select((eb) => eb.fn.countAll<number>().as('count'))
-        .where('tenant_id', '=', candidate)
-        .executeTakeFirst();
-      if (Number(countRow?.count || 0) > 0) {
-        return candidate;
-      }
-    }
-
-    const anyTenantRow = await queryable
-      .selectFrom('accounting_accounts')
-      .select('tenant_id')
-      .where('tenant_id', 'is not', null)
-      .limit(1)
-      .executeTakeFirst();
-    if (anyTenantRow?.tenant_id) {
-      return anyTenantRow.tenant_id;
-    }
-
-    return preferred;
-  }
-
+  /**
+   * يضمن أن المنشأة تملك شجرة حسابات وخريطة إعدادات **كافيتين للترحيل**.
+   *
+   * ثلاثة أشياء تغيّرت هنا بعد أن كشفت جولة حِمل على الإنتاج أن منصةً كاملة تبيع بلا دفاتر:
+   *
+   * 1. **الاكتمال بدل الوجود.** كان الشرط `count === 0` و`!settingsRow`. الهجرة 106 زرعت حسابين
+   *    (GRNI وPPV) في كل منشأة فأطفأت الأول للأبد، وصفُّ إعدادات فارغ أطفأ الثاني. الآن نسأل عن
+   *    الأكواد المطلوبة بالاسم وعن الأعمدة الحرجة بالاسم — `accounting-foundation.engine.ts`.
+   *
+   * 2. **لا نسخ من منشأة أخرى.** الكود القديم كان ينسخ شجرة «أي منشأة عندها حسابات»
+   *    (`resolveSourceTenantId`). هذا تسريب بين المستأجرين: أسماء حسابات عميل وأوصافه تنتقل إلى
+   *    عميل آخر. والشجرة القياسية في `DEFAULT_SEED_ACCOUNTS` تغطي كل ما تحتاجه الخريطة، فهي
+   *    المصدر الوحيد الآن.
+   *
+   * 3. **لا ابتلاع.** كان `catch { logger.error }` يكتم فشل التهيئة، فيصل الترحيل إلى حسابات غير
+   *    موجودة ويفشل هو الآخر بصمت. الخطأ يُرمى الآن ليراه من ينادي.
+   */
   async ensureForScope(queryable: DbOrTx, target: Scope): Promise<void> {
     if (this.initializedTenants.has(target.tenantId)) {
       return;
     }
 
-    try {
-      const targetAccountsCountRow = await queryable
-        .selectFrom('accounting_accounts')
-        .select((eb) => eb.fn.countAll<number>().as('count'))
-        .where('tenant_id', '=', target.tenantId)
-        .executeTakeFirst();
-      const targetAccountsCount = Number(targetAccountsCountRow?.count || 0);
+    let state = await this.readFoundationState(queryable, target.tenantId);
 
-      if (targetAccountsCount === 0) {
-        const sourceTenantId = await this.resolveSourceTenantId(queryable);
-        const sourceAccounts = sourceTenantId !== target.tenantId
-          ? await queryable
-              .selectFrom('accounting_accounts')
-              .selectAll()
-              .where('tenant_id', '=', sourceTenantId)
-              .orderBy('sort_order', 'asc')
-              .orderBy('id', 'asc')
-              .execute()
-          : [];
-
-        if (sourceAccounts.length > 0) {
-          for (const account of sourceAccounts) {
-            await queryable
-              .insertInto('accounting_accounts')
-              .values({
-                tenant_id: target.tenantId,
-                account_id: target.accountId,
-                code: account.code,
-                name_ar: account.name_ar,
-                name_en: account.name_en,
-                account_type: account.account_type,
-                parent_id: null,
-                account_group: account.account_group,
-                normal_balance: account.normal_balance,
-                is_active: account.is_active,
-                is_system: account.is_system,
-                allow_manual_entries: account.allow_manual_entries,
-                is_control_account: account.is_control_account,
-                is_cash_bank: account.is_cash_bank,
-                is_receivable: account.is_receivable,
-                is_payable: account.is_payable,
-                is_inventory: account.is_inventory,
-                is_tax: account.is_tax,
-                description_ar: account.description_ar,
-                sort_order: account.sort_order,
-              } as any)
-              .onConflict((oc) => oc.columns(['tenant_id', 'code']).doNothing())
-              .execute();
-          }
-
-          await sql`
-            update accounting_accounts child
-            set parent_id = parent.id
-            from accounting_accounts parent, accounting_accounts source_child
-            left join accounting_accounts source_parent
-              on source_parent.id = source_child.parent_id
-             and source_parent.tenant_id = ${sourceTenantId}
-            where child.tenant_id = ${target.tenantId}
-              and parent.tenant_id = ${target.tenantId}
-              and source_child.tenant_id = ${sourceTenantId}
-              and source_child.code = child.code
-              and source_parent.code = parent.code
-              and child.parent_id is distinct from parent.id
-          `.execute(queryable);
-        } else {
-          for (const account of DEFAULT_SEED_ACCOUNTS) {
-            await queryable
-              .insertInto('accounting_accounts')
-              .values({
-                tenant_id: target.tenantId,
-                account_id: target.accountId,
-                code: account.code,
-                name_ar: account.nameAr,
-                name_en: account.nameEn,
-                account_type: account.accountType,
-                parent_id: null,
-                account_group: account.accountGroup,
-                normal_balance: account.normalBalance,
-                is_active: true,
-                is_system: true,
-                allow_manual_entries: account.allowManualEntries,
-                is_control_account: account.isControlAccount,
-                is_cash_bank: account.isCashBank,
-                is_receivable: account.isReceivable,
-                is_payable: account.isPayable,
-                is_inventory: account.isInventory,
-                is_tax: account.isTax,
-                description_ar: '',
-                sort_order: account.sortOrder,
-              } as any)
-              .onConflict((oc) => oc.columns(['tenant_id', 'code']).doNothing())
-              .execute();
-          }
-
-          for (const account of DEFAULT_SEED_ACCOUNTS) {
-            if (account.parentCode) {
-              await sql`
-                UPDATE accounting_accounts
-                SET parent_id = (
-                  SELECT id FROM accounting_accounts 
-                  WHERE tenant_id = ${target.tenantId} AND code = ${account.parentCode} LIMIT 1
-                )
-                WHERE tenant_id = ${target.tenantId} AND code = ${account.code}
-              `.execute(queryable);
-            }
-          }
-        }
+    if (findMissingAccountCodes(state.accounts.map((row) => String(row.code || ''))).length > 0) {
+      await this.seedStandardChart(queryable, target);
+      state = await this.readFoundationState(queryable, target.tenantId);
+      const stillMissing = findMissingAccountCodes(state.accounts.map((row) => String(row.code || '')));
+      if (stillMissing.length > 0) {
+        throw new Error(
+          `Accounting foundation incomplete for tenant "${target.tenantId}": `
+          + `account codes ${stillMissing.join(', ')} are still missing after seeding.`,
+        );
       }
+    }
 
-      const targetSettingsRow = await queryable
-        .selectFrom('accounting_settings')
-        .select(['id'])
-        .where('tenant_id', '=', target.tenantId)
-        .where('id', '=', 1)
-        .executeTakeFirst();
-
-      if (!targetSettingsRow) {
-        const targetAccounts = await queryable
-          .selectFrom('accounting_accounts')
-          .select(['id', 'code'])
-          .where('tenant_id', '=', target.tenantId)
-          .execute();
-        const targetIdByCode = new Map(targetAccounts.map((row) => [String(row.code || ''), Number(row.id)]));
-
-        await queryable
-          .insertInto('accounting_settings')
-          .values({
-            tenant_id: target.tenantId,
-            account_id: target.accountId,
-            id: 1,
-            cash_account_id: targetIdByCode.get('1110') || null,
-            bank_account_id: targetIdByCode.get('1120') || null,
-            customer_receivable_account_id: targetIdByCode.get('1130') || null,
-            supplier_payable_account_id: targetIdByCode.get('2110') || null,
-            inventory_account_id: targetIdByCode.get('1140') || null,
-            sales_revenue_account_id: targetIdByCode.get('4100') || null,
-            sales_discount_account_id: targetIdByCode.get('4300') || null,
-            cogs_account_id: targetIdByCode.get('5100') || null,
-            purchase_account_id: targetIdByCode.get('5100') || null,
-            expenses_account_id: targetIdByCode.get('6000') || targetIdByCode.get('6700') || null,
-            sales_tax_account_id: targetIdByCode.get('2120') || null,
-            purchase_tax_account_id: targetIdByCode.get('1150') || null,
-            manufacturing_overhead_account_id: null,
-          } as any)
-          .onConflict((oc) => oc.columns(['tenant_id', 'id']).doNothing())
-          .execute();
+    if (findMissingSettingsColumns(state.settings).length > 0) {
+      await this.writeSettingsMapping(queryable, target, state.accounts, !state.settings);
+      const after = await this.readFoundationState(queryable, target.tenantId);
+      const stillEmpty = findMissingSettingsColumns(after.settings);
+      if (stillEmpty.length > 0) {
+        throw new Error(
+          `Accounting foundation incomplete for tenant "${target.tenantId}": `
+          + `settings columns ${stillEmpty.join(', ')} are still empty after repair.`,
+        );
       }
+    }
 
-      this.initializedTenants.add(target.tenantId);
-    } catch (err: any) {
-      this.logger.error(`Error ensuring accounting foundation for tenant "${target.tenantId}": ${err.message}`, err.stack);
+    this.initializedTenants.add(target.tenantId);
+  }
+
+  private async readFoundationState(queryable: DbOrTx, tenantId: string) {
+    const accounts = await queryable
+      .selectFrom('accounting_accounts')
+      .select(['id', 'code'])
+      .where('tenant_id', '=', tenantId)
+      .execute();
+    const settings = await queryable
+      .selectFrom('accounting_settings')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', 1)
+      .executeTakeFirst();
+    return {
+      accounts: accounts as Array<{ id: number; code: string | null }>,
+      settings: (settings as Record<string, unknown> | undefined) ?? null,
+    };
+  }
+
+  /** يزرع الشجرة القياسية. `onConflict doNothing` يجعلها آمنة على منشأة نصف مزروعة. */
+  private async seedStandardChart(queryable: DbOrTx, target: Scope): Promise<void> {
+    for (const account of DEFAULT_SEED_ACCOUNTS) {
+      await queryable
+        .insertInto('accounting_accounts')
+        .values({
+          tenant_id: target.tenantId,
+          account_id: target.accountId,
+          code: account.code,
+          name_ar: account.nameAr,
+          name_en: account.nameEn,
+          account_type: account.accountType,
+          parent_id: null,
+          account_group: account.accountGroup,
+          normal_balance: account.normalBalance,
+          is_active: true,
+          is_system: true,
+          allow_manual_entries: account.allowManualEntries,
+          is_control_account: account.isControlAccount,
+          is_cash_bank: account.isCashBank,
+          is_receivable: account.isReceivable,
+          is_payable: account.isPayable,
+          is_inventory: account.isInventory,
+          is_tax: account.isTax,
+          description_ar: '',
+          sort_order: account.sortOrder,
+        } as any)
+        .onConflict((oc) => oc.columns(['tenant_id', 'code']).doNothing())
+        .execute();
+    }
+
+    for (const account of DEFAULT_SEED_ACCOUNTS) {
+      if (!account.parentCode) continue;
+      await sql`
+        UPDATE accounting_accounts
+        SET parent_id = (
+          SELECT id FROM accounting_accounts
+          WHERE tenant_id = ${target.tenantId} AND code = ${account.parentCode} LIMIT 1
+        )
+        WHERE tenant_id = ${target.tenantId} AND code = ${account.code} AND parent_id IS NULL
+      `.execute(queryable);
+    }
+  }
+
+  /**
+   * يكتب خريطة الحسابات. يُنشئ الصف إن لم يوجد، و**يُصلح الفارغ** إن وُجد — وهذه هي الحالة التي
+   * كان الكود القديم يعميها: صفٌّ قائم بكل أعمدته `NULL`.
+   *
+   * التحديث مشروط بـ`IS NULL` لكل عمود على حدة: خريطة ضبطها المحاسب بيده لا تُمَس.
+   */
+  private async writeSettingsMapping(
+    queryable: DbOrTx,
+    target: Scope,
+    accounts: Array<{ id: number; code: string | null }>,
+    insert: boolean,
+  ): Promise<void> {
+    const idByCode = new Map(accounts.map((row) => [String(row.code || ''), Number(row.id)]));
+    const mapping = buildSettingsMapping(idByCode);
+
+    if (insert) {
+      await queryable
+        .insertInto('accounting_settings')
+        .values({
+          tenant_id: target.tenantId,
+          account_id: target.accountId,
+          id: 1,
+          ...mapping,
+          manufacturing_overhead_account_id: null,
+        } as any)
+        .onConflict((oc) => oc.columns(['tenant_id', 'id']).doNothing())
+        .execute();
+      return;
+    }
+
+    for (const [column, value] of Object.entries(mapping)) {
+      if (!value || value <= 0) continue;
+      await sql`
+        UPDATE accounting_settings
+        SET ${sql.raw(column)} = ${value}, updated_at = NOW()
+        WHERE tenant_id = ${target.tenantId} AND id = 1 AND ${sql.raw(column)} IS NULL
+      `.execute(queryable);
     }
   }
 }

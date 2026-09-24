@@ -1535,10 +1535,18 @@ export class SalesWriteService {
         }
       }
 
+      // القيد المحاسبي لا يوقف البيع — الكاشير لا يقف لأن وحدة المحاسبة مضبوطة خطأ، والقيد مشتقٌّ
+      // بالكامل من الفاتورة فتأجيله لا يضيّع شيئاً. الذي كان يضيّع كل شيء هو **الصمت**: الصيغة
+      // القديمة كانت `catch { this.logger.error(...) }` وحدها، فمرّت على الإنتاج 2,281 فاتورةٍ بلا
+      // قيد واحد ولم يلاحظ أحد. الفشل الآن يُكتب صفاً يُستعلَم عنه ويُعاد المحاولة عليه
+      // (`accounting_posting_failures`، الهجرة 147، والعامل في `accounting-recovery.service.ts`).
       try {
         await this.accountingPosting.postSale(trx, id, auth);
+        await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
       } catch (error) {
-        this.logger.error(`Failed to post accounting journal for sale ${id}: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : String(error));
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Failed to post accounting journal for sale ${id}: ${message}`, error instanceof Error ? error.stack : String(error));
+        await this.accountingPosting.recordPostingFailure(trx, scope, 'sale', id, message);
       }
 
       // Commit idempotency record atomically inside the business transaction

@@ -4022,4 +4022,61 @@ export class AccountingPostingService {
     }
   }
 
+
+  /**
+   * يسجّل أن قيد هذا المستند لم يُرحَّل — **بدل أن يُبتلع الخطأ في سطر سجلّ**.
+   *
+   * الكتابة تجري داخل نفس معاملة المستند، فإما أن تُحفظ الفاتورة ومعها أثر فشلها، أو لا تُحفظ
+   * أصلاً. لا توجد حالة ثالثة تكون فيها فاتورةٌ بلا قيد وبلا أثر — وهي الحالة التي مرّت بها
+   * 2,281 فاتورة على الإنتاج قبل هذا.
+   */
+  async recordPostingFailure(
+    queryable: DbOrTx,
+    scope: { tenantId: string; accountId: string },
+    sourceType: string,
+    sourceId: number,
+    errorMessage: string,
+  ): Promise<void> {
+    try {
+      await sql`
+        INSERT INTO accounting_posting_failures
+          (tenant_id, account_id, source_type, source_id, error_message, attempts, first_failed_at, last_attempt_at, resolved_at)
+        VALUES
+          (${scope.tenantId}, ${scope.accountId}, ${sourceType}, ${sourceId}, ${String(errorMessage).slice(0, 2000)}, 1, NOW(), NOW(), NULL)
+        ON CONFLICT (tenant_id, source_type, source_id) DO UPDATE
+        SET attempts = accounting_posting_failures.attempts + 1,
+            error_message = EXCLUDED.error_message,
+            last_attempt_at = NOW(),
+            resolved_at = NULL
+      `.execute(queryable);
+    } catch (error) {
+      // آخر خط: لو تعذّر حتى تسجيل الفشل فلا نُسقط البيعة بسببه، لكن لا نتركه صامتاً.
+      this.logger.error(
+        `Could not record the posting failure for ${sourceType} ${sourceId}: `
+        + (error instanceof Error ? error.message : String(error)),
+      );
+    }
+  }
+
+  /** يُغلق سجل فشل سابق بعد نجاح الترحيل. */
+  async clearPostingFailure(
+    queryable: DbOrTx,
+    scope: { tenantId: string; accountId: string },
+    sourceType: string,
+    sourceId: number,
+  ): Promise<void> {
+    try {
+      await sql`
+        UPDATE accounting_posting_failures
+        SET resolved_at = NOW(), last_attempt_at = NOW()
+        WHERE tenant_id = ${scope.tenantId}
+          AND source_type = ${sourceType}
+          AND source_id = ${sourceId}
+          AND resolved_at IS NULL
+      `.execute(queryable);
+    } catch {
+      // لا شيء: عدم إغلاق سجل قديم أهون من إسقاط عملية ناجحة.
+    }
+  }
+
 }
