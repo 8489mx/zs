@@ -227,18 +227,32 @@ function testLoadSuiteIsUsable(): void {
   // A scenario that needs a session must fail on a bad login instead of counting 401s: the first
   // real run reported "100% failed" with fast responses, which reads like the server fell over
   // when the actual cause was the placeholder admin/admin credentials never being replaced.
-  for (const scenario of ['pos-catalog-sync.js', 'stress-all.js']) {
+  // The login handshake lived in three copies before a fourth scenario needed CSRF on top of it.
+  // It is one function in config.js now, and these are its properties.
+  assert.ok(/export function loginOrDie/.test(config), 'config.js must own the login handshake');
+  assert.ok(/throw new Error\(/.test(config), 'loginOrDie must abort on a bad login, not let scenarios iterate on 401s');
+  // The cookie name is deployment-specific (SESSION_COOKIE_NAME); this deployment uses zs_cloud_*
+  // names, so anything hard-coded works on one server and silently 401s on another.
+  assert.ok(
+    /value === sessionId/.test(config),
+    'loginOrDie must discover the session cookie name from the login response, not assume it',
+  );
+  // The session travels in a cookie, like a browser. ALLOW_SESSION_ID_HEADER is off in CLOUD_SAAS
+  // on purpose, and a load test does not get to ask production to loosen that.
+  assert.ok(
+    /cookies: \{ \[session\.cookieName\]: session\.sessionId \}/.test(config),
+    'sessionParams must carry the session cookie',
+  );
+  // Writes are the new part: the guard demands a CSRF cookie AND the x-csrf-token header on every
+  // unsafe method (session-auth.guard.ts), so a write scenario without it gets 403, not 401.
+  assert.ok(
+    /'x-csrf-token'\] = session\.csrfValue/.test(config),
+    'writeParams must send the CSRF header, or every POST is refused with 403',
+  );
+
+  for (const scenario of ['pos-catalog-sync.js', 'stress-all.js', 'pos-sell.js']) {
     const source = loadFile(join('scenarios', scenario));
-    assert.ok(/throw new Error\(/.test(source), `${scenario} must abort when the login fails, not iterate on 401s`);
-    // The session travels in a cookie, like a browser. ALLOW_SESSION_ID_HEADER is off in
-    // CLOUD_SAAS on purpose, and a load test does not get to ask production to loosen that.
-    assert.ok(/cookies: \{ \[data\.cookieName\]: data\.sessionId \}/.test(source), `${scenario} must carry the session cookie`);
-    // The cookie name is deployment-specific (SESSION_COOKIE_NAME); this deployment uses
-    // zs_cloud_* names, so anything hard-coded works on one server and silently 401s on another.
-    assert.ok(
-      /entries\[i\]\.value === sessionId/.test(source),
-      `${scenario} must discover the session cookie name from the login response, not assume it`,
-    );
+    assert.ok(/loginOrDie/.test(source), `${scenario} must use the shared login handshake, not its own copy`);
     assert.ok(
       !/'X-Session-Id'/.test(source),
       `${scenario} must not rely on the session header: the cloud guard rejects it`,
@@ -253,7 +267,7 @@ function testLoadSuiteIsUsable(): void {
   // using it silently fails to control the address it thinks it controls. Comments are stripped
   // first: the scenarios explain the distinction in prose, and prose is not what runs.
   const codeOf = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
-  for (const scenario of ['auth-login-burst.js', 'pos-catalog-sync.js', 'storefront-checkout.js', 'stress-all.js']) {
+  for (const scenario of ['auth-login-burst.js', 'pos-catalog-sync.js', 'storefront-checkout.js', 'stress-all.js', 'pos-sell.js']) {
     const source = codeOf(loadFile(join('scenarios', scenario)));
     assert.ok(
       !/X-Forwarded-For/.test(source),
@@ -292,7 +306,7 @@ function testLoadSuiteIsUsable(): void {
   // A name used at runtime but never imported is a crash that only fires on the fallback path — the
   // one path nobody exercises. `stress-all.js` referenced SESSION_COOKIE_NAME without importing it,
   // so "could not spot the session cookie" would have thrown ReferenceError instead of falling back.
-  for (const scenario of ['pos-catalog-sync.js', 'storefront-checkout.js', 'stress-all.js', 'auth-login-burst.js']) {
+  for (const scenario of ['pos-catalog-sync.js', 'storefront-checkout.js', 'stress-all.js', 'auth-login-burst.js', 'pos-sell.js']) {
     const raw = loadFile(join('scenarios', scenario));
     const body = codeOf(raw);
     const imported = (raw.match(/import\s*\{([\s\S]*?)\}\s*from\s*'\.\.\/config\.js'/) || [, ''])[1];
@@ -364,6 +378,36 @@ function testLoadSuiteIsUsable(): void {
     assert.ok(
       /buildOrderPayload\(cart\[0\]/.test(source),
       `${scenario}'s preflight must send the same cart shape the iterations send`,
+    );
+  }
+
+  // pos-sell.js is the only scenario that issues invoices, so it carries the properties that make a
+  // selling run mean something — and the warning that it cannot be undone.
+  {
+    const sell = codeOf(loadFile(join('scenarios', 'pos-sell.js')));
+    assert.ok(
+      /preflight sale was refused/.test(sell),
+      'pos-sell.js must post (and check) one real sale in setup before the load starts',
+    );
+    assert.ok(
+      /writeParams\(/.test(sell),
+      'pos-sell.js posts sales, so it must use writeParams: a session cookie alone is refused with 403',
+    );
+    // A sale needs an open shift; without one the whole run is OPEN_SHIFT_REQUIRED and measures the
+    // authorization branch. And the shift row is where one cashier's sales serialise, so it is also
+    // the thing being measured.
+    assert.ok(
+      /cashier-shifts\/open/.test(sell) && /OPEN_SHIFT_REQUIRED/.test(sell),
+      'pos-sell.js must open a cashier shift and count the refusals that mean it failed to',
+    );
+    // Distributed load does not collide. One product under every VU does.
+    assert.ok(
+      /hotProductScenario/.test(sell),
+      'pos-sell.js must drive part of its load at a single product, or nothing tests the canonical lock order',
+    );
+    assert.ok(
+      /trackSerials|serials/.test(sell) && /hasBom|bom/.test(sell),
+      'pos-sell.js must skip serial-tracked and BOM items: they fail for reasons that are not performance',
     );
   }
 

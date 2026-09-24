@@ -33,6 +33,16 @@ export async function downloadExcelFile(filename: string, headers: string[], row
   const XLSX = await import('xlsx');
   const worksheetData = [headers, ...rows];
   const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+  
+  // Set '@' text format on text cells (and barcode/id columns) so Excel does not convert them to scientific notation
+  for (const cellKey of Object.keys(worksheet)) {
+    if (cellKey.startsWith('!')) continue;
+    const cell = worksheet[cellKey];
+    if (cell && (cell.t === 's' || (cell.t === 'n' && typeof cell.v === 'number' && Math.abs(cell.v) >= 1e9 && Math.floor(cell.v) === cell.v))) {
+      cell.z = '@';
+    }
+  }
+
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
   
@@ -57,13 +67,43 @@ export async function parseImportFile(file: File): Promise<Record<string, string
     const firstSheetName = workbook.SheetNames[0];
     if (!firstSheetName) return [];
     const worksheet = workbook.Sheets[firstSheetName];
+
+    // Protect numeric identifiers (e.g. barcodes, national IDs, phone numbers) from being
+    // degraded into scientific/exponential notation (e.g. "6.22401E+12").
+    for (const cellKey of Object.keys(worksheet)) {
+      if (cellKey.startsWith('!')) continue;
+      const cell = worksheet[cellKey];
+      if (!cell || cell.t !== 'n' || typeof cell.v !== 'number' || !Number.isFinite(cell.v)) continue;
+      // If it's an integer and either formatted with exponent (E+...) or a large number (>= 1e9)
+      if (Math.floor(cell.v) === cell.v) {
+        if ((cell.w && /e[+-]?\d+/i.test(cell.w)) || Math.abs(cell.v) >= 1e9) {
+          try {
+            cell.w = BigInt(Math.round(cell.v)).toString();
+          } catch {
+            cell.w = cell.v.toLocaleString('fullwide', { useGrouping: false });
+          }
+        }
+      }
+    }
+
     // Convert to array of objects, keeping headers
     const json = XLSX.utils.sheet_to_json(worksheet, { defval: '', raw: false, dateNF: 'yyyy-mm-dd hh:mm:ss' }) as Record<string, unknown>[];
     // Normalize to string values for consistency with CSV parser
     return json.map(row => {
       const stringifiedRow: Record<string, string> = {};
       for (const [key, value] of Object.entries(row)) {
-        stringifiedRow[key] = String(value ?? '').trim();
+        let str = String(value ?? '').trim();
+        if (/^[+-]?\d+(?:\.\d+)?[eE][+-]?\d+$/.test(str)) {
+          const num = Number(str);
+          if (Number.isFinite(num) && Math.floor(num) === num) {
+            try {
+              str = BigInt(Math.round(num)).toString();
+            } catch {
+              str = num.toLocaleString('fullwide', { useGrouping: false });
+            }
+          }
+        }
+        stringifiedRow[key] = str;
       }
       return stringifiedRow;
     });

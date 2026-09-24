@@ -3,6 +3,8 @@
  * k6 Shared Configuration & Environment Helpers
  */
 
+import http from 'k6/http';
+
 export const BASE_URL = __ENV.TARGET_URL || 'http://localhost:3001';
 export const STOREFRONT_SLUG = __ENV.STOREFRONT_SLUG || 'almhnds';
 export const AUTH_USERNAME = __ENV.AUTH_USERNAME || 'admin';
@@ -166,4 +168,82 @@ export function buildOrderPayload(item, vu, address) {
     items: [{ productId: item.id, quantity: item.qty }],
     paymentMethod: 'cash_on_delivery',
   });
+}
+
+/**
+ * تسجيل دخول يُفشل الاختبار **فوراً** إن فشل، ويكتشف أسماء الكوكيز بنفسه.
+ *
+ * كان هذا مكرراً في سيناريوهين، ثم احتاج ثالثٌ إلى CSRF فصار التكرار ثلاثة. مكانه هنا.
+ *
+ * أربعة دروس مدفوعة الثمن مضمَّنة فيه:
+ *  1. `res.cookies` في k6 بنية غير التي يقبلها `params.cookies` — تمريرها كما هي يرسل لا شيء.
+ *  2. ترويسة `X-Session-Id` مرفوضة في وضع السحابة عمداً
+ *     (`session-auth.guard.ts:allowSessionIdHeaderFallback`)، وليس على الإنتاج أن يخفّف حمايته.
+ *  3. اسم كوكي الجلسة ليس `session_id` على كل نشر (`SESSION_COOKIE_NAME`)، فيُكتشف من الرد:
+ *     الكوكي التي قيمتها تساوي `sessionId` في الجسم هي كوكي الجلسة أياً كان اسمها.
+ *  4. **الكتابة تحتاج CSRF**: الحارس يطلب كوكي CSRF وترويسة `x-csrf-token` بنفس القيمة على كل
+ *     طلب غير آمن. والكوكي الأخرى في رد الدخول — التي قيمتها ليست `sessionId` — هي كوكي CSRF.
+ */
+export function loginOrDie(username = AUTH_USERNAME, password = AUTH_PASSWORD) {
+  const res = http.post(`${BASE_URL}/api/auth/login`, JSON.stringify({ username, password }), {
+    headers: DEFAULT_HEADERS,
+  });
+
+  if (res.status !== 200 && res.status !== 201) {
+    throw new Error(
+      `login failed (HTTP ${res.status}) for user "${username}". `
+      + 'Set AUTH_USERNAME / AUTH_PASSWORD (see docs/LOAD_TESTING.md). '
+      + `Response: ${String(res.body || '').slice(0, 200)}`,
+    );
+  }
+
+  let sessionId = '';
+  try {
+    sessionId = JSON.parse(res.body).sessionId || '';
+  } catch (error) {
+    throw new Error(`login returned a body k6 could not parse: ${String(res.body || '').slice(0, 200)}`);
+  }
+  if (!sessionId) throw new Error('login succeeded but returned no sessionId');
+
+  let cookieName = '';
+  let csrfName = '';
+  let csrfValue = '';
+  const jar = res.cookies || {};
+  for (const name of Object.keys(jar)) {
+    const entries = jar[name] || [];
+    for (let i = 0; i < entries.length; i += 1) {
+      const value = entries[i] && entries[i].value;
+      if (!value) continue;
+      if (value === sessionId) { cookieName = name; break; }
+      if (!csrfName) { csrfName = name; csrfValue = value; }
+    }
+  }
+  if (!cookieName) {
+    cookieName = SESSION_COOKIE_NAME;
+    console.warn(`could not spot the session cookie in the login response; falling back to "${cookieName}"`);
+  }
+
+  return { username, sessionId, cookieName, csrfName, csrfValue };
+}
+
+/** ترويسات ومعاملات طلب **قراءة** بجلسة. */
+export function sessionParams(session, extraHeaders) {
+  return {
+    headers: { ...DEFAULT_HEADERS, ...(extraHeaders || {}) },
+    cookies: { [session.cookieName]: session.sessionId },
+  };
+}
+
+/**
+ * معاملات طلب **كتابة** بجلسة: الكوكي + ترويسة CSRF.
+ * بدونها يرد الحارس 403 «CSRF validation failed» — وهو محقّ.
+ */
+export function writeParams(session, extraHeaders) {
+  const cookies = { [session.cookieName]: session.sessionId };
+  const headers = { ...DEFAULT_HEADERS, ...(extraHeaders || {}) };
+  if (session.csrfName && session.csrfValue) {
+    cookies[session.csrfName] = session.csrfValue;
+    headers['x-csrf-token'] = session.csrfValue;
+  }
+  return { headers, cookies };
 }
