@@ -400,6 +400,20 @@ function testLoadSuiteIsUsable(): void {
       /cashier-shifts\/open/.test(sell) && /OPEN_SHIFT_REQUIRED/.test(sell),
       'pos-sell.js must open a cashier shift and count the refusals that mean it failed to',
     );
+    // A shift belongs to a user (`opened_by`), but GET /api/cashier-shifts is filtered by tenant.
+    // Reading that list to decide "do I have one?" lets c1's open shift convince c2 it has one, and
+    // every sale c2 makes is then refused. Opening and treating SHIFT_ALREADY_OPEN as success asks
+    // the server the question only it can answer.
+    assert.ok(
+      /SHIFT_ALREADY_OPEN/.test(sell) && !/cashier-shifts\?filter=open/.test(sell),
+      'pos-sell.js must not infer its own shift from the tenant-wide list; open and accept SHIFT_ALREADY_OPEN',
+    );
+    // A POS sale without branchId is POS_BRANCH_REQUIRED, and the branch without a default stock
+    // location is POS_DEFAULT_STOCK_REQUIRED. Both are cheap to check once, in setup.
+    assert.ok(
+      /defaultStockLocationId/.test(sell) && /source: 'pos',[^]{0,40}branchId,/.test(sell),
+      'pos-sell.js must resolve a branch with a default stock location and send it on every sale',
+    );
     // Distributed load does not collide. One product under every VU does.
     assert.ok(
       /hotProductScenario/.test(sell),

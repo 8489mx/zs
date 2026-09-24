@@ -116,33 +116,37 @@ export const options = {
   },
 };
 
-/** يفتح وردية للمستخدم إن لم تكن له واحدة مفتوحة، ويعيد معرّفها. */
-function ensureOpenShift(session) {
-  const listed = http.get(`${BASE_URL}/api/cashier-shifts?filter=open`, sessionParams(session));
-  if (listed.status === 200) {
-    try {
-      const rows = JSON.parse(listed.body).cashierShifts || [];
-      const mine = rows.find((r) => String(r.status || '').toLowerCase() === 'open');
-      if (mine) return Number(mine.id);
-    } catch {}
-  }
-
+/**
+ * يضمن وردية مفتوحة لهذا **المستخدم**.
+ *
+ * لا يُقرأ `GET /api/cashier-shifts` للتحقق: القائمة مُفلترة بالمنشأة لا بالمستخدم، فوردية `c1`
+ * المفتوحة كانت ستُقنع `c2` بأن له وردية فيتخطى الفتح، ثم تُرفض كل مبيعاته بـOPEN_SHIFT_REQUIRED.
+ * بدلاً من ذلك نحاول الفتح دائماً، و`SHIFT_ALREADY_OPEN` هو بالضبط النجاح الذي نريده — السيرفر
+ * نفسه يفحص `opened_by`.
+ */
+function ensureOpenShift(session, branchId) {
   const opened = http.post(
     `${BASE_URL}/api/cashier-shifts/open`,
-    JSON.stringify({ openingCash: 0, note: 'load test' }),
+    JSON.stringify({ openingCash: 0, note: 'load test', branchId }),
     writeParams(session),
   );
-  if (opened.status !== 200 && opened.status !== 201) {
-    throw new Error(
-      `could not open a cashier shift for "${session.username}" (HTTP ${opened.status}). `
-      + 'A POS sale needs one unless requireCashierShiftForSales is false. '
-      + `Server said: ${String(opened.body || '').slice(0, 250)}`,
-    );
-  }
-  return 0; // الوردية مفتوحة؛ معرّفها لا يلزم البيع نفسه.
+  if (opened.status === 200 || opened.status === 201) return;
+
+  const body = String(opened.body || '');
+  if (body.includes('SHIFT_ALREADY_OPEN')) return;
+
+  throw new Error(
+    `could not open a cashier shift for "${session.username}" (HTTP ${opened.status}). `
+    + 'A POS sale needs one unless requireCashierShiftForSales is false. '
+    + `Server said: ${body.slice(0, 250)}`,
+  );
 }
 
-function buildSalePayload(items) {
+/**
+ * `branchId` **إلزامي** لبيع الكاشير: بدونه يرد السيرفر `POS_BRANCH_REQUIRED`. ومنه يُشتق المخزن
+ * الافتراضي الذي يُخصم منه، فلا بيع بلا فرع ولا فرع بلا مخزن افتراضي.
+ */
+function buildSalePayload(items, branchId) {
   const lines = items.map((p) => ({ productId: p.id, qty: p.qty, price: p.price }));
   const total = Math.round(lines.reduce((sum, l) => sum + l.price * l.qty, 0) * 100) / 100;
   return {
@@ -150,6 +154,7 @@ function buildSalePayload(items) {
       paymentType: 'cash',
       paymentChannel: 'cash',
       source: 'pos',
+      branchId,
       items: lines,
       payments: [{ paymentChannel: 'cash', amount: total }],
       tenderedAmount: total,
@@ -163,6 +168,26 @@ function buildSalePayload(items) {
 export function setup() {
   const credentials = cashierCredentials();
   const sessions = credentials.map((c) => loginOrDie(c.username, c.password));
+
+  // الفرع أولاً: بيع الكاشير يرفض بلا `branchId`، والفرع نفسه يُرفض بلا مخزن افتراضي. اكتشاف
+  // هذين هنا أرخص من اكتشافهما في منتصف جولة.
+  const branchRes = http.get(`${BASE_URL}/api/branches`, sessionParams(sessions[0]));
+  if (branchRes.status !== 200) {
+    throw new Error(`could not list branches (HTTP ${branchRes.status}): ${String(branchRes.body || '').slice(0, 200)}`);
+  }
+  let branches = [];
+  try {
+    branches = JSON.parse(branchRes.body).branches || [];
+  } catch {}
+  const usable = branches.filter((b) => b && b.id && b.defaultStockLocationId);
+  if (usable.length === 0) {
+    throw new Error(
+      `no usable branch: of ${branches.length} branch(es), none has a default stock location. `
+      + 'A POS sale is refused with POS_DEFAULT_STOCK_REQUIRED until one is set '
+      + '(الإعدادات > الفروع > مخزن افتراضي).',
+    );
+  }
+  const branchId = Number(usable[0].id);
 
   // كتالوج نقطة البيع بجلسة الكاشير الأول.
   const catalogRes = http.get(`${BASE_URL}/api/catalog/pos-products?limit=500`, sessionParams(sessions[0]));
@@ -210,14 +235,15 @@ export function setup() {
   // eslint-disable-next-line no-console
   console.log(
     `[setup] ${sessions.length} cashier session(s), ${sellable.length} sellable products, `
-    + `${headroom} units of headroom. Hot product #${hot.id} carries ${Math.round(HOT_SHARE * 100)}% of the load `
+    + `${headroom} units of headroom, branch #${branchId}. `
+    + `Hot product #${hot.id} carries ${Math.round(HOT_SHARE * 100)}% of the load `
     + `with ${hot.stock} units. Invoices are NOT reversible - this must not be a live tenant.`,
   );
 
-  for (const session of sessions) ensureOpenShift(session);
+  for (const session of sessions) ensureOpenShift(session, branchId);
 
   // طلب تجريبي واحد قبل الحمل: ثلاث جولات إنتاج سابقة ضاعت لأن الرفض ظهر بعد دقيقتين ونصف.
-  const probe = buildSalePayload([{ ...sellable[0], qty: 1 }]);
+  const probe = buildSalePayload([{ ...sellable[0], qty: 1 }], branchId);
   const probeRes = http.post(`${BASE_URL}/api/sales`, probe.body, writeParams(sessions[0], {
     'x-idempotency-key': `loadtest-probe-${Date.now()}`,
   }));
@@ -244,7 +270,7 @@ export function setup() {
     cart = selectOrderableItems(items, minOrder);
   }
 
-  return { sessions, sellable, hot, cart };
+  return { sessions, sellable, hot, cart, branchId };
 }
 
 /** كاشير يبيع أصنافاً عشوائية: الحمل الواقعي. */
@@ -262,7 +288,7 @@ export function cashierScenario(data) {
     chosen.push({ ...pick, qty: 1 + Math.floor(Math.random() * 2) });
   }
 
-  postSale(session, chosen, saleDuration, saleSuccessRate);
+  postSale(session, chosen, data.branchId, saleDuration, saleSuccessRate);
 
   // متسوّق إلكتروني يشتري في نفس اللحظة على نفس المخزون.
   if (data.cart && data.cart.length > 0 && Math.random() < 0.35) {
@@ -285,12 +311,12 @@ export function cashierScenario(data) {
  */
 export function hotProductScenario(data) {
   const session = data.sessions[__VU % data.sessions.length];
-  postSale(session, [{ ...data.hot, qty: 1 }], hotSaleDuration, hotSaleSuccessRate);
+  postSale(session, [{ ...data.hot, qty: 1 }], data.branchId, hotSaleDuration, hotSaleSuccessRate);
   sleep(0.5);
 }
 
-function postSale(session, items, durationMetric, successMetric) {
-  const payload = buildSalePayload(items);
+function postSale(session, items, branchId, durationMetric, successMetric) {
+  const payload = buildSalePayload(items, branchId);
   const params = writeParams(session, {
     ...clientIpHeaders(__VU),
     'x-idempotency-key': `loadtest-${__VU}-${__ITER}-${Date.now()}`,
