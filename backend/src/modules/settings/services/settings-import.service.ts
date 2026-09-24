@@ -42,6 +42,23 @@ function normalizePhoneText(value: unknown): string {
   return normalizeArabicDigits(value).replace(/\s+/g, '').trim();
 }
 
+function normalizeBarcodeText(value: unknown): string {
+  let text = cleanString(value);
+  if (!text) return '';
+  text = normalizeArabicDigits(text);
+  if (/^[+-]?\d+(?:\.\d+)?[eE][+-]?\d+$/.test(text)) {
+    const num = Number(text);
+    if (Number.isFinite(num) && Math.floor(num) === num) {
+      try {
+        text = BigInt(Math.round(num)).toString();
+      } catch {
+        text = num.toLocaleString('fullwide', { useGrouping: false });
+      }
+    }
+  }
+  return text;
+}
+
 function parseDateOnly(value: unknown): string | null {
   const text = normalizeArabicDigits(value).trim();
   if (!text) return null;
@@ -334,7 +351,7 @@ export class SettingsImportService {
         const categoryId = await this.ensureCategory(trx, cleanString(row.categoryName || row.category || ''), actor);
         const supplierId = await this.ensureSupplier(trx, cleanString(row.supplierName || row.supplier || ''), actor);
         const locationId = await this.ensureLocation(trx, cleanString(row.warehouseName || row.warehouse || row.store || ''), actor);
-        const barcode = cleanString(row.barcode) || null;
+        const barcode = normalizeBarcodeText(row.barcode) || null;
         
         const rawType = cleanString(row.itemType || row.type || row['النوع'] || '').toLowerCase();
         const itemType = ((rawType.includes('خام') || rawType === 'raw_material') ? 'raw_material' : 'product') as 'raw_material' | 'product';
@@ -469,7 +486,7 @@ export class SettingsImportService {
         const qty = toNumber(row.qty || row.quantity || 0);
         if (qty < 0) continue;
 
-        const barcode = cleanString(row.barcode);
+        const barcode = normalizeBarcodeText(row.barcode);
 
         let productQuery = trx.selectFrom('products').select(['id', 'name', 'stock_qty'])
           .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
