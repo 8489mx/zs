@@ -147,3 +147,17 @@ export function buildGatewayWebhookUrl(
   }
   return null;
 }
+
+/**
+ * SF-11: Unwraps the canonical Sale domain entity from any nested query/write result wrapper
+ * (e.g. { sale: mappedSale, scope } from getSaleById or { ok: true, sale: mappedSale } from createSale).
+ * Guarantees that callers (and the frontend) receive the pure flat Sale object directly without nested wrappers.
+ */
+export function unwrapConvertedSale<T = any>(result: any): T | null {
+  if (!result) return null;
+  if (result.sale && typeof result.sale === 'object') {
+    return unwrapConvertedSale<T>(result.sale);
+  }
+  return result as T;
+}
+

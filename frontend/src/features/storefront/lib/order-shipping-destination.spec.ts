@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { isOrderDestinedForEgypt, isOrderDestinedForGcc } from './order-shipping-destination';
+import {
+  isOrderDestinedForEgypt,
+  isOrderDestinedForGcc,
+  shouldShowBostaShipping,
+  shouldShowGccShipping,
+} from './order-shipping-destination';
 import type { OnlineOrderRecord } from '../types/storefront.types';
 
 function createMockOrder(overrides: Partial<OnlineOrderRecord> = {}): OnlineOrderRecord {
@@ -85,5 +90,34 @@ describe('order-shipping-destination helpers', () => {
       countryCode: 'EG',
     });
     expect(isOrderDestinedForGcc(gccOrder)).toBe(true);
+  });
+
+  it('gates Bosta and GCC shipping options based on merchant configuration', () => {
+    const egyptianOrder = createMockOrder();
+    const saudiOrder = createMockOrder({
+      customerName: 'فهد العتيبي',
+      customerPhone: '+966501234567',
+      customerAddress: 'حي الياسمين - الرياض',
+      countryCode: 'SA',
+    });
+
+    // 1. When Bosta is not configured, Egyptian orders MUST NOT show Bosta
+    expect(shouldShowBostaShipping(egyptianOrder, false)).toBe(false);
+
+    // 2. When Bosta is configured, Egyptian orders MUST show Bosta
+    expect(shouldShowBostaShipping(egyptianOrder, true)).toBe(true);
+
+    // 3. When GCC is not configured, Saudi orders MUST NOT show GCC shipping
+    expect(shouldShowGccShipping(saudiOrder, false)).toBe(false);
+
+    // 4. When GCC is configured, Saudi orders MUST show GCC shipping
+    expect(shouldShowGccShipping(saudiOrder, true)).toBe(true);
+
+    // 5. Existing tracking numbers always show even if service is unconfigured
+    const trackedBosta = createMockOrder({ bostaTrackingNumber: 'BST-12345' });
+    expect(shouldShowBostaShipping(trackedBosta, false)).toBe(true);
+
+    const trackedGcc = createMockOrder({ gccTrackingNumber: 'ARMX-99999' });
+    expect(shouldShowGccShipping(trackedGcc, false)).toBe(true);
   });
 });

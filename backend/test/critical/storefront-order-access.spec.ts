@@ -8,6 +8,7 @@ import {
   buildOrderTrackingUrl,
   buildPaymentReturnUrl,
   buildGatewayWebhookUrl,
+  unwrapConvertedSale,
   type SandboxGatewayFlags,
 } from '../../src/modules/storefront/engines/online-order-access.engine';
 
@@ -136,10 +137,70 @@ function testGatewayReturnAndWebhookUrls(): void {
   assert.equal(buildGatewayWebhookUrl(undefined, 'tap', {}), null);
 }
 
+function testConvertedSaleContract(): void {
+  // SF-11 Guard: convertToSale must always hand the frontend the pure flat Sale object,
+  // never the nested { sale: mappedSale, scope } from getSaleById or { ok: true, sale: mappedSale } from createSale.
+  // A wrapper leak causes the POS dialog and print engine to see sale.total=undefined (showing 0.00),
+  // sale.docNo=undefined (showing "إيصال بيع undefined"), and sale.items=undefined (showing "لا توجد أصناف").
+
+  // Case 1: getSaleById wrapper { sale: mappedSale, scope } (the exact bug that occurred on convertToSale)
+  const getSaleByIdWrapper = {
+    sale: {
+      id: 15,
+      docNo: 'INV-260924-0015',
+      total: 1280,
+      items: [{ productId: 1, name: 'صنف متجر', quantity: 2, price: 640 }],
+      customerName: 'سيد محمد',
+      orderType: 'delivery',
+      deliveryRepId: 3,
+    },
+    scope: { tenantId: 'tenant-1', accountId: 1 },
+  };
+  const unwrapped1 = unwrapConvertedSale(getSaleByIdWrapper);
+  assert.ok(unwrapped1, 'unwrapped sale must not be null');
+  assert.equal(unwrapped1.id, 15);
+  assert.equal(unwrapped1.docNo, 'INV-260924-0015');
+  assert.equal(unwrapped1.total, 1280);
+  assert.equal(unwrapped1.customerName, 'سيد محمد');
+  assert.equal(Array.isArray(unwrapped1.items), true);
+  assert.equal(unwrapped1.items.length, 1);
+  assert.equal(unwrapped1.sale, undefined, 'CRITICAL GUARD: must never leak nested .sale wrapper to frontend');
+  assert.equal(unwrapped1.scope, undefined, 'CRITICAL GUARD: must never leak internal query .scope to frontend');
+
+  // Case 2: createSale wrapper { ok: true, sale: mappedSale }
+  const createSaleWrapper = {
+    ok: true,
+    sale: {
+      id: 15,
+      docNo: 'INV-260924-0015',
+      total: 1280,
+      items: [{ productId: 1, name: 'صنف متجر', quantity: 2, price: 640 }],
+    },
+  };
+  const unwrapped2 = unwrapConvertedSale(createSaleWrapper);
+  assert.equal(unwrapped2.id, 15);
+  assert.equal(unwrapped2.docNo, 'INV-260924-0015');
+  assert.equal(unwrapped2.total, 1280);
+  assert.equal(unwrapped2.sale, undefined, 'CRITICAL GUARD: must not nest .sale');
+  assert.equal(unwrapped2.ok, undefined, 'CRITICAL GUARD: must not nest .ok');
+
+  // Case 3: Flat mappedSale passed directly
+  const flatSale = { id: 15, docNo: 'INV-260924-0015', total: 1280 };
+  const unwrapped3 = unwrapConvertedSale(flatSale);
+  assert.equal(unwrapped3.id, 15);
+  assert.equal(unwrapped3.docNo, 'INV-260924-0015');
+  assert.equal(unwrapped3.total, 1280);
+
+  // Case 4: Null / undefined edge cases
+  assert.equal(unwrapConvertedSale(null), null);
+  assert.equal(unwrapConvertedSale(undefined), null);
+}
+
 testTokenRoundTrip();
 testGatewayReturnAndWebhookUrls();
 testTrackingLink();
 testTokenFailsClosed();
 testSandboxOnlyInTestMode();
 testCollectionRequiresVerifiedMoney();
+testConvertedSaleContract();
 console.log('storefront-order-access.spec: all checks passed');

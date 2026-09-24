@@ -24,6 +24,7 @@ import {
   resolveOnlineOrderCollection,
   MANUALLY_CONFIRMED_PAYMENT_METHODS,
   buildOrderTrackingUrl,
+  unwrapConvertedSale,
 } from './engines/online-order-access.engine';
 import { reserveLocationStock, releaseLocationStock } from '../../common/utils/location-stock-ledger';
 
@@ -99,6 +100,8 @@ function assertOnlineStockAvailable(name: string, stockQty: number, requestedQty
     throw new BadRequestException(`عفواً، المتاح من الصنف "${name}" هو ${stockQty} فقط، يرجى تعديل الكمية في السلة.`);
   }
 }
+
+export { unwrapConvertedSale };
 
 @Injectable()
 export class StorefrontService {
@@ -1862,7 +1865,7 @@ export class StorefrontService {
 
     if (order.sale_id) {
       const fullSale = await this.salesService.getSaleById(order.sale_id, actor);
-      return { ok: true, saleId: order.sale_id, sale: fullSale, message: 'تم تحويل الطلب لفاتورة مسبقاً' };
+      return { ok: true, saleId: order.sale_id, sale: unwrapConvertedSale(fullSale), message: 'تم تحويل الطلب لفاتورة مسبقاً' };
     }
 
     if (order.status === 'cancelled') {
@@ -2058,7 +2061,7 @@ export class StorefrontService {
     return {
       ok: true,
       saleId,
-      sale: fullSale || saleResult,
+      sale: unwrapConvertedSale(fullSale || saleResult),
       customerName: customer?.name || order.customer_name,
       isNewCustomer,
       customerId: customer?.id,

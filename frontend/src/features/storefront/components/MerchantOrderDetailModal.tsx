@@ -9,7 +9,10 @@ import {
   MapPinIcon,
   AlertTriangleIcon,
 } from '@/shared/components/icons/AppIcons';
-import { isOrderDestinedForEgypt, isOrderDestinedForGcc } from '../lib/order-shipping-destination';
+import {
+  shouldShowBostaShipping,
+  shouldShowGccShipping,
+} from '../lib/order-shipping-destination';
 
 interface MerchantOrderDetailModalProps {
   order: OnlineOrderRecord | null;
@@ -23,6 +26,8 @@ interface MerchantOrderDetailModalProps {
   onShipGcc: (order: OnlineOrderRecord) => void;
   onLoadToPos: (orderId: number) => void;
   loadingPosOrderId: number | null;
+  isBostaConfigured?: boolean;
+  isGccConfigured?: boolean;
 }
 
 // Mirrors the backend's resolveOnlineOrderCollection (SF-3): only a verified gateway payment or a
@@ -64,14 +69,14 @@ export function MerchantOrderDetailModal({
   onShipGcc,
   onLoadToPos,
   loadingPosOrderId,
+  isBostaConfigured = false,
+  isGccConfigured = false,
 }: MerchantOrderDetailModalProps) {
   if (!order) return null;
 
   const payment = describeOrderPayment(order);
-  const isEgypt = isOrderDestinedForEgypt(order);
-  const isGcc = isOrderDestinedForGcc(order);
-  const showBosta = (isEgypt && !isGcc) || Boolean(order.bostaTrackingNumber || order.bostaDeliveryId);
-  const showGcc = (isGcc && !isEgypt) || Boolean(order.gccTrackingNumber || (order as any).gcc_tracking_number);
+  const showBosta = shouldShowBostaShipping(order, isBostaConfigured);
+  const showGcc = shouldShowGccShipping(order, isGccConfigured);
 
   const canConfirmTransfer =
     order.paymentMethod === 'instapay_wallet' &&
@@ -497,6 +502,30 @@ export function MerchantOrderDetailModal({
             >
               <AlertTriangleIcon size={14} color="#991b1b" />
               <span>هذا الطلب تم إلغاؤه من قبل العميل</span>
+            </div>
+          ) : order.status === 'delivered' ? (
+            <div
+              style={{
+                flex: 1,
+                textAlign: 'center',
+                padding: '10px',
+                background: '#f0fdf4',
+                color: '#15803d',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              <CheckIcon size={14} color="#15803d" strokeWidth={2.5} />
+              <span>
+                {order.saleId
+                  ? `تم تسليم هذا الطلب بنجاح للعميل (فاتورة رقم #${order.saleId})`
+                  : 'تم تسليم هذا الطلب بنجاح للعميل (مكتمل)'}
+              </span>
             </div>
           ) : order.saleId ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>

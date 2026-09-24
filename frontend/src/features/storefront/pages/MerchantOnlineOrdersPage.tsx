@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
+import { bostaApi } from '../api/bosta.api';
+import { gccShippingApi } from '../api/gcc-shipping.api';
 import { OnlineOrderRecord, AbandonedCartRecord } from '../types/storefront.types';
 import { ConvertDeliveryModal } from '../components/ConvertDeliveryModal';
 import { BostaShipmentModal } from '../components/BostaShipmentModal';
@@ -37,6 +39,29 @@ export function MerchantOnlineOrdersPage() {
     queryKey: ['storefront-admin-settings'],
     queryFn: storefrontApi.getSettings,
   });
+
+  const bostaSettingsQuery = useQuery({
+    queryKey: ['bosta-settings'],
+    queryFn: bostaApi.getSettings,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const gccSettingsQuery = useQuery({
+    queryKey: ['gcc-shipping-settings'],
+    queryFn: gccShippingApi.getSettings,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const isBostaConfigured = Boolean(
+    bostaSettingsQuery.data?.enabled && bostaSettingsQuery.data?.apiKey?.trim()
+  );
+
+  const isGccConfigured = Boolean(
+    gccSettingsQuery.data?.enabled &&
+      (gccSettingsQuery.data?.smsaPassKey?.trim() ||
+        gccSettingsQuery.data?.aramexAccountNumber?.trim() ||
+        gccSettingsQuery.data?.aramexUserName?.trim())
+  );
 
   const ordersQuery = useQuery({
     queryKey: ['storefront-admin-orders', statusFilter],
@@ -516,6 +541,8 @@ export function MerchantOnlineOrdersPage() {
             loadingPosOrderId={loadingPosOrderId}
             onUpdateStatus={(id, status) => updateStatusMutation.mutate({ id, status })}
             isUpdatingStatus={updateStatusMutation.isPending}
+            isBostaConfigured={isBostaConfigured}
+            isGccConfigured={isGccConfigured}
           />
         </div>
         )}
@@ -692,6 +719,8 @@ export function MerchantOnlineOrdersPage() {
           handleLoadToPos(orderId);
         }}
         loadingPosOrderId={loadingPosOrderId}
+        isBostaConfigured={isBostaConfigured}
+        isGccConfigured={isGccConfigured}
       />
 
       {/* Bosta Courier Express Modal */}

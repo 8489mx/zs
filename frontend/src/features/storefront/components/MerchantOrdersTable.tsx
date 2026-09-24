@@ -8,7 +8,10 @@ import {
   MapPinIcon,
   ChevronDownIcon,
 } from '@/shared/components/icons/AppIcons';
-import { isOrderDestinedForEgypt, isOrderDestinedForGcc } from '../lib/order-shipping-destination';
+import {
+  shouldShowBostaShipping,
+  shouldShowGccShipping,
+} from '../lib/order-shipping-destination';
 
 interface MerchantOrdersTableProps {
   orders: OnlineOrderRecord[];
@@ -21,6 +24,8 @@ interface MerchantOrdersTableProps {
   loadingPosOrderId: number | null;
   onUpdateStatus: (id: number, status: string) => void;
   isUpdatingStatus: boolean;
+  isBostaConfigured?: boolean;
+  isGccConfigured?: boolean;
 }
 
 export function getStatusBadge(status: string) {
@@ -44,11 +49,15 @@ export function getStatusBadge(status: string) {
 
 function OrderShippingDropdown({
   order,
+  isBostaConfigured = false,
+  isGccConfigured = false,
   onConvertToDelivery,
   onShipBosta,
   onShipGcc,
 }: {
   order: OnlineOrderRecord;
+  isBostaConfigured?: boolean;
+  isGccConfigured?: boolean;
   onConvertToDelivery: (order: OnlineOrderRecord) => void;
   onShipBosta: (order: OnlineOrderRecord) => void;
   onShipGcc: (order: OnlineOrderRecord) => void;
@@ -58,10 +67,41 @@ function OrderShippingDropdown({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  const isEgypt = isOrderDestinedForEgypt(order);
-  const isGcc = isOrderDestinedForGcc(order);
-  const showBosta = (isEgypt && !isGcc) || Boolean(order.bostaTrackingNumber || order.bostaDeliveryId);
-  const showGcc = (isGcc && !isEgypt) || Boolean(order.gccTrackingNumber || (order as any).gcc_tracking_number);
+  const showBosta = shouldShowBostaShipping(order, isBostaConfigured);
+  const showGcc = shouldShowGccShipping(order, isGccConfigured);
+
+  // If neither Bosta nor GCC courier is configured/applicable, render direct 1-click button for internal delivery representative!
+  if (!showBosta && !showGcc) {
+    return (
+      <button
+        type="button"
+        onClick={() => onConvertToDelivery(order)}
+        title="إصدار فاتورة وتعيين مندوب توصيل داخلي"
+        style={{
+          width: '100%',
+          height: '32px',
+          fontSize: '11px',
+          fontWeight: 700,
+          borderRadius: '7px',
+          background: '#170e5e',
+          color: '#ffffff',
+          border: 'none',
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '4px',
+          boxShadow: '0 1px 2px rgba(23,14,94,0.2)',
+          boxSizing: 'border-box',
+          padding: '0 6px',
+        }}
+      >
+        <TruckIcon size={13} color="#ffffff" />
+        <span>مندوب دليفري</span>
+      </button>
+    );
+  }
 
   const updateCoords = () => {
     if (!buttonRef.current) return;
@@ -341,6 +381,8 @@ export function MerchantOrdersTable({
   loadingPosOrderId,
   onUpdateStatus,
   isUpdatingStatus,
+  isBostaConfigured = false,
+  isGccConfigured = false,
 }: MerchantOrdersTableProps) {
   if (isLoading) {
     return (
@@ -560,7 +602,28 @@ export function MerchantOrdersTable({
                     )}
 
                     {/* Col 2: Action Button */}
-                    {order.status === 'processing' && order.saleId ? (
+                    {order.status === 'delivered' ? (
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '32px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: '#059669',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '3px',
+                          borderRadius: '7px',
+                          background: '#f0fdf4',
+                          border: '1px solid #dcfce7',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        <CheckIcon size={13} color="#059669" strokeWidth={2.5} />
+                        <span>مكتمل</span>
+                      </div>
+                    ) : order.status === 'processing' && order.saleId ? (
                       <button
                         type="button"
                         onClick={() => onUpdateStatus(order.id, 'shipped')}
@@ -675,31 +738,12 @@ export function MerchantOrdersTable({
                     ) : !order.saleId && order.status !== 'cancelled' ? (
                       <OrderShippingDropdown
                         order={order}
+                        isBostaConfigured={isBostaConfigured}
+                        isGccConfigured={isGccConfigured}
                         onConvertToDelivery={onConvertToDelivery}
                         onShipBosta={onShipBosta}
                         onShipGcc={onShipGcc}
                       />
-                    ) : order.status === 'delivered' ? (
-                      <div
-                        style={{
-                          width: '100%',
-                          height: '32px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          color: '#059669',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '3px',
-                          borderRadius: '7px',
-                          background: '#f0fdf4',
-                          border: '1px solid #dcfce7',
-                          boxSizing: 'border-box',
-                        }}
-                      >
-                        <CheckIcon size={13} color="#059669" strokeWidth={2.5} />
-                        <span>مكتمل</span>
-                      </div>
                     ) : (
                       <div style={{ width: '100%', height: '32px' }} />
                     )}

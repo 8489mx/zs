@@ -88,3 +88,31 @@ export function isOrderDestinedForGcc(order: OnlineOrderRecord): boolean {
 
   return false;
 }
+
+/**
+ * Determines whether Bosta express shipping option should be presented.
+ * Returns true if the order already has Bosta tracking, or if Bosta is active/configured
+ * and the order is destined for Egypt and not GCC.
+ */
+export function shouldShowBostaShipping(
+  order: OnlineOrderRecord,
+  isBostaConfigured: boolean = false
+): boolean {
+  if (order.bostaTrackingNumber || order.bostaDeliveryId) return true;
+  if (!isBostaConfigured) return false;
+  return isOrderDestinedForEgypt(order) && !isOrderDestinedForGcc(order);
+}
+
+/**
+ * Determines whether GCC express shipping (Aramex / SMSA) should be presented.
+ * Returns true if the order already has GCC tracking, or if GCC shipping is active/configured
+ * and the order is destined for GCC and not Egypt.
+ */
+export function shouldShowGccShipping(
+  order: OnlineOrderRecord,
+  isGccConfigured: boolean = false
+): boolean {
+  if (order.gccTrackingNumber || (order as any).gcc_tracking_number) return true;
+  if (!isGccConfigured) return false;
+  return isOrderDestinedForGcc(order) && !isOrderDestinedForEgypt(order);
+}
