@@ -19,6 +19,13 @@
  *   ينشئه** فيعيد الحجز ويبقى الحمل قابلاً للاستمرار — والإلغاء نفسه مسار كتابة يأخذ الأقفال بنفس
  *   الترتيب، فصار الاختبار أثقل لا أخف، (3) يصنّف كل رفض ويعدّه، فلا تُستنتج الأسباب بعد انتهاء
  *   الجولة مرة أخرى.
+ *
+ * والجولة التالية أثبتت أن التصنيف وحده لا يكفي: رفض السيرفر 8225 من 8225 برسالة واحدة معلنة
+ * «الحد الأدنى للطلب هو 700 ج» — السلة كانت قطعة واحدة دائماً. التصنيف قال السبب في ثلاث ثوانٍ
+ * (وهذا تحسّن حقيقي على الجولة السابقة) لكن الدقيقتين والنصف ضاعتا. فأُضيف شيئان:
+ *   (4) السلة تُبنى لتتجاوز الحد الأدنى المقروء من `:slug/info` لا قطعة واحدة عمياء،
+ *   (5) **طلب تجريبي واحد في `setup()`** يُنشأ ويُلغى قبل أن يبدأ الحمل. إن رفضه السيرفر توقف
+ *       الاختبار فوراً برسالة السيرفر نفسها. لا جولة ثالثة تقيس فرع الرفض.
  */
 
 import http from 'k6/http';
@@ -28,12 +35,13 @@ import {
   BASE_URL,
   STOREFRONT_SLUG,
   DEFAULT_HEADERS,
-  generateRandomPhone,
   STANDARD_THRESHOLDS,
   rampProfile,
   clientIpHeaders,
   writerIpHeaders,
   classifyWriteFailure,
+  selectOrderableItems,
+  buildOrderPayload,
 } from '../config.js';
 
 // Custom metrics
@@ -97,34 +105,68 @@ export function setup() {
     throw new Error(`storefront "${STOREFRONT_SLUG}" has an empty catalog — nothing to order.`);
   }
 
-  const inStock = items
-    .filter((p) => p && p.id && p.inStock !== false && Number(p.stockQty || 0) > 0)
-    .sort((a, b) => Number(b.stockQty || 0) - Number(a.stockQty || 0))
-    .slice(0, 12);
+  // الحد الأدنى للطلب شرط قبول لا تفصيل عرض: متجر المهندس يرفض أي سلة تحت 700 جنيه، فقطعة واحدة
+  // من صنف واحد تُرفض دائماً. السلة تُبنى لتتجاوزه، وإلا لم يصل الاختبار إلى قاعدة البيانات أصلاً.
+  const infoRes = http.get(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/info`, {
+    headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(1) },
+  });
+  let minOrder = 0;
+  try {
+    minOrder = Number(JSON.parse(infoRes.body).minOrder || 0);
+  } catch {}
 
-  if (inStock.length === 0) {
+  const cart = selectOrderableItems(items, minOrder);
+
+  if (cart.length === 0) {
     throw new Error(
-      `none of the ${items.length} catalogue items on "${STOREFRONT_SLUG}" has available stock `
-      + '(stock_qty - reserved_qty > 0), so every order would be refused before the transaction opens '
-      + 'and the run would measure nothing. Top up stock, or allow out-of-stock ordering for this tenant.',
+      `no orderable item on "${STOREFRONT_SLUG}": of ${items.length} catalogue entries, none has available `
+      + `stock and a price high enough to clear the ${minOrder} minimum order within its stock. `
+      + 'Every order would be refused before the transaction opens and the run would measure nothing.',
     );
   }
 
-  const headroom = inStock.reduce((sum, p) => sum + Number(p.stockQty || 0), 0);
+  const headroom = cart.reduce((sum, c) => sum + c.stock, 0);
   // eslint-disable-next-line no-console
   console.log(
-    `[setup] ${inStock.length} in-stock items chosen, combined available stock ${headroom}. `
+    `[setup] ${cart.length} orderable items, min order ${minOrder}, cart size ${cart[0].qty}-${cart[cart.length - 1].qty} units, `
+    + `combined stock ${headroom}. `
     + (KEEP_ORDERS
-      ? `KEEP_ORDERS=true - orders are NOT cancelled, so this run is capped at ~${headroom} successful orders.`
+      ? 'KEEP_ORDERS=true - orders are NOT cancelled, so stock runs down as the run proceeds.'
       : 'orders are cancelled after creation, so the reservation is returned and the load is sustainable.'),
   );
 
-  return { productIds: inStock.map((p) => p.id) };
+  // **طلب تجريبي واحد قبل البدء.** درسان متتاليان (المخزون المحجوز، ثم الحد الأدنى للطلب) كلاهما
+  // ظهر بعد دقيقتين ونصف من حمل لا يقيس شيئاً. الطلب الواحد هنا يكلّف جزءاً من الثانية ويحوّل
+  // «جولة كاملة بلا معنى» إلى «رسالة السيرفر نفسها قبل أن تبدأ».
+  const probeHeaders = { ...DEFAULT_HEADERS, ...clientIpHeaders(1) };
+  const probe = http.post(
+    `${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/orders`,
+    buildOrderPayload(cart[0], 0, 'Tahrir Square, Cairo, Egypt'),
+    { headers: probeHeaders },
+  );
+  if (probe.status !== 200 && probe.status !== 201) {
+    throw new Error(
+      `preflight order was refused (HTTP ${probe.status}), so the run would measure the refusal branch, `
+      + `not the write path. The server said: ${String(probe.body || '').slice(0, 300)}`,
+    );
+  }
+  try {
+    const probeBody = JSON.parse(probe.body);
+    const num = String(probeBody.orderNumber || '');
+    const tok = String(probeBody.accessToken || '');
+    if (num && tok) {
+      http.post(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/orders/${encodeURIComponent(num)}/cancel`, null, {
+        headers: { ...probeHeaders, 'x-order-token': tok },
+      });
+    }
+  } catch {}
+
+  return { cart };
 }
 
 export default function (data) {
-  const productIds = data?.productIds || [];
-  if (productIds.length === 0) return;
+  const cart = data?.cart || [];
+  if (cart.length === 0) return;
 
   // زائر جديد لكل تكرار: حدّ O60 (30 طلباً/عنوان/10 دقائق) يسقف أي جولة ثابتة العدد — انظر config.js.
   const visitor = writerIpHeaders(__VU, __ITER);
@@ -142,16 +184,8 @@ export default function (data) {
   group('Storefront Concurrent Order Placement (Canonical Lock & SF-1)', () => {
     const orderUrl = `${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/orders`;
 
-    const selectedId1 = productIds[Math.floor(Math.random() * productIds.length)];
-    const items = [{ productId: selectedId1, quantity: 1 }];
-
-    const orderPayload = JSON.stringify({
-      customerName: `Shopper VU-${__VU}-${Date.now() % 10000}`,
-      customerPhone: generateRandomPhone(),
-      customerAddress: 'Tahrir Square, Cairo, Egypt',
-      items: items,
-      paymentMethod: 'cash_on_delivery',
-    });
+    const item = cart[Math.floor(Math.random() * cart.length)];
+    const orderPayload = buildOrderPayload(item, __VU, 'Tahrir Square, Cairo, Egypt');
 
     const start = Date.now();
     const res = http.post(orderUrl, orderPayload, { headers: { ...DEFAULT_HEADERS, ...visitor } });

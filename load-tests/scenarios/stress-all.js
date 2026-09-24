@@ -19,12 +19,13 @@ import {
   DEFAULT_HEADERS,
   AUTH_USERNAME,
   AUTH_PASSWORD,
-  generateRandomPhone,
   STANDARD_THRESHOLDS,
   rampProfile,
   clientIpHeaders,
   writerIpHeaders,
   classifyWriteFailure,
+  selectOrderableItems,
+  buildOrderPayload,
   SESSION_COOKIE_NAME,
   RAMP_SECONDS,
   HOLD_SECONDS,
@@ -136,23 +137,46 @@ export function setup() {
     const data = JSON.parse(catalogRes.body);
     items = data.products || data.items || (Array.isArray(data) ? data : []);
   } catch {}
-  const productIds = (Array.isArray(items) ? items : [])
-    .filter((p) => p && p.id && p.inStock !== false && Number(p.stockQty || 0) > 0)
-    .sort((a, b) => Number(b.stockQty || 0) - Number(a.stockQty || 0))
-    .slice(0, 12)
-    .map((p) => p.id);
+  // الحد الأدنى للطلب شرط قبول: سلة من قطعة واحدة رُفضت 8225 مرة من 8225 على متجر حدّه 700 جنيه.
+  let minOrder = 0;
+  try {
+    const infoRes = http.get(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/info`, { headers: DEFAULT_HEADERS });
+    minOrder = Number(JSON.parse(infoRes.body).minOrder || 0);
+  } catch {}
 
-  if (productIds.length === 0) {
+  const cart = selectOrderableItems(items, minOrder);
+
+  if (cart.length === 0) {
     throw new Error(
-      `storefront "${STOREFRONT_SLUG}" has no item with available stock (stock_qty - reserved_qty > 0), `
-      + 'so the write half of this stress run would measure refusals, not the database.',
+      `storefront "${STOREFRONT_SLUG}" has no orderable item (available stock and a price that clears the `
+      + `${minOrder} minimum), so the write half of this stress run would measure refusals, not the database.`,
     );
   }
+
+  // طلب تجريبي واحد يُنشأ ويُلغى: أرخص بكثير من اكتشاف الرفض بعد ثلاث دقائق من حمل بلا معنى.
+  const probe = http.post(
+    `${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/orders`,
+    buildOrderPayload(cart[0], 0, 'Nasr City, Cairo'),
+    { headers: DEFAULT_HEADERS },
+  );
+  if (probe.status !== 200 && probe.status !== 201) {
+    throw new Error(
+      `preflight order was refused (HTTP ${probe.status}); the write half would measure the refusal branch. `
+      + `The server said: ${String(probe.body || '').slice(0, 300)}`,
+    );
+  }
+  try {
+    const pb = JSON.parse(probe.body);
+    if (pb.orderNumber && pb.accessToken) {
+      http.post(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/orders/${encodeURIComponent(pb.orderNumber)}/cancel`,
+        null, { headers: { ...DEFAULT_HEADERS, 'x-order-token': pb.accessToken } });
+    }
+  } catch {}
 
   return {
     sessionId: session.sessionId,
     cookieName: session.cookieName,
-    productIds,
+    cart,
   };
 }
 
@@ -174,19 +198,13 @@ export function posScenario(data) {
 }
 
 export function storefrontScenario(data) {
-  const productIds = data?.productIds || [];
-  if (productIds.length === 0) return;
-  const prodId = productIds[Math.floor(Math.random() * productIds.length)];
+  const cart = data?.cart || [];
+  if (cart.length === 0) return;
+  const item = cart[Math.floor(Math.random() * cart.length)];
   // زائر جديد لكل تكرار: حدّ O60 على إنشاء الطلب مفتاحه العنوان — انظر config.js:writerIpHeaders.
   const visitor = writerIpHeaders(__VU, __ITER);
 
-  const orderPayload = JSON.stringify({
-    customerName: `Shopper VU-${__VU}-${Date.now() % 10000}`,
-    customerPhone: generateRandomPhone(),
-    customerAddress: 'Nasr City, Cairo',
-    items: [{ productId: prodId, quantity: 1 }],
-    paymentMethod: 'cash_on_delivery',
-  });
+  const orderPayload = buildOrderPayload(item, __VU, 'Nasr City, Cairo');
 
   const start = Date.now();
   const res = http.post(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/orders`, orderPayload, {

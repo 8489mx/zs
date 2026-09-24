@@ -323,8 +323,8 @@ function testLoadSuiteIsUsable(): void {
   for (const scenario of ['storefront-checkout.js', 'stress-all.js']) {
     const source = codeOf(loadFile(join('scenarios', scenario)));
     assert.ok(
-      /stockQty/.test(source) && /inStock/.test(source),
-      `${scenario} must pick products that actually have available stock, not the first ones the catalogue returns`,
+      /selectOrderableItems\(items, minOrder\)/.test(source),
+      `${scenario} must pick products through selectOrderableItems, not the first ones the catalogue returns`,
     );
     assert.ok(
       /throw new Error\([\s\S]{0,400}stock/i.test(source),
@@ -342,7 +342,47 @@ function testLoadSuiteIsUsable(): void {
       /writerIpHeaders\(__VU, __ITER\)/.test(source),
       `${scenario} must present a fresh visitor per iteration, or O60 (30 orders / IP / 10 min) caps the run`,
     );
+
+    // Second run, same shape of waste: the server refused 8225 of 8225 with one sentence —
+    // "الحد الأدنى للطلب هو 700 ج". The cart was one unit of one product, always, so it never
+    // cleared a minimum that the storefront advertises on its own /info route.
+    assert.ok(
+      /minOrder/.test(source) && /\/info/.test(source),
+      `${scenario} must read the storefront's minimum order and build a cart that clears it`,
+    );
+    // And the cheapest possible insurance against a third round of this: place one real order in
+    // setup() and abort on the server's own words, rather than learning it 2.5 minutes later.
+    assert.ok(
+      /preflight order was refused/.test(source),
+      `${scenario} must place (and cancel) one probe order in setup and abort if the server refuses it`,
+    );
   }
+
+  // The probe would be theatre if it did not carry the same cart the run will use.
+  for (const scenario of ['storefront-checkout.js', 'stress-all.js']) {
+    const source = codeOf(loadFile(join('scenarios', scenario)));
+    assert.ok(
+      /buildOrderPayload\(cart\[0\]/.test(source),
+      `${scenario}'s preflight must send the same cart shape the iterations send`,
+    );
+  }
+
+  // The cart builder is the single place that decides what is orderable, so the two conditions that
+  // each cost us a wasted production round live here: available stock, and a line total that clears
+  // the storefront's minimum.
+  const cfg = codeOf(config);
+  assert.ok(
+    /export function selectOrderableItems/.test(cfg),
+    'config.js must own the orderable-item selection, so both scenarios cannot drift apart',
+  );
+  assert.ok(
+    /inStock !== false/.test(cfg) && /Number\(p\.stockQty \|\| 0\) > 0/.test(cfg),
+    'selectOrderableItems must skip items with no available stock',
+  );
+  assert.ok(
+    /Math\.ceil\(floor \/ price\)/.test(cfg),
+    'selectOrderableItems must size the quantity to clear the minimum order, not send one unit blindly',
+  );
 }
 
 run().then(

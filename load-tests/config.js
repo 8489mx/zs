@@ -131,3 +131,39 @@ export function classifyWriteFailure(res) {
   }
   return `http_${res.status}`;
 }
+
+/**
+ * بناء سلة **قابلة للقبول فعلاً** من كتالوج المتجر.
+ *
+ * جولة 24 سبتمبر الثانية رفض فيها السيرفر 8225 طلباً من 8225 برسالة واحدة: «الحد الأدنى للطلب
+ * هو 700 ج». السيناريو كان يطلب قطعة واحدة من صنف واحد دائماً، فلم يتجاوز الحد ولا مرة، ولم
+ * تُفتح معاملة واحدة. السلة إذن ليست تفصيلاً تجميلياً: هي شرط أن يصل الاختبار إلى قاعدة البيانات.
+ *
+ * تُفضَّل الأصناف الأغلى لأن كميتها المطلوبة أصغر، فيقل استهلاك المخزون ويقل الرفض بسبب نفاده.
+ */
+export function selectOrderableItems(items, minOrder, maxQty = 200) {
+  const floor = Math.max(0, Number(minOrder) || 0);
+  return (Array.isArray(items) ? items : [])
+    .filter((p) => p && p.id && p.inStock !== false && Number(p.stockQty || 0) > 0 && Number(p.price || 0) > 0)
+    .map((p) => {
+      const price = Number(p.price);
+      const stock = Number(p.stockQty || 0);
+      const qty = floor > 0 ? Math.max(1, Math.ceil(floor / price)) : 1;
+      return { id: p.id, qty, price, stock };
+    })
+    .filter((c) => c.qty <= Math.min(c.stock, maxQty))
+    // الأقل كمية أولاً (أي الأغلى سعراً)، ثم الأوفر مخزوناً.
+    .sort((a, b) => (a.qty - b.qty) || (b.stock - a.stock))
+    .slice(0, 12);
+}
+
+/** جسم طلب متجر جاهز للإرسال. */
+export function buildOrderPayload(item, vu, address) {
+  return JSON.stringify({
+    customerName: `Shopper VU-${vu}-${Date.now() % 10000}`,
+    customerPhone: generateRandomPhone(),
+    customerAddress: address,
+    items: [{ productId: item.id, quantity: item.qty }],
+    paymentMethod: 'cash_on_delivery',
+  });
+}
