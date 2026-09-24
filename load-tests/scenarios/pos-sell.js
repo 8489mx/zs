@@ -52,6 +52,7 @@ const rejectShift = new Counter('sell_rejects_no_open_shift');
 const rejectBusiness = new Counter('sell_rejects_business');
 const rejectServer = new Counter('sell_rejects_server');
 const unitsSold = new Counter('sell_units_sold');
+const onlineRejects = new Counter('sell_online_order_rejects');
 
 /**
  * كاشيرات متعددة: `CASHIERS=user1:pass1,user2:pass2`. الوردية في `cashier_shifts` مفتاحها
@@ -297,6 +298,33 @@ export function setup() {
       minOrder = Number(JSON.parse(info.body).minOrder || 0);
     } catch {}
     cart = selectOrderableItems(items, minOrder);
+
+    // نفس مبدأ الفاتورة التجريبية: طلب متجر واحد يُنشأ ويُلغى. الجولة السابقة رفضت 232 طلباً من
+    // 232 ولم يُسجَّل سببٌ واحد، فبقي الفشل مجهولاً — وهو بالضبط الخطأ الذي لا يجوز تكراره.
+    if (cart.length > 0) {
+      const probe = http.post(
+        `${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/orders`,
+        buildOrderPayload(cart[0], 0, 'Nasr City, Cairo'),
+        { headers: DEFAULT_HEADERS },
+      );
+      if (probe.status !== 200 && probe.status !== 201) {
+        // لا نُسقط الجولة: البيع هو موضوعها، والمتجر إضافةٌ عليها. لكن السبب يُقال مرة واحدة بوضوح.
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[setup] storefront orders are being refused (HTTP ${probe.status}), so the online half of this run `
+          + `will not reach the database. Set WITH_STOREFRONT=false to drop it. Server said: `
+          + String(probe.body || '').slice(0, 300),
+        );
+      } else {
+        try {
+          const pb = JSON.parse(probe.body);
+          if (pb.orderNumber && pb.accessToken) {
+            http.post(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/orders/${encodeURIComponent(pb.orderNumber)}/cancel`,
+              null, { headers: { ...DEFAULT_HEADERS, 'x-order-token': pb.accessToken } });
+          }
+        } catch {}
+      }
+    }
   }
 
   return { sessions, sellable, hot, cart, branchId };
@@ -328,7 +356,14 @@ export function cashierScenario(data) {
       { headers: { ...DEFAULT_HEADERS, ...writerIpHeaders(__VU, __ITER) } },
     );
     if (res.body && res.body.toLowerCase().includes('deadlock')) deadlocks.add(1);
-    check(res, { 'online order accepted': (r) => r.status === 200 || r.status === 201 });
+    const accepted = check(res, { 'online order accepted': (r) => r.status === 200 || r.status === 201 });
+    if (!accepted) {
+      onlineRejects.add(1);
+      if (__VU <= 2 && __ITER < 3) {
+        // eslint-disable-next-line no-console
+        console.warn(`[online order refused: ${classifyWriteFailure(res)}] HTTP ${res.status} - ${String(res.body || '').slice(0, 220)}`);
+      }
+    }
   }
 
   sleep(1);
