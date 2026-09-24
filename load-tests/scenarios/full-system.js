@@ -174,30 +174,42 @@ export function setup() {
   const sessions = cashierCredentials().map((c) => loginOrDie(c.username, c.password));
 
   /**
-   * جلسة المالك من `AUTH_USERNAME`/`AUTH_PASSWORD` — **ويجب أن تكون على نفس المنشأة**.
+   * جلسة قراءة التقارير.
    *
-   * جولةٌ سابقة فشلت بـ«لا فرع فيه بضاعة» لأن ملف بيانات الدخول كان لمستخدم منشأة أخرى: الكاشيرات
-   * على `hesham` والمالك على منشأة غيرها، فقرأ الإعداد فروعها هي. لم يكن ذلك خطأً في السيرفر —
-   * كان خلطاً بين مستأجرين في المحاكاة، ولا شيء كان ليكشفه. الآن يُكشف في ثانية.
+   * التقارير المالية تحت `@RequireAnyPermission('accounting', 'accounts')`، وقراءتها بحساب كاشير
+   * ترد 403 — فتقيس الجولة رفض التفويض لا التقارير. والحل ليس أخذ أي حساب «مالك»: أول محاولة
+   * أخذته من `AUTH_USERNAME` في ملف بيانات الدخول، وكان **لمنشأة أخرى**، فقرأ الإعداد فروع تلك
+   * المنشأة وماتت الجولة بـ«لا فرع فيه بضاعة».
+   *
+   * فالقاعدة هنا: `OWNER=user:pass` صراحةً إن أردت التقارير، **ويجب أن يكون على نفس المنشأة**.
+   * وبدونه نجرّب جلسة الكاشير مرة واحدة على تقرير واحد: إن قُبلت استعملناها، وإن رُدّت 403
+   * **أُلغيت مجموعة التقارير** بسطر واضح. لا إجهاض للجولة كلها من أجل أقل مساراتها أهمية، ولا
+   * تجاهل صامت.
    */
-  const admin = loginOrDie();
-  const tenantOf = (session) => String(session.tenantId || '');
-  const cashierTenant = tenantOf(sessions[0]);
+  const cashierTenant = String(sessions[0].tenantId || '');
   for (const session of sessions) {
-    if (tenantOf(session) !== cashierTenant) {
+    if (String(session.tenantId || '') !== cashierTenant) {
       throw new Error(
         `cashiers are not on one tenant: "${sessions[0].username}" is on ${cashierTenant} but `
-        + `"${session.username}" is on ${tenantOf(session)}.`,
+        + `"${session.username}" is on ${String(session.tenantId || 'unknown')}.`,
       );
     }
   }
-  if (tenantOf(admin) !== cashierTenant) {
-    throw new Error(
-      `the owner session is on a different tenant from the cashiers: "${admin.username}" is on `
-      + `${tenantOf(admin) || 'an unknown tenant'} while the cashiers are on ${cashierTenant}. `
-      + 'Set AUTH_USERNAME / AUTH_PASSWORD in /etc/zsystems/loadtest.env to an owner of the SAME tenant, '
-      + "or the run reads one tenant's branches and writes to another's.",
-    );
+
+  let admin = sessions[0];
+  let reportsEnabled = true;
+  const ownerPair = String(__ENV.OWNER || '').trim();
+  if (ownerPair) {
+    const at = ownerPair.indexOf(':');
+    if (at < 1) throw new Error('OWNER must be username:password');
+    const owner = loginOrDie(ownerPair.slice(0, at), ownerPair.slice(at + 1));
+    if (String(owner.tenantId || '') !== cashierTenant) {
+      throw new Error(
+        `OWNER "${owner.username}" is on tenant ${String(owner.tenantId || 'unknown')} while the cashiers `
+        + `are on ${cashierTenant}. A run split across two tenants reads one and writes to the other.`,
+      );
+    }
+    admin = owner;
   }
 
   // --- فرع فيه بضاعة فعلاً (لا فرع «له مخزن» فقط) ---
@@ -246,13 +258,31 @@ export function setup() {
   }
 
   // --- عملاء للبيع الآجل، وموردون للمشتريات ---
-  const customers = (jsonOrDie(http.get(`${BASE_URL}/api/customers?pageSize=500`, sessionParams(sessions[0])), 'customers').customers || [])
-    .map((c) => Number(c.id)).filter((id) => id > 0).slice(0, 500);
-  const suppliersRes = http.get(`${BASE_URL}/api/suppliers?pageSize=500`, sessionParams(sessions[0]));
-  let suppliers = [];
-  try {
-    suppliers = (JSON.parse(suppliersRes.body).suppliers || []).map((s) => Number(s.id)).filter((id) => id > 0).slice(0, 500);
-  } catch {}
+  //
+  // `paginateRows` يسقف `pageSize` عند **100** (`pagination.ts:maxSize`)، فطلب 500 يعيد 100 ولا
+  // شيء أكثر. وهذا ما جعل مئة عميل يستقبلون كل الفواتير الآجلة حتى امتلأت سقوفهم الائتمانية —
+  // بدا رفضاً، وكان الحارس يعمل والمحاكاة ضيّقة. نتصفّح الصفحات بدل أن نطلب رقماً لا يُعطى.
+  const collectIds = (path, key, pages) => {
+    const ids = [];
+    for (let page = 1; page <= pages; page += 1) {
+      const res = http.get(`${BASE_URL}${path}?page=${page}&pageSize=100`, sessionParams(sessions[0]));
+      if (res.status !== 200) break;
+      let rows = [];
+      try {
+        rows = JSON.parse(res.body)[key] || [];
+      } catch { break; }
+      if (rows.length === 0) break;
+      for (const row of rows) {
+        const id = Number(row.id);
+        if (id > 0) ids.push(id);
+      }
+      if (rows.length < 100) break;
+    }
+    return ids;
+  };
+
+  const customers = collectIds('/api/customers', 'customers', 6);
+  const suppliers = collectIds('/api/suppliers', 'suppliers', 3);
 
   if (customers.length === 0) {
     throw new Error('no customer found: a credit sale is refused with CUSTOMER_REQUIRED_FOR_CREDIT, so that half would measure nothing');
@@ -267,6 +297,18 @@ export function setup() {
   }));
   if (probe.status !== 200 && probe.status !== 201) {
     throw new Error(`preflight sale was refused (HTTP ${probe.status}). The server said: ${String(probe.body || '').slice(0, 300)}`);
+  }
+
+  // --- هل تُقرأ التقارير بهذه الجلسة أصلاً؟ سؤال واحد بدل 244 رفضاً ---
+  const reportProbe = http.get(`${BASE_URL}/api/accounting/reports/financial-summary`, sessionParams(admin));
+  if (reportProbe.status !== 200) {
+    reportsEnabled = false;
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[setup] reports are disabled for this run: "${admin.username}" got HTTP ${reportProbe.status} on `
+      + 'the financial summary. Pass OWNER=user:pass for an account on this tenant with the accounting '
+      + 'permission to include them.',
+    );
   }
 
   // --- سلة المتجر ---
@@ -284,7 +326,7 @@ export function setup() {
     + 'Sales, returns and purchases are NOT reversible - this must not be a live tenant.',
   );
 
-  return { sessions, admin, sellable, hot: sellable[0], branchId, locationId, customers, suppliers, cart };
+  return { sessions, admin, reportsEnabled, sellable, hot: sellable[0], branchId, locationId, customers, suppliers, cart };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -512,6 +554,7 @@ export function catalogSyncScenario(data) {
  * محاكاةُ قراءتها بحساب كاشير تقيس رفض التفويض، لا التقارير تحت الحمل.
  */
 export function reportScenario(data) {
+  if (!data.reportsEnabled) { sleep(5); return; }
   const params = sessionParams(data.admin, clientIpHeaders(__VU));
   // المسار تحت `api/accounting` لا `api` (`@Controller('api/accounting')`). العنوان الخاطئ ردّ 404
   // في ثلاث مللي ثانية، فبدت التقارير «تفشل» بينما لم تُستدعَ أصلاً.

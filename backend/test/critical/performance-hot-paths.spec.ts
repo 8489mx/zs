@@ -521,8 +521,20 @@ function testLoadSuiteIsUsable(): void {
     // "no branch has sellable stock". Nothing else would have caught it; the login payload carries
     // the tenant, so setup compares them.
     assert.ok(
-      /different tenant from the cashiers/.test(full) && /tenantOf\(admin\) !== cashierTenant/.test(full),
-      'setup must refuse to run when the owner and the cashiers are on different tenants',
+      /is on tenant \$\{String\(owner\.tenantId/.test(full) && /session\.tenantId/.test(full),
+      'setup must refuse to run when the sessions are split across tenants: one reads while the other writes',
+    );
+    // `paginateRows` caps pageSize at 100. Asking for 500 returns 100 and quietly narrows the run —
+    // it is why a hundred customers absorbed every credit sale until their limits filled.
+    assert.ok(
+      !/pageSize=[2-9]\d\d/.test(full),
+      'pageSize is capped at 100 by paginateRows; page through instead of asking for a number you cannot get',
+    );
+    // Reports are the least important path. A missing permission must disable them with one line,
+    // not abort a three-minute run, and not fail 244 checks in silence either.
+    assert.ok(
+      /reportsEnabled/.test(full) && /reports are disabled for this run/.test(full),
+      'a report permission the session lacks must disable that group loudly, not abort or spam failures',
     );
   }
 
