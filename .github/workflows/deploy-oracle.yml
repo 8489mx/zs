@@ -179,7 +179,12 @@ jobs:
 
           pm2 save || true
           rm -rf "$STAGE_DIR" "$RELEASE_TGZ"
-          sudo systemctl reload nginx 2>/dev/null || true
+          if [ -f "$TARGET_DIR/deploy/nginx/zsystemai-subdomains.conf" ] && [ -f /etc/nginx/sites-available/zsystemai-subdomains ]; then
+            sudo cp "$TARGET_DIR/deploy/nginx/zsystemai-subdomains.conf" /etc/nginx/sites-available/zsystemai-subdomains 2>/dev/null || true
+            sudo nginx -t 2>/dev/null && sudo systemctl reload nginx 2>/dev/null || true
+          else
+            sudo systemctl reload nginx 2>/dev/null || true
+          fi
           echo "Deployed $DEPLOY_SHA successfully"
           REMOTE
 

@@ -187,44 +187,73 @@ export function setup() {
       + '(الإعدادات > الفروع > مخزن افتراضي).',
     );
   }
-  const branchId = Number(usable[0].id);
 
-  // كتالوج نقطة البيع بجلسة الكاشير الأول.
-  const catalogRes = http.get(`${BASE_URL}/api/catalog/pos-products?limit=500`, sessionParams(sessions[0]));
-  if (catalogRes.status !== 200) {
-    throw new Error(`POS catalog returned HTTP ${catalogRes.status}: ${String(catalogRes.body || '').slice(0, 200)}`);
-  }
-  let rows = [];
-  try {
-    const parsed = JSON.parse(catalogRes.body);
-    rows = parsed.products || parsed.items || (Array.isArray(parsed) ? parsed : []);
-  } catch {
-    throw new Error(`POS catalog body could not be parsed: ${String(catalogRes.body || '').slice(0, 200)}`);
+  /**
+   * الفرع الصالح ليس أي فرع بمخزن افتراضي: هو الفرع الذي **مخزنه فيه بضاعة**.
+   *
+   * أول محاولة اختارت أول فرع في القائمة (`فرع الاماراتي`) فرُفضت الفاتورة التجريبية بـ
+   * INSUFFICIENT_STOCK: «المتاح 0 … الصنف متوفر في المخزن الرئيسي (50000 قطعة)». الـ50 ألف قطعة
+   * كانت في مخزن فرع آخر. والرصيد العام (`globalStock`) لا يقول ذلك — `stock` المقيَّد بالفرع هو
+   * الذي يقوله، ولا يأتي إلا إذا مُرِّر `branchId` إلى الكتالوج، تماماً كما تفعل شاشة الكاشير.
+   */
+  function loadSellableForBranch(branchId) {
+    const res = http.get(
+      `${BASE_URL}/api/catalog/pos-products?limit=500&branchId=${branchId}`,
+      sessionParams(sessions[0]),
+    );
+    if (res.status !== 200) {
+      throw new Error(`POS catalog returned HTTP ${res.status}: ${String(res.body || '').slice(0, 200)}`);
+    }
+    let rows = [];
+    try {
+      const parsed = JSON.parse(res.body);
+      rows = parsed.products || parsed.items || (Array.isArray(parsed) ? parsed : []);
+    } catch {
+      throw new Error(`POS catalog body could not be parsed: ${String(res.body || '').slice(0, 200)}`);
+    }
+    // `mapPosProduct` يعيد `id` نصاً، و`stock` هو الرصيد **المقيَّد بالفرع** المطلوب. ويُستبعد:
+    //   - `itemType !== 'product'`: الخدمات والمواد الخام ليست مبيعات نقطة بيع عادية،
+    //   - `trackSerials`: الفاتورة تحتاج أرقاماً تسلسلية حقيقية وإلا رُفضت لسبب ليس أداءً،
+    //   - `hasBom`: التجميعات تسلك مساراً آخر يخلط القياس.
+    return {
+      read: rows.length,
+      items: rows
+        .map((p) => ({
+          id: Number(p.id),
+          price: Number(p.retailPrice ?? p.retail_price ?? 0),
+          stock: Number(p.stock ?? 0),
+          serials: Boolean(p.trackSerials),
+          bom: Boolean(p.hasBom),
+          type: String(p.itemType || 'product'),
+          qty: 1,
+        }))
+        .filter((p) => p.id > 0 && p.price > 0 && p.stock > 0 && p.type === 'product' && !p.serials && !p.bom)
+        .sort((a, b) => b.stock - a.stock)
+        .slice(0, 120),
+    };
   }
 
-  // `mapPosProduct` يعيد `id` نصاً و`retailPrice` و`globalStock`. ويُستبعد:
-  //   - `itemType !== 'product'`: الخدمات والمواد الخام ليست مبيعات نقطة بيع عادية،
-  //   - `trackSerials`: الفاتورة تحتاج أرقاماً تسلسلية حقيقية وإلا رُفضت لسبب ليس أداءً،
-  //   - `hasBom`: التجميعات تسلك مساراً آخر يخلط القياس.
-  const sellable = rows
-    .map((p) => ({
-      id: Number(p.id),
-      price: Number(p.retailPrice ?? p.retail_price ?? 0),
-      stock: Number(p.globalStock ?? p.stock ?? 0),
-      serials: Boolean(p.trackSerials),
-      bom: Boolean(p.hasBom),
-      type: String(p.itemType || 'product'),
-      qty: 1,
-    }))
-    .filter((p) => p.id > 0 && p.price > 0 && p.stock > 0 && p.type === 'product' && !p.serials && !p.bom)
-    .sort((a, b) => b.stock - a.stock)
-    .slice(0, 120);
+  let branchId = 0;
+  let sellable = [];
+  const tried = [];
+  for (const branch of usable) {
+    const candidate = Number(branch.id);
+    const found = loadSellableForBranch(candidate);
+    tried.push(`${branch.name || '#' + candidate}: ${found.items.length}/${found.read}`);
+    if (found.items.length > 0) {
+      branchId = candidate;
+      sellable = found.items;
+      break;
+    }
+  }
 
   if (sellable.length === 0) {
     throw new Error(
-      `no sellable product in the POS catalog (${rows.length} rows read): each one is priced at zero, out of `
-      + 'stock, a service, serial-tracked or a BOM combo. Every sale would be refused before the transaction '
-      + 'opens and the run would measure nothing.',
+      'no branch has sellable stock. Each one was read with its own branch scope and none returned a '
+      + 'product that is priced, in stock at that branch, an ordinary product, not serial-tracked and not '
+      + `a BOM combo. Tried (sellable/read): ${tried.join(' · ')}. `
+      + 'Stock sitting in another branch's warehouse does not count: a POS sale draws on the selling '
+      + "branch's own default location.",
     );
   }
 

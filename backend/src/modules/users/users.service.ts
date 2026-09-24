@@ -241,8 +241,9 @@ export class UsersService {
 
     const allRows = await this.db.selectFrom('users').selectAll().where(this.tenantPredicate(actor)).orderBy('id', 'asc').execute();
     const branchMap = await this.loadBranchMap(allRows.map((row) => Number(row.id)), actor);
+    const allMappedUsers = allRows.map((row) => mapUserRow(row, branchMap.get(Number(row.id)) ?? []));
     const users = filterUsers(
-      allRows.map((row) => mapUserRow(row, branchMap.get(Number(row.id)) ?? [])),
+      allMappedUsers,
       normalizedQuery,
     );
 
@@ -266,8 +267,8 @@ export class UsersService {
         }));
 
     const paged = paginateRows(sanitizedUsers, query, { defaultSize: 10 });
-    const summary = summarizeUsers(sanitizedUsers);
-    const activeCount = sanitizedUsers.filter((u) => u.isActive !== false).length;
+    const summary = summarizeUsers(allMappedUsers);
+    const activeCount = allMappedUsers.filter((u) => u.isActive !== false).length;
     const scope = this.scope(actor);
     const planLimit = await this.getPlanLimitForTenant(scope.tenantId, actor, activeCount);
 

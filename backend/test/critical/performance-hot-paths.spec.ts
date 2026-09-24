@@ -414,6 +414,14 @@ function testLoadSuiteIsUsable(): void {
       /defaultStockLocationId/.test(sell) && /source: 'pos',[^]{0,40}branchId,/.test(sell),
       'pos-sell.js must resolve a branch with a default stock location and send it on every sale',
     );
+    // A branch with a default stock location is not the same as a branch with stock in it. The first
+    // branch on this tenant had an empty warehouse while 50,000 units sat in another branch's, and
+    // globalStock cannot tell the difference — only the branch-scoped catalog can, and only when
+    // branchId is passed to it, exactly as the cashier screen does.
+    assert.ok(
+      /pos-products\?limit=\d+&branchId=/.test(sell) && !/globalStock/.test(sell),
+      'pos-sell.js must read the catalogue scoped to the selling branch and use that stock, not the global figure',
+    );
     // Distributed load does not collide. One product under every VU does.
     assert.ok(
       /hotProductScenario/.test(sell),

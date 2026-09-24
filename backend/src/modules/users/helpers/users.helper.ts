@@ -105,12 +105,61 @@ export function filterUsers(users: UserViewModel[], normalizedQuery: UserListQue
   return filtered;
 }
 
-export function summarizeUsers(users: UserViewModel[]): { total: number; active: number; inactive: number } {
-  const active = users.filter((row) => row.isActive).length;
+export interface UserSummaryDto {
+  total: number;
+  totalItems: number;
+  active: number;
+  inactive: number;
+  superAdmins: number;
+  admins: number;
+  cashiers: number;
+  locked: number;
+  activePrivilegedUsers: number;
+}
+
+export function summarizeUsers(users: UserViewModel[]): UserSummaryDto {
+  let active = 0;
+  let superAdmins = 0;
+  let admins = 0;
+  let cashiers = 0;
+  let locked = 0;
+  let activePrivilegedUsers = 0;
+
+  const now = Date.now();
+
+  for (const user of users) {
+    const isUserActive = user.isActive !== false;
+    if (isUserActive) {
+      active++;
+    }
+
+    const lockedUntilMs = user.lockedUntil ? new Date(user.lockedUntil).getTime() : 0;
+    const isLocked = Number(user.failedLoginCount || 0) >= 5 || lockedUntilMs > now;
+    if (isLocked) {
+      locked++;
+    }
+
+    if (user.role === 'super_admin') {
+      superAdmins++;
+      if (isUserActive) activePrivilegedUsers++;
+    } else if (user.role === 'admin') {
+      admins++;
+      if (isUserActive) activePrivilegedUsers++;
+    } else if (user.role === 'cashier') {
+      cashiers++;
+    }
+  }
+
   return {
     total: users.length,
+    totalItems: users.length,
     active,
     inactive: users.length - active,
+    superAdmins,
+    admins,
+    cashiers,
+    locked,
+    activePrivilegedUsers,
   };
 }
 

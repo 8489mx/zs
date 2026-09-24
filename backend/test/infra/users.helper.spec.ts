@@ -99,8 +99,14 @@ const baseUsers = [
   const summary = summarizeUsers(baseUsers);
   assert.deepEqual(summary, {
     total: 2,
+    totalItems: 2,
     active: 1,
     inactive: 1,
+    superAdmins: 0,
+    admins: 1,
+    cashiers: 1,
+    locked: 0,
+    activePrivilegedUsers: 1,
   });
 })();
 
