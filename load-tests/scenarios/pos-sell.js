@@ -252,8 +252,8 @@ export function setup() {
       'no branch has sellable stock. Each one was read with its own branch scope and none returned a '
       + 'product that is priced, in stock at that branch, an ordinary product, not serial-tracked and not '
       + `a BOM combo. Tried (sellable/read): ${tried.join(' · ')}. `
-      + 'Stock sitting in another branch's warehouse does not count: a POS sale draws on the selling '
-      + "branch's own default location.",
+      + "Stock sitting in another branch's warehouse does not count: a POS sale draws on the "
+      + "selling branch's own default location.",
     );
   }
 

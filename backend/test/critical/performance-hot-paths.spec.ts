@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { strict as assert } from 'node:assert';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { AuthContext } from '../../src/core/auth/interfaces/auth-context.interface';
 import { CatalogProductService } from '../../src/modules/catalog/services/catalog-product.service';
@@ -215,6 +215,26 @@ async function run(): Promise<void> {
 function testLoadSuiteIsUsable(): void {
   const ROOT = join(__dirname, '..', '..', '..');
   const loadFile = (relative: string) => readFileSync(join(ROOT, 'load-tests', relative), 'utf8').replace(/\r\n/g, '\n');
+
+  // Parse every scenario the way k6 does, before checking anything about its contents.
+  //
+  // `node --check` is not that gate: it wraps the file as CommonJS, and it exited 0 on a pos-sell.js
+  // that k6 refused outright with "Line 255:42 Unexpected identifier". The cause was an apostrophe
+  // inside a single-quoted English string ("another branch's warehouse") that re-tokenised into
+  // something the CJS wrapper accepted and goja did not. A green local check, a dead production
+  // round. acorn in module mode flags it at 255:41 — one column off k6's own number.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const acorn = require('acorn');
+  const scenarioFiles = readdirSync(join(ROOT, 'load-tests', 'scenarios'))
+    .filter((name) => name.endsWith('.js'))
+    .map((name) => `scenarios/${name}`);
+  for (const relative of [...scenarioFiles, 'config.js']) {
+    try {
+      acorn.parse(loadFile(relative), { ecmaVersion: 2022, sourceType: 'module' });
+    } catch (error) {
+      assert.fail(`load-tests/${relative} does not parse as an ES module: ${(error as Error).message}`);
+    }
+  }
 
   const config = loadFile('config.js');
   assert.ok(/export function rampProfile/.test(config), 'load sizes must be adjustable from the environment');
