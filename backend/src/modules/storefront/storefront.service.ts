@@ -29,8 +29,11 @@ import {
 import { reserveLocationStock, releaseLocationStock } from '../../common/utils/location-stock-ledger';
 import {
   ALL_OPERATIONAL_LOCATIONS,
+  availableAcrossLocations,
+  normalizeStorefrontStockMode,
   pickLocationCoveringOrder,
   resolveBranchSellableLocations,
+  resolveStorefrontSalesStockMode,
 } from '../../common/engines/branch-sellable-locations.engine';
 
 /** Country-aware phone rule shared by order creation and edit (O56: edit used to accept Egypt only). */
@@ -241,6 +244,108 @@ export class StorefrontService {
 
     if (!tenant) throw new NotFoundException('المتجر غير موجود');
     return tenant;
+  }
+
+
+  /**
+   * المخازن التي يبيع منها المتجر الإلكتروني لهذه المنشأة — **يُستدعى من الكتالوج ومن إنشاء الطلب
+   * معاً**، فلا يعرض الكتالوج رصيداً لا يستطيع الطلب حجزه.
+   *
+   * كان الكتالوج يعرض الرصيد **العام** (`stock_qty - reserved_qty`) بينما الطلب يفحص مخزن الفرع.
+   * فعلى منشأة مخزونها في مخزن آخر: الزبون يرى «متاح» ويُرفض عند الطلب. توسيع مسار الطلب وحده
+   * عالج نصف المشكلة؛ هذا يقفل الجذر: الرقمان صارا من مصدر واحد.
+   */
+  private async resolveStorefrontStockScope(
+    tenantId: string,
+    settings: Map<string, string>,
+    branchId?: number | null,
+  ): Promise<{ branchId: number | null; locations: Array<{ id: number; branchId: number | null }> }> {
+    const branch = branchId
+      ? await this.db
+          .selectFrom('branches')
+          .select(['id', 'default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock'])
+          .where('id', '=', branchId)
+          .where(sql<boolean>`tenant_id = ${tenantId}`)
+          .executeTakeFirst()
+      : await this.db
+          .selectFrom('branches')
+          .select(['id', 'default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock'])
+          .where(sql<boolean>`tenant_id = ${tenantId}`)
+          .where('is_active', '=', true)
+          .orderBy('id', 'asc')
+          .executeTakeFirst();
+
+    if (!branch) return { branchId: null, locations: [] };
+
+    const resolvedBranchId = Number(branch.id);
+    const effectiveMode = resolveStorefrontSalesStockMode(
+      branch.sales_stock_mode,
+      normalizeStorefrontStockMode(settings.get('storefront_stock_mode')),
+    );
+
+    if (effectiveMode !== ALL_OPERATIONAL_LOCATIONS) {
+      const defaultLocationId = branch.default_stock_location_id ? Number(branch.default_stock_location_id) : null;
+      return {
+        branchId: resolvedBranchId,
+        locations: defaultLocationId ? [{ id: defaultLocationId, branchId: resolvedBranchId }] : [],
+      };
+    }
+
+    const allLocations = await this.db
+      .selectFrom('stock_locations')
+      .select(['id', 'location_type', 'branch_id'])
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('is_active', '=', true)
+      .execute();
+
+    return {
+      branchId: resolvedBranchId,
+      locations: resolveBranchSellableLocations({ ...branch, sales_stock_mode: effectiveMode }, resolvedBranchId, allLocations),
+    };
+  }
+
+  /**
+   * الرصيد المتاح لكل صنف عبر مخازن المتجر — نفس حساب `reserveLocationStock` (يشمل الرصيد غير
+   * المخصص لأي مخزن، لأن الحجز يحتسبه).
+   */
+  private async loadStorefrontAvailability(
+    tenantId: string,
+    locationIds: number[],
+  ): Promise<Map<number, number>> {
+    const rows = await this.db
+      .selectFrom('product_location_stock')
+      .select(['product_id', 'location_id', 'qty', 'reserved_qty'])
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where((eb) => eb.or([
+        eb('location_id', 'is', null),
+        ...(locationIds.length > 0 ? [eb('location_id', 'in', locationIds)] : []),
+      ]))
+      .execute();
+
+    const eligible = new Set(locationIds);
+    const assigned = new Map<number, Array<{ qty: number; reserved: number }>>();
+    const unassigned = new Map<number, { qty: number; reserved: number }>();
+
+    for (const row of rows) {
+      const productId = Number(row.product_id);
+      const entry = { qty: Number(row.qty || 0), reserved: Number(row.reserved_qty || 0) };
+      if (row.location_id == null) {
+        unassigned.set(productId, entry);
+      } else if (eligible.has(Number(row.location_id))) {
+        if (!assigned.has(productId)) assigned.set(productId, []);
+        assigned.get(productId)!.push(entry);
+      }
+    }
+
+    const available = new Map<number, number>();
+    const productIds = new Set<number>([...assigned.keys(), ...unassigned.keys()]);
+    for (const productId of productIds) {
+      available.set(
+        productId,
+        availableAcrossLocations(assigned.get(productId) || [], unassigned.get(productId) || { qty: 0, reserved: 0 }),
+      );
+    }
+    return available;
   }
 
   private async getTenantSettingsMap(tenantId: string): Promise<Map<string, string>> {
@@ -500,6 +605,12 @@ export class StorefrontService {
 
         const allowOutOfStock = isOutOfStockOrderingAllowed(settings, cleanSlug, tenant.activity_type);
 
+        const stockScope = await this.resolveStorefrontStockScope(tenant.id, settings);
+        const storefrontAvailability = await this.loadStorefrontAvailability(
+          tenant.id,
+          stockScope.locations.map((location) => location.id),
+        );
+
         const formattedProducts = products.map((p) => {
           let meta: Record<string, any> = {};
           if (p.metadata) {
@@ -508,7 +619,9 @@ export class StorefrontService {
             } catch {}
           }
 
-          const rawStock = Math.max(0, Number(p.stock_qty ?? 0) - Number(p.reserved_qty ?? 0));
+          // الرصيد المعروض هو ما يستطيع مسار الطلب حجزه فعلاً، لا الرصيد العام. عرض الرصيد
+          // العام كان يجعل الزبون يرى «متاح» ثم يُرفض عند الطلب — نفس الرقم من نفس المخازن الآن.
+          const rawStock = storefrontAvailability.get(Number(p.id)) ?? 0;
           const stockQty = allowOutOfStock ? (rawStock > 0 ? rawStock : 999) : rawStock;
           const inStock = allowOutOfStock ? true : (rawStock > 0);
           const isLowStock = !allowOutOfStock && rawStock > 0 && rawStock <= 5;
@@ -928,16 +1041,11 @@ export class StorefrontService {
       ? Number(targetBranch.default_stock_location_id)
       : null;
 
-    if (targetBranch && targetBranch.sales_stock_mode === ALL_OPERATIONAL_LOCATIONS && !allowOutOfStock) {
-      const allLocations = await this.db
-        .selectFrom('stock_locations')
-        .select(['id', 'location_type', 'branch_id'])
-        .where(sql<boolean>`tenant_id = ${tenant.id}`)
-        .where('is_active', '=', true)
-        .execute();
-      const eligible = resolveBranchSellableLocations(targetBranch, targetBranchId, allLocations);
+    if (!allowOutOfStock) {
+      // نفس المخازن التي حسب منها الكتالوج رصيده المعروض.
+      const eligible = (await this.resolveStorefrontStockScope(tenant.id, settings, targetBranchId)).locations;
 
-      if (eligible.length > 0) {
+      if (eligible.length > 1) {
         const requiredByProduct = new Map<number, number>();
         for (const item of validatedItems) {
           const productId = Number(item.productId);
@@ -2476,6 +2584,7 @@ export class StorefrontService {
     if (payload.snapchatPixelId !== undefined) entries.push({ key: 'storefront_snapchat_pixel_id', value: payload.snapchatPixelId });
     if (payload.pickupEnabled !== undefined) entries.push({ key: 'storefront_pickup_enabled', value: payload.pickupEnabled });
     if (payload.allowOutOfStockOrders !== undefined) entries.push({ key: 'storefront_allow_out_of_stock', value: payload.allowOutOfStockOrders });
+    if (payload.stockMode !== undefined) entries.push({ key: 'storefront_stock_mode', value: normalizeStorefrontStockMode(payload.stockMode) });
     this.invalidateCatalogCache();
 
     for (const e of entries) {

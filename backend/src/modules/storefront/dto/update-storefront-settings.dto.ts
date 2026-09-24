@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpdateStorefrontSettingsDto {
   @IsOptional()
@@ -184,4 +184,18 @@ export class UpdateStorefrontSettingsDto {
   @IsOptional()
   @IsBoolean()
   allowOutOfStockOrders?: boolean;
+
+  /**
+   * من أي مخازن يبيع المتجر الإلكتروني:
+   *   `follow_branch`   — كإعداد الفرع (الافتراضي، فلا يتغيّر سلوك منشأة قائمة)
+   *   `branch_only`     — مخزن الفرع وحده، حتى لو كان الكاشير يبيع من كل المخازن
+   *   `all_operational` — كل المخازن التشغيلية، حتى لو كان الكاشير مقيَّداً
+   *
+   * التجاوز موجود لحالة حقيقية: مالكٌ عنده عدة مخازن يريد محلّه يبيع من كلها بينما موقعه لا يبيع
+   * إلا مما في المحل. والكتالوج يعرض الرصيد المحسوب من **نفس** هذه المخازن، فلا يرى الزبون صنفاً
+   * لا يستطيع طلبه.
+   */
+  @IsOptional()
+  @IsIn(['follow_branch', 'branch_only', 'all_operational'])
+  stockMode?: 'follow_branch' | 'branch_only' | 'all_operational';
 }

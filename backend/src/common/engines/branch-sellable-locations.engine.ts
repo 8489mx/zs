@@ -113,3 +113,47 @@ export function pickLocationCoveringOrder(
   }
   return null;
 }
+
+/** أوضاع مخزون المتجر الإلكتروني. الافتراضي يتبع إعداد الفرع، فلا يتغيّر سلوك منشأة قائمة. */
+export const STOREFRONT_STOCK_MODES = ['follow_branch', 'branch_only', 'all_operational'] as const;
+export type StorefrontStockMode = (typeof STOREFRONT_STOCK_MODES)[number];
+
+export function normalizeStorefrontStockMode(value: unknown): StorefrontStockMode {
+  const clean = String(value ?? '').trim();
+  return (STOREFRONT_STOCK_MODES as readonly string[]).includes(clean)
+    ? (clean as StorefrontStockMode)
+    : 'follow_branch';
+}
+
+/**
+ * وضع البيع الفعلي للمتجر: يتبع الفرع افتراضياً، ويتجاوزه صراحةً إن اختار المالك.
+ *
+ * السبب في وجود تجاوز أصلاً: مالكٌ عنده عشرة مخازن قد يريد محلّه يبيع من كلها بينما موقعه لا يبيع
+ * إلا مما في المحل. وهو اختيار مشروع، والإعداد المشترك وحده لا يعبّر عنه.
+ */
+export function resolveStorefrontSalesStockMode(
+  branchSalesStockMode: string | null | undefined,
+  storefrontMode: StorefrontStockMode,
+): string {
+  if (storefrontMode === 'branch_only') return 'branch_only';
+  if (storefrontMode === 'all_operational') return ALL_OPERATIONAL_LOCATIONS;
+  return String(branchSalesStockMode || 'branch_only');
+}
+
+/**
+ * الرصيد المتاح لصنف عبر مجموعة مخازن — **نفس حساب `reserveLocationStock`**.
+ *
+ * هذا هو الرقم الذي يجب أن يعرضه الكتالوج. كان الكتالوج يعرض الرصيد **العام**
+ * (`stock_qty - reserved_qty`) بينما الطلب يفحص المخزن، فيرى الزبون «متاح» ويُرفض عند الطلب.
+ * والرصيد غير المخصص لأي مخزن (`location_id IS NULL`) يدخل في الحساب لأن الحجز يحتسبه أيضاً.
+ */
+export function availableAcrossLocations(
+  perLocation: Array<{ qty: number; reserved: number }>,
+  unassigned: { qty: number; reserved: number } = { qty: 0, reserved: 0 },
+): number {
+  const assigned = perLocation.reduce(
+    (sum, row) => sum + Math.max(0, Number(row.qty || 0) - Number(row.reserved || 0)),
+    0,
+  );
+  return assigned + Math.max(0, Number(unassigned.qty || 0) - Number(unassigned.reserved || 0));
+}

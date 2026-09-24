@@ -4,8 +4,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ALL_OPERATIONAL_LOCATIONS,
+  availableAcrossLocations,
+  normalizeStorefrontStockMode,
   pickLocationCoveringOrder,
   resolveBranchSellableLocations,
+  resolveStorefrontSalesStockMode,
 } from '../../src/common/engines/branch-sellable-locations.engine';
 
 /**
@@ -125,13 +128,63 @@ function testBothPathsUseTheEngine(): void {
   );
 }
 
+
+/** STK-4 — الكتالوج يعرض ما يستطيع الطلب حجزه، لا الرصيد العام. */
+function testCatalogueShowsWhatCanBeReserved(): void {
+  // نفس حساب `reserveLocationStock`: مجموع المتاح في المخازن المؤهّلة + الرصيد غير المخصص.
+  assert.equal(availableAcrossLocations([{ qty: 10, reserved: 3 }, { qty: 5, reserved: 0 }]), 12);
+  assert.equal(
+    availableAcrossLocations([{ qty: 10, reserved: 3 }], { qty: 4, reserved: 1 }),
+    10,
+    'stock not assigned to any location counts, because the reservation counts it',
+  );
+  assert.equal(availableAcrossLocations([{ qty: 2, reserved: 9 }]), 0, 'over-reserved never goes negative');
+  assert.equal(availableAcrossLocations([]), 0);
+
+  const storefront = codeOf(read('modules/storefront/storefront.service.ts'));
+  assert.ok(
+    !/const rawStock = Math\.max\(0, Number\(p\.stock_qty/.test(storefront),
+    'the catalogue must not advertise the GLOBAL figure: that is what let a customer see stock the order path refused',
+  );
+  assert.ok(
+    /storefrontAvailability\.get\(Number\(p\.id\)\)/.test(storefront),
+    'the catalogue must read the availability computed from the same warehouses the order will reserve from',
+  );
+  assert.ok(
+    /resolveStorefrontStockScope\(/.test(storefront),
+    'catalogue and order must resolve their warehouses through one method',
+  );
+}
+
+/** STK-5 — المتجر يستطيع مخالفة الكاشير، والافتراضي أن يتبعه. */
+function testStorefrontModeOverride(): void {
+  assert.equal(normalizeStorefrontStockMode(undefined), 'follow_branch', 'an unset tenant must behave exactly as before');
+  assert.equal(normalizeStorefrontStockMode(''), 'follow_branch');
+  assert.equal(normalizeStorefrontStockMode('nonsense'), 'follow_branch', 'an unknown value must not silently widen the scope');
+  assert.equal(normalizeStorefrontStockMode('branch_only'), 'branch_only');
+
+  // يتبع الفرع افتراضياً، في الاتجاهين.
+  assert.equal(resolveStorefrontSalesStockMode(ALL_OPERATIONAL_LOCATIONS, 'follow_branch'), ALL_OPERATIONAL_LOCATIONS);
+  assert.equal(resolveStorefrontSalesStockMode('branch_only', 'follow_branch'), 'branch_only');
+
+  // الحالة التي طُلب من أجلها: المحل يبيع من كل المخازن والموقع من مخزن الفرع وحده.
+  assert.equal(
+    resolveStorefrontSalesStockMode(ALL_OPERATIONAL_LOCATIONS, 'branch_only'),
+    'branch_only',
+    'a merchant whose till draws on ten warehouses may still want the website to sell only what is in the shop',
+  );
+  assert.equal(resolveStorefrontSalesStockMode('branch_only', 'all_operational'), ALL_OPERATIONAL_LOCATIONS);
+}
+
 function run(): void {
   testDefaultModeIsUnchanged();
   testAllOperationalLocations();
   testSingleLocationPick();
   testBothPathsUseTheEngine();
+  testCatalogueShowsWhatCanBeReserved();
+  testStorefrontModeOverride();
   // eslint-disable-next-line no-console
-  console.log('branch-sellable-locations.spec: STK-1..STK-3 hold — the website and the till sell from the same warehouses');
+  console.log('branch-sellable-locations.spec: STK-1..STK-5 hold — the website and the till sell from the same warehouses, and the catalogue shows only what can be reserved');
 }
 
 try {
