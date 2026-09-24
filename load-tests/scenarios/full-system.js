@@ -73,6 +73,12 @@ const rateLimited = new Counter('fs_rate_limited');
 const unitsSold = new Counter('fs_units_sold');
 const unitsReturned = new Counter('fs_units_returned');
 const unitsPurchased = new Counter('fs_units_purchased');
+/**
+ * رفض بسبب سقف ائتمان العميل ليس فشلاً — هو الحارس يعمل. الجولة الثانية رفضت 282 فاتورة آجلة
+ * بـ`CUSTOMER_CREDIT_LIMIT` لأن السيناريو يقصف مئة عميل بلا توقف حتى يمتلئ رصيدهم، وهو سلوك
+ * صحيح من السيرفر وخطأ في المحاكاة. يُعَدّ على حدة ولا يُحسب ضمن نسبة النجاح.
+ */
+const creditLimitReached = new Counter('fs_credit_limit_reached');
 
 function cashierCredentials() {
   const raw = String(__ENV.CASHIERS || '').trim();
@@ -166,7 +172,8 @@ function ensureOpenShift(session, branchId) {
 
 export function setup() {
   const sessions = cashierCredentials().map((c) => loginOrDie(c.username, c.password));
-  const admin = sessions[0];
+  // جلسة المالك من `AUTH_USERNAME`/`AUTH_PASSWORD`: للتقارير ولقراءات الإعداد التي لا يملكها كاشير.
+  const admin = loginOrDie();
 
   // --- فرع فيه بضاعة فعلاً (لا فرع «له مخزن» فقط) ---
   const branches = (jsonOrDie(http.get(`${BASE_URL}/api/branches`, sessionParams(admin)), 'branches').branches || [])
@@ -176,6 +183,7 @@ export function setup() {
   }
 
   let branchId = 0;
+  let locationId = 0;
   let sellable = [];
   const tried = [];
   for (const branch of branches) {
@@ -201,19 +209,24 @@ export function setup() {
       .sort((a, b) => b.stock - a.stock)
       .slice(0, 150);
     tried.push(`${branch.name || '#' + candidate}: ${items.length}/${rows.length}`);
-    if (items.length > 0) { branchId = candidate; sellable = items; break; }
+    if (items.length > 0) {
+      branchId = candidate;
+      locationId = Number(branch.defaultStockLocationId);
+      sellable = items;
+      break;
+    }
   }
   if (sellable.length === 0) {
     throw new Error(`no branch has sellable stock. Tried (sellable/read): ${tried.join(' · ')}`);
   }
 
   // --- عملاء للبيع الآجل، وموردون للمشتريات ---
-  const customers = (jsonOrDie(http.get(`${BASE_URL}/api/customers?pageSize=200`, sessionParams(admin)), 'customers').customers || [])
-    .map((c) => Number(c.id)).filter((id) => id > 0).slice(0, 200);
-  const suppliersRes = http.get(`${BASE_URL}/api/suppliers?pageSize=200`, sessionParams(admin));
+  const customers = (jsonOrDie(http.get(`${BASE_URL}/api/customers?pageSize=500`, sessionParams(admin)), 'customers').customers || [])
+    .map((c) => Number(c.id)).filter((id) => id > 0).slice(0, 500);
+  const suppliersRes = http.get(`${BASE_URL}/api/suppliers?pageSize=500`, sessionParams(admin));
   let suppliers = [];
   try {
-    suppliers = (JSON.parse(suppliersRes.body).suppliers || []).map((s) => Number(s.id)).filter((id) => id > 0).slice(0, 200);
+    suppliers = (JSON.parse(suppliersRes.body).suppliers || []).map((s) => Number(s.id)).filter((id) => id > 0).slice(0, 500);
   } catch {}
 
   if (customers.length === 0) {
@@ -241,12 +254,12 @@ export function setup() {
 
   // eslint-disable-next-line no-console
   console.log(
-    `[setup] ${sessions.length} cashiers · branch #${branchId} · ${sellable.length} sellable products · `
+    `[setup] ${sessions.length} cashiers + 1 owner · branch #${branchId} (location #${locationId}) · ${sellable.length} sellable products · `
     + `${customers.length} customers · ${suppliers.length} suppliers · ${cart.length} storefront items. `
     + 'Sales, returns and purchases are NOT reversible - this must not be a live tenant.',
   );
 
-  return { sessions, sellable, hot: sellable[0], branchId, customers, suppliers, cart };
+  return { sessions, admin, sellable, hot: sellable[0], branchId, locationId, customers, suppliers, cart };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -323,6 +336,11 @@ function postSale(session, items, branchId, extra, durationMetric, successMetric
   durationMetric.add(Date.now() - start);
 
   const ok = check(res, { [`${label} posted`]: (r) => r.status === 200 || r.status === 201 });
+  if (!ok && String(res.body || '').includes('CUSTOMER_CREDIT_LIMIT')) {
+    // الحارس يعمل: العميل بلغ سقفه. لا يُحسب فشلاً ولا نجاحاً.
+    creditLimitReached.add(1);
+    return null;
+  }
   successMetric.add(ok ? 1 : 0);
   if (!ok) { recordFailure(res, label); return null; }
 
@@ -409,11 +427,14 @@ export function purchaseScenario(data) {
   const items = pickItems(data.sellable, 2).map((item) => ({ productId: item.id, qty: 5, cost: item.cost }));
 
   const start = Date.now();
+  // `LOCATION_REQUIRED`: سطر الشراء يحتاج **مكان استلام**، والفرع وحده لا يكفي. رفض 30 من 197 في
+  // الجولة الثانية — والباقي نجح لأن أصنافه كان لها صف مخزون قائم يستنتج منه المكان.
   const res = http.post(`${BASE_URL}/api/purchases`, JSON.stringify({
     supplierId,
     paymentType: 'credit',
     branchId: data.branchId,
-    items,
+    locationId: data.locationId,
+    items: items.map((item) => ({ ...item, locationId: data.locationId })),
     note: 'load test purchase',
   }), writeParams(session, {
     ...clientIpHeaders(__VU),
@@ -458,8 +479,15 @@ export function catalogSyncScenario(data) {
 }
 
 /** تقارير مالية تُقرأ بينما كل ما سبق يكتب. */
+/**
+ * التقارير تُقرأ بجلسة **المالك/المحاسب** لا بجلسة كاشير.
+ *
+ * الجولة الثانية ردّت 403 على 244 طلباً: التقارير المحاسبية تحت
+ * `@RequireAnyPermission('accounting', 'accounts')`، وليس من عمل موظف الكاشير أن يقرأ الميزانية.
+ * محاكاةُ قراءتها بحساب كاشير تقيس رفض التفويض، لا التقارير تحت الحمل.
+ */
 export function reportScenario(data) {
-  const params = sessionParams(sessionFor(data), clientIpHeaders(__VU));
+  const params = sessionParams(data.admin, clientIpHeaders(__VU));
   // المسار تحت `api/accounting` لا `api` (`@Controller('api/accounting')`). العنوان الخاطئ ردّ 404
   // في ثلاث مللي ثانية، فبدت التقارير «تفشل» بينما لم تُستدعَ أصلاً.
   const reports = ['financial-summary', 'receivables-payables', 'inventory-value', 'cash-movement'];

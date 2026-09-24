@@ -501,6 +501,22 @@ function testLoadSuiteIsUsable(): void {
       /loggedPerLabel/.test(full) && !/__VU <= 2/.test(full),
       'the refusal log must be gated per path, not on __VU: k6 numbers VUs globally across scenarios',
     );
+    // A credit limit being enforced is the guard working. Counting it as a failed check makes the
+    // run red for a correct refusal and buries the failures that are real.
+    assert.ok(
+      /CUSTOMER_CREDIT_LIMIT/.test(full) && /creditLimitReached\.add\(1\)/.test(full),
+      'a refusal on the customer credit limit must be counted apart, not scored as a failure',
+    );
+    // A purchase line needs its receiving location; the branch alone is not enough (LOCATION_REQUIRED).
+    assert.ok(
+      /locationId: data\.locationId/.test(full),
+      'a purchase line must carry the receiving location, or it is refused with LOCATION_REQUIRED',
+    );
+    // Reports sit behind accounting permissions. Reading them as a till operator measures a 403.
+    assert.ok(
+      /sessionParams\(data\.admin/.test(full),
+      'financial reports must be read with the owner session: a cashier gets 403 and the run measures authorization',
+    );
   }
 
   // The integrity questions are the point of the readiness run; the scenario is only how they get asked.
