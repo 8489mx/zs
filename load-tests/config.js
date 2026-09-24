@@ -271,3 +271,26 @@ export function writeParams(session, extraHeaders) {
   }
   return { headers, cookies };
 }
+
+/**
+ * هل هذا الردّ جمودٌ أو تعارض تسلسل؟
+ *
+ * كل السيناريوهات كانت تفتّش عن `40P01` في نصّ الرد — و**لا يصل قط**:
+ * `postgres-error.mapper.ts` يترجم `40P01` و`40001` إلى `STOCK_CONFLICT` برمز 409 ورسالة عربية
+ * قبل أن يخرج الرد. فالكاشف الموضوع لالتقاط الجمود كان أعمى عن كل جمود **تعامل معه التطبيق**،
+ * أي عن كل جمود فعلياً.
+ *
+ * ظهر ذلك في جولة 24 سبتمبر 2026: العدّاد قال صفراً بينما `pg_stat_database.deadlocks` قال واحداً،
+ * وكانت بيعة واحدة من 459 على الصنف الساخن قد رُدّت بـ409 قابل لإعادة المحاولة — تعاملٌ سليم من
+ * السيرفر، وعمًى في أداة القياس.
+ *
+ * ملاحظة على القراءة: 409 هنا **ليس فشلاً في النظام**، هو الإخبار الصحيح بأن على العميل أن يعيد
+ * المحاولة. لكنه يُعَدّ، لأن تكراره يعني أن ترتيب الأقفال لم يعد يمنع التزاحم.
+ */
+export function isLockConflict(res) {
+  if (!res) return false;
+  if (Number(res.status) === 409) return true;
+  const body = String(res.body || '');
+  return body.includes('40P01') || body.includes('40001')
+    || body.includes('STOCK_CONFLICT') || body.toLowerCase().includes('deadlock');
+}

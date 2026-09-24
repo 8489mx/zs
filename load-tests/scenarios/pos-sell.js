@@ -33,6 +33,7 @@ import {
   clientIpHeaders,
   writerIpHeaders,
   classifyWriteFailure,
+  isLockConflict,
   selectOrderableItems,
   buildOrderPayload,
   loginOrDie,
@@ -355,7 +356,7 @@ export function cashierScenario(data) {
       buildOrderPayload(item, __VU, 'Nasr City, Cairo'),
       { headers: { ...DEFAULT_HEADERS, ...writerIpHeaders(__VU, __ITER) } },
     );
-    if (res.body && res.body.toLowerCase().includes('deadlock')) deadlocks.add(1);
+    if (isLockConflict(res)) deadlocks.add(1);
     const accepted = check(res, { 'online order accepted': (r) => r.status === 200 || r.status === 201 });
     if (!accepted) {
       onlineRejects.add(1);
@@ -391,7 +392,7 @@ function postSale(session, items, branchId, durationMetric, successMetric) {
   durationMetric.add(Date.now() - start);
 
   const body = String(res.body || '');
-  if (body.includes('40P01') || body.toLowerCase().includes('deadlock')) deadlocks.add(1);
+  if (isLockConflict(res)) deadlocks.add(1);
 
   const ok = check(res, {
     'sale posted': (r) => r.status === 200 || r.status === 201,

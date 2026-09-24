@@ -24,6 +24,7 @@ import {
   clientIpHeaders,
   writerIpHeaders,
   classifyWriteFailure,
+  isLockConflict,
   selectOrderableItems,
   buildOrderPayload,
   loginOrDie,
@@ -158,9 +159,7 @@ export function storefrontScenario(data) {
   });
   combinedDuration.add(Date.now() - start);
 
-  if (res.body && (res.body.includes('40P01') || res.body.toLowerCase().includes('deadlock'))) {
-    deadlocksCount.add(1);
-  }
+  if (isLockConflict(res)) deadlocksCount.add(1);
 
   const created = check(res, {
     'storefront order created or valid': (r) => r.status === 200 || r.status === 201,
@@ -195,9 +194,7 @@ export function storefrontScenario(data) {
         null,
         { headers: { ...DEFAULT_HEADERS, ...visitor, 'x-order-token': accessToken } },
       );
-      if (cancelRes.body && (cancelRes.body.includes('40P01') || cancelRes.body.toLowerCase().includes('deadlock'))) {
-        deadlocksCount.add(1);
-      }
+      if (isLockConflict(cancelRes)) deadlocksCount.add(1);
       check(cancelRes, {
         'storefront order cancelled, reservation returned': (r) => r.status === 200 || r.status === 201,
       });

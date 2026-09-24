@@ -40,6 +40,7 @@ import {
   clientIpHeaders,
   writerIpHeaders,
   classifyWriteFailure,
+  isLockConflict,
   selectOrderableItems,
   buildOrderPayload,
 } from '../config.js';
@@ -192,9 +193,7 @@ export default function (data) {
     orderDuration.add(Date.now() - start);
 
     // Detect PostgreSQL Deadlock (40P01)
-    if (res.body && (res.body.includes('40P01') || res.body.toLowerCase().includes('deadlock'))) {
-      deadlocksDetected.add(1);
-    }
+    if (isLockConflict(res)) deadlocksDetected.add(1);
 
     const isSuccess = check(res, {
       'order status is 200 or 201': (r) => r.status === 200 || r.status === 201,
@@ -254,9 +253,7 @@ export default function (data) {
     );
     cancelDuration.add(Date.now() - cancelStart);
 
-    if (cancelRes.body && (cancelRes.body.includes('40P01') || cancelRes.body.toLowerCase().includes('deadlock'))) {
-      deadlocksDetected.add(1);
-    }
+    if (isLockConflict(cancelRes)) deadlocksDetected.add(1);
 
     const cancelled = check(cancelRes, {
       'order cancelled, reservation returned': (r) => r.status === 200 || r.status === 201,

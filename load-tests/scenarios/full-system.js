@@ -41,6 +41,7 @@ import {
   clientIpHeaders,
   writerIpHeaders,
   classifyWriteFailure,
+  isLockConflict,
   selectOrderableItems,
   buildOrderPayload,
   loginOrDie,
@@ -378,7 +379,7 @@ const loggedPerLabel = {};
 
 function recordFailure(res, label) {
   const body = String(res.body || '');
-  if (body.includes('40P01') || body.toLowerCase().includes('deadlock')) deadlocks.add(1);
+  if (isLockConflict(res)) deadlocks.add(1);
   const reason = classifyWriteFailure(res);
   if (reason === 'rate_limited') rateLimited.add(1);
   else if (reason === 'server_error' || reason === 'no_response') serverErrors.add(1);

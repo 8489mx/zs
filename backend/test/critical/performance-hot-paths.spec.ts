@@ -453,6 +453,24 @@ function testLoadSuiteIsUsable(): void {
     );
   }
 
+  // A deadlock detector that cannot see a deadlock.
+  //
+  // Every scenario searched the response body for '40P01'. It never arrives: postgres-error.mapper.ts
+  // translates 40P01 and 40001 into STOCK_CONFLICT with HTTP 409 and an Arabic message before the
+  // response leaves. So the detector was blind to every deadlock the application HANDLED — which is
+  // all of them. On 24 Sep 2026 it reported zero while pg_stat_database.deadlocks said one.
+  assert.ok(
+    /export function isLockConflict/.test(config) && /STOCK_CONFLICT/.test(config) && /409/.test(config),
+    'the lock-conflict detector must know the mapped code, not just the raw SQLSTATE the app never returns',
+  );
+  for (const scenario of ['full-system.js', 'pos-sell.js', 'storefront-checkout.js', 'stress-all.js']) {
+    const source = codeOf(loadFile(join('scenarios', scenario)));
+    assert.ok(
+      /isLockConflict\(/.test(source) && !/includes\('40P01'\)/.test(source),
+      `${scenario} must detect lock conflicts through isLockConflict: grepping the body for 40P01 finds nothing`,
+    );
+  }
+
   // full-system.js is the readiness run: it is the only scenario that touches every financial path
   // at once, and the only reason to trust its "zero deadlocks" is that every path actually fired.
   {
