@@ -237,7 +237,9 @@ export function loginOrDie(username = AUTH_USERNAME, password = AUTH_PASSWORD) {
     console.warn(`could not spot the session cookie in the login response; falling back to "${cookieName}"`);
   }
 
-  return { username, sessionId, cookieName, csrfName, csrfValue };
+  // كلمة المرور تُعاد لأن إقفال الوردية يتحقق من كلمة مرور **الكاشير نفسه**
+  // (`assertCurrentUserPassword`) لا من رمز مدير. تبقى في ذاكرة k6 وحدها.
+  return { username, password, sessionId, cookieName, csrfName, csrfValue };
 }
 
 /** ترويسات ومعاملات طلب **قراءة** بجلسة. */

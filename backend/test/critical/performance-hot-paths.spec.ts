@@ -287,7 +287,7 @@ function testLoadSuiteIsUsable(): void {
   // using it silently fails to control the address it thinks it controls. Comments are stripped
   // first: the scenarios explain the distinction in prose, and prose is not what runs.
   const codeOf = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
-  for (const scenario of ['auth-login-burst.js', 'pos-catalog-sync.js', 'storefront-checkout.js', 'stress-all.js', 'pos-sell.js']) {
+  for (const scenario of ['auth-login-burst.js', 'pos-catalog-sync.js', 'storefront-checkout.js', 'stress-all.js', 'pos-sell.js', 'full-system.js']) {
     const source = codeOf(loadFile(join('scenarios', scenario)));
     assert.ok(
       !/X-Forwarded-For/.test(source),
@@ -451,6 +451,53 @@ function testLoadSuiteIsUsable(): void {
       /trackSerials|serials/.test(sell) && /hasBom|bom/.test(sell),
       'pos-sell.js must skip serial-tracked and BOM items: they fail for reasons that are not performance',
     );
+  }
+
+  // full-system.js is the readiness run: it is the only scenario that touches every financial path
+  // at once, and the only reason to trust its "zero deadlocks" is that every path actually fired.
+  {
+    const full = codeOf(loadFile(join('scenarios', 'full-system.js')));
+    for (const [what, pattern] of [
+      ['returns', /\/api\/returns/],
+      ['credit sales', /paymentType: 'credit'/],
+      ['purchases', /\/api\/purchases/],
+      ['storefront orders', /\/orders`/],
+      ['catalogue sync', /pos-products\/version/],
+      ['reports under write load', /\/api\/reports\//],
+    ] as Array<[string, RegExp]>) {
+      assert.ok(pattern.test(full), `full-system.js must exercise ${what}: a path it never touches is a path it never cleared`);
+    }
+    assert.ok(
+      /preflight sale was refused/.test(full),
+      "full-system.js must post one real sale in setup and abort on the server's own words",
+    );
+    // Closing a shift verifies the CASHIER's own password, not a manager PIN.
+    assert.ok(
+      /managerPin: session\.password/.test(full),
+      'shift close authenticates the cashier themselves (assertCurrentUserPassword), so pass their password',
+    );
+    // A run that measures nothing is the failure mode this suite keeps re-learning.
+    assert.ok(
+      /CUSTOMER_REQUIRED_FOR_CREDIT/.test(full),
+      'full-system.js must refuse to start without customers, or the credit half measures refusals',
+    );
+  }
+
+  // The integrity questions are the point of the readiness run; the scenario is only how they get asked.
+  {
+    const sqlPath = join(ROOT, 'load-tests', 'verify-integrity.sql');
+    assert.ok(existsSync(sqlPath), 'load-tests/verify-integrity.sql must exist: the run proves nothing without it');
+    const checks = readFileSync(sqlPath, 'utf8');
+    for (const [what, needle] of [
+      ['unbalanced journals', 'unbalanced_entries'],
+      ['stock ledger drift', 'stock_ledger_mismatches'],
+      ['sales with no journal', 'sales_without_journal'],
+      ['unresolved posting failures', 'open_posting_failures'],
+      ['orphan reservations', 'orphan_reservations'],
+      ['returns with no reversing journal', 'returns_without_journal'],
+    ] as Array<[string, string]>) {
+      assert.ok(checks.includes(needle), `the integrity check for ${what} must stay in verify-integrity.sql`);
+    }
   }
 
   // The cart builder is the single place that decides what is orderable, so the two conditions that
