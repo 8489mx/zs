@@ -205,7 +205,27 @@ export class SessionService {
     };
 
     let planFeatures: string[] = [];
-    const effectivePlanId = tenant.plan_id || 'plan_basic';
+    let effectivePlanId = tenant.plan_id;
+    if (!effectivePlanId) {
+      try {
+        const activeSub = await this.db
+          .selectFrom('tenant_subscriptions as s')
+          .leftJoin('saas_plans as p', 'p.id', 's.plan_id')
+          .select(['p.feature_plan_id'])
+          .where('s.tenant_id', '=', tenant.id)
+          .where('s.status', 'in', ['active', 'past_due'])
+          .orderBy('s.created_at', 'desc')
+          .executeTakeFirst();
+        if (activeSub?.feature_plan_id) {
+          effectivePlanId = activeSub.feature_plan_id;
+        } else {
+          effectivePlanId = 'plan_basic';
+        }
+      } catch {
+        effectivePlanId = 'plan_basic';
+      }
+    }
+
     try {
       const pFeatures = await this.db.selectFrom('plan_features').select('feature_code').where('plan_id', '=', effectivePlanId).execute();
       planFeatures = pFeatures.map(f => f.feature_code);
@@ -237,7 +257,7 @@ export class SessionService {
       trialEndsAt: trialEndsAt ? trialEndsAt.toISOString() : null,
       trialDaysRemaining,
       features: activeFeatures,
-      planId: tenant.plan_id ? String(tenant.plan_id) : null,
+      planId: effectivePlanId ? String(effectivePlanId) : null,
       extraFeatures: extraFeatures,
       createdAt: tenant.created_at || null,
     };

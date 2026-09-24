@@ -15,6 +15,7 @@ import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { generatePhoneSearchVariants, validateAndNormalizePhone } from '../../core/utils/phone-utils';
+import { resolveUserLimit, isUserLimitReached } from './engines/user-plan-limit.engine';
 
 @Injectable()
 export class UsersService {
@@ -137,6 +138,104 @@ export class UsersService {
     `.execute(this.db);
   }
 
+  async getPlanLimitForTenant(tenantId: string, actor: AuthContext, activeUsersCount: number): Promise<{
+    maxUsers: number | null;
+    isUnlimited: boolean;
+    isLimitReached: boolean;
+    activeUsersCount: number;
+    planName: string;
+    planCode: string | null;
+  }> {
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
+    const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(tenantId);
+    const isPlatformAdmin = actor.role === 'super_admin' && isPlatformTenant;
+
+    if (isPlatformAdmin) {
+      return {
+        maxUsers: null,
+        isUnlimited: true,
+        isLimitReached: false,
+        activeUsersCount,
+        planName: 'مالك المنظومة (غير مقيد)',
+        planCode: 'PLATFORM',
+      };
+    }
+
+    const tenant = await this.db
+      .selectFrom('tenants')
+      .select(['id', 'plan_id', 'status'])
+      .where('id', '=', tenantId)
+      .executeTakeFirst();
+
+    // 1. فحص الاشتراك النشط من tenant_subscriptions مربوطاً بـ saas_plans
+    let activeSub: any;
+    try {
+      activeSub = await this.db
+        .selectFrom('tenant_subscriptions as s')
+        .leftJoin('saas_plans as p', 'p.id', 's.plan_id')
+        .select([
+          'p.max_users',
+          'p.code as plan_code',
+          'p.name as plan_name',
+          'p.feature_plan_id',
+        ])
+        .where('s.tenant_id', '=', tenantId)
+        .where('s.status', 'in', ['active', 'past_due'])
+        .orderBy('s.created_at', 'desc')
+        .executeTakeFirst();
+    } catch {
+      activeSub = undefined;
+    }
+
+    // 2. قراءة الباقة من saas_plans بالربط: tenants.plan_id ⇄ saas_plans.code أو feature_plan_id
+    let planFromDb: { max_users: number | null; code: string; name: string } | undefined;
+    if (tenant?.plan_id) {
+      const cleanPlan = tenant.plan_id.trim();
+      const codeUpper = cleanPlan.replace(/^plan_/, '').toUpperCase();
+      try {
+        planFromDb = await this.db
+          .selectFrom('saas_plans')
+          .select(['max_users', 'code', 'name'])
+          .where((eb) =>
+            eb.or([
+              eb('feature_plan_id', '=', cleanPlan),
+              eb('code', '=', codeUpper),
+              eb(sql<string>`LOWER(code)`, '=', cleanPlan.toLowerCase()),
+            ]),
+          )
+          .where('is_active', '=', true)
+          .executeTakeFirst();
+      } catch {
+        planFromDb = undefined;
+      }
+    }
+
+    const limit = resolveUserLimit({
+      hasActiveSubscription: Boolean(activeSub),
+      subscriptionMaxUsers: activeSub?.max_users,
+      subscriptionPlanCode: activeSub?.plan_code,
+      subscriptionFeaturePlanId: activeSub?.feature_plan_id,
+      planFoundInDb: Boolean(planFromDb),
+      planFromDbMaxUsers: planFromDb?.max_users,
+      tenantPlanId: tenant?.plan_id,
+      isTrial: tenant?.status === 'trial',
+    });
+
+    const isUnlimited = limit === null;
+    const isLimitReached = !isUnlimited && activeUsersCount >= limit;
+    const planName = activeSub?.plan_name || planFromDb?.name || (tenant?.status === 'trial' ? 'فترة تجريبية' : 'الافتراضية');
+    const planCode = activeSub?.plan_code || planFromDb?.code || null;
+
+    return {
+      maxUsers: limit,
+      isUnlimited,
+      isLimitReached,
+      activeUsersCount,
+      planName,
+      planCode,
+    };
+  }
+
   async listUsers(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const normalizedQuery = normalizeUserListQuery(query);
 
@@ -168,6 +267,9 @@ export class UsersService {
 
     const paged = paginateRows(sanitizedUsers, query, { defaultSize: 10 });
     const summary = summarizeUsers(sanitizedUsers);
+    const activeCount = sanitizedUsers.filter((u) => u.isActive !== false).length;
+    const scope = this.scope(actor);
+    const planLimit = await this.getPlanLimitForTenant(scope.tenantId, actor, activeCount);
 
     return {
       users: paged.rows,
@@ -178,7 +280,8 @@ export class UsersService {
         totalPages: paged.pagination.totalPages,
       },
       summary,
-      scope: this.scope(actor),
+      planLimit,
+      scope,
     };
   }
 
@@ -202,26 +305,10 @@ export class UsersService {
 
     if (!isPlatformAdmin) {
       const activeUsers = await this.db.selectFrom('users').select(['id']).where(this.tenantPredicate(actor)).where('is_active', '=', true).execute();
-      const tenant = await this.db.selectFrom('tenants').select(['id', 'plan_id', 'extra_features', 'status']).where('id', '=', scope.tenantId).executeTakeFirst();
-      
-      const activeSub = await this.db
-        .selectFrom('tenant_subscriptions as s')
-        .leftJoin('saas_plans as p', 'p.id', 's.plan_id')
-        .select(['p.max_users'])
-        .where('s.tenant_id', '=', scope.tenantId)
-        .where('s.status', 'in', ['active', 'past_due'])
-        .orderBy('s.created_at', 'desc')
-        .executeTakeFirst();
+      const planLimit = await this.getPlanLimitForTenant(scope.tenantId, actor, activeUsers.length);
 
-      let maxUsers: number = activeSub?.max_users ?? (tenant?.status === 'trial' ? 5 : 3);
-      if (!activeSub?.max_users) {
-        if (tenant?.plan_id === 'plan_pro') maxUsers = 10;
-        else if (tenant?.plan_id === 'plan_ultimate') maxUsers = 100;
-        else if (tenant?.plan_id === 'plan_omnichannel') maxUsers = 999;
-      }
-      
-      if (activeUsers.length >= maxUsers) {
-        throw new AppError(`وصلت للحد الأقصى لعدد المستخدمين في باقتك (${maxUsers} مستخدمين). يرجى ترقية الباقة لإضافة مستخدمين جدد.`, 'PLAN_USER_LIMIT_REACHED', 403);
+      if (planLimit.isLimitReached) {
+        throw new AppError(`وصلت للحد الأقصى لعدد المستخدمين في باقتك (${planLimit.maxUsers} مستخدمين). يرجى ترقية الباقة لإضافة مستخدمين جدد.`, 'PLAN_USER_LIMIT_REACHED', 403);
       }
     }
 

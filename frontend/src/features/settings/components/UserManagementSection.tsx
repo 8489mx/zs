@@ -86,6 +86,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
     deleteSelectedUser,
     copyPermissions,
     runBulkAction,
+    planLimit,
   } = controller;
 
   useScrollIntoViewOnChange(selectedUserKey, userEditorSectionRef, { enabled: Boolean(selectedUserKey) && userInteracted });
@@ -121,9 +122,38 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
   const authUser = useAuthStore((s) => s.user);
   const authTenant = useAuthStore((s) => s.tenant);
   const isSuperAdmin = authUser?.role === 'super_admin';
-  const planId = authTenant?.planId || 'plan_basic';
-  const maxAllowedUsers = isSuperAdmin ? Infinity : planId === 'plan_ultimate' ? Infinity : planId === 'plan_pro' ? 10 : 3;
-  const isUserLimitReached = !isSuperAdmin && (userSummary.totalItems || 0) >= maxAllowedUsers;
+
+  // 1. الأولوية المطلقة: الرقم المرتجع من السيرفر والمقروء مباشرة من جدول saas_plans
+  // قيمة maxUsers = null تعني صراحةً: بلا حد (غير محدود)!
+  const isServerUnlimited = planLimit ? (planLimit.isUnlimited || planLimit.maxUsers === null) : false;
+
+  // 2. احتياط محلي فقط في حال عدم اكتمال استجابة السيرفر بعد
+  const rawPlan = String(authTenant?.planId || authTenant?.plan || '').toLowerCase();
+  const isFallbackUnlimited =
+    isSuperAdmin ||
+    rawPlan.includes('omnichannel') ||
+    rawPlan.includes('commerce') ||
+    rawPlan.includes('تجارة') ||
+    rawPlan.includes('ultimate') ||
+    rawPlan.includes('enterprise');
+
+  const maxAllowedUsers = isSuperAdmin || isServerUnlimited
+    ? Infinity
+    : planLimit && typeof planLimit.maxUsers === 'number'
+    ? planLimit.maxUsers
+    : isFallbackUnlimited
+    ? Infinity
+    : rawPlan.includes('pro')
+    ? 6
+    : authTenant?.isTrial
+    ? 5
+    : 3;
+
+  const isUserLimitReached = !isSuperAdmin && (
+    planLimit
+      ? planLimit.isLimitReached
+      : (maxAllowedUsers !== Infinity && (userSummary.totalItems || 0) >= maxAllowedUsers)
+  );
 
   return (
     <>

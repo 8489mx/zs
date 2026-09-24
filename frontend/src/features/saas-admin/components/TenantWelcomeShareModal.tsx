@@ -25,7 +25,8 @@ export function TenantWelcomeShareModal({
 
   const resolvePlanName = (t: SaasTenantRow): string => {
     if (t.planName && t.planName !== 'الافتراضية') return t.planName;
-    if (t.planId === 'plan_starter') return 'الأساسية';
+    if (t.planId === 'plan_omnichannel') return 'باقة التجارة الشاملة';
+    if (t.planId === 'plan_starter' || t.planId === 'plan_basic') return 'الأساسية';
     if (t.planId === 'plan_pro') return 'المتقدمة';
     if (t.planId === 'plan_ultimate' || !t.planId) return 'المتكاملة';
     return 'المتكاملة';

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { settingsApi, type ManagedUserRecord } from '@/features/settings/api/settings.api';
+import { settingsApi, type ManagedUserRecord, type PlanLimitInfo } from '@/features/settings/api/settings.api';
 import { blankUserDraft, normalizeUserRecord } from '@/features/settings/components/user-management.shared';
 import {
   applyRolePermissions,
@@ -63,6 +63,10 @@ export function useUserManagementController({
       activePrivilegedUsers: Number(summary.activePrivilegedUsers ?? 0),
     };
   }, [usersQuery.data, managedUsers.length]);
+
+  const planLimit = useMemo(() => {
+    return ((usersQuery.data as any)?.planLimit || null) as PlanLimitInfo | null;
+  }, [usersQuery.data]);
 
   const selectedUsers = useMemo(() => managedUsers.filter((user) => selectedIds.includes(String(user.id || user.username))), [managedUsers, selectedIds]);
   const activeAddedUsers = useMemo(() => managedUsers.filter((user) => user.isActive !== false && String(user.id) !== currentUserId), [managedUsers, currentUserId]);
@@ -331,5 +335,6 @@ export function useUserManagementController({
     deleteSelectedUser,
     copyPermissions,
     runBulkAction,
+    planLimit,
   };
 }

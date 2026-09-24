@@ -100,7 +100,7 @@ export function CreateTrialTenantModal({
       const fullTenantWithDetails: SaasTenantRow = {
         ...payload.tenant,
         ownerUsername: payload.owner.username,
-        planName: payload.tenant.planName || (createForm.featurePlanId === 'plan_ultimate' ? 'المتكاملة' : createForm.featurePlanId === 'plan_pro' ? 'المتقدمة' : 'الأساسية'),
+        planName: payload.tenant.planName || (createForm.featurePlanId === 'plan_omnichannel' ? 'التجارة الشاملة' : createForm.featurePlanId === 'plan_ultimate' ? 'المتكاملة' : createForm.featurePlanId === 'plan_pro' ? 'المتقدمة' : 'الأساسية'),
       } as any;
       setCreateResult({
         username: payload.owner.username,
@@ -409,11 +409,12 @@ export function CreateTrialTenantModal({
                     value={createForm.featurePlanId}
                     onChange={(val) => setCreateForm((s) => ({ ...s, featurePlanId: val }))}
                     options={[
+                      { value: 'plan_omnichannel', label: 'باقة التجارة الشاملة — [كافة الميزات + المتجر السحابي والربط]' },
                       { value: 'plan_ultimate', label: 'المتكاملة — [الباقة الشاملة - كافة الميزات]' },
                       { value: 'plan_pro', label: 'الاحترافية — [المبيعات والمخازن والحسابات]' },
                       { value: 'plan_basic', label: 'الأساسية — [نقطة البيع والكاشير والمخزون]' },
                       ...(featurePlans || [])
-                        .filter((p: any) => !['plan_ultimate', 'plan_pro', 'plan_basic'].includes(p.id))
+                        .filter((p: any) => !['plan_omnichannel', 'plan_ultimate', 'plan_pro', 'plan_basic'].includes(p.id))
                         .map((p: any) => ({
                           value: p.id,
                           label: `${p.name} — [${p.code}]`,

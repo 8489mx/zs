@@ -90,10 +90,20 @@ export interface BackupConfigResponse {
   automation: BackupAutomationConfig;
 }
 
+export interface PlanLimitInfo {
+  maxUsers: number | null; // null = unlimited
+  isUnlimited: boolean;
+  isLimitReached: boolean;
+  activeUsersCount: number;
+  planName: string;
+  planCode?: string | null;
+}
+
 interface ManagedUsersResponse {
   users?: ManagedUserRecord[];
   pagination?: PaginationMeta;
   summary?: ManagedUsersSummary;
+  planLimit?: PlanLimitInfo;
 }
 
 interface CreateBranchResponse {
@@ -222,6 +232,7 @@ export const settingsApi = {
         rangeEnd: Array.isArray(response.users) ? response.users.length : 0,
       },
       summary: response.summary || { totalItems: 0, superAdmins: 0, admins: 0, cashiers: 0, inactive: 0, locked: 0, activePrivilegedUsers: 0 },
+      planLimit: response.planLimit,
     };
   },
   listAllUsers: async (params: Omit<ManagedUsersQueryParams, 'page' | 'pageSize'> = {}) => {
@@ -232,7 +243,7 @@ export const settingsApi = {
       const nextPage = await settingsApi.usersPage({ ...params, page, pageSize: 100 });
       allRows.push(...nextPage.rows);
     }
-    return { rows: allRows, summary: firstPage.summary, pagination: firstPage.pagination };
+    return { rows: allRows, summary: firstPage.summary, pagination: firstPage.pagination, planLimit: firstPage.planLimit };
   },
   backupSnapshots: async () => unwrapArray<BackupSnapshotRecord>(await http<BackupSnapshotRecord[] | { snapshots: BackupSnapshotRecord[] }>('/api/backup-snapshots'), 'snapshots'),
   createUser: (payload: ManagedUserRecord) => http<{ ok: boolean; user: ManagedUserRecord | null; users: ManagedUserRecord[] }>('/api/users', { method: 'POST', body: JSON.stringify(sanitizeUserPayload(payload)) }),
