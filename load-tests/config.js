@@ -95,3 +95,39 @@ export function sleepWithJitter(minSec = 0.5, maxSec = 1.5) {
   const duration = minSec + Math.random() * (maxSec - minSec);
   return duration;
 }
+
+/**
+ * عنوان زائر **جديد لكل تكرار** — لسيناريوهات الكتابة على المتجر وحدها.
+ *
+ * حدّ O60 على إنشاء الطلب هو 30 طلباً لكل عنوان في 600 ثانية، وهو حدّ صحيح للإنتاج. لكنه يعني
+ * أن اختباراً بعدد مستخدمين ثابت يُسقَف عند 30 طلباً لكل VU مهما طال، فتقيس الجولة الحدّ لا
+ * قاعدة البيانات. والمتجر الحقيقي الذي يستقبل ثمانية آلاف طلب في دقيقتين يستقبلها من آلاف
+ * العناوين لا من مئة وخمسين، فالعنوان لكل تكرار هو **المحاكاة الأصدق** لا التفافاً على الحماية.
+ *
+ * ومع ذلك لا يُخفى أثر الحدّ: كل سيناريو كتابة يعدّ ردود 429 في عدّاد مستقل، ومن يريد إثبات أن
+ * الحدّ نفسه يعمل فسيناريو `auth-login-burst.js` هو من يفعل ذلك بعنوان واحد مقصود.
+ */
+export function writerIpHeaders(vu, iter) {
+  if (String(__ENV.SPOOF_CLIENT_IPS || '').toLowerCase() !== 'true') return {};
+  // مجال 10.0.0.0/8 يتسع لـ 16 مليون زائر، والخلط بالـVU يمنع تصادم تكرارين متزامنين.
+  const n = ((Number(vu) || 1) * 4096 + (Number(iter) || 0)) % 16777216;
+  return { 'X-Real-IP': `10.${(n >> 16) & 255}.${(n >> 8) & 255}.${n & 255}` };
+}
+
+/**
+ * تصنيف ردّ فاشل في سيناريو كتابة.
+ *
+ * الجولة الأولى على الإنتاج أعادت "0.19% نجاح" بلا سبب واحد مكتوب، فاستُنتج السبب استنتاجاً.
+ * اختبار حِمل لا يقول **لماذا** رفض السيرفر لا يقيس شيئاً، فالتصنيف هنا جزء من الأداة لا زينة.
+ */
+export function classifyWriteFailure(res) {
+  if (res.status === 429) return 'rate_limited';
+  if (res.status === 0) return 'no_response';
+  if (res.status >= 500) return 'server_error';
+  if (res.status === 400 || res.status === 422) {
+    const body = String(res.body || '');
+    if (/المتاح من الصنف|غير متاح|نفد|out of stock/i.test(body)) return 'out_of_stock';
+    return 'rejected';
+  }
+  return `http_${res.status}`;
+}

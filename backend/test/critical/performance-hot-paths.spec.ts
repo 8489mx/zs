@@ -288,6 +288,61 @@ function testLoadSuiteIsUsable(): void {
       `${name} must fall back to sudo docker like every other script here`,
     );
   }
+
+  // A name used at runtime but never imported is a crash that only fires on the fallback path — the
+  // one path nobody exercises. `stress-all.js` referenced SESSION_COOKIE_NAME without importing it,
+  // so "could not spot the session cookie" would have thrown ReferenceError instead of falling back.
+  for (const scenario of ['pos-catalog-sync.js', 'storefront-checkout.js', 'stress-all.js', 'auth-login-burst.js']) {
+    const raw = loadFile(join('scenarios', scenario));
+    const body = codeOf(raw);
+    const imported = (raw.match(/import\s*\{([\s\S]*?)\}\s*from\s*'\.\.\/config\.js'/) || [, ''])[1];
+    for (const name of ['SESSION_COOKIE_NAME', 'writerIpHeaders', 'classifyWriteFailure', 'clientIpHeaders', 'rampProfile']) {
+      if (new RegExp(`\\b${name}\\b`).test(body)) {
+        assert.ok(
+          new RegExp(`\\b${name}\\b`).test(imported),
+          `${scenario} uses ${name} but never imports it from config.js`,
+        );
+      }
+    }
+  }
+
+  // The per-iteration visitor address is a stronger spoof than the per-VU one, so it stays behind the
+  // same explicit opt-in — otherwise a removed O60 limit would never show up in any run.
+  assert.ok(
+    /export function writerIpHeaders/.test(config)
+    && /writerIpHeaders[\s\S]{0,400}SPOOF_CLIENT_IPS[\s\S]{0,120}!== 'true'\) return \{\}/.test(config),
+    'writerIpHeaders must honour the same SPOOF_CLIENT_IPS opt-in as clientIpHeaders',
+  );
+
+  // The 24 Sep 2026 production run reported 0.19% order success with zero deadlocks and read as
+  // "the server held". It had not been tested: `createOnlineOrder` validates stock BEFORE opening a
+  // transaction, so every refusal left the write path untouched. Each successful order reserves
+  // stock, so a create-only scenario runs exactly as long as the catalogue's spare stock and then
+  // measures the refusal branch for the remaining two minutes. Three properties keep that from
+  // recurring silently.
+  for (const scenario of ['storefront-checkout.js', 'stress-all.js']) {
+    const source = codeOf(loadFile(join('scenarios', scenario)));
+    assert.ok(
+      /stockQty/.test(source) && /inStock/.test(source),
+      `${scenario} must pick products that actually have available stock, not the first ones the catalogue returns`,
+    );
+    assert.ok(
+      /throw new Error\([\s\S]{0,400}stock/i.test(source),
+      `${scenario} must refuse to start when nothing is orderable, instead of reporting a near-zero success rate`,
+    );
+    assert.ok(
+      /orders\/\$\{encodeURIComponent\(orderNumber\)\}\/cancel/.test(source) && /'x-order-token'/.test(source),
+      `${scenario} must cancel the order it created so the reservation is returned and the write load is sustainable`,
+    );
+    assert.ok(
+      /classifyWriteFailure\(res\)/.test(source),
+      `${scenario} must record why the server refused: a rejection rate with no reason is not a measurement`,
+    );
+    assert.ok(
+      /writerIpHeaders\(__VU, __ITER\)/.test(source),
+      `${scenario} must present a fresh visitor per iteration, or O60 (30 orders / IP / 10 min) caps the run`,
+    );
+  }
 }
 
 run().then(

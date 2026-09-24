@@ -23,12 +23,22 @@ import {
   STANDARD_THRESHOLDS,
   rampProfile,
   clientIpHeaders,
+  writerIpHeaders,
+  classifyWriteFailure,
+  SESSION_COOKIE_NAME,
   RAMP_SECONDS,
   HOLD_SECONDS,
 } from '../config.js';
 
 const combinedDuration = new Trend('stress_all_duration_ms');
 const deadlocksCount = new Counter('stress_all_deadlocks_count');
+const rejectRateLimited = new Counter('stress_all_rejects_rate_limited');
+const rejectOutOfStock = new Counter('stress_all_rejects_out_of_stock');
+const rejectBusiness = new Counter('stress_all_rejects_business');
+const rejectServer = new Counter('stress_all_rejects_server');
+
+/** الطلبات تُلغى افتراضياً فيعود الحجز ويبقى الحمل مستمراً — انظر storefront-checkout.js. */
+const KEEP_ORDERS = String(__ENV.KEEP_ORDERS || '').toLowerCase() === 'true';
 
 export const options = {
   scenarios: {
@@ -57,6 +67,7 @@ export const options = {
   thresholds: {
     ...STANDARD_THRESHOLDS,
     stress_all_deadlocks_count: ['count==0'],
+    stress_all_rejects_server: ['count==0'],
   },
 };
 
@@ -117,16 +128,26 @@ function loginOrDie() {
 export function setup() {
   const session = loginOrDie();
 
-  // Get Storefront product IDs
-  const catalogRes = http.get(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/catalog`, { headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) } });
-  let productIds = [1];
+  // أصناف **بمخزون متاح فعلي** فقط. الاكتفاء بأول عشرة أصناف كما تأتي جعل جولة 24 سبتمبر تقيس
+  // مسار الرفض: كل الطلبات ارتدت من تحقّق المخزون قبل أن تُفتح معاملة واحدة.
+  const catalogRes = http.get(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/catalog`, { headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(1) } });
+  let items = [];
   try {
     const data = JSON.parse(catalogRes.body);
-    const items = data.products || data.items || data;
-    if (Array.isArray(items) && items.length > 0) {
-      productIds = items.slice(0, 10).map((p) => p.id).filter(Boolean);
-    }
+    items = data.products || data.items || (Array.isArray(data) ? data : []);
   } catch {}
+  const productIds = (Array.isArray(items) ? items : [])
+    .filter((p) => p && p.id && p.inStock !== false && Number(p.stockQty || 0) > 0)
+    .sort((a, b) => Number(b.stockQty || 0) - Number(a.stockQty || 0))
+    .slice(0, 12)
+    .map((p) => p.id);
+
+  if (productIds.length === 0) {
+    throw new Error(
+      `storefront "${STOREFRONT_SLUG}" has no item with available stock (stock_qty - reserved_qty > 0), `
+      + 'so the write half of this stress run would measure refusals, not the database.',
+    );
+  }
 
   return {
     sessionId: session.sessionId,
@@ -153,8 +174,11 @@ export function posScenario(data) {
 }
 
 export function storefrontScenario(data) {
-  const productIds = data?.productIds || [1];
+  const productIds = data?.productIds || [];
+  if (productIds.length === 0) return;
   const prodId = productIds[Math.floor(Math.random() * productIds.length)];
+  // زائر جديد لكل تكرار: حدّ O60 على إنشاء الطلب مفتاحه العنوان — انظر config.js:writerIpHeaders.
+  const visitor = writerIpHeaders(__VU, __ITER);
 
   const orderPayload = JSON.stringify({
     customerName: `Shopper VU-${__VU}-${Date.now() % 10000}`,
@@ -166,7 +190,7 @@ export function storefrontScenario(data) {
 
   const start = Date.now();
   const res = http.post(`${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/orders`, orderPayload, {
-    headers: { ...DEFAULT_HEADERS, ...clientIpHeaders(__VU) },
+    headers: { ...DEFAULT_HEADERS, ...visitor },
   });
   combinedDuration.add(Date.now() - start);
 
@@ -174,9 +198,47 @@ export function storefrontScenario(data) {
     deadlocksCount.add(1);
   }
 
-  check(res, {
+  const created = check(res, {
     'storefront order created or valid': (r) => r.status === 200 || r.status === 201,
   });
+
+  if (!created) {
+    const reason = classifyWriteFailure(res);
+    if (reason === 'rate_limited') rejectRateLimited.add(1);
+    else if (reason === 'out_of_stock') rejectOutOfStock.add(1);
+    else if (reason === 'server_error' || reason === 'no_response') rejectServer.add(1);
+    else rejectBusiness.add(1);
+    if (__VU <= 2 && __ITER < 3) {
+      // eslint-disable-next-line no-console
+      console.warn(`[order rejected: ${reason}] HTTP ${res.status} - ${String(res.body || '').slice(0, 220)}`);
+    }
+    sleep(1.5);
+    return;
+  }
+
+  if (!KEEP_ORDERS) {
+    // الإلغاء يعيد الحجز فيبقى نصف الكتابة حياً طوال الجولة، وهو بنفسه معاملة ثانية على نفس الأقفال.
+    let orderNumber = '';
+    let accessToken = '';
+    try {
+      const body = JSON.parse(res.body);
+      orderNumber = String(body.orderNumber || body.order_number || '');
+      accessToken = String(body.accessToken || '');
+    } catch {}
+    if (orderNumber && accessToken) {
+      const cancelRes = http.post(
+        `${BASE_URL}/api/storefront/${STOREFRONT_SLUG}/orders/${encodeURIComponent(orderNumber)}/cancel`,
+        null,
+        { headers: { ...DEFAULT_HEADERS, ...visitor, 'x-order-token': accessToken } },
+      );
+      if (cancelRes.body && (cancelRes.body.includes('40P01') || cancelRes.body.toLowerCase().includes('deadlock'))) {
+        deadlocksCount.add(1);
+      }
+      check(cancelRes, {
+        'storefront order cancelled, reservation returned': (r) => r.status === 200 || r.status === 201,
+      });
+    }
+  }
 
   sleep(1.5);
 }
