@@ -1,6 +1,10 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Kysely, sql, type Transaction } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
+import {
+  ALL_OPERATIONAL_LOCATIONS,
+  resolveBranchSellableLocations,
+} from '../../../common/engines/branch-sellable-locations.engine';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
 import { applyStockDelta, previewConsumableStockQty, previewAssignedLocationStockQty, releaseLocationStock } from '../../../common/utils/location-stock-ledger';
@@ -723,43 +727,18 @@ export class SalesWriteService {
         normalized.locationId = branch.default_stock_location_id;
       }
 
-      let eligibleLocations = [{ id: normalized.locationId, branchId: normalized.branchId }];
-      if (normalized.source === 'pos' && branch?.sales_stock_mode === 'all_operational_locations') {
+      // أي المخازن يجوز لهذا الفرع السحب منها — القاعدة في `branch-sellable-locations.engine.ts`،
+      // ويستدعيها مسار طلب المتجر الإلكتروني أيضاً. كانت مكتوبة هنا وحدها، فكان الكاشير يبيع صنفاً
+      // يرفضه الموقع على نفس الفرع ونفس المخزون.
+      let eligibleLocations: Array<{ id: number | null; branchId: number | null }> =
+        [{ id: normalized.locationId, branchId: normalized.branchId }];
+      if (normalized.source === 'pos' && branch?.sales_stock_mode === ALL_OPERATIONAL_LOCATIONS) {
         const allLocs = await trx.selectFrom('stock_locations')
           .select(['id', 'location_type', 'branch_id'])
           .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
           .where('is_active', '=', true)
-          .where('location_type', 'not in', ['damaged', 'in_transit'])
           .execute();
-          
-        const defaultLocId = Number(branch.default_stock_location_id);
-        const normBranchId = Number(normalized.branchId);
-        
-        const sortedLocs = allLocs.filter(l => {
-           const lId = Number(l.id);
-           const lBranchId = l.branch_id != null ? Number(l.branch_id) : null;
-           
-           if (lId === defaultLocId) return true;
-           if (lBranchId === normBranchId) return true;
-           if (l.location_type === 'internal_warehouse' && l.branch_id === null) return true;
-           if (branch.allow_external_sales_stock && l.location_type === 'external_warehouse') return true;
-           return false;
-        }).sort((a, b) => {
-           const aId = Number(a.id);
-           const bId = Number(b.id);
-           const aBranchId = a.branch_id != null ? Number(a.branch_id) : null;
-           const bBranchId = b.branch_id != null ? Number(b.branch_id) : null;
-           
-           if (aId === defaultLocId) return -1;
-           if (bId === defaultLocId) return 1;
-           if (aBranchId === normBranchId && bBranchId !== normBranchId) return -1;
-           if (aBranchId !== normBranchId && bBranchId === normBranchId) return 1;
-           if (a.location_type === 'internal_warehouse' && b.location_type !== 'internal_warehouse') return -1;
-           if (a.location_type !== 'internal_warehouse' && b.location_type === 'internal_warehouse') return 1;
-           return 0;
-        });
-        
-        eligibleLocations = sortedLocs.map(l => ({ id: Number(l.id), branchId: l.branch_id != null ? Number(l.branch_id) : null }));
+        eligibleLocations = resolveBranchSellableLocations(branch, normalized.branchId, allLocs);
       }
 
       const allowNegativeStockSales = await this.getAllowNegativeStockSales(trx, scope.tenantId);

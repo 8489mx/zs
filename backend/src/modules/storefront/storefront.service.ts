@@ -27,6 +27,11 @@ import {
   unwrapConvertedSale,
 } from './engines/online-order-access.engine';
 import { reserveLocationStock, releaseLocationStock } from '../../common/utils/location-stock-ledger';
+import {
+  ALL_OPERATIONAL_LOCATIONS,
+  pickLocationCoveringOrder,
+  resolveBranchSellableLocations,
+} from '../../common/engines/branch-sellable-locations.engine';
 
 /** Country-aware phone rule shared by order creation and edit (O56: edit used to accept Egypt only). */
 function assertValidCustomerPhone(rawPhone: string | undefined, countryCode: string): void {
@@ -885,7 +890,7 @@ export class StorefrontService {
     // Get default primary branch
     const primaryBranch = await this.db
       .selectFrom('branches')
-      .select(['id', 'default_stock_location_id'])
+      .select(['id', 'default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock'])
       .where(sql<boolean>`tenant_id = ${tenant.id}`)
       .where('is_active', '=', true)
       .orderBy('id', 'asc')
@@ -895,18 +900,72 @@ export class StorefrontService {
     const accountId = `${tenant.id}:main`;
 
     const targetBranchId = isPickup ? (dto.pickupBranchId ? Number(dto.pickupBranchId) : branchId) : branchId;
-    let targetLocationId: number | null = null;
+
+    /**
+     * المخزن الذي يُحجز منه هذا الطلب.
+     *
+     * كان السطر السابق يأخذ `default_stock_location_id` للفرع وينتهي، بلا سؤال عن
+     * `sales_stock_mode`. فعلى منشأة مخزونها في «المخزن الرئيسي» بينما الفرع البائع مخزنه الافتراضي
+     * فارغ، كان الكتالوج يعرض الصنف متاحاً (لأنه يقرأ الرصيد **العام**) ثم يُرفض الطلب بـ«الرصيد في
+     * هذا المخزن 0» — **بينما الكاشير على نفس الفرع يبيعه**، لأنه وحده كان يقرأ ذلك الإعداد.
+     *
+     * الآن المساران يسألان نفس المحرك. وطلب المتجر يحجز في مخزن واحد (العمود مفرد)، فنختار أول
+     * مخزن في ترتيب الأولوية يغطي **كل** أسطر الطلب.
+     */
+    let targetBranch: { id: number | string; default_stock_location_id?: number | string | null; sales_stock_mode?: string | null; allow_external_sales_stock?: boolean | null } | undefined;
     if (targetBranchId) {
-      if (primaryBranch && targetBranchId === Number(primaryBranch.id)) {
-        targetLocationId = primaryBranch.default_stock_location_id ? Number(primaryBranch.default_stock_location_id) : null;
-      } else {
-        const branchRow = await this.db
-          .selectFrom('branches')
-          .select(['id', 'default_stock_location_id'])
-          .where('id', '=', targetBranchId)
+      targetBranch = primaryBranch && targetBranchId === Number(primaryBranch.id)
+        ? primaryBranch
+        : await this.db
+            .selectFrom('branches')
+            .select(['id', 'default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock'])
+            .where('id', '=', targetBranchId)
+            .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            .executeTakeFirst();
+    }
+
+    let targetLocationId: number | null = targetBranch?.default_stock_location_id
+      ? Number(targetBranch.default_stock_location_id)
+      : null;
+
+    if (targetBranch && targetBranch.sales_stock_mode === ALL_OPERATIONAL_LOCATIONS && !allowOutOfStock) {
+      const allLocations = await this.db
+        .selectFrom('stock_locations')
+        .select(['id', 'location_type', 'branch_id'])
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .where('is_active', '=', true)
+        .execute();
+      const eligible = resolveBranchSellableLocations(targetBranch, targetBranchId, allLocations);
+
+      if (eligible.length > 0) {
+        const requiredByProduct = new Map<number, number>();
+        for (const item of validatedItems) {
+          const productId = Number(item.productId);
+          requiredByProduct.set(productId, (requiredByProduct.get(productId) || 0) + Number(item.quantity));
+        }
+
+        const stockRows = await this.db
+          .selectFrom('product_location_stock')
+          .select(['product_id', 'location_id', 'qty', 'reserved_qty'])
           .where(sql<boolean>`tenant_id = ${tenant.id}`)
-          .executeTakeFirst();
-        targetLocationId = branchRow?.default_stock_location_id ? Number(branchRow.default_stock_location_id) : null;
+          .where('product_id', 'in', Array.from(requiredByProduct.keys()))
+          .where('location_id', 'in', eligible.map((location) => location.id))
+          .execute();
+        const availability = new Map<string, number>();
+        for (const row of stockRows) {
+          availability.set(
+            `${Number(row.location_id)}:${Number(row.product_id)}`,
+            Math.max(0, Number(row.qty || 0) - Number(row.reserved_qty || 0)),
+          );
+        }
+
+        const chosen = pickLocationCoveringOrder(
+          eligible,
+          requiredByProduct,
+          (locationId, productId) => availability.get(`${locationId}:${productId}`) || 0,
+        );
+        // لا مخزن واحد يغطي الطلب كله ⇒ نبقى على الافتراضي، فتظهر رسالة النقص الحقيقية بدل حجز ناقص.
+        if (chosen) targetLocationId = chosen.id;
       }
     }
 
