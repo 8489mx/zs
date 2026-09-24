@@ -5,6 +5,7 @@ import { EtaSubmissionService } from './services/eta-submission/eta-submission.s
 import { EtaSignatureBridgeService } from './services/eta-submission/eta-signature-bridge.service';
 import { ZatcaPhase2Service } from './services/zatca/zatca-phase2.service';
 import { ZatcaOnboardingService } from './services/zatca/zatca-onboarding.service';
+import { ZatcaSubmissionService } from './services/zatca/zatca-submission.service';
 import { TaxSettingsService } from './services/tax-settings/tax-settings.service';
 import { TaxSettingsController } from './controllers/tax-settings/tax-settings.controller';
 import { EtaInvoicesController } from './controllers/eta-invoices/eta-invoices.controller';
@@ -21,6 +22,7 @@ import { VatDeclarationController } from './controllers/vat-declaration/vat-decl
     EtaSignatureBridgeService,
     ZatcaPhase2Service,
     ZatcaOnboardingService,
+    ZatcaSubmissionService,
     TaxSettingsService,
     VatDeclarationService,
   ],
@@ -35,6 +37,7 @@ import { VatDeclarationController } from './controllers/vat-declaration/vat-decl
     EtaSignatureBridgeService,
     ZatcaPhase2Service,
     ZatcaOnboardingService,
+    ZatcaSubmissionService,
     VatDeclarationService,
   ]
 })

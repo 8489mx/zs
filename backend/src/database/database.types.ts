@@ -572,6 +572,7 @@ export interface ProductLocationStockTable {
   branch_id: number | null;
   location_id: number | null;
   qty: number;
+  reserved_qty: ColumnType<number, number | undefined, number | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -742,6 +743,18 @@ export interface SalesTable {
   eta_uuid: string | null;
   eta_status: Generated<string>;
   eta_submission_id: string | null;
+  zatca_uuid?: string | null;
+  zatca_hash?: string | null;
+  zatca_prev_hash?: string | null;
+  zatca_icv?: ColumnType<number, number | string | undefined, number | string | undefined>;
+  zatca_status?: ColumnType<string, string | undefined, string | undefined>;
+  zatca_qr?: string | null;
+  zatca_ubl_xml?: string | null;
+  zatca_cleared_xml?: string | null;
+  zatca_submitted_at?: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  zatca_response_json?: ColumnType<any, any | undefined, any | undefined>;
+  zatca_egs_id?: number | null;
+  zatca_invoice_type?: string | null;
 }
 
 export interface SaleItemTable {
@@ -2409,6 +2422,10 @@ export interface OnlineOrderTable {
   // Present since migration 2040000000046 (QR table ordering); missing from this type until now.
   order_type?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   table_number?: string | null;
+  stock_reserved?: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  reserved_branch_id?: number | null;
+  reserved_location_id?: number | null;
+  stock_reserved_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -3174,6 +3191,22 @@ export interface ZatcaEgsUnitTable {
   environment: 'sandbox' | 'simulation' | 'production';
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ZatcaTransmissionLogTable {
+  id: Generated<string>;
+  tenant_id: string;
+  sale_id: number;
+  egs_id: number | null;
+  action_type: 'reporting' | 'clearance' | 'compliance_check';
+  environment: 'sandbox' | 'simulation' | 'production';
+  request_uuid: string;
+  invoice_hash: string;
+  http_status: number | null;
+  response_status: string | null;
+  validation_results: ColumnType<any, any | undefined, any | undefined>;
+  raw_response: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
 export interface ShippingPortTable {
@@ -4083,6 +4116,7 @@ export interface Database {
   forex_revaluation_runs: ForexRevaluationRunTable;
   forex_revaluation_lines: ForexRevaluationLineTable;
   zatca_egs_units: ZatcaEgsUnitTable;
+  zatca_transmission_logs: ZatcaTransmissionLogTable;
   shipping_ports: ShippingPortTable;
   shipping_lines: ShippingLineTable;
   maritime_inquiries: MaritimeInquiryTable;

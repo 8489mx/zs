@@ -7,6 +7,7 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { CreateSalesOrderDto, UpdateSalesOrderDto } from '../dto/sales-order.dto';
 import { SalesWriteService } from './sales-write.service';
 import { getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
+import { reserveLocationStock, releaseLocationStock } from '../../../common/utils/location-stock-ledger';
 
 @Injectable()
 export class SalesOrdersService {
@@ -248,17 +249,36 @@ export class SalesOrdersService {
     }
 
     await this.db.transaction().execute(async (trx) => {
+      // Resolve branch and location
+      let branchId = order.branch_id;
+      let locationId: number | null = null;
+      if (!branchId) {
+        const primaryBranch = await trx
+          .selectFrom('branches')
+          .select(['id', 'default_stock_location_id'])
+          .where('tenant_id', '=', scope.tenantId)
+          .orderBy('id', 'asc')
+          .executeTakeFirst();
+        branchId = primaryBranch ? Number(primaryBranch.id) : 1;
+        locationId = primaryBranch?.default_stock_location_id ? Number(primaryBranch.default_stock_location_id) : null;
+      } else {
+        const branchRow = await trx
+          .selectFrom('branches')
+          .select(['id', 'default_stock_location_id'])
+          .where('id', '=', branchId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        locationId = branchRow?.default_stock_location_id ? Number(branchRow.default_stock_location_id) : null;
+      }
+
+      const reserveItems: Array<{ productId: number; qty: number }> = [];
       for (const item of items) {
         const qtyToReserve = Number(item.quantity) - Number(item.reserved_quantity || 0);
         if (qtyToReserve > 0) {
-          await trx
-            .updateTable('products')
-            .set((eb) => ({
-              reserved_qty: eb('reserved_qty', '+', qtyToReserve),
-            }))
-            .where('id', '=', Number(item.product_id))
-            .where('tenant_id', '=', scope.tenantId)
-            .execute();
+          reserveItems.push({
+            productId: Number(item.product_id),
+            qty: qtyToReserve,
+          });
 
           await trx
             .updateTable('sales_order_items')
@@ -267,6 +287,16 @@ export class SalesOrdersService {
             .where('tenant_id', '=', scope.tenantId)
             .execute();
         }
+      }
+
+      if (reserveItems.length > 0) {
+        await reserveLocationStock(trx, {
+          branchId,
+          locationId,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          items: reserveItems,
+        });
       }
 
       await trx
@@ -315,17 +345,14 @@ export class SalesOrdersService {
 
     await this.db.transaction().execute(async (trx) => {
       // Release any reserved quantities
+      const releaseItems: Array<{ productId: number; qty: number }> = [];
       for (const item of items) {
         const reservedQty = Number(item.reserved_quantity || 0);
         if (reservedQty > 0) {
-          await trx
-            .updateTable('products')
-            .set((eb) => ({
-              reserved_qty: sql`GREATEST(0, ${eb('reserved_qty', '-', reservedQty)})`,
-            }))
-            .where('id', '=', Number(item.product_id))
-            .where('tenant_id', '=', scope.tenantId)
-            .execute();
+          releaseItems.push({
+            productId: Number(item.product_id),
+            qty: reservedQty,
+          });
 
           await trx
             .updateTable('sales_order_items')
@@ -334,6 +361,16 @@ export class SalesOrdersService {
             .where('tenant_id', '=', scope.tenantId)
             .execute();
         }
+      }
+
+      if (releaseItems.length > 0) {
+        await releaseLocationStock(trx, {
+          branchId: order.branch_id,
+          locationId: null,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          items: releaseItems,
+        });
       }
 
       await trx
@@ -393,18 +430,25 @@ export class SalesOrdersService {
     }
 
     // Release reserved quantity first so createSale has clean stock allocation
+    const releaseItems: Array<{ productId: number; qty: number }> = [];
     for (const item of items) {
       const reservedQty = Number(item.reserved_quantity || 0);
       if (reservedQty > 0) {
-        await this.db
-          .updateTable('products')
-          .set((eb) => ({
-            reserved_qty: sql`GREATEST(0, ${eb('reserved_qty', '-', reservedQty)})`,
-          }))
-          .where('id', '=', Number(item.product_id))
-          .where('tenant_id', '=', scope.tenantId)
-          .execute();
+        releaseItems.push({
+          productId: Number(item.product_id),
+          qty: reservedQty,
+        });
       }
+    }
+
+    if (releaseItems.length > 0) {
+      await releaseLocationStock(this.db, {
+        branchId: order.branch_id,
+        locationId: null,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        items: releaseItems,
+      });
     }
 
     // Prepare sale items

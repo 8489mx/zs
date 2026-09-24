@@ -1450,6 +1450,10 @@ export class AccountingService {
       .selectFrom('products as p')
       .leftJoin('product_categories as c', 'c.id', 'p.category_id')
       .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .leftJoin('product_location_stock as pls', (join) => {
+        const j = join.onRef('pls.product_id', '=', 'p.id');
+        return locationId ? j.on('pls.location_id', '=', locationId) : j.on(sql<boolean>`false`);
+      })
       .select([
         'p.id',
         'p.name',
@@ -1465,12 +1469,6 @@ export class AccountingService {
       ])
       .where('p.is_active', '=', true)
       .where(this.tenantPredicate(auth, 'p'));
-
-    if (locationId) {
-      query = query.leftJoin('product_location_stock as pls', (join) =>
-        join.onRef('pls.product_id', '=', 'p.id').on('pls.location_id', '=', locationId)
-      );
-    }
 
     if (categoryId) {
       query = query.where('p.category_id', '=', categoryId);

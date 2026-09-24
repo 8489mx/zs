@@ -25,6 +25,7 @@ import {
   MANUALLY_CONFIRMED_PAYMENT_METHODS,
   buildOrderTrackingUrl,
 } from './engines/online-order-access.engine';
+import { reserveLocationStock, releaseLocationStock } from '../../common/utils/location-stock-ledger';
 
 /** Country-aware phone rule shared by order creation and edit (O56: edit used to accept Egypt only). */
 function assertValidCustomerPhone(rawPhone: string | undefined, countryCode: string): void {
@@ -431,6 +432,7 @@ export class StorefrontService {
               'barcode',
               'retail_price',
               'stock_qty',
+              'reserved_qty',
               'category_id',
               'notes',
               'metadata',
@@ -498,7 +500,7 @@ export class StorefrontService {
             } catch {}
           }
 
-          const rawStock = Number(p.stock_qty ?? 0);
+          const rawStock = Math.max(0, Number(p.stock_qty ?? 0) - Number(p.reserved_qty ?? 0));
           const stockQty = allowOutOfStock ? (rawStock > 0 ? rawStock : 999) : rawStock;
           const inStock = allowOutOfStock ? true : (rawStock > 0);
           const isLowStock = !allowOutOfStock && rawStock > 0 && rawStock <= 5;
@@ -786,7 +788,7 @@ export class StorefrontService {
 
     const dbProducts = await this.db
       .selectFrom('products')
-      .select(['id', 'name', 'retail_price', 'barcode', 'stock_qty', 'metadata'])
+      .select(['id', 'name', 'retail_price', 'barcode', 'stock_qty', 'reserved_qty', 'metadata'])
       .where(sql<boolean>`tenant_id = ${tenant.id}`)
       // Same visibility rule as the public catalog (O52): an order may only contain what the
       // catalog shows. Anything else is "not available" — including deleted items still in a cart.
@@ -831,7 +833,8 @@ export class StorefrontService {
         throw new BadRequestException(`لا يمكن طلب أكثر من مقاس أو سطر للصنف "${prod.name}" في نفس الطلب، يرجى توحيده في سطر واحد.`);
       }
       seenProductIds.add(Number(prod.id));
-      assertOnlineStockAvailable(prod.name, Number(prod.stock_qty ?? 0), Math.max(1, Number(item.quantity || 1)), allowOutOfStock);
+      const availableStock = Math.max(0, Number(prod.stock_qty ?? 0) - Number(prod.reserved_qty ?? 0));
+      assertOnlineStockAvailable(prod.name, availableStock, Math.max(1, Number(item.quantity || 1)), allowOutOfStock);
       // SF-4 / O54: the chosen variant is priced here, from the product's own metadata.
       const priced = resolveOrderLinePrice(Number(prod.retail_price || 0), prod.metadata, item.variantName);
       if (!priced.ok) {
@@ -879,7 +882,7 @@ export class StorefrontService {
     // Get default primary branch
     const primaryBranch = await this.db
       .selectFrom('branches')
-      .select(['id'])
+      .select(['id', 'default_stock_location_id'])
       .where(sql<boolean>`tenant_id = ${tenant.id}`)
       .where('is_active', '=', true)
       .orderBy('id', 'asc')
@@ -887,6 +890,22 @@ export class StorefrontService {
 
     const branchId = primaryBranch ? Number(primaryBranch.id) : null;
     const accountId = `${tenant.id}:main`;
+
+    const targetBranchId = isPickup ? (dto.pickupBranchId ? Number(dto.pickupBranchId) : branchId) : branchId;
+    let targetLocationId: number | null = null;
+    if (targetBranchId) {
+      if (primaryBranch && targetBranchId === Number(primaryBranch.id)) {
+        targetLocationId = primaryBranch.default_stock_location_id ? Number(primaryBranch.default_stock_location_id) : null;
+      } else {
+        const branchRow = await this.db
+          .selectFrom('branches')
+          .select(['id', 'default_stock_location_id'])
+          .where('id', '=', targetBranchId)
+          .where(sql<boolean>`tenant_id = ${tenant.id}`)
+          .executeTakeFirst();
+        targetLocationId = branchRow?.default_stock_location_id ? Number(branchRow.default_stock_location_id) : null;
+      }
+    }
 
     // Date-based daily sequential numbering: ON-YYMMDD-0001
     const now = new Date();
@@ -919,6 +938,27 @@ export class StorefrontService {
         await this.claimCouponUse(trx, tenant.id, couponIdToClaim);
       }
 
+      let stockReserved = false;
+      if (!allowOutOfStock) {
+        try {
+          await reserveLocationStock(trx, {
+            branchId: targetBranchId,
+            locationId: targetLocationId,
+            tenantId: tenant.id,
+            accountId,
+            items: validatedItems.map((it) => ({
+              productId: it.productId,
+              qty: it.quantity,
+            })),
+          });
+          stockReserved = true;
+        } catch (err: any) {
+          throw new BadRequestException(
+            err?.message || 'عفواً، الكمية المطلوبة غير متوفرة في مخزون الفرع المحدد.'
+          );
+        }
+      }
+
       const inserted = await trx
       .insertInto('online_orders')
       .values({
@@ -948,6 +988,10 @@ export class StorefrontService {
         table_number: dto.tableNumber ? String(dto.tableNumber).trim() : null,
         sale_id: null,
         access_token_hash: accessToken.hash,
+        stock_reserved: stockReserved,
+        reserved_branch_id: stockReserved ? targetBranchId : null,
+        reserved_location_id: stockReserved ? targetLocationId : null,
+        stock_reserved_at: stockReserved ? now : null,
       })
       .returning(['id', 'order_number', 'total_amount', 'created_at'])
       .executeTakeFirstOrThrow();
@@ -1270,6 +1314,7 @@ export class StorefrontService {
         .updateTable('online_orders')
         .set({
           status: 'cancelled',
+          stock_reserved: false,
           updated_at: new Date(),
         })
         .where('id', '=', order.id)
@@ -1282,6 +1327,26 @@ export class StorefrontService {
         // The store picked the order up (loaded it into the POS cart / started preparing it) between
         // our read and this write.
         throw new BadRequestException('لا يمكن إلغاء الطلب لأن المتجر بدأ في تجهيزه بالفعل');
+      }
+
+      if (order.stock_reserved) {
+        let orderItems: Array<any> = [];
+        try {
+          const raw = order.items_json;
+          orderItems = (typeof raw === 'string' ? JSON.parse(raw) : raw) || [];
+        } catch {}
+        if (orderItems.length > 0) {
+          await releaseLocationStock(trx, {
+            branchId: order.reserved_branch_id ?? order.branch_id,
+            locationId: order.reserved_location_id,
+            tenantId: tenant.id,
+            accountId: order.account_id,
+            items: orderItems.map((it) => ({
+              productId: Number(it.productId),
+              qty: Number(it.quantity ?? it.qty ?? 1),
+            })),
+          });
+        }
       }
 
       // A cancelled order gives its coupon use back (only the transition to 'cancelled' reaches here).
@@ -1431,6 +1496,47 @@ export class StorefrontService {
         await this.releaseCouponUse(trx, tenant.id, previousCoupon);
       }
 
+      if (order.stock_reserved) {
+        let oldItems: Array<any> = [];
+        try {
+          const raw = order.items_json;
+          oldItems = (typeof raw === 'string' ? JSON.parse(raw) : raw) || [];
+        } catch {}
+        if (oldItems.length > 0) {
+          await releaseLocationStock(trx, {
+            branchId: order.reserved_branch_id ?? order.branch_id,
+            locationId: order.reserved_location_id,
+            tenantId: tenant.id,
+            accountId: order.account_id,
+            items: oldItems.map((it) => ({
+              productId: Number(it.productId),
+              qty: Number(it.quantity ?? it.qty ?? 1),
+            })),
+          });
+        }
+      }
+
+      let nextStockReserved = false;
+      if (!updateAllowsOutOfStock) {
+        try {
+          await reserveLocationStock(trx, {
+            branchId: order.reserved_branch_id ?? order.branch_id,
+            locationId: order.reserved_location_id,
+            tenantId: tenant.id,
+            accountId: order.account_id,
+            items: validatedItems.map((it) => ({
+              productId: it.productId,
+              qty: it.quantity,
+            })),
+          });
+          nextStockReserved = true;
+        } catch (err: any) {
+          throw new BadRequestException(
+            err?.message || 'عفواً، الكمية المطلوبة بعد التعديل غير متوفرة في مخزون الفرع.'
+          );
+        }
+      }
+
       const result = await trx
       .updateTable('online_orders')
       .set({
@@ -1442,6 +1548,8 @@ export class StorefrontService {
         discount_amount: discountAmount,
         coupon_code: charges.appliedCouponCode,
         total_amount: totalAmount,
+        stock_reserved: nextStockReserved,
+        stock_reserved_at: nextStockReserved ? new Date() : null,
         customer_name: (dto.customerName || order.customer_name).trim(),
         customer_phone: (dto.customerPhone || order.customer_phone).trim(),
         customer_address: dto.customerAddress ? dto.customerAddress.trim() : order.customer_address,
@@ -1627,18 +1735,50 @@ export class StorefrontService {
     }
 
     await this.db.transaction().execute(async (trx) => {
-      let becameCancelled = false;
       if (status === 'cancelled') {
-        // Only the first transition to 'cancelled' releases the coupon use; re-saving an already
-        // cancelled order must not hand the use back twice.
-        const r = await trx
-          .updateTable('online_orders')
-          .set(updatePayload)
+        const row = await trx
+          .selectFrom('online_orders')
+          .select(['id', 'status', 'coupon_code', 'stock_reserved', 'reserved_branch_id', 'reserved_location_id', 'branch_id', 'account_id', 'items_json'])
           .where('id', '=', id)
           .where(sql<boolean>`tenant_id = ${tenantId}`)
-          .where('status', '<>', 'cancelled')
+          .forUpdate()
           .executeTakeFirst();
-        becameCancelled = Number(r?.numUpdatedRows || 0) > 0;
+
+        if (row && row.status !== 'cancelled') {
+          await trx
+            .updateTable('online_orders')
+            .set({
+              ...updatePayload,
+              stock_reserved: false,
+            })
+            .where('id', '=', id)
+            .where(sql<boolean>`tenant_id = ${tenantId}`)
+            .execute();
+
+          if (row.coupon_code) {
+            await this.releaseCouponUse(trx, tenantId, String(row.coupon_code));
+          }
+
+          if (row.stock_reserved) {
+            let orderItems: Array<any> = [];
+            try {
+              const raw = row.items_json;
+              orderItems = (typeof raw === 'string' ? JSON.parse(raw) : raw) || [];
+            } catch {}
+            if (orderItems.length > 0) {
+              await releaseLocationStock(trx, {
+                branchId: row.reserved_branch_id ?? row.branch_id,
+                locationId: row.reserved_location_id,
+                tenantId,
+                accountId: row.account_id,
+                items: orderItems.map((it) => ({
+                  productId: Number(it.productId),
+                  qty: Number(it.quantity ?? it.qty ?? 1),
+                })),
+              });
+            }
+          }
+        }
       } else {
         await trx
           .updateTable('online_orders')
@@ -1646,18 +1786,6 @@ export class StorefrontService {
           .where('id', '=', id)
           .where(sql<boolean>`tenant_id = ${tenantId}`)
           .execute();
-      }
-
-      if (becameCancelled) {
-        const row = await trx
-          .selectFrom('online_orders')
-          .select(['coupon_code'])
-          .where('id', '=', id)
-          .where(sql<boolean>`tenant_id = ${tenantId}`)
-          .executeTakeFirst();
-        if (row?.coupon_code) {
-          await this.releaseCouponUse(trx, tenantId, String(row.coupon_code));
-        }
       }
     });
 
@@ -1813,15 +1941,16 @@ export class StorefrontService {
     }));
 
     // Find primary location for branch
+    const targetBranchId = order.reserved_branch_id || order.branch_id || 1;
     const branch = await this.db
       .selectFrom('branches')
       .select(['id', 'default_stock_location_id'])
       .where(sql<boolean>`tenant_id = ${tenantId}`)
-      .where('id', '=', order.branch_id || 1)
+      .where('id', '=', targetBranchId)
       .executeTakeFirst();
 
-    const branchId = branch?.id || 1;
-    const locationId = branch?.default_stock_location_id || 1;
+    const branchId = targetBranchId;
+    const locationId = order.reserved_location_id || branch?.default_stock_location_id || 1;
 
     // 2.5 Resolve delivery representative
     let repId = explicitRepId ? Number(explicitRepId) : 0;
@@ -1864,6 +1993,7 @@ export class StorefrontService {
     // courier collects the undiscounted total at the door.
     const orderDiscount = Math.max(0, Number(order.discountAmount || 0));
     const salePayload: any = {
+      onlineOrderId: id,
       customerId: customer ? Number(customer.id) : undefined,
       customerName: customer ? customer.name : order.customer_name,
       customerPhone: cleanCustomerPhone,

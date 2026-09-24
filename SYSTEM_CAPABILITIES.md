@@ -219,13 +219,13 @@
 ## 8. الضرائب والفاتورة الإلكترونية المصرية والخليجية (Tax Integration)
 * **حالة الوحدة العامة:** 🟢 مكتمل 100%
 * **مسارات الكود:** `backend/src/modules/tax-integration`, `frontend/src/features/settings`
-* **الجداول في قاعدة البيانات:** `tax_settings`, `eta_invoices`, `zatca_invoices`
+* **الجداول في قاعدة البيانات:** `tax_settings`, `eta_invoices`, `zatca_invoices`, `zatca_egs_units`, `zatca_transmission_logs`
 
 | الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
 | :--- | :---: | :---: | :--- | :--- |
 | **ضريبة القيمة المضافة (VAT)** | 🟢 | 100% | `vat-declaration.service.ts` | حساب ضريبة القيمة المضافة 14% تلقائياً، إقرار ضريبي دوري، وإظهار الرقم الضريبي في الفواتير.<br/>**تحصين سبتمبر 2026 (البند 11 و O49 — نفذه Antigravity):** توحيد احتساب إقرار القيمة المضافة ليعتمد حصرياً على الفواتير المعتمدة والمرحلة `status = 'posted'` للمبيعات والمشتريات، مما يمنع احتساب المسودات غير المكتملة في الإقرارات الضريبية ويضمن التطابق الكامل مع محرك التقارير المالية. |
 | **الفاتورة الإلكترونية المصرية (ETA Integration)** | 🟢 | 100% | `eta-submission.service.ts`, `eta-serializer` | الربط مع مصلحة الضرائب المصرية، التوقيع الإلكتروني، وتصدير بصيغة JSON المعتمدة مع UUID. |
-| **الفاتورة الإلكترونية السعودية (ZATCA Phase 1 & 2)** | 🟢 | 100% | `zatca/zatca.service.ts` | تشفير QR Code بتنسيق TLV المتوافق مع متطلبات هيئة الزكاة والضريبة والجمارك. |
+| **الفاتورة الإلكترونية السعودية (ZATCA Phase 1 & 2 — Clearance & Reporting)** | 🟢 | 100% | `zatca/zatca.service.ts`, `zatca-submission.service.ts`, `zatca.controller.ts`, `TaxDispatcherPage.tsx`, `2040000000146_zatca_clearance_and_reporting.ts` | تشفير QR Code بتنسيق TLV للمرحلة الأولى، ومنظومة الربط اللحظي المتكاملة للمرحلة الثانية ZATCA Phase 2 (O47): <br/>1. **الفسح اللحظي للفواتير القياسية (B2B Clearance):** إرسال مباشر لنقطة `/invoices/clearance/single` مع ترويسة `Clearance-Status: 1` واستلام وتخزين الـ XML المختوم من الهيئة `zatca_cleared_xml` قبل اعتماده وتداوله. <br/>2. **الإبلاغ اللحظي للفواتير المبسطة (B2C Reporting):** إرسال خلال 24 ساعة لنقطة `/invoices/reporting/single` والتحقق من التحذيرات والأخطاء. <br/>3. **المصادقة والتسلسل والأمان:** مصادقة Basic Auth باستخدام CSID وسر الشهادة لكل وحدة EGS، تسلسل ICV و PIH المشفر تحت أقفال حصرية للصفوف، فشل حاسم مغلق في بيئات الإنتاج، ومحاكاة محكومة لبيئات التطوير والاختبار. <br/>4. **شاشة مركز الإرسال الضريبي:** تبويب متخصص لهيئة الزكاة السعودية في `TaxDispatcherPage`، إرسال فردي وجماعي، فلاتر زمنية وبحث، معاينة نتائج التحقق والتحذيرات، وتحميل ملفات الـ XML المختومة وسجل تاريخي `zatca_transmission_logs`. |
 
 ---
 
@@ -1275,8 +1275,8 @@
 * **معيار المقارنة الدولي:** Odoo 17 Sales Orders & Stock Allocation / Reservation Engine.
 * **روابط وشاشات الوصول:** `/sales/orders` (القائمة الجانبية: المبيعات ➔ أوامر البيع وحجز المخزون).
 * **مسارات الكود الأساسية:**
-  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000059_sales_orders_stock_reservation.ts`, `backend/src/database/database.types.ts` (`products.reserved_qty`, `sales_orders`, `sales_order_items`).
-  * **الباك إند:** `backend/src/modules/sales/services/sales-orders.service.ts`, `backend/src/modules/sales/controllers/sales-orders.controller.ts`, `backend/src/modules/sales/sales.module.ts`.
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000059_sales_orders_stock_reservation.ts`, `backend/src/database/migrations/2040000000145_subwarehouse_stock_reservation.ts`, `backend/src/database/database.types.ts` (`products.reserved_qty`, `product_location_stock.reserved_qty`, `online_orders` tracking columns, `sales_orders`, `sales_order_items`).
+  * **الباك إند:** `backend/src/common/utils/location-stock-ledger.ts` (`reserveLocationStock`, `releaseLocationStock`), `backend/src/modules/storefront/storefront.service.ts`, `backend/src/modules/sales/services/sales-orders.service.ts`, `backend/src/modules/sales/services/sales-write.service.ts`, `backend/src/modules/sales/controllers/sales-orders.controller.ts`, `backend/src/modules/sales/sales.module.ts`.
   * **الفرونت إند:** `frontend/src/features/sales/api/sales-orders.api.ts`, `frontend/src/features/sales/pages/SalesOrdersPage.tsx`, `frontend/src/features/sales/routes.tsx`.
 * **الميزات والقدرات المفعلة:**
   1. **حجز المخزون المؤقت الآلي (Real-Time Stock Reservation):** فور تأكيد أمر البيع، يتم حجز الكميات المطلوبة في المخزون (`reserved_qty`) لمنع بيعها أو تكرار حجزها في نقاط البيع (POS) أو المتجر الإلكتروني، مع احتساب دقيق للرصيد المتاح للبيع للآخرين (`available_qty = stock_qty - reserved_qty`).
@@ -1284,6 +1284,9 @@
   3. **التحويل بنقرة واحدة إلى فاتورة بيع فعلية (1-Click Convert to Sale Invoice):** تحويل أمر البيع المؤكد مباشرة إلى فاتورة بيع مرحلة في نظام المبيعات، مع فك الحجز آلياً وخصم الكميات من المخزون الفعلي دون أي تدخل يدوي أو ازدواجية.
   4. **إلغاء أمر البيع وفك الحجز الفوري:** إمكانية إلغاء أمر البيع بضغطة زر لفك حجز المخزون فورياً وإعادته للرصيد المتاح للبيع.
   5. **لوحة فحص جاهزية المخزون (Stock Readiness Modal):** فحص فوري لكل بند في أمر البيع ومقارنة الكمية المطلوبة بالكمية المحجوزة والرصيد الفعلي بالمستودع والرصيد المتاح للآخرين.
+  6. **حجز المخزون لطلبات المتجر الإلكتروني على مستوى الفروع والمواقع (Sub-warehouse Online Orders Reservation - البند O7):** ربط دورة حياة طلبات المتجر الإلكتروني (`online_orders`) بحجز فوري للكميات في المخزن الفرعي المحدد للفرع (`product_location_stock.reserved_qty`) تزامناً مع حجز الصنف العام، مما يمنع البيع الزائد (Overselling) على الكاشيرات أو بين طلبات الويب المتزامنة.
+  7. **إدارة دورة حياة الحجز بالمتجر (تعديل ذري، فك عند الإلغاء، تحويل للمبيعات):** إلغاء الطلب من المتجر أو تحويل حالته إلى `cancelled` يفك الحجز فورياً. تعديل الطلب يفك القديم ويحجز التشكيلة الجديدة ذرياً في نفس المعاملة. فوترة الطلب في الـ POS أو تحويله لمبيعات يفك الحجز أولاً ثم يخصم المخزون الفعلي الفيزيائي دون ازدواجية الخصم ودون الوقوع في عجز وهمي.
+  8. **قيد عدم السالبية وترتيب الأقفال الكانوني لمنع الـ Deadlock:** قيد هيكلي صارم `chk_product_location_stock_reserved_non_negative` في قاعدة البيانات، واستخدام دالة السلامة `GREATEST(0, reserved_qty - delta)` عند فك الحجز، والالتزام بالترتيب القانوني الصارم للأقفال (`products` ثم `product_location_stock` مرتبة تصاعدياً بـ `productId`) للقضاء التام على تعليق العمليات المتبادل (SQLSTATE 40P01).
 
 ## 66. دورة أوامر الشراء واعتماد الموردين والاستلام المخزني (Purchase Orders & Goods Receipt)
 * **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
@@ -5870,3 +5873,36 @@
 * **تصحيح توثيقي:** مواصفات الإنتاج في O64 كانت «1 OCPU و5.8 جيجا بلا Swap» (قياس 22 سبتمبر). الواقع الآن **نواتان و12 جيجا و4 جيجا Swap**. الأحجام أعلاه معايَرة على الجديد، مع بقاء الحقيقة الحاكمة: سيرفر واحد، وباك إند في عملية واحدة (PM2 fork).
 * **تحذيرات التشغيل على الإنتاج** (مفصّلة في `docs/LOAD_TESTING.md` §3-ب): سيناريوهات الشراء **تُنشئ طلبات حقيقية** بخصم مخزون وإشعار واتساب لكل طلب إن كانت البوابة مفعّلة · المخزون ينفد فتفشل الطلبات التالية بخطأ مخزون لا بخطأ أداء · منفذ الإنتاج 3000 لا 3001.
 * **الملفات:** `load-tests/config.js` · `load-tests/run.sh` · `load-tests/run.bat` · `load-tests/runner.cjs` · `load-tests/scenarios/*.js` · `docs/LOAD_TESTING.md` · `backend/test/critical/performance-hot-paths.spec.ts`
+
+---
+
+## 172. الربط المباشر والإبلاغ والتخليص اللحظي مع هيئة الزكاة السعودية ZATCA Phase 2 (Clearance & Reporting — O47)
+* **حالة الوحدة / المعيار:** 🟢 مكتملة (24 سبتمبر 2026) — الثوابت ZATCA-1..ZATCA-6 في `ARCHITECTURE_INVARIANTS.md` §2.15، محروسة بـ`zatca-transmission.spec.ts` داخل `npm run guards`.
+* **الفجوة التي أُغلقت (البند O47):** النظام كان يدعم المرحلة الأولى (توليد QR بتنسيق TLV) مع البنية التحتية لتسجيل وحدات الحل الإلكتروني (CSR، شهادات الامتثال، والإنتاج CSID) وبناء XML وتوقيع الـ Digest، ولكنه كان يفتقر إلى مسار الربط المباشر اللحظي مع بوابات هيئة الزكاة والضريبة والجمارك (Clearance API للفواتير الضريبية B2B و Reporting API للفواتير المبسطة B2C)، ولم يكن هناك مركز إرسال وتتبع وسجل تدقيق للردود والتحذيرات.
+* **ما يستطيعه المستخدم والنظام الآن:**
+  - **الفسح اللحظي للفواتير القياسية (B2B Clearance):** الفواتير الصادرة لعملاء مسجلين ضريبياً تُرسل لحظياً إلى بوابة الهيئة `/invoices/clearance/single` مع ترويسة `Clearance-Status: 1`. لا تُعتمد الفاتورة ولا تُطبع للعميل إلا بعد استلام الـ XML المختوم المشفر رقمياً من الهيئة وحفظه في `sales.zatca_cleared_xml`.
+  - **الإبلاغ اللحظي للفواتير المبسطة (B2C Reporting):** الفواتير النقدية وللمستهلك النهائي تُرسل خلال المهلة القانونية (24 ساعة) إلى نقطة `/invoices/reporting/single` ويتم التحقق من قبولها وتسجيل أي ملاحظات أو تحذيرات.
+  - **المصادقة الثنائية الصارمة للشهادات:** التحقق المعتمد على CSID وسر الشهادة لكل وحدة EGS نشطة مع ترويسة `Authorization: Basic <CSID:Secret>`، ورفض الفواتير غير المرتبطة بوحدة مسجلة.
+  - **سلسلة التشفير والعداد التراكمي تحت أقفال الصفوف (ICV & PIH Chaining):** حساب العداد التسلسلي التراكمي وتجزئة الفاتورة السابقة تحت أقفال حصرية للصفوف تمنع حدوث انقطاع في سلسلة التشفير التراكمية عند التزامن.
+  - **سجل تدقيق تاريخي غير قابل للتعديل (`zatca_transmission_logs`):** تسجيل تفاصيل كل محاولة إرسال (UUID، معرّف الفاتورة، كود الاستجابة HTTP، كود ZATCA، وقائمة رسائل التحقق والأخطاء والتحذيرات JSON) لضمان الامتثال التام مع متطلبات الهيئة.
+  - **الفشل الحاسم في الإنتاج والمحاكاة لبيئات الاختبار:** في بيئات التشغيل الحية `APP_MODE=CLOUD_SAAS` وبيئة الإنتاج، يفشل الإرسال بحسم عند غياب الشهادات أو سقوط الاتصال (Fail-Closed). وفي بيئات التطوير والمحاكاة يتم الرد المعتمد المنضبط لتمكين الاختبار الآلي.
+  - **شاشة مركز الإرسال الضريبي المتطورة (`TaxDispatcherPage.tsx`):**
+    - تبويب مخصص ومستقل لمنظومة الزكاة والضريبة السعودية (ZATCA Phase 2).
+    - جدول فواتير تفاعلي يُميّز بين الفواتير القياسية (B2B) والمبسطة (B2C).
+    - شارات حالة ملونة واضحة (`CLEARED`, `REPORTED`, `WARNING`, `REJECTED`, `PENDING`).
+    - أزرار إرسال فردي وجماعي دفعي للعمليات المعلقة.
+    - نافذة فحص نتائج الإرسال وقراءة ردود الهيئة بالتفصيل وتحميل ملف XML المختوم.
+    - استعراض سجل الإرسال التاريخي لكافة العمليات المنفذة.
+* **الملفات:**
+  - `backend/src/database/migrations/2040000000146_zatca_clearance_and_reporting.ts` — الهجرة، أعمدة `sales`، وجدول `zatca_transmission_logs` مع فهارس الأداء.
+  - `backend/src/database/database.types.ts` — تعريفات الجداول والأنواع.
+  - `backend/src/modules/tax-integration/services/zatca/zatca-submission.service.ts` — المحرك الشامل للربط، الفسح، الإبلاغ، والمصادقة.
+  - `backend/src/modules/tax-integration/controllers/zatca/zatca.controller.ts` — مسارات API للفسح والإبلاغ والسجلات.
+  - `backend/src/modules/tax-integration/tax-integration.module.ts` — تسجيل وتصدير الخدمة.
+  - `frontend/src/features/sales/api/tax-invoices.api.ts` — عميل API للواجهة الأمامية.
+  - `frontend/src/features/sales/pages/TaxDispatcherPage.tsx` — شاشة مركز الإرسال الضريبي وتفاعلات الفسح والإبلاغ.
+  - `backend/test/critical/zatca-transmission.spec.ts` — الجناح الحرج لاختبار الإرسال والتخليص والمحاكاة وحفظ السجلات.
+* **التحقق:**
+  - `zatca-transmission.spec.ts` (100% نجاح عبر 5 اختبارات تفصيلية).
+  - نجاح فحص الأنواع (`tsc -b` و `npm run typecheck`) بدون أي أخطاء.
+

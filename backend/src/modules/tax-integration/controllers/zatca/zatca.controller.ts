@@ -6,6 +6,7 @@ import { RequirePermissions } from '../../../../core/auth/decorators/permissions
 import { RequestWithAuth } from '../../../../core/auth/interfaces/request-with-auth.interface';
 import { ZatcaPhase2Service } from '../../services/zatca/zatca-phase2.service';
 import { ZatcaOnboardingService, CreateEgsUnitDto, RequestComplianceDto } from '../../services/zatca/zatca-onboarding.service';
+import { ZatcaSubmissionService } from '../../services/zatca/zatca-submission.service';
 
 @Controller('api/tax-integration/zatca')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
@@ -13,7 +14,43 @@ export class ZatcaController {
   constructor(
     private readonly zatcaService: ZatcaPhase2Service,
     private readonly zatcaOnboarding: ZatcaOnboardingService,
+    private readonly zatcaSubmission: ZatcaSubmissionService,
   ) {}
+
+  // ─── Clearance & Reporting Endpoints ─────────────────────────────────────────
+
+  @Get('invoices/pending')
+  @RequirePermissions('sales')
+  async getPendingInvoices(@Req() req: RequestWithAuth) {
+    const tenantId = String(req.authContext!.tenantId);
+    const invoices = await this.zatcaSubmission.getPendingInvoices(tenantId);
+    return { success: true, data: invoices };
+  }
+
+  @Post('invoices/submit/:id')
+  @RequirePermissions('sales')
+  async submitInvoice(@Req() req: RequestWithAuth, @Param('id') id: string) {
+    const tenantId = String(req.authContext!.tenantId);
+    const result = await this.zatcaSubmission.submitInvoice(tenantId, Number(id));
+    return { success: result.success, data: result };
+  }
+
+  @Post('invoices/submit-bulk')
+  @RequirePermissions('sales')
+  async bulkSubmitInvoices(@Req() req: RequestWithAuth, @Body() body: { invoiceIds: (number | string)[] }) {
+    const tenantId = String(req.authContext!.tenantId);
+    const numericIds = (body.invoiceIds || []).map((id) => Number(id)).filter((id) => !isNaN(id) && id > 0);
+    const summary = await this.zatcaSubmission.bulkSubmitInvoices(tenantId, numericIds);
+    return { success: summary.success, data: summary };
+  }
+
+  @Get('invoices/logs')
+  @RequirePermissions('sales')
+  async getTransmissionLogs(@Req() req: RequestWithAuth) {
+    const tenantId = String(req.authContext!.tenantId);
+    const logs = await this.zatcaSubmission.getTransmissionLogs(tenantId);
+    return { success: true, data: logs };
+  }
 
   // ─── Invoice Endpoints ───────────────────────────────────────────────────────
 

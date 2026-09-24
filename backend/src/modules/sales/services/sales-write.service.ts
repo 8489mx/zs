@@ -3,7 +3,7 @@ import { Kysely, sql, type Transaction } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
-import { applyStockDelta, previewConsumableStockQty, previewAssignedLocationStockQty } from '../../../common/utils/location-stock-ledger';
+import { applyStockDelta, previewConsumableStockQty, previewAssignedLocationStockQty, releaseLocationStock } from '../../../common/utils/location-stock-ledger';
 import { AuditService, AUDIT_EVENT_CODES } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
@@ -633,6 +633,37 @@ export class SalesWriteService {
 
     const txStartedAt = Date.now();
     const saleId = await this.tx.runInTransaction(this.db, async (trx) => {
+      let onlineOrderToRelease: any = null;
+      if (payload.onlineOrderId) {
+        onlineOrderToRelease = await trx
+          .selectFrom('online_orders')
+          .selectAll()
+          .where('id', '=', Number(payload.onlineOrderId))
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .forUpdate()
+          .executeTakeFirst();
+
+        if (onlineOrderToRelease?.stock_reserved) {
+          let orderItems: Array<any> = [];
+          try {
+            const raw = onlineOrderToRelease.items_json;
+            orderItems = (typeof raw === 'string' ? JSON.parse(raw) : raw) || [];
+          } catch {}
+          if (orderItems.length > 0) {
+            await releaseLocationStock(trx, {
+              branchId: onlineOrderToRelease.reserved_branch_id ?? onlineOrderToRelease.branch_id,
+              locationId: onlineOrderToRelease.reserved_location_id,
+              tenantId: scope.tenantId,
+              accountId: scope.accountId,
+              items: orderItems.map((it) => ({
+                productId: Number(it.productId),
+                qty: Number(it.quantity ?? it.qty ?? 1),
+              })),
+            });
+          }
+        }
+      }
+
       if (normalized.discount < 0) throw new AppError('Discount cannot be negative', 'INVALID_DISCOUNT', 400);
       if (normalized.storeCreditUsed < 0) throw new AppError('Store credit cannot be negative', 'INVALID_STORE_CREDIT', 400);
 
@@ -737,7 +768,7 @@ export class SalesWriteService {
       const productRows = productIds.length > 0
         ? await trx.selectFrom('products as p')
             .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
-            .select(['p.id', 'p.name', 'p.stock_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'p.item_type', 'b.id as bom_id'])
+            .select(['p.id', 'p.name', 'p.stock_qty', 'p.reserved_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'p.item_type', 'b.id as bom_id'])
             .where('p.id', 'in', productIds)
             .where(sql<boolean>`p.tenant_id = ${scope.tenantId}`)
             .where('p.is_active', '=', true)
@@ -779,7 +810,7 @@ export class SalesWriteService {
 
       const allStockRows = normalized.locationId && productIds.length > 0
         ? await trx.selectFrom('product_location_stock')
-            .select(['product_id', 'location_id', 'branch_id', 'qty'])
+            .select(['product_id', 'location_id', 'branch_id', 'qty', 'reserved_qty'])
             .where('product_id', 'in', productIds)
             .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
             .execute()
@@ -819,20 +850,23 @@ export class SalesWriteService {
         let availableStockQty = 0;
         const productStockRows = stockRowsByProductId.get(item.productId) || [];
         if (!normalized.locationId) {
-          availableStockQty = Number(product.stock_qty || 0);
+          availableStockQty = Math.max(0, Number(product.stock_qty || 0) - Number(product.reserved_qty || 0));
         } else if (eligibleLocations.length === 1) {
           const locRow = productStockRows.find((r) => Number(r.location_id) === Number(normalized.locationId));
           const unassignedRow = productStockRows.find((r) => r.location_id == null && r.branch_id == null);
-          availableStockQty = Number((Number(locRow?.qty || 0) + Number(unassignedRow?.qty || 0)).toFixed(3));
+          const locAvail = Math.max(0, Number(locRow?.qty || 0) - Number(locRow?.reserved_qty || 0));
+          const unassignedAvail = Math.max(0, Number(unassignedRow?.qty || 0) - Number(unassignedRow?.reserved_qty || 0));
+          availableStockQty = Number((locAvail + unassignedAvail).toFixed(3));
         } else {
           // If all_operational_locations is enabled, sum the stock of all eligible locations + unassigned
           const locIds = eligibleLocations.map(l => l.id).filter(id => id != null);
           let totalEligible = 0;
           for (const row of productStockRows) {
+            const rowAvail = Math.max(0, Number(row.qty || 0) - Number(row.reserved_qty || 0));
             if (row.location_id == null && row.branch_id == null) {
-              totalEligible += Number(row.qty || 0);
+              totalEligible += rowAvail;
             } else if (row.location_id != null && locIds.includes(Number(row.location_id))) {
-              totalEligible += Number(row.qty || 0);
+              totalEligible += rowAvail;
             }
           }
           availableStockQty = Number(totalEligible.toFixed(3));
@@ -1182,14 +1216,14 @@ export class SalesWriteService {
         for (const loc of eligibleLocations) {
           if (remainingQty <= 0) break;
           const locStock = await trx.selectFrom('product_location_stock')
-            .select('qty')
+            .select(['qty', 'reserved_qty'])
             .where('product_id', '=', item.productId)
             .where('location_id', '=', loc.id)
             .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
             .forUpdate()
             .executeTakeFirst();
           
-          const availableQty = Number(locStock?.qty || 0);
+          const availableQty = Math.max(0, Number(locStock?.qty || 0) - Number(locStock?.reserved_qty || 0));
           if (availableQty > 0) {
             const allocateQty = Math.min(availableQty, remainingQty);
             remainingQty = Number((remainingQty - allocateQty).toFixed(3));
@@ -1278,14 +1312,14 @@ export class SalesWriteService {
               for (const loc of eligibleLocations) {
                 if (modRemainingQty <= 0) break;
                 const locStock = await trx.selectFrom('product_location_stock')
-                  .select('qty')
+                  .select(['qty', 'reserved_qty'])
                   .where('product_id', '=', Number(mod.productId))
                   .where('location_id', '=', loc.id)
                   .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
                   .forUpdate()
                   .executeTakeFirst();
                 
-                const availableQty = Number(locStock?.qty || 0);
+                const availableQty = Math.max(0, Number(locStock?.qty || 0) - Number(locStock?.reserved_qty || 0));
                 if (availableQty > 0) {
                   const allocateQty = Math.min(availableQty, modRemainingQty);
                   modRemainingQty = Number((modRemainingQty - allocateQty).toFixed(3));
@@ -1515,6 +1549,43 @@ export class SalesWriteService {
           { ok: true, saleId: id },
           String(id)
         );
+      }
+
+      if (onlineOrderToRelease) {
+        await trx
+          .updateTable('online_orders')
+          .set({
+            sale_id: id,
+            stock_reserved: false,
+            status: normalized.orderType === 'delivery' ? 'shipped' : 'delivered',
+            updated_at: new Date(),
+          })
+          .where('id', '=', onlineOrderToRelease.id)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .execute();
+
+        if (onlineOrderToRelease.kitchen_draft_sale_id) {
+          const draftSaleId = Number(onlineOrderToRelease.kitchen_draft_sale_id);
+          if (draftSaleId && draftSaleId !== id) {
+            await trx
+              .deleteFrom('sale_items')
+              .where('sale_id', '=', draftSaleId)
+              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+              .execute();
+            await trx
+              .deleteFrom('sales')
+              .where('id', '=', draftSaleId)
+              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+              .where('status', '=', 'draft')
+              .execute();
+            await trx
+              .updateTable('online_orders')
+              .set({ kitchen_draft_sale_id: null, updated_at: new Date() })
+              .where('id', '=', onlineOrderToRelease.id)
+              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+              .execute();
+          }
+        }
       }
 
       return id;
@@ -1988,14 +2059,14 @@ export class SalesWriteService {
         for (const loc of eligibleLocations) {
           if (remainingQty <= 0) break;
           const locStock = await trx.selectFrom('product_location_stock')
-            .select('qty')
+            .select(['qty', 'reserved_qty'])
             .where('product_id', '=', item.productId)
             .where('location_id', '=', loc.id)
             .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
             .forUpdate()
             .executeTakeFirst();
           
-          const availableQty = Number(locStock?.qty || 0);
+          const availableQty = Math.max(0, Number(locStock?.qty || 0) - Number(locStock?.reserved_qty || 0));
           if (availableQty > 0) {
             const allocateQty = Math.min(availableQty, remainingQty);
             remainingQty = Number((remainingQty - allocateQty).toFixed(3));
@@ -2081,14 +2152,14 @@ export class SalesWriteService {
               for (const loc of eligibleLocations) {
                 if (modRemainingQty <= 0) break;
                 const locStock = await trx.selectFrom('product_location_stock')
-                  .select('qty')
+                  .select(['qty', 'reserved_qty'])
                   .where('product_id', '=', Number(mod.productId))
                   .where('location_id', '=', loc.id)
                   .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
                   .forUpdate()
                   .executeTakeFirst();
                 
-                const availableQty = Number(locStock?.qty || 0);
+                const availableQty = Math.max(0, Number(locStock?.qty || 0) - Number(locStock?.reserved_qty || 0));
                 if (availableQty > 0) {
                   const allocateQty = Math.min(availableQty, modRemainingQty);
                   modRemainingQty = Number((modRemainingQty - allocateQty).toFixed(3));
