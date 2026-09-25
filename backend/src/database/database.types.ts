@@ -1749,12 +1749,27 @@ export interface SaasPlanTable {
   code: string;
   name: string;
   price: number;
+  price_monthly: number | null;
   currency: string;
   billing_period_months: number;
   max_users: number | null;
   max_branches: number | null;
   feature_plan_id: string | null;
+  pricing_band: number | null;
+  pricing_level: number | null;
   is_active: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface IndustryProductTable {
+  preset_id: string;
+  commercial_name: string;
+  band: number;
+  has_pos: boolean;
+  sell_offline: boolean;
+  sector_feature_code: string | null;
+  industry_profile_key: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -1815,6 +1830,7 @@ export interface DailyFinancialSummariesTable {
 export interface Database {
   daily_financial_summaries: DailyFinancialSummariesTable;
   saas_plans: SaasPlanTable;
+  industry_products: IndustryProductTable;
   tenant_subscriptions: TenantSubscriptionTable;
   tenant_subscription_payments: TenantSubscriptionPaymentTable;
   _phase1_bootstrap: Phase1BootstrapTable;
