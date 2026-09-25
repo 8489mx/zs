@@ -97,13 +97,17 @@ export function AppsStorePage() {
       return APPS_CATALOG.filter((app) => MARITIME_ALLOWED_KEYS.has(app.key));
     }
 
-    // Commerce mode: hide dedicated vertical suites unless tenant has specific feature
+    // Commerce mode: hide dedicated vertical suites unless tenant has specific feature.
+    // Sector-identity modules (featureFlag set to the same code industry-profiles.ts grants
+    // that sector) are hidden from every OTHER sector too — a pharmacy tenant shouldn't see
+    // "Restaurant Module" any more than a contracting one sees POS. Still shown when the
+    // tenant already has the flag (their own sector, or an add-on granted via extraFeatures —
+    // e.g. manufacturing installed on top of a non-manufacturing activity). PRICING_AND_PACKAGING.md
+    // §11 C5.
+    const SECTOR_IDENTITY_FLAGS = new Set(['contracting', 'maritime_freight', 'restaurant', 'clothing', 'pharmacy', 'manufacturing', 'import']);
     return APPS_CATALOG.filter((app) => {
-      if (app.key === 'contractingModuleEnabled' && !tenant?.features?.includes('contracting')) {
-        return false;
-      }
-      if (app.key === 'maritimeFreightModuleEnabled' && !tenant?.features?.includes('maritime_freight')) {
-        return false;
+      if (app.featureFlag && SECTOR_IDENTITY_FLAGS.has(app.featureFlag)) {
+        return tenant?.features?.includes(app.featureFlag) ?? false;
       }
       return true;
     });
