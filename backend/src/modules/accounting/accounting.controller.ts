@@ -3,6 +3,7 @@ import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { RequireAnyPermission, RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
+import { AccountingAccessGuard } from '../../core/auth/guards/accounting-access.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AccountingService } from './accounting.service';
@@ -42,7 +43,11 @@ import { CostCenterAllocationsService } from './services/cost-center-allocations
 import { ForexRevaluationService, ExecuteForexRevaluationDto } from './services/forex-revaluation.service';
 
 @Controller('api/accounting')
-@UseGuards(SessionAuthGuard, PermissionsGuard)
+// `AccountingAccessGuard` هو البوابة الحقيقية: `accounts` وحدها كانت تكفي، وهي في قالب كل
+// كاشير، فقرأ حسابُ كاشير الميزانية العمومية والتدفقات النقدية على الإنتاج (25 سبتمبر 2026)
+// لأن خدمتيهما لا تفحصان شيئاً. الحارس يطبّق نفس قاعدة `assertAccountingAccess` على المسارات
+// الاثنين والثمانين دفعة واحدة، بدل تعليق الحماية على تذكّر كاتب كل خدمة جديدة.
+@UseGuards(SessionAuthGuard, PermissionsGuard, AccountingAccessGuard)
 @RequireFeature('accounting')
 @RequireAnyPermission('accounting', 'accounts')
 export class AccountingController {
