@@ -164,9 +164,20 @@ export class PublicTrialSignupService {
           phase = 'cleanup';
           this.logger.warn(`cleanup start | tenantId=${provisioned.tenant.id} | slug=${provisioned.tenant.slug}`);
           await this.db.transaction().execute(async (trx) => {
-            await trx.deleteFrom('users').where('tenant_id', '=', provisioned.tenant.id).execute();
-            await trx.deleteFrom('trial_signups').where('tenant_id', '=', provisioned.tenant.id).execute();
-            await trx.deleteFrom('tenants').where('id', '=', provisioned.tenant.id).execute();
+            const tenantId = provisioned.tenant.id;
+            // Mirrors every insert TrialTenantProvisioningService.createTrialTenant performs,
+            // in reverse dependency order, so a mail-send failure never leaves orphaned rows
+            // that block deleting the tenant (branches <-> stock_locations is a two-way FK,
+            // so the branch's default_stock_location_id must be cleared before either can go).
+            await trx.updateTable('branches').set({ default_stock_location_id: null }).where('tenant_id', '=', tenantId).execute();
+            await trx.deleteFrom('user_branches').where('tenant_id', '=', tenantId).execute();
+            await trx.deleteFrom('stock_locations').where('tenant_id', '=', tenantId).execute();
+            await trx.deleteFrom('branches').where('tenant_id', '=', tenantId).execute();
+            await trx.deleteFrom('settings').where('tenant_id', '=', tenantId).execute();
+            await trx.deleteFrom('tenant_subscriptions').where('tenant_id', '=', tenantId).execute();
+            await trx.deleteFrom('users').where('tenant_id', '=', tenantId).execute();
+            await trx.deleteFrom('trial_signups').where('tenant_id', '=', tenantId).execute();
+            await trx.deleteFrom('tenants').where('id', '=', tenantId).execute();
           });
           this.logger.log(`cleanup ok | tenantId=${provisioned.tenant.id} | slug=${provisioned.tenant.slug}`);
           throw new BadRequestException('تعذر إرسال بيانات الدخول حاليًا. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.');
