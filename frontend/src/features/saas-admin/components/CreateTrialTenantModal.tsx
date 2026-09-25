@@ -366,9 +366,10 @@ export function CreateTrialTenantModal({
                     dir="auto"
                   />
                 </Field>
-                <Field label="البريد الإلكتروني (اختياري)">
+                <Field label="البريد الإلكتروني *">
                   <input
                     type="email"
+                    required
                     value={createForm.ownerEmail}
                     onChange={(e) => setCreateForm((s) => ({ ...s, ownerEmail: e.target.value }))}
                     placeholder="owner@example.com"

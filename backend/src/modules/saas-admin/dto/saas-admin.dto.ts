@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, Min, IsNumber, IsNotEmpty } from 'class-validator';
+import { IsArray, IsEmail, IsIn, IsInt, IsOptional, IsString, Max, Min, IsNumber, IsNotEmpty } from 'class-validator';
 
 export class ListSaasTenantsQueryDto {
   @IsOptional()
@@ -28,9 +28,9 @@ export class CreateTrialTenantDto {
   @IsString()
   ownerPhone!: string;
 
-  @IsOptional()
   @IsString()
-  ownerEmail?: string;
+  @IsEmail()
+  ownerEmail!: string;
 
   @IsOptional()
   @IsString()
