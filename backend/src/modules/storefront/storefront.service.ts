@@ -368,7 +368,15 @@ export class StorefrontService {
     return map;
   }
 
-  private readonly catalogCache = new Map<string, { data: any; expiresAt: number; staleUntil: number }>();
+  /**
+   * الكتالوج العام مخزَّن **ككائن وكنصّ مُسلسَل معاً**.
+   *
+   * الكائن يلزم لمن يقرأه داخلياً (بطاقة المعاينة الاجتماعية)، والنصّ يلزم للردّ على الطلبات:
+   * كان كل طلب يعيد `JSON.stringify` لكامل الكتالوج، فمنشأةٌ بـ12,140 صنفاً تبني نحو ثلاثة
+   * ميجابايت من النصّ **في كل طلب** حتى وهو مخزَّن. التخزين يوفّر الاستعلام ولا يوفّر التسلسل،
+   * والتسلسل هو المعالج. الآن يُسلسَل مرة واحدة لكل بناء.
+   */
+  private readonly catalogCache = new Map<string, { data: any; json: string; expiresAt: number; staleUntil: number }>();
   private readonly inFlightCatalogPromises = new Map<string, Promise<any>>();
 
   public invalidateCatalogCache(slug?: string) {
@@ -484,6 +492,63 @@ export class StorefrontService {
       snapchatPixelId: settings.get('storefront_snapchat_pixel_id') || '',
       pickupEnabled: settings.get('storefront_pickup_enabled') !== 'false',
       allowOutOfStockOrders: isOutOfStockOrderingAllowed(settings, tenant.slug, tenant.activity_type),
+    };
+  }
+
+  /**
+   * الكتالوج كنصّ JSON جاهز — **هذا ما يُرَدّ به على الطلبات العامة**.
+   *
+   * الفرق ليس تجميلياً: `getStorefrontCatalog` تعيد كائناً يُسلسِله Express في كل طلب. على كتالوج
+   * من 12 ألف صنف كان ذلك ثلاثة ميجابايت من بناء النصّ لكل زائر، على نواتين، بينما البيانات نفسها
+   * مخزَّنة أصلاً. هنا يُقرأ النصّ المُسلسَل مرة واحدة عند البناء.
+   */
+  async getStorefrontCatalogJson(slug: string): Promise<string> {
+    const cleanSlug = String(slug || '').trim().toLowerCase();
+    const cached = this.catalogCache.get(cleanSlug);
+    if (cached && cached.json && cached.expiresAt > Date.now()) {
+      return cached.json;
+    }
+    const data = await this.getStorefrontCatalog(slug);
+    const fresh = this.catalogCache.get(cleanSlug);
+    if (fresh && fresh.json) return fresh.json;
+    return JSON.stringify(data);
+  }
+
+  /**
+   * صفحة واحدة من الكتالوج، مع تصفية بالتصنيف والبحث — **على السيرفر**.
+   *
+   * الواجهة الحالية تبحث وتفرز في المتصفح على المصفوفة كاملة، فهي تطلب الكتالوج كله ولا تستطيع
+   * التصفّح بعد. هذا المسار موجود ليتحرّك العميل إليه: الحدّ الأقصى 200 صنف للصفحة، ومعه
+   * `totalCount` و`hasMore`. وحتى يهاجر العميل، الطلب بلا معاملات يظل يعيد الكتالوج كاملاً كما
+   * كان — لا كسر لأحد.
+   */
+  async getStorefrontCatalogPage(
+    slug: string,
+    query: { page?: unknown; pageSize?: unknown; categoryId?: unknown; q?: unknown },
+  ) {
+    const catalog: any = await this.getStorefrontCatalog(slug);
+    const all: any[] = Array.isArray(catalog?.products) ? catalog.products : [];
+
+    const search = String(query.q ?? '').trim().toLowerCase();
+    const categoryId = Number(query.categoryId ?? 0);
+    const filtered = all.filter((product) => {
+      if (categoryId > 0 && Number(product.categoryId ?? 0) !== categoryId) return false;
+      if (!search) return true;
+      return String(product.name || '').toLowerCase().includes(search)
+        || String(product.barcode || '').toLowerCase().includes(search);
+    });
+
+    const pageSize = Math.min(200, Math.max(1, Number(query.pageSize) || 50));
+    const page = Math.max(1, Number(query.page) || 1);
+    const start = (page - 1) * pageSize;
+
+    return {
+      categories: catalog?.categories ?? [],
+      products: filtered.slice(start, start + pageSize),
+      page,
+      pageSize,
+      totalCount: filtered.length,
+      hasMore: start + pageSize < filtered.length,
     };
   }
 
@@ -659,11 +724,14 @@ export class StorefrontService {
         const result = {
           categories: formattedCategories,
           products: formattedProducts,
+          // العدد الكلي معلن: عميلٌ يريد التصفّح يعرف كم يطلب، وقارئُ الاستجابة يرى حجمها.
+          totalCount: formattedProducts.length,
         };
 
         // Cache in-memory: 60s fresh, 5 mins stale-while-revalidate
         this.catalogCache.set(cleanSlug, {
           data: result,
+          json: JSON.stringify(result),
           expiresAt: Date.now() + 60_000,
           staleUntil: Date.now() + 300_000,
         });

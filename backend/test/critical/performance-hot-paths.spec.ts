@@ -201,10 +201,11 @@ async function run(): Promise<void> {
   testHotPathIndexMigration();
   await testStorefrontStaleWhileRevalidate();
   // eslint-disable-next-line no-console
+  testPublicCatalogIsSerializedOnce();
   testLoadSuiteIsUsable();
 
   // eslint-disable-next-line no-console
-  console.log('performance-hot-paths.spec: all performance invariants hold (PERF-1..PERF-4, PERF-9) and the load suite is wired');
+  console.log('performance-hot-paths.spec: all performance invariants hold (PERF-1..PERF-4, PERF-9, PERF-10) and the load suite is wired');
 }
 
 /**
@@ -212,6 +213,50 @@ async function run(): Promise<void> {
  * it are silent: a header the app never reads, and load sizes that cannot be dialled up without
  * editing files (so nobody dials them up).
  */
+/**
+ * PERF-10 — كتالوج المتجر العام يُسلسَل **مرة لكل بناء**، لا مرة لكل زائر.
+ *
+ * التخزين المؤقت كان يحفظ الكائن، وExpress يعيد `JSON.stringify` له في كل طلب. على منشأة بـ12,140
+ * صنفاً (قياس 24 سبتمبر 2026) يعني ذلك بناء نحو ثلاثة ميجابايت من النصّ لكل زائر، على نواتين،
+ * والبيانات مخزَّنة أصلاً: التخزين كان يوفّر الاستعلام ولا يوفّر المعالج.
+ */
+function testPublicCatalogIsSerializedOnce(): void {
+  const service = read('modules/storefront/storefront.service.ts');
+  const controller = read('modules/storefront/storefront-public.controller.ts');
+
+  assert.ok(
+    /catalogCache = new Map<string, \{ data: any; json: string;/.test(service),
+    'the public catalogue cache must hold the serialized payload, not just the object',
+  );
+  assert.ok(
+    /json: JSON\.stringify\(result\)/.test(service),
+    'the catalogue must be serialized where it is built, once per cache fill',
+  );
+  assert.ok(
+    /async getStorefrontCatalogJson/.test(service) && /return cached\.json/.test(service),
+    'a cache hit must return the stored string rather than rebuilding it',
+  );
+
+  // الرد نصّ مُسلسَل، فلا بد من ترويسة النوع صراحةً وإلا أرسله Express كـtext/html.
+  assert.ok(
+    /@Header\('Content-Type', 'application\/json; charset=utf-8'\)/.test(controller),
+    'returning a pre-serialized string needs an explicit JSON content type, or Express sends text/html',
+  );
+  assert.ok(
+    /getStorefrontCatalogJson\(slug\)/.test(controller),
+    'the public catalogue route must serve the cached string',
+  );
+  // الافتراضي بلا معاملات يبقى الكتالوج كاملاً: الواجهة تبحث وتفرز في المتصفح، وتغييره يكسرها.
+  assert.ok(
+    /const wantsPage = \[/.test(controller) && /if \(wantsPage\) \{/.test(controller) && /getStorefrontCatalogPage/.test(controller),
+    'pagination must be opt-in: the storefront page filters client-side and a changed default breaks it',
+  );
+  assert.ok(
+    /Math\.min\(200, Math\.max\(1, Number\(query\.pageSize\) \|\| 50\)\)/.test(service),
+    'a paged request must be capped, or "pagination" is a way to ask for everything with extra steps',
+  );
+}
+
 function testLoadSuiteIsUsable(): void {
   const ROOT = join(__dirname, '..', '..', '..');
   const loadFile = (relative: string) => readFileSync(join(ROOT, 'load-tests', relative), 'utf8').replace(/\r\n/g, '\n');

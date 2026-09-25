@@ -47,10 +47,31 @@ export class StorefrontPublicController {
     return this.service.getStorefrontInfo(slug);
   }
 
+  /**
+   * كتالوج المتجر العام.
+   *
+   * **بلا معاملات** يعيد الكتالوج كاملاً كما كان — الواجهة الحالية تبحث وتفرز في المتصفح على
+   * المصفوفة كاملة، فتغيير الافتراضي يكسر الصفحة. لكنه يُرَدّ الآن من **نصّ مُسلسَل مخزَّن**: كان
+   * Express يعيد بناء نحو ثلاثة ميجابايت من JSON لكل زائر على منشأة بـ12 ألف صنف، حتى والبيانات
+   * مخزَّنة، لأن التخزين كان يوفّر الاستعلام لا التسلسل.
+   *
+   * **مع `page` أو `pageSize` أو `categoryId` أو `q`** يعيد صفحة مُصفّاة على السيرفر ومعها
+   * `totalCount` و`hasMore`. هذا هو المسار الذي تهاجر إليه الواجهة حين يتحرّك البحث والفرز إلى
+   * السيرفر؛ حتى ذلك الحين يبقى موجوداً لمن يريده.
+   */
   @Get(':slug/catalog')
   @Header('Cache-Control', 'public, max-age=30, stale-while-revalidate=300')
-  getCatalog(@Param('slug') slug: string) {
-    return this.service.getStorefrontCatalog(slug);
+  @Header('Content-Type', 'application/json; charset=utf-8')
+  async getCatalog(
+    @Param('slug') slug: string,
+    @Query() query: Record<string, unknown>,
+  ): Promise<string> {
+    const wantsPage = ['page', 'pageSize', 'categoryId', 'q']
+      .some((key) => query?.[key] !== undefined && String(query[key]).trim() !== '');
+    if (wantsPage) {
+      return JSON.stringify(await this.service.getStorefrontCatalogPage(slug, query));
+    }
+    return this.service.getStorefrontCatalogJson(slug);
   }
 
   /**
