@@ -70,15 +70,11 @@ export class PlanFeatureService implements OnModuleInit {
       }
     }
 
-    if (pillar === 'manufacturing' || activityType === 'manufacturing') {
-      const profile = getIndustryProfile('manufacturing');
-      if (profile.defaultFeatures.includes(requiredFeature)) {
-        return true;
-      }
-      if (['pharmacy', 'restaurant', 'contracting', 'maritime_freight', 'storefront', 'pos', 'kds'].includes(requiredFeature)) {
-        return false;
-      }
-    }
+    // Manufacturing is a normal band-4 commerce product (has POS, like wholesale/import — see
+    // pricing-catalog.json), not an isolated pillar; it falls through to the commerce branch below,
+    // and its sector flag is granted via defaultFeatures. It can also be installed as an add-on
+    // module on top of ANY other activity (a restaurant making chocolate, a pharmacy compounding)
+    // via the literal extraFeatures check above.
 
     if (pillar === 'commerce' || !pillar || ['retail_general', 'pharmacy', 'restaurant', 'maintenance'].includes(activityType || '')) {
       const profile = getIndustryProfile(activityType);

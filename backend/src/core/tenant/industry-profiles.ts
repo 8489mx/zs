@@ -7,7 +7,8 @@ export type CommerceSubVertical =
   | 'maintenance'
   | 'import_export'
   | 'auto_parts'
-  | 'clothing';
+  | 'clothing'
+  | 'manufacturing';
 
 export type IndustryProfileKey =
   | 'contracting'
@@ -23,8 +24,16 @@ export interface IndustryProfile {
   labelEn: string;
   descriptionAr: string;
   defaultRoute: string;
+  /**
+   * Always granted regardless of the tenant's plan level: the sector-identity flag (if any) and
+   * bare POS basics. Anything beyond this (inventory, purchases, reports, accounting, hr, ...)
+   * comes from `plan_features` for the tenant's actual (band, level), via `pricingBand` below.
+   * PRICE-4 / PRICING_AND_PACKAGING.md §11 C1.
+   */
   defaultFeatures: string[];
   allowedExtraFeatures: string[];
+  /** The pricing catalog band (1-5) this activity is sold under — see pricing/pricing-catalog.json. */
+  pricingBand: 1 | 2 | 3 | 4 | 5;
 }
 
 export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
@@ -56,6 +65,7 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
       'approvals',
     ],
     allowedExtraFeatures: [],
+    pricingBand: 5,
   },
 
   maritime_freight: {
@@ -83,6 +93,7 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
       'approvals',
     ],
     allowedExtraFeatures: [],
+    pricingBand: 5,
   },
 
   retail_general: {
@@ -93,29 +104,9 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
     labelEn: 'General Retail & Supermarket',
     descriptionAr: 'نظام كاشير سريع، باركود ومخازن، مشتريات وموردين، وتقارير أرباح ومبيعات متقدمة.',
     defaultRoute: '/dashboard',
-    defaultFeatures: [
-      'catalog',
-      'products',
-      'sales',
-      'sessions',
-      'cashDrawer',
-      'purchases',
-      'inventory',
-      'suppliers',
-      'customers',
-      'crm',
-      'pricing',
-      'reports',
-      'accounting',
-      'hr',
-      'deliveryReps',
-      'loyalty',
-      'fixed_assets',
-      'installments',
-      'vat_declaration',
-      'taxIntegration',
-    ],
+    defaultFeatures: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer'],
     allowedExtraFeatures: ['storefront'],
+    pricingBand: 1,
   },
 
   pharmacy: {
@@ -126,30 +117,9 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
     labelEn: 'Pharmacy & Medical Supplies',
     descriptionAr: 'محرك تاريخ الصلاحية والتشغيلات (FEFO)، إدارة الأدوية والبدائل والنواقص، والروشتات.',
     defaultRoute: '/dashboard',
-    defaultFeatures: [
-      'catalog',
-      'products',
-      'sales',
-      'sessions',
-      'cashDrawer',
-      'purchases',
-      'inventory',
-      'suppliers',
-      'customers',
-      'crm',
-      'pricing',
-      'reports',
-      'pharmacy',
-      'accounting',
-      'hr',
-      'deliveryReps',
-      'loyalty',
-      'fixed_assets',
-      'installments',
-      'vat_declaration',
-      'taxIntegration',
-    ],
+    defaultFeatures: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer', 'pharmacy'],
     allowedExtraFeatures: ['storefront'],
+    pricingBand: 2,
   },
 
   restaurant: {
@@ -160,59 +130,26 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
     labelEn: 'Restaurants & Hospitality',
     descriptionAr: 'شاشات المطبخ الذكية (KDS)، شاشات الانتظار، إضافات الوجبات والمكونات (Modifiers)، والصالات.',
     defaultRoute: '/pos',
-    defaultFeatures: [
-      'catalog',
-      'products',
-      'sales',
-      'sessions',
-      'cashDrawer',
-      'purchases',
-      'inventory',
-      'suppliers',
-      'customers',
-      'crm',
-      'pricing',
-      'reports',
-      'restaurant',
-      'accounting',
-      'hr',
-      'deliveryReps',
-      'loyalty',
-      'fixed_assets',
-      'vat_declaration',
-      'taxIntegration',
-    ],
+    defaultFeatures: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer', 'restaurant'],
     allowedExtraFeatures: ['storefront'],
+    pricingBand: 3,
   },
 
   manufacturing: {
     key: 'manufacturing',
-    pillar: 'manufacturing',
+    pillar: 'commerce',
+    subVertical: 'manufacturing',
     labelAr: 'قطاع التصنيع والإنتاج الصناعي',
     labelEn: 'Manufacturing & Industrial Production',
     descriptionAr: 'منظومة المصانع والمعامل: تخطيط الإنتاج، شجرة المنتج (BOM)، أوامر التشغيل، مستودعات الخامات والمنتج التام، ومحاسبة التكاليف الصناعية.',
     defaultRoute: '/manufacturing/work-orders',
-    defaultFeatures: [
-      'manufacturing',
-      'purchases',
-      'inventory',
-      'catalog',
-      'products',
-      'suppliers',
-      'customers',
-      'crm',
-      'sales',
-      'pricing',
-      'accounting',
-      'treasury',
-      'hr',
-      'fixed_assets',
-      'vat_declaration',
-      'taxIntegration',
-      'reports',
-      'approvals',
-    ],
+    // Not an isolated pillar: it sells with POS like any band4 product (a factory outlet counter),
+    // and — per the owner — it also installs as an add-on module on top of ANY other activity
+    // (a restaurant making its own chocolate, a pharmacy compounding) via `extraFeatures: ['manufacturing']`,
+    // which `hasFeature`'s literal extraFeatures check already grants regardless of pillar/band.
+    defaultFeatures: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer', 'manufacturing'],
     allowedExtraFeatures: ['storefront'],
+    pricingBand: 4,
   },
 
   maintenance: {
@@ -223,28 +160,9 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
     labelEn: 'Maintenance & Service Center',
     descriptionAr: 'كروت استلام وفحص الأجهزة، قطع الغيار المستهلكة، تتبع أرقام السيريال والـ IMEI وتسليم الأجهزة.',
     defaultRoute: '/maintenance',
-    defaultFeatures: [
-      'catalog',
-      'products',
-      'sales',
-      'sessions',
-      'cashDrawer',
-      'purchases',
-      'inventory',
-      'suppliers',
-      'customers',
-      'crm',
-      'pricing',
-      'reports',
-      'maintenance',
-      'accounting',
-      'hr',
-      'fixed_assets',
-      'installments',
-      'vat_declaration',
-      'taxIntegration',
-    ],
+    defaultFeatures: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer', 'maintenance'],
     allowedExtraFeatures: ['storefront'],
+    pricingBand: 2,
   },
 
   import_export: {
@@ -255,28 +173,9 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
     labelEn: 'Import & International Wholesale',
     descriptionAr: 'إدارة الشحنات والحاويات الجمركية، مديونية الموردين والمصانع الخارجية، وأرباح الشركاء الممولين.',
     defaultRoute: '/import/shipments',
-    defaultFeatures: [
-      'catalog',
-      'products',
-      'sales',
-      'sessions',
-      'cashDrawer',
-      'purchases',
-      'inventory',
-      'suppliers',
-      'customers',
-      'crm',
-      'pricing',
-      'reports',
-      'import',
-      'accounting',
-      'treasury',
-      'hr',
-      'fixed_assets',
-      'vat_declaration',
-      'taxIntegration',
-    ],
+    defaultFeatures: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer', 'import'],
     allowedExtraFeatures: ['storefront'],
+    pricingBand: 4,
   },
 
   auto_parts: {
@@ -287,27 +186,9 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
     labelEn: 'Auto Spare Parts & Vehicles',
     descriptionAr: 'دليل قطع الغيار، أرقام القطع الأصلية (OEM)، توافق الموديلات والماركات وسنوات الصنع.',
     defaultRoute: '/dashboard',
-    defaultFeatures: [
-      'catalog',
-      'products',
-      'sales',
-      'sessions',
-      'cashDrawer',
-      'purchases',
-      'inventory',
-      'suppliers',
-      'customers',
-      'crm',
-      'pricing',
-      'reports',
-      'accounting',
-      'treasury',
-      'hr',
-      'fixed_assets',
-      'vat_declaration',
-      'taxIntegration',
-    ],
+    defaultFeatures: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer'],
     allowedExtraFeatures: ['storefront'],
+    pricingBand: 1,
   },
 
   clothing: {
@@ -318,28 +199,9 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
     labelEn: 'Fashion & Apparel',
     descriptionAr: 'إدارة مصفوفة الألوان والمقاسات (Variants)، وتوليد الباركود للأزياء، وتصنيفات الموديلات.',
     defaultRoute: '/dashboard',
-    defaultFeatures: [
-      'catalog',
-      'products',
-      'sales',
-      'sessions',
-      'cashDrawer',
-      'purchases',
-      'inventory',
-      'suppliers',
-      'customers',
-      'crm',
-      'pricing',
-      'reports',
-      'clothing',
-      'accounting',
-      'treasury',
-      'hr',
-      'fixed_assets',
-      'vat_declaration',
-      'taxIntegration',
-    ],
+    defaultFeatures: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer', 'clothing'],
     allowedExtraFeatures: ['storefront'],
+    pricingBand: 1,
   },
 };
 
