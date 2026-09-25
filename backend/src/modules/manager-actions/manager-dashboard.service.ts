@@ -58,6 +58,7 @@ export class ManagerDashboardService {
     const grossProfit = m(netSales - cogs);
     const expenses = m(n(expensesLast30?.total));
     const productProfit = this.buildProductProfit(profitRows);
+    const categoryProfit = this.buildCategoryProfit(profitRows);
     const result = { scope, salesLast30: { total: salesTotal, count: salesCount, averageInvoice: salesCount > 0 ? m(salesTotal / salesCount) : 0, previousTotal, comparisonPercent: pct(salesTotal, previousTotal) }, profitSummary: { netSales, cogs, grossProfit, expenses, netProfit: m(grossProfit - expenses) }, profitSources: { topProducts: productProfit.filter((r) => r.grossProfit > 0).slice(0, 6), topCategories: categoryProfit.filter((r) => r.grossProfit > 0).slice(0, 6), weakMarginHighSales: productProfit.filter((r) => r.revenue > 0 && r.marginPercent < 15).sort((a, b) => b.revenue - a.revenue).slice(0, 5) }, stagnant: this.buildStagnant(products, now, stagnantThresholdDays), buying: this.buildBuying(products, productProfit), collection: this.buildCollection(customers) };
     if (this.overviewCache.size > 200) {
       for (const [k, v] of this.overviewCache.entries()) {
