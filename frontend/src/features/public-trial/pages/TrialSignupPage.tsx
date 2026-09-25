@@ -175,8 +175,12 @@ export function TrialSignupPage() {
                       className="login-input-pro"
                     />
                   </div>
-                  {form.formState.errors.businessName?.message && (
+                  {form.formState.errors.businessName?.message ? (
                     <span className="login-field-error-text">{form.formState.errors.businessName?.message}</span>
+                  ) : (
+                    <span style={{ display: 'block', marginTop: '4px', fontSize: '11.5px', color: '#94a3b8' }}>
+                      يفضّل كتابته بحروف إنجليزية لأنه سيتحول تلقائياً لرابط متجرك الإلكتروني
+                    </span>
                   )}
                 </div>
 

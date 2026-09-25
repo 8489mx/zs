@@ -214,6 +214,32 @@ export class TrialTenantProvisioningService {
       .trim();
   }
 
+  /**
+   * Best-effort Arabic -> Latin transliteration so an Arabic business name still produces a
+   * readable slug (e.g. "حماده يلعب" -> "hmadh-ylaab") instead of falling through to a random
+   * "store-48213" every time, since almost every trial signup names their business in Arabic.
+   */
+  transliterateArabicToLatin(value: unknown): string {
+    const ARABIC_TRANSLITERATION_MAP: Record<string, string> = {
+      'ا': 'a', 'أ': 'a', 'إ': 'i', 'آ': 'aa', 'ب': 'b', 'ت': 't', 'ث': 'th',
+      'ج': 'j', 'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'th', 'ر': 'r', 'ز': 'z',
+      'س': 's', 'ش': 'sh', 'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'z', 'ع': 'a',
+      'غ': 'gh', 'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
+      'ه': 'h', 'و': 'w', 'ي': 'y', 'ى': 'a', 'ة': 'a', 'ء': '', 'ؤ': 'o', 'ئ': 'e',
+    };
+
+    const withoutDiacritics = String(value || '').replace(/[ً-ٰٟـ]/g, '');
+    const withLatinDigits = withoutDiacritics
+      .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632))
+      .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776));
+
+    let result = '';
+    for (const char of withLatinDigits) {
+      result += ARABIC_TRANSLITERATION_MAP[char] ?? char;
+    }
+    return result;
+  }
+
   normalizeSlugBase(value: unknown, isFallback = false): string {
     const normalized = String(value || '')
       .trim()
@@ -319,7 +345,9 @@ export class TrialTenantProvisioningService {
     const expiresAt = this.addDays(now, days);
 
     const result = await this.db.transaction().execute(async (trx) => {
-      const slugBase = providedSlug ? this.normalizeSlugBase(providedSlug, false) : this.normalizeSlugBase(businessName, true);
+      const slugBase = providedSlug
+        ? this.normalizeSlugBase(providedSlug, false)
+        : this.normalizeSlugBase(this.transliterateArabicToLatin(businessName), true);
       let slug = await this.makeUniqueSlug(slugBase, trx);
       if (providedSlug && options?.strictProvidedSlug) {
         const exists = await trx.selectFrom('tenants').select('id').where('slug', '=', slugBase).executeTakeFirst();
