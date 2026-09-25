@@ -117,15 +117,15 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
     queryKey: ['pos-pending-orders-count'],
     queryFn: async () => {
       try {
-        const res = await storefrontApi.listOrders('pending');
-        return res.orders?.length || 0;
+        const res = await storefrontApi.getOrderCounts();
+        return res.counts?.pending || 0;
       } catch {
         return 0;
       }
     },
     enabled: isStorefrontActive,
-    refetchInterval: 15 * 1000,
-    staleTime: 10 * 1000,
+    refetchInterval: 20 * 1000,
+    staleTime: 15 * 1000,
   });
 
   const pendingCount = isStorefrontActive ? (pendingOrdersQuery.data || 0) : 0;

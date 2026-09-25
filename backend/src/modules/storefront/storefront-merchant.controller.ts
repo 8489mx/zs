@@ -25,6 +25,20 @@ export class StorefrontMerchantController {
     return this.service.listOrders(query, req.authContext!);
   }
 
+  @Get('orders/counts')
+  getOrderCounts(@Req() req: RequestWithAuth) {
+    return this.service.getOrderCounts(req.authContext!);
+  }
+
+  @Post('orders/bulk-cancel')
+  bulkCancelOrders(
+    @Body('adminPassword') adminPassword: string,
+    @Body('status') status: string | undefined,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.service.bulkCancelOrders(adminPassword, status || 'pending', req.authContext!);
+  }
+
   @Get('orders/:id')
   getOrder(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.service.getOrder(id, req.authContext!);

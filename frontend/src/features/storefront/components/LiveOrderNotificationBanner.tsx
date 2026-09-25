@@ -21,7 +21,7 @@ export function LiveOrderNotificationBanner() {
   // Poll for pending storefront orders every 12 seconds
   const { data } = useQuery({
     queryKey: ['storefront-live-pending-orders'],
-    queryFn: () => storefrontApi.listOrders('pending'),
+    queryFn: () => storefrontApi.listOrders('pending', 10),
     enabled: Boolean(user),
     refetchInterval: 12000,
     staleTime: 8000,

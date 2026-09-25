@@ -1,9 +1,10 @@
-import { Inject, Injectable, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException, UnauthorizedException, Optional } from '@nestjs/common';
 import { Kysely, sql, type Transaction } from 'kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { verifyPassword } from '../../core/auth/utils/password-hasher';
 import { CreateOnlineOrderDto } from './dto/create-online-order.dto';
 import { CreateProductReviewDto } from './dto/create-product-review.dto';
 import { UpdateStorefrontSettingsDto } from './dto/update-storefront-settings.dto';
@@ -1824,6 +1825,147 @@ export class StorefrontService {
 
   // --- Merchant Admin Methods ---
 
+  async getOrderCounts(actor: AuthContext) {
+    const tenantId = actor.tenantId;
+    const counts: Record<string, number> = {
+      all: 0,
+      active: 0,
+      pending: 0,
+      confirmed: 0,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0,
+    };
+
+    try {
+      const countRows = await this.db
+        .selectFrom('online_orders')
+        .select(['status', sql<number>`COUNT(*)::int`.as('cnt')])
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .groupBy('status')
+        .execute();
+
+      for (const cr of countRows) {
+        const s = String(cr.status);
+        const c = Number(cr.cnt || 0);
+        counts[s] = (counts[s] || 0) + c;
+        counts.all += c;
+        if (['pending', 'confirmed', 'processing', 'shipped'].includes(s)) {
+          counts.active += c;
+        }
+      }
+    } catch {
+      // Ignore count aggregation failure
+    }
+
+    return { counts };
+  }
+
+  async bulkCancelOrders(adminPassword: string, targetStatus = 'pending', actor: AuthContext) {
+    const { tenantId } = requireTenantScope(actor);
+
+    if (!adminPassword || typeof adminPassword !== 'string' || !adminPassword.trim()) {
+      throw new BadRequestException('كلمة مرور الأدمن مطلوبة لتأكيد العملية.');
+    }
+
+    // Verify admin credentials strictly: only users with role 'admin' or 'super_admin' in this tenant
+    const adminUsers = await this.db
+      .selectFrom('users')
+      .select(['id', 'username', 'role', 'password_hash', 'password_salt'])
+      .where('is_active', '=', true)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where((eb) => eb.or([eb('role', '=', 'admin'), eb('role', '=', 'super_admin')]))
+      .execute();
+
+    let authorizedAdminName: string | null = null;
+    for (const adminUser of adminUsers) {
+      const check = await verifyPassword(
+        adminPassword.trim(),
+        String(adminUser.password_hash || ''),
+        String(adminUser.password_salt || ''),
+      );
+      if (check.valid) {
+        authorizedAdminName = String(adminUser.username || 'المدير');
+        break;
+      }
+    }
+
+    if (!authorizedAdminName) {
+      throw new UnauthorizedException('كلمة المرور غير صحيحة أو لا تنتمي لحساب أدمن. فقط مدير المنشأة مخول بإلغاء الطلبات جماعياً.');
+    }
+
+    const validStatus = ['pending', 'confirmed', 'processing', 'all'].includes(targetStatus) ? targetStatus : 'pending';
+
+    let cancelledCount = 0;
+
+    await this.db.transaction().execute(async (trx) => {
+      let ordersQb = trx
+        .selectFrom('online_orders')
+        .select(['id', 'status', 'coupon_code', 'stock_reserved', 'reserved_branch_id', 'reserved_location_id', 'branch_id', 'account_id', 'items_json'])
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .where('status', '!=', 'cancelled')
+        .where('status', '!=', 'delivered');
+
+      if (validStatus !== 'all') {
+        ordersQb = ordersQb.where('status', '=', validStatus as any);
+      }
+
+      const ordersToCancel = await ordersQb.forUpdate().execute();
+      if (ordersToCancel.length === 0) {
+        return;
+      }
+
+      const orderIds = ordersToCancel.map((o) => o.id);
+      cancelledCount = orderIds.length;
+
+      // Update all orders in batch
+      await trx
+        .updateTable('online_orders')
+        .set({
+          status: 'cancelled',
+          stock_reserved: false,
+          updated_at: new Date(),
+        })
+        .where('id', 'in', orderIds)
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .execute();
+
+      // Release stock and coupons
+      for (const row of ordersToCancel) {
+        if (row.coupon_code) {
+          await this.releaseCouponUse(trx, tenantId, String(row.coupon_code)).catch(() => undefined);
+        }
+
+        if (row.stock_reserved) {
+          let orderItems: Array<any> = [];
+          try {
+            const raw = row.items_json;
+            orderItems = (typeof raw === 'string' ? JSON.parse(raw) : raw) || [];
+          } catch {}
+          if (orderItems.length > 0) {
+            await releaseLocationStock(trx, {
+              branchId: row.reserved_branch_id ?? row.branch_id,
+              locationId: row.reserved_location_id,
+              tenantId,
+              accountId: row.account_id,
+              items: orderItems.map((it) => ({
+                productId: Number(it.productId),
+                qty: Number(it.quantity ?? it.qty ?? 1),
+              })),
+            }).catch(() => undefined);
+          }
+        }
+      }
+    });
+
+    return {
+      ok: true,
+      cancelledCount,
+      message: `تم إلغاء ${cancelledCount} طلب بنجاح بتفويض من: ${authorizedAdminName}`,
+    };
+  }
+
   async listOrders(query: Record<string, unknown>, actor: AuthContext) {
     const tenantId = actor.tenantId;
     const status = typeof query.status === 'string' ? query.status.trim() : '';
@@ -1841,7 +1983,12 @@ export class StorefrontService {
       }
     }
 
-    const rows = await qb.orderBy('created_at', 'desc').execute();
+    const page = Math.max(1, Number(query.page || 1));
+    const hasExplicitLimit = query.limit !== undefined && query.limit !== '' && Number(query.limit) > 0;
+    const limit = hasExplicitLimit ? Math.min(Number(query.limit), 200) : (query.all === 'true' ? 10000 : 50);
+    const offset = (page - 1) * limit;
+
+    const rows = await qb.orderBy('created_at', 'desc').limit(limit).offset(offset).execute();
 
     const counts: Record<string, number> = {
       all: 0,

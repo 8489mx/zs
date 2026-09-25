@@ -176,8 +176,23 @@ export const storefrontApi = {
     ),
 
   // Merchant Admin APIs (Requires Session Auth)
-  listOrders: (status?: string) =>
-    http<{ orders: OnlineOrderRecord[]; counts?: Record<string, number> }>(`/api/storefront/admin/orders${status ? `?status=${status}` : ''}`),
+  listOrders: (status?: string, limit?: number, page?: number) => {
+    const params = new URLSearchParams();
+    if (status && status !== 'all') params.append('status', status);
+    if (limit) params.append('limit', String(limit));
+    if (page) params.append('page', String(page));
+    const qs = params.toString();
+    return http<{ orders: OnlineOrderRecord[]; counts?: Record<string, number> }>(`/api/storefront/admin/orders${qs ? `?${qs}` : ''}`);
+  },
+
+  getOrderCounts: () =>
+    http<{ counts: Record<string, number> }>('/api/storefront/admin/orders/counts'),
+
+  bulkCancelOrders: (adminPassword: string, status = 'pending') =>
+    http<{ ok: boolean; cancelledCount: number; message: string }>('/api/storefront/admin/orders/bulk-cancel', {
+      method: 'POST',
+      body: JSON.stringify({ adminPassword, status }),
+    }),
 
   getOrder: (id: number) => http<OnlineOrderRecord>(`/api/storefront/admin/orders/${id}`),
 

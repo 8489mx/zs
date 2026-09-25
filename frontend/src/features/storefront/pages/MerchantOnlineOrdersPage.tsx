@@ -16,6 +16,7 @@ import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/Po
 import { printPostedSaleReceipt } from '@/lib/pos-printing';
 import type { Sale } from '@/types/domain';
 import { PageHeader } from '@/shared/components/page-header';
+import { StandardDialog } from '@/shared/components/StandardDialog';
 import { toast } from '@/shared/components/system-alert';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { TrendingUpIcon, MessageSquareIcon, Trash2Icon, CopyIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
@@ -24,6 +25,10 @@ export function MerchantOnlineOrdersPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(50);
+  const [isBulkCancelModalOpen, setIsBulkCancelModalOpen] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<OnlineOrderRecord | null>(null);
   const [deliveryModalOrder, setDeliveryModalOrder] = useState<OnlineOrderRecord | null>(null);
   const [bostaModalOrder, setBostaModalOrder] = useState<OnlineOrderRecord | null>(null);
@@ -64,8 +69,8 @@ export function MerchantOnlineOrdersPage() {
   );
 
   const ordersQuery = useQuery({
-    queryKey: ['storefront-admin-orders', statusFilter],
-    queryFn: () => storefrontApi.listOrders(statusFilter),
+    queryKey: ['storefront-admin-orders', statusFilter, page, pageSize],
+    queryFn: () => storefrontApi.listOrders(statusFilter, pageSize, page),
     refetchInterval: 10 * 1000,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
@@ -93,6 +98,21 @@ export function MerchantOnlineOrdersPage() {
   });
 
   // Mutations
+  const bulkCancelMutation = useMutation({
+    mutationFn: () => storefrontApi.bulkCancelOrders(adminPassword, 'pending'),
+    onSuccess: (res) => {
+      setIsBulkCancelModalOpen(false);
+      setAdminPassword('');
+      queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['storefront-admin-analytics'] });
+      toast.success(res.message || `تم إلغاء ${res.cancelledCount} طلب بنجاح`);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'تعذر إلغاء الطلبات، تأكد من صحة كلمة مرور المسؤول (Admin)');
+    },
+  });
+
   const confirmPaymentMutation = useMutation({
     mutationFn: ({ id, reference }: { id: number; reference?: string }) =>
       storefrontApi.confirmOrderPayment(id, reference),
@@ -120,6 +140,8 @@ export function MerchantOnlineOrdersPage() {
   const orders = ordersQuery.data?.orders || [];
   const counts = ordersQuery.data?.counts;
   const settings = settingsQuery.data;
+  const totalFilteredCount = ordersQuery.data?.total ?? (counts && statusFilter in counts ? counts[statusFilter] : orders.length);
+  const totalPages = Math.max(1, Math.ceil(totalFilteredCount / pageSize));
 
   // Real-time KPI calculations with fallback to active orders
   const totalOrdersCount = (analyticsQuery.data?.totalOrders && analyticsQuery.data.totalOrders > 0)
@@ -196,6 +218,34 @@ export function MerchantOnlineOrdersPage() {
           }
           actions={
             <div className="actions compact-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {pendingOrdersCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminPassword('');
+                    setIsBulkCancelModalOpen(true);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    height: '36px',
+                    padding: '0 14px',
+                    borderRadius: '8px',
+                    background: '#fef2f2',
+                    color: '#dc2626',
+                    border: '1px solid #fecaca',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(220, 38, 38, 0.05)',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <Trash2Icon size={14} color="#dc2626" />
+                  <span>إلغاء الطلبات المعلقة ({pendingOrdersCount.toLocaleString()})</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleCopyLink}
@@ -490,7 +540,10 @@ export function MerchantOnlineOrdersPage() {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setStatusFilter(tab.id)}
+                onClick={() => {
+                  setStatusFilter(tab.id);
+                  setPage(1);
+                }}
                 style={{
                   padding: '7px 14px',
                   borderRadius: '999px',
@@ -544,6 +597,65 @@ export function MerchantOnlineOrdersPage() {
             isBostaConfigured={isBostaConfigured}
             isGccConfigured={isGccConfigured}
           />
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingTop: '12px',
+                borderTop: '1px solid #f1f5f9',
+                marginTop: '4px',
+                flexWrap: 'wrap',
+                gap: '8px',
+              }}
+            >
+              <div style={{ fontSize: '12.5px', color: '#64748b' }}>
+                عرض <strong>{((page - 1) * pageSize) + 1}</strong> إلى <strong>{Math.min(page * pageSize, totalFilteredCount)}</strong> من إجمالي <strong>{totalFilteredCount.toLocaleString()}</strong> طلب
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: page <= 1 ? '#f8fafc' : '#ffffff',
+                    color: page <= 1 ? '#94a3b8' : '#334155',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: page <= 1 ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  الصفحة السابقة
+                </button>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#170e5e', padding: '0 8px' }}>
+                  صفحة {page} من {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: page >= totalPages ? '#f8fafc' : '#ffffff',
+                    color: page >= totalPages ? '#94a3b8' : '#334155',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  الصفحة التالية
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         )}
 
@@ -789,6 +901,110 @@ export function MerchantOnlineOrdersPage() {
           }
         }}
       />
+      {/* Bulk Cancel Modal Protected by Admin Password */}
+      <StandardDialog
+        open={isBulkCancelModalOpen}
+        onClose={() => {
+          if (!bulkCancelMutation.isPending) {
+            setIsBulkCancelModalOpen(false);
+            setAdminPassword('');
+          }
+        }}
+        title="إلغاء جماعي للطلبات المعلقة"
+        subtitle="يتطلب إدخال كلمة مرور مسؤول النظام (Admin) لتأكيد الإلغاء"
+        width="480px"
+        footerActions={
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', width: '100%' }}>
+            <button
+              type="button"
+              disabled={bulkCancelMutation.isPending}
+              onClick={() => {
+                setIsBulkCancelModalOpen(false);
+                setAdminPassword('');
+              }}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#475569',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: bulkCancelMutation.isPending ? 'not-allowed' : 'pointer',
+              }}
+            >
+              تراجع
+            </button>
+            <button
+              type="button"
+              disabled={bulkCancelMutation.isPending || !adminPassword.trim()}
+              onClick={() => bulkCancelMutation.mutate()}
+              style={{
+                padding: '8px 18px',
+                borderRadius: '8px',
+                border: 'none',
+                background: '#dc2626',
+                color: '#ffffff',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: (bulkCancelMutation.isPending || !adminPassword.trim()) ? 'not-allowed' : 'pointer',
+                opacity: (bulkCancelMutation.isPending || !adminPassword.trim()) ? 0.6 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              {bulkCancelMutation.isPending ? 'جاري الإلغاء وفك الحجز...' : `تأكيد إلغاء ${pendingOrdersCount.toLocaleString()} طلب`}
+            </button>
+          </div>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '6px 0' }}>
+          <div
+            style={{
+              background: '#fff1f2',
+              border: '1px solid #fecdd3',
+              borderRadius: '8px',
+              padding: '12px 14px',
+              color: '#9f1239',
+              fontSize: '12.5px',
+              lineHeight: 1.5,
+            }}
+          >
+            <strong>تنبيه أمني وإداري:</strong> سيتم إلغاء كافة الطلبات ذات الحالة &quot;قيد الانتظار&quot; ({pendingOrdersCount.toLocaleString()} طلب) وإلغاء حجز المخزون الخاص بها فوراً. هذا الإجراء مخصص لمسؤولي المنشأة فقط ولا يُسمح للكاشير بتنفيذه.
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+              كلمة مرور المسؤول (Admin Password) <span style={{ color: '#dc2626' }}>*</span>
+            </label>
+            <input
+              type="password"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              placeholder="أدخل كلمة مرور الأدمن للتأكيد..."
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && adminPassword.trim() && !bulkCancelMutation.isPending) {
+                  bulkCancelMutation.mutate();
+                }
+              }}
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: '1.5px solid #cbd5e1',
+                fontSize: '13px',
+                outline: 'none',
+              }}
+            />
+            <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+              لن يتم قبول كلمة مرور الكاشير أو أي مستخدم لا يملك صلاحية مدير النظام (Admin).
+            </span>
+          </div>
+        </div>
+      </StandardDialog>
     </div>
   );
 }

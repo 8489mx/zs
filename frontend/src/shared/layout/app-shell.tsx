@@ -214,14 +214,14 @@ export function AppShell({ children }: PropsWithChildren) {
     queryKey: ['storefront-admin-orders-count'],
     queryFn: async () => {
       try {
-        const res = await storefrontApi.listOrders('pending');
-        return res.orders?.length || 0;
+        const res = await storefrontApi.getOrderCounts();
+        return res.counts?.pending || 0;
       } catch {
         return 0;
       }
     },
-    refetchInterval: 15 * 1000,
-    staleTime: 10 * 1000,
+    refetchInterval: 20 * 1000,
+    staleTime: 15 * 1000,
   });
   const pendingOrdersCount = pendingOrdersCountQuery.data || 0;
 
