@@ -132,7 +132,10 @@ export const options = {
     },
   },
   thresholds: {
-    ...WRITE_THRESHOLDS,
+    // لا `http_req_failed` هنا عمداً: الجولة تستدعي رفضاً صحيحاً (سقف الائتمان) وk6 يعدّ كل 4xx
+    // فشلاً على مستوى HTTP، فتخرج الجولة حمراء بسبب حارس يعمل. المقياس الدقيق هو نسبة نجاح كل
+    // مسار على حدة، و`fs_server_errors` الذي يجب أن يبقى صفراً.
+    http_req_duration: WRITE_THRESHOLDS.http_req_duration,
     fs_cash_sale_success: ['rate>0.95'],
     fs_credit_sale_success: ['rate>0.95'],
     fs_return_success: ['rate>0.90'],
@@ -403,12 +406,17 @@ function postSale(session, items, branchId, extra, durationMetric, successMetric
   const res = http.post(`${BASE_URL}/api/sales`, body, params);
   durationMetric.add(Date.now() - start);
 
-  const ok = check(res, { [`${label} posted`]: (r) => r.status === 200 || r.status === 201 });
-  if (!ok && String(res.body || '').includes('CUSTOMER_CREDIT_LIMIT')) {
-    // الحارس يعمل: العميل بلغ سقفه. لا يُحسب فشلاً ولا نجاحاً.
+  // سقف ائتمان العميل يُفحص **قبل** `check`، لا بعده.
+  //
+  // كان `check` يُنفَّذ أولاً، فيُسجَّل رفضٌ صحيح «فحصاً فاشلاً» وإن استُثني من نسبة النجاح: خرج
+  // الإخراج بـ«credit sale posted 41%» و«checks_failed 7.6%» على جولةٍ كلُّ مساراتها سليمة. وقد
+  // كتبتُ بنفسي أن عتبةً تبقى حمراء دائماً تُهمَل — ثم صنعتُ واحدة.
+  if (String(res.body || '').includes('CUSTOMER_CREDIT_LIMIT')) {
     creditLimitReached.add(1);
     return null;
   }
+
+  const ok = check(res, { [`${label} posted`]: (r) => r.status === 200 || r.status === 201 });
   successMetric.add(ok ? 1 : 0);
   if (!ok) { recordFailure(res, label); return null; }
 

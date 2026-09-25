@@ -570,6 +570,18 @@ function testLoadSuiteIsUsable(): void {
       /CUSTOMER_CREDIT_LIMIT/.test(full) && /creditLimitReached\.add\(1\)/.test(full),
       'a refusal on the customer credit limit must be counted apart, not scored as a failure',
     );
+    // ...and it must be recognised BEFORE check() runs, or k6 still records a failed check and the
+    // run reads red on a path that behaved perfectly.
+    assert.ok(
+      /CUSTOMER_CREDIT_LIMIT[^]{0,200}const ok = check\(res/.test(full),
+      'the credit-limit refusal must be caught before the check, not after: a correct refusal must not print as a failed check',
+    );
+    // http_req_failed counts every 4xx, including the refusals this run deliberately provokes.
+    // A threshold that is always red stops being read.
+    assert.ok(
+      !/\.\.\.WRITE_THRESHOLDS,/.test(full) && /http_req_duration: WRITE_THRESHOLDS\.http_req_duration/.test(full),
+      'full-system must not gate on http_req_failed: the per-path success rates are the precise measure',
+    );
     // A purchase line needs its receiving location; the branch alone is not enough (LOCATION_REQUIRED).
     assert.ok(
       /locationId: data\.locationId/.test(full),
