@@ -5,21 +5,62 @@ import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { AuditService } from '../../core/audit/audit.service';
 import { RequestRenewalDto } from './dto/tenant-subscription.dto';
+import { PricingCatalogService } from './pricing/pricing-catalog.service';
 
-/** Display-only plan list used when the catalogue table is empty; never written to the database. */
-const STANDARD_PLAN_FALLBACK: Array<any> = [
-  { id: 1, code: 'basic', name: 'الباقة الأساسية', price: 3500, currency: 'EGP', billing_period_months: 12, max_users: 2, max_branches: 1, feature_plan_id: 'plan_basic' },
-  { id: 2, code: 'pro', name: 'الباقة الاحترافية', price: 7500, currency: 'EGP', billing_period_months: 12, max_users: 10, max_branches: 3, feature_plan_id: 'plan_pro' },
-  { id: 3, code: 'enterprise', name: 'باقة المؤسسات والتصنيع', price: 15000, currency: 'EGP', billing_period_months: 12, max_users: 999, max_branches: 999, feature_plan_id: 'plan_ultimate' },
-  { id: 4, code: 'omnichannel', name: 'باقة التجارة الشاملة (Omnichannel)', price: 24000, currency: 'EGP', billing_period_months: 12, max_users: 999, max_branches: 999, feature_plan_id: 'plan_omnichannel' },
-];
+/**
+ * كانت هنا قائمة باقات بأسعار مكتوبة في الكود (3500/7500/15000/24000) تُعرض حين
+ * يكون جدول `saas_plans` فارغاً، **بمعرّفات وهمية 1..4** تُمرَّر إلى طلب الترقية.
+ * أُزيلت: هي مصدر تسعير ثالث يخالف الثابت PRICE-2 والنمط المحظور F40، والمعرّف
+ * الوهمي يطلب باقة قد لا تكون موجودة. الأسعار مصدرها `PricingCatalogService`،
+ * وجدول فارغ يعني **لا باقات** لا باقاتٍ مُختلَقة.
+ */
 
 @Injectable()
 export class TenantSubscriptionService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly audit: AuditService,
+    private readonly pricing: PricingCatalogService,
   ) {}
+
+  /**
+   * نشاط المنشأة وبلدها — **من سجل المنشأة حصراً**، لا من الطلب ولا من إعداد
+   * يملكه مدير المنشأة. `businessIndustry` في `settings` مخزَّن JSON فتُزال أقواسه.
+   * المرجع: PRICING_AND_PACKAGING.md §11 البند C8 · هجرة 148.
+   */
+  private async readPricingScope(tenantId: string): Promise<{ industryPresetId: string | null; countryCode: string | null }> {
+    const [industryRow, tenantRow] = await Promise.all([
+      this.db
+        .selectFrom('settings')
+        .select(['value'])
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .where('key', '=', 'businessIndustry')
+        .executeTakeFirst()
+        .catch(() => undefined),
+      this.db
+        .selectFrom('tenants')
+        .select(['country_code', 'activity_type'])
+        .where('id', '=', tenantId)
+        .executeTakeFirst()
+        .catch(() => undefined),
+    ]);
+
+    const rawIndustry = String((industryRow as any)?.value ?? '').trim().replace(/^"|"$/g, '');
+    return {
+      industryPresetId: rawIndustry || (tenantRow as any)?.activity_type || null,
+      countryCode: (tenantRow as any)?.country_code || null,
+    };
+  }
+
+  /**
+   * التسعير المعتمد للمنشأة — مستويات نطاقها وحدها بأسعار بلدها وحده.
+   * لا يقبل أي معامل من العميل (البند C8)، ولا يخرج منه أي حقل داخلي (PRICE-S3).
+   */
+  async getResolvedPricing(auth: AuthContext): Promise<Record<string, unknown>> {
+    const tenantId = String(auth.tenantId || '').trim() || 'default';
+    const scope = await this.readPricingScope(tenantId);
+    return this.pricing.resolveForTenant(scope) as unknown as Record<string, unknown>;
+  }
 
   /**
    * O33: what a page load is allowed to do — read. `ensureTenant`/`ensureStandardPlans` below write
@@ -60,7 +101,7 @@ export class TenantSubscriptionService {
       .orderBy('price', 'asc')
       .execute()
       .catch(() => []);
-    return plans.length ? plans : STANDARD_PLAN_FALLBACK;
+    return plans;
   }
 
   private async ensureTenant(tenantId: string, auth: AuthContext): Promise<{
@@ -251,10 +292,6 @@ export class TenantSubscriptionService {
       }
     }
 
-    if (plans.length === 0) {
-      return STANDARD_PLAN_FALLBACK;
-    }
-
     return plans;
   }
 
@@ -441,6 +478,16 @@ export class TenantSubscriptionService {
       throw new NotFoundException('الخطة غير موجودة.');
     }
 
+    const renewalScope = await this.readPricingScope(tenant.id);
+    const renewalLevelId = this.pricing.levelIdForLegacyPlanCode(plan.code);
+    const renewalPrice = renewalLevelId
+      ? this.pricing.priceForLevel({
+          ...renewalScope,
+          levelId: renewalLevelId,
+          billingPeriodMonths: dto.billingPeriodMonths || plan.billing_period_months || 12,
+        })
+      : null;
+
     await this.audit.log(
       'طلب تجديد اشتراك',
       `قام المالك بطلب تجديد/ترقية الاشتراك إلى باقة: ${plan.name} (طريقة السداد المرجوة: ${dto.paymentMethod || 'غير محدد'})`,
@@ -454,8 +501,9 @@ export class TenantSubscriptionService {
       plan: {
         id: plan.id,
         name: plan.name,
-        price: plan.price,
-        currency: plan.currency,
+        // السعر من الكتالوج لا من صف الباقة القديم (البند C9)
+        price: renewalPrice?.amount ?? null,
+        currency: renewalPrice?.currency ?? null,
       },
     };
   }
@@ -472,8 +520,24 @@ export class TenantSubscriptionService {
     if (!plan) throw new NotFoundException('الخطة غير موجودة.');
 
     const durationMonths = dto.billingPeriodMonths || plan.billing_period_months || 12;
-    const isYearly = durationMonths >= 12;
-    const amount = isYearly ? plan.price : Math.round(plan.price / 10);
+
+    /*
+     * البند C9: كان المبلغ يُحسب من `saas_plans.price` بينما الشاشة تعرض رقماً من
+     * ملف في الواجهة — مصدران للحقيقة لنفس الرقم، فالعميل يرى سعراً ويُحصَّل آخر.
+     * المبلغ الآن من الكتالوج نفسه الذي عرضته الشاشة، وبنطاق المنشأة وبلدها.
+     * وإن تعذّر تسعير المستوى، **يُرفض** الدفع ولا يُحصَّل رقم قديم (فشل مغلق، لا F7).
+     */
+    const scope = await this.readPricingScope(tenant.id);
+    const levelId = this.pricing.levelIdForLegacyPlanCode(plan.code);
+    const catalogPrice = levelId
+      ? this.pricing.priceForLevel({ ...scope, levelId, billingPeriodMonths: durationMonths })
+      : null;
+    if (!catalogPrice) {
+      throw new NotFoundException(
+        'لا يوجد سعر معتمد لهذه الباقة في بلد المنشأة. راجع كتالوج التسعير قبل إتمام الدفع.',
+      );
+    }
+    const amount = catalogPrice.amount;
 
     const gatewayName = dto.gateway || 'xpay';
     const result = await paymentManager.initiatePayment(gatewayName, {
@@ -486,7 +550,7 @@ export class TenantSubscriptionService {
       planId: plan.id,
       planName: plan.name,
       amount,
-      currency: plan.currency || 'EGP',
+      currency: catalogPrice.currency,
       durationMonths,
       redirectUrl: dto.redirectUrl,
     });

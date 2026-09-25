@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { TenantSubscriptionService } from '../../src/modules/tenant-subscription/tenant-subscription.service';
+import { PricingCatalogService } from '../../src/modules/tenant-subscription/pricing/pricing-catalog.service';
 import type { AuthContext } from '../../src/core/auth/interfaces/auth-context.interface';
 
 // O33 (ARCHITECTURE_INVARIANTS.md §8): opening the subscription screen used to create a tenant row,
@@ -56,13 +57,15 @@ function fakeDb(fixtures: Record<string, any[]>) {
 const auth = { tenantId: 'acme', accountId: 'acme', userId: 1, username: 'owner', role: 'admin', permissions: [] } as unknown as AuthContext;
 
 async function testReadPathWritesNothing(): Promise<void> {
-  const service = new TenantSubscriptionService(fakeDb({}), { log: async () => undefined } as any);
+  const service = new TenantSubscriptionService(fakeDb({}), { log: async () => undefined } as any, new PricingCatalogService());
   const result: any = await service.getMySubscription(auth);
 
   assert.deepEqual(writes, [], `the subscription screen must not write: ${writes.join(', ')}`);
   assert.ok(reads.includes('tenants') && reads.includes('saas_plans'), 'it still reads what it shows');
   assert.equal(result.subscription, null, 'no subscription row means none is reported');
-  assert.ok(Array.isArray(result.availablePlans) && result.availablePlans.length > 0, 'plans are still listed for display');
+  // PRICE-2 / F40: كانت هنا قائمة باقات بأسعار مكتوبة في الكود تُعرض حين يكون الجدول
+  // فارغاً، بمعرّفات وهمية 1..4 تُمرَّر إلى طلب الترقية. جدول فارغ = لا باقات.
+  assert.ok(Array.isArray(result.availablePlans) && result.availablePlans.length === 0, 'an empty catalogue lists no plans — it never invents them');
   assert.equal(result.tenant.id, 'acme');
 }
 
@@ -76,6 +79,7 @@ async function testExistingRowsAreReported(): Promise<void> {
       tenant_subscriptions: [{ id: 3, status: 'active', starts_at: new Date(), ends_at: ends, grace_ends_at: null, auto_renew: false, created_at: new Date(), plan_id: 7, plan_name: 'Pro', plan_code: 'PRO', plan_price: 7500, plan_currency: 'EGP', billing_period_months: 12, max_users: 6, max_branches: 3 }],
     }),
     { log: async () => undefined } as any,
+    new PricingCatalogService(),
   );
   const result: any = await service.getMySubscription(auth);
   assert.deepEqual(writes, [], 'still no writes when rows exist');

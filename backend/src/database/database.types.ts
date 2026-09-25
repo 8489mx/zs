@@ -90,6 +90,12 @@ export interface TenantTable {
   owner_phone: string;
   owner_email: string | null;
   activity_type: string | null;
+  /**
+   * بلد التسعير (ISO-2). يضبطه مسؤول المنصة وحده ولا يملكه مدير المنشأة — البلد
+   * هو ما يحدد عملة الاشتراك وأسعاره، فلا يُشتق من إعداد يستطيع العميل تغييره.
+   * هجرة 148 · PRICING_AND_PACKAGING.md §11 البند C8.
+   */
+  country_code: string | null;
   status: 'trial' | 'active' | 'expired' | 'suspended';
   trial_starts_at: Date;
   trial_ends_at: Date;

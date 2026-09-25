@@ -42,6 +42,19 @@ export class TenantSubscriptionController {
     return this.service.getMySubscription(req.authContext!);
   }
 
+  /**
+   * تسعير المنشأة المعتمد — مستويات نطاقها وحدها بأسعار بلدها وحده.
+   *
+   * لا يقبل أي معامل من العميل: **النشاط والبلد يُقرآن من سجل المنشأة**، لأن قبول
+   * عملة أو بلد من الطلب هو نفسه البند C8 (منتقي العملات) الذي أُلغي.
+   * المرجع: PRICING_AND_PACKAGING.md §13.
+   */
+  @Get('pricing')
+  @UseGuards(SessionAuthGuard)
+  getPricing(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.service.getResolvedPricing(req.authContext!) as Promise<Record<string, unknown>>;
+  }
+
   @Post('request-renewal')
   @UseGuards(SessionAuthGuard)
   requestRenewal(@Body() dto: RequestRenewalDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
