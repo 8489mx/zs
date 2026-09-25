@@ -159,7 +159,7 @@ const payload = verifyPortalToken<T>(authHeader, PORTAL_TOKEN_ERRORS);
 الموظف/المندوب ما زال `active` **داخل نفس المستأجر المذكور في الرمز**، ويشتق `tenantId`/`branchId`
 من صف قاعدة البيانات لا من حمولة الرمز.
 
-### 2.6 الأداء → `PERFORMANCE_CONSTITUTION.md` (PERF-1 … PERF-9)
+### 2.6 الأداء → `PERFORMANCE_CONSTITUTION.md` (PERF-1 … PERF-11)
 
 **الملف الحاكم:** `PERFORMANCE_CONSTITUTION.md` في جذر المستودع — ملف حماية كامل بالثوابت والأنماط
 المحظورة P1..P10 والقياسات قبل/بعد والبنود المؤجلة PO-1..PO-4. هنا الملخص فقط:
@@ -175,10 +175,14 @@ const payload = verifyPortalToken<T>(authHeader, PORTAL_TOKEN_ERRORS);
 | PERF-7 | Sentry كسول ومشروط بالتفعيل | `frontend/src/lib/error-tracking.ts` |
 | PERF-8 | مودال استيراد المقايسة (pdfjs) كسول | `LazyImportBoqModal.tsx` |
 | PERF-9 | نسخة كتالوج الكاشير المحلي تتجاهل المخزون: `products.catalog_updated_at` بـtrigger (هجرة 137) + أعداد الوحدات والعروض؛ تحميل كامل احتياطي كل ساعة. نسخة IndexedDB للبيع بدون إنترنت **باقية كما هي** | `getPosCatalogVersion` · `pos-catalog-version.engine.ts` · `pos-catalog-sync-policy.ts` |
+| PERF-11 | حاوية الواجهة في الإنتاج (`docker-compose.saas.yml`/`.prod.yml`/`.yml`، جميعها تبني من `./frontend`) تخدم كل ملفات الـdist عبر nginx **بلا ضغط `gzip` وبلا `Cache-Control`** — كان الإعداد مولَّداً بسطر `printf` واحد داخل الـDockerfile نفسه بلا `gzip on` وبلا `expires`، بعكس كل إعدادات nginx الأخرى في `deploy/nginx/*.conf` اللي فيها `gzip` وترويسات كاش. **ممنوع** توليد إعداد nginx للحاوية بـ`printf`/`RUN echo` بدل ملف `.conf` حقيقي؛ **ممنوع** إعداد نسخة جديدة من حاوية الواجهة بلا `gzip on` وبلا `Cache-Control: public, immutable` على `/assets/` | `frontend/nginx.conf` (جديد) · `frontend/Dockerfile` |
 
 **الحُرّاس:** `backend/test/critical/performance-hot-paths.spec.ts` (PERF-1..4) و`frontend/scripts/perf-budget-check.mjs`
 (`qa:perf`، يتتبع شجرة الاستيراد الثابت من `main.tsx` بالكامل — PERF-5..8) — كلاهما داخل `npm run guards`.
 و`qa:perf:dist` يفحص ناتج البيلد الفعلي ويُشغَّل يدوياً بعد كل بيلد.
+**PERF-11 بلا حارس آلي** — لا يوجد جناح يبني صورة Docker ويطلب أصلاً ثابتاً عبر HTTP فعلياً فيتحقق من
+ترويسة `Content-Encoding`/`Cache-Control`. المراجعة الوحيدة حالياً: قراءة `frontend/Dockerfile` يدوياً
+بعد أي تعديل عليه أو على `frontend/nginx.conf`.
 
 ### 2.7 النشر والنسخ الاحتياطي للإنتاج → `deploy-oracle.yml` + `zsystems-backup.sh` (DEPLOY-1 … DEPLOY-8)
 
@@ -1305,6 +1309,7 @@ node scripts/<check>.mjs --update-baseline   # لا يُستخدم إلا لاس
 | 40 | **منصّة كاملة تبيع بلا دفاتر — اكتُشف بجولة حِمل (ACC-1..ACC-4)** (24 سبتمبر 2026) | ✅ أول سيناريو حِمل **يبيع فعلاً** (`pos-sell.js`) أصدر 1,183 فاتورة حقيقية بعشرة كاشيرات (نجاح 100%، صفر جمود، 416 منها على **صنف واحد** فثبت الترتيب القانوني للأقفال عملياً لأول مرة) — وكشف أن `hesham` عليها **2,281 فاتورة وصفر قيد محاسبي**، و`drsh` و`zs` و`default` في نفس الحالة تنتظر أول بيعة. السبب سلسلة من ثلاث: الهجرة 106 زرعت حسابين في كل منشأة فأبطلت بوابة `count === 0`، وصفُّ إعدادات فارغ أبطل بوابة `!row`، وفشل الترحيل كان مبلوعاً في `catch { logger.error }`. **أُصلح:** محرك `accounting-foundation.engine.ts` يقيس الاكتمال بالأسماء، وحذف النسخ بين المستأجرين، وهجرة 147 (`accounting_posting_failures`)، و`AccountingRecoveryService` يمسح كل المنشآت عند الإقلاع ويعيد محاولة الترحيل كل خمس دقائق. جناح `accounting-foundation.spec.ts` و**جُرِّب بكسر متعمَّد لأربعة أنماط**. |
 | 41 | **الموقع يرفض ما يبيعه الكاشير** (24 سبتمبر 2026) | ✅ الثوابت **STK-1..STK-3** في §2.17. اكتُشف في جولة بيع: الكتالوج يعرض الرصيد العام فيقول «متاح»، و`createOnlineOrder` يفحص مخزن الفرع الافتراضي فيرفض بـ«الرصيد في هذا المخزن 0»، والكاشير على نفس الفرع يبيعه لأنه وحده يقرأ `sales_stock_mode`. محرك مشترك `branch-sellable-locations.engine.ts` يستدعيه المساران، واختيار مخزن واحد يغطي كل أسطر الطلب. جناح `branch-sellable-locations.spec.ts` و**جُرِّب بكسر متعمَّد لأربعة أنماط**. |
 | 42 | **حساب كاشير كان يقرأ الميزانية العمومية** (25 سبتمبر 2026) | ✅ الثوابت **ACC-ACCESS-1..3** في §2.18. اكتُشفت أثناء التحقّق من قاعدة المالك «الكاشير لا يطّلع على فلوس المحل»: متحكّم المحاسبة كان يقبل `accounts`، وهي في قالب كل كاشير، و`assertAccountingAccess` تحمي 31 دالة من 42 بينما الميزانية والتدفقات النقدية في خدمتين لا تفحصان شيئاً. **أُثبتت بطلب حقيقي:** `balance-sheet` و`cash-flow` ردّا 200 بحساب `c1`. أُصلحت بـ`AccountingAccessGuard` على المتحكّم كله بنفس قاعدة الخدمة. جناح `accounting-access.spec.ts` و**جُرِّب بكسر متعمَّد لثلاثة أنماط**. |
+| 43 | **بطء تحميل أول لصفحات نسخة SaaS (والصفحة الرئيسية بالذات) — حاوية الواجهة بلا ضغط ولا كاش** (25 سبتمبر 2026) | ✅ الثابت **PERF-11**. بلاغ مالك: بطء واضح عند أول فتح لصفحة على نسخة SaaS. الفحص: مسار التحميل نفسه (`useBootstrapAuth`، `reports.service.ts:dashboardOverview`) موازٍ بالفعل (`Promise.all`/`Promise.allSettled`) وبلا N+1 — العطل في البنية التحتية لا الكود. `frontend/Dockerfile` كان يولّد إعداد nginx لحاوية الإنتاج بسطر `printf` واحد بلا `gzip on` وبلا أي `Cache-Control`، بعكس كل إعدادات nginx الأخرى في `deploy/nginx/*.conf`. النتيجة: كل حزم JS/CSS (JS الصفحة الرئيسية أولها) تُنزَّل خاماً بلا ضغط في كل زيارة، ولا يُخزَّن أي أصل مؤقتاً في المتصفح حتى لنفس النسخة. الثلاث ملفات `docker-compose.saas.yml`/`.prod.yml`/`.yml` كلها تبني الحاوية من `./frontend` فالعطل عام على كل بيئات الإنتاج القائمة على Docker وليس SaaS فقط. **أُصلح:** ملف `frontend/nginx.conf` حقيقي (مطابق لـ`deploy/nginx/oracle-site.conf`: `gzip` لأنواع النصوص، `Cache-Control: no-cache` لـ`index.html`، `Cache-Control: public, immutable` لـ`/assets/`) و`frontend/Dockerfile` بقى ينسخه بدل توليده. **لم يُقَس بعد على السيرفر الفعلي بعد النشر** (يحتاج بيلد ونشر يطلبهما المالك) — المتبقي: تشغيل الحارس اليدوي في §2.6 (طلب أصل فعلي والتحقق من `Content-Encoding`/`Cache-Control`) بعد أول نشر لاحق. |
 > **صدق في التصنيف:** 🟢 يعني فُحص ولم تُرصد ثغرة. 🟡 يعني عولجت ثغرات محددة **ولم تُقرأ الوحدة سطراً بسطر** كما فُعل في المقاولات ونقطة البيع والمشتريات. لا تفترض أن 🟡 نظيفة.
 
 ---
