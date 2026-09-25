@@ -92,7 +92,7 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
   const profitDrivers = useMemo(() => {
     const categories = managerData?.profitSources?.topCategories || [];
     if (categories.length > 0) {
-      return categories.slice(0, 5).map((cat) => ({
+      return categories.slice(0, 4).map((cat) => ({
         name: cat.categoryName || cat.name || 'فئة عامة',
         revenue: Number(cat.revenue || 0),
         grossProfit: Number(cat.grossProfit || 0),
@@ -102,7 +102,7 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
 
     const topProducts = managerData?.profitSources?.topProducts || [];
     if (topProducts.length > 0) {
-      return topProducts.slice(0, 5).map((prod) => ({
+      return topProducts.slice(0, 4).map((prod) => ({
         name: prod.name,
         revenue: Number(prod.revenue || 0),
         grossProfit: Number(prod.grossProfit || 0),
@@ -111,7 +111,7 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
     }
 
     // fallback from topToday
-    return (overviewData.topToday || []).slice(0, 5).map((item) => ({
+    return (overviewData.topToday || []).slice(0, 4).map((item) => ({
       name: item.name,
       revenue: Number(item.total || 0),
       grossProfit: Math.round(Number(item.total || 0) * 0.25),
@@ -154,19 +154,32 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '10px 4px',
+            padding: '12px 8px',
             borderInlineEnd: '1px solid #f1f5f9',
             textAlign: 'center',
-            gap: '2px',
+            gap: '3px',
             boxSizing: 'border-box',
           }}
         >
-          <strong style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+          <strong
+            style={{
+              fontSize: 'clamp(0.84rem, 1.15vw, 0.98rem)',
+              fontWeight: 800,
+              color: '#0f172a',
+              lineHeight: 1.25,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '100%',
+              letterSpacing: '-0.2px',
+            }}
+            title={formatCurrency(averageBasket)}
+          >
             {formatCurrency(averageBasket)}
           </strong>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>متوسط السلة</span>
-            <span style={{ padding: '1px 4px', fontSize: '0.58rem', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', fontWeight: 600, whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '2px', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>متوسط السلة</span>
+            <span style={{ padding: '1px 6px', fontSize: '0.62rem', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', fontWeight: 700 }}>
               لكل فاتورة
             </span>
           </div>
@@ -181,19 +194,32 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '10px 4px',
+            padding: '12px 8px',
             borderInlineEnd: '1px solid #f1f5f9',
             textAlign: 'center',
-            gap: '2px',
+            gap: '3px',
             boxSizing: 'border-box',
           }}
         >
-          <strong style={{ fontSize: '0.98rem', fontWeight: 800, color: '#059669', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+          <strong
+            style={{
+              fontSize: 'clamp(0.84rem, 1.15vw, 0.98rem)',
+              fontWeight: 800,
+              color: '#059669',
+              lineHeight: 1.25,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '100%',
+              letterSpacing: '-0.2px',
+            }}
+            title={formatCurrency(grossProfit)}
+          >
             {formatCurrency(grossProfit)}
           </strong>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>مجمل الربح</span>
-            <span style={{ padding: '1px 4px', fontSize: '0.58rem', borderRadius: '4px', background: '#ecfdf5', color: '#047857', fontWeight: 700, whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '2px', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>مجمل الربح</span>
+            <span style={{ padding: '1px 6px', fontSize: '0.62rem', borderRadius: '4px', background: '#ecfdf5', color: '#047857', fontWeight: 700 }}>
               {grossMarginPercent}%
             </span>
           </div>
@@ -208,18 +234,31 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '10px 4px',
+            padding: '12px 8px',
             textAlign: 'center',
-            gap: '2px',
+            gap: '3px',
             boxSizing: 'border-box',
           }}
         >
-          <strong style={{ fontSize: '0.98rem', fontWeight: 800, color: '#170e5e', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+          <strong
+            style={{
+              fontSize: 'clamp(0.84rem, 1.15vw, 0.98rem)',
+              fontWeight: 800,
+              color: '#170e5e',
+              lineHeight: 1.25,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '100%',
+              letterSpacing: '-0.2px',
+            }}
+            title={formatCurrency(netOperatingProfit)}
+          >
             {formatCurrency(netOperatingProfit)}
           </strong>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>صافي الربح</span>
-            <span style={{ padding: '1px 4px', fontSize: '0.58rem', borderRadius: '4px', background: '#f8fafc', color: '#475569', fontWeight: 600, whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '2px', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>صافي الربح</span>
+            <span style={{ padding: '1px 6px', fontSize: '0.62rem', borderRadius: '4px', background: '#f8fafc', color: '#475569', fontWeight: 700 }}>
               تشغيلي
             </span>
           </div>
@@ -407,12 +446,12 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                 gap: '8px',
                 marginTop: '2px',
               }}
             >
-              {profitDrivers.map((driver) => (
+              {profitDrivers.map((driver, index) => (
                 <div
                   key={driver.name}
                   style={{
@@ -422,26 +461,81 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
                     padding: '8px 10px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '4px',
+                    justifyContent: 'space-between',
+                    gap: '6px',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong style={{ fontSize: '0.82rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {driver.name}
-                    </strong>
-                    <span style={{ fontSize: '0.7rem', color: '#047857', background: '#ecfdf5', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+                  {/* السطر الأول: الترتيب + اسم القطاع + نسبة الهامش */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: '1 1 auto' }}>
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          color: '#64748b',
+                          background: '#f1f5f9',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '4px',
+                          padding: '1px 5px',
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          flexShrink: 0,
+                        }}
+                      >
+                        #{index + 1}
+                      </span>
+                      <strong
+                        style={{
+                          fontSize: '0.82rem',
+                          color: '#0f172a',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={driver.name}
+                      >
+                        {driver.name}
+                      </strong>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '0.68rem',
+                        color: '#047857',
+                        background: '#ecfdf5',
+                        border: '1px solid #d1fae5',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {driver.marginPercent}%
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
-                    <span style={{ color: '#64748b' }}>{formatCurrency(driver.revenue)}</span>
-                    <strong style={{ color: '#059669' }}>{formatCurrency(driver.grossProfit)}</strong>
+
+                  {/* السطر الثاني: إجمالي العائد ومجمل الربح بوضوح تام */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+                      <span style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 600 }}>إجمالي العائد</span>
+                      <span style={{ fontSize: '0.78rem', color: '#334155', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                        {formatCurrency(driver.revenue)}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0 }}>
+                      <span style={{ fontSize: '0.62rem', color: '#047857', fontWeight: 600 }}>مجمل الربح</span>
+                      <strong style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                        {formatCurrency(driver.grossProfit)}
+                      </strong>
+                    </div>
                   </div>
-                  {/* شريط تقدم مصغر للربحية */}
-                  <div style={{ width: '100%', height: '3px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
+
+                  {/* شريط تقدم الربحية */}
+                  <div style={{ width: '100%', height: '3.5px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
                     <div
                       style={{
-                        width: `${Math.min(100, Math.max(8, driver.marginPercent))}%`,
+                        width: `${Math.min(100, Math.max(6, driver.marginPercent))}%`,
                         height: '100%',
                         background: '#10b981',
                         borderRadius: '2px',
