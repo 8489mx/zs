@@ -17,8 +17,15 @@
 >    the app shell's imports, the POS/product catalog, the public storefront catalog, or any index
 >    migration.** Guarded by `performance-hot-paths.spec.ts` and `npm --prefix frontend run qa:perf`
 >    (both inside `npm run guards`). A failing perf guard is almost always right — fix the code, not the guard.
+> 7. `PRICING_AND_PACKAGING.md` + `pricing/pricing-catalog.json` (**Pricing & Packaging Constitution** —
+>    the single source of truth for products, bands, levels and prices. **Read it before touching
+>    `plans` / `plan_features` / `saas_plans`, `modular-presets.ts`, `INDUSTRY_PRESETS`, the apps store,
+>    or anything that displays a price.** Invariants PRICE-1..PRICE-4 and forbidden pattern F40 in
+>    `ARCHITECTURE_INVARIANTS.md`. **Never write a price number into any code file** — the catalog is
+>    the source, and `node pricing/validate-catalog.mjs` guards it. **Never redesign the packages**
+>    (16 products -> 5 bands -> 3 levels is fixed); edit numbers in the catalog only.
 
-7. **Production deploy & backup** are guarded by DEPLOY-1..6 (`ARCHITECTURE_INVARIANTS.md` §2.7,
+8. **Production deploy & backup** are guarded by DEPLOY-1..6 (`ARCHITECTURE_INVARIANTS.md` §2.7,
    guard `deploy-pipeline.spec.ts`). Never move the build back onto the server, never `rm -rf` a live
    `dist`, never switch PM2 to cluster mode.
 

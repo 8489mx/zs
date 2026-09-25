@@ -370,6 +370,12 @@
 > وحُذف من هذا الملف؛ وما بقي في الهجرة 135 تاريخٌ لا يُستند إليه (البند C6 هناك).
 > المبدأ الحاكم: **النشاط القطاعي هو هوية المنتج لا إضافة فوقه** (PRICE-P1..P3)،
 > والمقاولات والشحن منتجان مستقلان لا حزمتان فوق باقة.
+> **تحديث 25 سبتمبر 2026 (C1):** الباقات الأربعة القديمة (Basic/Pro/Ultimate/Omnichannel) لم تعد
+> الحاجز الفعلي لمعظم القطاعات التجارية — `industry-profiles.ts` أصبحت تمنح فقط علم هوية القطاع
+> وأساسيات نقطة البيع دائماً، والباقي (مخزون/مشتريات/تقارير/محاسبة/موارد بشرية/ضرائب) يأتي من
+> 12 باقة جديدة مبنية على النطاق والمستوى (`tier_band{1-4}_L{1-3}`, هجرة `2040000000149`)، مطابقة
+> لـ `pricing/pricing-catalog.json`. التجربة المجانية (`plan_ultimate`) غير متأثرة وتبقى كاملة
+> المميزات. المقاولات والشحن (نطاق 5) ما زالا معزولين بالكامل بقرار صاحب المنتج، لم يُمسا.
 * **حالة الوحدة العامة:** 🟢 مكتمل 100%
 * **مسارات الكود:** `backend/src/database/migrations/2040000000035_align_plans_matrix_and_modular_tiers.ts`, `backend/src/modules/saas-admin`, `backend/src/core/auth/services/session.service.ts`, `frontend/src/shared/system/DeveloperActivationPanel.tsx`, `frontend/src/features/saas-admin/components/UpdateTenantPlanModal.tsx`, `frontend/src/shared/layout/app-shell.tsx`, `frontend/src/app/router/access.ts`
 * **الجداول في قاعدة البيانات:** `plans`, `plan_features`, `saas_plans`, `tenants` (`plan_id`, `extra_features`)
