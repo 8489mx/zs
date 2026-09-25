@@ -127,6 +127,12 @@ export class ImportSalesController {
     return this.importSalesService.calculateLandedCost(req.authContext!.tenantId!, shipmentId);
   }
 
+  /**
+   * الربح رقمٌ محروس بصلاحيته الخاصة `canViewProfit` — وهي مُحترمة في
+   * `sales-query.service.ts` ولم تكن مُحترمة هنا. كان المسار يُفتح بـ`sales`، وهي في قالب
+   * كل كاشير، فيقرأ الكاشير أرباح المحل رغم أن المنظومة صنعت صلاحية لمنعه.
+   */
+  @RequireAnyPermission('canViewProfit', 'reports', 'accounting')
   @Get('profit-report')
   async generateProfitReport(
     @Req() req: RequestWithAuth,

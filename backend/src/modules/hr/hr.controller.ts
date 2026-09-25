@@ -43,13 +43,17 @@ import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
 export class HrController {
 
   @Get('settings/payroll-policies')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hrPayrollView', 'hrPayrollManage', 'hrSalaryView', 'hrSalaryManage')
   async getPayrollPolicies(@Req() req: RequestWithAuth) {
     return this.hr.getPayrollPoliciesConfig({ tenantId: req.authContext!.tenantId, userId: req.authContext!.userId });
   }
 
+  /**
+   * سياسات الرواتب هي القواعد التي تُحسَب بها الرواتب، فحمايتها لا تكون أضعف من حمايتها.
+   * كانت `hr` تكفي — وهي في قالب كل كاشير — بينما تشغيل الرواتب نفسه محروس بـ`hrPayrollManage`.
+   */
   @Put('settings/payroll-policies')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hrPayrollManage', 'hrSalaryManage')
   async updatePayrollPolicies(@Req() req: RequestWithAuth, @Body() body: any) {
     return this.hr.updatePayrollPolicies({ tenantId: req.authContext!.tenantId, userId: req.authContext!.userId } as any, body);
   }

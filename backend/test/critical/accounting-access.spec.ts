@@ -134,13 +134,107 @@ function testPermissionLabelsAreDistinguishable(): void {
   );
 }
 
+/**
+ * ACC-ACCESS-5 — ما يفتحه قالب «كاشير» لا يشمل مالاً.
+ *
+ * هذا هو الجرد الذي كشف البقية، مثبَّتاً. يبني ما تفتحه صلاحيات القالب من مسارات المنظومة كلها
+ * (442 مساراً لها صلاحية صريحة، يفتح القالب منها نحو 210)، ويرفض أن يكون بينها مسارٌ ماليّ.
+ *
+ * وجد اثنين عند كتابته، كلاهما بنفس شكل ثغرة الميزانية — صلاحية دقيقة موجودة ومسارٌ في وحدة أخرى
+ * يتخطّاها:
+ *   - `GET /api/import-sales/profit-report` كان بـ`sales`، بينما `canViewProfit` موجودة ومُحترمة
+ *     في `sales-query.service.ts`. فالكاشير يقرأ أرباح المحل.
+ *   - `PUT /api/hr/settings/payroll-policies` كان بـ`hr`، بينما تشغيل الرواتب نفسه بـ
+ *     `hrPayrollManage`. فالقواعد التي تُحسَب بها الرواتب أضعف حمايةً من الرواتب.
+ */
+function testCashierTemplateOpensNoMoney(): void {
+  const sharedPath = join(
+    __dirname, '..', '..', '..', 'frontend', 'src', 'features', 'settings', 'components', 'user-management.shared.ts',
+  );
+  const shared = readFileSync(sharedPath, 'utf8').replace(/\r\n/g, '\n');
+  const listed = /DEFAULT_CASHIER_PERMS\s*=\s*\[([\s\S]*?)\]/.exec(shared);
+  assert.ok(listed, 'DEFAULT_CASHIER_PERMS not found');
+  const cashier = new Set(
+    listed[1].split(',').map((entry) => entry.trim().replace(/['"]/g, '')).filter(Boolean),
+  );
+
+  const parse = (raw?: string): string[] | null => (
+    raw ? raw.split(',').map((item) => item.trim().replace(/['"]/g, '')) : null
+  );
+
+  const opened: string[] = [];
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) { walk(full); continue; }
+      if (!entry.name.endsWith('.controller.ts')) continue;
+
+      const source = readFileSync(full, 'utf8').replace(/\r\n/g, '\n');
+      const prefix = (/@Controller\('([^']*)'\)/.exec(source) || [, ''])[1];
+      const guardedByAccounting = source.includes('AccountingAccessGuard');
+      const classAll = parse(/^@RequirePermissions\(([^)]*)\)/m.exec(source)?.[1]);
+      const classAny = parse(/^@RequireAnyPermission\(([^)]*)\)/m.exec(source)?.[1]);
+
+      // المزخرفات تُجمَع من **حول** سطر المسار في الاتجاهين.
+      //
+      // أول نسخة افترضت أن الصلاحية تسبق المسار دائماً، و`hr.controller.ts` يكتبها بعده:
+      //     @Put('settings/payroll-policies')
+      //     @RequirePermissions('hr')
+      // فنسبت كل صلاحية إلى المسار التالي لها، وأسقطت مخالفةً حقيقية (تعديل سياسات الرواتب بـ`hr`).
+      // فحصٌ يقرأ الملف خطأً يعطي براءةً كاذبة، وهي أسوأ من غياب الفحص.
+      const lines = source.split('\n');
+      const isDecorator = (line: string) => /^\s{2}@\w+/.test(line);
+      for (let i = 0; i < lines.length; i += 1) {
+        const matchRoute = /^\s{2}@(Get|Post|Put|Patch|Delete)\('?([^')]*)'?\)/.exec(lines[i]);
+        if (!matchRoute) continue;
+
+        let start = i;
+        while (start > 0 && isDecorator(lines[start - 1])) start -= 1;
+        let end = i;
+        while (end + 1 < lines.length && isDecorator(lines[end + 1])) end += 1;
+
+        let methodAll: string[] | null = null;
+        let methodAny: string[] | null = null;
+        for (let j = start; j <= end; j += 1) {
+          const mAll = /^\s{2}@RequirePermissions\(([^)]*)\)/.exec(lines[j]);
+          const mAny = /^\s{2}@RequireAnyPermission\(([^)]*)\)/.exec(lines[j]);
+          if (mAll) methodAll = parse(mAll[1]);
+          if (mAny) methodAny = parse(mAny[1]);
+        }
+
+        const all = methodAll ?? classAll;
+        const any = methodAny ?? classAny;
+        if (!all && !any) continue;
+        if (guardedByAccounting && !cashier.has('accounting')) continue;
+        if (all && !all.every((item) => cashier.has(item))) continue;
+        if (any && !any.some((item) => cashier.has(item))) continue;
+        opened.push(`${matchRoute[1]} /${[prefix, matchRoute[2]].filter(Boolean).join('/')}`);
+      }
+    }
+  };
+  walk(join(SRC, 'modules'));
+
+  assert.ok(opened.length > 50, `the scan found only ${opened.length} routes — the parser broke, not the permissions`);
+
+  // ما لا يجوز أن يفتحه الكاشير: أرقام المال، وأجور الناس، ومفاتيح المنصة.
+  const forbidden = /balance-sheet|cash-flow|trial-balance|profit|equity|payroll|salar|billing|subscription|impersonat|backup|restore/i;
+  const violations = opened.filter((route) => forbidden.test(route));
+  assert.deepEqual(
+    violations,
+    [],
+    `the cashier template opens routes it must not:\n  ${violations.join('\n  ')}\n`
+    + 'A cashier sees the till, not the books, the payroll or the platform.',
+  );
+}
+
 function run(): void {
   testGuardRule();
   testGuardIsMounted();
   testFinancialControllersAreGuarded();
   testPermissionLabelsAreDistinguishable();
+  testCashierTemplateOpensNoMoney();
   // eslint-disable-next-line no-console
-  console.log('accounting-access.spec: ACC-ACCESS-1..4 hold — "accounts" no longer opens the books');
+  console.log('accounting-access.spec: ACC-ACCESS-1..5 hold — "accounts" no longer opens the books');
 }
 
 try {
