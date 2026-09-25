@@ -521,6 +521,7 @@ export class TrialTenantProvisioningService {
           permissions_json: JSON.stringify(this.defaultPermissions()),
           default_branch_id: branchId,
           display_name: ownerName,
+          phone: ownerPhone,
           failed_login_count: 0,
           locked_until: null,
           last_login_at: null,
