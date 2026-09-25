@@ -2581,13 +2581,15 @@ export class StorefrontService {
           .where('id', '!=', tenantId)
           .executeTakeFirst();
 
-        if (!existing) {
-          await this.db
-            .updateTable('tenants')
-            .set({ slug: cleanSlug, updated_at: new Date() })
-            .where('id', '=', tenantId)
-            .execute();
+        if (existing) {
+          throw new BadRequestException('هذا الرابط مستخدم بالفعل من متجر آخر، يرجى اختيار رابط مختلف.');
         }
+
+        await this.db
+          .updateTable('tenants')
+          .set({ slug: cleanSlug, updated_at: new Date() })
+          .where('id', '=', tenantId)
+          .execute();
       }
     }
 
