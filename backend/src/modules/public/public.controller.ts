@@ -1,13 +1,17 @@
-import { Body, Controller, Logger, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Header, Logger, Post, Query, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { PublicTrialSignupDto } from './dto/public-trial-signup.dto';
 import { PublicTrialSignupService } from './public-trial-signup.service';
+import { PricingCatalogService } from '../tenant-subscription/pricing/pricing-catalog.service';
 
 @Controller('api/public')
 export class PublicController {
   private readonly logger = new Logger(PublicController.name);
 
-  constructor(private readonly service: PublicTrialSignupService) {}
+  constructor(
+    private readonly service: PublicTrialSignupService,
+    private readonly pricing: PricingCatalogService,
+  ) {}
 
   private maskEmail(value: unknown): string {
     const email = String(value || '').trim().toLowerCase();
@@ -63,6 +67,37 @@ export class PublicController {
       );
       throw error;
     }
+  }
+
+  /**
+   * الرقم المُلزِم للموقع التسويقي وللوحة الساس معاً — نفس المصدر (`pricing-catalog.json`)
+   * عبر نفس المحرك (`PricingCatalogService`) اللي بيبني شاشة الاشتراك الداخلية، فمفيش أي
+   * فرصة يختلف الرقم المعروض على الموقع عن الرقم اللي هيتحصّل فعلياً (PRICING_AND_PACKAGING.md §13).
+   *
+   * - `?product=pharmacy&country=EG` → عرض واحد محلول (نفس شكل شاشة الاشتراك).
+   * - من غير باراميترات → الكتالوج العام كامل (كل منتج × كل بلد منشور) لبناء صفحات الموقع.
+   * لا حقل داخلي يخرج من هنا أبداً — `PricingCatalogService.resolveForTenant` هو نفسه
+   * الحارس (F40).
+   */
+  @Get('pricing-catalog')
+  @Header('Cache-Control', 'public, max-age=300')
+  pricingCatalog(@Query('product') product?: string, @Query('country') country?: string) {
+    if (product && country) {
+      return this.pricing.resolveForTenant({ industryPresetId: product, countryCode: country });
+    }
+
+    const products = this.pricing.listProducts();
+    const countries = this.pricing.listCountries();
+    const catalog = products.flatMap((p) =>
+      countries.map((c) => this.pricing.resolveForTenant({ industryPresetId: p.id, countryCode: c.code })),
+    );
+
+    return {
+      version: this.pricing.version,
+      products,
+      countries,
+      catalog,
+    };
   }
 }
 

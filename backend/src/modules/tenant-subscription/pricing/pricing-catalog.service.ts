@@ -33,6 +33,18 @@ export class PricingCatalogService {
     return this.catalog.version;
   }
 
+  /** الحقول العامة فقط لكل منتج — لا `band` ولا أي حقل داخلي (F40). */
+  listProducts(): Array<{ id: string; name: string; pos: boolean; sellOffline: boolean }> {
+    return this.catalog.products.map((p) => ({ id: p.id, name: p.publicName, pos: p.pos, sellOffline: p.sellOffline }));
+  }
+
+  /** البلدان المنشورة فعلياً فقط — البلد المحظور لا يظهر هنا أصلاً (PRICE-2). */
+  listCountries(): Array<{ code: string; name: string; currency: string; status: 'ready' | 'partial' }> {
+    return Object.entries(this.catalog.countries)
+      .filter((entry): entry is [string, typeof entry[1] & { status: 'ready' | 'partial' }] => entry[1].status !== 'blocked')
+      .map(([code, meta]) => ({ code, name: meta.name, currency: meta.currency || 'EGP', status: meta.status }));
+  }
+
   /**
    * يحل المنتج من `IndustryPresetId` المسجَّل في المنشأة.
    * لا يرمي: نشاط مجهول يسقط على التجزئة العامة بدل أن يُعطِّل شاشة الفوترة.

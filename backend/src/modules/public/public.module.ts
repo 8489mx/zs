@@ -5,10 +5,11 @@ import { SaasAdminModule } from '../saas-admin/saas-admin.module';
 import { PublicController } from './public.controller';
 import { PublicTrialSignupService } from './public-trial-signup.service';
 import { TrialSignupMailService } from './trial-signup-mail.service';
+import { PricingCatalogService } from '../tenant-subscription/pricing/pricing-catalog.service';
 
 @Module({
   imports: [DatabaseModule, SaasAdminModule],
   controllers: [PublicController],
-  providers: [InMemoryRateLimitService, PublicTrialSignupService, TrialSignupMailService],
+  providers: [InMemoryRateLimitService, PublicTrialSignupService, TrialSignupMailService, PricingCatalogService],
 })
 export class PublicModule {}
