@@ -145,7 +145,8 @@ export function TrialSignupPage() {
                   <CheckIcon />
                 </div>
                 <h3 style={{ margin: '0 0 8px 0', color: '#065f46', fontSize: '18px', fontWeight: '700' }}>تم انشاء نسختك التجريبية بنجاح</h3>
-                <p style={{ margin: '0 0 16px 0', color: '#047857', fontSize: '14px', fontWeight: '500' }}>ارسلنا بيانات الدخول على بريدك الالكتروني، يرجى مراجعة البريد غير الهام إذا لم تجد الرسالة.</p>
+                <p style={{ margin: '0 0 4px 0', color: '#047857', fontSize: '14px', fontWeight: '500' }}>ارسلنا بيانات الدخول على بريدك الالكتروني.</p>
+                <p style={{ margin: '0 0 16px 0', color: '#047857', fontSize: '14px', fontWeight: '500' }}>يرجى مراجعة البريد غير الهام إذا لم تجد الرسالة.</p>
                 
                 {debugCredentials && (
                   <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px', border: '1px solid #a7f3d0', textAlign: 'right', marginTop: '16px' }}>
