@@ -2,7 +2,6 @@ import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Navigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
-import { LoadingState } from '@/shared/ui/loading-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklist';
 import { TenantQuickStartChecklist } from '@/shared/system/TenantQuickStartChecklist';
@@ -23,6 +22,107 @@ import {
   exportDashboardSnapshot,
   printDashboardSnapshot,
 } from '@/features/dashboard/lib/dashboard-page.utils';
+
+function DashboardSkeleton() {
+  return (
+    <div className="page-stack page-shell dashboard-premium-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ width: '100%', paddingBottom: '100px' }}>
+        <PageHeader
+          title="لوحة التحكم اليومية"
+          description="مؤشرات الأداء المباشرة، القرارات المطلوبة، وحركة المبيعات والخزينة اليومية."
+          badge={<span className="nav-pill">ملخص اليوم</span>}
+        />
+        {/* Skeleton Executive Hero */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '16px',
+            marginBottom: '16px',
+          }}
+        >
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              style={{
+                height: '110px',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ height: '14px', width: '45%', background: '#e2e8f0', borderRadius: '4px', opacity: 0.8 }} />
+              <div style={{ height: '26px', width: '65%', background: '#f1f5f9', borderRadius: '6px' }} />
+              <div style={{ height: '12px', width: '35%', background: '#f8fafc', borderRadius: '4px' }} />
+            </div>
+          ))}
+        </div>
+        {/* Skeleton BI Grid */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '16px',
+            marginBottom: '16px',
+          }}
+        >
+          {[1, 2].map((i) => (
+            <div
+              key={i}
+              style={{
+                height: '240px',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ height: '16px', width: '30%', background: '#e2e8f0', borderRadius: '4px' }} />
+              <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px' }} />
+            </div>
+          ))}
+        </div>
+        {/* Skeleton Decisions & Top products */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '16px',
+          }}
+        >
+          {[1, 2].map((i) => (
+            <div
+              key={i}
+              style={{
+                height: '220px',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ height: '16px', width: '40%', background: '#e2e8f0', borderRadius: '4px' }} />
+              <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px' }} />
+            </div>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
 
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user);
@@ -45,15 +145,11 @@ export function DashboardPage() {
   }
 
   const overview = useDashboardOverview();
-  const managerActions = useManagerActions(4);
+  const managerActions = useManagerActions(30);
   const managerOverview = useDashboardManagerOverview();
 
   if (overview.isLoading && !overview.data) {
-    return (
-      <div className="page-stack page-shell" dir="rtl">
-        <LoadingState title="جاري تحميل ملخص اليوم..." hint="نجهز لك مؤشرات المبيعات والخزينة والمخزون." className="status-surface-block" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (overview.isError && !overview.data) {

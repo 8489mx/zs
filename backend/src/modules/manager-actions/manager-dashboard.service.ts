@@ -11,13 +11,26 @@ function m(value: number): number { return Math.round(value * 100) / 100; }
 function pct(current: number, previous: number): number | null { return previous ? m(((current - previous) / previous) * 100) : null; }
 function ageDays(value: unknown, now: Date): number | null { if (!value) return null; const d = value instanceof Date ? value : new Date(String(value)); return Number.isNaN(d.getTime()) ? null : Math.max(0, Math.floor((now.getTime() - d.getTime()) / 86400000)); }
 
+interface CachedManagerOverview {
+  expiresAt: number;
+  data: any;
+}
+
 @Injectable()
 export class ManagerDashboardService {
+  private readonly overviewCache = new Map<string, CachedManagerOverview>();
+  private readonly OVERVIEW_CACHE_TTL_MS = 30_000;
+
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
   async overview(auth?: AuthContext) {
     const scope = auth ? requireTenantScope(auth) : { tenantId: '', accountId: '' };
     const tenantId = scope.tenantId;
+    const nowMs = Date.now();
+    const cached = this.overviewCache.get(tenantId);
+    if (cached && nowMs < cached.expiresAt) {
+      return cached.data;
+    }
     const now = new Date();
     const last30Start = new Date(now); last30Start.setUTCDate(last30Start.getUTCDate() - 30);
     const previous30Start = new Date(now); previous30Start.setUTCDate(previous30Start.getUTCDate() - 60);
@@ -45,8 +58,14 @@ export class ManagerDashboardService {
     const grossProfit = m(netSales - cogs);
     const expenses = m(n(expensesLast30?.total));
     const productProfit = this.buildProductProfit(profitRows);
-    const categoryProfit = this.buildCategoryProfit(profitRows);
-    return { scope, salesLast30: { total: salesTotal, count: salesCount, averageInvoice: salesCount > 0 ? m(salesTotal / salesCount) : 0, previousTotal, comparisonPercent: pct(salesTotal, previousTotal) }, profitSummary: { netSales, cogs, grossProfit, expenses, netProfit: m(grossProfit - expenses) }, profitSources: { topProducts: productProfit.filter((r) => r.grossProfit > 0).slice(0, 6), topCategories: categoryProfit.filter((r) => r.grossProfit > 0).slice(0, 6), weakMarginHighSales: productProfit.filter((r) => r.revenue > 0 && r.marginPercent < 15).sort((a, b) => b.revenue - a.revenue).slice(0, 5) }, stagnant: this.buildStagnant(products, now, stagnantThresholdDays), buying: this.buildBuying(products, productProfit), collection: this.buildCollection(customers) };
+    const result = { scope, salesLast30: { total: salesTotal, count: salesCount, averageInvoice: salesCount > 0 ? m(salesTotal / salesCount) : 0, previousTotal, comparisonPercent: pct(salesTotal, previousTotal) }, profitSummary: { netSales, cogs, grossProfit, expenses, netProfit: m(grossProfit - expenses) }, profitSources: { topProducts: productProfit.filter((r) => r.grossProfit > 0).slice(0, 6), topCategories: categoryProfit.filter((r) => r.grossProfit > 0).slice(0, 6), weakMarginHighSales: productProfit.filter((r) => r.revenue > 0 && r.marginPercent < 15).sort((a, b) => b.revenue - a.revenue).slice(0, 5) }, stagnant: this.buildStagnant(products, now, stagnantThresholdDays), buying: this.buildBuying(products, productProfit), collection: this.buildCollection(customers) };
+    if (this.overviewCache.size > 200) {
+      for (const [k, v] of this.overviewCache.entries()) {
+        if (nowMs >= v.expiresAt) this.overviewCache.delete(k);
+      }
+    }
+    this.overviewCache.set(tenantId, { expiresAt: nowMs + this.OVERVIEW_CACHE_TTL_MS, data: result });
+    return result;
   }
 
   private async safeRows<T>(loader: () => Promise<T[]>): Promise<T[]> { try { return await loader(); } catch { return []; } }

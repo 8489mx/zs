@@ -9,8 +9,16 @@ import { sql } from '../../../database/kysely';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 
+interface CachedDashboardOverview {
+  expiresAt: number;
+  data: Record<string, unknown>;
+}
+
 @Injectable()
 export class ReportsSummaryService {
+  private readonly overviewCache = new Map<string, CachedDashboardOverview>();
+  private readonly OVERVIEW_CACHE_TTL_MS = 30_000;
+
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
   private tenantId(auth: AuthContext): string {
@@ -157,6 +165,13 @@ export class ReportsSummaryService {
   async dashboardOverview(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantId = this.tenantId(auth);
     const range = parseRange(query);
+    const cacheKey = `${tenantId}:${range.from}:${range.to}:${query.branchId || ''}:${query.locationId || ''}`;
+    const nowMs = Date.now();
+    const cached = this.overviewCache.get(cacheKey);
+    if (cached && nowMs < cached.expiresAt) {
+      return cached.data;
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStart = new Date(today);
@@ -333,7 +348,7 @@ export class ReportsSummaryService {
     const salesTrend: TrendPoint[] = buildTrendMap(recentSalesRows, dayKeys, (row) => dateKey(row.created_at), (row) => row.total);
     const purchasesTrend: TrendPoint[] = buildTrendMap(recentPurchasesRows, dayKeys, (row) => dateKey(row.created_at), (row) => row.total);
 
-    return {
+    const result = {
       range,
       summary: {
         ...(summary as Record<string, unknown>),
@@ -378,6 +393,15 @@ export class ReportsSummaryService {
         purchases: purchasesTrend,
       },
     };
+
+    if (this.overviewCache.size > 200) {
+      for (const [k, v] of this.overviewCache.entries()) {
+        if (nowMs >= v.expiresAt) this.overviewCache.delete(k);
+      }
+    }
+    this.overviewCache.set(cacheKey, { expiresAt: nowMs + this.OVERVIEW_CACHE_TTL_MS, data: result });
+
+    return result;
   }
 
   async debtAgingReport(auth: AuthContext): Promise<Record<string, unknown>> {
