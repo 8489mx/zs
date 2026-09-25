@@ -8,6 +8,7 @@ import { StatsGrid } from '@/shared/components/stats-grid';
 import { TenantDataTable } from '../components/TenantDataTable';
 import { TenantCredentialsHero } from '../components/TenantCredentialsHero';
 import { TenantModalsManager } from '../components/TenantModalsManager';
+import { systemConfirm } from '@/shared/components/system-alert';
 import { useSaasTenants } from '../hooks/useSaasTenants';
 
 export function SaasTenantsPage() {
@@ -140,8 +141,15 @@ export function SaasTenantsPage() {
               platformTenantId={vm.platformTenantId}
               currentTenantId={vm.currentTenantId}
               isImpersonating={vm.impersonateMutation.isPending}
-              onImpersonate={(id, name) => {
-                if (window.confirm(`هل تريد تسجيل الدخول وتصفح نسخة (${name}) كمالك؟`)) {
+              onImpersonate={async (id, name) => {
+                const confirmed = await systemConfirm({
+                  title: 'تسجيل الدخول كمالك للنسخة',
+                  message: `هل تريد تسجيل الدخول وتصفح نسخة (${name}) كمالك؟`,
+                  variant: 'info',
+                  confirmText: 'تصفح كمالك',
+                  cancelText: 'إلغاء',
+                });
+                if (confirmed) {
                   vm.impersonateMutation.mutate(id);
                 }
               }}

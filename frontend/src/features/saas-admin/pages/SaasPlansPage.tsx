@@ -8,6 +8,7 @@ import { DataTable, type DataTableColumn } from '@/shared/components/data-table'
 import { PlusIcon } from '@/shared/components/icons/AppIcons';
 import { CreateSaasPlanModal } from '../components/CreateSaasPlanModal';
 import { EditSaasPlanModal } from '../components/EditSaasPlanModal';
+import { systemConfirm } from '@/shared/components/system-alert';
 
 export function SaasPlansPage() {
   const queryClient = useQueryClient();
@@ -235,8 +236,15 @@ export function SaasPlansPage() {
           <Button
             type="button"
             variant="danger"
-            onClick={() => {
-              if (window.confirm(`هل أنت متأكد من حذف الباقة "${row.name}"؟`)) {
+            onClick={async () => {
+              const confirmed = await systemConfirm({
+                title: 'تأكيد حذف باقة الاشتراك',
+                message: `هل أنت متأكد من حذف الباقة "${row.name}"؟`,
+                variant: 'danger',
+                confirmText: 'تأكيد الحذف',
+                cancelText: 'تراجع',
+              });
+              if (confirmed) {
                 deleteMutation.mutate(row.id);
               }
             }}

@@ -12,6 +12,7 @@ import { TenantActionHubModal } from './TenantActionHubModal';
 import { EditTenantSlugModal } from './EditTenantSlugModal';
 import { SeedTenantDemoModal } from './SeedTenantDemoModal';
 import { WipeTenantDataModal } from './WipeTenantDataModal';
+import { systemConfirm } from '@/shared/components/system-alert';
 import { useSaasTenants } from '../hooks/useSaasTenants';
 
 type UseSaasTenantsReturn = ReturnType<typeof useSaasTenants>;
@@ -182,9 +183,16 @@ export const TenantModalsManager: React.FC<TenantModalsManagerProps> = ({ vm }) 
           platformTenantId={vm.platformTenantId}
           currentTenantId={vm.currentTenantId}
           onClose={() => vm.setActionHubTenant(null)}
-          onImpersonate={(id, name) => {
+          onImpersonate={async (id, name) => {
             vm.setActionHubTenant(null);
-            if (window.confirm(`هل تريد تسجيل الدخول وتصفح نسخة (${name}) كمالك؟`)) {
+            const confirmed = await systemConfirm({
+              title: 'تسجيل الدخول كمالك للنسخة',
+              message: `هل تريد تسجيل الدخول وتصفح نسخة (${name}) كمالك؟`,
+              variant: 'info',
+              confirmText: 'تصفح كمالك',
+              cancelText: 'إلغاء',
+            });
+            if (confirmed) {
               vm.impersonateMutation.mutate(id);
             }
           }}
@@ -235,9 +243,16 @@ export const TenantModalsManager: React.FC<TenantModalsManagerProps> = ({ vm }) 
             vm.setActionHubTenant(null);
             vm.tenantActionMutation.mutate({ action: 'unlockOwner', tenantId: id });
           }}
-          onSuspend={(id) => {
+          onSuspend={async (id) => {
             vm.setActionHubTenant(null);
-            if (window.confirm('هل تريد إيقاف هذه النسخة مؤقتاً؟ لن يتمكن المستخدمون من الدخول حتى إعادة التفعيل.')) {
+            const confirmed = await systemConfirm({
+              title: 'إيقاف النسخة مؤقتاً',
+              message: 'هل تريد إيقاف هذه النسخة مؤقتاً؟ لن يتمكن المستخدمون من الدخول حتى إعادة التفعيل.',
+              variant: 'warning',
+              confirmText: 'إيقاف مؤقت',
+              cancelText: 'تراجع',
+            });
+            if (confirmed) {
               vm.tenantActionMutation.mutate({ action: 'suspend', tenantId: id });
             }
           }}
@@ -249,9 +264,16 @@ export const TenantModalsManager: React.FC<TenantModalsManagerProps> = ({ vm }) 
             vm.setActionHubTenant(null);
             vm.setEditingSlugTenant(r);
           }}
-          onDelete={(id, name) => {
+          onDelete={async (id, name) => {
             vm.setActionHubTenant(null);
-            if (window.confirm(`هل أنت متأكد تماماً من حذف نسخة (${name}) بجميع قواعد بياناتها وسجلاتها؟\nلا يمكن التراجع عن هذا الإجراء!`)) {
+            const confirmed = await systemConfirm({
+              title: 'تأكيد حذف النسخة نهائياً',
+              message: `هل أنت متأكد تماماً من حذف نسخة (${name}) بجميع قواعد بياناتها وسجلاتها؟\nلا يمكن التراجع عن هذا الإجراء!`,
+              variant: 'danger',
+              confirmText: 'تأكيد الحذف النهائي',
+              cancelText: 'تراجع',
+            });
+            if (confirmed) {
               vm.tenantActionMutation.mutate({ action: 'delete', tenantId: id });
             }
           }}
