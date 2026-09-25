@@ -20,27 +20,30 @@ interface BackupAutomationState { enabled: boolean; frequency: 'daily' | 'weekly
 interface BackupConfigState { folderPath: string; automation: BackupAutomationState }
 
 const BACKUP_TABLES: BackupTableName[] = [
-  '_phase1_bootstrap', 'sessions', 'users', 'tenants', 'trial_signups', 'settings',
-  'accounting_accounts', 'journal_entries', 'journal_entry_lines', 'accounting_settings',
-  'audit_logs', 'branches', 'stock_locations', 'user_branches', 'product_categories',
-  'suppliers', 'customers', 'products', 'product_units', 'product_offers',
-  'product_customer_prices', 'product_pricing_profiles', 'pricing_rules',
-  'product_location_stock', 'stock_movements', 'stock_transfers', 'stock_transfer_items',
-  'stock_count_sessions', 'stock_count_items', 'damaged_stock_records',
-  'sales', 'sale_items', 'sale_payments', 'held_sales', 'held_sale_items',
-  'customer_payments', 'customer_ledger', 'expenses', 'return_documents', 'return_items',
-  'treasury_transactions', 'cashier_shifts', 'purchases', 'purchase_items',
-  'supplier_payments', 'supplier_payment_schedules', 'supplier_payment_schedule_logs',
-  'supplier_ledger', 'hr_departments', 'hr_job_titles', 'hr_positions', 'hr_employees',
+  '_phase1_bootstrap', 'tenants', 'trial_signups', 'settings',
+  'branches', 'stock_locations', 'users', 'user_branches', 'audit_logs',
+  'cost_centers', 'accounting_accounts', 'accounting_settings',
+  'partner_contacts', 'partner_addresses', 'suppliers', 'customers', 'customer_loyalty_logs',
+  'product_categories', 'products', 'product_units', 'product_offers',
+  'product_pricing_profiles', 'pricing_rules', 'product_customer_prices',
+  'product_location_stock',
+  'purchases', 'purchase_items', 'purchase_attachments',
+  'supplier_payments', 'supplier_payment_schedules', 'supplier_payment_schedule_logs', 'supplier_ledger',
+  'sales', 'sale_items', 'sale_line_stock_allocations', 'sale_payments', 'held_sales', 'held_sale_items',
+  'customer_payments', 'customer_ledger', 'online_orders', 'quotations', 'quotation_items',
+  'expenses', 'return_documents', 'return_items',
+  'stock_transfers', 'stock_transfer_items', 'stock_count_sessions', 'stock_count_items',
+  'damaged_stock_records', 'stock_movements', 'price_change_runs', 'price_change_items',
+  'cashier_shifts', 'treasury_transactions',
+  'journal_entries', 'journal_entry_lines',
+  'projects',
+  'manufacturing_boms', 'manufacturing_bom_lines', 'manufacturing_work_orders', 'manufacturing_wo_consumptions',
+  'hr_departments', 'hr_job_titles', 'hr_positions', 'hr_employees',
   'hr_employee_contacts', 'hr_employee_documents', 'hr_employment_contracts',
   'hr_compensation_packages', 'hr_employee_loans', 'hr_employee_loan_installments',
   'hr_employee_ledger', 'hr_attendance_records', 'hr_attendance_exceptions',
   'hr_leave_types', 'hr_leave_requests', 'hr_employee_assets', 'hr_payroll_runs',
-  'hr_payroll_run_items', 'hr_payroll_item_adjustments', 'hr_hr_settings',
-  'price_change_runs', 'price_change_items', 'partner_contacts', 'partner_addresses',
-  'cost_centers', 'projects', 'manufacturing_boms', 'manufacturing_bom_lines',
-  'manufacturing_work_orders', 'manufacturing_wo_consumptions', 'purchase_attachments',
-  'online_orders', 'quotations', 'quotation_items', 'customer_loyalty_logs'
+  'hr_payroll_run_items', 'hr_payroll_item_adjustments', 'hr_hr_settings'
 ];
 const CLEAR_ORDER: (BackupTableName | 'services')[] = ['services', ...[...BACKUP_TABLES].reverse()];
 const RESTORE_CONFIRMATION_TEXT = 'RESTORE BACKUP';
@@ -387,6 +390,7 @@ export class SettingsBackupService {
   // Runs after the tenant's rows were cleared, so any id still present belongs to another tenant.
   private async canKeepOriginalIds(trx: Kysely<Database>, envelope: BackupEnvelope): Promise<boolean> {
     for (const table of BACKUP_TABLES) {
+      if (String(table) === 'sessions') continue;
       const tableName = String(table);
       const rows = (envelope.tables[table] || []).filter(isObjectRecord);
       if (!rows.length || !(await this.tableExists(tableName))) continue;
@@ -412,7 +416,7 @@ export class SettingsBackupService {
     if (!tableNames.length) return;
     const specs = await listTenantTables(trx);
     // tables restored here that tenant packages treat as platform/session tables (sessions, trial_signups)
-    const extra = tableNames.filter((name) => !specs.has(name));
+    const extra = tableNames.filter((name) => !specs.has(name) && name !== 'sessions');
     const problems = await findOrphanedReferences(trx, specs, tenantId, extra);
     if (problems.length) {
       throw new AppError(
@@ -443,10 +447,26 @@ export class SettingsBackupService {
         await sql`SET LOCAL session_replication_role = 'replica'`.execute(trx);
 
         // 1. Clear existing tenant data in reverse dependency order
+        // Discovered dynamically: clear child tables first, then CLEAR_ORDER, then any remaining tenant tables
+        const tenantSpecs = await listTenantTables(trx as unknown as Kysely<any>);
+        const childSpecs = [...tenantSpecs.values()].filter((s) => s.kind === 'child');
+        for (const child of childSpecs) {
+          await sql`delete from ${sql.table(child.name)} where ${sql.ref(child.fkColumn!)} in (
+            select parent.${sql.ref(child.parentColumn!)} from ${sql.table(child.parent!)} as parent where parent.tenant_id = ${scope.tenantId}
+          )`.execute(trx).catch(() => undefined);
+        }
+
         for (const table of CLEAR_ORDER) {
           if (!(await this.tableExists(String(table))) || !(await this.tableHasColumn(String(table), 'tenant_id'))) continue;
           await sql`delete from ${sql.table(table)} where tenant_id = ${scope.tenantId}`.execute(trx);
         }
+
+        for (const [name, spec] of tenantSpecs) {
+          if (spec.kind === 'tenant' && !CLEAR_ORDER.includes(name as any)) {
+            await sql`delete from ${sql.table(name)} where tenant_id = ${scope.tenantId}`.execute(trx).catch(() => undefined);
+          }
+        }
+        await sql`delete from sessions where tenant_id = ${scope.tenantId}`.execute(trx).catch(() => undefined);
 
         // 2. Keep the backup's own ids whenever none of them is taken by another tenant (the normal
         // case: a tenant restoring its own backup on the same server). Then every FK, every
@@ -457,7 +477,10 @@ export class SettingsBackupService {
 
         // 3. Insertion for all tables
         const restoredTables: string[] = [];
+        const pendingBranchDefaultLocations = new Map<string, string>();
+
         for (const table of BACKUP_TABLES) {
+          if (String(table) === 'sessions') continue;
           const tableName = String(table);
           if (!(await this.tableExists(tableName))) continue;
           const colMeta = await this.getTableColumns(trx as unknown as Kysely<Database>, tableName);
@@ -502,6 +525,14 @@ export class SettingsBackupService {
 
             if (!keepOriginalIds) {
               remapForeignKeys(row, fkMap, idMap);
+
+              // Circular FK resolution: defer branch default_stock_location_id until stock_locations is inserted
+              if (tableName === 'branches' && row.default_stock_location_id != null) {
+                if (rawRow.id != null) {
+                  pendingBranchDefaultLocations.set(String(rawRow.id), String(rawRow.default_stock_location_id));
+                }
+                row.default_stock_location_id = null;
+              }
 
               // Remap Self-referencing parent_id
               if (colMeta.has('parent_id') && row.parent_id != null) {
@@ -611,6 +642,21 @@ export class SettingsBackupService {
           }
 
           await this.resetIdentity(trx as unknown as Kysely<Database>, tableName);
+
+          // Circular FK Phase 2: After stock_locations is inserted, link branches.default_stock_location_id
+          if (!keepOriginalIds && tableName === 'stock_locations' && pendingBranchDefaultLocations.size > 0) {
+            const branchIdMap = idMap.get('branches');
+            const locIdMap = idMap.get('stock_locations');
+            if (branchIdMap && locIdMap) {
+              for (const [oldBranchId, oldLocId] of pendingBranchDefaultLocations.entries()) {
+                const newBranchId = branchIdMap.get(oldBranchId);
+                const newLocId = locIdMap.get(oldLocId);
+                if (newBranchId && newLocId) {
+                  await sql`update branches set default_stock_location_id = ${newLocId} where id = ${newBranchId} and tenant_id = ${scope.tenantId}`.execute(trx);
+                }
+              }
+            }
+          }
         }
 
         // 4. replica mode above disables FK enforcement, so nothing would stop a bad remap from
@@ -626,7 +672,20 @@ export class SettingsBackupService {
     }
 
     await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${`restore-${new Date().toISOString()}`}, ${'restore'}, ${JSON.stringify(envelope)}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db);
-    await this.audit.log('استعادة نسخة احتياطية', `تمت استعادة نسخة احتياطية بواسطة ${actor.username}`, actor).catch(() => undefined);
+    // Ensure audit log uses a valid user id from the restored users or null if the restoring actor was replaced
+    let auditActor = actor;
+    if (actor.userId) {
+      const userStillExists = await sql<{ ok: boolean }>`
+        select exists(select 1 from users where id = ${actor.userId} and tenant_id = ${scope.tenantId}) as ok
+      `.execute(this.db).then(r => Boolean(r.rows[0]?.ok)).catch(() => false);
+      if (!userStillExists) {
+        const matchingUser = await sql<{ id: number }>`
+          select id from users where username = ${actor.username} and tenant_id = ${scope.tenantId} limit 1
+        `.execute(this.db).then(r => r.rows[0]?.id).catch(() => undefined);
+        auditActor = { ...actor, userId: matchingUser ?? (null as any) };
+      }
+    }
+    await this.audit.log('استعادة نسخة احتياطية', `تمت استعادة نسخة احتياطية بواسطة ${actor.username}`, auditActor).catch(() => undefined);
     return { ok: true, restoredAt: new Date().toISOString(), restoredTables: BACKUP_TABLES.length, summary: verification.summary, scope };
   }
 }

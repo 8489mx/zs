@@ -73,10 +73,42 @@ function testOrphanGateRunsBeforeCommit(): void {
 }
 
 
+function testTopologicalOrderAndCircularResolution(): void {
+  // 1. sessions must not be backed up or restored
+  assert.ok(!/BACKUP_TABLES: BackupTableName\[\] = \[[^\]]*'sessions'/.test(service), 'sessions must not be in BACKUP_TABLES');
+
+  // 2. Order of tables: parents before children
+  const backupTablesMatch = service.match(/const BACKUP_TABLES: BackupTableName\[\] = \[([\s\S]*?)\];/);
+  assert.ok(backupTablesMatch, 'BACKUP_TABLES array must exist');
+  const tableNames = backupTablesMatch[1].match(/'([^']+)'/g)?.map((s) => s.replace(/'/g, '')) ?? [];
+
+  const idxOf = (t: string) => {
+    const idx = tableNames.indexOf(t);
+    assert.ok(idx > -1, `Table ${t} must be in BACKUP_TABLES`);
+    return idx;
+  };
+
+  assert.ok(idxOf('branches') < idxOf('stock_locations'), 'branches must precede stock_locations');
+  assert.ok(idxOf('stock_locations') < idxOf('users'), 'stock_locations must precede users');
+  assert.ok(idxOf('users') < idxOf('journal_entries'), 'users must precede journal_entries');
+  assert.ok(idxOf('branches') < idxOf('journal_entries'), 'branches must precede journal_entries');
+  assert.ok(idxOf('accounting_accounts') < idxOf('journal_entry_lines'), 'accounting_accounts must precede journal_entry_lines');
+  assert.ok(idxOf('sales') < idxOf('journal_entries'), 'sales must precede journal_entries');
+  assert.ok(idxOf('purchases') < idxOf('journal_entries'), 'purchases must precede journal_entries');
+  assert.ok(idxOf('sale_items') < idxOf('sale_line_stock_allocations'), 'sale_items must precede sale_line_stock_allocations');
+
+  // 3. Circular FK resolution for branches and stock_locations
+  assert.ok(/update branches set default_stock_location_id/.test(service), 'branches.default_stock_location_id must be resolved in phase 2');
+
+  // 4. Dynamic wipe of all tenant tables before restore
+  assert.ok(/const tenantSpecs = await listTenantTables/.test(service), 'restoreBackup must dynamically discover and wipe all tenant tables');
+}
+
 function run(): void {
   testAccountIdFkIsRemapped();
   testOriginalIdsAreKeptWhenFree();
   testOrphanGateRunsBeforeCommit();
+  testTopologicalOrderAndCircularResolution();
   // eslint-disable-next-line no-console
   console.log('backup-restore-integrity.spec: all restore invariants hold (RESTORE-1..RESTORE-3)');
 }
