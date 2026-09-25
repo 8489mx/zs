@@ -241,12 +241,29 @@ export class TrialTenantProvisioningService {
   }
 
   normalizeSlugBase(value: unknown, isFallback = false): string {
-    const normalized = String(value || '')
+    let normalized = String(value || '')
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9-]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .replace(/-{2,}/g, '-');
+
+    // Auto-generated slugs (from a transliterated business name) read as an address, not a
+    // sentence — cap them to a short, speakable handle instead of the whole business name.
+    if (isFallback && normalized) {
+      const MAX_FALLBACK_WORDS = 3;
+      const MAX_FALLBACK_LENGTH = 24;
+      const words = normalized.split('-').filter(Boolean).slice(0, MAX_FALLBACK_WORDS);
+      const trimmedWords: string[] = [];
+      let total = 0;
+      for (const word of words) {
+        const nextTotal = total + (trimmedWords.length ? 1 : 0) + word.length;
+        if (nextTotal > MAX_FALLBACK_LENGTH && trimmedWords.length > 0) break;
+        trimmedWords.push(word);
+        total = nextTotal;
+      }
+      normalized = trimmedWords.join('-') || words[0]?.slice(0, MAX_FALLBACK_LENGTH) || '';
+    }
 
     if (!normalized || normalized.length < 3) {
       if (isFallback) {
