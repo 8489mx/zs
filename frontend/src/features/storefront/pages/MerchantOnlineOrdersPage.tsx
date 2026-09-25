@@ -140,7 +140,7 @@ export function MerchantOnlineOrdersPage() {
   const orders = ordersQuery.data?.orders || [];
   const counts = ordersQuery.data?.counts;
   const settings = settingsQuery.data;
-  const totalFilteredCount = ordersQuery.data?.total ?? (counts && statusFilter in counts ? counts[statusFilter] : orders.length);
+  const totalFilteredCount = counts && statusFilter in counts ? counts[statusFilter] : orders.length;
   const totalPages = Math.max(1, Math.ceil(totalFilteredCount / pageSize));
 
   // Real-time KPI calculations with fallback to active orders
