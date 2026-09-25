@@ -99,12 +99,48 @@ function testFinancialControllersAreGuarded(): void {
   }
 }
 
+/**
+ * ACC-ACCESS-4 — الاسمان المعروضان يجب أن يفرّقا بين الصلاحيتين.
+ *
+ * الثغرة لم تبدأ في الكود، بدأت في كلمة: `accounts` كانت معروضة «الحسابات» و`accounting`
+ * «المحاسبة». فمنحها المالك للكاشير وهو يظن أنها حسابات العملاء والموردين — وهي كذلك فعلاً
+ * (شاشة `accounts` كشوف حسابات وسندات قبض وصرف، ويحتاجها الكاشير). أما `accounting` فدفاتر
+ * المنشأة. اسمان متشابهان لصلاحيتين متباعدتين هو ما جعل القرار الخاطئ يبدو صحيحاً.
+ */
+function testPermissionLabelsAreDistinguishable(): void {
+  const labels = readFileSync(
+    join(__dirname, '..', '..', '..', 'frontend', 'src', 'features', 'settings', 'components', 'user-management.shared.ts'),
+    'utf8',
+  ).replace(/\r\n/g, '\n');
+
+  const labelFor = (key: string): string => {
+    const match = new RegExp(`^  ${key}: '([^']+)'`, 'm').exec(labels);
+    assert.ok(match, `PERMISSION_LABELS is missing ${key}`);
+    return match![1];
+  };
+
+  const accounts = labelFor('accounts');
+  const accounting = labelFor('accounting');
+
+  assert.notEqual(accounts, accounting, 'two different permissions cannot share one label');
+  assert.ok(
+    accounts.includes('العملاء') && accounts.includes('الموردين'),
+    `"accounts" must say whose accounts it means; it currently reads "${accounts}". `
+    + 'An owner granting it to a cashier must not think it is the company books.',
+  );
+  assert.ok(
+    /دفاتر|ميزانية|قيود/.test(accounting),
+    `"accounting" must name the company books; it currently reads "${accounting}".`,
+  );
+}
+
 function run(): void {
   testGuardRule();
   testGuardIsMounted();
   testFinancialControllersAreGuarded();
+  testPermissionLabelsAreDistinguishable();
   // eslint-disable-next-line no-console
-  console.log('accounting-access.spec: ACC-ACCESS-1..3 hold — "accounts" no longer opens the books');
+  console.log('accounting-access.spec: ACC-ACCESS-1..4 hold — "accounts" no longer opens the books');
 }
 
 try {
