@@ -24,7 +24,6 @@ export interface PlanTierInfo {
   name: string;
   badgeBg: string;
   badgeColor: string;
-  priceLabel: string;
   summary: string;
 }
 
@@ -34,7 +33,6 @@ export const PLAN_TIERS: Record<PlanTierKey, PlanTierInfo> = {
     name: 'الباقة الأساسية',
     badgeBg: '#ecfdf5',
     badgeColor: '#047857',
-    priceLabel: '3,500 ج.م / سنوياً',
     summary: 'نقاط البيع السريعة، الورديات، كتالوج المنتجات، والخزينة الأساسية.',
   },
   plan_pro: {
@@ -42,7 +40,6 @@ export const PLAN_TIERS: Record<PlanTierKey, PlanTierInfo> = {
     name: 'باقة النمو (الاحترافية)',
     badgeBg: '#eff6ff',
     badgeColor: '#1d4ed8',
-    priceLabel: '7,500 ج.م / سنوياً',
     summary: 'تشمل الأساسية بالإضافة لإدارة المشتريات، الموردين، والمخزون المتقدم والجرد والتقارير.',
   },
   plan_ultimate: {
@@ -50,7 +47,6 @@ export const PLAN_TIERS: Record<PlanTierKey, PlanTierInfo> = {
     name: 'الباقة المتكاملة (Ultimate ERP)',
     badgeBg: '#f5f3ff',
     badgeColor: '#6d28d9',
-    priceLabel: '15,000 ج.م / سنوياً',
     summary: 'كافة الميزات المتخصصة: الحسابات العامة، الأصول، الصيانة، الصيدليات، المطاعم، التصنيع، والتقسيط.',
   },
   plan_omnichannel: {
@@ -58,7 +54,6 @@ export const PLAN_TIERS: Record<PlanTierKey, PlanTierInfo> = {
     name: 'باقة التجارة الشاملة (Omnichannel)',
     badgeBg: '#fef3c7',
     badgeColor: '#b45309',
-    priceLabel: '24,000 ج.م / سنوياً',
     summary: 'المنظومة الكاملة مع المتجر الإلكتروني السحابي، بوابات الدفع الرقمية وشركات الشحن المعتمدة.',
   },
 };

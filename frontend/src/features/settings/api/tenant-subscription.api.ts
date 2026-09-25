@@ -62,8 +62,62 @@ export type TenantSubscriptionData = {
   }>;
 };
 
+/* ------------------------------------------------------------------ *
+ * التسعير المعتمد — مصدره `pricing/pricing-catalog.json` عبر الخادم.
+ * لا رقم سعر مكتوب في الواجهة (الثابت PRICE-2 · النمط المحظور F40).
+ * ولا حقل داخلي هنا: لا نطاق ولا مضاعف جغرافي ولا أرضية تفاوض.
+ * ------------------------------------------------------------------ */
+
+export type ResolvedPricingFeatureGroup = {
+  name: string;
+  items: string[];
+};
+
+export type ResolvedPricingLevel = {
+  id: string;
+  name: string;
+  limits: {
+    branches?: number | null;
+    posTerminals?: number | null;
+    users?: number | null;
+    activeProjects?: number | null;
+    containersPerMonth?: number | null;
+    multiCompany?: boolean;
+  };
+  currency: string;
+  monthly: number;
+  annual: number;
+  featureGroups: ResolvedPricingFeatureGroup[];
+  /** ميزات النشاط نفسه — في المستوى الأول فقط */
+  sectorFeatures: string[];
+};
+
+export type ResolvedPricing = {
+  catalogVersion: string;
+  product: { id: string; name: string; pos: boolean };
+  country: { code: string; currency: string; requiresWrittenDisclosure: boolean };
+  /** المقاولات والشحن تُعرض بالسنوي فقط */
+  quoteAnnuallyOnly: boolean;
+  annualEqualsMonths: number;
+  trialDays: number;
+  levels: ResolvedPricingLevel[];
+  floors: Array<{
+    id: string;
+    name: string;
+    monthly: number | null;
+    contactForPrice: boolean;
+    includedFromLevel: string | null;
+    pricingRule?: string;
+  }>;
+  addons: {
+    extraUserMonthly: number | null;
+    extraBranchMonthly: number | null;
+  };
+};
+
 export const tenantSubscriptionApi = {
   getMySubscription: () => http<TenantSubscriptionData>('/api/tenant-subscription/me'),
+  getPricing: () => http<ResolvedPricing>('/api/tenant-subscription/pricing'),
   requestRenewal: (payload: { planId: number; billingPeriodMonths?: number; paymentMethod?: string; notes?: string }) =>
     http<{ ok: boolean; message: string; plan: { id: number; name: string; price: number; currency: string } }>(
       '/api/tenant-subscription/request-renewal',

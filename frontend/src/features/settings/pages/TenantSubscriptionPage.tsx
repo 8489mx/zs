@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { tenantSubscriptionApi, TenantSubscriptionData } from '../api/tenant-subscription.api';
-import { settingsApi } from '../api/settings.api';
 import { Button } from '@/shared/ui/button';
 import { XIcon } from '@/shared/components/icons/AppIcons';
-import { REGIONAL_PRICING } from '../components/subscription/pricing-data';
 import { CurrentSubscriptionHeroCard } from '../components/subscription/CurrentSubscriptionHeroCard';
 import { SubscriptionPlansCards } from '../components/subscription/SubscriptionPlansCards';
 import { DetailedPlanFeaturesMatrix } from '../components/subscription/DetailedPlanFeaturesMatrix';
@@ -13,15 +11,16 @@ import { SubscriptionPaymentsTable } from '../components/subscription/Subscripti
 
 export function TenantSubscriptionPage() {
   const [isAnnual, setIsAnnual] = useState(true);
-  const [userSelectedCurrency, setUserSelectedCurrency] = useState<string | null>(null);
-  const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<{ id: number; name: string; price: number; currency: string } | null>(null);
+  // لا منتقي عملات: البلد يُشتق من سجل المنشأة في الخادم لا من اختيار العميل (البند C8).
+  const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<{ id: number; name: string; price: number; currency: string; levelId: string } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'xpay' | 'paymob' | 'instapay' | 'vodafone_cash' | 'bank_transfer' | 'cash'>('xpay');
   const [notes, setNotes] = useState('');
   const [requestSuccessMessage, setRequestSuccessMessage] = useState<string | null>(null);
 
-  const { data: settingsData } = useQuery({
-    queryKey: ['settings'],
-    queryFn: () => settingsApi.settings(),
+  // التسعير المعتمد: مستويات نطاق المنشأة بأسعار بلدها، من `pricing-catalog.json`.
+  const { data: pricing } = useQuery({
+    queryKey: ['tenant-resolved-pricing'],
+    queryFn: () => tenantSubscriptionApi.getPricing(),
   });
 
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -96,24 +95,26 @@ export function TenantSubscriptionPage() {
   const isTrial = tenant.status === 'trial';
   const planName = subscription?.planName || (isTrial ? 'الفترة التجريبية المجانية' : 'خطة مخصصة');
 
-  const defaultCurrency = String(settingsData?.currency || 'EGP').toUpperCase();
-  const activeCurrency = userSelectedCurrency || (REGIONAL_PRICING[defaultCurrency] ? defaultCurrency : 'EGP');
-  const regionalPricing = REGIONAL_PRICING[activeCurrency] || REGIONAL_PRICING.EGP;
-  const isThreeDec = activeCurrency === 'KWD' || activeCurrency === 'BHD' || activeCurrency === 'OMR';
-
-  const calcPeriodPrice = (annualPrice: number) => isAnnual
-    ? annualPrice
-    : (isThreeDec ? Math.round((annualPrice / 10) * 10) / 10 : Math.round(annualPrice / 10));
-
-  const basicPrice = calcPeriodPrice(regionalPricing.basic);
-  const proPrice = calcPeriodPrice(regionalPricing.pro);
-  const enterprisePrice = calcPeriodPrice(regionalPricing.ultimate);
-  const omnichannelPrice = calcPeriodPrice(regionalPricing.omnichannel);
-
-  const basicPlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'basic') || availablePlans[0] || { id: 1, name: 'الباقة الأساسية', price: basicPrice, currency: activeCurrency };
-  const proPlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'pro') || availablePlans[1] || availablePlans[0] || { id: 2, name: 'الباقة الاحترافية (Pro)', price: proPrice, currency: activeCurrency };
-  const enterprisePlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'ultimate' || p.code?.toLowerCase() === 'enterprise') || availablePlans[2] || proPlanObj || { id: 3, name: 'الباقة المتكاملة (Ultimate ERP)', price: enterprisePrice, currency: activeCurrency };
-  const omnichannelPlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'omnichannel') || availablePlans[3] || enterprisePlanObj || { id: 4, name: 'باقة التجارة الشاملة (Omnichannel Enterprise)', price: omnichannelPrice, currency: activeCurrency };
+  /*
+   * ربط مستوى الكتالوج بصف الباقة في `saas_plans` — الصف يحمل الهوية التي تشير
+   * إليها الاشتراكات، والسعر يأتي من الكتالوج وحده (البند C9). غياب الصف يعني
+   * «تواصل معنا» لا معرّفاً وهمياً كما كان (كانت `{ id: 1, ... }` تُمرَّر للدفع).
+   */
+  const LEVEL_TO_LEGACY_CODE: Record<string, string[]> = {
+    L1: ['basic'],
+    L2: ['pro'],
+    L3: ['ultimate', 'enterprise', 'omnichannel'],
+  };
+  const planIdForLevel = (levelId: string): number | null => {
+    const codes = LEVEL_TO_LEGACY_CODE[levelId] ?? [];
+    const row = availablePlans.find((p: any) => codes.includes(String(p.code || '').toLowerCase()));
+    return row ? row.id : null;
+  };
+  const currentLevelId = (() => {
+    const code = String(subscription?.planCode || '').toLowerCase();
+    if (!code) return null;
+    return Object.keys(LEVEL_TO_LEGACY_CODE).find((lvl) => LEVEL_TO_LEGACY_CODE[lvl].includes(code)) ?? null;
+  })();
 
   const handlePrintReceipt = (payment: TenantSubscriptionData['payments'][0]) => {
     const printWindow = window.open('', '_blank', 'width=800,height=600');
@@ -219,10 +220,22 @@ export function TenantSubscriptionPage() {
         subscription={subscription}
         statusMeta={statusMeta}
         usage={usage}
-        onUpgradeClick={() => setSelectedPlanForUpgrade(proPlanObj)}
+        onUpgradeClick={() => {
+          // الترقية المقترحة = المستوى التالي في نطاق المنشأة، وسعره من الكتالوج
+          const nextLevel = pricing?.levels.find((l) => l.id !== currentLevelId && planIdForLevel(l.id) != null);
+          const planId = nextLevel ? planIdForLevel(nextLevel.id) : null;
+          if (!nextLevel || planId == null) return;
+          setSelectedPlanForUpgrade({
+            id: planId,
+            name: nextLevel.name,
+            price: pricing?.quoteAnnuallyOnly || isAnnual ? nextLevel.annual : nextLevel.monthly,
+            currency: nextLevel.currency,
+            levelId: nextLevel.id,
+          });
+        }}
       />
 
-      {/* 3. Pricing Matrix Controls: Billing Toggle & Currency Selector */}
+      {/* 3. Pricing Matrix Controls: Billing Toggle (no currency selector — see C8) */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>دورة الفوترة:</span>
@@ -265,40 +278,21 @@ export function TenantSubscriptionPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>عملة العرض:</span>
-          <select
-            value={activeCurrency}
-            onChange={(e) => setUserSelectedCurrency(e.target.value)}
-            style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontWeight: 700, color: '#0f172a' }}
-          >
-            {Object.keys(REGIONAL_PRICING).map((curr) => (
-              <option key={curr} value={curr}>
-                {REGIONAL_PRICING[curr].label}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
       {/* 4. Plan Cards Grid */}
-      <SubscriptionPlansCards
-        activeCurrency={activeCurrency}
-        isAnnual={isAnnual}
-        onSelectPlan={setSelectedPlanForUpgrade}
-        basicPlanObj={basicPlanObj}
-        proPlanObj={proPlanObj}
-        enterprisePlanObj={enterprisePlanObj}
-        omnichannelPlanObj={omnichannelPlanObj}
-        basicPrice={basicPrice}
-        proPrice={proPrice}
-        enterprisePrice={enterprisePrice}
-        omnichannelPrice={omnichannelPrice}
-        unit={regionalPricing.unit}
-      />
+      {pricing && (
+        <SubscriptionPlansCards
+          pricing={pricing}
+          isAnnual={isAnnual}
+          planIdForLevel={planIdForLevel}
+          onSelectPlan={setSelectedPlanForUpgrade}
+          currentLevelId={currentLevelId}
+        />
+      )}
 
       {/* 5. Detailed Features Matrix */}
-      <DetailedPlanFeaturesMatrix />
+      {pricing && <DetailedPlanFeaturesMatrix pricing={pricing} />}
 
       {/* 6. Payments History Table */}
       <SubscriptionPaymentsTable

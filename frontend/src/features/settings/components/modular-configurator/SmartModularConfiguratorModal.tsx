@@ -888,18 +888,6 @@ export function SmartModularConfiguratorModal({
                     <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#0f172a' }}>
                       {recommendedPlan.name}
                     </h3>
-                    <span
-                      style={{
-                        background: recommendedPlan.badgeBg,
-                        color: recommendedPlan.badgeColor,
-                        padding: '4px 12px',
-                        borderRadius: '8px',
-                        fontWeight: 800,
-                        fontSize: '0.85rem',
-                      }}
-                    >
-                      {recommendedPlan.priceLabel}
-                    </span>
                   </div>
                   <p style={{ margin: '6px 0 0 0', fontSize: '0.82rem', color: '#475569', lineHeight: 1.4 }}>
                     {recommendedPlan.summary}
