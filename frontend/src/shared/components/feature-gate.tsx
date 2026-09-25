@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { isDesktopOfflineApp } from '@/app/router/access';
 import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/shared/ui/button';
 import { isPlatformAdmin } from '@/app/router/access';
@@ -91,14 +92,17 @@ export function FeatureGate({
       </div>
 
       <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', margin: '0 0 8px' }}>
-        موديول {featureName} يتطلب ترقية الباقة
+        {isDesktopOfflineApp() ? `موديول ${featureName} غير مضمّن في ترخيصك` : `موديول ${featureName} يتطلب ترقية الباقة`}
       </h2>
 
       <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.6, maxWidth: '520px', margin: '0 auto 24px' }}>
-        هذه الميزة المتقدمة متاحة حصرياً للمشتركين في الباقات الاحترافية والشاملة (Pro / Ultimate). يمكنك ترقية باقتك للاستفادة الفورية من كافة أدوات {featureName} مع الحفاظ على جميع بياناتك.
+        {isDesktopOfflineApp()
+          ? `هذا الموديول متاح في مستوى أعلى من ترخيصك الحالي. تواصل معنا لترقية الترخيص والاستفادة الفورية من كافة أدوات ${featureName} مع الحفاظ على جميع بياناتك.`
+          : `هذه الميزة المتقدمة متاحة في المستويات الأعلى من باقتك. يمكنك ترقية باقتك للاستفادة الفورية من كافة أدوات ${featureName} مع الحفاظ على جميع بياناتك.`}
       </p>
 
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+        {!isDesktopOfflineApp() && (
         <Link to="/settings/subscription">
           <Button
             type="button"
@@ -117,6 +121,7 @@ export function FeatureGate({
             ترقية الباقة الآن
           </Button>
         </Link>
+        )}
         <Link to="/dashboard">
           <Button
             type="button"

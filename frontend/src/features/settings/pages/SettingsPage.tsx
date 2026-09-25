@@ -44,6 +44,7 @@ export function SettingsPage() {
   if (sectionConfig?.superAdminOnly && !isPlatform) return <Navigate to="/settings/core" replace />;
   if (sectionConfig?.adminOnly && page.currentUserRole !== 'super_admin' && page.currentUserRole !== 'admin') return <Navigate to="/settings/core" replace />;
   if (sectionConfig?.offlineOnly && !isDesktopOfflineApp()) return <Navigate to="/settings/core" replace />;
+  if (sectionConfig?.cloudOnly && isDesktopOfflineApp()) return <Navigate to="/settings/core" replace />;
   if (sectionConfig?.requiredFeature && !hasFeature(sectionConfig.requiredFeature)) return <Navigate to="/settings/core" replace />;
   if (sectionConfig?.requiredModule && !isPlatform && page.settings && !sectionConfig.requiredModule(page.settings)) return <Navigate to="/settings/core" replace />;
   if (resolvedSection === 'demo-data' && !isPlatform && demoStatusQuery.data && !demoStatusQuery.data.isEmpty) {

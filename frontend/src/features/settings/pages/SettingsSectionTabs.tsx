@@ -36,6 +36,7 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
     if (section.superAdminOnly && !isPlatform) return false;
     if (section.adminOnly && !isPrivilegedUser) return false;
     if (section.offlineOnly && !isDesktopOfflineApp()) return false;
+    if (section.cloudOnly && isDesktopOfflineApp()) return false;
     if (section.requiredFeature && !hasFeature(section.requiredFeature)) return false;
     if (section.requiredModule && !isPlatform && settings && !section.requiredModule(settings)) return false;
     if (section.key === 'demo-data' && !isPlatform && demoStatusQuery.data && !demoStatusQuery.data.isEmpty) {

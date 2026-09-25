@@ -7,6 +7,12 @@ export interface SettingsSectionDefinition {
   adminOnly?: boolean;
   superAdminOnly?: boolean;
   offlineOnly?: boolean;
+  /**
+   * سحابي فقط. نسخة الديسكتوب ترخيص دائم لا اشتراك، فعرض باقات شهرية وبوابات دفع
+   * عليها يوحي بأن ترخيصه ينتهي، والدفع لا يعمل أوفلاين أصلاً.
+   * المرجع: PRICING_AND_PACKAGING.md §11 البند C10 + SAAS_ELECTRON_ISOLATION_CONSTITUTION.md
+   */
+  cloudOnly?: boolean;
   hiddenInTabs?: boolean;
   requiredFeature?: string;
   requiredModule?: (settings?: any) => boolean;
@@ -18,6 +24,7 @@ export interface SettingsStandaloneLinkDefinition {
   adminOnly?: boolean;
   superAdminOnly?: boolean;
   offlineOnly?: boolean;
+  cloudOnly?: boolean;
   requiredFeature?: string;
   requiredModule?: (settings?: any) => boolean;
 }
@@ -37,7 +44,7 @@ const allSections: SettingsSectionDefinition[] = [
   },
   { key: 'whatsapp', label: 'بوابة الواتساب والتقارير الذكية', shortLabel: 'واتساب والتقارير', adminOnly: true },
   { key: 'backup', label: 'النسخ والبيانات والصيانة', shortLabel: 'النسخ الاحتياطي', adminOnly: true },
-  { key: 'subscription', label: 'الاشتراك والفوترة', shortLabel: 'الاشتراك', adminOnly: true },
+  { key: 'subscription', label: 'الاشتراك والفوترة', shortLabel: 'الاشتراك', adminOnly: true, cloudOnly: true },
   { key: 'demo-data', label: 'بيانات تجريبية حسب النشاط', shortLabel: 'بيانات تجريبية', hiddenInTabs: true, superAdminOnly: true },
   {
     key: 'marketplaces',

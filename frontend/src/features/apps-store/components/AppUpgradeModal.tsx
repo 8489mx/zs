@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { isDesktopOfflineApp } from '@/shared/system/runtime-environment';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { LockIcon, CheckIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 import { PLAN_TIERS } from '@/features/settings/components/modular-configurator/modular-presets';
@@ -17,8 +18,11 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
   const planInfo = PLAN_TIERS[app.requiredPlan] || PLAN_TIERS.plan_ultimate;
   const AppIcon = app.icon;
 
+  // نسخة الديسكتوب ترخيص دائم ولا توجد فيها صفحة اشتراك (البند C10)، فالترقية تواصل لا تحويل.
+  const isOffline = isDesktopOfflineApp();
   const handleGoToSubscription = () => {
     onClose();
+    if (isOffline) return;
     navigate('/settings/subscription');
   };
 
@@ -26,8 +30,8 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
     <StandardDialog
       isOpen={isOpen}
       onClose={onClose}
-      title={`ترقية الباقة لتفعيل تطبيق ${app.title}`}
-      subtitle="هذا التطبيق مخصص لباقات المنظومة المتقدمة"
+      title={isOffline ? `تفعيل تطبيق ${app.title}` : `ترقية الباقة لتفعيل تطبيق ${app.title}`}
+      subtitle={isOffline ? 'هذا التطبيق متاح في مستوى أعلى من ترخيصك الحالي' : 'هذا التطبيق مخصص لباقات المنظومة المتقدمة'}
       maxWidth="580px"
     >
       <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -98,17 +102,6 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
             <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
               {planInfo.summary}
             </div>
-          </div>
-          <div style={{
-            fontSize: '0.84rem',
-            fontWeight: 800,
-            color: '#170e5e',
-            background: '#ffffff',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            border: '1px solid #cbd5e1',
-          }}>
-            {planInfo.priceLabel}
           </div>
         </div>
 
@@ -183,7 +176,7 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
               gap: '8px',
             }}
           >
-            <span>ترقية الباقة الآن</span>
+            <span>{isOffline ? 'تواصل معنا لترقية الترخيص' : 'ترقية الباقة الآن'}</span>
             <ArrowRightIcon size={14} />
           </button>
         </div>

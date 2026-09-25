@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { isDesktopOfflineApp } from '@/shared/system/runtime-environment';
 import { LockIcon } from '@/shared/components/icons/AppIcons';
 
 interface AppsKpiHeaderProps {
@@ -316,7 +317,7 @@ export function AppsKpiHeader({
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
           <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{planDisplay.note}</span>
-          {!isSuperAdmin && (
+          {!isSuperAdmin && !isDesktopOfflineApp() && (
             <Link
               to="/settings/subscription"
               style={{

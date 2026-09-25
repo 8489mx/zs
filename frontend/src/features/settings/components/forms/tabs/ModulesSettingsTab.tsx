@@ -6,7 +6,7 @@ import { FormSection } from '@/shared/components/form-section';
 import { LightbulbIcon, XIcon, CheckIcon, StarIcon, ChevronDownIcon, MonitorIcon, PackageIcon, ReceiptIcon, UsersIcon, PhoneCallIcon } from '@/shared/components/icons/AppIcons';
 import { useHasFeature } from '@/shared/hooks/use-permission';
 import { useAuthStore } from '@/stores/auth-store';
-import { isPlatformAdmin } from '@/app/router/access';
+import { isPlatformAdmin, isDesktopOfflineApp } from '@/app/router/access';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { MAINTENANCE_PROFILES, getMaintenanceProfile, type MaintenanceProfileKey } from '@/features/maintenance/constants/maintenance-profiles';
 import { IndustryModeSelectorCard } from '@/features/settings/components/workspace-sections/IndustryModeSelectorCard';
@@ -1828,6 +1828,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </p>
 
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
+            {!isDesktopOfflineApp() && (
             <Link to="/settings/subscription" style={{ textDecoration: 'none' }}>
               <button
                 type="button"
@@ -1850,6 +1851,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
                 <span>ترقية الباقة الآن</span>
               </button>
             </Link>
+            )}
             <button
               type="button"
               onClick={() => setUpgradeModalInfo(null)}

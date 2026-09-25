@@ -1,3 +1,4 @@
+import { isDesktopOfflineApp } from '@/shared/system/runtime-environment';
 import type { NavigationItemDefinition } from '@/app/router/types';
 import type { AuthUser } from '@/types/auth';
 
@@ -548,17 +549,9 @@ export function hasAnyPermission(user: AuthUser | null | undefined, required: Ro
   return needed.some((permission) => userPermissions.has(permission));
 }
 
-export function isDesktopOfflineApp(): boolean {
-  if (typeof window === 'undefined') return false;
-  return Boolean(
-    (window as any).electronRuntime ||
-    (window as any).electronAPI ||
-    (window as any).process?.versions?.electron ||
-    (window.navigator?.userAgent && window.navigator.userAgent.toLowerCase().includes('electron')) ||
-    import.meta.env.MODE === 'electron' ||
-    import.meta.env.MODE === 'portable'
-  );
-}
+// التعريف انتقل إلى الطبقة المشتركة كي تستطيع مكوّنات الميزات استخدامه بلا اختراق
+// طبقة الـapp (حارس frontend-import-layers). يُعاد تصديره هنا لتبقى الاستيرادات القائمة.
+export { isDesktopOfflineApp } from '@/shared/system/runtime-environment';
 
 export function isPlatformAdmin(user: AuthUser | null | undefined) {
   if (isDesktopOfflineApp()) return false;
