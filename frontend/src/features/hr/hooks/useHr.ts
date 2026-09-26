@@ -52,23 +52,27 @@ export function useHrPayrollRun(runId?: string) {
   });
 }
 
-export function useHrAttendance(params: HrListParams & { date?: string; workDate?: string }) {
+export function useHrAttendance(params: HrListParams & { date?: string; workDate?: string }, options?: { enabled?: boolean }) {
   const key = paramsKey(params);
   const dateKey = String(params.date || params.workDate || '');
+  const canViewAttendance = useHasAnyPermission(['hrAttendance']);
   return useQuery({
     queryKey: ['hr', 'attendance', dateKey, key],
     queryFn: () => hrApi.attendance(params),
     placeholderData: (previous) => previous,
+    enabled: options?.enabled !== undefined ? options.enabled : canViewAttendance,
   });
 }
 
-export function useHrAttendanceExceptions(params: HrListParams & { date?: string; workDate?: string } = {}) {
+export function useHrAttendanceExceptions(params: HrListParams & { date?: string; workDate?: string } = {}, options?: { enabled?: boolean }) {
   const key = paramsKey(params);
   const dateKey = String(params.date || params.workDate || '');
+  const canViewAttendance = useHasAnyPermission(['hrAttendance']);
   return useQuery({
     queryKey: ['hr', 'attendance-exceptions', dateKey, key],
     queryFn: () => hrApi.attendanceExceptions(params),
     placeholderData: (previous) => previous,
+    enabled: options?.enabled !== undefined ? options.enabled : canViewAttendance,
   });
 }
 

@@ -76,13 +76,14 @@ export function HrComingSoonPage() {
   const today = todayDate();
   const month = today.slice(0, 7);
   const canViewEmployees = useHasAnyPermission(['hrEmployees']);
+  const canViewAttendance = useHasAnyPermission(['hrAttendance']);
   const canViewLoans = useHasAnyPermission('hrLoans');
   const canViewPayroll = useHasAnyPermission(['hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove']);
 
   const workspace = useHrWorkspace({ page: 1, pageSize: 200, month });
   const reports = useHrReportsSummary({ from: monthStartDate(today), to: today, month });
-  const attendance = useHrAttendance({ date: today, page: 1, pageSize: 300 });
-  const attendanceExceptions = useHrAttendanceExceptions({ date: today, page: 1, pageSize: 200 });
+  const attendance = useHrAttendance({ date: today, page: 1, pageSize: 300 }, { enabled: canViewAttendance });
+  const attendanceExceptions = useHrAttendanceExceptions({ date: today, page: 1, pageSize: 200 }, { enabled: canViewAttendance });
   const leaves = useHrLeaveRequests({ page: 1, pageSize: 200, status: 'pending', enabled: canViewEmployees });
   const assets = useHrEmployeeAssets({ page: 1, pageSize: 300, enabled: canViewEmployees });
 
@@ -91,12 +92,12 @@ export function HrComingSoonPage() {
   const payrollRuns = useMemo(() => (workspace.payrollRuns.data?.runs || []) as HrPayrollRun[], [workspace.payrollRuns.data?.runs]);
   const pendingLeaves = useMemo(() => (leaves.data?.requests || []) as HrLeaveRequest[], [leaves.data?.requests]);
   const assetRows = useMemo(() => (assets.data?.assets || []) as HrEmployeeAsset[], [assets.data?.assets]);
-  const exceptionRows = useMemo(() => ((attendanceExceptions.data?.rows || []) as HrAttendanceException[]).filter((row) => attendanceNeedsReview(row.status)), [attendanceExceptions.data?.rows]);
+  const exceptionRows = useMemo(() => (canViewAttendance ? ((attendanceExceptions.data?.rows || []) as HrAttendanceException[]).filter((row) => attendanceNeedsReview(row.status)) : []), [canViewAttendance, attendanceExceptions.data?.rows]);
 
   const reportSummary = reports.data?.summary;
   const activeEmployees = Number(workspace.employees.data?.summary?.activeCount ?? reportSummary?.activeEmployeeCount ?? 0);
   const totalEmployees = Number(workspace.employees.data?.summary?.totalItems ?? reportSummary?.employeeCount ?? employees.length);
-  const presentToday = Number(attendance.data?.summary?.presentCount ?? 0);
+  const presentToday = canViewAttendance ? Number(attendance.data?.summary?.presentCount ?? 0) : 0;
   const assetsNeedReview = assetRows.filter((row) => needsAssetReview(row.status)).length;
   const dueLoanAmount = canViewLoans ? loans.reduce((sum, row) => sum + Number(row.dueInstallmentsAmount || 0), 0) : 0;
   const payrollReviewCount = canViewPayroll ? payrollRuns.filter((row) => payrollNeedsReview(row.status)).length : 0;
@@ -151,9 +152,9 @@ export function HrComingSoonPage() {
     return items.slice(0, 10);
   }, [assetRows, exceptionRows, incompleteEmployees, pendingLeaves]);
 
-  const loading = (canViewEmployees && workspace.employees.isLoading) || attendance.isLoading;
-  const isError = (canViewEmployees && workspace.employees.isError) || attendance.isError;
-  const error = (canViewEmployees ? workspace.employees.error : null) || attendance.error;
+  const loading = (canViewEmployees && workspace.employees.isLoading) || (canViewAttendance && attendance.isLoading);
+  const isError = (canViewEmployees && workspace.employees.isError) || (canViewAttendance && attendance.isError);
+  const error = (canViewEmployees ? workspace.employees.error : null) || (canViewAttendance ? attendance.error : null);
 
   return (
     <div className="page-stack page-shell" dir="rtl">
@@ -164,7 +165,7 @@ export function HrComingSoonPage() {
           actions={
             <div className="actions compact-actions">
               {canViewEmployees && <Button onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>}
-              {useHasAnyPermission('hrAttendance') && <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>فتح الحضور</Button>}
+              {canViewAttendance && <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>فتح الحضور</Button>}
             </div>
           }
         />
@@ -188,9 +189,9 @@ export function HrComingSoonPage() {
                 {[
                   { label: 'إجمالي الموظفين', value: totalEmployees, to: '/hr/employees', isAlert: false },
                   { label: 'نشط', value: activeEmployees, to: '/hr/employees', isAlert: false },
-                  { label: 'حاضر اليوم', value: presentToday, to: '/hr/attendance', isAlert: false },
+                  { label: 'حاضر اليوم', value: canViewAttendance ? presentToday : '—', to: canViewAttendance ? '/hr/attendance' : '/hr', isAlert: false },
                   { label: 'طلبات إجازة', value: pendingLeaves.length, to: '/hr/leaves', isAlert: pendingLeaves.length > 0 },
-                  { label: 'استثناءات حضور', value: exceptionRows.length, to: '/hr/attendance', isAlert: exceptionRows.length > 0 },
+                  { label: 'استثناءات حضور', value: canViewAttendance ? exceptionRows.length : '—', to: canViewAttendance ? '/hr/attendance' : '/hr', isAlert: canViewAttendance && exceptionRows.length > 0 },
                   { label: 'عُهد للمراجعة', value: assetsNeedReview, to: '/hr/assets', isAlert: assetsNeedReview > 0 },
                   { label: 'أقساط مستحقة', value: money(dueLoanAmount), to: '/hr/loans', isAlert: false },
                   { label: 'مرتبات للمراجعة', value: payrollReviewCount, to: '/hr/payroll', isAlert: payrollReviewCount > 0 },

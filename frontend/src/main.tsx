@@ -126,8 +126,8 @@ if (typeof document !== 'undefined') {
 
   // Suppress accidental text selection & HTML5 drag-and-drop on mobile
   document.addEventListener('selectstart', (e) => {
-    const target = e.target as HTMLElement | null;
-    if (target && !target.closest('input, textarea, [contenteditable="true"], .selectable-text')) {
+    const target = (e.target instanceof Element ? e.target : (e.target as Node | null)?.parentElement) as HTMLElement | null;
+    if (target && typeof target.closest === 'function' && !target.closest('input, textarea, [contenteditable="true"], .selectable-text')) {
       if (window.innerWidth <= 900) {
         e.preventDefault();
       }
@@ -135,7 +135,7 @@ if (typeof document !== 'undefined') {
   });
 
   document.addEventListener('dragstart', (e) => {
-    const target = e.target as HTMLElement | null;
+    const target = (e.target instanceof Element ? e.target : (e.target as Node | null)?.parentElement) as HTMLElement | null;
     if (target && target.getAttribute('draggable') !== 'true' && !target.closest?.('[draggable="true"]')) {
       e.preventDefault();
     }
