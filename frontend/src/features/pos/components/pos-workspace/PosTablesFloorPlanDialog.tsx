@@ -53,6 +53,7 @@ export function PosTablesFloorPlanDialog({
   const [pendingRecallId, setPendingRecallId] = useState('');
   const [isSubmittingTable, setIsSubmittingTable] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isQrPrintOpen, setIsQrPrintOpen] = useState(false);
 
   // Dynamic tables count from settings
   const configuredTablesCount = Math.max(1, Number(settings?.restaurantTablesCount || 12));
@@ -60,6 +61,15 @@ export function PosTablesFloorPlanDialog({
   const [isEditingCount, setIsEditingCount] = useState(false);
   const [newTablesCount, setNewTablesCount] = useState(configuredTablesCount);
   const [isSavingCount, setIsSavingCount] = useState(false);
+
+  // Real-time pending storefront / QR dine-in orders
+  const { data: onlineOrdersData } = useQuery({
+    queryKey: ['pos-floor-qr-orders'],
+    queryFn: () => storefrontApi.listOrders('pending'),
+    enabled: open,
+    refetchInterval: 8_000,
+  });
+  const onlineOrders = onlineOrdersData?.orders || [];
 
   useEffect(() => {
     setTablesCount(configuredTablesCount);
@@ -95,6 +105,17 @@ export function PosTablesFloorPlanDialog({
     }
   }
 
+  // Map pending QR orders by table number (excluding tables already in occupiedMap)
+  const qrOrdersMap = new Map<string, OnlineOrderRecord>();
+  for (const order of onlineOrders) {
+    if (order.tableNumber && String(order.tableNumber).trim()) {
+      const tNum = String(order.tableNumber).trim();
+      if (!qrOrdersMap.has(tNum)) {
+        qrOrdersMap.set(tNum, order);
+      }
+    }
+  }
+
   // Live cart on currently active table that has items and is not yet in heldDrafts
   const currentTableHasLiveCart = Boolean(
     currentTableNumber &&
@@ -102,11 +123,15 @@ export function PosTablesFloorPlanDialog({
     !occupiedMap.has(currentTableNumber)
   );
 
-  // Calculate statistics (including the active live cart table)
-  const occupiedCount = occupiedMap.size + (currentTableHasLiveCart ? 1 : 0);
+  // Calculate statistics (including the active live cart table and standalone QR orders)
+  const qrOnlyCount = Array.from(qrOrdersMap.keys()).filter((t) => !occupiedMap.has(t) && t !== currentTableNumber).length;
+  const occupiedCount = occupiedMap.size + (currentTableHasLiveCart ? 1 : 0) + qrOnlyCount;
   const totalOccupiedMoney =
     Array.from(occupiedMap.values()).reduce((sum, d) => sum + Number(d.total || 0), 0) +
-    (currentTableHasLiveCart ? Number(currentCartTotal || 0) : 0);
+    (currentTableHasLiveCart ? Number(currentCartTotal || 0) : 0) +
+    Array.from(qrOrdersMap.entries())
+      .filter(([t]) => !occupiedMap.has(t) && t !== currentTableNumber)
+      .reduce((sum, [, ord]) => sum + Number(ord.totalAmount || 0), 0);
   const availableCount = Math.max(0, tablesCount - occupiedCount);
 
   const handleRecall = useCallback(async (draftId: string) => {
@@ -156,14 +181,30 @@ export function PosTablesFloorPlanDialog({
     const occupiedDraft = occupiedMap.get(tableNum);
     if (occupiedDraft) {
       await handleRecall(occupiedDraft.id);
-    } else {
+      return;
+    }
+
+    const qrOrder = qrOrdersMap.get(tableNum);
+    if (qrOrder) {
       setIsSubmittingTable(true);
       try {
-        await onSelectTable(tableNum);
+        await loadOnlineOrderIntoPosCart(qrOrder.id);
+        toast.success(`تم استدعاء طلب الـ QR للطاولة ${tableNum} بنجاح`);
         onClose();
+      } catch (err: any) {
+        toast.error(err?.message || 'تعذر استدعاء طلب الـ QR');
       } finally {
         setIsSubmittingTable(false);
       }
+      return;
+    }
+
+    setIsSubmittingTable(true);
+    try {
+      await onSelectTable(tableNum);
+      onClose();
+    } finally {
+      setIsSubmittingTable(false);
     }
   };
 
@@ -389,6 +430,12 @@ export function PosTablesFloorPlanDialog({
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
                   <span>طاولات مشغولة: <strong>{occupiedCount}</strong> ({formatCurrency(totalOccupiedMoney)})</span>
                 </div>
+                {qrOrdersMap.size > 0 && (
+                  <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#7e22ce', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#9333ea', display: 'inline-block' }} />
+                    <span>طلبات QR نشطة: <strong>{qrOrdersMap.size}</strong></span>
+                  </div>
+                )}
                 {nonTableDrafts.length > 0 && (
                   <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#1e40af', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563eb', display: 'inline-block' }} />
@@ -397,8 +444,30 @@ export function PosTablesFloorPlanDialog({
                 )}
               </div>
 
-              {/* Action Buttons: Custom Table Count & Transfer Table */}
+              {/* Action Buttons: Custom Table Count, QR Print, & Transfer Table */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsQrPrintOpen(true)}
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '5px 10px',
+                    fontSize: '11.5px',
+                    color: '#170e5e',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="طباعة وتجهيز ستيكرات وستاندات كروت الـ QR لطاولات الصالة"
+                >
+                  <QrCodeIcon size={14} color="#170e5e" />
+                  <span>طباعة كروت الـ QR</span>
+                </button>
                 {isEditingCount ? (
                   <form onSubmit={handleSaveTablesCount} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f8fafc', border: '1.5px solid #170e5e', borderRadius: '8px', padding: '3px 8px' }}>
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>عدد الطاولات:</span>
@@ -527,6 +596,7 @@ export function PosTablesFloorPlanDialog({
             >
               {defaultTables.map((tableNum) => {
                 const occupied = occupiedMap.get(tableNum);
+                const qrOrder = qrOrdersMap.get(tableNum);
                 const isCurrent = currentTableNumber === tableNum;
                 const hasLiveCart = isCurrent && currentCartItemsCount > 0;
 
@@ -542,6 +612,10 @@ export function PosTablesFloorPlanDialog({
                   borderColor = '#fecaca';
                   bgColor = '#ffffff';
                   dotColor = '#ef4444';
+                } else if (qrOrder) {
+                  borderColor = '#c084fc';
+                  bgColor = '#faf5ff';
+                  dotColor = '#9333ea';
                 } else if (isCurrent) {
                   borderColor = '#94a3b8';
                   bgColor = '#f8fafc';
@@ -557,7 +631,7 @@ export function PosTablesFloorPlanDialog({
                     style={{
                       height: '92px',
                       borderRadius: '10px',
-                      border: `${hasLiveCart ? '2.5px' : isCurrent ? '2px' : '1.5px'} solid ${borderColor}`,
+                      border: `${hasLiveCart ? '2.5px' : isCurrent || qrOrder ? '2px' : '1.5px'} solid ${borderColor}`,
                       background: bgColor,
                       padding: '8px',
                       display: 'flex',
@@ -565,7 +639,7 @@ export function PosTablesFloorPlanDialog({
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       cursor: 'pointer',
-                      boxShadow: hasLiveCart ? '0 2px 8px rgba(23, 14, 94, 0.12)' : '0 1px 3px rgba(0,0,0,0.03)',
+                      boxShadow: hasLiveCart ? '0 2px 8px rgba(23, 14, 94, 0.12)' : qrOrder ? '0 2px 8px rgba(147, 51, 234, 0.12)' : '0 1px 3px rgba(0,0,0,0.03)',
                       transition: 'all 0.15s ease',
                       position: 'relative',
                     }}
@@ -587,6 +661,19 @@ export function PosTablesFloorPlanDialog({
                           }}
                         >
                           نشطة
+                        </span>
+                      ) : qrOrder && !occupied ? (
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            background: '#9333ea',
+                            color: '#ffffff',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            fontWeight: 800,
+                          }}
+                        >
+                          طلب QR
                         </span>
                       ) : (
                         <span
@@ -620,6 +707,15 @@ export function PosTablesFloorPlanDialog({
                           {occupied.itemsCount} أصناف • معلقة
                         </div>
                       </div>
+                    ) : qrOrder ? (
+                      <div style={{ textAlign: 'center', width: '100%' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 900, color: '#9333ea' }}>
+                          {formatCurrency(qrOrder.totalAmount)}
+                        </div>
+                        <div style={{ fontSize: '10.5px', color: '#7e22ce', marginTop: '1px' }}>
+                          {qrOrder.items?.length || 1} أصناف • طلب QR
+                        </div>
+                      </div>
                     ) : (
                       <div style={{ fontSize: '11px', color: isCurrent ? '#475569' : '#16a34a', fontWeight: 700 }}>
                         {isCurrent ? 'شاغرة (محددة)' : 'شاغرة (متاحة)'}
@@ -630,8 +726,8 @@ export function PosTablesFloorPlanDialog({
                     <div
                       style={{
                         fontSize: '10px',
-                        color: hasLiveCart ? '#170e5e' : occupied ? '#b91c1c' : '#64748b',
-                        fontWeight: hasLiveCart ? 800 : 500,
+                        color: hasLiveCart ? '#170e5e' : occupied ? '#b91c1c' : qrOrder ? '#7e22ce' : '#64748b',
+                        fontWeight: hasLiveCart || qrOrder ? 800 : 500,
                       }}
                     >
                       {hasLiveCart
@@ -640,6 +736,8 @@ export function PosTablesFloorPlanDialog({
                         ? pendingRecallId === occupied.id
                           ? 'جاري الفتح...'
                           : 'فتح الشيك'
+                        : qrOrder
+                        ? 'استدعاء للطلب ↵'
                         : isSubmittingTable
                         ? 'جارٍ الفتح...'
                         : 'بدء طلب +'}
@@ -828,6 +926,12 @@ export function PosTablesFloorPlanDialog({
         )}
 
       </div>
+
+      <TableQrPrintDialog
+        open={isQrPrintOpen}
+        onClose={() => setIsQrPrintOpen(false)}
+        defaultTablesCount={tablesCount}
+      />
     </DialogShell>
   );
 }

@@ -16,7 +16,9 @@ import {
   LightbulbIcon,
   TruckIcon,
   Trash2Icon,
+  QrCodeIcon,
 } from '@/shared/components/icons/AppIcons';
+import { TableQrPrintDialog } from '@/features/pos/components/pos-workspace/TableQrPrintDialog';
 
 function parsePosition(posStr?: string): { x: number; y: number } {
   if (!posStr) return { x: 50, y: 50 };
@@ -42,6 +44,7 @@ export function StorefrontSettingsTab() {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [bannerCompressFeedback, setBannerCompressFeedback] = useState('');
   const [isCompressingBanner, setIsCompressingBanner] = useState(false);
+  const [isQrPrintOpen, setIsQrPrintOpen] = useState(false);
 
   const settingsQuery = useQuery({
     queryKey: ['storefront-admin-settings'],
@@ -390,6 +393,28 @@ export function StorefrontSettingsTab() {
         </div>
 
         <div className="storefront-link-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            type="button"
+            onClick={() => setIsQrPrintOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '5px 12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 700,
+              background: '#170e5e',
+              border: '1px solid #170e5e',
+              color: '#ffffff',
+              cursor: 'pointer',
+              transition: 'background 0.1s',
+            }}
+            title="طباعة وتجهيز ستيكرات وستاندات كروت الـ QR لطاولات الصالة"
+          >
+            <QrCodeIcon size={13} color="#ffffff" />
+            <span>طباعة QR للطاولات</span>
+          </button>
           <button
             type="button"
             onClick={handleCopy}
@@ -1966,6 +1991,12 @@ export function StorefrontSettingsTab() {
 
       {/* Tab 7: GCC Shipping Gateways (Aramex & SMSA Express) */}
       {activeTab === 'gcc-shipping' && <GccShippingSettingsCard />}
+
+      <TableQrPrintDialog
+        open={isQrPrintOpen}
+        onClose={() => setIsQrPrintOpen(false)}
+        slug={storeSlug}
+      />
     </div>
   );
 }

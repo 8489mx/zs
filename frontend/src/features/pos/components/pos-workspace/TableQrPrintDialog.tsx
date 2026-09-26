@@ -1,15 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import {
   PrinterIcon,
   QrCodeIcon,
-  UtensilsIcon,
   XIcon,
 } from '@/shared/components/icons/AppIcons';
 import { buildQrSvg } from '@/lib/qrcode';
 import { buildStorePublicUrl } from '@/lib/store-public-url';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { storefrontApi } from '@/features/storefront/api/storefront.api';
 
 interface TableQrPrintDialogProps {
   open: boolean;
@@ -27,14 +28,20 @@ export function TableQrPrintDialog({
   businessName,
 }: TableQrPrintDialogProps) {
   const { data: settings } = useSettingsQuery();
-  const activeSlug = slug || settings?.storeSlug || settings?.slug || 'default';
-  const activeName = businessName || settings?.storeName || settings?.businessName || 'المطعم';
+  const { data: storefrontSettings } = useQuery({
+    queryKey: ['storefront-admin-settings'],
+    queryFn: storefrontApi.getSettings,
+    enabled: open,
+  });
+
+  const activeSlug = slug || storefrontSettings?.slug || 'default';
+  const activeName = businessName || storefrontSettings?.title || settings?.storeName || 'المطعم';
   const initialCount = Math.max(1, defaultTablesCount || Number(settings?.restaurantTablesCount || 12));
 
   const [fromTable, setFromTable] = useState(1);
   const [toTable, setToTable] = useState(initialCount);
   const [cardType, setCardType] = useState<'tent' | 'sticker'>('tent');
-  const [customInstructions, setCustomInstructions] = useState('وجّه كاميرا هاتفك لمسح الرمز، تصفح المنيو، وأرسل طلبك فوراً للمطبخ');
+  const customInstructions = 'وجّه كاميرا هاتفك لمسح الرمز، تصفح المنيو، وأرسل طلبك فوراً للمطبخ';
 
   const baseUrl = useMemo(() => {
     return buildStorePublicUrl(activeSlug);

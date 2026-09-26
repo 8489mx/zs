@@ -1089,7 +1089,7 @@ export function StorefrontCheckoutModal({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                      الدفع عند الاستلام
+                      {isDineIn ? 'الدفع في الصالة' : fulfillmentType === 'pickup' ? 'الدفع عند الاستلام من الفرع' : 'الدفع عند الاستلام'}
                     </span>
                     <div
                       style={{
@@ -1102,7 +1102,11 @@ export function StorefrontCheckoutModal({
                     />
                   </div>
                   <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
-                    الدفع نقداً للمندوب عند المعاينة
+                    {isDineIn
+                      ? 'الدفع نقداً أو بالبطاقة مع الويتر / عند الكاشير'
+                      : fulfillmentType === 'pickup'
+                      ? 'الدفع نقداً أو بالفيزا عند استلام طلبك من الفرع'
+                      : 'الدفع نقداً للمندوب عند المعاينة'}
                   </span>
                 </div>
 

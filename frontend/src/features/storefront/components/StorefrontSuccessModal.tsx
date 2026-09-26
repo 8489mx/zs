@@ -81,13 +81,21 @@ export function StorefrontSuccessModal({
         </div>
 
         <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
-          تم استلام طلبك بنجاح!
+          {activeOrder.tableNumber ? 'تم إرسال طلب الطاولة للمطبخ بنجاح!' : 'تم استلام طلبك بنجاح!'}
         </h2>
         <p style={{ margin: '0 0 18px', fontSize: '13px', color: '#64748b' }}>
-          رقم الطلب الخاص بك:{' '}
-          <strong style={{ color: '#0f172a', fontWeight: 800, fontSize: '15px' }}>
-            #{activeOrder.orderNumber}
-          </strong>
+          {activeOrder.tableNumber ? (
+            <span>
+              طاولة رقم: <strong style={{ color: '#170e5e', fontWeight: 800, fontSize: '15px' }}>{activeOrder.tableNumber}</strong> • رقم الطلب: #{activeOrder.orderNumber}
+            </span>
+          ) : (
+            <>
+              رقم الطلب الخاص بك:{' '}
+              <strong style={{ color: '#0f172a', fontWeight: 800, fontSize: '15px' }}>
+                #{activeOrder.orderNumber}
+              </strong>
+            </>
+          )}
         </p>
 
         {/* Order Details Card */}
@@ -120,11 +128,21 @@ export function StorefrontSuccessModal({
                 <span>
                   {i.name} (×{i.quantity})
                 </span>
-                <span style={{ fontWeight: 600 }}>{i.total.toFixed(0)} ج</span>
+                <span style={{ fontWeight: 600 }}>{i.total.toFixed(0)} <CurrencySymbol /></span>
               </div>
             ))}
 
-            {activeOrder.deliveryFee === 0 ? (
+            {activeOrder.tableNumber ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#170e5e', fontSize: '12.5px' }}>
+                <span>نوع الطلب:</span>
+                <span style={{ fontWeight: 700 }}>صالة (طاولة رقم {activeOrder.tableNumber})</span>
+              </div>
+            ) : activeOrder.orderType === 'pickup' ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#170e5e', fontSize: '12.5px' }}>
+                <span>نوع الطلب:</span>
+                <span style={{ fontWeight: 700 }}>استلام من الفرع (تيك أواي)</span>
+              </div>
+            ) : activeOrder.deliveryFee === 0 ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontSize: '12.5px' }}>
                 <span>خدمة التوصيل {activeOrder.deliveryZoneName ? `(${activeOrder.deliveryZoneName})` : ''}:</span>
                 <span style={{ fontWeight: 700 }}>مجاناً</span>
@@ -132,7 +150,7 @@ export function StorefrontSuccessModal({
             ) : (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '12.5px' }}>
                 <span>خدمة التوصيل {activeOrder.deliveryZoneName ? `(${activeOrder.deliveryZoneName})` : ''}:</span>
-                <span style={{ fontWeight: 600 }}>{activeOrder.deliveryFee.toFixed(0)} ج</span>
+                <span style={{ fontWeight: 600 }}>{activeOrder.deliveryFee.toFixed(0)} <CurrencySymbol /></span>
               </div>
             )}
 

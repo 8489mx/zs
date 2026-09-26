@@ -146,12 +146,18 @@ export interface CreateOnlineOrderResponse {
     unitPrice: number;
     total: number;
   }>;
+  orderType?: 'delivery' | 'dine_in' | 'pickup' | string;
+  tableNumber?: string | number | null;
   whatsappUrl: string | null;
 }
 
 export interface OnlineOrderRecord {
   id: number;
   orderNumber: string;
+  orderType?: 'delivery' | 'dine_in' | 'pickup' | string;
+  order_type?: string;
+  tableNumber?: string | number | null;
+  table_number?: string | number | null;
   customerName: string;
   customerPhone: string;
   customerAddress: string | null;
