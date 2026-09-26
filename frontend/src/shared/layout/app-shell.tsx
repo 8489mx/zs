@@ -137,8 +137,8 @@ const iconPathMap: Record<string, string> = {
   hr: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   audit: 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zm0 9l2 2 4-4',
   settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
-  admin: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
   'delivery-reps': 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  'van-sales-admin': 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
   returns: 'M8 7h8a5 5 0 1 1 0 10h-6M8 7l4-4M8 7l4 4',
   'purchase-returns': 'M8 7h8a5 5 0 1 1 0 10h-6M8 7l4-4M8 7l4 4',
   customers: 'M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M17 14a5 5 0 0 1 5 5',
@@ -629,6 +629,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'installments',
       'customers',
       'delivery-reps',
+      'van-sales-admin',
       'tax-dispatcher',
       'signage',
 
@@ -746,6 +747,7 @@ export function AppShell({ children }: PropsWithChildren) {
       returns: 'مرتجعات المبيعات',
       customers: t('sidebar.customers', 'العملاء'),
       'delivery-reps': 'إدارة المناديب',
+      'van-sales-admin': 'سيارات التوزيع (الفان)',
       'tax-dispatcher': 'الفاتورة الإلكترونية',
       installments: 'مبيعات التقسيط',
       'vat-declaration': 'الإقرار الضريبي',
@@ -925,7 +927,7 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'installments' && (settings?.installmentsModuleEnabled !== true || !hasFeature('installments'))) return false;
         if (item.key === 'vat-declaration' && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && (settings?.taxDeclarationModuleEnabled !== true || !hasFeature('vat_declaration') || !isEnterpriseCommerceActive)) return false;
         if (item.key === 'accounting-fixed-assets' && !isContractingVertical && !isManufacturingVertical && (settings?.fixedAssetsModuleEnabled !== true || !hasFeature('fixed_assets') || !isEnterpriseCommerceActive)) return false;
-        if (item.key === 'delivery-reps' && (settings?.deliveryFleetModuleEnabled !== true || !hasFeature('deliveryReps'))) return false;
+        if ((item.key === 'delivery-reps' || item.key === 'van-sales-admin') && (settings?.deliveryFleetModuleEnabled !== true || !hasFeature('deliveryReps'))) return false;
         if (item.key === 'kds' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         if (item.key === 'product-modifiers' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         // kds and signage are accessed via /displays portal - hide them as direct sidebar items
@@ -1361,8 +1363,8 @@ export function AppShell({ children }: PropsWithChildren) {
         key: 'sales-group',
         label: t('sidebar.sales-group', 'المبيعات'),
         itemKeys: isEnterpriseCommerceActive
-          ? ['crm', 'quotations', 'sales-orders', 'price-lists', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher']
-          : ['pos', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher'].filter(k => k !== 'pos' || settings?.posModuleEnabled !== false),
+          ? ['crm', 'quotations', 'sales-orders', 'price-lists', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher']
+          : ['pos', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher'].filter(k => k !== 'pos' || settings?.posModuleEnabled !== false),
         iconKey: 'sales',
       }] : []),
       ...((settings?.purchasesModuleEnabled !== false && hasPurchases) ? [{

@@ -2,29 +2,37 @@ import { useState, useMemo } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, Link } from 'react-router-dom';
-import { vanSalesApi, VanActiveTripResponse, VanStockItem } from '../api/van-sales.api';
+import { vanSalesApi, VanActiveTripResponse, VanStockItem, VanLoadRequisitionRecord } from '../api/van-sales.api';
 import { driverPortalApi } from '@/shared/api/delivery-reps.api';
 import { Button } from '@/shared/ui/button';
 import { TruckIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
+import { systemConfirm, toast } from '@/shared/components/system-alert';
 import { VanSalesLogin } from '../components/VanSalesLogin';
 import { VanSalesReceiptModal } from '../components/VanSalesReceiptModal';
 import { VanInventoryTab } from '../components/VanInventoryTab';
 import { VanSaleTab, CartItem } from '../components/VanSaleTab';
 import { VanCollectionTab } from '../components/VanCollectionTab';
 import { VanSettleTab } from '../components/VanSettleTab';
+import { DriverLoadRequisitionModal } from '../components/DriverLoadRequisitionModal';
 
 export default function VanSalesMobilePage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [session, setSession] = useState(() => driverPortalApi.getStoredSession());
 
-  const handleLogout = () => {
-    if (window.confirm('هل تود تسجيل الخروج من بوابة مبيعات الفان؟')) {
+  const handleLogout = async () => {
+    const confirmed = await systemConfirm({
+      title: 'تسجيل الخروج',
+      message: 'هل تود بالتأكيد تسجيل الخروج من بوابة مبيعات الفان الميدانية؟',
+      confirmText: 'تسجيل الخروج',
+      cancelText: 'إلغاء',
+      variant: 'danger',
+    });
+    if (confirmed) {
       driverPortalApi.logout();
       setSession(null);
       queryClient.clear();
+      toast.info('تم تسجيل الخروج بنجاح');
     }
   };
 
@@ -35,6 +43,15 @@ export default function VanSalesMobilePage() {
     refetchInterval: 15000,
   });
 
+  // Query driver's recent requisitions
+  const { data: myRequisitions = [] } = useQuery<VanLoadRequisitionRecord[]>({
+    queryKey: ['driver-my-requisitions'],
+    queryFn: () => vanSalesApi.listMyRequisitions(),
+    enabled: Boolean(session && !data?.hasActiveTrip),
+    refetchInterval: 15000,
+  });
+
+  const [requisitionModalOpen, setRequisitionModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'inventory' | 'sale' | 'collection' | 'settle'>('inventory');
   const [stockSearch, setStockSearch] = useState('');
 
@@ -148,55 +165,59 @@ export default function VanSalesMobilePage() {
   }
 
   return (
-    <div dir="rtl" style={{ minHeight: '100vh', backgroundColor: '#f8fafc', color: '#1e293b', paddingBottom: '80px', boxSizing: 'border-box' }}>
-      {/* Top Mobile Bar */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 30, backgroundColor: '#170e5e', color: '#ffffff', padding: '12px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', paddingBottom: '40px', fontFamily: 'inherit' }} dir="rtl">
+      {/* Top Header */}
+      <header
+        style={{
+          backgroundColor: '#170e5e',
+          color: '#ffffff',
+          padding: '12px 18px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          position: 'sticky',
+          top: 0,
+          zIndex: 40,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <TruckIcon size={20} color="#ffffff" strokeWidth={2} />
+          <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <TruckIcon size={20} color="#ffffff" />
           </div>
           <div>
-            <h1 style={{ fontWeight: 800, fontSize: '14px', margin: 0, lineHeight: 1.2 }}>مبيعات سيارة الفان (الميدان)</h1>
-            <p style={{ fontSize: '11px', color: '#c7d2fe', margin: '2px 0 0' }}>المندوب: {session.rep.name} {session.rep.vehiclePlate ? `(${session.rep.vehiclePlate})` : ''}</p>
+            <h1 style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>مبيعات وتوزيع الفان</h1>
+            <span style={{ fontSize: '11px', opacity: 0.85 }}>{session.rep?.fullName || session.rep?.name || 'المندوب'} • {data?.trip?.vehiclePlate ? `سيارة [${data.trip.vehiclePlate}]` : 'الميدان'}</span>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Link
-            to="/hub"
-            style={{ fontSize: '11.5px', backgroundColor: 'rgba(255,255,255,0.15)', color: '#ffffff', fontWeight: 700, padding: '5px 10px', borderRadius: '6px', textDecoration: 'none' }}
-            title="العودة لمركز البوابات"
-          >
-            مركز البوابات
-          </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
-            onClick={() => navigate('/driver')}
             type="button"
-            style={{ fontSize: '11.5px', backgroundColor: 'rgba(255,255,255,0.15)', color: '#ffffff', fontWeight: 700, padding: '5px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer' }}
+            onClick={() => refetch()}
+            style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: 'none', color: '#ffffff', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}
           >
-            طلبات الدليفري
+            تحديث
           </button>
           <button
-            onClick={handleLogout}
             type="button"
-            style={{ fontSize: '11.5px', backgroundColor: 'rgba(239, 68, 68, 0.25)', color: '#fecaca', fontWeight: 700, padding: '5px 10px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.4)', cursor: 'pointer' }}
+            onClick={handleLogout}
+            style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}
           >
             خروج
           </button>
         </div>
       </header>
 
-      {/* Global Alert */}
+      {/* Alert Banner */}
       {alert && (
         <div
           style={{
-            margin: '12px 16px 0',
-            padding: '10px 14px',
-            borderRadius: '10px',
-            fontSize: '12px',
+            backgroundColor: alert.type === 'success' ? '#10b981' : '#ef4444',
+            color: '#ffffff',
+            padding: '10px 16px',
+            fontSize: '12.5px',
             fontWeight: 700,
-            backgroundColor: alert.type === 'success' ? '#ecfdf5' : '#fef2f2',
-            color: alert.type === 'success' ? '#065f46' : '#991b1b',
-            border: alert.type === 'success' ? '1px solid #a7f3d0' : '1px solid #fecaca',
+            textAlign: 'center',
           }}
         >
           {alert.message}
@@ -205,6 +226,57 @@ export default function VanSalesMobilePage() {
 
       {/* Main Container */}
       <main style={{ padding: '14px 16px', maxWidth: '820px', margin: '0 auto' }}>
+        {/* Monthly Target Progress Card */}
+        {data?.targetMetrics && data.targetMetrics.targetAmount > 0 && (
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              padding: '12px 14px',
+              border: '1px solid #e2e8f0',
+              marginBottom: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e' }}>
+                تارجت مبيعات الشهر ({data.targetMetrics.periodMonth}): {data.targetMetrics.targetAmount.toFixed(2)} {getGlobalCurrencySymbol()}
+              </span>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  color: data.targetMetrics.isTargetAchieved ? '#15803d' : '#4338ca',
+                  backgroundColor: data.targetMetrics.isTargetAchieved ? '#dcfce7' : '#eef2ff',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                }}
+              >
+                {data.targetMetrics.isTargetAchieved ? 'تم تحقيق الهدف بنجاح!' : `محقق: ${data.targetMetrics.achievementRate}%`}
+              </span>
+            </div>
+
+            {/* Progress Bar */}
+            <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
+              <div
+                style={{
+                  width: `${Math.min(100, data.targetMetrics.achievementRate)}%`,
+                  height: '100%',
+                  backgroundColor: data.targetMetrics.isTargetAchieved ? '#16a34a' : '#170e5e',
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', flexWrap: 'wrap', gap: '6px' }}>
+              <span>المحقق فعلياً: <strong style={{ color: '#0f172a' }}>{data.targetMetrics.actualSalesMTD.toFixed(2)}</strong></span>
+              <span>المتبقي: <strong style={{ color: '#dc2626' }}>{data.targetMetrics.remainingTarget.toFixed(2)}</strong></span>
+              <span>متبقي <strong style={{ color: '#170e5e' }}>{data.targetMetrics.remainingWorkingDays}</strong> يوم عمل (مستبعداً الجمعات)</span>
+              <span>المطلوب يومياً: <strong style={{ color: '#d97706' }}>{data.targetMetrics.requiredDailyTarget.toFixed(2)} {getGlobalCurrencySymbol()}/يوم</strong></span>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8', fontWeight: 700 }}>جاري تحميل بيانات رحلة الفان...</div>
         ) : !data?.hasActiveTrip ? (
@@ -214,11 +286,81 @@ export default function VanSalesMobilePage() {
             </div>
             <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>لا توجد رحلة توزيع نشطة حالياً</h2>
             <p style={{ fontSize: '12.5px', color: '#64748b', margin: '0 auto 16px', maxWidth: '420px', lineHeight: 1.5 }}>
-              سيارتك جاهزة! يمكنك شحن بضاعة الصباح من المستودع الرئيسي أو التواصل مع مشرف المخزن لبدء خط السير الميداني.
+              سيارتك جاهزة لبدء العمل! يمكنك إرسال طلب شحن بضاعة صباحي لمشرف المستودع للمراجعة وصرف البضاعة.
             </p>
-            <Button variant="primary" onClick={() => refetch()} style={{ backgroundColor: '#170e5e', color: '#ffffff' }}>
-              تحديث حالة الرحلة
-            </Button>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+              <Button
+                variant="primary"
+                onClick={() => setRequisitionModalOpen(true)}
+                style={{ backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12.5px', fontWeight: 800 }}
+              >
+                + إنشاء طلب شحن بضاعة صباحي (إذن تحميل)
+              </Button>
+              <Button variant="secondary" onClick={() => refetch()} style={{ fontSize: '12.5px' }}>
+                تحديث حالة الرحلة
+              </Button>
+            </div>
+
+            {/* My Recent Requisitions */}
+            {myRequisitions.length > 0 && (
+              <div style={{ marginTop: '20px', textAlign: 'right', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#170e5e', display: 'block', marginBottom: '8px' }}>
+                  طلبات الشحن السابقة الخاصة بك:
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {myRequisitions.map((req) => (
+                    <div
+                      key={req.id}
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                        border: '1px solid #e2e8f0',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a', display: 'block' }}>
+                          طلب شحن #{req.docNo}
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>
+                          المستودع: {req.sourceWarehouseName} • {req.requestedItems.length} أصناف
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          backgroundColor:
+                            req.status === 'dispatched'
+                              ? '#dcfce7'
+                              : req.status === 'rejected'
+                              ? '#fee2e2'
+                              : '#fef3c7',
+                          color:
+                            req.status === 'dispatched'
+                              ? '#15803d'
+                              : req.status === 'rejected'
+                              ? '#b91c1c'
+                              : '#b45309',
+                        }}
+                      >
+                        {req.status === 'dispatched'
+                          ? 'تم الصرف والتحميل'
+                          : req.status === 'rejected'
+                          ? 'مرفوض'
+                          : 'قيد مراجعة المشرف'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -234,7 +376,7 @@ export default function VanSalesMobilePage() {
               </div>
               <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '12px', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: '#d97706', display: 'block' }}>المبيعات الآجلة</span>
-                <span style={{ fontSize: '16px', fontWeight: 900, color: '#b45309' }}>{data.trip?.creditSales.toFixed(2)} ${getGlobalCurrencySymbol()}</span>
+                <span style={{ fontSize: '16px', fontWeight: 900, color: '#b45309' }}>{data.trip?.creditSales.toFixed(2)} <CurrencySymbol /></span>
               </div>
               <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '12px', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: '#170e5e', display: 'block' }}>بضاعة السيارة الحالية</span>
@@ -303,12 +445,26 @@ export default function VanSalesMobilePage() {
                 onUpdateCartQty={updateCartQty}
                 cartTotal={cartTotal}
                 onGoToInventory={() => setActiveTab('inventory')}
-                onSubmitSale={() => {
+                onSubmitSale={async () => {
+                  let gpsLat: number | undefined;
+                  let gpsLng: number | undefined;
+                  if (typeof navigator !== 'undefined' && navigator.geolocation) {
+                    try {
+                      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3500, enableHighAccuracy: true });
+                      });
+                      gpsLat = pos.coords.latitude;
+                      gpsLng = pos.coords.longitude;
+                    } catch {}
+                  }
+
                   executeSaleMutation.mutate({
                     tripId: data.trip!.id,
                     customerId: selectedCustomerId ? Number(selectedCustomerId) : undefined,
                     customerName: newCustomerName || undefined,
                     paymentMethod,
+                    deliveryGpsLat: gpsLat,
+                    deliveryGpsLng: gpsLng,
                     items: cart.map((c) => ({ productId: c.productId, qty: c.qty, unitPrice: c.unitPrice })),
                   });
                 }}
@@ -318,23 +474,40 @@ export default function VanSalesMobilePage() {
 
             {activeTab === 'collection' && (
               <VanCollectionTab
+                tripId={data.trip!.id}
                 customers={data.customers}
                 colCustomerId={colCustomerId}
                 onColCustomerChange={setColCustomerId}
                 colAmount={colAmount}
                 onColAmountChange={setColAmount}
-                onSubmitCollection={() => {
+                onSubmitCollection={async () => {
                   if (!colCustomerId || !Number(colAmount)) {
                     showAlert('error', 'يرجى اختيار العميل وإدخال مبلغ التحصيل');
                     return;
+                  }
+                  let gpsLat: number | undefined;
+                  let gpsLng: number | undefined;
+                  if (typeof navigator !== 'undefined' && navigator.geolocation) {
+                    try {
+                      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3500, enableHighAccuracy: true });
+                      });
+                      gpsLat = pos.coords.latitude;
+                      gpsLng = pos.coords.longitude;
+                    } catch {}
                   }
                   recordCollectionMutation.mutate({
                     tripId: data.trip!.id,
                     customerId: Number(colCustomerId),
                     amount: Number(colAmount),
+                    gpsLat,
+                    gpsLng,
                   });
                 }}
                 isSubmitting={recordCollectionMutation.isPending}
+                onReturnSuccess={(docNo, amount) => {
+                  showAlert('success', `تم رفع إذن المرتجع #${docNo} بقيمة ${amount.toFixed(2)} ${getGlobalCurrencySymbol()} للإدارة بنجاح`);
+                }}
               />
             )}
 
@@ -346,8 +519,8 @@ export default function VanSalesMobilePage() {
                 unloadRemaining={unloadRemaining}
                 onUnloadRemainingChange={setUnloadRemaining}
                 onSubmitSettle={() => {
-                  if (!countedCash) {
-                    showAlert('error', 'يرجى إدخال مبلغ الكاش الفعلي المعدود');
+                  if (countedCash === '') {
+                    showAlert('error', 'يرجى جرد وإدخال النقدية الفعلية الموجودة معك');
                     return;
                   }
                   settleTripMutation.mutate({
@@ -363,7 +536,23 @@ export default function VanSalesMobilePage() {
         )}
       </main>
 
-      <VanSalesReceiptModal receipt={lastSaleReceipt} onClose={() => setLastSaleReceipt(null)} />
+      {/* Sale Receipt Modal */}
+      {lastSaleReceipt && (
+        <VanSalesReceiptModal
+          receipt={lastSaleReceipt}
+          onClose={() => setLastSaleReceipt(null)}
+        />
+      )}
+
+      {/* Driver Loading Requisition Modal */}
+      <DriverLoadRequisitionModal
+        open={requisitionModalOpen}
+        onClose={() => setRequisitionModalOpen(false)}
+        onRequisitionSubmitted={(docNo) => {
+          showAlert('success', `تم إرسال طلب إذن التحميل #${docNo} للمشرف بنجاح!`);
+          refetch();
+        }}
+      />
     </div>
   );
 }
