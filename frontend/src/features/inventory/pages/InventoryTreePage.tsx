@@ -44,7 +44,8 @@ export function InventoryTreePage() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [modalProducts, setModalProducts] = useState<ProductRow[]>([]);
   const [categoryTransferData, setCategoryTransferData] = useState<{ name: string; products: ProductRow[] } | null>(null);
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [collapsedDuringSearch, setCollapsedDuringSearch] = useState<Set<string>>(new Set());
 
   // Queries
   const productsQuery = useQuery({ queryKey: ['catalogProducts'], queryFn: () => inventoryApi.products() });
@@ -65,35 +66,60 @@ export function InventoryTreePage() {
   ], [locations]);
   const rawProducts = useMemo(() => productsQuery.data || [], [productsQuery.data]);
 
+  const locationMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const l of allLocations) {
+      map.set(String(l.id), String(l.name));
+    }
+    return map;
+  }, [allLocations]);
+
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of categories) {
+      map.set(String(c.id), String(c.name));
+    }
+    return map;
+  }, [categories]);
+
+  const stocksByProductMap = useMemo(() => {
+    const map = new Map<string, { locationId: string; locationName: string; qty: number }[]>();
+    for (const s of stocks) {
+      const pId = String(s.productId);
+      let list = map.get(pId);
+      if (!list) {
+        list = [];
+        map.set(pId, list);
+      }
+      const locName = locationMap.get(String(s.locationId)) || `مخزن ${s.locationId}`;
+      list.push({ locationId: String(s.locationId), locationName: locName, qty: Number(s.qty) });
+    }
+    return map;
+  }, [stocks, locationMap]);
+
   const productRows = useMemo((): ProductRow[] => {
     return rawProducts.map((p: any) => {
-      const locationStocks = stocks
-        .filter((s: any) => String(s.productId) === String(p.id))
-        .map((s: any) => {
-          const loc = allLocations.find((l: any) => String(l.id) === String(s.locationId));
-          return { locationId: String(s.locationId), locationName: loc ? String(loc.name) : `مخزن ${s.locationId}`, qty: Number(s.qty) };
-        });
-
+      const pId = String(p.id);
+      const locationStocks = stocksByProductMap.get(pId) || [];
       const sumFromLocations = locationStocks.reduce((sum, s) => sum + s.qty, 0);
       const globalStock = Number(p.stock || p.stockQty || 0);
       const totalQty = Math.max(globalStock, sumFromLocations);
-
       const unassignedQty = globalStock > sumFromLocations ? globalStock - sumFromLocations : 0;
+      const catName = categoryMap.get(String(p.categoryId)) || p.categoryName || 'بدون قسم';
 
-      const cat = categories.find((c: any) => String(c.id) === String(p.categoryId));
       return {
-        id: String(p.id),
+        id: pId,
         name: String(p.name || ''),
         barcode: String(p.barcode || ''),
         categoryId: String(p.categoryId || ''),
-        categoryName: cat ? String(cat.name) : (p.categoryName || 'بدون قسم'),
+        categoryName: catName,
         locationStocks,
         totalQty,
         unassignedQty,
         isUnassigned: locationStocks.length === 0 || unassignedQty > 0,
       };
     });
-  }, [rawProducts, stocks, allLocations, categories]);
+  }, [rawProducts, stocksByProductMap, categoryMap]);
 
   const filteredRows = useMemo(() => {
     let rows = productRows;
@@ -176,14 +202,47 @@ export function InventoryTreePage() {
     setSelectedIds(new Set());
   }, [queryClient]);
 
-  const isAllExpanded = collapsedCategories.size === 0;
+  const isCategoryExpanded = useCallback((catKey: string) => {
+    if (search.trim()) {
+      return !collapsedDuringSearch.has(catKey);
+    }
+    return expandedCategories.has(catKey);
+  }, [search, expandedCategories, collapsedDuringSearch]);
+
+  const toggleCategory = useCallback((catKey: string) => {
+    if (search.trim()) {
+      setCollapsedDuringSearch((prev) => {
+        const next = new Set(prev);
+        if (next.has(catKey)) next.delete(catKey);
+        else next.add(catKey);
+        return next;
+      });
+    } else {
+      setExpandedCategories((prev) => {
+        const next = new Set(prev);
+        if (next.has(catKey)) next.delete(catKey);
+        else next.add(catKey);
+        return next;
+      });
+    }
+  }, [search]);
+
+  const isAllExpanded = grouped.length > 0 && grouped.every(([catKey]) => isCategoryExpanded(catKey));
   const toggleExpandCollapseAll = useCallback(() => {
     if (isAllExpanded) {
-      setCollapsedCategories(new Set(grouped.map(g => g[0]))); // Collapse all
+      if (search.trim()) {
+        setCollapsedDuringSearch(new Set(grouped.map(([catKey]) => catKey)));
+      } else {
+        setExpandedCategories(new Set());
+      }
     } else {
-      setCollapsedCategories(new Set()); // Expand all
+      if (search.trim()) {
+        setCollapsedDuringSearch(new Set());
+      } else {
+        setExpandedCategories(new Set(grouped.map(([catKey]) => catKey)));
+      }
     }
-  }, [isAllExpanded, grouped]);
+  }, [isAllExpanded, grouped, search]);
 
   const allSelected = filteredRows.length > 0 && selectedIds.size === filteredRows.length;
   const handleSelectAll = useCallback(() => {
@@ -313,7 +372,14 @@ export function InventoryTreePage() {
         {(search || filterLocationId || showOnlyWithStock || showUnassigned || sortMode !== 'default') && (
           <Button
             variant="secondary"
-            onClick={() => { setSearch(''); setFilterLocationId(''); setShowOnlyWithStock(false); setShowUnassigned(false); setSortMode('default'); }}
+            onClick={() => {
+              setSearch('');
+              setFilterLocationId('');
+              setShowOnlyWithStock(false);
+              setShowUnassigned(false);
+              setSortMode('default');
+              setCollapsedDuringSearch(new Set());
+            }}
             style={{ fontSize: '11px', height: '28px', padding: '2px 10px' }}
           >
             تفريغ الفلاتر
@@ -363,15 +429,8 @@ export function InventoryTreePage() {
               locations={locations as any}
               filterLocationId={filterLocationId}
               selectedIds={selectedIds}
-              collapsed={collapsedCategories.has(catKey)}
-              onToggleCollapse={() => {
-                setCollapsedCategories(prev => {
-                  const next = new Set(prev);
-                  if (next.has(catKey)) next.delete(catKey);
-                  else next.add(catKey);
-                  return next;
-                });
-              }}
+              collapsed={!isCategoryExpanded(catKey)}
+              onToggleCollapse={() => toggleCategory(catKey)}
               onToggleSelect={toggleSelect}
               onTransfer={(p) => openTransfer([p])}
               onAssign={(p) => openAssign([p])}

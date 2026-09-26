@@ -1,8 +1,9 @@
 
+import { memo, useState } from 'react';
 import type { ProductRow } from './inventoryTree.types';
 import { ProductTreeRow } from './ProductTreeRow';
 
-function CategorySection({
+const CategorySection = memo(function CategorySection({
   categoryName,
   products,
   filterLocationId,
@@ -30,6 +31,9 @@ function CategorySection({
   onTransferCategory: (categoryName: string, products: ProductRow[]) => void;
   onRemoveLocation: (productId: string, locationId: string) => void;
 }) {
+  const [visibleCount, setVisibleCount] = useState(50);
+  const displayedProducts = products.slice(0, visibleCount);
+
   const totalQty = products.reduce((sum, p) => {
     if (filterLocationId) return sum + (p.locationStocks.find((s) => s.locationId === filterLocationId)?.qty ?? 0);
     return sum + p.totalQty;
@@ -119,7 +123,7 @@ function CategorySection({
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>أماكن التخزين والرصيد</span>
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'end', paddingInlineEnd: '8px' }}>إجراءات</span>
             </div>
-            {products.map((product) => (
+            {displayedProducts.map((product) => (
               <ProductTreeRow
                 key={product.id}
                 product={product}
@@ -132,11 +136,60 @@ function CategorySection({
                 onRemoveLocation={onRemoveLocation}
               />
             ))}
+            {products.length > visibleCount && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '12px',
+                  padding: '10px 16px',
+                  background: '#f8fafc',
+                  borderTop: '1px solid var(--border, #e2e8f0)',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((prev) => prev + 50)}
+                  style={{
+                    padding: '6px 16px',
+                    borderRadius: '8px',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    color: 'var(--primary, #170c5c)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                  }}
+                >
+                  عرض 50 صنف إضافي ({products.length - visibleCount} متبقٍ)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount(products.length)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#64748b',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  عرض كافة الأصناف في هذا القسم ({products.length})
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
     </div>
   );
-}
+});
 
 export { CategorySection };

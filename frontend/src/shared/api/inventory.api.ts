@@ -61,7 +61,7 @@ interface DamagedStockPageResponse {
 }
 
 export const inventoryApi = {
-  products: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products?pageSize=5000'), 'products'),
+  products: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products?pageSize=5000&brief=true'), 'products'),
   searchProducts: async (query: string) => unwrapArray<Product>(await http<Product[] | { products: Product[] }>(`/api/products?q=${encodeURIComponent(query)}&pageSize=50`), 'products'),
   locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/locations?includeInactive=true'), 'locations'),
   report: async () => unwrapByKey<InventoryReport>(await http<InventoryReport | { inventory: InventoryReport }>('/api/reports/inventory'), 'inventory', {} as InventoryReport),

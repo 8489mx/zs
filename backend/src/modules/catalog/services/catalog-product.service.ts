@@ -264,7 +264,7 @@ export class CatalogProductService {
   }
 
   async listProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
-    const { page, pageSize, q, view, requestedLocationId, categoryId, supplierId } = this.parseListProductsQuery(query);
+    const { page, pageSize, q, view, requestedLocationId, categoryId, supplierId, brief } = this.parseListProductsQuery(query);
     const canViewCost = this.hasPermission(actor, 'canViewCost');
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
     const scopedLocation = requestedLocationId > 0 && actor ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor).catch(() => null) : null;
@@ -285,8 +285,10 @@ export class CatalogProductService {
     ]);
 
     const productIds = products.map((product) => Number(product.id));
-    const scopedStockResult = await this.resolveScopedStockByProduct(productIds, scopedLocation ? [scopedLocation.id] : [], products, actor);
-    const listContext = await this.buildListProductsContext(productIds, q, categories, suppliers, locations, actor);
+    const scopedStockResult = (brief && !scopedLocation && !q)
+      ? { stock: new Map<string, number>(products.map((p) => [String(p.id), Number(p.stock_qty || 0)])), locations: new Map<string, number[]>() }
+      : await this.resolveScopedStockByProduct(productIds, scopedLocation ? [scopedLocation.id] : [], products, actor);
+    const listContext = await this.buildListProductsContext(productIds, q, categories, suppliers, locations, actor, { brief, view });
     const filteredBaseRows = this.filterListProducts(products, {
       q,
       view,
@@ -305,7 +307,9 @@ export class CatalogProductService {
     const pagedBaseRows = filteredBaseRows.slice(start, start + pageSize);
     const pagedIds = pagedBaseRows.map((row) => Number(row.id));
 
-    const relations = await this.fetchListProductRelations(pagedIds, offerCapabilities.hasMinQty, actor);
+    const relations = brief
+      ? { unitsByProduct: new Map(), offersByProduct: new Map(), pricesByProduct: new Map() }
+      : await this.fetchListProductRelations(pagedIds, offerCapabilities.hasMinQty, actor);
     const pagedRows = this.mapListProducts(pagedBaseRows, {
       canViewCost,
       scopedLocationId: scopedLocation?.id || null,
@@ -341,6 +345,7 @@ export class CatalogProductService {
       requestedLocationId: Number(query.locationId || 0),
       categoryId: query.categoryId ? Number(query.categoryId) : undefined,
       supplierId: query.supplierId ? Number(query.supplierId) : undefined,
+      brief: String(query.brief || '').toLowerCase() === 'true' || query.brief === true,
     };
   }
 
@@ -914,7 +919,9 @@ export class CatalogProductService {
     suppliers: Array<{ id: number; name: string }>,
     locations: Array<{ id: number; name: string }>,
     actor: AuthContext,
+    options?: { brief?: boolean; view?: string },
   ) {
+    const needCounts = !options?.brief || options?.view === 'offers' || options?.view === 'special';
     const [unitSearchRows, offerCountRows, customerPriceCountRows] = await Promise.all([
       q && productIds.length
         ? this.db
@@ -925,7 +932,7 @@ export class CatalogProductService {
             .orderBy('product_id', 'asc')
             .execute() as Promise<ProductUnitSearchRow[]>
         : Promise.resolve([]),
-      productIds.length
+      needCounts && productIds.length
         ? this.db
             .selectFrom('product_offers')
             .select(['product_id', (eb) => eb.fn.countAll<number>().as('count')])
@@ -935,7 +942,7 @@ export class CatalogProductService {
             .groupBy('product_id')
             .execute() as Promise<ProductCountRow[]>
         : Promise.resolve([]),
-      productIds.length
+      needCounts && productIds.length
         ? this.db
             .selectFrom('product_customer_prices')
             .select(['product_id', (eb) => eb.fn.countAll<number>().as('count')])

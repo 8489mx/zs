@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import type { ProductRow } from './inventoryTree.types';
 import { AlertTriangleIcon , XIcon } from '@/shared/components/icons/AppIcons';
 
-function ProductTreeRow({
+const ProductTreeRow = memo(function ProductTreeRow({
   product,
   filterLocationId,
   isSelected,
@@ -140,6 +141,6 @@ function ProductTreeRow({
       </div>
     </div>
   );
-}
+});
 
 export { ProductTreeRow };
