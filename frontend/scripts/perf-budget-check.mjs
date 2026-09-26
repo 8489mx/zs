@@ -158,6 +158,40 @@ if (process.argv.includes('--dist')) {
   }
 }
 
+// ---------------------------------------------------------------------------------------------
+// Rule 5 (PERF-11) — the Docker frontend image serves gzip + long-lived asset caching.
+// This regressed silently once already: the config used to be a one-line `printf` in the
+// Dockerfile with no `gzip on` and no Cache-Control at all, so every JS/CSS bundle shipped
+// uncompressed and uncached on every single visit. Nothing functional broke, so nothing caught it
+// until someone measured. See ARCHITECTURE_INVARIANTS.md PERF-11.
+// ---------------------------------------------------------------------------------------------
+const dockerfile = readFileSync(path.join(root, 'Dockerfile'), 'utf8');
+if (/RUN\s+printf[^\n]*conf\.d\/default\.conf/.test(dockerfile)) {
+  fail('[Dockerfile] the nginx config is generated inline with printf again — copy a real frontend/nginx.conf file instead (PERF-11), so it can be reviewed and linted like any other config.');
+}
+if (!/COPY\s+nginx\.conf\s+\/etc\/nginx\/conf\.d\/default\.conf/.test(dockerfile)) {
+  fail('[Dockerfile] must COPY nginx.conf into /etc/nginx/conf.d/default.conf (PERF-11).');
+}
+
+const nginxConfPath = path.join(root, 'nginx.conf');
+if (!existsSync(nginxConfPath)) {
+  fail('[nginx.conf] frontend/nginx.conf is missing — the Docker image would fall back to nginx defaults: no gzip, no cache headers (PERF-11).');
+} else {
+  const nginxConf = readFileSync(nginxConfPath, 'utf8');
+  if (!/gzip\s+on\s*;/.test(nginxConf)) {
+    fail('[nginx.conf] "gzip on;" is missing — every JS/CSS bundle would ship uncompressed on every visit (PERF-11).');
+  }
+  if (!/gzip_types[^;]*application\/javascript/.test(nginxConf)) {
+    fail('[nginx.conf] gzip_types must include application/javascript (and text/css) — otherwise gzip is on but does nothing for the bundles (PERF-11).');
+  }
+  if (!/location\s*=\s*\/index\.html\s*\{[^}]*Cache-Control\s+["'][^}]*no-cache/.test(nginxConf)) {
+    fail('[nginx.conf] index.html must be served with Cache-Control: no-cache — otherwise a stale HTML can point at deleted hashed bundles after a deploy (PERF-11).');
+  }
+  if (!/location\s+\/assets\/\s*\{[^}]*Cache-Control\s+["'][^}]*immutable/.test(nginxConf)) {
+    fail('[nginx.conf] /assets/ must be served with Cache-Control: public, immutable — hashed bundle filenames never change content, so repeat visits should never re-download them (PERF-11).');
+  }
+}
+
 if (failures.length) {
   console.error(`perf-budget-check: ${failures.length} violation(s)\n`);
   for (const message of failures) console.error(`  - ${message}\n`);

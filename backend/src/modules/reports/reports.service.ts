@@ -18,10 +18,23 @@ import { applyPartnerLedgerSearch, applySignedAmountFilter } from './helpers/rep
 import { ReportsAdminService } from './services/reports-admin.service';
 import { ReportsSummaryService } from './services/reports-summary.service';
 
+interface CachedDashboardOverview {
+  expiresAt: number;
+  data: Record<string, unknown>;
+}
+
 @Injectable()
 export class ReportsService {
   private readonly reportsAdminService: ReportsAdminService;
   private readonly reportsSummaryService: ReportsSummaryService;
+  // PO-2 mitigation (PERFORMANCE_CONSTITUTION.md §5): dashboardOverview scans every active
+  // product/customer/supplier for the tenant on every call — linear in catalog size, not fixed by
+  // this cache. This only stops the *same* dashboard view from re-running that full scan on every
+  // rapid repeat call (tab refocus, widgets each triggering their own fetch). A tenant with a huge
+  // catalog still pays the full cost once per TTL window. Moving the aggregation into SQL is the
+  // real fix and stays deferred pending independent financial review of the `toMoney` rounding.
+  private readonly overviewCache = new Map<string, CachedDashboardOverview>();
+  private readonly OVERVIEW_CACHE_TTL_MS = 30_000;
 
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
@@ -174,7 +187,14 @@ export class ReportsService {
   }
 
   async dashboardOverview(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const { tenantId } = this.scope(auth);
     const range = parseRange(query);
+    const cacheKey = `${tenantId}:${range.from}:${range.to}:${query.branchId || ''}:${query.locationId || ''}`;
+    const nowMs = Date.now();
+    const cached = this.overviewCache.get(cacheKey);
+    if (cached && nowMs < cached.expiresAt) {
+      return cached.data;
+    }
     const businessTimezone = getBusinessTimezone();
     const scope = buildDashboardScope(new Date(), businessTimezone);
     const today = scope.today;
@@ -288,7 +308,7 @@ export class ReportsService {
       todayKey: today.key,
     });
 
-    return this.withScope(buildDashboardOverviewPayload({
+    const result = this.withScope(buildDashboardOverviewPayload({
       range,
       summary: summary as Record<string, unknown>,
       productsCount: productsRows.length,
@@ -300,6 +320,15 @@ export class ReportsService {
       trends: dashboardState.trends,
       activeOffers,
     }), auth);
+
+    if (this.overviewCache.size > 200) {
+      for (const [k, v] of this.overviewCache.entries()) {
+        if (nowMs >= v.expiresAt) this.overviewCache.delete(k);
+      }
+    }
+    this.overviewCache.set(cacheKey, { expiresAt: nowMs + this.OVERVIEW_CACHE_TTL_MS, data: result });
+
+    return result;
   }
 
   async inventoryReport(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
