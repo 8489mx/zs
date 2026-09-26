@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { systemAlert } from '@/shared/components/system-alert';
@@ -12,14 +11,13 @@ import {
   FileTextIcon,
   CheckCircleIcon,
 } from '@/shared/components/icons/AppIcons';
-import { deliveryRepsApi, type DeliveryRep } from '@/shared/api/delivery-reps.api';
 import { FleetVehiclesTab } from '../components/FleetVehiclesTab';
 import { VanTripsTab } from '../components/VanTripsTab';
 import { VanLoadRequisitionsAdminTab } from '../components/VanLoadRequisitionsAdminTab';
 import { VanFieldReturnsAdminTab } from '../components/VanFieldReturnsAdminTab';
 import { VanRepTargetsAdminTab } from '../components/VanRepTargetsAdminTab';
-import { vanSalesApi } from '../api/van-sales.api';
 import { UpsertDeliveryRepModal } from '@/shared/components/delivery-reps/UpsertDeliveryRepModal';
+import { useVanSalesAdmin, type DeliveryRep } from '../hooks/useVanSalesAdmin';
 
 export default function VanSalesAdminManagementPage() {
   const [activeTab, setActiveTab] = useState<'trips' | 'requisitions' | 'returns' | 'targets' | 'fleet' | 'drivers'>('trips');
@@ -30,26 +28,11 @@ export default function VanSalesAdminManagementPage() {
   const [editingRep, setEditingRep] = useState<DeliveryRep | null>(null);
 
   const {
-    data: reps = [],
-    isLoading: isRepsLoading,
-  } = useQuery<DeliveryRep[]>({
-    queryKey: ['delivery-reps'],
-    queryFn: deliveryRepsApi.list,
-  });
-
-  // Query live count for pending field returns badge
-  const { data: pendingReturns = [] } = useQuery({
-    queryKey: ['van-admin-pending-returns-badge'],
-    queryFn: () => vanSalesApi.listAdminReturns({ status: 'pending_approval' }),
-    refetchInterval: 15000,
-  });
-
-  // Query live count for pending load requisitions badge
-  const { data: pendingRequisitions = [] } = useQuery({
-    queryKey: ['van-admin-pending-requisitions-badge'],
-    queryFn: () => vanSalesApi.listAdminRequisitions({ status: 'pending' }),
-    refetchInterval: 15000,
-  });
+    reps,
+    isRepsLoading,
+    pendingReturns,
+    pendingRequisitions,
+  } = useVanSalesAdmin();
 
   const vanDrivers = useMemo(() => {
     return reps.filter((r) => r.is_van_rep || r.rep_type === 'van' || r.rep_type === 'both');

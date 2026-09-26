@@ -412,14 +412,7 @@ export class VanSalesService {
       .executeTakeFirst();
     const actualSalesMtd = Number(salesMtdRow?.total_mtd || 0);
 
-    const holidays = await this.anyDb
-      .selectFrom('hr_holidays')
-      .select(['holiday_date'])
-      .where('tenant_id', '=', tenantId)
-      .where('holiday_date', '>=', startOfMonth.toISOString().slice(0, 10))
-      .where('holiday_date', '<=', endOfMonth.toISOString().slice(0, 10))
-      .execute();
-    const officialHolidays = holidays.map((h: any) => String(h.holiday_date).slice(0, 10));
+    const officialHolidays = await this.getMonthlyOfficialHolidayDates(tenantId, startOfMonth, endOfMonth);
 
     const targetMetrics = calculateRepTargetMetrics({
       targetAmount,
@@ -2279,6 +2272,37 @@ export class VanSalesService {
     return this.getRepTarget(tenantId, repId, periodMonth);
   }
 
+  private async getMonthlyOfficialHolidayDates(tenantId: string, startOfMonth: Date, endOfMonth: Date): Promise<string[]> {
+    try {
+      const startStr = startOfMonth.toISOString().slice(0, 10);
+      const endStr = endOfMonth.toISOString().slice(0, 10);
+      const rows = await this.anyDb
+        .selectFrom('hr_holidays')
+        .select(['start_date', 'end_date'])
+        .where('tenant_id', '=', tenantId)
+        .where('end_date', '>=', startStr)
+        .where('start_date', '<=', endStr)
+        .execute();
+
+      const datesSet = new Set<string>();
+      for (const row of (rows || [])) {
+        if (!row.start_date || !row.end_date) continue;
+        const cur = new Date(row.start_date);
+        const end = new Date(row.end_date);
+        while (cur <= end) {
+          const dStr = cur.toISOString().slice(0, 10);
+          if (dStr >= startStr && dStr <= endStr) {
+            datesSet.add(dStr);
+          }
+          cur.setDate(cur.getDate() + 1);
+        }
+      }
+      return Array.from(datesSet);
+    } catch {
+      return [];
+    }
+  }
+
   /**
    * Gets computed target metrics for a representative.
    */
@@ -2317,14 +2341,7 @@ export class VanSalesService {
       .executeTakeFirst();
     const actualSalesMtd = Number(salesMtdRow?.total_mtd || 0);
 
-    const holidays = await this.anyDb
-      .selectFrom('hr_holidays')
-      .select(['holiday_date'])
-      .where('tenant_id', '=', tenantId)
-      .where('holiday_date', '>=', startOfMonth.toISOString().slice(0, 10))
-      .where('holiday_date', '<=', endOfMonth.toISOString().slice(0, 10))
-      .execute();
-    const officialHolidays = holidays.map((h: any) => String(h.holiday_date).slice(0, 10));
+    const officialHolidays = await this.getMonthlyOfficialHolidayDates(tenantId, startOfMonth, endOfMonth);
 
     const metrics = calculateRepTargetMetrics({
       targetAmount,
@@ -2383,14 +2400,7 @@ export class VanSalesService {
     const salesMap = new Map<number, number>();
     for (const s of salesMtd) salesMap.set(Number(s.delivery_rep_id), Number(s.total_mtd || 0));
 
-    const holidays = await this.anyDb
-      .selectFrom('hr_holidays')
-      .select(['holiday_date'])
-      .where('tenant_id', '=', tenantId)
-      .where('holiday_date', '>=', startOfMonth.toISOString().slice(0, 10))
-      .where('holiday_date', '<=', endOfMonth.toISOString().slice(0, 10))
-      .execute();
-    const officialHolidays = holidays.map((h: any) => String(h.holiday_date).slice(0, 10));
+    const officialHolidays = await this.getMonthlyOfficialHolidayDates(tenantId, startOfMonth, endOfMonth);
 
     return reps.map((r: any) => {
       const repId = Number(r.id);
