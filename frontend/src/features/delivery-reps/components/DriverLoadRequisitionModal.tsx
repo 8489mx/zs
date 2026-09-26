@@ -4,7 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productsApi } from '@/features/products/api/products.api';
+import { productsApi } from '@/features/products';
 import { referenceDataApi } from '@/services/reference-data.api';
 import { vanSalesApi } from '../api/van-sales.api';
 import type { Product, Location } from '@/types/domain';
