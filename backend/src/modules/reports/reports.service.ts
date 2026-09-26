@@ -13,7 +13,7 @@ import { buildDashboardComputedState, buildDashboardOverviewPayload, buildDashbo
 import { buildCustomerBalancesPayload, buildCustomerLedgerPayload, buildSupplierBalancesPayload, buildSupplierLedgerPayload, LedgerSummaryRow, PartnerLedgerEntryRow } from './helpers/reports-ledger.helper';
 import { buildCustomerLedgerTotals, buildSupplierLedgerTotals } from './helpers/reports-partner-ledger.helper';
 import { buildInventoryLocationHighlights, buildInventoryReportItems, buildInventorySummary, InventoryLocationBreakdownRow, InventoryLocationHighlightRow, InventoryReportProductRow } from './helpers/reports-inventory.helper';
-import { buildReportListState } from './helpers/reports-query.helper';
+import { applyReportScopeFilter, buildReportListState } from './helpers/reports-query.helper';
 import { applyPartnerLedgerSearch, applySignedAmountFilter } from './helpers/reports-query-pipeline.helper';
 import { ReportsAdminService } from './services/reports-admin.service';
 import { ReportsSummaryService } from './services/reports-summary.service';
@@ -65,47 +65,19 @@ export class ReportsService {
     };
   }
 
-  private applyReportScopeFilter<T extends object>(queryBuilder: T, query: ReportRangeQueryDto, tableAlias?: string): T {
-    let qb: any = queryBuilder;
-    const branchCol = tableAlias ? `${tableAlias}.branch_id` : 'branch_id';
-    const locCol = tableAlias ? `${tableAlias}.location_id` : 'location_id';
-    const userCol = tableAlias ? `${tableAlias}.created_by` : 'created_by';
-
-    if (query.branchId != null) {
-      const branchIdNum = Number(query.branchId);
-      if (Number.isFinite(branchIdNum) && branchIdNum > 0) {
-        qb = qb.where(sql.ref(branchCol), '=', branchIdNum);
-      }
-    }
-    if (query.locationId != null) {
-      const locIdNum = Number(query.locationId);
-      if (Number.isFinite(locIdNum) && locIdNum > 0) {
-        qb = qb.where(sql.ref(locCol), '=', locIdNum);
-      }
-    }
-    const targetUserId = query.userId ?? (query as Record<string, unknown>).createdBy;
-    if (targetUserId != null) {
-      const userIdNum = Number(targetUserId);
-      if (Number.isFinite(userIdNum) && userIdNum > 0) {
-        qb = qb.where(sql.ref(userCol), '=', userIdNum);
-      }
-    }
-    return qb;
-  }
-
   async reportSummary(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const range = parseRange(query);
     const fromDate = new Date(range.from);
     const toDate = new Date(range.to);
 
-    const salesQuery = this.applyReportScopeFilter(this.db.selectFrom('sales').select(['id', 'total', 'discount', 'delivery_fee', 'delivery_fee_mode', 'delivery_rep_id', 'branch_id', 'location_id', 'created_by', 'created_at']).where('status', '=', 'posted').where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
-    const purchasesQuery = this.applyReportScopeFilter(this.db.selectFrom('purchases').select(['id', 'total', 'branch_id', 'location_id', 'created_by', 'created_at']).where('status', '=', 'posted').where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
-    const servicesQuery = this.applyReportScopeFilter((this.db as any).selectFrom('services').select(['id', 'amount as total', 'branch_id', 'location_id', 'created_by', 'service_date as created_at']).where('is_active', '=', true).where('service_date', '>=', fromDate!).where('service_date', '<=', toDate!).where(this.tenantPredicate(auth)), query);
-    const expensesQuery = this.applyReportScopeFilter(this.db.selectFrom('expenses').select(['id', 'amount', 'branch_id', 'location_id', 'created_by', 'expense_date']).where('expense_date', '>=', fromDate).where('expense_date', '<=', toDate).where(this.tenantPredicate(auth)), query);
-    const returnsQuery = this.applyReportScopeFilter(this.db.selectFrom('return_documents').select(['id', 'return_type', 'total', 'branch_id', 'location_id', 'created_by', 'created_at']).where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
-    const treasuryQuery = this.applyReportScopeFilter(this.db.selectFrom('treasury_transactions').select(['amount', 'branch_id', 'location_id', 'created_by', 'created_at']).where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
-    const saleItemsQuery = this.applyReportScopeFilter(this.db.selectFrom('sale_items as si').innerJoin('sales as s', 's.id', 'si.sale_id').select(['si.product_id', 'si.product_name', 'si.qty', 'si.line_total', 'si.cost_price', 's.branch_id', 's.location_id', 's.created_by', 's.created_at']).where('s.status', '=', 'posted').where('s.created_at', '>=', fromDate).where('s.created_at', '<=', toDate).where(this.tenantPredicate(auth, 's')).where(this.tenantPredicate(auth, 'si')), query, 's');
-    const returnedSaleItemsQuery = this.applyReportScopeFilter(this.db.selectFrom('return_items as ri').innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id').leftJoin('sale_items as si', (join) => join.onRef('si.sale_id', '=', 'rd.invoice_id').onRef('si.product_id', '=', 'ri.product_id')).leftJoin('products as p', 'p.id', 'ri.product_id').select(['ri.qty', (eb) => eb.fn.coalesce('si.cost_price', 'p.cost_price').as('cost_price'), 'rd.branch_id', 'rd.location_id', 'rd.created_by', 'rd.created_at']).where('rd.return_type', '=', 'sale').where('rd.created_at', '>=', fromDate!).where('rd.created_at', '<=', toDate!).where(this.tenantPredicate(auth, 'rd')).where(this.tenantPredicate(auth, 'ri')), query, 'rd');
+    const salesQuery = applyReportScopeFilter(this.db.selectFrom('sales').select(['id', 'total', 'discount', 'delivery_fee', 'delivery_fee_mode', 'delivery_rep_id', 'branch_id', 'location_id', 'created_by', 'created_at']).where('status', '=', 'posted').where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
+    const purchasesQuery = applyReportScopeFilter(this.db.selectFrom('purchases').select(['id', 'total', 'branch_id', 'location_id', 'created_by', 'created_at']).where('status', '=', 'posted').where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
+    const servicesQuery = applyReportScopeFilter((this.db as any).selectFrom('services').select(['id', 'amount as total', 'branch_id', 'location_id', 'created_by', 'service_date as created_at']).where('is_active', '=', true).where('service_date', '>=', fromDate!).where('service_date', '<=', toDate!).where(this.tenantPredicate(auth)), query);
+    const expensesQuery = applyReportScopeFilter(this.db.selectFrom('expenses').select(['id', 'amount', 'branch_id', 'location_id', 'created_by', 'expense_date']).where('expense_date', '>=', fromDate).where('expense_date', '<=', toDate).where(this.tenantPredicate(auth)), query);
+    const returnsQuery = applyReportScopeFilter(this.db.selectFrom('return_documents').select(['id', 'return_type', 'total', 'branch_id', 'location_id', 'created_by', 'created_at']).where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
+    const treasuryQuery = applyReportScopeFilter(this.db.selectFrom('treasury_transactions').select(['amount', 'branch_id', 'location_id', 'created_by', 'created_at']).where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
+    const saleItemsQuery = applyReportScopeFilter(this.db.selectFrom('sale_items as si').innerJoin('sales as s', 's.id', 'si.sale_id').select(['si.product_id', 'si.product_name', 'si.qty', 'si.line_total', 'si.cost_price', 's.branch_id', 's.location_id', 's.created_by', 's.created_at']).where('s.status', '=', 'posted').where('s.created_at', '>=', fromDate).where('s.created_at', '<=', toDate).where(this.tenantPredicate(auth, 's')).where(this.tenantPredicate(auth, 'si')), query, 's');
+    const returnedSaleItemsQuery = applyReportScopeFilter(this.db.selectFrom('return_items as ri').innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id').leftJoin('sale_items as si', (join) => join.onRef('si.sale_id', '=', 'rd.invoice_id').onRef('si.product_id', '=', 'ri.product_id')).leftJoin('products as p', 'p.id', 'ri.product_id').select(['ri.qty', (eb) => eb.fn.coalesce('si.cost_price', 'p.cost_price').as('cost_price'), 'rd.branch_id', 'rd.location_id', 'rd.created_by', 'rd.created_at']).where('rd.return_type', '=', 'sale').where('rd.created_at', '>=', fromDate!).where('rd.created_at', '<=', toDate!).where(this.tenantPredicate(auth, 'rd')).where(this.tenantPredicate(auth, 'ri')), query, 'rd');
 
     const [
       salesRows,
@@ -801,156 +773,119 @@ export class ReportsService {
     }, auth);
   }
 
+  private async partnerBalances(type: 'customer' | 'supplier', query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const isCust = type === 'customer';
+    const table = isCust ? 'customers' : 'suppliers';
+    const ledgerTable = isCust ? 'customer_ledger' : 'supplier_ledger';
+    const partnerIdCol = isCust ? 'customer_id' : 'supplier_id';
+
+    const partners = await (this.db as any)
+      .selectFrom(table)
+      .select(isCust ? ['id', 'name', 'phone', 'balance', 'credit_limit'] : ['id', 'name', 'phone', 'balance'])
+      .where('is_active', '=', true)
+      .where(this.tenantPredicate(auth))
+      .orderBy('name', 'asc')
+      .execute();
+
+    const ledgerRows = await (this.db as any)
+      .selectFrom(ledgerTable)
+      .select([partnerIdCol, sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
+      .where(this.tenantPredicate(auth))
+      .groupBy(partnerIdCol)
+      .execute();
+
+    const totals = isCust
+      ? buildCustomerLedgerTotals(ledgerRows as Array<{ customer_id?: number | string | null; balance_total?: number | string | null }>)
+      : buildSupplierLedgerTotals(ledgerRows as Array<{ supplier_id?: number | string | null; balance_total?: number | string | null }>);
+
+    const payload = isCust
+      ? buildCustomerBalancesPayload(partners, totals, query as Record<string, unknown>)
+      : buildSupplierBalancesPayload(partners, totals, query as Record<string, unknown>);
+
+    return this.withScope(payload, auth);
+  }
+
+  private async partnerLedger(type: 'customer' | 'supplier', partnerId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const isCust = type === 'customer';
+    const table = isCust ? 'customers' : 'suppliers';
+    const ledgerTable = isCust ? 'customer_ledger' : 'supplier_ledger';
+    const partnerIdCol = isCust ? 'customer_id' : 'supplier_id';
+
+    const partner = await (this.db as any)
+      .selectFrom(table)
+      .select(isCust ? ['id', 'name', 'phone', 'balance', 'credit_limit'] : ['id', 'name', 'phone', 'balance'])
+      .where('id', '=', partnerId)
+      .where('is_active', '=', true)
+      .where(this.tenantPredicate(auth))
+      .executeTakeFirst();
+    if (!partner) throw new AppError(isCust ? 'Customer not found' : 'Supplier not found', isCust ? 'CUSTOMER_NOT_FOUND' : 'SUPPLIER_NOT_FOUND', 404);
+
+    const { fromDate, toDate, searchPattern, filter, page, pageSize, offset } = buildReportListState(query, 25);
+
+    let countQuery = (this.db as any)
+      .selectFrom(ledgerTable)
+      .where(partnerIdCol, '=', partnerId)
+      .where('created_at', '>=', fromDate!)
+      .where('created_at', '<=', toDate!)
+      .where(this.tenantPredicate(auth));
+
+    let entriesQuery = (this.db as any)
+      .selectFrom(ledgerTable)
+      .select(['id', 'entry_type', 'amount', 'balance_after', 'note', 'reference_type', 'reference_id', 'created_at'])
+      .where(partnerIdCol, '=', partnerId)
+      .where('created_at', '>=', fromDate!)
+      .where('created_at', '<=', toDate!)
+      .where(this.tenantPredicate(auth));
+
+    countQuery = applySignedAmountFilter(applyPartnerLedgerSearch(countQuery, searchPattern), 'amount', filter);
+    entriesQuery = applySignedAmountFilter(applyPartnerLedgerSearch(entriesQuery, searchPattern), 'amount', filter);
+
+    const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
+    const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
+    const rows = await entriesQuery.orderBy('created_at', 'asc').orderBy('id', 'asc').limit(pageSize).offset(offset).execute();
+
+    const totalsRow = await entriesQuery
+      .clearSelect()
+      .select([
+        sql<number>`coalesce(sum(case when amount > 0 then amount else 0 end), 0)`.as('debits_total'),
+        sql<number>`coalesce(sum(case when amount < 0 then amount else 0 end), 0)`.as('credits_total'),
+      ])
+      .executeTakeFirst();
+
+    const payload = isCust
+      ? buildCustomerLedgerPayload({ customer: partner, rows: rows as PartnerLedgerEntryRow[], page, pageSize, totalItems, totalsRow: totalsRow as LedgerSummaryRow | undefined })
+      : buildSupplierLedgerPayload({ supplier: partner, rows: rows as PartnerLedgerEntryRow[], page, pageSize, totalItems, totalsRow: totalsRow as LedgerSummaryRow | undefined });
+
+    return this.withScope(payload, auth);
+  }
+
   async customerBalances(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const customers = await this.db
-      .selectFrom('customers')
-      .select(['id', 'name', 'phone', 'balance', 'credit_limit'])
-      .where('is_active', '=', true)
-      .where(this.tenantPredicate(auth))
-      .orderBy('name', 'asc')
-      .execute();
-
-    const ledgerRows = await this.db
-      .selectFrom('customer_ledger')
-      .select(['customer_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
-      .where(this.tenantPredicate(auth))
-      .groupBy('customer_id')
-      .execute();
-
-    const ledgerTotals = buildCustomerLedgerTotals(ledgerRows as Array<{ customer_id?: number | string | null; balance_total?: number | string | null }>);
-    return this.withScope(buildCustomerBalancesPayload(customers, ledgerTotals, query as Record<string, unknown>), auth);
+    return this.partnerBalances('customer', query, auth);
   }
-
   async customerLedger(customerId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const customer = await this.db
-      .selectFrom('customers')
-      .select(['id', 'name', 'phone', 'balance', 'credit_limit'])
-      .where('id', '=', customerId)
-      .where('is_active', '=', true)
-      .where(this.tenantPredicate(auth))
-      .executeTakeFirst();
-    if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
-
-    const { fromDate, toDate, searchPattern, filter, page, pageSize, offset } = buildReportListState(query, 25);
-
-    let countQuery = this.db
-      .selectFrom('customer_ledger')
-      .where('customer_id', '=', customerId)
-      .where('created_at', '>=', fromDate!)
-      .where('created_at', '<=', toDate!)
-      .where(this.tenantPredicate(auth));
-
-    let entriesQuery = this.db
-      .selectFrom('customer_ledger')
-      .select(['id', 'entry_type', 'amount', 'balance_after', 'note', 'reference_type', 'reference_id', 'created_at'])
-      .where('customer_id', '=', customerId)
-      .where('created_at', '>=', fromDate!)
-      .where('created_at', '<=', toDate!)
-      .where(this.tenantPredicate(auth));
-
-    countQuery = applySignedAmountFilter(applyPartnerLedgerSearch(countQuery, searchPattern), 'amount', filter);
-    entriesQuery = applySignedAmountFilter(applyPartnerLedgerSearch(entriesQuery, searchPattern), 'amount', filter);
-
-    const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
-    const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
-    const rows = await entriesQuery.orderBy('created_at', 'asc').orderBy('id', 'asc').limit(pageSize).offset(offset).execute();
-
-    const totalsRow = await entriesQuery
-      .clearSelect()
-      .select([
-        sql<number>`coalesce(sum(case when amount > 0 then amount else 0 end), 0)`.as('debits_total'),
-        sql<number>`coalesce(sum(case when amount < 0 then amount else 0 end), 0)`.as('credits_total'),
-      ])
-      .executeTakeFirst();
-
-    return this.withScope(buildCustomerLedgerPayload({ customer, rows: rows as PartnerLedgerEntryRow[], page, pageSize, totalItems, totalsRow: totalsRow as LedgerSummaryRow | undefined }), auth);
+    return this.partnerLedger('customer', customerId, query, auth);
   }
-
   async supplierBalances(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const suppliers = await this.db
-      .selectFrom('suppliers')
-      .select(['id', 'name', 'phone', 'balance'])
-      .where('is_active', '=', true)
-      .where(this.tenantPredicate(auth))
-      .orderBy('name', 'asc')
-      .execute();
-
-    const ledgerRows = await this.db
-      .selectFrom('supplier_ledger')
-      .select(['supplier_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
-      .where(this.tenantPredicate(auth))
-      .groupBy('supplier_id')
-      .execute();
-
-    const ledgerTotals = buildSupplierLedgerTotals(ledgerRows as Array<{ supplier_id?: number | string | null; balance_total?: number | string | null }>);
-    return this.withScope(buildSupplierBalancesPayload(suppliers, ledgerTotals, query as Record<string, unknown>), auth);
+    return this.partnerBalances('supplier', query, auth);
   }
-
   async supplierLedger(supplierId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const supplier = await this.db
-      .selectFrom('suppliers')
-      .select(['id', 'name', 'phone', 'balance'])
-      .where('id', '=', supplierId)
-      .where('is_active', '=', true)
-      .where(this.tenantPredicate(auth))
-      .executeTakeFirst();
-    if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
-
-    const { fromDate, toDate, searchPattern, filter, page, pageSize, offset } = buildReportListState(query, 25);
-
-    let countQuery = this.db
-      .selectFrom('supplier_ledger')
-      .where('supplier_id', '=', supplierId)
-      .where('created_at', '>=', fromDate!)
-      .where('created_at', '<=', toDate!)
-      .where(this.tenantPredicate(auth));
-
-    let entriesQuery = this.db
-      .selectFrom('supplier_ledger')
-      .select(['id', 'entry_type', 'amount', 'balance_after', 'note', 'reference_type', 'reference_id', 'created_at'])
-      .where('supplier_id', '=', supplierId)
-      .where('created_at', '>=', fromDate!)
-      .where('created_at', '<=', toDate!)
-      .where(this.tenantPredicate(auth));
-
-    countQuery = applySignedAmountFilter(applyPartnerLedgerSearch(countQuery, searchPattern), 'amount', filter);
-    entriesQuery = applySignedAmountFilter(applyPartnerLedgerSearch(entriesQuery, searchPattern), 'amount', filter);
-
-    const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
-    const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
-    const rows = await entriesQuery.orderBy('created_at', 'asc').orderBy('id', 'asc').limit(pageSize).offset(offset).execute();
-
-    const totalsRow = await entriesQuery
-      .clearSelect()
-      .select([
-        sql<number>`coalesce(sum(case when amount > 0 then amount else 0 end), 0)`.as('debits_total'),
-        sql<number>`coalesce(sum(case when amount < 0 then amount else 0 end), 0)`.as('credits_total'),
-      ])
-      .executeTakeFirst();
-
-    return this.withScope(buildSupplierLedgerPayload({ supplier, rows: rows as PartnerLedgerEntryRow[], page, pageSize, totalItems, totalsRow: totalsRow as LedgerSummaryRow | undefined }), auth);
+    return this.partnerLedger('supplier', supplierId, query, auth);
   }
-
   async treasuryTransactions(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.withScope(await this.reportsAdminService.treasuryTransactions(query, auth), auth);
   }
-
   async employeeSummary(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.withScope(await this.reportsAdminService.employeeSummary(query, auth), auth);
   }
-
   async employeeDetails(userId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.withScope(await this.reportsAdminService.employeeDetails(userId, query, auth), auth);
   }
-
   async auditLogs(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.withScope(await this.reportsAdminService.auditLogs(query, auth), auth);
   }
-
   async debtAgingReport(auth: AuthContext): Promise<Record<string, unknown>> {
     return this.withScope(await this.reportsSummaryService.debtAgingReport(auth), auth);
   }
-
   async demandForecastingReport(auth: AuthContext): Promise<Record<string, unknown>> {
     return this.withScope(await this.reportsSummaryService.demandForecastingReport(auth), auth);
   }

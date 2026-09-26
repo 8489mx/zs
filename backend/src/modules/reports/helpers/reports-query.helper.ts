@@ -1,5 +1,34 @@
 import { ReportRangeQueryDto } from '../dto/report-query.dto';
 import { getPagination, parseRange } from './reports-range.helper';
+import { sql } from '../../../database/kysely';
+
+export function applyReportScopeFilter<T extends object>(queryBuilder: T, query: ReportRangeQueryDto, tableAlias?: string): T {
+  let qb: any = queryBuilder;
+  const branchCol = tableAlias ? `${tableAlias}.branch_id` : 'branch_id';
+  const locCol = tableAlias ? `${tableAlias}.location_id` : 'location_id';
+  const userCol = tableAlias ? `${tableAlias}.created_by` : 'created_by';
+
+  if (query.branchId != null) {
+    const branchIdNum = Number(query.branchId);
+    if (Number.isFinite(branchIdNum) && branchIdNum > 0) {
+      qb = qb.where(sql.ref(branchCol), '=', branchIdNum);
+    }
+  }
+  if (query.locationId != null) {
+    const locIdNum = Number(query.locationId);
+    if (Number.isFinite(locIdNum) && locIdNum > 0) {
+      qb = qb.where(sql.ref(locCol), '=', locIdNum);
+    }
+  }
+  const targetUserId = query.userId ?? (query as Record<string, unknown>).createdBy;
+  if (targetUserId != null) {
+    const userIdNum = Number(targetUserId);
+    if (Number.isFinite(userIdNum) && userIdNum > 0) {
+      qb = qb.where(sql.ref(userCol), '=', userIdNum);
+    }
+  }
+  return qb;
+}
 
 export type ReportListState = {
   range?: { from: string; to: string };
