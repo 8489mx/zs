@@ -717,8 +717,106 @@ export interface DeliveryRepresentativeTable {
   vehicle_plate: string | null;
   pin_hash?: string | null;
   pin_salt?: string | null;
-  rep_type?: 'freelance' | 'store_fleet' | string | null;
+  rep_type?: 'freelance' | 'store_fleet' | 'delivery' | 'van' | 'both' | string | null;
+  is_van_rep?: boolean;
+  van_location_id?: number | null;
   is_active: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface FleetVehicleTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  plate_number: string;
+  model_name?: string | null;
+  vehicle_type?: string;
+  vin_chassis?: string | null;
+  van_location_id?: number | null;
+  branch_id?: number | null;
+  current_odometer?: number;
+  fuel_type?: string | null;
+  license_expires_at?: string | null;
+  status?: string;
+  assigned_rep_id?: number | null;
+  notes?: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface VanSalesTripTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  rep_id: number;
+  vehicle_id?: number | null;
+  shift_name?: string | null;
+  van_location_id: number;
+  source_warehouse_id: number;
+  status: 'open' | 'settled' | string;
+  opened_at: ColumnType<Date, string | undefined, never>;
+  closed_at?: Date | null;
+  start_odometer?: number | null;
+  end_odometer?: number | null;
+  loaded_amount?: number;
+  sales_amount?: number;
+  cash_collected?: number;
+  credit_sales?: number;
+  returns_amount?: number;
+  variance?: number;
+  notes?: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface VanFieldReturnTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  doc_no: string;
+  trip_id: number;
+  rep_id: number;
+  customer_id: number;
+  sale_id?: number | null;
+  status: 'pending_approval' | 'approved' | 'rejected' | string;
+  return_reason: 'damaged' | 'expired' | 'manufacturing_defect' | 'stagnant' | 'order_mismatch' | 'customer_request' | string;
+  total_amount: number;
+  items_json: ColumnType<string | any, string | any, string | any>;
+  notes?: string | null;
+  rejection_reason?: string | null;
+  approved_by?: number | null;
+  approved_at?: Date | string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface DeliveryRepTargetTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  rep_id: number;
+  period_month: string;
+  target_amount: number;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface VanLoadRequisitionTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  doc_no: string;
+  rep_id: number;
+  source_warehouse_id: number;
+  status: 'pending' | 'approved' | 'rejected' | 'dispatched' | string;
+  requested_items: ColumnType<string | any, string | any, string | any>;
+  approved_items?: ColumnType<string | any | null, string | any | null, string | any | null>;
+  notes?: string | null;
+  rejection_reason?: string | null;
+  reviewed_by?: number | null;
+  reviewed_at?: Date | string | null;
+  trip_id?: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -990,6 +1088,9 @@ export interface CustomerLedgerTable {
   return_document_id: number | null;
   branch_id: number | null;
   location_id: number | null;
+  van_trip_id?: number | null;
+  gps_lat?: number | null;
+  gps_lng?: number | null;
   created_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
 }
@@ -1928,6 +2029,11 @@ export interface Database {
   price_change_runs: PriceChangeRunTable;
   price_change_items: PriceChangeItemTable;
   delivery_representatives: DeliveryRepresentativeTable;
+  fleet_vehicles: FleetVehicleTable;
+  van_sales_trips: VanSalesTripTable;
+  van_field_returns: VanFieldReturnTable;
+  delivery_rep_targets: DeliveryRepTargetTable;
+  van_load_requisitions: VanLoadRequisitionTable;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;

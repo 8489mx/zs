@@ -33,7 +33,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
           boxSizing: 'border-box',
         }}
       />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
         {filteredInventory.map((item) => (
           <div
             key={item.productId}
@@ -45,15 +45,30 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: '10px',
+              gap: '12px',
             }}
           >
-            <div style={{ minWidth: 0 }}>
-              <h4 style={{ margin: 0, fontWeight: 800, fontSize: '12.5px', color: '#0f172a' }}>{item.productName}</h4>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h4 style={{ margin: 0, fontWeight: 800, fontSize: '13px', color: '#0f172a' }}>{item.productName}</h4>
               <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace', display: 'block' }}>{item.barcode}</span>
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669', display: 'block', marginTop: '2px' }}>
-                {item.retailPrice.toFixed(2)} <CurrencySymbol />
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#059669' }}>
+                  {item.retailPrice.toFixed(2)} <CurrencySymbol />
+                </span>
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    fontWeight: 600,
+                    color: '#64748b',
+                    backgroundColor: '#f1f5f9',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                  }}
+                  title="الكمية المتاحة حالياً في المستودع الرئيسي"
+                >
+                  المستودع الرئيسي: {item.mainWarehouseQty ?? 0}
+                </span>
+              </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
               <span
@@ -66,14 +81,15 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                   borderRadius: '6px',
                   border: '1px solid #c7d2fe',
                 }}
+                title="الكمية المحملة داخل سيارة التوزيع"
               >
-                {item.qty} {item.unitName || 'قطعة'}
+                السيارة: {item.qty} {item.unitName || 'قطعة'}
               </span>
               <button
                 type="button"
                 onClick={() => onAddToCart(item)}
                 style={{
-                  fontSize: '11px',
+                  fontSize: '11.5px',
                   backgroundColor: '#170e5e',
                   color: '#ffffff',
                   fontWeight: 700,

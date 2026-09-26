@@ -1,6 +1,7 @@
 import React from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 
 export interface CartItem {
   productId: number;
@@ -66,21 +67,19 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
 
       <div>
         <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>اختيار المحل / العميل:</label>
-        <select
-          value={selectedCustomerId}
-          onChange={(e) => {
-            const val = e.target.value ? Number(e.target.value) : '';
-            onSelectCustomer(val);
-          }}
-          style={{ width: '100%', height: '40px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', fontSize: '12px', fontWeight: 600 }}
-        >
-          <option value="">-- عميل نقدي عام (أو اختر من خط السير) --</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} {c.phone ? `(${c.phone})` : ''} - مديونية: {c.balance.toFixed(2)} <CurrencySymbol />
-            </option>
-          ))}
-        </select>
+        <CustomSelect
+          value={selectedCustomerId ? String(selectedCustomerId) : ''}
+          onChange={(val) => onSelectCustomer(val ? Number(val) : '')}
+          options={[
+            { value: '', label: '-- عميل نقدي عام (أو اختر من خط السير) --' },
+            ...customers.map((c) => ({
+              value: String(c.id),
+              label: `${c.name} ${c.phone ? `(${c.phone})` : ''}`,
+              hint: `مديونية: ${c.balance.toFixed(2)}`,
+            })),
+          ]}
+          placeholder="اختر المحل / العميل"
+        />
       </div>
 
       {!selectedCustomerId && (

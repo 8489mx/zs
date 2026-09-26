@@ -3116,6 +3116,237 @@ export class AccountingPostingService {
     return { posted: true, journalEntryId: entryId };
   }
 
+  /**
+   * A van/field sale posts (via postSale) as a receivable rather than straight to cash — the money,
+   * if any was collected, is physically in the rep's pocket, not the till. This is the same "collect
+   * now, settle later" shape as postDeliveryRepSettlement, generalized to a whole trip: it reduces
+   * that pooled receivable by the amount the rep actually hands over, and reconciles the difference
+   * against a shortage/overage account (mirroring the cashier-shift variance treatment) rather than
+   * silently adjusting cash by whatever was collected.
+   */
+  async postVanTripSettlement(
+    queryable: DbOrTx,
+    tripId: number,
+    params: { expectedCash: number; countedCash: number; branchId: number | null; locationId: number | null },
+    auth: AuthContext,
+  ): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const existing = await queryable.selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', '=', 'van_trip_settlement')
+      .where('source_id', '=', tripId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const expected = this.toMoney(params.expectedCash);
+    const counted = this.toMoney(params.countedCash);
+    if (expected <= 0 && counted <= 0) return { posted: false, journalEntryId: null };
+    const variance = this.toMoney(counted - expected);
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    if (!settings) throw new Error(`Accounting settings missing while posting van trip settlement ${tripId}`);
+
+    let cashAccountId = Number(settings.cash_account_id || 0);
+    if (!(cashAccountId > 0)) cashAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1110');
+    let receivableAccountId = Number(settings.customer_receivable_account_id || 0);
+    if (!(receivableAccountId > 0)) receivableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
+
+    const lines: JournalLineDraft[] = [];
+    const branchId = params.branchId;
+    const locationId = params.locationId;
+
+    if (expected > 0) {
+      this.addLine(lines, { accountId: receivableAccountId, description: `تصفية عهدة نقدية مندوب - رحلة #${tripId}`, debit: 0, credit: expected, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+
+    if (variance < -0.01) {
+      const shortageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7200');
+      this.addLine(lines, { accountId: shortageAccountId, description: `عجز تصفية رحلة توزيع #${tripId}`, debit: Math.abs(variance), credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+    } else if (variance > 0.01) {
+      const overageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100');
+      this.addLine(lines, { accountId: overageAccountId, description: `زيادة تصفية رحلة توزيع #${tripId}`, debit: 0, credit: variance, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+
+    if (counted > 0) {
+      this.addLine(lines, { accountId: cashAccountId, description: `نقدية مسلَّمة من مندوب - رحلة #${tripId}`, debit: counted, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+
+    if (lines.length === 0) return { posted: false, journalEntryId: null };
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'van_trip_settlement',
+        sourceId: tripId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد تصفية رحلة توزيع #${tripId}`,
+        branchId,
+        locationId,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_van_sales_uniq')) {
+        const existing2 = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'van_trip_settlement').where('source_id', '=', tripId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing2?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * A field debt collection is also cash sitting with the rep until the trip is settled, so it
+   * cannot go straight to the cash account either. It moves the amount out of the customer's own
+   * receivable and into the same pooled "none"-partner receivable that postVanTripSettlement later
+   * clears against cash — the mirror image of postSale crediting a customer's receivable into that
+   * same pool at sale time.
+   */
+  async postVanFieldCollection(
+    queryable: DbOrTx,
+    collectionId: number,
+    params: { amount: number; customerId: number; branchId: number | null; locationId: number | null },
+    auth: AuthContext,
+  ): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const amount = this.toMoney(params.amount);
+    if (!(amount > 0)) return { posted: false, journalEntryId: null };
+
+    const existing = await queryable.selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', '=', 'van_field_collection')
+      .where('source_id', '=', collectionId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    if (!settings) throw new Error(`Accounting settings missing while posting van field collection ${collectionId}`);
+
+    let receivableAccountId = Number(settings.customer_receivable_account_id || 0);
+    if (!(receivableAccountId > 0)) receivableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
+
+    const branchId = params.branchId;
+    const locationId = params.locationId;
+    const lines: JournalLineDraft[] = [
+      { accountId: receivableAccountId, description: `تحصيل ميداني بواسطة مندوب - عهدة نقدية`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId },
+      { accountId: receivableAccountId, description: `تحصيل ميداني بواسطة مندوب - سداد مديونية عميل`, debit: 0, credit: amount, partnerType: 'customer', partnerId: params.customerId, branchId, locationId },
+    ];
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'van_field_collection',
+        sourceId: collectionId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد تحصيل ميداني #${collectionId}`,
+        branchId,
+        locationId,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_van_sales_uniq')) {
+        const existing2 = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'van_field_collection').where('source_id', '=', collectionId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing2?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * An approved field return reverses the two things the original sale posted: the revenue (net of
+   * whatever discount the return price itself already reflects) and the COGS/inventory pair, using
+   * the product's actual cost — not the return's unit price, which is a selling price, not a cost.
+   * The receivable side always credits the named customer (submitFieldReturn requires one), whether
+   * the original sale was cash-via-rep-custody or a real customer credit sale, matching what
+   * approveFieldReturn already writes to customers.balance/customer_ledger for every return.
+   */
+  async postVanFieldReturn(
+    queryable: DbOrTx,
+    returnId: number,
+    params: {
+      customerId: number;
+      totalAmount: number;
+      items: { productId: number; qty: number; costPrice: number }[];
+      branchId: number | null;
+      locationId: number | null;
+    },
+    auth: AuthContext,
+  ): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const amount = this.toMoney(params.totalAmount);
+    if (!(amount > 0)) return { posted: false, journalEntryId: null };
+
+    const existing = await queryable.selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', '=', 'van_field_return')
+      .where('source_id', '=', returnId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    if (!settings) throw new Error(`Accounting settings missing while posting van field return ${returnId}`);
+
+    let revenueAccountId = Number(settings.sales_revenue_account_id || 0);
+    if (!(revenueAccountId > 0)) revenueAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '4100');
+    let receivableAccountId = Number(settings.customer_receivable_account_id || 0);
+    if (!(receivableAccountId > 0)) receivableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
+    let cogsAccountId = Number(settings.cogs_account_id || 0);
+    if (!(cogsAccountId > 0)) cogsAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5100');
+    let inventoryAccountId = Number(settings.inventory_account_id || 0);
+    if (!(inventoryAccountId > 0)) inventoryAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1140');
+
+    const branchId = params.branchId;
+    const locationId = params.locationId;
+    const lines: JournalLineDraft[] = [
+      { accountId: revenueAccountId, description: `عكس إيراد مبيعات - مرتجع ميداني #${returnId}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId },
+      { accountId: receivableAccountId, description: `تخفيض مديونية عميل - مرتجع ميداني #${returnId}`, debit: 0, credit: amount, partnerType: 'customer', partnerId: params.customerId, branchId, locationId },
+    ];
+
+    const cogsAmount = this.toMoney(params.items.reduce((sum, it) => sum + (Number(it.qty || 0) * Number(it.costPrice || 0)), 0));
+    if (cogsAmount > 0) {
+      this.addLine(lines, { accountId: inventoryAccountId, description: `إعادة بضاعة للمخزون - مرتجع ميداني #${returnId}`, debit: cogsAmount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      this.addLine(lines, { accountId: cogsAccountId, description: `عكس تكلفة البضاعة المباعة - مرتجع ميداني #${returnId}`, debit: 0, credit: cogsAmount, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'van_field_return',
+        sourceId: returnId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد مرتجع ميداني معتمد #${returnId}`,
+        branchId,
+        locationId,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_van_sales_uniq')) {
+        const existing2 = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'van_field_return').where('source_id', '=', returnId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing2?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
   async postPdcChequeReceive(queryable: DbOrTx, chequeId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);

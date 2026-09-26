@@ -19,12 +19,17 @@ function testVanSalesReadsStayInTenant(): void {
     );
   }
 
-  // Every trip fetched by an id from the request body belongs to the calling rep, not just the tenant.
-  const tripLookups = [...src.matchAll(/\.where\('vt\.id', '=', payload\.tripId\)([\s\S]{0,300}?)\.executeTakeFirst(OrThrow)?\(\)/g)];
+  // Every trip fetched by an id from the request body belongs to the calling rep, not just the
+  // tenant. Matches both the `vt.`-aliased style (executeFieldSale, recordFieldCollection,
+  // settleTrip) and the plain, unaliased style (submitFieldReturn) — the safety property is the
+  // same either way, and recordFieldReturn's removal (it bypassed the field-return approval
+  // workflow entirely; see the exact same file's history) is exactly why this dropped from 4 to 3
+  // under the old vt.-only regex, not because any remaining lookup lost its scope.
+  const tripLookups = [...src.matchAll(/\.where\('(?:vt\.)?id', '=', payload\.tripId\)([\s\S]{0,300}?)\.executeTakeFirst(OrThrow)?\(\)/g)];
   assert.ok(tripLookups.length >= 4, 'the trip lookups are still there');
   for (const match of tripLookups) {
-    assert.ok(match[1].includes("vt.tenant_id"), 'O27: trip lookup filters by tenant');
-    assert.ok(match[1].includes("vt.rep_id"), `O27: trip lookup must also filter by rep_id:\n${match[0].slice(0, 200)}`);
+    assert.ok(/\b(?:vt\.)?tenant_id\b/.test(match[1]), 'O27: trip lookup filters by tenant');
+    assert.ok(/\b(?:vt\.)?rep_id\b/.test(match[1]), `O27: trip lookup must also filter by rep_id:\n${match[0].slice(0, 200)}`);
   }
 }
 
