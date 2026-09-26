@@ -24,13 +24,12 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
   const handleLoadToPos = async (orderId: number) => {
     setLoadingPosOrderId(orderId);
     try {
-      await loadOnlineOrderIntoPosCart(orderId, () => {
-        window.location.reload();
-      });
+      await loadOnlineOrderIntoPosCart(orderId);
+      toast.success('تم تنزيل طلب المتجر في سلة الكاشير بنجاح');
       onClose();
     } catch (err: any) {
       setLoadingPosOrderId(null);
-      alert(`تعذر تنزيل الطلب في السلة: ${err.message || 'خطأ غير متوقع'}`);
+      toast.error(`تعذر تنزيل الطلب في السلة: ${err.message || 'خطأ غير متوقع'}`);
     }
   };
 
@@ -158,19 +157,35 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                         <span style={{ fontWeight: 800, fontSize: '14px', color: '#170e5e' }}>
                           #{order.orderNumber}
                         </span>
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            padding: '2px 8px',
-                            borderRadius: '6px',
-                            background: '#fef3c7',
-                            color: '#92400e',
-                            border: '1px solid #fde68a',
-                          }}
-                        >
-                          قيد الانتظار
-                        </span>
+                        {order.orderType === 'dine_in' || order.tableNumber ? (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              background: '#ecfdf5',
+                              color: '#065f46',
+                              border: '1px solid #a7f3d0',
+                            }}
+                          >
+                            طلب صالة • طاولة {order.tableNumber || '—'}
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              background: '#fef3c7',
+                              color: '#92400e',
+                              border: '1px solid #fde68a',
+                            }}
+                          >
+                            قيد الانتظار
+                          </span>
+                        )}
                       </div>
                       <span style={{ fontSize: '12px', color: '#64748b' }}>
                         {new Date(order.createdAt).toLocaleTimeString('ar-EG', {

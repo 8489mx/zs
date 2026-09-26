@@ -1,13 +1,17 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
-import { XIcon, AlertTriangleIcon, SlidersIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, AlertTriangleIcon, SlidersIcon, QrCodeIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { settingsApi } from '@/features/settings/api/settings.api';
+import { storefrontApi } from '@/features/storefront/api/storefront.api';
+import { loadOnlineOrderIntoPosCart } from '@/features/storefront/lib/storefront-pos-loader';
+import { TableQrPrintDialog } from './TableQrPrintDialog';
 import type { AppSettings } from '@/types/domain';
 import type { HeldPosDraftSummary } from '@/features/pos/components/pos-cart-panel/posCartPanel.types';
+import type { OnlineOrderRecord } from '@/features/storefront/types/storefront.types';
 
 interface PosTablesFloorPlanDialogProps {
   open: boolean;

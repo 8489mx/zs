@@ -43,6 +43,21 @@ export const storefrontApi = {
   getInfo: async (slug: string) =>
     withResolvedInfoMedia(await http<StorefrontInfo>(`/api/storefront/${encodeURIComponent(slug)}/info`)),
 
+  getTablesQr: (slug: string, from = 1, to = 20) =>
+    http<{
+      ok: boolean;
+      slug: string;
+      tenantName: string;
+      totalTables: number;
+      tables: Array<{
+        tableNumber: number;
+        tableName: string;
+        url: string;
+        slug: string;
+        tenantName: string;
+      }>;
+    }>(`/api/storefront/${encodeURIComponent(slug)}/tables-qr?from=${from}&to=${to}`),
+
   // Order-scoped public routes carry the order's access token (invariant SF-1).
   createPaymentSession: (slug: string, orderNumber: string, token: string) =>
     http<StorefrontPaymentSessionResponse>(

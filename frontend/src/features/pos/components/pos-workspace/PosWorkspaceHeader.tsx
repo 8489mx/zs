@@ -11,6 +11,7 @@ import { PosOnlineOrderFloatingAlert } from './PosOnlineOrderFloatingAlert';
 import { PosOfflineQueueModal } from './PosOfflineQueueModal';
 import { playNotificationChime } from '@/lib/audio-chime';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { toast } from '@/shared/components/system-alert';
 
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
@@ -514,7 +515,7 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
         }}
         onTransferTable={(from, to) => {
           pos.setTableNumber(to);
-          alert(`تم نقل الطلب بنجاح من طاولة ${from} إلى طاولة ${to}!`);
+          toast.success(`تم نقل الطلب بنجاح من طاولة ${from} إلى طاولة ${to}`);
         }}
       />
     )}

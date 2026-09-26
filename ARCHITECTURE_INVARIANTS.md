@@ -149,6 +149,7 @@ const payload = verifyPortalToken<T>(authHeader, PORTAL_TOKEN_ERRORS);
 يفرض ثلاثة أشياء لا يوفّرها التوقيع اليدوي:
 - **فشل آمن على السر:** في `CLOUD_SAAS` غياب `SESSION_SECRET` (أو سر أقصر من 16 محرفاً) **يرفض
   الإصدار والتحقق معاً** (`PORTAL_TOKEN_SECRET_MISSING`). لا يوجد سر افتراضي في السحابة إطلاقاً.
+  وفي البيئات المحلية المعزولة والبايلوت (`SELF_CONTAINED`, `LOCAL_PILOT`, `PORTABLE`) يُستخدم سر محلي معتمد عند غياب السر البيئي.
 - **مقارنة ثابتة الزمن:** `timingSafeEqual`، لا `signature !== expected`.
 - **عمر موحّد:** `iat`/`exp` تُضافان في مكان واحد بدل ثلاث نسخ متباينة.
 

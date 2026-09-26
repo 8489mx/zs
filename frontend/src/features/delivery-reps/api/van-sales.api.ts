@@ -150,6 +150,30 @@ export interface VanLoadRequisitionRecord {
   createdAt: string;
 }
 
+export interface DriverWarehouse {
+  id: number;
+  name: string;
+  code: string;
+  locationType: string;
+}
+
+export interface DriverProductStock {
+  warehouseId: number;
+  warehouseName: string;
+  qty: number;
+}
+
+export interface DriverAvailableProduct {
+  id: number;
+  name: string;
+  barcode: string;
+  sku: string;
+  retailPrice: number;
+  unit: string;
+  totalStock: number;
+  warehouseStocks: DriverProductStock[];
+}
+
 export interface RepTargetSummary {
   repId: number;
   repName: string;
@@ -300,8 +324,8 @@ export const vanSalesApi = {
   },
 
   submitLoadRequisition: async (payload: {
-    sourceWarehouseId: number;
-    items: { productId: number; qty: number }[];
+    sourceWarehouseId?: number;
+    items: { productId: number; qty: number; sourceWarehouseId?: number; sourceWarehouseName?: string }[];
     notes?: string;
   }): Promise<{ ok: boolean; docNo: string; requisitionId: number }> => {
     return http('/api/driver-portal/van-sales/requisitions', {
@@ -317,6 +341,23 @@ export const vanSalesApi = {
       { headers: getDriverAuthHeaders() },
     );
     return res.requisitions || [];
+  },
+
+  getWarehouses: async (): Promise<DriverWarehouse[]> => {
+    const res = await http<{ ok: boolean; warehouses: DriverWarehouse[] }>(
+      '/api/driver-portal/van-sales/warehouses',
+      { headers: getDriverAuthHeaders() },
+    );
+    return res.warehouses || [];
+  },
+
+  getAvailableProducts: async (warehouseId?: string): Promise<DriverAvailableProduct[]> => {
+    const query = warehouseId && warehouseId !== 'all' ? `?warehouseId=${warehouseId}` : '';
+    const res = await http<{ ok: boolean; products: DriverAvailableProduct[] }>(
+      `/api/driver-portal/van-sales/available-products${query}`,
+      { headers: getDriverAuthHeaders() },
+    );
+    return res.products || [];
   },
 
   getMyTarget: async (month?: string): Promise<{ repId: number; repName: string; metrics: RepTargetMetrics }> => {
@@ -463,6 +504,14 @@ export const vanSalesApi = {
     const qs = sp.toString();
     const res = await http<{ ok: boolean; requisitions: VanLoadRequisitionRecord[] }>(`/api/van-sales/admin/requisitions${qs ? `?${qs}` : ''}`);
     return res.requisitions || [];
+  },
+
+  getAdminAvailableProducts: async (warehouseId?: number): Promise<DriverAvailableProduct[]> => {
+    const query = warehouseId ? `?warehouseId=${warehouseId}` : '';
+    const res = await http<{ ok: boolean; products: DriverAvailableProduct[] }>(
+      `/api/van-sales/admin/available-products${query}`,
+    );
+    return res.products || [];
   },
 
   reviewRequisition: async (id: number, approvedItems: { productId: number; qty: number }[], notes?: string) => {

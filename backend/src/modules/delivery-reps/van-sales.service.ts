@@ -312,7 +312,8 @@ export class VanSalesService {
         .select(['id'])
         .where('tenant_id', '=', tenantId)
         .where(sql<boolean>`location_type in ('branch_stock', 'internal_warehouse')`)
-        .orderBy('is_primary', 'desc')
+        .where('is_active', '=', true)
+        .orderBy('id', 'asc')
         .executeTakeFirst();
       if (defaultWh) sourceWarehouseId = Number(defaultWh.id);
     }
@@ -509,11 +510,16 @@ export class VanSalesService {
         const qty = Number(item.qty || 0);
         if (qty <= 0) continue;
 
+        const effectiveLocId = Number((item as any).sourceWarehouseId || sourceLocId);
+        if (effectiveLocId === vanLoc.id) {
+          throw new AppError('لا يمكن أن يكون المستودع المصدر هو نفس سيارة المندوب', 'INVALID_SOURCE_WAREHOUSE', 400);
+        }
+
         const sourceStock = await trxAny
           .selectFrom('product_location_stock')
           .select(['qty'])
           .where('product_id', '=', pid)
-          .where('location_id', '=', sourceLocId)
+          .where('location_id', '=', effectiveLocId)
           .where('tenant_id', '=', tenantId)
           .forUpdate()
           .executeTakeFirst();
@@ -543,7 +549,7 @@ export class VanSalesService {
         await this.moveVanStock(trx, {
           productId: pid,
           delta: -qty,
-          locationId: sourceLocId,
+          locationId: effectiveLocId,
           tenantId,
           accountId,
           userId: null,
@@ -2439,13 +2445,34 @@ export class VanSalesService {
     tenantId: string,
     accountId: string,
     payload: {
-      sourceWarehouseId: number;
-      items: { productId: number; qty: number }[];
+      sourceWarehouseId?: number;
+      items: { productId: number; qty: number; sourceWarehouseId?: number; sourceWarehouseName?: string }[];
       notes?: string;
     },
   ) {
     if (!payload.items || !payload.items.length) {
       throw new AppError('يجب تحديد صنف واحد على الأقل لطلب التحميل', 'EMPTY_LOAD_ITEMS', 400);
+    }
+
+    let sourceWarehouseId = payload.sourceWarehouseId ? Number(payload.sourceWarehouseId) : 0;
+    if (!sourceWarehouseId) {
+      if (payload.items[0]?.sourceWarehouseId) {
+        sourceWarehouseId = Number(payload.items[0].sourceWarehouseId);
+      } else {
+        const defaultWh = await this.anyDb
+          .selectFrom('stock_locations')
+          .select(['id'])
+          .where('tenant_id', '=', tenantId)
+          .where('is_active', '=', true)
+          .where('location_type', '!=', 'van_stock')
+          .orderBy('id', 'asc')
+          .executeTakeFirst();
+        if (defaultWh) sourceWarehouseId = Number(defaultWh.id);
+      }
+    }
+
+    if (!sourceWarehouseId) {
+      throw new AppError('تعذر تحديد المستودع المصدر لطلب التحميل', 'INVALID_SOURCE_WAREHOUSE', 400);
     }
 
     const tempDocNo = `TMP-REQ-${Date.now()}`;
@@ -2456,7 +2483,7 @@ export class VanSalesService {
         account_id: accountId,
         doc_no: tempDocNo,
         rep_id: repId,
-        source_warehouse_id: payload.sourceWarehouseId,
+        source_warehouse_id: sourceWarehouseId,
         status: 'pending',
         requested_items: JSON.stringify(payload.items),
         approved_items: JSON.stringify(payload.items),
@@ -2673,5 +2700,96 @@ export class VanSalesService {
       .execute();
 
     return { ok: true, requisitionId, status: 'rejected' };
+  }
+
+  /**
+   * Returns active non-van storage warehouses for driver loading requisitions.
+   */
+  async getDriverWarehouses(tenantId: string) {
+    const rows = await this.anyDb
+      .selectFrom('stock_locations')
+      .select(['id', 'name', 'code', 'location_type'])
+      .where('tenant_id', '=', tenantId)
+      .where('is_active', '=', true)
+      .where('location_type', '!=', 'van_stock')
+      .orderBy('id', 'asc')
+      .execute();
+
+    return rows.map((r: any) => ({
+      id: Number(r.id),
+      name: r.name,
+      code: r.code || '',
+      locationType: r.location_type,
+    }));
+  }
+
+  /**
+   * Returns available products and real-time stock levels across warehouses for driver requisition.
+   */
+  async getDriverAvailableProducts(tenantId: string, warehouseId?: number) {
+    const products = await this.anyDb
+      .selectFrom('products as p')
+      .select([
+        'p.id',
+        'p.name',
+        'p.barcode',
+        'p.retail_price',
+        'p.is_active',
+      ])
+      .where('p.tenant_id', '=', tenantId)
+      .where('p.is_active', '=', true)
+      .orderBy('p.name', 'asc')
+      .execute();
+
+    let stockQuery = this.anyDb
+      .selectFrom('product_location_stock as pls')
+      .innerJoin('stock_locations as sl', 'sl.id', 'pls.location_id')
+      .select([
+        'pls.product_id',
+        'pls.location_id',
+        'sl.name as location_name',
+        sql<number>`cast(coalesce(pls.qty, 0) as numeric)`.as('qty'),
+      ])
+      .where('pls.tenant_id', '=', tenantId)
+      .where('sl.is_active', '=', true)
+      .where('sl.location_type', '!=', 'van_stock');
+
+    if (warehouseId && warehouseId > 0) {
+      stockQuery = stockQuery.where('pls.location_id', '=', warehouseId);
+    }
+
+    const stockRows = await stockQuery.execute();
+
+    const stockMap = new Map<number, Array<{ warehouseId: number; warehouseName: string; qty: number }>>();
+    for (const row of stockRows) {
+      const pid = Number(row.product_id);
+      const qty = Number(row.qty || 0);
+      if (qty > 0) {
+        const list = stockMap.get(pid) || [];
+        list.push({
+          warehouseId: Number(row.location_id),
+          warehouseName: row.location_name,
+          qty,
+        });
+        stockMap.set(pid, list);
+      }
+    }
+
+    return products.map((p: any) => {
+      const pId = Number(p.id);
+      const whStocks = stockMap.get(pId) || [];
+      const totalStock = whStocks.reduce((sum, w) => sum + w.qty, 0);
+
+      return {
+        id: pId,
+        name: p.name,
+        barcode: p.barcode || '',
+        sku: p.barcode || '',
+        retailPrice: Number(p.retail_price || 0),
+        unit: 'قطعة',
+        totalStock,
+        warehouseStocks: whStocks,
+      };
+    });
   }
 }

@@ -102,7 +102,7 @@ function apiPayload(pathname: string) {
   }
   if (pathname === '/api/auth/me') {
     return {
-      user: { id: 'user-1', username: 'admin', role: 'super_admin', permissions, displayName: 'Admin', branchIds: ['branch-1'], defaultBranchId: 'branch-1' },
+      user: { id: 'user-1', username: 'admin', role: 'super_admin', tenantId: 'zs', permissions, displayName: 'Admin', branchIds: ['branch-1'], defaultBranchId: 'branch-1' },
       settings: { storeName: settings.storeName, theme: settings.theme },
       security: { mustChangePassword: false, usingDefaultAdminPassword: false },
     };

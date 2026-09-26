@@ -14,6 +14,7 @@ import { usePosOperationalContext } from '@/features/pos/hooks/usePosOperational
 import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
 import { usePosCustomerDisplayBroadcaster } from '@/features/pos/hooks/usePosCustomerDisplayBroadcaster';
 import { useAuthStore } from '@/stores/auth-store';
+import { loadPosWorkspaceStorage } from '@/features/pos/lib/pos.persistence';
 
 const posReferenceStaleTime = 45_000;
 
@@ -228,6 +229,28 @@ export function usePosWorkspace() {
       state.setDeliveryFee(defaultDeliveryFee);
     }
   }, [settingsQuery.data?.defaultDeliveryFee, state.orderType, state.deliveryFee, state.setDeliveryFee]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleReloadDraft = () => {
+      const storage = loadPosWorkspaceStorage();
+      const nextDraft = storage.draft;
+      if (!nextDraft) return;
+      state.setCart(nextDraft.cart || []);
+      state.setCustomerId(nextDraft.customerId || '');
+      state.setQuickCustomerName(nextDraft.quickCustomerName || nextDraft.customerName || '');
+      state.setQuickCustomerPhone(nextDraft.quickCustomerPhone || nextDraft.customerPhone || '');
+      state.setQuickCustomerAddress(nextDraft.quickCustomerAddress || nextDraft.customerAddress || '');
+      state.setDiscount(Number(nextDraft.discount || 0));
+      state.setDeliveryFee(Number(nextDraft.deliveryFee || 0));
+      state.setTableNumber(nextDraft.tableNumber || '');
+      state.setOrderType(nextDraft.orderType || 'takeaway');
+      state.setNote(nextDraft.note || '');
+      state.setSubmitMessage('تم استلام ودمج طلب المتجر في سلة الكاشير بنجاح');
+    };
+    window.addEventListener('zs_pos_reload_draft', handleReloadDraft);
+    return () => window.removeEventListener('zs_pos_reload_draft', handleReloadDraft);
+  }, [state]);
 
   const actions = createPosWorkspaceActions({
     cart: state.cart,

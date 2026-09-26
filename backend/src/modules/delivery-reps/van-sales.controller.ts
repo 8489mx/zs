@@ -88,7 +88,11 @@ export class VanSalesController {
   @Post('requisitions')
   async submitLoadRequisition(
     @Headers('authorization') authHeader: string,
-    @Body() body: { sourceWarehouseId: number; items: { productId: number; qty: number }[]; notes?: string },
+    @Body() body: {
+      sourceWarehouseId?: number;
+      items: { productId: number; qty: number; sourceWarehouseId?: number; sourceWarehouseName?: string }[];
+      notes?: string;
+    },
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.submitLoadRequisition(driver.repId, driver.tenantId, driver.accountId, body);
@@ -99,6 +103,24 @@ export class VanSalesController {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     const requisitions = await this.vanSalesService.listLoadRequisitions(driver.tenantId, { repId: driver.repId });
     return { ok: true, requisitions };
+  }
+
+  @Get('warehouses')
+  async getDriverWarehouses(@Headers('authorization') authHeader: string) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    const warehouses = await this.vanSalesService.getDriverWarehouses(driver.tenantId);
+    return { ok: true, warehouses };
+  }
+
+  @Get('available-products')
+  async getDriverAvailableProducts(
+    @Headers('authorization') authHeader: string,
+    @Query('warehouseId') warehouseId?: string,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    const parsedWhId = warehouseId && warehouseId !== 'all' ? Number(warehouseId) : undefined;
+    const products = await this.vanSalesService.getDriverAvailableProducts(driver.tenantId, parsedWhId);
+    return { ok: true, products };
   }
 
   @Get('my-target')
@@ -266,6 +288,18 @@ export class VanSalesAdminController {
     const userId = req.authContext!.userId;
     const res = await this.vanSalesService.rejectFieldReturn(tenantId, id, body.reason || '', userId);
     return res;
+  }
+
+  @Get('available-products')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async getAdminAvailableProducts(
+    @Req() req: RequestWithAuth,
+    @Query('warehouseId') warehouseId?: string,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const parsedWhId = warehouseId && warehouseId !== 'all' ? Number(warehouseId) : undefined;
+    const products = await this.vanSalesService.getDriverAvailableProducts(tenantId, parsedWhId);
+    return { ok: true, products };
   }
 
   // Requisitions Management Endpoints

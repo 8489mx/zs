@@ -72,6 +72,13 @@ function run(): void {
     assert.equal(payload.employeeId, 7);
   });
 
+  // 3-b. بيئة التطوير والبايلوت المحلي (LOCAL_PILOT) تعمل أيضاً كبيئة محلية بلا إيقاف البوابات.
+  withEnv({ APP_MODE: 'LOCAL_PILOT', SESSION_SECRET: undefined }, () => {
+    const token = signPortalToken({ employeeId: 9, tenantId: 'default' }, PORTAL_TOKEN_TTL_MS);
+    const payload = verifyPortalToken<any>(`Bearer ${token}`, ERRORS);
+    assert.equal(payload.employeeId, 9);
+  });
+
   withEnv({ APP_MODE: 'CLOUD_SAAS', SESSION_SECRET: REAL_SECRET }, () => {
     // 4. الدورة الكاملة: توقيع ثم تحقق يعيد نفس الحمولة، ويضيف iat/exp.
     const token = signPortalToken({ employeeId: 42, tenantId: 'tenant-a' }, PORTAL_TOKEN_TTL_MS);

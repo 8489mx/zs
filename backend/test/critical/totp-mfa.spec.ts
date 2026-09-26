@@ -159,6 +159,10 @@ function runSecretCipher(): void {
   const desktopStored = encryptMfaSecret(secret, desktopEnv);
   assert.equal(decryptMfaSecret(desktopStored, desktopEnv), secret);
 
+  const pilotEnv = { APP_MODE: 'LOCAL_PILOT' } as unknown as NodeJS.ProcessEnv;
+  const pilotStored = encryptMfaSecret(secret, pilotEnv);
+  assert.equal(decryptMfaSecret(pilotStored, pilotEnv), secret);
+
   // مفتاح مخصَّص له الأولوية على SESSION_SECRET.
   const dedicated = { APP_MODE: 'CLOUD_SAAS', SESSION_SECRET: 'a-very-long-session-secret-value', MFA_ENCRYPTION_KEY: 'dedicated-mfa-key-long-enough-01' } as unknown as NodeJS.ProcessEnv;
   const dedicatedStored = encryptMfaSecret(secret, dedicated);

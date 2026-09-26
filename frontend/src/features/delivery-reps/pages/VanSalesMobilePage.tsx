@@ -13,12 +13,13 @@ import { VanInventoryTab } from '../components/VanInventoryTab';
 import { VanSaleTab, CartItem } from '../components/VanSaleTab';
 import { VanCollectionTab } from '../components/VanCollectionTab';
 import { VanSettleTab } from '../components/VanSettleTab';
-import { DriverLoadRequisitionModal } from '../components/DriverLoadRequisitionModal';
+import { DriverNewLoadRequisitionPage } from './DriverNewLoadRequisitionPage';
 
 export default function VanSalesMobilePage() {
   const queryClient = useQueryClient();
 
   const [session, setSession] = useState(() => driverPortalApi.getStoredSession());
+  const [viewMode, setViewMode] = useState<'dashboard' | 'new-requisition'>('dashboard');
 
   const handleLogout = async () => {
     const confirmed = await systemConfirm({
@@ -38,9 +39,20 @@ export default function VanSalesMobilePage() {
 
   const { data, isLoading, refetch } = useQuery<VanActiveTripResponse>({
     queryKey: ['van-sales-active-trip'],
-    queryFn: () => vanSalesApi.getActiveTrip(),
+    queryFn: async () => {
+      try {
+        return await vanSalesApi.getActiveTrip();
+      } catch (err: any) {
+        if (err?.status === 401) {
+          driverPortalApi.logout();
+          setSession(null);
+        }
+        throw err;
+      }
+    },
     enabled: Boolean(session),
     refetchInterval: 15000,
+    retry: false,
   });
 
   // Query driver's recent requisitions
@@ -51,7 +63,6 @@ export default function VanSalesMobilePage() {
     refetchInterval: 15000,
   });
 
-  const [requisitionModalOpen, setRequisitionModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'inventory' | 'sale' | 'collection' | 'settle'>('inventory');
   const [stockSearch, setStockSearch] = useState('');
 
@@ -162,6 +173,20 @@ export default function VanSalesMobilePage() {
 
   if (!session) {
     return <VanSalesLogin onLoginSuccess={(sess) => { setSession(sess); queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] }); }} />;
+  }
+
+  if (viewMode === 'new-requisition') {
+    return (
+      <DriverNewLoadRequisitionPage
+        onBack={() => setViewMode('dashboard')}
+        onRequisitionSubmitted={(docNo: string) => {
+          showAlert('success', `تم إرسال طلب إذن التحميل #${docNo} للمشرف بنجاح!`);
+          setViewMode('dashboard');
+          refetch();
+          queryClient.invalidateQueries({ queryKey: ['driver-my-requisitions'] });
+        }}
+      />
+    );
   }
 
   return (
@@ -292,7 +317,7 @@ export default function VanSalesMobilePage() {
             <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
               <Button
                 variant="primary"
-                onClick={() => setRequisitionModalOpen(true)}
+                onClick={() => setViewMode('new-requisition')}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12.5px', fontWeight: 800 }}
               >
                 + إنشاء طلب شحن بضاعة صباحي (إذن تحميل)
@@ -543,16 +568,6 @@ export default function VanSalesMobilePage() {
           onClose={() => setLastSaleReceipt(null)}
         />
       )}
-
-      {/* Driver Loading Requisition Modal */}
-      <DriverLoadRequisitionModal
-        open={requisitionModalOpen}
-        onClose={() => setRequisitionModalOpen(false)}
-        onRequisitionSubmitted={(docNo) => {
-          showAlert('success', `تم إرسال طلب إذن التحميل #${docNo} للمشرف بنجاح!`);
-          refetch();
-        }}
-      />
     </div>
   );
 }

@@ -256,6 +256,23 @@ const router = storeHostSlug ? createRouter(storeHostRoutes()) : createRouter([
     element: createLazyRoute(() => import('@/features/delivery-reps/pages/VanSalesMobilePage')),
   },
   {
+    path: '/van-sales/load-requisition',
+    element: createLazyRoute(() =>
+      import('@/features/delivery-reps/pages/DriverNewLoadRequisitionPage').then((module) => ({
+        default: () => (
+          <module.DriverNewLoadRequisitionPage
+            onBack={() => {
+              window.location.href = '/van-sales';
+            }}
+            onRequisitionSubmitted={() => {
+              window.location.href = '/van-sales';
+            }}
+          />
+        ),
+      }))
+    ),
+  },
+  {
     path: '/van',
     element: <Navigate to="/van-sales" replace />,
   },

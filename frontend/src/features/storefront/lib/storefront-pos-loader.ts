@@ -1,8 +1,8 @@
 import { storefrontApi } from '../api/storefront.api';
-import { persistDraftSnapshot } from '@/features/pos/lib/pos.persistence';
+import { persistDraftSnapshot, loadPosWorkspaceStorage } from '@/features/pos/lib/pos.persistence';
 import type { PosItem } from '@/features/pos/types/pos.types';
 
-export async function loadOnlineOrderIntoPosCart(orderId: number, navigate: (to: string) => void) {
+export async function loadOnlineOrderIntoPosCart(orderId: number, navigate?: (to: string) => void) {
   const data = await storefrontApi.preparePos(orderId);
 
   const posItems: PosItem[] = data.items.map((it) => ({
@@ -26,20 +26,51 @@ export async function loadOnlineOrderIntoPosCart(orderId: number, navigate: (to:
     : `طلب متجر إلكتروني #${data.orderNumber}`;
   const noteText = data.couponCode ? `${baseNote} - كوبون ${data.couponCode}` : baseNote;
 
+  const existingStorage = loadPosWorkspaceStorage();
+  const existingDraft = existingStorage.draft;
+  let finalCart = posItems;
+  let finalDiscount = Number(data.discountAmount || 0);
+
+  // If the active draft is for the same table and has items, merge them instead of overwriting!
+  if (
+    data.orderType === 'dine_in' &&
+    data.tableNumber &&
+    existingDraft &&
+    String(existingDraft.tableNumber || '').trim() === String(data.tableNumber).trim() &&
+    Array.isArray(existingDraft.cart) &&
+    existingDraft.cart.length > 0
+  ) {
+    const merged = [...existingDraft.cart];
+    for (const newItem of posItems) {
+      const idx = merged.findIndex(
+        (m) => String(m.productId) === String(newItem.productId) && m.unitId === newItem.unitId && m.price === newItem.price
+      );
+      if (idx !== -1) {
+        merged[idx] = {
+          ...merged[idx],
+          qty: Number(merged[idx].qty || 0) + Number(newItem.qty || 0),
+        };
+      } else {
+        merged.push(newItem);
+      }
+    }
+    finalCart = merged;
+    finalDiscount = Number(existingDraft.discount || 0) + Number(data.discountAmount || 0);
+  }
+
   persistDraftSnapshot({
-    cart: posItems,
-    customerId: data.customerId ? String(data.customerId) : '',
-    customerName: data.customerName || '',
-    customerPhone: data.customerPhone || '',
-    customerAddress: data.customerAddress || '',
-    quickCustomerName: data.customerName || '',
-    quickCustomerPhone: data.customerPhone || '',
-    quickCustomerAddress: data.customerAddress || '',
+    cart: finalCart,
+    customerId: data.customerId ? String(data.customerId) : (existingDraft?.customerId || ''),
+    customerName: data.customerName || existingDraft?.customerName || '',
+    customerPhone: data.customerPhone || existingDraft?.customerPhone || '',
+    customerAddress: data.customerAddress || existingDraft?.customerAddress || '',
+    quickCustomerName: data.customerName || existingDraft?.quickCustomerName || '',
+    quickCustomerPhone: data.customerPhone || existingDraft?.quickCustomerPhone || '',
+    quickCustomerAddress: data.customerAddress || existingDraft?.quickCustomerAddress || '',
     deliveryFee: Number(data.deliveryFee || 0),
-    // The coupon discount quoted to the customer at checkout (O55). Dropping it here overcharged them.
-    discount: Number(data.discountAmount || 0),
+    discount: finalDiscount,
     orderType: data.orderType === 'dine_in' ? 'dine_in' : 'delivery',
-    note: noteText,
+    note: existingDraft?.note && existingDraft.note !== noteText ? `${existingDraft.note} • ${noteText}` : noteText,
     paymentType: 'cash',
     paymentChannel: data.paymentMethod === 'instapay_wallet' ? 'instapay' : 'cash',
     paidAmount: 0,
@@ -60,6 +91,16 @@ export async function loadOnlineOrderIntoPosCart(orderId: number, navigate: (to:
     localStorage.setItem('zs_pos_online_order_number', String(data.orderNumber));
   } catch {}
 
-  navigate('/pos');
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('zs_pos_reload_draft', {
+        detail: { orderId: data.orderId, tableNumber: data.tableNumber },
+      })
+    );
+  }
+
+  if (navigate) {
+    navigate('/pos');
+  }
   return data;
 }

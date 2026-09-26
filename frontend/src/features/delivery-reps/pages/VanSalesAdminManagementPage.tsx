@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { systemAlert } from '@/shared/components/system-alert';
@@ -20,7 +21,18 @@ import { UpsertDeliveryRepModal } from '@/shared/components/delivery-reps/Upsert
 import { useVanSalesAdmin, type DeliveryRep } from '../hooks/useVanSalesAdmin';
 
 export default function VanSalesAdminManagementPage() {
-  const [activeTab, setActiveTab] = useState<'trips' | 'requisitions' | 'returns' | 'targets' | 'fleet' | 'drivers'>('trips');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as 'trips' | 'requisitions' | 'returns' | 'targets' | 'fleet' | 'drivers' | null;
+
+  const [activeTab, setActiveTab] = useState<'trips' | 'requisitions' | 'returns' | 'targets' | 'fleet' | 'drivers'>(
+    () => tabParam || 'trips',
+  );
+
+  useEffect(() => {
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   // Drivers Tab State
   const [driverSearch, setDriverSearch] = useState('');
@@ -146,7 +158,10 @@ export default function VanSalesAdminManagementPage() {
             <button
               key={tab.key}
               type="button"
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => {
+                setActiveTab(tab.key);
+                setSearchParams({ tab: tab.key });
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',

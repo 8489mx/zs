@@ -1,21 +1,58 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { systemConfirm, toast } from '@/shared/components/system-alert';
-import { vanSalesApi, type VanLoadRequisitionRecord } from '../api/van-sales.api';
+import { vanSalesApi, type VanLoadRequisitionRecord, type DriverAvailableProduct } from '../api/van-sales.api';
 import {
   RefreshCwIcon,
   FileTextIcon,
   TruckIcon,
+  PlusIcon,
+  MinusIcon,
+  Trash2Icon,
+  XIcon,
 } from '@/shared/components/icons/AppIcons';
+
+export interface AdminReviewLine {
+  productId: number;
+  productName: string;
+  barcode?: string;
+  requestedQty: number;
+  approvedQty: number;
+  warehouseAvailQty: number;
+}
 
 export function VanLoadRequisitionsAdminTab() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [selectedReq, setSelectedReq] = useState<VanLoadRequisitionRecord | null>(null);
-  const [approvedItemsState, setApprovedItemsState] = useState<Array<{ productId: number; qty: number }>>([]);
+  const [reviewLines, setReviewLines] = useState<AdminReviewLine[]>([]);
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
   const [adminNotes, setAdminNotes] = useState<string>('');
+
+  // 1. Fetch available products in the warehouse for adding items
+  const { data: warehouseProducts = [] } = useQuery<DriverAvailableProduct[]>({
+    queryKey: ['admin-warehouse-products', selectedReq?.sourceWarehouseId],
+    queryFn: () => vanSalesApi.getAdminAvailableProducts(selectedReq?.sourceWarehouseId),
+    enabled: Boolean(selectedReq && selectedReq.status === 'pending'),
+    staleTime: 30_000,
+  });
+
+  // Sync real-time warehouse available quantities
+  useEffect(() => {
+    if (!warehouseProducts || warehouseProducts.length === 0) return;
+    setReviewLines((prev) =>
+      prev.map((line) => {
+        const found = warehouseProducts.find((p) => p.id === line.productId);
+        if (found) {
+          return { ...line, warehouseAvailQty: found.totalStock };
+        }
+        return line;
+      }),
+    );
+  }, [warehouseProducts]);
 
   // Rejection modal state
   const [rejectModalReq, setRejectModalReq] = useState<VanLoadRequisitionRecord | null>(null);
@@ -38,16 +75,65 @@ export function VanLoadRequisitionsAdminTab() {
   const openReviewModal = (req: VanLoadRequisitionRecord) => {
     setSelectedReq(req);
     setAdminNotes(req.notes || '');
+    setIsAddProductOpen(false);
+    setProductSearch('');
     const items = (req.approvedItems && req.approvedItems.length > 0 ? req.approvedItems : req.requestedItems) || [];
-    setApprovedItemsState(items.map((it) => ({ productId: it.productId, qty: it.qty })));
+    const lines: AdminReviewLine[] = items.map((it: any) => {
+      const orig = (req.requestedItems || []).find((r) => r.productId === it.productId);
+      return {
+        productId: it.productId,
+        productName: it.productName || orig?.productName || 'صنف',
+        barcode: it.barcode || orig?.barcode || '',
+        requestedQty: orig ? orig.qty : 0,
+        approvedQty: it.qty,
+        warehouseAvailQty: it.warehouseAvailQty ?? orig?.warehouseAvailQty ?? 0,
+      };
+    });
+    setReviewLines(lines);
   };
 
-  // Review (Update Quantities) Mutation
+  const handleUpdateLineApprovedQty = (productId: number, newQty: number) => {
+    setReviewLines((prev) =>
+      prev.map((l) => (l.productId === productId ? { ...l, approvedQty: Math.max(0, newQty) } : l)),
+    );
+  };
+
+  const handleRemoveReviewLine = (productId: number) => {
+    setReviewLines((prev) => prev.filter((l) => l.productId !== productId));
+    toast.info('تم استبعاد الصنف من إذن التحميل');
+  };
+
+  const handleAddProductToReview = (prod: DriverAvailableProduct) => {
+    setReviewLines((prev) => {
+      const existing = prev.find((l) => l.productId === prod.id);
+      if (existing) {
+        return prev.map((l) =>
+          l.productId === prod.id ? { ...l, approvedQty: l.approvedQty + 1 } : l,
+        );
+      }
+      return [
+        ...prev,
+        {
+          productId: prod.id,
+          productName: prod.name,
+          barcode: prod.barcode || '',
+          requestedQty: 0,
+          approvedQty: 1,
+          warehouseAvailQty: prod.totalStock,
+        },
+      ];
+    });
+    setIsAddProductOpen(false);
+    setProductSearch('');
+    toast.success(`تمت إضافة الصنف "${prod.name}" بنجاح`);
+  };
+
+  // Review (Update Quantities & Items) Mutation
   const reviewMutation = useMutation({
-    mutationFn: ({ id, items, notes }: { id: number; items: { productId: number; qty: number }[]; notes?: string }) =>
+    mutationFn: ({ id, items, notes }: { id: number; items: { productId: number; qty: number; productName?: string; barcode?: string }[]; notes?: string }) =>
       vanSalesApi.reviewRequisition(id, items, notes),
     onSuccess: () => {
-      toast.success('تم تحديث الكميات المعتمدة للطلب بنجاح');
+      toast.success('تم حفظ تعديل أصناف وكميات إذن التحميل بنجاح');
       queryClient.invalidateQueries({ queryKey: ['van-admin-load-requisitions'] });
     },
     onError: (err: any) => {
@@ -85,6 +171,16 @@ export function VanLoadRequisitionsAdminTab() {
   });
 
   const handleDispatch = async (req: VanLoadRequisitionRecord) => {
+    if (reviewLines.length === 0) {
+      toast.error('لا يمكن اعتماد إذن تحميل خالٍ من الأصناف');
+      return;
+    }
+    const hasZeroApproved = reviewLines.some((l) => l.approvedQty <= 0);
+    if (hasZeroApproved) {
+      toast.error('يرجى حذف الأصناف ذات الكمية الصفرية أو اعتماد كمية أكبر من صفر قبل الصرف');
+      return;
+    }
+
     const ok = await systemConfirm({
       title: 'اعتماد وصرف وتحميل السيارة',
       message: `هل تود صرف البضاعة من مستودع "${req.sourceWarehouseName}" وتحميل سيارة المندوب "${req.repName}" وبدء رحلة التوزيع فوراً؟ سيتم خصم الكميات من المستودع وتحويلها لعهدة السيارة.`,
@@ -93,15 +189,39 @@ export function VanLoadRequisitionsAdminTab() {
       variant: 'primary',
     });
     if (ok) {
-      dispatchMutation.mutate(req.id);
+      try {
+        // Automatically save reviewed items first, then dispatch!
+        await vanSalesApi.reviewRequisition(
+          req.id,
+          reviewLines.map((l) => ({
+            productId: l.productId,
+            qty: l.approvedQty,
+            productName: l.productName,
+            barcode: l.barcode,
+          })),
+          adminNotes,
+        );
+        dispatchMutation.mutate(req.id);
+      } catch (err: any) {
+        toast.error(err?.message || 'فشل تحديث بيانات الإذن قبل الصرف');
+      }
     }
   };
 
   const handleSaveReviewedItems = () => {
     if (!selectedReq) return;
+    if (reviewLines.length === 0) {
+      toast.error('لا يمكن حفظ إذن تحميل بدون أي أصناف');
+      return;
+    }
     reviewMutation.mutate({
       id: selectedReq.id,
-      items: approvedItemsState,
+      items: reviewLines.map((l) => ({
+        productId: l.productId,
+        qty: l.approvedQty,
+        productName: l.productName,
+        barcode: l.barcode,
+      })),
       notes: adminNotes,
     });
   };
@@ -370,92 +490,297 @@ export function VanLoadRequisitionsAdminTab() {
             <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
               <div style={{ padding: '8px 12px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>
-                  الأصناف المطلوبة ومطابقة المخزون بالمستودع
+                  الأصناف المطلوبة ومطابقة المخزون بالمستودع ({reviewLines.length} أصناف)
                 </span>
                 {selectedReq.status === 'pending' && (
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    يمكنك تعديل الكمية المعتمدة للصرف بالزيادة أو النقصان حسب المتوفر
+                    يمكنك تعديل الكمية المعتمدة، إضافة أصناف جديدة، أو استبعاد صنف
                   </span>
                 )}
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                    <th style={{ padding: '8px 12px', fontWeight: 700 }}>الصنف والباركود</th>
-                    <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>طلب المندوب</th>
-                    <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>المتاح بالمستودع</th>
-                    <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>المعتمد للصرف</th>
+                    <th style={{ padding: '8px 12px', fontWeight: 700, width: '38%' }}>الصنف والباركود</th>
+                    <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center', width: '15%' }}>طلب المندوب</th>
+                    <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center', width: '20%' }}>المتاح بالمستودع</th>
+                    <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center', width: '20%' }}>المعتمد للصرف</th>
+                    {selectedReq.status === 'pending' && (
+                      <th style={{ padding: '8px 12px', width: '7%', textAlign: 'center' }}>حذف</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
-                  {(selectedReq.requestedItems || []).map((it) => {
-                    const avail = it.warehouseAvailQty ?? 0;
-                    const isShortage = avail < it.qty;
-                    const approvedEntry = approvedItemsState.find((a) => a.productId === it.productId);
-                    const currentApprovedQty = approvedEntry ? approvedEntry.qty : it.qty;
+                  {reviewLines.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                        لا توجد أصناف في هذا الإذن. يمكنك إضافة أصناف بالأسفل.
+                      </td>
+                    </tr>
+                  ) : (
+                    reviewLines.map((it) => {
+                      const avail = it.warehouseAvailQty ?? 0;
+                      const isShortage = avail < it.approvedQty;
 
-                    return (
-                      <tr key={it.productId} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '10px 12px' }}>
-                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{it.productName}</div>
-                          {it.barcode && (
-                            <span style={{ fontSize: '10.5px', color: '#64748b', fontFamily: 'monospace' }}>
-                              باركود: {it.barcode}
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800, fontSize: '13px' }}>
-                          {it.qty}
-                        </td>
-                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                          <span
-                            style={{
-                              display: 'inline-block',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              background: isShortage ? '#fef2f2' : '#f0fdf4',
-                              color: isShortage ? '#b91c1c' : '#15803d',
-                              border: `1px solid ${isShortage ? '#fca5a5' : '#bbf7d0'}`,
-                            }}
-                          >
-                            {avail} قطعة {isShortage ? '(عجز)' : '(متوفر)'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                          {selectedReq.status === 'pending' ? (
-                            <input
-                              type="number"
-                              min="0"
-                              value={currentApprovedQty}
-                              onChange={(e) => {
-                                const val = Math.max(0, parseInt(e.target.value, 10) || 0);
-                                setApprovedItemsState((prev) =>
-                                  prev.map((p) => (p.productId === it.productId ? { ...p, qty: val } : p)),
-                                );
-                              }}
+                      return (
+                        <tr key={it.productId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '10px 12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontWeight: 700, color: '#0f172a' }}>{it.productName}</span>
+                              {it.requestedQty === 0 && (
+                                <span
+                                  style={{
+                                    fontSize: '10px',
+                                    fontWeight: 700,
+                                    background: '#e0e7ff',
+                                    color: '#3730a3',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                  }}
+                                >
+                                  إضافة المشرف
+                                </span>
+                              )}
+                            </div>
+                            {it.barcode && (
+                              <span style={{ fontSize: '10.5px', color: '#64748b', fontFamily: 'monospace', display: 'block' }}>
+                                باركود: {it.barcode}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800, fontSize: '13px' }}>
+                            {it.requestedQty > 0 ? it.requestedQty : <span style={{ color: '#94a3b8' }}>—</span>}
+                          </td>
+                          <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                            <span
                               style={{
-                                width: '70px',
-                                textAlign: 'center',
-                                padding: '4px 6px',
+                                display: 'inline-block',
+                                padding: '2px 8px',
                                 borderRadius: '6px',
-                                border: '1px solid #cbd5e1',
-                                fontSize: '13px',
-                                fontWeight: 800,
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                background: isShortage ? '#fef2f2' : '#f0fdf4',
+                                color: isShortage ? '#b91c1c' : '#15803d',
+                                border: `1px solid ${isShortage ? '#fca5a5' : '#bbf7d0'}`,
                               }}
-                            />
-                          ) : (
-                            <strong style={{ fontSize: '13px', color: '#0f172a' }}>
-                              {currentApprovedQty} قطعة
-                            </strong>
+                            >
+                              {avail} قطعة {isShortage ? '(عجز)' : '(متوفر)'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                            {selectedReq.status === 'pending' ? (
+                              <div
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '6px',
+                                  backgroundColor: '#ffffff',
+                                  overflow: 'hidden',
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateLineApprovedQty(it.productId, it.approvedQty - 1)}
+                                  disabled={it.approvedQty <= 0}
+                                  style={{
+                                    width: '26px',
+                                    height: '28px',
+                                    border: 'none',
+                                    backgroundColor: '#f8fafc',
+                                    color: '#475569',
+                                    cursor: it.approvedQty <= 0 ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                  title="تقليل الكمية"
+                                >
+                                  <MinusIcon size={12} />
+                                </button>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={it.approvedQty}
+                                  onChange={(e) => {
+                                    const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                                    handleUpdateLineApprovedQty(it.productId, val);
+                                  }}
+                                  style={{
+                                    width: '46px',
+                                    height: '28px',
+                                    border: 'none',
+                                    textAlign: 'center',
+                                    fontSize: '13px',
+                                    fontWeight: 800,
+                                    color: isShortage ? '#dc2626' : '#0f172a',
+                                    outline: 'none',
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateLineApprovedQty(it.productId, it.approvedQty + 1)}
+                                  style={{
+                                    width: '26px',
+                                    height: '28px',
+                                    border: 'none',
+                                    backgroundColor: '#f8fafc',
+                                    color: '#475569',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                  title="زيادة الكمية"
+                                >
+                                  <PlusIcon size={12} />
+                                </button>
+                              </div>
+                            ) : (
+                              <strong style={{ fontSize: '13px', color: '#0f172a' }}>
+                                {it.approvedQty} قطعة
+                              </strong>
+                            )}
+                          </td>
+                          {selectedReq.status === 'pending' && (
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveReviewLine(it.productId)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#ef4444',
+                                  cursor: 'pointer',
+                                  padding: '4px',
+                                  borderRadius: '4px',
+                                }}
+                                title="استبعاد هذا الصنف"
+                              >
+                                <Trash2Icon size={14} />
+                              </button>
+                            </td>
                           )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
+
+              {/* Add Extra Item Section for Admin */}
+              {selectedReq.status === 'pending' && (
+                <div style={{ padding: '10px 12px', background: '#fafafa', borderTop: '1px solid #e2e8f0' }}>
+                  {!isAddProductOpen ? (
+                    <Button
+                      variant="secondary"
+                      type="button"
+                      onClick={() => setIsAddProductOpen(true)}
+                      style={{ fontSize: '12px', fontWeight: 700, color: '#170e5e', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <PlusIcon size={14} />
+                      + إضافة صنف إضافي للإذن
+                    </Button>
+                  ) : (
+                    <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e' }}>
+                          اختر صنفاً لإضافته من مستودع "{selectedReq.sourceWarehouseName}":
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddProductOpen(false);
+                            setProductSearch('');
+                          }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px' }}
+                        >
+                          <XIcon size={16} />
+                        </button>
+                      </div>
+
+                      <input
+                        type="text"
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        placeholder="ابحث بالاسم أو الباركود..."
+                        style={{
+                          width: '100%',
+                          height: '36px',
+                          padding: '0 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '12px',
+                          boxSizing: 'border-box',
+                        }}
+                        autoFocus
+                      />
+
+                      <div
+                        style={{
+                          maxHeight: '160px',
+                          overflowY: 'auto',
+                          marginTop: '6px',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                        }}
+                      >
+                        {warehouseProducts
+                          .filter((p) => {
+                            if (!productSearch.trim()) return true;
+                            const q = productSearch.toLowerCase().trim();
+                            return (p.name || '').toLowerCase().includes(q) || (p.barcode || '').toLowerCase().includes(q);
+                          })
+                          .slice(0, 12)
+                          .map((p) => {
+                            const alreadyInReview = reviewLines.some((l) => l.productId === p.id);
+                            return (
+                              <div
+                                key={p.id}
+                                onClick={() => handleAddProductToReview(p)}
+                                style={{
+                                  padding: '8px 10px',
+                                  borderBottom: '1px solid #f1f5f9',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  cursor: 'pointer',
+                                  fontSize: '12px',
+                                  backgroundColor: alreadyInReview ? '#f8fafc' : '#ffffff',
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.backgroundColor = alreadyInReview ? '#f8fafc' : '#ffffff')
+                                }
+                              >
+                                <div>
+                                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{p.name}</span>
+                                  <span style={{ fontSize: '10.5px', color: '#94a3b8', marginRight: '6px' }}>
+                                    {p.barcode || 'بدون باركود'}
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span
+                                    style={{
+                                      fontSize: '11px',
+                                      fontWeight: 800,
+                                      color: p.totalStock > 0 ? '#15803d' : '#dc2626',
+                                    }}
+                                  >
+                                    متاح: {p.totalStock} قطعة
+                                  </span>
+                                  <span style={{ fontSize: '11.5px', color: '#170e5e', fontWeight: 800 }}>
+                                    {alreadyInReview ? '+ زيادة كمية' : '+ إضافة'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {selectedReq.status === 'pending' && (

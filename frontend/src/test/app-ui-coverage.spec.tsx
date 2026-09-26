@@ -15,6 +15,7 @@ import { PurchasesTable } from '@/features/purchases/components/PurchasesTable';
 import { PurchaseDetailCard } from '@/features/purchases/components/PurchaseDetailCard';
 import { Card } from '@/shared/ui/card';
 import { useAuthStore } from '@/stores/auth-store';
+import '@/features/dashboard/pages/DashboardPage';
 
 beforeEach(() => {
   installGlobalAppFetchMock();

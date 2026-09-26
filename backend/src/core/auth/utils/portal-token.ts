@@ -23,6 +23,7 @@ function isDesktopMode(): boolean {
   const appMode = String(process.env.APP_MODE || '').trim().toUpperCase();
   if (appMode === 'CLOUD_SAAS') return false;
   return appMode === 'SELF_CONTAINED'
+    || appMode === 'LOCAL_PILOT'
     || appMode === 'PORTABLE'
     || process.env.PORTABLE_MODE === 'true'
     || process.env.IS_ELECTRON === 'true';

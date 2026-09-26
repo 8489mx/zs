@@ -539,6 +539,14 @@ export function PlusIcon({ size = 18, color = 'currentColor', strokeWidth = 2, c
   );
 }
 
+export function MinusIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
 export function Trash2Icon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
@@ -1064,6 +1072,7 @@ export const AppIcons = {
   PhoneIncoming: PhoneIncomingIcon,
   Sliders: SlidersIcon,
   Plus: PlusIcon,
+  Minus: MinusIcon,
   Trash: TrashIcon,
   Box: PackageIcon,
   Package: PackageIcon,
