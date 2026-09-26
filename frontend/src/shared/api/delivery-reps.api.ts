@@ -9,6 +9,9 @@ export interface DeliveryRep {
   address?: string | null;
   vehicle_plate?: string | null;
   pin_code?: string | null;
+  rep_type?: 'delivery' | 'van' | 'both' | string | null;
+  is_van_rep?: boolean;
+  van_location_id?: number | null;
   is_active: boolean;
 }
 
@@ -20,6 +23,8 @@ export interface UpsertDeliveryRepPayload {
   address?: string;
   vehiclePlate?: string;
   pinCode?: string;
+  repType?: 'delivery' | 'van' | 'both';
+  isVanRep?: boolean;
   isActive?: boolean;
 }
 

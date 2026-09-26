@@ -15,6 +15,7 @@ import {
   XCircleIcon,
   CopyIcon,
 } from '@/shared/components/icons/AppIcons';
+import { UpsertDeliveryRepModal } from '@/shared/components/delivery-reps/UpsertDeliveryRepModal';
 import type { HrEmployee } from '@/types/domain';
 
 // ----------------------------------------------------------------------
@@ -31,6 +32,10 @@ export function DeliveryRepsAccessPanel() {
   const [editingRep, setEditingRep] = useState<DeliveryRep | null>(null);
   const [phoneInput, setPhoneInput] = useState('');
   const [pinInput, setPinInput] = useState('');
+
+  // Full Upsert Modal
+  const [isUpsertOpen, setIsUpsertOpen] = useState(false);
+  const [upsertRep, setUpsertRep] = useState<DeliveryRep | null>(null);
 
   // Primary Source Query (Shares cache key with /delivery-reps)
   const repsQuery = useQuery({
@@ -142,6 +147,16 @@ export function DeliveryRepsAccessPanel() {
 
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button
+            variant="primary"
+            style={{ fontSize: '12px', padding: '6px 14px', background: '#170e5e', color: '#ffffff' }}
+            onClick={() => {
+              setUpsertRep(null);
+              setIsUpsertOpen(true);
+            }}
+          >
+            + إضافة مندوب جديد
+          </Button>
+          <Button
             variant="secondary"
             style={{ fontSize: '12px', padding: '6px 12px' }}
             onClick={() => navigate('/delivery-reps')}
@@ -228,6 +243,7 @@ export function DeliveryRepsAccessPanel() {
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
               <th style={{ padding: '10px 12px', fontWeight: 700 }}>المندوب</th>
+              <th style={{ padding: '10px 10px', fontWeight: 700 }}>طبيعة العمل</th>
               <th style={{ padding: '10px 10px', fontWeight: 700 }}>رقم الهاتف</th>
               <th style={{ padding: '10px 10px', fontWeight: 700 }}>رمز الـ PIN</th>
               <th style={{ padding: '10px 8px', fontWeight: 700 }}>البوابات</th>
@@ -238,133 +254,168 @@ export function DeliveryRepsAccessPanel() {
           <tbody>
             {repsQuery.isLoading ? (
               <tr>
-                <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
                   جاري تحميل بيانات المناديب...
                 </td>
               </tr>
             ) : filteredReps.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
                   لا توجد سجلات مناديب مطابقة للفلاتر.
                 </td>
               </tr>
             ) : (
-              filteredReps.map((rep) => (
-                <tr key={rep.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '10px 12px' }}>
-                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px' }}>{rep.name}</div>
-                    {rep.full_name && (
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>{rep.full_name}</div>
-                    )}
-                  </td>
-                  <td style={{ padding: '10px 10px', direction: 'ltr', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
-                    {rep.phone || <span style={{ color: '#dc2626', fontSize: '11px' }}>غير محدد</span>}
-                  </td>
-                  <td style={{ padding: '10px 10px' }}>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        padding: '2px 7px',
-                        background: rep.pin_code ? '#f0fdf4' : '#fef2f2',
-                        border: `1px solid ${rep.pin_code ? '#bbf7d0' : '#fecaca'}`,
-                        color: rep.pin_code ? '#15803d' : '#b91c1c',
-                        borderRadius: '6px',
-                        fontFamily: 'monospace',
-                        fontWeight: 700,
-                        letterSpacing: '1px',
-                        fontSize: '11.5px',
-                      }}
-                    >
-                      {rep.pin_code ? `•••• (${rep.pin_code})` : 'بدون رمز'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '10px 8px' }}>
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              filteredReps.map((rep) => {
+                const isVan = rep.rep_type === 'van' || (!rep.rep_type && rep.is_van_rep);
+                const isBoth = rep.rep_type === 'both';
+
+                return (
+                  <tr key={rep.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '10px 12px' }}>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px' }}>{rep.name}</div>
+                      {rep.full_name && (
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>{rep.full_name}</div>
+                      )}
+                      {rep.vehicle_plate && (
+                        <div style={{ fontSize: '10px', color: '#475569', marginTop: '2px' }}>
+                          لوحة: {rep.vehicle_plate}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: '10px 10px' }}>
+                      {isBoth ? (
+                        <span style={{ fontSize: '11px', color: '#6d28d9', background: '#ede9fe', padding: '2px 8px', borderRadius: '6px', border: '1px solid #ddd6fe', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          شامل (فان ودليفري)
+                        </span>
+                      ) : isVan ? (
+                        <span style={{ fontSize: '11px', color: '#0369a1', background: '#e0f2fe', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bae6fd', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          توزيع فان
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '11px', color: '#c2410c', background: '#ffedd5', padding: '2px 8px', borderRadius: '6px', border: '1px solid #fed7aa', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          طيار دليفري
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: '10px 10px', direction: 'ltr', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
+                      {rep.phone || <span style={{ color: '#dc2626', fontSize: '11px' }}>غير محدد</span>}
+                    </td>
+                    <td style={{ padding: '10px 10px' }}>
                       <span
-                        onClick={() => copyUrl('/driver', 'بوابة الدليفري')}
-                        title="انقر لنسخ رابط بوابة الدليفري (/driver)"
                         style={{
-                          fontSize: '10.5px',
-                          background: '#fff7ed',
-                          color: '#c2410c',
-                          border: '1px solid #ffedd5',
-                          borderRadius: '4px',
-                          padding: '2px 5px',
-                          cursor: 'pointer',
+                          display: 'inline-block',
+                          padding: '2px 7px',
+                          background: rep.pin_code ? '#f0fdf4' : '#fef2f2',
+                          border: `1px solid ${rep.pin_code ? '#bbf7d0' : '#fecaca'}`,
+                          color: rep.pin_code ? '#15803d' : '#b91c1c',
+                          borderRadius: '6px',
+                          fontFamily: 'monospace',
+                          fontWeight: 700,
+                          letterSpacing: '1px',
+                          fontSize: '11.5px',
+                        }}
+                      >
+                        {rep.pin_code ? `•••• (${rep.pin_code})` : 'بدون رمز'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 8px' }}>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        <span
+                          onClick={() => copyUrl('/driver', 'بوابة الدليفري')}
+                          title="انقر لنسخ رابط بوابة الدليفري (/driver)"
+                          style={{
+                            fontSize: '10.5px',
+                            background: '#fff7ed',
+                            color: '#c2410c',
+                            border: '1px solid #ffedd5',
+                            borderRadius: '4px',
+                            padding: '2px 5px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <CopyIcon size={10} /> دليفري
+                        </span>
+                        <span
+                          onClick={() => copyUrl('/van-sales', 'مبيعات الفان')}
+                          title="انقر لنسخ رابط مبيعات الفان (/van-sales)"
+                          style={{
+                            fontSize: '10.5px',
+                            background: '#f0f9ff',
+                            color: '#0369a1',
+                            border: '1px solid #e0f2fe',
+                            borderRadius: '4px',
+                            padding: '2px 5px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <CopyIcon size={10} /> فان
+                        </span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px 8px' }}>
+                      <span
+                        style={{
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '3px',
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: rep.is_active ? '#ecfdf5' : '#fef2f2',
+                          color: rep.is_active ? '#065f46' : '#991b1b',
+                          border: `1px solid ${rep.is_active ? '#a7f3d0' : '#fecaca'}`,
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        <CopyIcon size={10} /> دليفري
+                        {rep.is_active ? <CheckCircleIcon size={11} /> : <XCircleIcon size={11} />}
+                        {rep.is_active ? 'نشط' : 'موقوف'}
                       </span>
-                      <span
-                        onClick={() => copyUrl('/van-sales', 'مبيعات الفان')}
-                        title="انقر لنسخ رابط مبيعات الفان (/van-sales)"
-                        style={{
-                          fontSize: '10.5px',
-                          background: '#f0f9ff',
-                          color: '#0369a1',
-                          border: '1px solid #e0f2fe',
-                          borderRadius: '4px',
-                          padding: '2px 5px',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        <CopyIcon size={10} /> فان
-                      </span>
-                    </div>
-                  </td>
-                  <td style={{ padding: '10px 8px' }}>
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '3px',
-                        padding: '2px 7px',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        background: rep.is_active ? '#ecfdf5' : '#fef2f2',
-                        color: rep.is_active ? '#065f46' : '#991b1b',
-                        border: `1px solid ${rep.is_active ? '#a7f3d0' : '#fecaca'}`,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {rep.is_active ? <CheckCircleIcon size={11} /> : <XCircleIcon size={11} />}
-                      {rep.is_active ? 'نشط' : 'موقوف'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
-                      <Button
-                        variant="secondary"
-                        style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
-                        onClick={() => {
-                          setEditingRep(rep);
-                          setPhoneInput(rep.phone || '');
-                          setPinInput(rep.pin_code || '');
-                        }}
-                      >
-                        تعديل الـ PIN والهاتف
-                      </Button>
-                      <Button
-                        variant={rep.is_active ? 'danger' : 'secondary'}
-                        style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
-                        onClick={() => toggleActive(rep)}
-                        disabled={updateMutation.isPending}
-                      >
-                        {rep.is_active ? 'إيقاف' : 'تفعيل'}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                        <Button
+                          variant="secondary"
+                          style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
+                          onClick={() => {
+                            setUpsertRep(rep);
+                            setIsUpsertOpen(true);
+                          }}
+                        >
+                          تعديل البيانات
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
+                          onClick={() => {
+                            setEditingRep(rep);
+                            setPhoneInput(rep.phone || '');
+                            setPinInput(rep.pin_code || '');
+                          }}
+                        >
+                          الـ PIN
+                        </Button>
+                        <Button
+                          variant={rep.is_active ? 'danger' : 'secondary'}
+                          style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
+                          onClick={() => toggleActive(rep)}
+                          disabled={updateMutation.isPending}
+                        >
+                          {rep.is_active ? 'إيقاف' : 'تفعيل'}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -497,9 +548,20 @@ export function DeliveryRepsAccessPanel() {
           </div>
         </DialogShell>
       )}
+
+      {/* Full Upsert Modal */}
+      <UpsertDeliveryRepModal
+        open={isUpsertOpen}
+        onClose={() => {
+          setIsUpsertOpen(false);
+          setUpsertRep(null);
+        }}
+        rep={upsertRep}
+      />
     </div>
   );
 }
+
 
 // ----------------------------------------------------------------------
 // 2. Self-Service Employees & Mobile Punch Access Panel

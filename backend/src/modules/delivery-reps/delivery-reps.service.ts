@@ -95,6 +95,11 @@ export class DeliveryRepsService {
     // الرمز يُجزَّأ قبل الكتابة — لا يُخزَّن نصاً صريحاً (البند O20)
     const createPinRecord = payload.pinCode ? await createPasswordRecord(String(payload.pinCode)) : null;
 
+    const isVanRep = payload.isVanRep !== undefined
+      ? Boolean(payload.isVanRep)
+      : (payload.repType === 'van' || payload.repType === 'both');
+    const repType = payload.repType || (isVanRep ? 'van' : 'delivery');
+
     const [inserted] = await this.db
       .insertInto('delivery_representatives')
       .values({
@@ -106,13 +111,15 @@ export class DeliveryRepsService {
         vehicle_plate: payload.vehiclePlate || null,
         pin_hash: createPinRecord?.hash ?? null,
         pin_salt: createPinRecord?.salt ?? null,
+        rep_type: repType,
+        is_van_rep: isVanRep,
         is_active: payload.isActive !== false,
         ...this.tenantFields(actor),
       } as any)
       .returning(['id'])
       .execute();
 
-    await this.audit.log('إضافة مندوب توصيل', `تم إضافة المندوب ${name} بواسطة ${actor.username}`, actor);
+    await this.audit.log('إضافة مندوب توصيل', `تم إضافة المندوب ${name} (${repType}) بواسطة ${actor.username}`, actor);
     return this.list(actor);
   }
 
@@ -130,6 +137,10 @@ export class DeliveryRepsService {
 
     const updatePinRecord = payload.pinCode ? await createPasswordRecord(String(payload.pinCode)) : null;
 
+    const isVanRep = payload.isVanRep !== undefined
+      ? Boolean(payload.isVanRep)
+      : (payload.repType ? (payload.repType === 'van' || payload.repType === 'both') : undefined);
+
     await this.db
       .updateTable('delivery_representatives')
       .set({
@@ -141,6 +152,8 @@ export class DeliveryRepsService {
         vehicle_plate: payload.vehiclePlate !== undefined ? (payload.vehiclePlate || null) : undefined,
         pin_hash: updatePinRecord ? updatePinRecord.hash : undefined,
         pin_salt: updatePinRecord ? updatePinRecord.salt : undefined,
+        rep_type: payload.repType !== undefined ? payload.repType : undefined,
+        is_van_rep: isVanRep !== undefined ? isVanRep : undefined,
         is_active: payload.isActive !== undefined ? payload.isActive : undefined,
         updated_at: sql`NOW()`,
       } as any)

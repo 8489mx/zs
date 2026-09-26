@@ -1,10 +1,10 @@
-import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { deliveryRepsApi, type DeliveryRep, type UpsertDeliveryRepPayload } from '@/shared/api/delivery-reps.api';
+import { deliveryRepsApi, type DeliveryRep } from '@/shared/api/delivery-reps.api';
 import { Button } from '@/shared/ui/button';
-import { DialogShell } from '@/shared/components/dialog-shell';
 import { systemAlert } from '@/shared/components/system-alert';
+import { TruckIcon, LayersIcon } from '@/shared/components/icons/AppIcons';
+import { UpsertDeliveryRepModal } from './UpsertDeliveryRepModal';
 
 function DeliveryMotorcycleIcon({ isSelected }: { isSelected: boolean }) {
   return (
@@ -60,63 +60,10 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRep, setEditingRep] = useState<DeliveryRep | null>(null);
-  
-  // Form State
-  const [nameInput, setNameInput] = useState('');
-  const [phoneInput, setPhoneInput] = useState('');
-  const [fullNameInput, setFullNameInput] = useState('');
-  const [nationalIdInput, setNationalIdInput] = useState('');
-  const [addressInput, setAddressInput] = useState('');
-  const [vehiclePlateInput, setVehiclePlateInput] = useState('');
-  const [pinCodeInput, setPinCodeInput] = useState('');
 
   const repsQuery = useQuery({
     queryKey: ['delivery-reps'],
     queryFn: deliveryRepsApi.list,
-  });
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEditingRep(null);
-    setNameInput('');
-    setPhoneInput('');
-    setFullNameInput('');
-    setNationalIdInput('');
-    setAddressInput('');
-    setVehiclePlateInput('');
-    setPinCodeInput('');
-  };
-
-  const createMutation = useMutation({
-    mutationFn: (data: UpsertDeliveryRepPayload) => deliveryRepsApi.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delivery-reps'] });
-      closeModal();
-    },
-    onError: (error: any) => {
-      console.error('API Error details:', error.details || error);
-      if (error?.status === 403 || error?.details?.statusCode === 403) {
-        systemAlert('ليس لديك صلاحية. تواصل مع مدير النظام لتفعيل هذه الخاصية.');
-      } else {
-        systemAlert(error.message || 'حدث خطأ أثناء الإضافة');
-      }
-    }
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (data: { id: number, payload: UpsertDeliveryRepPayload }) => 
-      deliveryRepsApi.update(data.id, data.payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delivery-reps'] });
-      closeModal();
-    },
-    onError: (error: any) => {
-      if (error?.status === 403 || error?.details?.statusCode === 403) {
-        systemAlert('ليس لديك صلاحية. تواصل مع مدير النظام لتفعيل هذه الخاصية.');
-      } else {
-        systemAlert(error.message || 'حدث خطأ أثناء التعديل');
-      }
-    }
   });
 
   const toggleActiveMutation = useMutation({
@@ -134,62 +81,24 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
     }
   });
 
-  const handleSave = () => {
-    if (!nameInput.trim()) {
-      systemAlert('يرجى كتابة اسم المندوب');
-      return;
-    }
-
-    const payload: UpsertDeliveryRepPayload = {
-      name: nameInput.trim(),
-      phone: phoneInput.trim() || undefined,
-      pinCode: pinCodeInput.trim() || undefined,
-      fullName: fullNameInput.trim() || undefined,
-      nationalId: nationalIdInput.trim() || undefined,
-      address: addressInput.trim() || undefined,
-      vehiclePlate: vehiclePlateInput.trim() || undefined,
-    };
-
-    if (editingRep) {
-      updateMutation.mutate({ id: editingRep.id, payload });
-    } else {
-      createMutation.mutate(payload);
-    }
-  };
-
   const startEdit = (rep: DeliveryRep) => {
     setEditingRep(rep);
-    setNameInput(rep.name || '');
-    setPhoneInput(rep.phone || '');
-    setPinCodeInput(rep.pin_code || '');
-    setFullNameInput(rep.full_name || '');
-    setNationalIdInput(rep.national_id || '');
-    setAddressInput(rep.address || '');
-    setVehiclePlateInput(rep.vehicle_plate || '');
     setIsModalOpen(true);
   };
 
   const startAdd = () => {
     setEditingRep(null);
-    setNameInput('');
-    setPhoneInput('');
-    setPinCodeInput('');
-    setFullNameInput('');
-    setNationalIdInput('');
-    setAddressInput('');
-    setVehiclePlateInput('');
     setIsModalOpen(true);
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ padding: '12px', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <Button variant="primary" style={{ width: '100%' }} onClick={startAdd}>
+        <Button variant="primary" style={{ width: '100%', background: '#170e5e' }} onClick={startAdd}>
           + إضافة مندوب جديد
         </Button>
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#1e293b' }}>
-            
             <div>
               <div style={{ fontWeight: 700 }}>بوابة المندوب للموبايل:</div>
               <code style={{ fontSize: '11px', color: '#0369a1', direction: 'ltr', display: 'inline-block' }}>/driver</code>
@@ -220,169 +129,23 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
         </div>
       </div>
 
-      {/* Modal Dialog for Add / Edit Delivery Rep */}
-      <DialogShell
+      {/* Unified Modal Dialog for Add / Edit Delivery Rep */}
+      <UpsertDeliveryRepModal
         open={isModalOpen}
-        onClose={closeModal}
-        width="min(620px, 95vw)"
-        ariaLabel={editingRep ? 'تعديل بيانات المندوب' : 'إضافة مندوب جديد'}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '20px 24px' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                {editingRep ? 'تعديل بيانات المندوب' : 'إضافة مندوب توصيل جديد'}
-              </h3>
-              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                سجل بيانات طيار الدليفري ومستندات الضمان
-              </p>
-            </div>
-            <button 
-              type="button" 
-              onClick={closeModal} 
-              style={{ background: '#f1f5f9', border: 'none', borderRadius: '6px', fontSize: '16px', cursor: 'pointer', color: '#64748b', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            ><XIcon size={15} /></button>
-          </div>
-
-          {/* Form Content */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            
-            {/* Section 1: Essential Info */}
-            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>البيانات الأساسية وتطبيق الموبايل</span>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                    اسم المندوب / الشهرة *
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="مثال: سيد / طاهر" 
-                    value={nameInput} 
-                    onChange={e => setNameInput(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', minHeight: '38px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '13px', background: '#ffffff', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                    رقم الهاتف / الموبايل
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="مثال: 01012345678" 
-                    value={phoneInput} 
-                    onChange={e => setPhoneInput(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', minHeight: '38px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '13px', background: '#ffffff', boxSizing: 'border-box', direction: 'ltr', textAlign: 'right' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                    رمز الدخول (PIN)
-                  </label>
-                  <input 
-                    type="password" 
-                    maxLength={6}
-                    placeholder="مثال: 1234" 
-                    value={pinCodeInput} 
-                    onChange={e => setPinCodeInput(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', minHeight: '38px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '13px', background: '#ffffff', boxSizing: 'border-box', direction: 'ltr', textAlign: 'center' }}
-                    title="رمز مكون من 4 أرقام يتيح للمندوب تسجيل الدخول لتطبيق الهاتف"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Section 2: Identity & Guarantee */}
-            <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.02)' }}>
-              <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>بيانات الهوية والضمان (اختياري)</span>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                    الاسم بالكامل (من واقع البطاقة)
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="الاسم الرباعي كاملاً" 
-                    value={fullNameInput} 
-                    onChange={e => setFullNameInput(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', minHeight: '38px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '13px', background: '#ffffff', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                    الرقم القومي (١٤ رقم)
-                  </label>
-                  <input 
-                    type="text" 
-                    maxLength={14}
-                    placeholder="الرقم القومي كاملاً" 
-                    value={nationalIdInput} 
-                    onChange={e => setNationalIdInput(e.target.value.replace(/\D/g, ''))}
-                    style={{ width: '100%', padding: '9px 12px', minHeight: '38px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '13px', background: '#ffffff', boxSizing: 'border-box', direction: 'ltr', textAlign: 'right' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                  العنوان بالتفصيل
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="المنطقة، الشارع، رقم العقار" 
-                  value={addressInput} 
-                  onChange={e => setAddressInput(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', minHeight: '38px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '13px', background: '#ffffff', boxSizing: 'border-box' }}
-                />
-              </div>
-            </div>
-
-            {/* Section 3: Vehicle Data */}
-            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>بيانات المركبة (اختياري)</span>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                  رقم لوحة المكنة / المركبة
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="مثال: 1234 ص ع" 
-                  value={vehiclePlateInput} 
-                  onChange={e => setVehiclePlateInput(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', minHeight: '38px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '13px', background: '#ffffff', boxSizing: 'border-box' }}
-                />
-              </div>
-            </div>
-
-          </div>
-
-          {/* Footer Actions */}
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
-            <Button variant="secondary" onClick={closeModal} style={{ minHeight: '40px', padding: '0 20px' }}>
-              إلغاء
-            </Button>
-            <Button 
-              variant="primary" 
-              onClick={handleSave} 
-              disabled={!nameInput.trim() || createMutation.isPending || updateMutation.isPending}
-              style={{ minHeight: '40px', padding: '0 26px', fontWeight: 700 }}
-            >
-              {createMutation.isPending || updateMutation.isPending ? 'جاري الحفظ...' : editingRep ? 'تحديث البيانات' : 'حفظ المندوب'}
-            </Button>
-          </div>
-        </div>
-      </DialogShell>
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingRep(null);
+        }}
+        rep={editingRep}
+      />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
         {repsQuery.isLoading && <div style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>جاري التحميل...</div>}
         {repsQuery.data?.map(rep => {
           const isSelected = selectedRepId === rep.id;
+          const isVan = rep.rep_type === 'van' || (!rep.rep_type && rep.is_van_rep);
+          const isBoth = rep.rep_type === 'both';
+
           return (
             <div 
               key={rep.id} 
@@ -404,12 +167,12 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div 
-                    title="طيار دليفري"
+                    title={isBoth ? 'مندوب شامل (دليفري وفان)' : isVan ? 'مندوب توزيع فان' : 'طيار دليفري'}
                     style={{ 
                       width: '44px', 
                       height: '44px', 
                       borderRadius: '10px', 
-                      background: '#ffffff', 
+                      background: isBoth ? '#f5f3ff' : isVan ? '#f0f9ff' : '#ffffff', 
                       border: isSelected ? '2px solid #0f172a' : '1px solid #e2e8f0',
                       display: 'flex', 
                       alignItems: 'center', 
@@ -418,11 +181,32 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
                       boxShadow: isSelected ? '0 2px 8px rgba(15, 23, 42, 0.12)' : '0 1px 2px rgba(0, 0, 0, 0.04)',
                     }}
                   >
-                    <DeliveryMotorcycleIcon isSelected={false} />
+                    {isBoth ? (
+                      <LayersIcon size={22} color="#7c3aed" />
+                    ) : isVan ? (
+                      <TruckIcon size={22} color="#0284c7" />
+                    ) : (
+                      <DeliveryMotorcycleIcon isSelected={false} />
+                    )}
                   </div>
                   <div>
-                    <span style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a', display: 'block' }}>{rep.name}</span>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a', display: 'block' }}>{rep.name}</span>
+                      {isBoth ? (
+                        <span style={{ fontSize: '10px', color: '#6d28d9', background: '#ede9fe', padding: '1px 6px', borderRadius: '4px', border: '1px solid #ddd6fe', fontWeight: 700 }}>
+                          شامل (فان ودليفري)
+                        </span>
+                      ) : isVan ? (
+                        <span style={{ fontSize: '10px', color: '#0369a1', background: '#e0f2fe', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 700 }}>
+                          توزيع فان
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '10px', color: '#c2410c', background: '#ffedd5', padding: '1px 6px', borderRadius: '4px', border: '1px solid #fed7aa', fontWeight: 700 }}>
+                          طيار دليفري
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '3px' }}>
                       {rep.phone ? (
                         <span style={{ fontSize: '11px', color: '#64748b', direction: 'ltr', display: 'inline-block' }}>
                           {rep.phone}

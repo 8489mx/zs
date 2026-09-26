@@ -29,6 +29,14 @@ export class UpsertDeliveryRepDto {
   @IsOptional()
   pinCode?: string;
 
+  @IsString()
+  @IsOptional()
+  repType?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isVanRep?: boolean;
+
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
