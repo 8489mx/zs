@@ -12,7 +12,7 @@
 >    what is only test-covered, and the prioritized queue of what to review next).
 >    **If asked to do a review/audit session, read this file FIRST** — it tells you what to skip,
 >    what to delta-review, and where to start.
-> 6. `PERFORMANCE_CONSTITUTION.md` (**Performance Constitution** — invariants PERF-1..PERF-11 and
+> 6. `PERFORMANCE_CONSTITUTION.md` (**Performance Constitution** — invariants PERF-1..PERF-12 and
 >    forbidden performance patterns P1..P10). **Read it before touching `vite.config.ts`, `main.ts`,
 >    the app shell's imports, the POS/product catalog, the public storefront catalog, or any index
 >    migration.** Guarded by `performance-hot-paths.spec.ts` and `npm --prefix frontend run qa:perf`

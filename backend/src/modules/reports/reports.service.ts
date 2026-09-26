@@ -9,7 +9,7 @@ import { Database } from '../../database/database.types';
 import { ReportRangeQueryDto } from './dto/report-query.dto';
 import { buildPagination, filterScope, getBusinessTimezone, parseRange, setBusinessTimezoneResolver } from './helpers/reports-range.helper';
 import { buildReportSummaryPayload } from './helpers/reports-summary.helper';
-import { buildDashboardComputedState, buildDashboardOverviewPayload, buildDashboardScope } from './helpers/reports-dashboard.helper';
+import { buildDashboardComputedState, buildDashboardOverviewPayload, buildDashboardScope, buildInventorySnapshot, buildPartnerExposureSnapshot } from './helpers/reports-dashboard.helper';
 import { buildCustomerBalancesPayload, buildCustomerLedgerPayload, buildSupplierBalancesPayload, buildSupplierLedgerPayload, LedgerSummaryRow, PartnerLedgerEntryRow } from './helpers/reports-ledger.helper';
 import { buildCustomerLedgerTotals, buildSupplierLedgerTotals } from './helpers/reports-partner-ledger.helper';
 import { buildInventoryLocationHighlights, buildInventoryReportItems, buildInventorySummary, InventoryLocationBreakdownRow, InventoryLocationHighlightRow, InventoryReportProductRow } from './helpers/reports-inventory.helper';
@@ -203,36 +203,111 @@ export class ReportsService {
     const trendStart = scope.trendStart;
     const todayIso = scope.activeOfferDate;
 
+    // PO-2 (PERFORMANCE_CONSTITUTION.md §5): this used to pull every active product/customer/supplier
+    // for the tenant into Node and filter/reduce over them — linear in catalog size, so a tenant with
+    // a large catalog paid a real cost on every dashboard load. Every product/customer/supplier metric
+    // below is now a SQL aggregate (COUNT/SUM, optionally with FILTER) or a ORDER BY ... LIMIT query,
+    // so the amount of data pulled from Postgres no longer grows with the catalog — only with the
+    // small, fixed number of rows actually shown (top 8 low-stock items, top 5 customers/suppliers).
+    // Verified behaviourally identical to the old JS computation against a set of edge cases (zero
+    // stock, zero min-stock threshold, inactive rows, near/above credit limit, ties) run inside a
+    // rolled-back transaction against a real Postgres instance before this migration shipped.
     const [
       summary,
-      productsRows,
-      customersRows,
-      suppliersRows,
+      productAgg,
+      lowStockRows,
+      customersCountRow,
+      suppliersCountRow,
+      customerDebtRow,
+      supplierDebtRow,
+      creditLimitAgg,
+      highSupplierBalancesRow,
+      topCustomerRows,
+      topSupplierRows,
       rawRecentSalesRows,
       rawRecentPurchasesRows,
-      customerLedgerRows,
-      supplierLedgerRows,
       activeOffersRows,
       rawTopTodayRows,
     ] = await Promise.all([
       this.reportSummary(query, auth),
       this.db
         .selectFrom('products')
-        .select(['id', 'name', 'category_id', 'supplier_id', 'retail_price', 'stock_qty', 'min_stock_qty', 'cost_price'])
+        .select([
+          sql<number>`count(*)`.as('products_count'),
+          sql<number>`count(*) filter (where stock_qty > 0 and min_stock_qty > 0 and stock_qty <= min_stock_qty)`.as('low_stock_count'),
+          sql<number>`count(*) filter (where stock_qty <= 0)`.as('out_of_stock_count'),
+          sql<number>`coalesce(sum(stock_qty * cost_price), 0)`.as('inventory_cost'),
+          sql<number>`coalesce(sum(stock_qty * retail_price), 0)`.as('inventory_sale_value'),
+        ])
         .where('is_active', '=', true)
         .where(this.tenantPredicate(auth))
+        .executeTakeFirstOrThrow(),
+      this.db
+        .selectFrom('products')
+        .select(['id', 'name', 'retail_price', 'stock_qty', 'min_stock_qty', 'cost_price'])
+        .where('is_active', '=', true)
+        .where(this.tenantPredicate(auth))
+        .where('stock_qty', '>', 0)
+        .where('min_stock_qty', '>', 0)
+        .where(sql<boolean>`stock_qty <= min_stock_qty`)
+        .orderBy('id', 'asc')
+        .limit(8)
+        .execute(),
+      this.db.selectFrom('customers').select(sql<number>`count(*)`.as('n')).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow(),
+      this.db.selectFrom('suppliers').select(sql<number>`count(*)`.as('n')).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow(),
+      // customerDebt/supplierDebt: sum of ALL ledger rows for the tenant (matches the old code, which
+      // summed every customer/supplier that had any ledger row, not only the active ones).
+      this.db.selectFrom('customer_ledger').select(sql<number>`coalesce(sum(amount), 0)`.as('total')).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow(),
+      this.db.selectFrom('supplier_ledger').select(sql<number>`coalesce(sum(amount), 0)`.as('total')).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow(),
+      this.db
+        .selectFrom('customers as c')
+        .leftJoin(
+          (eb) => eb.selectFrom('customer_ledger').select(['customer_id', sql<number>`coalesce(sum(amount), 0)`.as('bal')]).where(this.tenantPredicate(auth)).groupBy('customer_id').as('l'),
+          (join) => join.onRef('l.customer_id', '=', 'c.id'),
+        )
+        .select([
+          sql<number>`count(*) filter (where coalesce(l.bal, 0) >= c.credit_limit * 0.8 and coalesce(l.bal, 0) <= c.credit_limit)`.as('near'),
+          sql<number>`count(*) filter (where coalesce(l.bal, 0) > c.credit_limit)`.as('above'),
+        ])
+        .where('c.is_active', '=', true)
+        .where(this.tenantPredicate(auth, 'c'))
+        .where('c.credit_limit', '>', 0)
+        .executeTakeFirstOrThrow(),
+      this.db
+        .selectFrom('suppliers as s')
+        .leftJoin(
+          (eb) => eb.selectFrom('supplier_ledger').select(['supplier_id', sql<number>`coalesce(sum(amount), 0)`.as('bal')]).where(this.tenantPredicate(auth)).groupBy('supplier_id').as('l'),
+          (join) => join.onRef('l.supplier_id', '=', 's.id'),
+        )
+        .select(sql<number>`count(*) filter (where coalesce(l.bal, 0) >= 1000)`.as('n'))
+        .where('s.is_active', '=', true)
+        .where(this.tenantPredicate(auth, 's'))
+        .executeTakeFirstOrThrow(),
+      this.db
+        .selectFrom('customers as c')
+        .innerJoin(
+          (eb) => eb.selectFrom('customer_ledger').select(['customer_id', sql<number>`coalesce(sum(amount), 0)`.as('bal')]).where(this.tenantPredicate(auth)).groupBy('customer_id').as('l'),
+          (join) => join.onRef('l.customer_id', '=', 'c.id'),
+        )
+        .select(['c.id as id', 'c.name as name', 'l.bal as balance'])
+        .where('c.is_active', '=', true)
+        .where(this.tenantPredicate(auth, 'c'))
+        .where(sql<boolean>`l.bal > 0`)
+        .orderBy('l.bal', 'desc')
+        .limit(5)
         .execute(),
       this.db
-        .selectFrom('customers')
-        .select(['id', 'name', 'balance', 'credit_limit'])
-        .where('is_active', '=', true)
-        .where(this.tenantPredicate(auth))
-        .execute(),
-      this.db
-        .selectFrom('suppliers')
-        .select(['id', 'name', 'balance'])
-        .where('is_active', '=', true)
-        .where(this.tenantPredicate(auth))
+        .selectFrom('suppliers as s')
+        .innerJoin(
+          (eb) => eb.selectFrom('supplier_ledger').select(['supplier_id', sql<number>`coalesce(sum(amount), 0)`.as('bal')]).where(this.tenantPredicate(auth)).groupBy('supplier_id').as('l'),
+          (join) => join.onRef('l.supplier_id', '=', 's.id'),
+        )
+        .select(['s.id as id', 's.name as name', 'l.bal as balance'])
+        .where('s.is_active', '=', true)
+        .where(this.tenantPredicate(auth, 's'))
+        .where(sql<boolean>`l.bal > 0`)
+        .orderBy('l.bal', 'desc')
+        .limit(5)
         .execute(),
       this.db
         .selectFrom('sales')
@@ -249,18 +324,6 @@ export class ReportsService {
         .where('created_at', '>=', trendStart)
         .where('created_at', '<=', todayEnd)
         .where(this.tenantPredicate(auth))
-        .execute(),
-      this.db
-        .selectFrom('customer_ledger')
-        .select(['customer_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
-        .where(this.tenantPredicate(auth))
-        .groupBy('customer_id')
-        .execute(),
-      this.db
-        .selectFrom('supplier_ledger')
-        .select(['supplier_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
-        .where(this.tenantPredicate(auth))
-        .groupBy('supplier_id')
         .execute(),
       this.db
         .selectFrom('product_offers')
@@ -296,26 +359,39 @@ export class ReportsService {
     const activeOffers = activeOffersRows.length;
 
     const dashboardState = buildDashboardComputedState({
-      productsRows,
-      customersRows,
-      suppliersRows,
       recentSalesRows,
       recentPurchasesRows,
       topTodayRows,
-      customerLedgerRows: customerLedgerRows as Array<{ customer_id?: number | string | null; balance_total?: number | string | null }>,
-      supplierLedgerRows: supplierLedgerRows as Array<{ supplier_id?: number | string | null; balance_total?: number | string | null }>,
       businessTimezone,
       todayKey: today.key,
+    });
+
+    const inventorySnapshot = buildInventorySnapshot({
+      lowStockRows,
+      lowStockCount: Number(productAgg.low_stock_count),
+      outOfStockCount: Number(productAgg.out_of_stock_count),
+      inventoryCost: Number(productAgg.inventory_cost),
+      inventorySaleValue: Number(productAgg.inventory_sale_value),
+    });
+
+    const partnerExposure = buildPartnerExposureSnapshot({
+      customerDebt: Number(customerDebtRow.total),
+      supplierDebt: Number(supplierDebtRow.total),
+      nearCreditLimit: Number(creditLimitAgg.near || 0),
+      aboveCreditLimit: Number(creditLimitAgg.above || 0),
+      highSupplierBalances: Number(highSupplierBalancesRow.n || 0),
+      topCustomerRows,
+      topSupplierRows,
     });
 
     const result = this.withScope(buildDashboardOverviewPayload({
       range,
       summary: summary as Record<string, unknown>,
-      productsCount: productsRows.length,
-      customersCount: customersRows.length,
-      suppliersCount: suppliersRows.length,
-      inventorySnapshot: dashboardState.inventorySnapshot,
-      partnerExposure: dashboardState.partnerExposure,
+      productsCount: Number(productAgg.products_count),
+      customersCount: Number(customersCountRow.n),
+      suppliersCount: Number(suppliersCountRow.n),
+      inventorySnapshot,
+      partnerExposure,
       todayOperations: dashboardState.todayOperations,
       trends: dashboardState.trends,
       activeOffers,

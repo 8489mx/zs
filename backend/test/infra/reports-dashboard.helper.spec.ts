@@ -5,6 +5,8 @@ import {
   buildDashboardScope,
   buildDashboardStats,
   buildDashboardSummary,
+  buildInventorySnapshot,
+  buildPartnerExposureSnapshot,
 } from '../../src/modules/reports/helpers/reports-dashboard.helper';
 
 (() => {
@@ -123,16 +125,6 @@ import {
   assert.equal(scope.trendStart.toISOString(), '2026-01-12T00:00:00.000Z');
 
   const state = buildDashboardComputedState({
-    productsRows: [
-      { id: 1, name: 'Rice', stock_qty: 2, min_stock_qty: 5, retail_price: 20, cost_price: 12 },
-      { id: 2, name: 'Oil', stock_qty: 10, min_stock_qty: 3, retail_price: 30, cost_price: 21 },
-    ],
-    customersRows: [
-      { id: 1, name: 'Cust', credit_limit: 500 },
-    ],
-    suppliersRows: [
-      { id: 7, name: 'Supp' },
-    ],
     recentSalesRows: [
       { created_at: '2026-02-10T08:00:00.000Z', total: 100 },
       { created_at: '2026-02-09T08:00:00.000Z', total: 50 },
@@ -144,22 +136,46 @@ import {
     topTodayRows: [
       { product_id: 1, product_name: 'Rice', qty_total: 4, sales_total: 100 },
     ],
-    customerLedgerRows: [
-      { customer_id: 1, balance_total: 240 },
-    ],
-    supplierLedgerRows: [
-      { supplier_id: 7, balance_total: 1100 },
-    ],
     businessTimezone: 'UTC',
     todayKey: '2026-02-10',
   });
 
-  assert.equal(state.inventorySnapshot.lowStockCount, 1);
-  assert.equal(state.partnerExposure.customerDebt, 240);
-  assert.equal(state.partnerExposure.highSupplierBalances, 1);
   assert.equal(state.todayOperations.todaySalesCount, 1);
   assert.equal(state.todayOperations.todayPurchasesAmount, 60);
   assert.equal(state.trends.sales.length, 30);
+
+  // PO-2: inventorySnapshot/partnerExposure are shaped from already-aggregated SQL results now
+  // (see reports.service.ts:dashboardOverview) rather than scanning every product/customer/supplier
+  // row in JS. These two functions only cover the shaping — the aggregation itself was verified
+  // against a real Postgres instance (edge cases: zero stock, zero min-stock threshold, inactive
+  // rows excluded, near/above credit limit boundaries) before the migration shipped.
+  const inventorySnapshot = buildInventorySnapshot({
+    lowStockRows: [
+      { id: 1, name: 'Rice', stock_qty: 2, min_stock_qty: 5, retail_price: 20, cost_price: 12 },
+    ],
+    lowStockCount: 1,
+    outOfStockCount: 0,
+    inventoryCost: 900,
+    inventorySaleValue: 1400,
+  });
+  assert.equal(inventorySnapshot.lowStockCount, 1);
+  assert.equal(inventorySnapshot.lowStock[0]?.name, 'Rice');
+  assert.equal(inventorySnapshot.lowStock[0]?.status, 'low');
+  assert.equal(inventorySnapshot.inventoryCost, 900);
+
+  const partnerExposure = buildPartnerExposureSnapshot({
+    customerDebt: 240,
+    supplierDebt: 1100,
+    nearCreditLimit: 1,
+    aboveCreditLimit: 0,
+    highSupplierBalances: 1,
+    topCustomerRows: [{ id: 1, name: 'Cust', balance: 240 }],
+    topSupplierRows: [{ id: 7, name: 'Supp', balance: 1100 }],
+  });
+  assert.equal(partnerExposure.customerDebt, 240);
+  assert.equal(partnerExposure.highSupplierBalances, 1);
+  assert.equal(partnerExposure.topCustomers[0]?.name, 'Cust');
+  assert.equal(partnerExposure.topCustomers[0]?.count, 1);
 
   console.log('reports-dashboard.helper.spec: ok');
 })();

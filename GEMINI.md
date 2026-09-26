@@ -25,7 +25,7 @@
 
 ## 5. System Capability Verification Rule (سجل قدرات النظام ومنع تكرار الميزات)
 - **ممنوع نهائياً** اقتراح ميزات أو التخمين بوجود أو عدم وجود ميزة من الذاكرة أو تقديم اقتراحات لميزات معمولة بالفعل عند سؤال المستخدم عن "ما ينقص النظام".
-- **دستور الأداء (إلزامي):** قبل تعديل `vite.config.ts` أو `backend/src/main.ts` أو استيرادات الـShell أو كتالوج الأصناف/نقطة البيع أو كتالوج المتجر العام أو أي هجرة فهارس — اقرأ `PERFORMANCE_CONSTITUTION.md` (الثوابت PERF-1..PERF-11 والأنماط المحظورة P1..P10). ممنوع استيراد مكتبة ثقيلة (`jspdf`/`xlsx`/`recharts`/`html5-qrcode`/`pdfjs-dist`/`@sentry/react`) استيراداً ثابتاً من كود يصله الـShell. الحارسان `performance-hot-paths.spec.ts` و`qa:perf` داخل `npm run guards`.
+- **دستور الأداء (إلزامي):** قبل تعديل `vite.config.ts` أو `backend/src/main.ts` أو استيرادات الـShell أو كتالوج الأصناف/نقطة البيع أو كتالوج المتجر العام أو أي هجرة فهارس — اقرأ `PERFORMANCE_CONSTITUTION.md` (الثوابت PERF-1..PERF-12 والأنماط المحظورة P1..P10). ممنوع استيراد مكتبة ثقيلة (`jspdf`/`xlsx`/`recharts`/`html5-qrcode`/`pdfjs-dist`/`@sentry/react`) استيراداً ثابتاً من كود يصله الـShell. الحارسان `performance-hot-paths.spec.ts` و`qa:perf` داخل `npm run guards`.
 - **قاعدة التحديث الإلزامي:** أي ميزة أو شاشة أو منطق جديد يتم إضافته أو تعديله في النظام يجب فوراً توثيقه وتحديث حالته ونسبته وملفاته في `SYSTEM_CAPABILITIES.md`.
 
 ## 6. Infrastructure & Deployment Environment (سيرفر أوراكل حصرياً - Oracle Cloud VPS)

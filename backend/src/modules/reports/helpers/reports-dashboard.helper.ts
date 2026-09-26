@@ -1,6 +1,5 @@
 import { TrendPoint, buildLastNDays, dateKey, getBusinessDayBounds } from './reports-range.helper';
 import { buildTrendMap, sumMoney, toMoney } from './reports-math.helper';
-import { buildCustomerLedgerTotals, buildSupplierLedgerTotals } from './reports-partner-ledger.helper';
 
 type ProductRow = {
   id: number | string;
@@ -11,15 +10,10 @@ type ProductRow = {
   cost_price?: number | string | null;
 };
 
-type CustomerRow = {
+type PartnerBalanceRow = {
   id: number | string;
   name?: string | null;
-  credit_limit?: number | string | null;
-};
-
-type SupplierRow = {
-  id: number | string;
-  name?: string | null;
+  balance: number | string | null;
 };
 
 type TodaySaleItemRow = {
@@ -39,13 +33,6 @@ type TodayTopRow = {
 type TimedMoneyRow = {
   created_at: Date | string;
   total?: number | string | null;
-};
-
-
-export type DashboardLedgerRow = {
-  customer_id?: number | string | null;
-  supplier_id?: number | string | null;
-  balance_total?: number | string | null;
 };
 
 export type DashboardScope = {
@@ -73,124 +60,88 @@ export function buildDashboardScope(now: Date, businessTimezone: string): Dashbo
 }
 
 export function buildDashboardComputedState(args: {
-  productsRows: ProductRow[];
-  customersRows: CustomerRow[];
-  suppliersRows: SupplierRow[];
   recentSalesRows: TimedMoneyRow[];
   recentPurchasesRows: TimedMoneyRow[];
   topTodayRows: TodayTopRow[];
-  customerLedgerRows: DashboardLedgerRow[];
-  supplierLedgerRows: DashboardLedgerRow[];
   businessTimezone: string;
   todayKey: string;
 }) {
-  const customerLedgerTotals = buildCustomerLedgerTotals(args.customerLedgerRows);
-  const supplierLedgerTotals = buildSupplierLedgerTotals(args.supplierLedgerRows);
-
-  const inventorySnapshot = buildInventorySnapshot(args.productsRows);
-  const partnerExposure = buildPartnerExposureSnapshot(
-    args.customersRows,
-    args.suppliersRows,
-    customerLedgerTotals,
-    supplierLedgerTotals,
-  );
-
   const todaySalesRows = args.recentSalesRows.filter((row) => dateKey(row.created_at, args.businessTimezone) === args.todayKey);
   const todayPurchasesRows = args.recentPurchasesRows.filter((row) => dateKey(row.created_at, args.businessTimezone) === args.todayKey);
   const todayOperations = buildTodayOperationsSnapshot(todaySalesRows, todayPurchasesRows, args.topTodayRows);
   const trends = buildSevenDayTrends(args.recentSalesRows, args.recentPurchasesRows, args.businessTimezone);
 
   return {
-    inventorySnapshot,
-    partnerExposure,
     todayOperations,
     trends,
   };
 }
 
-export function buildInventorySnapshot(productsRows: ProductRow[]) {
-  const lowStock = productsRows
-    .filter((row) => Number(row.stock_qty || 0) > 0 && Number(row.min_stock_qty || 0) > 0 && Number(row.stock_qty || 0) <= Number(row.min_stock_qty || 0))
-    .slice(0, 8)
-    .map((row) => ({
-      id: String(row.id),
-      name: row.name || '',
-      retailPrice: Number(row.retail_price || 0),
-      stockQty: Number(row.stock_qty || 0),
-      minStockQty: Number(row.min_stock_qty || 0),
-      costPrice: Number(row.cost_price || 0),
-      status: Number(row.stock_qty || 0) <= 0 ? 'out' : 'low',
-    }));
-
-  const lowStockCount = productsRows.filter((row) => Number(row.stock_qty || 0) > 0 && Number(row.min_stock_qty || 0) > 0 && Number(row.stock_qty || 0) <= Number(row.min_stock_qty || 0)).length;
-  const outOfStockCount = productsRows.filter((row) => Number(row.stock_qty || 0) <= 0).length;
-  const inventoryCost = toMoney(productsRows.reduce((sum, row) => sum + (Number(row.stock_qty || 0) * Number(row.cost_price || 0)), 0));
-  const inventorySaleValue = toMoney(productsRows.reduce((sum, row) => sum + (Number(row.stock_qty || 0) * Number(row.retail_price || 0)), 0));
+// PO-2 (PERFORMANCE_CONSTITUTION.md §5): this used to filter/reduce over every active product for
+// the tenant in JS. `lowStockCount`, `outOfStockCount`, `inventoryCost` and `inventorySaleValue` are
+// now computed in SQL (COUNT/SUM with FILTER) — this function only shapes the already-aggregated
+// numbers and the already-limited (top 8) low-stock rows into the response, so it stays O(8) no
+// matter how large the catalog is.
+export function buildInventorySnapshot(args: {
+  lowStockRows: ProductRow[];
+  lowStockCount: number;
+  outOfStockCount: number;
+  inventoryCost: number;
+  inventorySaleValue: number;
+}) {
+  const lowStock = args.lowStockRows.map((row) => ({
+    id: String(row.id),
+    name: row.name || '',
+    retailPrice: Number(row.retail_price || 0),
+    stockQty: Number(row.stock_qty || 0),
+    minStockQty: Number(row.min_stock_qty || 0),
+    costPrice: Number(row.cost_price || 0),
+    status: Number(row.stock_qty || 0) <= 0 ? 'out' : 'low',
+  }));
 
   return {
     lowStock,
-    lowStockCount,
-    outOfStockCount,
-    inventoryCost,
-    inventorySaleValue,
+    lowStockCount: args.lowStockCount,
+    outOfStockCount: args.outOfStockCount,
+    inventoryCost: toMoney(args.inventoryCost),
+    inventorySaleValue: toMoney(args.inventorySaleValue),
   };
 }
 
-export function buildPartnerExposureSnapshot(
-  customersRows: CustomerRow[],
-  suppliersRows: SupplierRow[],
-  customerBalances: Map<string, number>,
-  supplierBalances: Map<string, number>,
-) {
-  const customerDebt = toMoney([...customerBalances.values()].reduce((sum, value) => sum + Number(value || 0), 0));
-  const supplierDebt = toMoney([...supplierBalances.values()].reduce((sum, value) => sum + Number(value || 0), 0));
+// PO-2: same shape change as buildInventorySnapshot — `customerDebt`/`supplierDebt`/`nearCreditLimit`/
+// `aboveCreditLimit`/`highSupplierBalances` are now SQL aggregates (SUM/COUNT FILTER over the ledger
+// tables, joined against active customers/suppliers only where the original JS did the same active
+// filter), and `topCustomerRows`/`topSupplierRows` are already the top-5-by-balance SQL result — this
+// function only shapes them, it does not scan every partner.
+export function buildPartnerExposureSnapshot(args: {
+  customerDebt: number;
+  supplierDebt: number;
+  nearCreditLimit: number;
+  aboveCreditLimit: number;
+  highSupplierBalances: number;
+  topCustomerRows: PartnerBalanceRow[];
+  topSupplierRows: PartnerBalanceRow[];
+}) {
+  const topCustomers = args.topCustomerRows.map((row) => ({
+    key: String(row.id),
+    name: row.name || '',
+    total: Number(row.balance || 0),
+    count: 1,
+  }));
 
-  const nearCreditLimit = customersRows.filter((row) => {
-    const balance = Number(customerBalances.get(String(row.id)) || 0);
-    return Number(row.credit_limit || 0) > 0 && balance >= Number(row.credit_limit || 0) * 0.8 && balance <= Number(row.credit_limit || 0);
-  }).length;
-
-  const aboveCreditLimit = customersRows.filter((row) => {
-    const balance = Number(customerBalances.get(String(row.id)) || 0);
-    return Number(row.credit_limit || 0) > 0 && balance > Number(row.credit_limit || 0);
-  }).length;
-
-  const highSupplierBalances = suppliersRows.filter((row) => Number(supplierBalances.get(String(row.id)) || 0) >= 1000).length;
-
-  const topCustomers = customersRows
-    .map((row) => {
-      const balance = Number(customerBalances.get(String(row.id)) || 0);
-      return {
-        key: String(row.id),
-        name: row.name || '',
-        total: balance,
-        count: balance > 0 ? 1 : 0,
-      };
-    })
-    .filter((row) => row.total > 0)
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 5);
-
-  const topSuppliers = suppliersRows
-    .map((row) => {
-      const balance = Number(supplierBalances.get(String(row.id)) || 0);
-      return {
-        key: String(row.id),
-        name: row.name || '',
-        total: balance,
-        count: balance > 0 ? 1 : 0,
-      };
-    })
-    .filter((row) => row.total > 0)
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 5);
+  const topSuppliers = args.topSupplierRows.map((row) => ({
+    key: String(row.id),
+    name: row.name || '',
+    total: Number(row.balance || 0),
+    count: 1,
+  }));
 
   return {
-    customerDebt,
-    supplierDebt,
-    nearCreditLimit,
-    aboveCreditLimit,
-    highSupplierBalances,
+    customerDebt: toMoney(args.customerDebt),
+    supplierDebt: toMoney(args.supplierDebt),
+    nearCreditLimit: args.nearCreditLimit,
+    aboveCreditLimit: args.aboveCreditLimit,
+    highSupplierBalances: args.highSupplierBalances,
     topCustomers,
     topSuppliers,
   };

@@ -2,6 +2,21 @@ import { strict as assert } from 'node:assert';
 import { ReportsService } from '../../src/modules/reports/reports.service';
 import { dateKey, getBusinessTimezone } from '../../src/modules/reports/helpers/reports-range.helper';
 
+// PO-2 (PERFORMANCE_CONSTITUTION.md §5): dashboardOverview used to fetch every active
+// product/customer/supplier for the tenant as a plain row list and reduce over them in JS — one
+// query per table, one shape, which this file's FakeDb could fake convincingly. It is now a set of
+// SQL aggregates (COUNT/SUM, some FILTER'd, some joined against a per-partner ledger subquery), and
+// the SAME table is queried more than once with DIFFERENT result shapes (products: a single
+// aggregate row, then a top-8 list; customers: a count, a credit-limit-boundary count, a top-5 list).
+// A table-name-keyed FakeDb cannot tell those calls apart, so it cannot fake real aggregate/JOIN
+// arithmetic here without becoming a small SQL engine. That correctness burden moved to
+// test/e2e/dashboard-overview-aggregates.e2e.ts, which runs the real query against real Postgres
+// inside a rolled-back transaction with edge cases (zero stock, zero min-stock threshold, inactive
+// rows, near/above credit-limit boundaries) and is the authority for those numbers.
+// What THIS file still verifies for real: today's sales/purchases trends and today-operations math,
+// which are untouched by the PO-2 migration and still computed from a single, unambiguous query per
+// table (`sales`, `purchases`, `product_offers`, `sale_items as si`).
+
 type RowMap = Record<string, unknown[]>;
 
 class FakeQuery {
@@ -15,6 +30,12 @@ class FakeQuery {
   limit(): this { return this; }
   execute(): Promise<unknown[]> { return Promise.resolve(this.rows); }
   executeTakeFirst(): Promise<unknown> { return Promise.resolve(this.rows[0]); }
+  executeTakeFirstOrThrow(): Promise<unknown> {
+    // The real aggregate queries always return exactly one row (COUNT/SUM with no GROUP BY never
+    // return zero rows, even over an empty table) — a canned row with sane zero defaults keeps the
+    // service's Number(...) calls from producing NaN, without pretending to fake the real arithmetic.
+    return Promise.resolve(this.rows[0] ?? { n: 0, total: 0, near: 0, above: 0, products_count: 0, low_stock_count: 0, out_of_stock_count: 0, inventory_cost: 0, inventory_sale_value: 0 });
+  }
 }
 
 class FakeDb {
@@ -34,17 +55,6 @@ class FakeDb {
   const thirtyFiveDaysAgo = new Date(today);
   thirtyFiveDaysAgo.setUTCDate(thirtyFiveDaysAgo.getUTCDate() - 35);
 
-  const products = Array.from({ length: 10 }, (_, index) => ({
-    id: index + 1,
-    name: `P${index + 1}`,
-    category_id: 1,
-    supplier_id: 1,
-    retail_price: 10,
-    stock_qty: index === 9 ? 5 : 1,
-    min_stock_qty: 2,
-    cost_price: 4,
-  }));
-
   const service = new ReportsService(new FakeDb({
     sales: [
       { id: 1, total: 100, branch_id: 1, location_id: 1, created_at: today.toISOString() },
@@ -57,23 +67,6 @@ class FakeDb {
     expenses: [],
     return_documents: [],
     treasury_transactions: [],
-    products,
-    customers: [
-      { id: 1, name: 'Cash', balance: 20, credit_limit: 100 },
-      { id: 2, name: 'Vip', balance: 10, credit_limit: 100 },
-    ],
-    customer_ledger: [
-      { customer_id: 1, balance_total: 220 },
-      { customer_id: 2, balance_total: 15 },
-    ],
-    suppliers: [
-      { id: 1, name: 'Supp', balance: 10 },
-      { id: 2, name: 'Big Supp', balance: 20 },
-    ],
-    supplier_ledger: [
-      { supplier_id: 1, balance_total: 50 },
-      { supplier_id: 2, balance_total: 1200 },
-    ],
     product_offers: [
       { id: 1, start_date: null, end_date: null },
     ],
@@ -96,11 +89,17 @@ class FakeDb {
   assert.equal(trends.some((item) => item.key === thirtyFiveDaysAgoKey), false);
   assert.equal((result.stats as any).todaySalesAmount, 100);
   assert.equal((result.summary as any).activeOffers, 1);
-  assert.equal((result.summary as any).lowStockCount, 9);
-  assert.equal((result.stats as any).customerDebt, 235);
-  assert.equal((result.stats as any).highSupplierBalances, 1);
-  assert.equal(((result.topCustomers as any[]) || [])[0]?.total, 220);
   assert.equal(((result.topToday as any[]) || [])[0]?.total, 20);
+
+  // Not a crash, and every PO-2 aggregate field is at least present as a finite number — the exact
+  // arithmetic is verified in test/e2e/dashboard-overview-aggregates.e2e.ts, not here (see file header).
+  for (const field of ['productsCount', 'customersCount', 'suppliersCount', 'inventoryCost', 'inventorySaleValue', 'customerDebt', 'supplierDebt', 'nearCreditLimit', 'aboveCreditLimit', 'highSupplierBalances']) {
+    const value = (result.stats as Record<string, unknown>)[field];
+    assert.equal(Number.isFinite(Number(value)), true, `stats.${field} must be a finite number, got ${JSON.stringify(value)}`);
+  }
+  assert.ok(Array.isArray(result.lowStock), 'lowStock must be an array');
+  assert.ok(Array.isArray(result.topCustomers), 'topCustomers must be an array');
+  assert.ok(Array.isArray(result.topSuppliers), 'topSuppliers must be an array');
 
   console.log('reports-dashboard-trends.spec: ok');
 })().catch((error) => {
