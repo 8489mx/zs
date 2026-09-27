@@ -12,7 +12,7 @@ export interface CustomerTypeOption {
 }
 
 export interface CustomerProfile {
-  id: 'maritime' | 'contracting' | 'general';
+  id: 'maritime' | 'contracting' | 'general' | 'distribution';
   pageTitle: string;
   pageDescription: string;
   badgeUnit: string;
@@ -102,6 +102,38 @@ export const CONTRACTING_CUSTOMER_PROFILE: CustomerProfile = {
   showMarketingCampaign: false,
 };
 
+export const DISTRIBUTION_CUSTOMER_PROFILE: CustomerProfile = {
+  id: 'distribution',
+  pageTitle: 'سجل العملاء والمحلات ومنافذ التوزيع',
+  pageDescription: 'إدارة منافذ التوزيع، البقالات ومحلات الجملة والتجزئة، خطوط السير، أكواد العملاء، والمواقع الجغرافية وسقوف المديونية.',
+  badgeUnit: 'منفذ توزيع / محل',
+  addBtnText: '+ محل / منفذ توزيع جديد',
+  modalAddTitle: 'تسجيل منفذ توزيع أو محل جديد',
+  modalAddSubtitle: 'تسجيل بيانات المحل، العنوان وخط السير، كود العميل، وسقف المديونية للمندوب.',
+  modalEditSubtitle: 'تحديث بيانات المحل أو ضبط سقف المديونية وخط السير.',
+  nameLabel: 'اسم المحل / المنفذ التجاري *',
+  namePlaceholder: 'مثال: سوبرماركت الأمانة / بقالة البركة',
+  phoneLabel: 'هاتف صاحب المحل أو المستلم',
+  phonePlaceholder: 'مثال: 010xxxxxxxx',
+  addressLabel: 'العنوان وخط السير والمنطقة',
+  addressPlaceholder: 'الشارع، الحي، خط سير التوزيع...',
+  typeLabel: 'نوع وتصنيف منفذ التوزيع',
+  types: [
+    { value: 'wholesale', label: 'محل جملة / نصف جملة (أسعار جملة خاصة)', badgeLabel: 'جملة', badgeStyle: { bg: '#dcfce7', color: '#166534' } },
+    { value: 'credit', label: 'منفذ توزيع آجل (سداد مع دورة التوزيع القادمة)', badgeLabel: 'آجل / دورة', badgeStyle: { bg: '#e0f2fe', color: '#0369a1' } },
+    { value: 'cash', label: 'محل قطاعي / سداد نقدي فوري مع التسليم', badgeLabel: 'نقدي فوري', badgeStyle: { bg: '#f1f5f9', color: '#475569' } },
+    { value: 'vip', label: 'منفذ استراتيجي كبار العملاء (VIP)', badgeLabel: 'VIP استراتيجي', badgeStyle: { bg: '#fef3c7', color: '#92400e' } },
+  ],
+  balanceLabel: 'الرصيد الافتتاحي للمحل',
+  balanceHint: 'مديونية المحل السابقة إن وجدت قبل بدء خطوط التوزيع',
+  creditLimitLabel: 'سقف مديونية المحل (Credit Limit)',
+  creditLimitHint: 'الحد الأقصى للمديونية قبل منع المندوب من تفريغ فواتير جديدة للمحل (0 = نقدي فقط)',
+  submitCreateText: 'حفظ منفذ التوزيع',
+  submitEditText: 'حفظ تعديلات المحل',
+  showLoyalty: false,
+  showMarketingCampaign: true,
+};
+
 export const GENERAL_CUSTOMER_PROFILE: CustomerProfile = {
   id: 'general',
   pageTitle: 'العملاء',
@@ -137,6 +169,17 @@ export const GENERAL_CUSTOMER_PROFILE: CustomerProfile = {
 export function getCustomerProfileByRaw(rawActivity: string, pathname: string): CustomerProfile {
   const normActivity = (rawActivity || '').toLowerCase();
   const normPath = (pathname || '').toLowerCase();
+
+  const isDistribution =
+    normPath.includes('/van-sales') ||
+    normPath.includes('/fleet') ||
+    normActivity === 'wholesale_van' ||
+    normActivity === 'wholesale' ||
+    normActivity === 'distribution' ||
+    normActivity === 'توزيع' ||
+    normActivity === 'فان';
+
+  if (isDistribution) return DISTRIBUTION_CUSTOMER_PROFILE;
 
   const isMaritime =
     normPath.includes('/maritime') ||

@@ -35,7 +35,8 @@ type CommerceSubVertical =
   | 'maintenance'
   | 'import_export'
   | 'auto_parts'
-  | 'clothing';
+  | 'clothing'
+  | 'wholesale_van';
 
 interface PillarConfig {
   key: PillarKey;
@@ -111,6 +112,13 @@ const PRIMARY_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
     tag: 'عام وافتراضي',
     descriptionAr: 'محلات التجزئة، الجملة، السوبرماركت، والأنشطة التجارية المتنوعة بمخزون وباركود قياسي.',
     icon: PackageIcon,
+  },
+  {
+    key: 'wholesale_van',
+    labelAr: 'تجارة وتوزيع الجملة وأسطول الفان',
+    tag: 'مخازن وسيارات ومناديب',
+    descriptionAr: 'شركات التوزيع، تجارة الجملة، أسطول سيارات الفان، خطوط السير، والمخازن المتنقلة مع إلغاء نقاط البيع والكاشير.',
+    icon: TruckIcon,
   },
   {
     key: 'pharmacy',
@@ -192,7 +200,9 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
       : 'commerce';
 
   const currentSubVertical: CommerceSubVertical =
-    currentActivityType === 'pharmacy'
+    currentActivityType === 'wholesale_van' || currentActivityType === 'wholesale' || currentActivityType === 'distribution' || currentActivityType === 'توزيع' || currentActivityType === 'فان'
+      ? 'wholesale_van'
+      : currentActivityType === 'pharmacy'
       ? 'pharmacy'
       : currentActivityType === 'restaurant'
       ? 'restaurant'

@@ -115,6 +115,61 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
         />
       </Field>
       
+      {(profile.id === 'distribution' || settingsQuery.data?.deliveryFleetModuleEnabled) && (
+        <fieldset style={{ padding: '12px 16px', border: '1px solid #bfdbfe', borderRadius: '10px', background: '#eff6ff', gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <legend style={{ padding: '0 8px', fontWeight: 800, color: '#1e40af', fontSize: '0.84rem' }}>بيانات التوزيع وخطوط السير (Distribution & Route)</legend>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <Field label="كود المحل / المنفذ الفريد" hint="رمز تعريفي للمندوب في الشارع">
+              <input
+                {...form.register('metadata.customer_code')}
+                disabled={mutation.isPending}
+                placeholder="مثال: CUST-1042 أو 1042"
+              />
+            </Field>
+
+            <Field label="خط السير / المنطقة" hint="خط التوزيع التابع له المحل">
+              <input
+                {...form.register('metadata.route')}
+                disabled={mutation.isPending}
+                placeholder="مثال: خط فيصل / خط الهرم"
+              />
+            </Field>
+
+            <Field label="رابط الموقع (Google Maps)" hint="رابط موقع المحل على الخريطة">
+              <input
+                {...form.register('metadata.location_url')}
+                disabled={mutation.isPending}
+                placeholder="https://maps.google.com/?q=..."
+              />
+            </Field>
+
+            <Field label="يوم الزيارة الأسبوعي" hint="ميعاد زيارة المندوب الدورية">
+              <Controller
+                name="metadata.visit_day"
+                control={form.control}
+                render={({ field }) => (
+                  <CustomSelect
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    disabled={mutation.isPending}
+                    options={[
+                      { value: '', label: 'بدون تحديد' },
+                      { value: 'السبت', label: 'السبت' },
+                      { value: 'الأحد', label: 'الأحد' },
+                      { value: 'الإثنين', label: 'الإثنين' },
+                      { value: 'الثلاثاء', label: 'الثلاثاء' },
+                      { value: 'الأربعاء', label: 'الأربعاء' },
+                      { value: 'الخميس', label: 'الخميس' },
+                      { value: 'الجمعة', label: 'الجمعة' },
+                    ]}
+                  />
+                )}
+              />
+            </Field>
+          </div>
+        </fieldset>
+      )}
+
       {importModuleEnabled && (
         <fieldset style={{ padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc', gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <legend style={{ padding: '0 8px', fontWeight: 700, color: '#170e5e', fontSize: '0.82rem' }}>إعدادات الاستيراد</legend>

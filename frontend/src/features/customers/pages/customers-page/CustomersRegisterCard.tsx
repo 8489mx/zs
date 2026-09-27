@@ -39,13 +39,43 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
   const columns = [
     {
       key: 'name',
-      header: profile.id === 'maritime' ? 'الشاحن / المستورد' : profile.id === 'contracting' ? 'جهة الإسناد / المالك' : 'العميل',
-      cell: (customer: Customer) => (
-        <div>
-          <strong>{customer.name}</strong>
-          <div className="muted small">{customer.phone || 'بدون هاتف'} · {customer.address || 'بدون عنوان'}</div>
-        </div>
-      )
+      header: profile.id === 'maritime' ? 'الشاحن / المستورد' : profile.id === 'contracting' ? 'جهة الإسناد / المالك' : profile.id === 'distribution' ? 'المحل / منفذ التوزيع' : 'العميل',
+      cell: (customer: Customer) => {
+        const meta = customer.metadata || {};
+        const code = meta.customer_code || meta.code;
+        const route = meta.route;
+        const loc = meta.location_url || (meta.gps_lat && meta.gps_lng ? `https://maps.google.com/?q=${meta.gps_lat},${meta.gps_lng}` : null);
+        return (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              {code && (
+                <span style={{ fontSize: '11px', fontWeight: 800, background: '#f1f5f9', color: '#1e293b', padding: '1px 6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
+                  #{code}
+                </span>
+              )}
+              <strong>{customer.name}</strong>
+              {route && (
+                <span style={{ fontSize: '11px', fontWeight: 600, background: '#eff6ff', color: '#1d4ed8', padding: '1px 6px', borderRadius: '4px' }}>
+                  {route}
+                </span>
+              )}
+              {loc && (
+                <a
+                  href={loc}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ fontSize: '11px', color: '#0284c7', textDecoration: 'underline', fontWeight: 600 }}
+                  title="فتح الموقع الجغرافي للمحل على خرائط جوجل"
+                >
+                  اللوكيشن ↗
+                </a>
+              )}
+            </div>
+            <div className="muted small">{customer.phone || 'بدون هاتف'} · {customer.address || 'بدون عنوان'}</div>
+          </div>
+        );
+      }
     },
     {
       key: 'type',
@@ -69,12 +99,12 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
     },
     {
       key: 'balance',
-      header: profile.id === 'maritime' ? 'رصيد النولون' : profile.id === 'contracting' ? 'رصيد التعاقدات' : 'الرصيد',
+      header: profile.id === 'maritime' ? 'رصيد النولون' : profile.id === 'contracting' ? 'رصيد التعاقدات' : profile.id === 'distribution' ? 'مديونية المحل' : 'الرصيد',
       cell: (customer: Customer) => formatCurrency(customer.balance || 0)
     },
     {
       key: 'creditLimit',
-      header: profile.id === 'maritime' ? 'سقف الائتمان' : profile.id === 'contracting' ? 'سقف التمويل' : 'حد الائتمان',
+      header: profile.id === 'maritime' ? 'سقف الائتمان' : profile.id === 'contracting' ? 'سقف التمويل' : profile.id === 'distribution' ? 'سقف المديونية' : 'حد الائتمان',
       cell: (customer: Customer) => formatCurrency(customer.creditLimit || 0)
     },
     ...(profile.showLoyalty ? [{

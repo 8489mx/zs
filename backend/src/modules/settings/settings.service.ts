@@ -772,6 +772,13 @@ export class SettingsService {
       modulePatch.importModuleEnabled = normalizedKey === 'import_export';
       modulePatch.autoPartsModuleEnabled = normalizedKey === 'auto_parts';
       modulePatch.clothingModuleEnabled = normalizedKey === 'clothing';
+
+      if (normalizedKey === 'wholesale_van') {
+        modulePatch.posModuleEnabled = false;
+        modulePatch.deliveryFleetModuleEnabled = true;
+        modulePatch.requireCashierShiftForSales = false;
+        modulePatch.enableEnterpriseFeatures = true;
+      }
     }
 
     const settingsEntries: Array<[string, any]> = [

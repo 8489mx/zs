@@ -321,12 +321,11 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
 
   wholesale: {
     id: 'wholesale',
-    name: 'مبيعات الجملة والتوزيع',
-    subtitle: 'تجار الجملة، الوكلاء والموزعون',
-    description: 'يركز على حسابات العملاء، الفواتير الآجلة، حدود الائتمان، المشتريات، وأسطول مناديب البيع.',
-    badge: 'تجاري مؤسسي',
+    name: 'مبيعات وتوزيع الجملة وأسطول الفان',
+    subtitle: 'شركات التوزيع، تجار الجملة، وأسطول السيارات والمخازن المتنقلة',
+    description: 'يركز على المخازن الرئيسية والمتنقلة، أسطول سيارات الفان، خطوط السير، كود ومواقع المحلات، حسابات الآجل، بدون نقاط بيع أو كاشير.',
+    badge: 'توزيع مؤسسي',
     recommendedModules: [
-      'posModuleEnabled',
       'purchasesModuleEnabled',
       'inventoryModuleEnabled',
       'deliveryFleetModuleEnabled',
@@ -335,6 +334,7 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
       'enableEnterpriseFeatures',
     ],
     disabledModules: [
+      'posModuleEnabled',
       'weightedBarcodeEnabled',
       'restaurantModuleEnabled',
       'enablePharmacyModule',
@@ -347,7 +347,7 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
     recommendedPlan: 'plan_ultimate',
     defaultPosMode: 'scanner',
     defaultProductKind: 'standard',
-    highlights: ['فواتير المشتريات وموردي الجملة', 'المخازن والتحويلات الداخلية', 'الآجل والتقسيط ومناديب التوزيع'],
+    highlights: ['أسطول سيارات الفان والمخازن المتنقلة', 'أذون شحن العهدة وتصفية اليومية', 'كود ومواقع المحلات والبيع الميداني بدون كاشير'],
   },
 
   contracting: {

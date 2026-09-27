@@ -8,7 +8,8 @@ export type CommerceSubVertical =
   | 'import_export'
   | 'auto_parts'
   | 'clothing'
-  | 'manufacturing';
+  | 'manufacturing'
+  | 'wholesale_van';
 
 export type IndustryProfileKey =
   | 'contracting'
@@ -203,6 +204,33 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
     allowedExtraFeatures: ['storefront'],
     pricingBand: 1,
   },
+
+  wholesale_van: {
+    key: 'wholesale_van',
+    pillar: 'commerce',
+    subVertical: 'wholesale_van',
+    labelAr: 'تجارة وتوزيع الجملة وأسطول الفان',
+    labelEn: 'Wholesale & Van Distribution',
+    descriptionAr: 'منظومة شركات التوزيع وتجارة الجملة: أسطول سيارات الفان، المخازن المتنقلة، خطوط السير، وكود ومواقع المحلات بدون نقاط بيع وكاشير.',
+    defaultRoute: '/inventory/van-sales',
+    defaultFeatures: [
+      'catalog',
+      'products',
+      'sales',
+      'inventory',
+      'purchases',
+      'suppliers',
+      'customers',
+      'deliveryReps',
+      'vanSales',
+      'pricing',
+      'treasury',
+      'accounting',
+      'reports',
+    ],
+    allowedExtraFeatures: ['storefront', 'installments', 'crm'],
+    pricingBand: 3,
+  },
 };
 
 /**
@@ -212,6 +240,19 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
 export function normalizeIndustryProfileKey(raw?: string | null): IndustryProfileKey {
   if (!raw || typeof raw !== 'string') return 'retail_general';
   const trimmed = raw.trim().toLowerCase();
+
+  if (
+    trimmed === 'wholesale_van' ||
+    trimmed === 'wholesale' ||
+    trimmed === 'distribution' ||
+    trimmed === 'توزيع' ||
+    trimmed === 'فان' ||
+    trimmed === 'مناديب' ||
+    trimmed === 'جملة' ||
+    trimmed === 'جملة_وتوزيع'
+  ) {
+    return 'wholesale_van';
+  }
 
   if (trimmed === 'contracting' || trimmed === 'construction' || trimmed === 'مقاولات') {
     return 'contracting';
