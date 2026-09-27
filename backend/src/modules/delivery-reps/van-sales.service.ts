@@ -244,6 +244,16 @@ export class VanSalesService {
   async getActiveTrip(repId: number, tenantId: string, accountId: string): Promise<{
     hasActiveTrip: boolean;
     trip?: VanTripSummary;
+    assignedVehicle?: {
+      id: number;
+      plateNumber: string;
+      modelName?: string;
+      vehicleType: string;
+      currentOdometer: number;
+      fuelType: string;
+      licenseExpiresAt?: string;
+      status: string;
+    } | null;
     vanLocation?: { id: number; name: string };
     inventory: VanStockItem[];
     customers: { id: number; name: string; phone?: string; address?: string; balance: number }[];
@@ -252,15 +262,56 @@ export class VanSalesService {
   }> {
     const vanLoc = await this.getOrCreateVanLocation(repId, tenantId, accountId);
 
+    const assignedVehicleRow = await this.anyDb
+      .selectFrom('fleet_vehicles')
+      .select([
+        'id',
+        'plate_number as plateNumber',
+        'model_name as modelName',
+        'vehicle_type as vehicleType',
+        sql<number>`cast(coalesce(current_odometer, 0) as numeric)`.as('currentOdometer'),
+        'fuel_type as fuelType',
+        'license_expires_at as licenseExpiresAt',
+        'status',
+      ])
+      .where('tenant_id', '=', tenantId)
+      .where((eb: any) =>
+        eb.or([
+          eb('assigned_rep_id', '=', repId),
+          eb('van_location_id', '=', vanLoc.id),
+        ])
+      )
+      .orderBy('id', 'desc')
+      .executeTakeFirst();
+
+    const assignedVehicle = assignedVehicleRow
+      ? {
+          id: Number(assignedVehicleRow.id),
+          plateNumber: String(assignedVehicleRow.plateNumber || ''),
+          modelName: assignedVehicleRow.modelName || '',
+          vehicleType: assignedVehicleRow.vehicleType || 'van',
+          currentOdometer: Number(assignedVehicleRow.currentOdometer || 0),
+          fuelType: assignedVehicleRow.fuelType || 'petrol_92',
+          licenseExpiresAt: assignedVehicleRow.licenseExpiresAt ? String(assignedVehicleRow.licenseExpiresAt) : undefined,
+          status: String(assignedVehicleRow.status || 'assigned'),
+        }
+      : null;
+
     const tripRow = await this.anyDb
       .selectFrom('van_sales_trips as vt')
       .leftJoin('stock_locations as src', 'src.id', 'vt.source_warehouse_id')
       .leftJoin('stock_locations as van', 'van.id', 'vt.van_location_id')
       .leftJoin('delivery_representatives as dr', 'dr.id', 'vt.rep_id')
+      .leftJoin('fleet_vehicles as fv', 'fv.id', 'vt.vehicle_id')
       .select([
         'vt.id',
         'vt.rep_id as repId',
         sql<string>`coalesce(dr.name, '')`.as('repName'),
+        'vt.vehicle_id as vehicleId',
+        sql<string>`coalesce(fv.plate_number, '')`.as('vehiclePlate'),
+        sql<string>`coalesce(fv.model_name, '')`.as('vehicleModel'),
+        sql<number>`cast(coalesce(vt.start_odometer, fv.current_odometer, 0) as numeric)`.as('startOdometer'),
+        sql<number>`cast(coalesce(vt.end_odometer, 0) as numeric)`.as('endOdometer'),
         'vt.van_location_id as vanLocationId',
         sql<string>`coalesce(van.name, '')`.as('vanLocationName'),
         'vt.source_warehouse_id as sourceWarehouseId',
@@ -350,6 +401,8 @@ export class VanSalesService {
         'c.name',
         'c.phone',
         'c.address',
+        'c.metadata',
+        sql<number>`cast(coalesce(c.credit_limit, 0) as numeric)`.as('creditLimit'),
         sql<number>`coalesce(c.balance, 0)`.as('balance'),
       ])
       .where('c.tenant_id', '=', tenantId)
@@ -358,13 +411,25 @@ export class VanSalesService {
       .limit(100)
       .execute();
 
-    const customers = customerRows.map((c: any) => ({
-      id: Number(c.id),
-      name: c.name || `عميل #${c.id}`,
-      phone: c.phone || '',
-      address: c.address || '',
-      balance: Number(c.balance || 0),
-    }));
+    const customers = customerRows.map((c: any) => {
+      let meta: any = {};
+      if (typeof c.metadata === 'string') {
+        try { meta = JSON.parse(c.metadata); } catch { meta = {}; }
+      } else if (c.metadata && typeof c.metadata === 'object') {
+        meta = c.metadata;
+      }
+      return {
+        id: Number(c.id),
+        name: c.name || `عميل #${c.id}`,
+        phone: c.phone || '',
+        address: c.address || '',
+        balance: Number(c.balance || 0),
+        creditLimit: Number(c.creditLimit || 0),
+        customerCode: meta.customer_code || meta.code || String(c.id),
+        route: meta.route || '',
+        locationUrl: meta.location_url || (meta.gps_lat && meta.gps_lng ? `https://maps.google.com/?q=${meta.gps_lat},${meta.gps_lng}` : ''),
+      };
+    });
 
     // Fetch recent sales on this trip
     let recentSales: any[] = [];
@@ -426,6 +491,7 @@ export class VanSalesService {
     if (!tripRow) {
       return {
         hasActiveTrip: false,
+        assignedVehicle,
         vanLocation: vanLoc,
         inventory,
         customers,
@@ -438,6 +504,11 @@ export class VanSalesService {
       id: Number(tripRow.id),
       repId: Number(tripRow.repId),
       repName: tripRow.repName,
+      vehicleId: tripRow.vehicleId ? Number(tripRow.vehicleId) : (assignedVehicle ? assignedVehicle.id : undefined),
+      vehiclePlate: tripRow.vehiclePlate || assignedVehicle?.plateNumber,
+      vehicleModel: tripRow.vehicleModel || assignedVehicle?.modelName,
+      startOdometer: Number(tripRow.startOdometer || assignedVehicle?.currentOdometer || 0),
+      endOdometer: Number(tripRow.endOdometer || 0),
       vanLocationId: Number(tripRow.vanLocationId),
       vanLocationName: tripRow.vanLocationName,
       sourceWarehouseId: Number(tripRow.sourceWarehouseId),
@@ -457,6 +528,7 @@ export class VanSalesService {
     return {
       hasActiveTrip: true,
       trip,
+      assignedVehicle,
       vanLocation: vanLoc,
       inventory,
       customers,
@@ -473,15 +545,11 @@ export class VanSalesService {
     tenantId: string,
     accountId: string,
     payload: {
-      sourceWarehouseId: number;
-      items: { productId: number; qty: number }[];
+      sourceWarehouseId?: number;
+      items?: { productId: number; qty: number }[];
       notes?: string;
     },
   ): Promise<{ ok: boolean; tripId: number; totalLoadedValue: number; itemsCount: number }> {
-    if (!payload.items || !payload.items.length) {
-      throw new AppError('يجب تحديد صنف واحد على الأقل لتحميله بالسيارة', 'EMPTY_LOAD_ITEMS', 400);
-    }
-
     const existingTrip = await this.anyDb
       .selectFrom('van_sales_trips as vt')
       .select(['vt.id'])
@@ -495,88 +563,123 @@ export class VanSalesService {
     }
 
     const vanLoc = await this.getOrCreateVanLocation(repId, tenantId, accountId);
-    const sourceLocId = Number(payload.sourceWarehouseId);
-
-    if (sourceLocId === vanLoc.id) {
-      throw new AppError('لا يمكن أن يكون المستودع المصدر هو نفس سيارة المندوب', 'INVALID_SOURCE_WAREHOUSE', 400);
+    let sourceLocId = payload.sourceWarehouseId ? Number(payload.sourceWarehouseId) : null;
+    if (!sourceLocId) {
+      const defaultWh = await this.anyDb
+        .selectFrom('stock_locations')
+        .select(['id'])
+        .where('tenant_id', '=', tenantId)
+        .where(sql<boolean>`location_type in ('branch_stock', 'internal_warehouse')`)
+        .where('is_active', '=', true)
+        .orderBy('id', 'asc')
+        .executeTakeFirst();
+      sourceLocId = defaultWh ? Number(defaultWh.id) : 0;
     }
 
+    // Lookup rep's assigned vehicle for starting odometer & plate
+    const assignedVehicle = await this.anyDb
+      .selectFrom('fleet_vehicles')
+      .select(['id', 'current_odometer'])
+      .where('tenant_id', '=', tenantId)
+      .where((eb: any) =>
+        eb.or([
+          eb('assigned_rep_id', '=', repId),
+          eb('van_location_id', '=', vanLoc.id),
+        ])
+      )
+      .orderBy('id', 'desc')
+      .executeTakeFirst();
+
     let totalLoadedValue = 0;
+    const hasItemsToLoad = Boolean(payload.items && payload.items.length > 0);
 
     await this.db.transaction().execute(async (trx) => {
       const trxAny = trx as any;
-      for (const item of this.sortItemsByProductId(payload.items)) {
-        const pid = Number(item.productId);
-        const qty = Number(item.qty || 0);
-        if (qty <= 0) continue;
 
-        const effectiveLocId = Number((item as any).sourceWarehouseId || sourceLocId);
-        if (effectiveLocId === vanLoc.id) {
+      if (hasItemsToLoad) {
+        if (sourceLocId === vanLoc.id) {
           throw new AppError('لا يمكن أن يكون المستودع المصدر هو نفس سيارة المندوب', 'INVALID_SOURCE_WAREHOUSE', 400);
         }
 
-        const sourceStock = await trxAny
-          .selectFrom('product_location_stock')
-          .select(['qty'])
-          .where('product_id', '=', pid)
-          .where('location_id', '=', effectiveLocId)
-          .where('tenant_id', '=', tenantId)
-          .forUpdate()
-          .executeTakeFirst();
+        for (const item of this.sortItemsByProductId(payload.items!)) {
+          const pid = Number(item.productId);
+          const qty = Number(item.qty || 0);
+          if (qty <= 0) continue;
 
-        const avail = Number(sourceStock?.qty || 0);
-        if (avail < qty) {
-          const prod = await trxAny.selectFrom('products').select(['name']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
-          throw new AppError(
-            `رصيد المستودع المصدر لا يكفي للصنف "${prod?.name || pid}". المتوفر: ${avail}، المطلوب: ${qty}`,
-            'INSUFFICIENT_SOURCE_STOCK',
-            400,
-          );
+          const effectiveLocId = Number((item as any).sourceWarehouseId || sourceLocId);
+          if (effectiveLocId === vanLoc.id) {
+            throw new AppError('لا يمكن أن يكون المستودع المصدر هو نفس سيارة المندوب', 'INVALID_SOURCE_WAREHOUSE', 400);
+          }
+
+          const sourceStock = await trxAny
+            .selectFrom('product_location_stock')
+            .select(['qty'])
+            .where('product_id', '=', pid)
+            .where('location_id', '=', effectiveLocId)
+            .where('tenant_id', '=', tenantId)
+            .forUpdate()
+            .executeTakeFirst();
+
+          const avail = Number(sourceStock?.qty || 0);
+          if (avail < qty) {
+            const prod = await trxAny.selectFrom('products').select(['name']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
+            throw new AppError(
+              `رصيد المستودع المصدر لا يكفي للصنف "${prod?.name || pid}". المتوفر: ${avail}، المطلوب: ${qty}`,
+              'INSUFFICIENT_SOURCE_STOCK',
+              400,
+            );
+          }
+
+          // Loading a van is a location-to-location move
+          await this.moveVanStock(trx, {
+            productId: pid,
+            delta: -qty,
+            locationId: effectiveLocId,
+            tenantId,
+            accountId,
+            userId: null,
+            movementType: 'van_load_out',
+            note: `تحميل سيارة توزيع - خروج من المستودع`,
+            referenceType: 'van_sales_trip',
+            referenceId: 0,
+            skipGlobalUpdate: false,
+          });
+
+          await this.moveVanStock(trx, {
+            productId: pid,
+            delta: qty,
+            locationId: vanLoc.id,
+            tenantId,
+            accountId,
+            userId: null,
+            movementType: 'van_load_in',
+            note: `تحميل سيارة توزيع - دخول للسيارة`,
+            referenceType: 'van_sales_trip',
+            referenceId: 0,
+            skipGlobalUpdate: false,
+          });
+
+          const prod = await trxAny.selectFrom('products').select(['retail_price']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
+          const price = Number(prod?.retail_price || 0);
+          totalLoadedValue += price * qty;
         }
+      } else {
+        // Start trip with existing stock already in van
+        const existingStock = await trxAny
+          .selectFrom('product_location_stock as pls')
+          .innerJoin('products as p', 'p.id', 'pls.product_id')
+          .select([
+            sql<number>`cast(coalesce(pls.qty, 0) as numeric)`.as('qty'),
+            sql<number>`cast(coalesce(p.retail_price, 0) as numeric)`.as('retailPrice'),
+          ])
+          .where('pls.location_id', '=', vanLoc.id)
+          .where('pls.tenant_id', '=', tenantId)
+          .where(sql<boolean>`cast(pls.qty as numeric) > 0`)
+          .execute();
 
-        // Loading a van is a location-to-location move: the company's total stock is unchanged
-        // *net*, once both legs have landed. But each leg must still WRITE the real global count
-        // (skipGlobalUpdate: false) rather than skip it — applyStockDelta recomputes the global
-        // total from the true sum of location rows on every call, and if products.stock_qty is
-        // left stale between the two legs, the second leg reads a global figure that no longer
-        // matches the (already-updated) location sum. Its "unassigned stock" reconciliation then
-        // mistakes that gap for real untracked inventory and folds it into whichever location
-        // writes next — silently inflating the van's balance by the transferred qty on every
-        // single trip. Confirmed by an actual load+sale run against a real database
-        // (van-sales-field-flow.e2e.ts): with skipGlobalUpdate left at its default `true`, loading
-        // 10 units left the van holding 20. Raw qty +/- writes were used here before either problem
-        // existed, which never touched products.stock_qty or stock_movements at all.
-        await this.moveVanStock(trx, {
-          productId: pid,
-          delta: -qty,
-          locationId: effectiveLocId,
-          tenantId,
-          accountId,
-          userId: null,
-          movementType: 'van_load_out',
-          note: `تحميل سيارة توزيع - خروج من المستودع`,
-          referenceType: 'van_sales_trip',
-          referenceId: 0,
-          skipGlobalUpdate: false,
-        });
-
-        await this.moveVanStock(trx, {
-          productId: pid,
-          delta: qty,
-          locationId: vanLoc.id,
-          tenantId,
-          accountId,
-          userId: null,
-          movementType: 'van_load_in',
-          note: `تحميل سيارة توزيع - دخول للسيارة`,
-          referenceType: 'van_sales_trip',
-          referenceId: 0,
-          skipGlobalUpdate: false,
-        });
-
-        const prod = await trxAny.selectFrom('products').select(['retail_price']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
-        const price = Number(prod?.retail_price || 0);
-        totalLoadedValue += price * qty;
+        for (const s of existingStock) {
+          totalLoadedValue += Number(s.qty || 0) * Number(s.retailPrice || 0);
+        }
       }
 
       await trxAny
@@ -585,8 +688,10 @@ export class VanSalesService {
           tenant_id: tenantId,
           account_id: accountId,
           rep_id: repId,
+          vehicle_id: assignedVehicle?.id ? Number(assignedVehicle.id) : null,
+          start_odometer: assignedVehicle?.current_odometer ? Number(assignedVehicle.current_odometer) : null,
           van_location_id: vanLoc.id,
-          source_warehouse_id: sourceLocId,
+          source_warehouse_id: sourceLocId || vanLoc.id,
           status: 'open',
           loaded_amount: Number(totalLoadedValue.toFixed(2)),
           sales_amount: 0,
@@ -594,7 +699,7 @@ export class VanSalesService {
           credit_sales: 0,
           returns_amount: 0,
           variance: 0,
-          notes: payload.notes || 'تحميل وتجهيز بضاعة الصباح لرحلة التوزيع الميداني',
+          notes: payload.notes || (hasItemsToLoad ? 'تحميل وتجهيز بضاعة الصباح لرحلة التوزيع الميداني' : 'بدء رحلة التوزيع بالبضاعة المتوفرة بالسيارة'),
           opened_at: sql`NOW()`,
         })
         .execute();
@@ -612,7 +717,7 @@ export class VanSalesService {
       ok: true,
       tripId: Number(createdTrip.id),
       totalLoadedValue: Number(totalLoadedValue.toFixed(2)),
-      itemsCount: payload.items.length,
+      itemsCount: payload.items?.length || 0,
     };
   }
 
@@ -633,6 +738,8 @@ export class VanSalesService {
       notes?: string;
       deliveryGpsLat?: number;
       deliveryGpsLng?: number;
+      deliveryProofPhoto?: string;
+      packagingBreakdown?: { cartonsCount?: number; piecesCount?: number; itemsCount?: number };
     },
   ): Promise<{
     ok: boolean;
@@ -794,6 +901,8 @@ export class VanSalesService {
           note: payload.notes || `فاتورة بيع ميداني من سيارة المندوب`,
           delivery_gps_lat: payload.deliveryGpsLat != null ? Number(payload.deliveryGpsLat) : null,
           delivery_gps_lng: payload.deliveryGpsLng != null ? Number(payload.deliveryGpsLng) : null,
+          delivery_proof_photo: payload.deliveryProofPhoto || null,
+          packaging_breakdown: payload.packagingBreakdown ? JSON.stringify(payload.packagingBreakdown) : null,
           tenant_id: tenantId,
           account_id: accountId,
         })
@@ -809,6 +918,26 @@ export class VanSalesService {
         .where('id', '=', createdSaleId)
         .where('tenant_id', '=', tenantId)
         .execute();
+
+      if (resolvedCustomerId) {
+        await trxAny
+          .insertInto('van_field_visits')
+          .values({
+            tenant_id: tenantId,
+            account_id: accountId,
+            trip_id: payload.tripId,
+            rep_id: repId,
+            customer_id: resolvedCustomerId,
+            visit_type: 'positive',
+            sale_id: createdSaleId,
+            gps_lat: payload.deliveryGpsLat != null ? Number(payload.deliveryGpsLat) : null,
+            gps_lng: payload.deliveryGpsLng != null ? Number(payload.deliveryGpsLng) : null,
+            notes: payload.notes || null,
+            visited_at: sql`NOW()`,
+            created_at: sql`NOW()`,
+          })
+          .execute();
+      }
 
       for (const it of saleItemRecords) {
         await trxAny
@@ -2792,4 +2921,1101 @@ export class VanSalesService {
       };
     });
   }
+
+  // =========================================================================
+  // 1. FLEET FUEL LOGS & CONSUMPTION ENGINE
+  // =========================================================================
+
+  async recordFuelLog(
+    tenantId: string,
+    accountId: string,
+    repId: number | null,
+    payload: {
+      vehicleId: number;
+      tripId?: number | null;
+      odometer: number;
+      liters: number;
+      pricePerLiter: number;
+      stationName?: string;
+      notes?: string;
+    },
+  ) {
+    if (!payload.vehicleId || payload.vehicleId <= 0) {
+      throw new AppError('يرجى تحديد مركبة التوزيع', 'INVALID_VEHICLE', 400);
+    }
+    const odo = Number(payload.odometer || 0);
+    const lit = Number(payload.liters || 0);
+    const ppl = Number(payload.pricePerLiter || 0);
+
+    if (odo <= 0) {
+      throw new AppError('يرجى إدخال قراءة عداد الكيلومترات الصحيحة', 'INVALID_ODOMETER', 400);
+    }
+    if (lit <= 0) {
+      throw new AppError('يرجى إدخال كمية الوقود باللترات', 'INVALID_LITERS', 400);
+    }
+    if (ppl <= 0) {
+      throw new AppError('يرجى إدخال سعر لتر الوقود', 'INVALID_PRICE_PER_LITER', 400);
+    }
+
+    const totalCost = Number((lit * ppl).toFixed(2));
+
+    const lastFuelLog = await this.anyDb
+      .selectFrom('fleet_fuel_logs')
+      .select(['odometer'])
+      .where('tenant_id', '=', tenantId)
+      .where('vehicle_id', '=', payload.vehicleId)
+      .orderBy('odometer', 'desc')
+      .executeTakeFirst();
+
+    let kmSinceLast = 0;
+    let consumptionRate = 0;
+    if (lastFuelLog && Number(lastFuelLog.odometer) > 0) {
+      const prevOdo = Number(lastFuelLog.odometer);
+      if (odo > prevOdo) {
+        kmSinceLast = odo - prevOdo;
+        consumptionRate = Number((kmSinceLast / lit).toFixed(2));
+      }
+    }
+
+    const inserted = await this.anyDb
+      .insertInto('fleet_fuel_logs')
+      .values({
+        tenant_id: tenantId,
+        account_id: accountId,
+        vehicle_id: payload.vehicleId,
+        trip_id: payload.tripId || null,
+        rep_id: repId || null,
+        odometer: odo,
+        liters: lit,
+        price_per_liter: ppl,
+        total_cost: totalCost,
+        station_name: payload.stationName || null,
+        km_since_last_fuel: kmSinceLast,
+        consumption_rate: consumptionRate,
+        notes: payload.notes || null,
+        created_at: sql`NOW()`,
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    await this.anyDb
+      .updateTable('fleet_vehicles')
+      .set({
+        current_odometer: sql`GREATEST(coalesce(current_odometer, 0), ${odo})`,
+        updated_at: sql`NOW()`,
+      })
+      .where('id', '=', payload.vehicleId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    return {
+      ok: true,
+      fuelLogId: Number(inserted.id),
+      kmSinceLastFuel: kmSinceLast,
+      consumptionRate,
+      totalCost,
+    };
+  }
+
+  async listFuelLogs(
+    tenantId: string,
+    filters?: { vehicleId?: number; repId?: number; dateFrom?: string; dateTo?: string },
+  ) {
+    let query = this.anyDb
+      .selectFrom('fleet_fuel_logs as fl')
+      .innerJoin('fleet_vehicles as fv', 'fv.id', 'fl.vehicle_id')
+      .leftJoin('delivery_representatives as dr', 'dr.id', 'fl.rep_id')
+      .select([
+        'fl.id',
+        'fl.vehicle_id as vehicleId',
+        'fv.plate_number as plateNumber',
+        'fv.model_name as modelName',
+        'fl.trip_id as tripId',
+        'fl.rep_id as repId',
+        sql<string>`coalesce(dr.name, '')`.as('repName'),
+        sql<number>`cast(fl.odometer as numeric)`.as('odometer'),
+        sql<number>`cast(fl.liters as numeric)`.as('liters'),
+        sql<number>`cast(fl.price_per_liter as numeric)`.as('pricePerLiter'),
+        sql<number>`cast(fl.total_cost as numeric)`.as('totalCost'),
+        sql<string>`coalesce(fl.station_name, '')`.as('stationName'),
+        sql<number>`cast(fl.km_since_last_fuel as numeric)`.as('kmSinceLastFuel'),
+        sql<number>`cast(fl.consumption_rate as numeric)`.as('consumptionRate'),
+        'fl.notes',
+        'fl.created_at as createdAt',
+      ])
+      .where('fl.tenant_id', '=', tenantId);
+
+    if (filters?.vehicleId) query = query.where('fl.vehicle_id', '=', filters.vehicleId);
+    if (filters?.repId) query = query.where('fl.rep_id', '=', filters.repId);
+    if (filters?.dateFrom) query = query.where('fl.created_at', '>=', filters.dateFrom);
+    if (filters?.dateTo) query = query.where('fl.created_at', '<=', `${filters.dateTo} 23:59:59`);
+
+    const rows = await query.orderBy('fl.created_at', 'desc').limit(200).execute();
+    return rows;
+  }
+
+  // =========================================================================
+  // 2. FLEET OIL CHANGES & CUSTOMIZABLE MAINTENANCE ALERTS
+  // =========================================================================
+
+  async recordOilChange(
+    tenantId: string,
+    accountId: string,
+    repId: number | null,
+    payload: {
+      vehicleId: number;
+      odometerAtChange: number;
+      oilType: string;
+      ratedKm: number;
+      withFilter: boolean;
+      alertKmBefore?: number;
+      cost?: number;
+      performedBy?: string;
+      notes?: string;
+    },
+  ) {
+    if (!payload.vehicleId || payload.vehicleId <= 0) {
+      throw new AppError('يرجى تحديد مركبة التوزيع', 'INVALID_VEHICLE', 400);
+    }
+    const odo = Number(payload.odometerAtChange || 0);
+    const rated = Number(payload.ratedKm || 0);
+    const alertKm = Number(payload.alertKmBefore ?? 500);
+
+    if (odo <= 0) {
+      throw new AppError('يرجى إدخال قراءة عداد السيارة عند تغيير الزيت', 'INVALID_ODOMETER', 400);
+    }
+    if (rated <= 0) {
+      throw new AppError('يرجى إدخال المسافة المقررة للزيت (مثال: 5000 أو 10000 كم)', 'INVALID_RATED_KM', 400);
+    }
+    if (!payload.oilType?.trim()) {
+      throw new AppError('يرجى كتابة نوع الزيت المستخدم', 'INVALID_OIL_TYPE', 400);
+    }
+
+    const nextDue = odo + rated;
+
+    await this.anyDb
+      .updateTable('fleet_oil_changes')
+      .set({ status: 'completed' })
+      .where('vehicle_id', '=', payload.vehicleId)
+      .where('tenant_id', '=', tenantId)
+      .where('status', '=', 'active')
+      .execute();
+
+    const inserted = await this.anyDb
+      .insertInto('fleet_oil_changes')
+      .values({
+        tenant_id: tenantId,
+        account_id: accountId,
+        vehicle_id: payload.vehicleId,
+        rep_id: repId || null,
+        odometer_at_change: odo,
+        oil_type: payload.oilType.trim(),
+        rated_km: rated,
+        with_filter: payload.withFilter ?? true,
+        alert_km_before: alertKm,
+        next_due_odometer: nextDue,
+        cost: Number(payload.cost || 0),
+        performed_by: payload.performedBy || null,
+        status: 'active',
+        notes: payload.notes || null,
+        created_at: sql`NOW()`,
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    await this.anyDb
+      .updateTable('fleet_vehicles')
+      .set({
+        current_odometer: sql`GREATEST(coalesce(current_odometer, 0), ${odo})`,
+        updated_at: sql`NOW()`,
+      })
+      .where('id', '=', payload.vehicleId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    return {
+      ok: true,
+      oilChangeId: Number(inserted.id),
+      nextDueOdometer: nextDue,
+      alertKmBefore: alertKm,
+    };
+  }
+
+  async listOilChanges(tenantId: string, vehicleId?: number) {
+    let query = this.anyDb
+      .selectFrom('fleet_oil_changes as foc')
+      .innerJoin('fleet_vehicles as fv', 'fv.id', 'foc.vehicle_id')
+      .leftJoin('delivery_representatives as dr', 'dr.id', 'foc.rep_id')
+      .select([
+        'foc.id',
+        'foc.vehicle_id as vehicleId',
+        'fv.plate_number as plateNumber',
+        'fv.model_name as modelName',
+        sql<number>`cast(fv.current_odometer as numeric)`.as('currentOdometer'),
+        'foc.rep_id as repId',
+        sql<string>`coalesce(dr.name, '')`.as('repName'),
+        sql<number>`cast(foc.odometer_at_change as numeric)`.as('odometerAtChange'),
+        'foc.oil_type as oilType',
+        sql<number>`cast(foc.rated_km as numeric)`.as('ratedKm'),
+        'foc.with_filter as withFilter',
+        sql<number>`cast(foc.alert_km_before as numeric)`.as('alertKmBefore'),
+        sql<number>`cast(foc.next_due_odometer as numeric)`.as('nextDueOdometer'),
+        sql<number>`cast(foc.cost as numeric)`.as('cost'),
+        'foc.performed_by as performedBy',
+        'foc.status',
+        'foc.notes',
+        'foc.created_at as createdAt',
+      ])
+      .where('foc.tenant_id', '=', tenantId);
+
+    if (vehicleId) {
+      query = query.where('foc.vehicle_id', '=', vehicleId);
+    }
+
+    const rows = await query.orderBy('foc.created_at', 'desc').limit(200).execute();
+    return rows;
+  }
+
+  async getFleetMaintenanceAlerts(tenantId: string, vehicleId?: number) {
+    let vehicleQuery = this.anyDb
+      .selectFrom('fleet_vehicles as fv')
+      .leftJoin('delivery_representatives as dr', 'dr.id', 'fv.assigned_rep_id')
+      .select([
+        'fv.id',
+        'fv.plate_number as plateNumber',
+        'fv.model_name as modelName',
+        sql<number>`cast(fv.current_odometer as numeric)`.as('currentOdometer'),
+        'fv.license_expires_at as licenseExpiresAt',
+        'fv.status',
+        'fv.assigned_rep_id as repId',
+        sql<string>`coalesce(dr.name, '')`.as('repName'),
+      ])
+      .where('fv.tenant_id', '=', tenantId);
+
+    if (vehicleId) {
+      vehicleQuery = vehicleQuery.where('fv.id', '=', vehicleId);
+    }
+
+    const vehicles = await vehicleQuery.execute();
+    const alerts: Array<{
+      id: string;
+      vehicleId: number;
+      plateNumber: string;
+      repName: string;
+      type: 'oil_change' | 'license_expiry';
+      severity: 'warning' | 'critical';
+      title: string;
+      description: string;
+      currentValue: string | number;
+      thresholdValue: string | number;
+      dueDate?: string;
+    }> = [];
+
+    const now = new Date();
+
+    for (const v of vehicles) {
+      const vId = Number(v.id);
+      const currOdo = Number(v.currentOdometer || 0);
+
+      if (v.licenseExpiresAt) {
+        const expDate = new Date(v.licenseExpiresAt);
+        const diffMs = expDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 0) {
+          alerts.push({
+            id: `license-exp-${vId}`,
+            vehicleId: vId,
+            plateNumber: v.plateNumber,
+            repName: v.repName,
+            type: 'license_expiry',
+            severity: 'critical',
+            title: `رخصة منتهية للمركبة (${v.plateNumber})`,
+            description: `انتهت رخصة المركبة بتاريخ ${v.licenseExpiresAt} (منذ ${Math.abs(diffDays)} يوم).`,
+            currentValue: 'منتهية',
+            thresholdValue: v.licenseExpiresAt,
+            dueDate: v.licenseExpiresAt,
+          });
+        } else if (diffDays <= 30) {
+          alerts.push({
+            id: `license-due-${vId}`,
+            vehicleId: vId,
+            plateNumber: v.plateNumber,
+            repName: v.repName,
+            type: 'license_expiry',
+            severity: 'warning',
+            title: `اقتراب انتهاء رخصة المركبة (${v.plateNumber})`,
+            description: `متبقي ${diffDays} يوم على انتهاء رخصة المركبة (تاريخ الانتهاء: ${v.licenseExpiresAt}).`,
+            currentValue: `${diffDays} يوم متبقي`,
+            thresholdValue: v.licenseExpiresAt,
+            dueDate: v.licenseExpiresAt,
+          });
+        }
+      }
+
+      const latestOilChange = await this.anyDb
+        .selectFrom('fleet_oil_changes')
+        .selectAll()
+        .where('vehicle_id', '=', vId)
+        .where('tenant_id', '=', tenantId)
+        .where('status', '=', 'active')
+        .orderBy('created_at', 'desc')
+        .executeTakeFirst();
+
+      if (latestOilChange) {
+        const nextDue = Number(latestOilChange.next_due_odometer || 0);
+        const alertKm = Number(latestOilChange.alert_km_before || 500);
+        const kmRemaining = nextDue - currOdo;
+
+        if (kmRemaining <= 0) {
+          alerts.push({
+            id: `oil-overdue-${vId}`,
+            vehicleId: vId,
+            plateNumber: v.plateNumber,
+            repName: v.repName,
+            type: 'oil_change',
+            severity: 'critical',
+            title: `تجاوز موعد غيار الزيت (${v.plateNumber})`,
+            description: `تجاوزت السيارة موعد غيار الزيت بـ ${Math.abs(kmRemaining)} كم! (العداد الحالي: ${currOdo}، المقرر: ${nextDue} كم - نوع الزيت: ${latestOilChange.oil_type}).`,
+            currentValue: currOdo,
+            thresholdValue: nextDue,
+          });
+        } else if (kmRemaining <= alertKm) {
+          alerts.push({
+            id: `oil-due-${vId}`,
+            vehicleId: vId,
+            plateNumber: v.plateNumber,
+            repName: v.repName,
+            type: 'oil_change',
+            severity: 'warning',
+            title: `اقتراب موعد غيار الزيت (${v.plateNumber})`,
+            description: `متبقي ${kmRemaining} كم فقط على موعد غيار الزيت (العداد الحالي: ${currOdo}، المقرر: ${nextDue} كم - نوع الزيت: ${latestOilChange.oil_type}${latestOilChange.with_filter ? ' مع فلتر' : ''}).`,
+            currentValue: currOdo,
+            thresholdValue: nextDue,
+          });
+        }
+      }
+    }
+
+    return { ok: true, alerts };
+  }
+
+  // =========================================================================
+  // 3. MULTI-DRIVER VEHICLE ASSIGNMENTS / SHIFTS
+  // =========================================================================
+
+  async listVehicleDrivers(tenantId: string, vehicleId: number) {
+    const rows = await this.anyDb
+      .selectFrom('fleet_vehicle_drivers as fvd')
+      .innerJoin('delivery_representatives as dr', 'dr.id', 'fvd.rep_id')
+      .select([
+        'fvd.id',
+        'fvd.vehicle_id as vehicleId',
+        'fvd.rep_id as repId',
+        'dr.name as repName',
+        'dr.phone as repPhone',
+        'fvd.shift_name as shiftName',
+        'fvd.shift_start_time as shiftStartTime',
+        'fvd.shift_end_time as shiftEndTime',
+        'fvd.is_active as isActive',
+        'fvd.notes',
+        'fvd.created_at as createdAt',
+      ])
+      .where('fvd.tenant_id', '=', tenantId)
+      .where('fvd.vehicle_id', '=', vehicleId)
+      .orderBy('fvd.id', 'asc')
+      .execute();
+
+    return rows;
+  }
+
+  async assignVehicleDriver(
+    tenantId: string,
+    accountId: string,
+    payload: {
+      vehicleId: number;
+      repId: number;
+      shiftName: string;
+      shiftStartTime?: string;
+      shiftEndTime?: string;
+      notes?: string;
+    },
+  ) {
+    if (!payload.vehicleId || !payload.repId) {
+      throw new AppError('يرجى تحديد المركبة والمندوب/السائق', 'INVALID_PARAMS', 400);
+    }
+
+    const inserted = await this.anyDb
+      .insertInto('fleet_vehicle_drivers')
+      .values({
+        tenant_id: tenantId,
+        account_id: accountId,
+        vehicle_id: payload.vehicleId,
+        rep_id: payload.repId,
+        shift_name: payload.shiftName || 'صباحي',
+        shift_start_time: payload.shiftStartTime || null,
+        shift_end_time: payload.shiftEndTime || null,
+        is_active: true,
+        notes: payload.notes || null,
+        created_at: sql`NOW()`,
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    return { ok: true, assignmentId: Number(inserted.id) };
+  }
+
+  async removeVehicleDriver(tenantId: string, assignmentId: number) {
+    await this.anyDb
+      .deleteFrom('fleet_vehicle_drivers')
+      .where('id', '=', assignmentId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    return { ok: true };
+  }
+
+  // =========================================================================
+  // 4. FIELD VISITS & CUSTOMER ITINERARY
+  // =========================================================================
+
+  async getDriverTodayItinerary(tenantId: string, repId: number, tripId?: number) {
+    void tripId;
+    const customers = await this.anyDb
+      .selectFrom('customers')
+      .select([
+        'id',
+        'name',
+        'phone',
+        'address',
+        sql<number>`cast(coalesce(balance, 0) as numeric)`.as('balance'),
+        sql<number>`cast(coalesce(credit_limit, 0) as numeric)`.as('creditLimit'),
+        'metadata',
+      ])
+      .where('tenant_id', '=', tenantId)
+      .where('is_active', '=', true)
+      .orderBy('id', 'asc')
+      .execute();
+
+    const todayVisits = await this.anyDb
+      .selectFrom('van_field_visits as vfv')
+      .leftJoin('sales as s', 's.id', 'vfv.sale_id')
+      .select([
+        'vfv.id',
+        'vfv.customer_id as customerId',
+        'vfv.visit_type as visitType',
+        'vfv.sale_id as saleId',
+        sql<string>`coalesce(s.doc_no, '')`.as('saleDocNo'),
+        sql<number>`cast(coalesce(s.total, 0) as numeric)`.as('saleTotal'),
+        'vfv.negative_reason as negativeReason',
+        'vfv.postponed_to_date as postponedToDate',
+        'vfv.visited_at as visitedAt',
+        'vfv.notes',
+      ])
+      .where('vfv.tenant_id', '=', tenantId)
+      .where('vfv.rep_id', '=', repId)
+      .where(sql`vfv.visited_at >= CURRENT_DATE`)
+      .execute();
+
+    const visitMap = new Map<number, any>();
+    for (const v of todayVisits) {
+      visitMap.set(Number(v.customerId), v);
+    }
+
+    const recentNegativeCounts = await this.anyDb
+      .selectFrom('van_field_visits')
+      .select([
+        'customer_id as customerId',
+        sql<number>`count(*) filter (where visit_type = 'negative')`.as('negativeCount'),
+      ])
+      .where('tenant_id', '=', tenantId)
+      .groupBy('customer_id')
+      .execute();
+
+    const negativeMap = new Map<number, number>();
+    for (const r of recentNegativeCounts) {
+      negativeMap.set(Number(r.customerId), Number(r.negativeCount || 0));
+    }
+
+    return customers.map((c: any) => {
+      const cId = Number(c.id);
+      const meta = typeof c.metadata === 'object' && c.metadata !== null ? c.metadata : {};
+      const todayVisit = visitMap.get(cId);
+      const totalNegatives = negativeMap.get(cId) || 0;
+
+      let status: 'pending' | 'positive' | 'negative' = 'pending';
+      if (todayVisit) {
+        status = todayVisit.visitType;
+      }
+
+      return {
+        customerId: cId,
+        customerName: c.name,
+        customerPhone: c.phone || '',
+        customerAddress: c.address || '',
+        customerCode: meta.customer_code || `#CUST-${cId}`,
+        route: meta.route || 'الخط العام',
+        routeSequence: Number(meta.route_sequence || 0),
+        visitDays: Array.isArray(meta.visit_days) ? meta.visit_days : (meta.visit_day ? [meta.visit_day] : []),
+        locationUrl: meta.location_url || '',
+        balance: Number(c.balance || 0),
+        creditLimit: Number(c.creditLimit || 0),
+        visitStatus: status,
+        todayVisit: todayVisit || null,
+        repeatedNegativesCount: totalNegatives,
+        hasRepeatedNegativeAlert: totalNegatives >= 3,
+      };
+    });
+  }
+
+  async recordFieldVisit(
+    tenantId: string,
+    accountId: string,
+    repId: number,
+    payload: {
+      tripId: number;
+      customerId: number;
+      visitType: 'positive' | 'negative';
+      saleId?: number | null;
+      negativeReason?: 'no_cash' | 'shop_closed' | 'sufficient_stock' | 'item_unavailable' | 'postponed' | 'other';
+      postponedToDate?: string | null;
+      gpsLat?: number | null;
+      gpsLng?: number | null;
+      notes?: string;
+    },
+  ) {
+    if (!payload.customerId || !payload.tripId) {
+      throw new AppError('يرجى تحديد الرحلة والعميل', 'INVALID_PARAMS', 400);
+    }
+    if (payload.visitType === 'negative' && !payload.negativeReason) {
+      throw new AppError('يرجى تحديد سبب الزيارة السلبية', 'MISSING_NEGATIVE_REASON', 400);
+    }
+
+    const inserted = await this.anyDb
+      .insertInto('van_field_visits')
+      .values({
+        tenant_id: tenantId,
+        account_id: accountId,
+        trip_id: payload.tripId,
+        rep_id: repId,
+        customer_id: payload.customerId,
+        visit_type: payload.visitType,
+        sale_id: payload.saleId || null,
+        negative_reason: payload.negativeReason || null,
+        postponed_to_date: payload.postponedToDate || null,
+        gps_lat: payload.gpsLat != null ? Number(payload.gpsLat) : null,
+        gps_lng: payload.gpsLng != null ? Number(payload.gpsLng) : null,
+        notes: payload.notes || null,
+        visited_at: sql`NOW()`,
+        created_at: sql`NOW()`,
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    const lastThreeVisits = await this.anyDb
+      .selectFrom('van_field_visits')
+      .select(['visit_type'])
+      .where('customer_id', '=', payload.customerId)
+      .where('tenant_id', '=', tenantId)
+      .orderBy('visited_at', 'desc')
+      .limit(3)
+      .execute();
+
+    const isConsecutiveThreeNegatives =
+      lastThreeVisits.length >= 3 && lastThreeVisits.every((v: any) => v.visit_type === 'negative');
+
+    return {
+      ok: true,
+      visitId: Number(inserted.id),
+      consecutiveNegativeAlert: isConsecutiveThreeNegatives,
+    };
+  }
+
+  async listFieldVisits(
+    tenantId: string,
+    filters?: { repId?: number; customerId?: number; visitType?: string; dateFrom?: string; dateTo?: string },
+  ) {
+    let query = this.anyDb
+      .selectFrom('van_field_visits as vfv')
+      .innerJoin('customers as c', 'c.id', 'vfv.customer_id')
+      .innerJoin('delivery_representatives as dr', 'dr.id', 'vfv.rep_id')
+      .leftJoin('sales as s', 's.id', 'vfv.sale_id')
+      .select([
+        'vfv.id',
+        'vfv.trip_id as tripId',
+        'vfv.rep_id as repId',
+        'dr.name as repName',
+        'vfv.customer_id as customerId',
+        'c.name as customerName',
+        'c.phone as customerPhone',
+        'vfv.visit_type as visitType',
+        'vfv.sale_id as saleId',
+        sql<string>`coalesce(s.doc_no, '')`.as('saleDocNo'),
+        sql<number>`cast(coalesce(s.total, 0) as numeric)`.as('saleTotal'),
+        'vfv.negative_reason as negativeReason',
+        'vfv.postponed_to_date as postponedToDate',
+        'vfv.gps_lat as gpsLat',
+        'vfv.gps_lng as gpsLng',
+        'vfv.notes',
+        'vfv.visited_at as visitedAt',
+      ])
+      .where('vfv.tenant_id', '=', tenantId);
+
+    if (filters?.repId) query = query.where('vfv.rep_id', '=', filters.repId);
+    if (filters?.customerId) query = query.where('vfv.customer_id', '=', filters.customerId);
+    if (filters?.visitType) query = query.where('vfv.visit_type', '=', filters.visitType);
+    if (filters?.dateFrom) query = query.where('vfv.visited_at', '>=', filters.dateFrom);
+    if (filters?.dateTo) query = query.where('vfv.visited_at', '<=', `${filters.dateTo} 23:59:59`);
+
+    const rows = await query.orderBy('vfv.visited_at', 'desc').limit(300).execute();
+    return rows;
+  }
+
+  // =========================================================================
+  // 5. INTER-VAN STREET STOCK TRANSFERS (Driver A -> Driver B)
+  // =========================================================================
+
+  async createInterVanTransfer(
+    tenantId: string,
+    accountId: string,
+    fromRepId: number,
+    payload: {
+      toRepId: number;
+      fromTripId?: number;
+      toTripId?: number;
+      items: { productId: number; qty: number }[];
+      notes?: string;
+    },
+  ) {
+    if (!payload.toRepId || payload.toRepId === fromRepId) {
+      throw new AppError('يرجى اختيار مندوب مستلم مختلف عن المندوب المحوّل', 'INVALID_TARGET_REP', 400);
+    }
+    if (!payload.items || !payload.items.length) {
+      throw new AppError('يرجى إضافة صنف واحد على الأقل للتحويل', 'EMPTY_ITEMS', 400);
+    }
+
+    const fromRep = await this.anyDb
+      .selectFrom('delivery_representatives')
+      .selectAll()
+      .where('id', '=', fromRepId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    const toRep = await this.anyDb
+      .selectFrom('delivery_representatives')
+      .selectAll()
+      .where('id', '=', payload.toRepId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!fromRep) throw new AppError('المندوب المحوّل غير موجود', 'FROM_REP_NOT_FOUND', 404);
+    if (!toRep) throw new AppError('المندوب المستلم غير موجود', 'TO_REP_NOT_FOUND', 404);
+
+    const fromVanLoc = await this.getOrCreateVanLocation(fromRepId, tenantId, accountId);
+    const toVanLoc = await this.getOrCreateVanLocation(payload.toRepId, tenantId, accountId);
+
+    for (const item of payload.items) {
+      const pid = Number(item.productId);
+      const qty = Number(item.qty || 0);
+      if (qty <= 0) continue;
+
+      const currentStock = await this.anyDb
+        .selectFrom('product_location_stock')
+        .select(['qty'])
+        .where('product_id', '=', pid)
+        .where('location_id', '=', fromVanLoc.id)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+
+      const avail = Number(currentStock?.qty || 0);
+      if (avail < qty) {
+        const prod = await this.anyDb.selectFrom('products').select(['name']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
+        throw new AppError(
+          `رصيد السيارة غير كافٍ لتحويل الصنف "${prod?.name || pid}". المتوفر: ${avail}، المطلوب تحويله: ${qty}`,
+          'INSUFFICIENT_STOCK_FOR_TRANSFER',
+          400,
+        );
+      }
+    }
+
+    const tempDoc = `TMP-XFR-${Date.now()}`;
+    const totalQty = payload.items.reduce((s: number, it: any) => s + Number(it.qty || 0), 0);
+
+    const inserted = await this.anyDb
+      .insertInto('van_stock_transfers')
+      .values({
+        tenant_id: tenantId,
+        account_id: accountId,
+        transfer_no: tempDoc,
+        from_rep_id: fromRepId,
+        from_trip_id: payload.fromTripId || null,
+        from_van_location_id: fromVanLoc.id,
+        to_rep_id: payload.toRepId,
+        to_trip_id: payload.toTripId || null,
+        to_van_location_id: toVanLoc.id,
+        status: 'pending',
+        total_items_count: payload.items.length,
+        total_qty: totalQty,
+        notes: payload.notes || null,
+        created_at: sql`NOW()`,
+        updated_at: sql`NOW()`,
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    const transferId = Number(inserted.id);
+    const transferNo = formatDailyDocumentNumber('XFR', transferId);
+
+    await this.anyDb
+      .updateTable('van_stock_transfers')
+      .set({ transfer_no: transferNo })
+      .where('id', '=', transferId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    for (const item of payload.items) {
+      const pid = Number(item.productId);
+      const qty = Number(item.qty || 0);
+      const prod = await this.anyDb.selectFrom('products').select(['cost_price', 'retail_price']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
+
+      await this.anyDb
+        .insertInto('van_stock_transfer_items')
+        .values({
+          transfer_id: transferId,
+          tenant_id: tenantId,
+          product_id: pid,
+          qty,
+          unit_cost: Number(prod?.cost_price || 0),
+          unit_price: Number(prod?.retail_price || 0),
+        })
+        .execute();
+    }
+
+    return {
+      ok: true,
+      transferId,
+      transferNo,
+      status: 'pending',
+    };
+  }
+
+  async acceptInterVanTransfer(tenantId: string, accountId: string, toRepId: number, transferId: number) {
+    const transfer = await this.anyDb
+      .selectFrom('van_stock_transfers')
+      .selectAll()
+      .where('id', '=', transferId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!transfer) {
+      throw new AppError('طلب التحويل غير موجود', 'TRANSFER_NOT_FOUND', 404);
+    }
+    if (Number(transfer.to_rep_id) !== toRepId) {
+      throw new AppError('غير مصرح لك بقبول هذا التحويل', 'UNAUTHORIZED_TRANSFER', 403);
+    }
+    if (transfer.status !== 'pending') {
+      throw new AppError(`طلب التحويل تمت معالجته مسبقاً (${transfer.status})`, 'ALREADY_PROCESSED', 400);
+    }
+
+    const items = await this.anyDb
+      .selectFrom('van_stock_transfer_items')
+      .selectAll()
+      .where('transfer_id', '=', transferId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    await this.db.transaction().execute(async (trx) => {
+      const trxAny = trx as any;
+
+      const sortedItems = this.sortItemsByProductId<{ productId: number; qty: number }>(
+        items.map((it: any) => ({ productId: Number(it.product_id), qty: Number(it.qty) })),
+      );
+
+      for (const item of sortedItems) {
+        const pid = Number(item.productId);
+        const qty = Number(item.qty);
+
+        await this.moveVanStock(trx, {
+          productId: pid,
+          delta: -qty,
+          locationId: Number(transfer.from_van_location_id),
+          tenantId,
+          accountId,
+          userId: null,
+          movementType: 'van_transfer_out',
+          note: `تحويل بضاعة بين سيارتين (${transfer.transfer_no})`,
+          referenceType: 'van_stock_transfers',
+          referenceId: Number(transfer.id),
+          skipGlobalUpdate: false,
+        });
+
+        await this.moveVanStock(trx, {
+          productId: pid,
+          delta: qty,
+          locationId: Number(transfer.to_van_location_id),
+          tenantId,
+          accountId,
+          userId: null,
+          movementType: 'van_transfer_in',
+          note: `استلام بضاعة محولة من سيارة (${transfer.transfer_no})`,
+          referenceType: 'van_stock_transfers',
+          referenceId: Number(transfer.id),
+          skipGlobalUpdate: false,
+        });
+      }
+
+      await trxAny
+        .updateTable('van_stock_transfers')
+        .set({
+          status: 'accepted',
+          accepted_at: sql`NOW()`,
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', transferId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+    });
+
+    return { ok: true, transferId, status: 'accepted' };
+  }
+
+  async rejectInterVanTransfer(tenantId: string, toRepId: number, transferId: number, reason?: string) {
+    const transfer = await this.anyDb
+      .selectFrom('van_stock_transfers')
+      .selectAll()
+      .where('id', '=', transferId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!transfer) {
+      throw new AppError('طلب التحويل غير موجود', 'TRANSFER_NOT_FOUND', 404);
+    }
+    if (Number(transfer.to_rep_id) !== toRepId) {
+      throw new AppError('غير مصرح لك برفض هذا التحويل', 'UNAUTHORIZED_TRANSFER', 403);
+    }
+    if (transfer.status !== 'pending') {
+      throw new AppError(`طلب التحويل تمت معالجته مسبقاً (${transfer.status})`, 'ALREADY_PROCESSED', 400);
+    }
+
+    await this.anyDb
+      .updateTable('van_stock_transfers')
+      .set({
+        status: 'rejected',
+        rejected_at: sql`NOW()`,
+        notes: sql`concat(coalesce(notes, ''), ' [تم الرفض: ', ${reason || 'بواسطة المندوب المستلم'}, ']')`,
+        updated_at: sql`NOW()`,
+      })
+      .where('id', '=', transferId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    return { ok: true, transferId, status: 'rejected' };
+  }
+
+  async listInterVanTransfers(
+    tenantId: string,
+    filters?: { repId?: number; status?: string },
+  ) {
+    let query = this.anyDb
+      .selectFrom('van_stock_transfers as vst')
+      .innerJoin('delivery_representatives as from_rep', 'from_rep.id', 'vst.from_rep_id')
+      .innerJoin('delivery_representatives as to_rep', 'to_rep.id', 'vst.to_rep_id')
+      .select([
+        'vst.id',
+        'vst.transfer_no as transferNo',
+        'vst.from_rep_id as fromRepId',
+        'from_rep.name as fromRepName',
+        'vst.to_rep_id as toRepId',
+        'to_rep.name as toRepName',
+        'vst.status',
+        sql<number>`cast(vst.total_items_count as integer)`.as('totalItemsCount'),
+        sql<number>`cast(vst.total_qty as numeric)`.as('totalQty'),
+        'vst.notes',
+        'vst.created_at as createdAt',
+        'vst.accepted_at as acceptedAt',
+        'vst.rejected_at as rejectedAt',
+      ])
+      .where('vst.tenant_id', '=', tenantId);
+
+    if (filters?.repId) {
+      query = query.where((eb: any) =>
+        eb.or([
+          eb('vst.from_rep_id', '=', filters.repId),
+          eb('vst.to_rep_id', '=', filters.repId),
+        ]),
+      );
+    }
+    if (filters?.status) {
+      query = query.where('vst.status', '=', filters.status);
+    }
+
+    const rows = await query.orderBy('vst.created_at', 'desc').limit(200).execute();
+
+    const transferIds = rows.map((r: any) => Number(r.id));
+    const itemsMap = new Map<number, any[]>();
+    if (transferIds.length > 0) {
+      const items = await this.anyDb
+        .selectFrom('van_stock_transfer_items as vsti')
+        .innerJoin('products as p', 'p.id', 'vsti.product_id')
+        .select([
+          'vsti.transfer_id as transferId',
+          'vsti.product_id as productId',
+          'p.name as productName',
+          'p.barcode as barcode',
+          sql<number>`cast(vsti.qty as numeric)`.as('qty'),
+          sql<number>`cast(vsti.unit_price as numeric)`.as('unitPrice'),
+        ])
+        .where('vsti.transfer_id', 'in', transferIds)
+        .where('vsti.tenant_id', '=', tenantId)
+        .execute();
+
+      for (const it of items) {
+        const tId = Number(it.transferId);
+        const list = itemsMap.get(tId) || [];
+        list.push(it);
+        itemsMap.set(tId, list);
+      }
+    }
+
+    return rows.map((r: any) => ({
+      ...r,
+      items: itemsMap.get(Number(r.id)) || [],
+    }));
+  }
+
+  // =========================================================================
+  // 6. SUPERVISOR ROUTE KPIS & PERFORMANCE INTELLIGENCE
+  // =========================================================================
+
+  async getSupervisorRouteKpis(tenantId: string, dateFrom?: string, dateTo?: string) {
+    let visitQuery = this.anyDb
+      .selectFrom('van_field_visits as vfv')
+      .select([
+        'vfv.id',
+        'vfv.visit_type as visitType',
+        'vfv.negative_reason as negativeReason',
+        'vfv.customer_id as customerId',
+        'vfv.rep_id as repId',
+      ])
+      .where('vfv.tenant_id', '=', tenantId);
+
+    if (dateFrom) visitQuery = visitQuery.where('vfv.visited_at', '>=', dateFrom);
+    if (dateTo) visitQuery = visitQuery.where('vfv.visited_at', '<=', `${dateTo} 23:59:59`);
+
+    const visits = await visitQuery.execute();
+
+    const totalVisits = visits.length;
+    const positiveVisits = visits.filter((v: any) => v.visitType === 'positive').length;
+    const negativeVisits = visits.filter((v: any) => v.visitType === 'negative').length;
+    const strikeRate = totalVisits > 0 ? Number(((positiveVisits / totalVisits) * 100).toFixed(1)) : 0;
+
+    const reasonsMap: Record<string, number> = {
+      no_cash: 0,
+      shop_closed: 0,
+      sufficient_stock: 0,
+      item_unavailable: 0,
+      postponed: 0,
+      other: 0,
+    };
+    for (const v of visits) {
+      if (v.visitType === 'negative' && v.negativeReason) {
+        reasonsMap[v.negativeReason] = (reasonsMap[v.negativeReason] || 0) + 1;
+      }
+    }
+
+    const custNegatives: Record<number, number> = {};
+    for (const v of visits) {
+      if (v.visitType === 'negative') {
+        custNegatives[Number(v.customerId)] = (custNegatives[Number(v.customerId)] || 0) + 1;
+      }
+    }
+    const repeatedNegativeCustomersCount = Object.values(custNegatives).filter((cnt) => cnt >= 3).length;
+
+    const fuelLogs = await this.listFuelLogs(tenantId, { dateFrom, dateTo });
+    const totalFuelLiters = fuelLogs.reduce((sum: number, f: any) => sum + Number(f.liters || 0), 0);
+    const totalFuelCost = fuelLogs.reduce((sum: number, f: any) => sum + Number(f.totalCost || 0), 0);
+    const totalKmDriven = fuelLogs.reduce((sum: number, f: any) => sum + Number(f.kmSinceLastFuel || 0), 0);
+    const avgConsumptionRate = totalFuelLiters > 0 && totalKmDriven > 0
+      ? Number((totalKmDriven / totalFuelLiters).toFixed(2))
+      : 0;
+
+    const alertsRes = await this.getFleetMaintenanceAlerts(tenantId);
+    const alerts = alertsRes.alerts || [];
+
+    return {
+      totalVisits,
+      positiveVisits,
+      negativeVisits,
+      strikeRate,
+      negativeReasonsBreakdown: reasonsMap,
+      repeatedNegativeCustomersCount,
+      totalFuelLiters,
+      totalFuelCost,
+      totalKmDriven,
+      avgConsumptionRate,
+      alertsCount: alerts.length,
+      alerts,
+    };
+  }
+
+  async setCustomerRouteSchedule(
+    tenantId: string,
+    customerId: number,
+    payload: {
+      route?: string;
+      routeSequence?: number;
+      visitDays?: string[];
+      customerCode?: string;
+      locationUrl?: string;
+    },
+  ) {
+    const cust = await this.anyDb
+      .selectFrom('customers')
+      .select(['id', 'metadata'])
+      .where('id', '=', customerId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!cust) throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
+
+    const existingMeta = typeof cust.metadata === 'object' && cust.metadata !== null ? cust.metadata : {};
+    const updatedMeta = {
+      ...existingMeta,
+      ...(payload.route !== undefined ? { route: payload.route } : {}),
+      ...(payload.routeSequence !== undefined ? { route_sequence: payload.routeSequence } : {}),
+      ...(payload.visitDays !== undefined ? { visit_days: payload.visitDays } : {}),
+      ...(payload.customerCode !== undefined ? { customer_code: payload.customerCode } : {}),
+      ...(payload.locationUrl !== undefined ? { location_url: payload.locationUrl } : {}),
+    };
+
+    await this.anyDb
+      .updateTable('customers')
+      .set({
+        metadata: JSON.stringify(updatedMeta),
+        updated_at: sql`NOW()`,
+      })
+      .where('id', '=', customerId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    return { ok: true, customerId, metadata: updatedMeta };
+  }
+
+  async getPeerReps(tenantId: string, currentRepId: number) {
+    const rows = await this.anyDb
+      .selectFrom('delivery_representatives')
+      .select(['id', 'name', 'phone', 'vehicle_plate'])
+      .where('tenant_id', '=', tenantId)
+      .where('is_active', '=', true)
+      .where('id', '!=', currentRepId)
+      .orderBy('name', 'asc')
+      .execute();
+
+    return rows.map((r: any) => ({
+      id: Number(r.id),
+      name: r.name,
+      phone: r.phone || '',
+      vehiclePlate: r.vehicle_plate || '',
+    }));
+  }
 }
+

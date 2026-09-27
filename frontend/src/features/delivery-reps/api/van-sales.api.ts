@@ -73,12 +73,34 @@ export interface RepTargetMetrics {
   excludedHolidaysCount: number;
 }
 
+export interface VanAssignedVehicle {
+  id: number;
+  plateNumber: string;
+  modelName?: string;
+  vehicleType: string;
+  currentOdometer: number;
+  fuelType: string;
+  licenseExpiresAt?: string;
+  status: string;
+}
+
 export interface VanActiveTripResponse {
   hasActiveTrip: boolean;
   trip?: VanTripSummary;
+  assignedVehicle?: VanAssignedVehicle | null;
   vanLocation?: { id: number; name: string };
   inventory: VanStockItem[];
-  customers: { id: number; name: string; phone?: string; address?: string; balance: number }[];
+  customers: {
+    id: number;
+    name: string;
+    phone?: string;
+    address?: string;
+    balance: number;
+    creditLimit?: number;
+    customerCode?: string;
+    route?: string;
+    locationUrl?: string;
+  }[];
   recentSales: {
     id: number;
     docNo: string;
@@ -145,6 +167,7 @@ export interface VanLoadRequisitionRecord {
   notes?: string;
   rejectionReason?: string;
   tripId?: number;
+  vanLocationName?: string;
   reviewedByName?: string;
   reviewedAt?: string;
   createdAt: string;
@@ -229,6 +252,141 @@ export interface TripAdminDetails {
   }>;
 }
 
+export interface VanCustomerItineraryItem {
+  customerId: number;
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  customerCode: string;
+  route: string;
+  routeSequence: number;
+  visitDays: string[];
+  locationUrl: string;
+  balance: number;
+  creditLimit: number;
+  visitStatus: 'pending' | 'positive' | 'negative';
+  todayVisit?: {
+    id: number;
+    visitType: 'positive' | 'negative';
+    saleId?: number;
+    saleDocNo?: string;
+    saleTotal?: number;
+    negativeReason?: string;
+    postponedToDate?: string;
+    visitedAt?: string;
+    notes?: string;
+  } | null;
+  repeatedNegativesCount: number;
+  hasRepeatedNegativeAlert: boolean;
+}
+
+export interface FleetFuelLogRecord {
+  id: number;
+  vehicleId: number;
+  plateNumber: string;
+  modelName?: string;
+  tripId?: number;
+  repId?: number;
+  repName?: string;
+  odometer: number;
+  liters: number;
+  pricePerLiter: number;
+  totalCost: number;
+  stationName?: string;
+  kmSinceLastFuel: number;
+  consumptionRate: number;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface FleetOilChangeRecord {
+  id: number;
+  vehicleId: number;
+  plateNumber: string;
+  modelName?: string;
+  currentOdometer: number;
+  repId?: number;
+  repName?: string;
+  odometerAtChange: number;
+  oilType: string;
+  ratedKm: number;
+  withFilter: boolean;
+  alertKmBefore: number;
+  nextDueOdometer: number;
+  cost: number;
+  performedBy?: string;
+  status: 'active' | 'completed' | 'overdue';
+  notes?: string;
+  createdAt: string;
+}
+
+export interface FleetMaintenanceAlert {
+  id: string;
+  vehicleId: number;
+  plateNumber: string;
+  repName: string;
+  type: 'oil_change' | 'license_expiry';
+  severity: 'warning' | 'critical';
+  title: string;
+  description: string;
+  currentValue: string | number;
+  thresholdValue: string | number;
+  dueDate?: string;
+}
+
+export interface VehicleDriverShiftRecord {
+  id: number;
+  vehicleId: number;
+  repId: number;
+  repName: string;
+  repPhone: string;
+  shiftName: string;
+  shiftStartTime?: string;
+  shiftEndTime?: string;
+  isActive: boolean;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface InterVanTransferRecord {
+  id: number;
+  transferNo: string;
+  fromRepId: number;
+  fromRepName: string;
+  toRepId: number;
+  toRepName: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+  totalItemsCount: number;
+  totalQty: number;
+  notes?: string;
+  createdAt: string;
+  acceptedAt?: string;
+  rejectedAt?: string;
+  items: Array<{
+    transferId: number;
+    productId: number;
+    productName: string;
+    barcode: string;
+    qty: number;
+    unitPrice: number;
+  }>;
+}
+
+export interface SupervisorRouteKpiSummary {
+  totalVisits: number;
+  positiveVisits: number;
+  negativeVisits: number;
+  strikeRate: number;
+  negativeReasonsBreakdown: Record<string, number>;
+  repeatedNegativeCustomersCount: number;
+  totalFuelLiters: number;
+  totalFuelCost: number;
+  totalKmDriven: number;
+  avgConsumptionRate: number;
+  alertsCount: number;
+  alerts: FleetMaintenanceAlert[];
+}
+
 function getDriverAuthHeaders() {
   const token = typeof localStorage !== 'undefined' ? localStorage.getItem('zs_driver_portal_token') : null;
   return { Authorization: `Bearer ${token || ''}` };
@@ -241,15 +399,15 @@ export const vanSalesApi = {
     });
   },
 
-  openTrip: async (payload: {
-    sourceWarehouseId: number;
-    items: { productId: number; qty: number }[];
+  openTrip: async (payload?: {
+    sourceWarehouseId?: number;
+    items?: { productId: number; qty: number }[];
     notes?: string;
   }): Promise<{ ok: boolean; tripId: number; totalLoadedValue: number; itemsCount: number }> => {
     return http('/api/driver-portal/van-sales/trips/open', {
       method: 'POST',
       headers: getDriverAuthHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload || {}),
     });
   },
 
@@ -263,6 +421,8 @@ export const vanSalesApi = {
     notes?: string;
     deliveryGpsLat?: number;
     deliveryGpsLng?: number;
+    deliveryProofPhoto?: string;
+    packagingBreakdown?: { cartonsCount?: number; piecesCount?: number; itemsCount?: number };
   }): Promise<{
     ok: boolean;
     saleId: number;
@@ -385,6 +545,129 @@ export const vanSalesApi = {
       headers: getDriverAuthHeaders(),
       body: JSON.stringify(payload),
     });
+  },
+
+  // Driver Field Itinerary & Visits
+  getMyItinerary: async (): Promise<VanCustomerItineraryItem[]> => {
+    const res = await http<{ ok: boolean; itinerary: VanCustomerItineraryItem[] }>(
+      '/api/driver-portal/van-sales/itinerary',
+      { headers: getDriverAuthHeaders() },
+    );
+    return res.itinerary || [];
+  },
+
+  recordFieldVisit: async (payload: {
+    tripId: number;
+    customerId: number;
+    visitType: 'positive' | 'negative';
+    saleId?: number;
+    negativeReason?: 'no_cash' | 'shop_closed' | 'sufficient_stock' | 'item_unavailable' | 'postponed' | 'other';
+    postponedToDate?: string;
+    gpsLat?: number;
+    gpsLng?: number;
+    notes?: string;
+  }): Promise<{ ok: boolean; visitId: number; consecutiveNegativeAlert: boolean }> => {
+    return http('/api/driver-portal/van-sales/field-visits', {
+      method: 'POST',
+      headers: getDriverAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  // Driver Fleet Fuel & Maintenance
+  recordDriverFuelLog: async (payload: {
+    vehicleId: number;
+    tripId?: number;
+    odometer: number;
+    liters: number;
+    pricePerLiter: number;
+    stationName?: string;
+    notes?: string;
+  }): Promise<{ ok: boolean; fuelLogId: number; kmSinceLastFuel: number; consumptionRate: number; totalCost: number }> => {
+    return http('/api/driver-portal/van-sales/fuel-logs', {
+      method: 'POST',
+      headers: getDriverAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getDriverFuelLogs: async (): Promise<FleetFuelLogRecord[]> => {
+    const res = await http<{ ok: boolean; logs: FleetFuelLogRecord[] }>(
+      '/api/driver-portal/van-sales/fuel-logs',
+      { headers: getDriverAuthHeaders() },
+    );
+    return res.logs || [];
+  },
+
+  recordDriverOilChange: async (payload: {
+    vehicleId: number;
+    odometerAtChange: number;
+    oilType: string;
+    ratedKm: number;
+    withFilter: boolean;
+    alertKmBefore?: number;
+    cost?: number;
+    performedBy?: string;
+    notes?: string;
+  }): Promise<{ ok: boolean; oilChangeId: number; nextDueOdometer: number; alertKmBefore: number }> => {
+    return http('/api/driver-portal/van-sales/oil-changes', {
+      method: 'POST',
+      headers: getDriverAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getDriverMaintenanceAlerts: async (): Promise<FleetMaintenanceAlert[]> => {
+    const res = await http<{ ok: boolean; alerts: FleetMaintenanceAlert[] }>(
+      '/api/driver-portal/van-sales/maintenance-alerts',
+      { headers: getDriverAuthHeaders() },
+    );
+    return res.alerts || [];
+  },
+
+  // Driver Inter-Van Transfers
+  createDriverTransfer: async (payload: {
+    toRepId: number;
+    fromTripId?: number;
+    toTripId?: number;
+    items: { productId: number; qty: number }[];
+    notes?: string;
+  }): Promise<{ ok: boolean; transferId: number; transferNo: string; status: string }> => {
+    return http('/api/driver-portal/van-sales/transfers', {
+      method: 'POST',
+      headers: getDriverAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getDriverTransfers: async (): Promise<InterVanTransferRecord[]> => {
+    const res = await http<{ ok: boolean; transfers: InterVanTransferRecord[] }>(
+      '/api/driver-portal/van-sales/transfers',
+      { headers: getDriverAuthHeaders() },
+    );
+    return res.transfers || [];
+  },
+
+  acceptDriverTransfer: async (transferId: number): Promise<{ ok: boolean; transferId: number; status: string }> => {
+    return http(`/api/driver-portal/van-sales/transfers/${transferId}/accept`, {
+      method: 'POST',
+      headers: getDriverAuthHeaders(),
+    });
+  },
+
+  rejectDriverTransfer: async (transferId: number, reason?: string): Promise<{ ok: boolean; transferId: number; status: string }> => {
+    return http(`/api/driver-portal/van-sales/transfers/${transferId}/reject`, {
+      method: 'POST',
+      headers: getDriverAuthHeaders(),
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  getPeerReps: async (): Promise<Array<{ id: number; name: string; phone?: string; vehiclePlate?: string }>> => {
+    const res = await http<{ ok: boolean; reps: any[] }>('/api/driver-portal/van-sales/peer-reps', {
+      headers: getDriverAuthHeaders(),
+    });
+    return res.reps || [];
   },
 
   listAdminTrips: async (filters?: {
@@ -544,4 +827,148 @@ export const vanSalesApi = {
       body: JSON.stringify({ repId, month, targetAmount }),
     });
   },
+
+  // Supervisor Route KPIs & Field Visits API
+  fetchSupervisorRouteKpis: async (params?: { dateFrom?: string; dateTo?: string }): Promise<SupervisorRouteKpiSummary> => {
+    const sp = new URLSearchParams();
+    if (params?.dateFrom) sp.set('dateFrom', params.dateFrom);
+    if (params?.dateTo) sp.set('dateTo', params.dateTo);
+    const qs = sp.toString();
+    const res = await http<SupervisorRouteKpiSummary & { ok: boolean }>(`/api/van-sales/admin/kpis${qs ? `?${qs}` : ''}`);
+    return res;
+  },
+
+  fetchAdminFieldVisits: async (filters?: {
+    repId?: number;
+    customerId?: number;
+    visitType?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<any[]> => {
+    const sp = new URLSearchParams();
+    if (filters?.repId) sp.set('repId', String(filters.repId));
+    if (filters?.customerId) sp.set('customerId', String(filters.customerId));
+    if (filters?.visitType) sp.set('visitType', filters.visitType);
+    if (filters?.dateFrom) sp.set('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) sp.set('dateTo', filters.dateTo);
+    const qs = sp.toString();
+    const res = await http<{ ok: boolean; visits: any[] }>(`/api/van-sales/admin/field-visits${qs ? `?${qs}` : ''}`);
+    return res.visits || [];
+  },
+
+  setCustomerRouteSchedule: async (
+    customerId: number,
+    payload: {
+      route?: string;
+      routeSequence?: number;
+      visitDays?: string[];
+      customerCode?: string;
+      locationUrl?: string;
+    },
+  ) => {
+    return http(`/api/van-sales/admin/customers/${customerId}/route-schedule`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  // Fleet Fuel Logs API
+  fetchAdminFuelLogs: async (filters?: { vehicleId?: number; repId?: number; dateFrom?: string; dateTo?: string }): Promise<FleetFuelLogRecord[]> => {
+    const sp = new URLSearchParams();
+    if (filters?.vehicleId) sp.set('vehicleId', String(filters.vehicleId));
+    if (filters?.repId) sp.set('repId', String(filters.repId));
+    if (filters?.dateFrom) sp.set('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) sp.set('dateTo', filters.dateTo);
+    const qs = sp.toString();
+    const res = await http<{ ok: boolean; logs: FleetFuelLogRecord[] }>(`/api/van-sales/admin/fuel-logs${qs ? `?${qs}` : ''}`);
+    return res.logs || [];
+  },
+
+  recordAdminFuelLog: async (payload: {
+    vehicleId: number;
+    tripId?: number;
+    repId?: number;
+    odometer: number;
+    liters: number;
+    pricePerLiter: number;
+    stationName?: string;
+    notes?: string;
+  }) => {
+    return http('/api/van-sales/admin/fuel-logs', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  // Fleet Oil Changes API
+  fetchAdminOilChanges: async (vehicleId?: number): Promise<FleetOilChangeRecord[]> => {
+    const res = await http<{ ok: boolean; changes: FleetOilChangeRecord[] }>(
+      `/api/van-sales/admin/oil-changes${vehicleId ? `?vehicleId=${vehicleId}` : ''}`,
+    );
+    return res.changes || [];
+  },
+
+  recordAdminOilChange: async (payload: {
+    vehicleId: number;
+    odometerAtChange: number;
+    oilType: string;
+    ratedKm: number;
+    withFilter: boolean;
+    alertKmBefore?: number;
+    cost?: number;
+    performedBy?: string;
+    notes?: string;
+    repId?: number;
+  }) => {
+    return http('/api/van-sales/admin/oil-changes', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  fetchMaintenanceAlerts: async (): Promise<FleetMaintenanceAlert[]> => {
+    const res = await http<{ ok: boolean; alerts: FleetMaintenanceAlert[] }>('/api/van-sales/admin/maintenance-alerts');
+    return res.alerts || [];
+  },
+
+  // Multi-Driver Vehicle Shifts API
+  fetchVehicleDrivers: async (vehicleId: number): Promise<VehicleDriverShiftRecord[]> => {
+    const res = await http<{ ok: boolean; drivers: VehicleDriverShiftRecord[] }>(
+      `/api/van-sales/admin/vehicles/${vehicleId}/drivers`,
+    );
+    return res.drivers || [];
+  },
+
+  assignVehicleDriver: async (
+    vehicleId: number,
+    payload: {
+      repId: number;
+      shiftName: string;
+      shiftStartTime?: string;
+      shiftEndTime?: string;
+      notes?: string;
+    },
+  ) => {
+    return http(`/api/van-sales/admin/vehicles/${vehicleId}/drivers`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  removeVehicleDriver: async (vehicleId: number, driverId: number) => {
+    return http(`/api/van-sales/admin/vehicles/${vehicleId}/drivers/${driverId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Inter-Van Transfers Audit API
+  fetchAdminTransfers: async (filters?: { repId?: number; status?: string }): Promise<InterVanTransferRecord[]> => {
+    const sp = new URLSearchParams();
+    if (filters?.repId) sp.set('repId', String(filters.repId));
+    if (filters?.status) sp.set('status', filters.status);
+    const qs = sp.toString();
+    const res = await http<{ ok: boolean; transfers: InterVanTransferRecord[] }>(`/api/van-sales/admin/transfers${qs ? `?${qs}` : ''}`);
+    return res.transfers || [];
+  },
 };
+
