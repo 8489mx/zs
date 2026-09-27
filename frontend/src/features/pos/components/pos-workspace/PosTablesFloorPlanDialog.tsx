@@ -6,12 +6,14 @@ import { XIcon, AlertTriangleIcon, SlidersIcon, QrCodeIcon } from '@/shared/comp
 import { formatCurrency } from '@/lib/format';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { settingsApi } from '@/features/settings/api/settings.api';
-import { storefrontApi } from '@/features/storefront/api/storefront.api';
-import { loadOnlineOrderIntoPosCart } from '@/features/storefront/lib/storefront-pos-loader';
+import {
+  storefrontApi,
+  loadOnlineOrderIntoPosCart,
+  type OnlineOrderRecord,
+} from '@/features/storefront';
 import { TableQrPrintDialog } from './TableQrPrintDialog';
 import type { AppSettings } from '@/types/domain';
 import type { HeldPosDraftSummary } from '@/features/pos/components/pos-cart-panel/posCartPanel.types';
-import type { OnlineOrderRecord } from '@/features/storefront/types/storefront.types';
 
 interface PosTablesFloorPlanDialogProps {
   open: boolean;

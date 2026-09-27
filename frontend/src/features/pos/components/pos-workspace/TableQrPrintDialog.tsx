@@ -10,7 +10,7 @@ import {
 import { buildQrSvg } from '@/lib/qrcode';
 import { buildStorePublicUrl } from '@/lib/store-public-url';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
-import { storefrontApi } from '@/features/storefront/api/storefront.api';
+import { storefrontApi } from '@/features/storefront';
 
 interface TableQrPrintDialogProps {
   open: boolean;

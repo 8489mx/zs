@@ -18,7 +18,7 @@ import {
   Trash2Icon,
   QrCodeIcon,
 } from '@/shared/components/icons/AppIcons';
-import { TableQrPrintDialog } from '@/features/pos/components/pos-workspace/TableQrPrintDialog';
+import { TableQrPrintDialog } from '@/features/pos';
 
 function parsePosition(posStr?: string): { x: number; y: number } {
   if (!posStr) return { x: 50, y: 50 };

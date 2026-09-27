@@ -24,7 +24,7 @@ import { VanSettleTab } from '../components/VanSettleTab';
 import { VanItineraryTab } from '../components/VanItineraryTab';
 import { VanFleetTab } from '../components/VanFleetTab';
 import { VanTransferModal } from '../components/VanTransferModal';
-import { DriverNewLoadRequisitionPage } from './DriverNewLoadRequisitionPage';
+import { DriverNewLoadRequisitionView } from '../components/DriverNewLoadRequisitionView';
 
 export default function VanSalesMobilePage() {
   const queryClient = useQueryClient();
@@ -310,7 +310,7 @@ export default function VanSalesMobilePage() {
 
   if (viewMode === 'new-requisition') {
     return (
-      <DriverNewLoadRequisitionPage
+      <DriverNewLoadRequisitionView
         onBack={() => setViewMode('dashboard')}
         onRequisitionSubmitted={(docNo: string) => {
           showAlert('success', `تم إرسال طلب إذن التحميل #${docNo} للمشرف بنجاح!`);
