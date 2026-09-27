@@ -459,14 +459,16 @@ export function VanLoadRequisitionsAdminTab() {
         </div>
       </div>
 
-      {/* Requisitions Table */}
+      {/* Requisitions Table (Zero Horizontal Scroll Standard) */}
       <div
         style={{
           background: '#ffffff',
           borderRadius: '12px',
           border: '1px solid #e2e8f0',
-          overflowX: 'auto',
+          overflow: 'hidden',
           boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+          width: '100%',
+          boxSizing: 'border-box',
         }}
       >
         {isLoading ? (
@@ -478,18 +480,37 @@ export function VanLoadRequisitionsAdminTab() {
             لا توجد أذونات تحميل مطابقة للفلتر المحدد.
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              textAlign: 'right',
+              fontSize: '12px',
+              tableLayout: 'fixed',
+            }}
+          >
+            <colgroup>
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '17%' }} />
+            </colgroup>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>رقم الإذن</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>مندوب التوزيع</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>المركبة</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>المستودع المصدر</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>عدد الأصناف</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>إجمالي القطع</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>تاريخ ووقت الطلب</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>رقم الإذن</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>مندوب التوزيع</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>المركبة</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>المستودع</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>الأصناف</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>القطع</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>الحالة</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>تاريخ الطلب</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>الإجراءات</th>
               </tr>
             </thead>
             <tbody>
@@ -501,48 +522,48 @@ export function VanLoadRequisitionsAdminTab() {
 
                 return (
                   <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9', background: isPending ? '#fffdf7' : 'transparent' }}>
-                    <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontWeight: 800, color: '#0f172a' }}>
+                    <td style={{ padding: '8px 6px', fontFamily: 'monospace', fontWeight: 800, color: '#0f172a', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                       {r.docNo}
                     </td>
-                    <td style={{ padding: '12px 14px', fontWeight: 700, color: '#0f172a' }}>
+                    <td style={{ padding: '8px 6px', fontWeight: 700, color: '#0f172a', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {r.repName}
                     </td>
-                    <td style={{ padding: '12px 14px' }}>
+                    <td style={{ padding: '8px 6px' }}>
                       {r.vehiclePlate ? (
-                        <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#334155', padding: '2px 7px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 700 }}>
+                        <span style={{ fontSize: '10.5px', background: '#f1f5f9', color: '#334155', padding: '1px 5px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           لوحة: {r.vehiclePlate}
                         </span>
                       ) : (
                         <span style={{ fontSize: '11px', color: '#94a3b8' }}>غير محددة</span>
                       )}
                     </td>
-                    <td style={{ padding: '12px 14px', color: '#475569', fontWeight: 600 }}>
+                    <td style={{ padding: '8px 6px', color: '#475569', fontWeight: 600, fontSize: '11.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {r.sourceWarehouseName}
                     </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 700 }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px' }}>
                       {(r.requestedItems || []).length} صنف
                     </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 800, color: '#1e293b' }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 800, color: '#1e293b', fontSize: '11.5px' }}>
                       {totalReqPieces} قطعة
                     </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center' }}>
                       {isPending && (
-                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontWeight: 700 }}>
+                        <span style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '10px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           بانتظار الصرف
                         </span>
                       )}
                       {isDispatched && (
-                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', fontWeight: 700 }}>
-                          تم الصرف والتحميل #{r.tripId}
+                        <span style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '10px', background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          تم الصرف #{r.tripId}
                         </span>
                       )}
                       {isRejected && (
-                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', fontWeight: 700 }}>
+                        <span style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '10px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           مرفوض
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '12px 14px', fontSize: '11px', color: '#64748b' }}>
+                    <td style={{ padding: '8px 6px', fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap' }}>
                       {new Date(r.createdAt).toLocaleDateString('ar-EG', {
                         day: 'numeric',
                         month: 'short',
@@ -550,33 +571,33 @@ export function VanLoadRequisitionsAdminTab() {
                         minute: '2-digit',
                       })}
                     </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
                         <Button
                           variant="secondary"
-                          style={{ fontSize: '11px', padding: '4px 10px' }}
+                          style={{ fontSize: '10.5px', padding: '3px 7px', whiteSpace: 'nowrap' }}
                           onClick={() => openReviewModal(r)}
                         >
-                          <FileTextIcon size={12} />
-                          {isPending ? 'مراجعة واعتماد' : 'معاينة الإذن'}
+                          <FileTextIcon size={11} />
+                          {isPending ? 'اعتماد' : 'معاينة'}
                         </Button>
                         <Button
                           variant="secondary"
-                          style={{ fontSize: '11px', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          style={{ fontSize: '10.5px', padding: '3px 6px', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}
                           onClick={() => handlePrintRequisition(r)}
                         >
-                          <PrinterIcon size={12} />
+                          <PrinterIcon size={11} />
                           طباعة
                         </Button>
                         {isPending && (
                           <Button
                             variant="primary"
-                            style={{ fontSize: '11px', padding: '4px 10px', background: '#15803d', color: '#ffffff' }}
+                            style={{ fontSize: '10.5px', padding: '3px 7px', background: '#15803d', color: '#ffffff', whiteSpace: 'nowrap' }}
                             onClick={() => handleDispatch(r)}
                             disabled={dispatchMutation.isPending}
                           >
-                            <TruckIcon size={12} />
-                            صرف وتحميل
+                            <TruckIcon size={11} />
+                            صرف
                           </Button>
                         )}
                       </div>

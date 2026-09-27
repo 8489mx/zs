@@ -153,14 +153,16 @@ export function VanRepTargetsAdminTab() {
         </div>
       </div>
 
-      {/* Targets Table */}
+      {/* Targets Table (Zero Horizontal Scroll Standard) */}
       <div
         style={{
           background: '#ffffff',
           borderRadius: '12px',
           border: '1px solid #e2e8f0',
-          overflowX: 'auto',
+          overflow: 'hidden',
           boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+          width: '100%',
+          boxSizing: 'border-box',
         }}
       >
         {isLoading ? (
@@ -172,18 +174,37 @@ export function VanRepTargetsAdminTab() {
             لا يوجد مناديب مسجلين بالنظام حالياً.
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              textAlign: 'right',
+              fontSize: '12px',
+              tableLayout: 'fixed',
+            }}
+          >
+            <colgroup>
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '10%' }} />
+            </colgroup>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>مندوب التوزيع</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>المركبة</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>مستهدف الشهر</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>المبيعات الفعلية</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center', minWidth: '150px' }}>نسبة الإنجاز</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>المتبقي للتارجت</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>أيام العمل المتبقية</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>المطلوب بيعه يومياً</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>مندوب التوزيع</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>المركبة</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>مستهدف الشهر</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>المبيعات</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>نسبة الإنجاز</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>المتبقي</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>أيام متبقية</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>المطلوب يومياً</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>الإجراءات</th>
               </tr>
             </thead>
             <tbody>
@@ -194,24 +215,24 @@ export function VanRepTargetsAdminTab() {
 
                 return (
                   <tr key={t.repId} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13.5px' }}>{t.repName}</div>
+                    <td style={{ padding: '8px 6px' }}>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '12.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.repName}</div>
                       {t.phone && (
-                        <div style={{ fontSize: '11px', color: '#64748b', direction: 'ltr', textAlign: 'right' }}>
+                        <div style={{ fontSize: '10.5px', color: '#64748b', direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap' }}>
                           {t.phone}
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: '12px 14px' }}>
+                    <td style={{ padding: '8px 6px' }}>
                       {t.vehiclePlate ? (
-                        <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#334155', padding: '2px 7px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 700 }}>
+                        <span style={{ fontSize: '10.5px', background: '#f1f5f9', color: '#334155', padding: '1px 5px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           لوحة: {t.vehiclePlate}
                         </span>
                       ) : (
                         <span style={{ fontSize: '11px', color: '#94a3b8' }}>بدون سيارة</span>
                       )}
                     </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 800, color: '#0f172a', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                       {t.targetAmount > 0 ? (
                         <>
                           {t.targetAmount.toFixed(2)} <CurrencySymbol />
@@ -220,16 +241,16 @@ export function VanRepTargetsAdminTab() {
                         <span style={{ fontSize: '11px', color: '#94a3b8' }}>غير محدد</span>
                       )}
                     </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 800, color: '#15803d' }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 800, color: '#15803d', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                       {t.actualSales.toFixed(2)} <CurrencySymbol />
                     </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '11px', fontWeight: 700, color: progressColor }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '10.5px', fontWeight: 700, color: progressColor }}>
                           <span>{rate.toFixed(1)}%</span>
                           {t.isTargetAchieved && <span>تم الإنجاز</span>}
                         </div>
-                        <div style={{ width: '100%', height: '7px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{ width: '100%', height: '6px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                           <div
                             style={{
                               width: `${Math.min(100, rate)}%`,
@@ -241,10 +262,10 @@ export function VanRepTargetsAdminTab() {
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 700 }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                       {t.isTargetAchieved ? (
-                        <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 800, background: '#f0fdf4', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
-                          تم تحقيق المستهدف
+                        <span style={{ fontSize: '10.5px', color: '#16a34a', fontWeight: 800, background: '#f0fdf4', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bbf7d0', whiteSpace: 'nowrap' }}>
+                          تم الإنجاز
                         </span>
                       ) : (
                         <span style={{ color: '#b91c1c' }}>
@@ -252,10 +273,10 @@ export function VanRepTargetsAdminTab() {
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 700, color: '#475569' }}>
-                      {t.remainingWorkingDays} <span style={{ fontSize: '11px', color: '#94a3b8' }}>يوم عمل</span>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, color: '#475569', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
+                      {t.remainingWorkingDays} <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>يوم</span>
                     </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 800 }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 800, fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                       {t.isTargetAchieved ? (
                         <span style={{ color: '#16a34a' }}>0.00</span>
                       ) : t.requiredDailyTarget > 0 ? (
@@ -266,14 +287,14 @@ export function VanRepTargetsAdminTab() {
                         <span style={{ color: '#94a3b8' }}>—</span>
                       )}
                     </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center' }}>
                       <Button
                         variant="secondary"
-                        style={{ fontSize: '11.5px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        style={{ fontSize: '11px', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}
                         onClick={() => openSetTargetModal(t)}
                       >
-                        <SlidersIcon size={12} />
-                        تعديل التارجت
+                        <SlidersIcon size={11} />
+                        ضبط التارجت
                       </Button>
                     </td>
                   </tr>

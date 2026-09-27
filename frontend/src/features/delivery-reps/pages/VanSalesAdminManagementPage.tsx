@@ -103,61 +103,62 @@ export default function VanSalesAdminManagementPage() {
         }
       />
 
-      {/* Navigation Tabs (Zero Font Shift Rule: uniform 600 weight, 0ms transition) */}
+      {/* Navigation Tabs (Zero Font Shift Rule: uniform 600 weight, 0ms transition, Zero Horizontal Scroll) */}
       <div
         style={{
           display: 'flex',
-          gap: '8px',
+          gap: '6px',
           background: '#ffffff',
           padding: '6px',
           borderRadius: '12px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-          overflowX: 'auto',
+          width: '100%',
+          boxSizing: 'border-box',
         }}
       >
         {[
           {
             key: 'trips' as const,
-            label: 'رحلات وورديات التوزيع',
-            icon: <SlidersIcon size={16} />,
+            label: 'رحلات التوزيع',
+            icon: <SlidersIcon size={15} />,
           },
           {
             key: 'requisitions' as const,
-            label: 'أذونات تحميل الصباح',
+            label: 'أذونات التحميل',
             count: pendingRequisitions.length > 0 ? pendingRequisitions.length : undefined,
             badgeBg: pendingRequisitions.length > 0 ? '#fef3c7' : undefined,
             badgeColor: pendingRequisitions.length > 0 ? '#b45309' : undefined,
-            icon: <TruckIcon size={16} />,
+            icon: <TruckIcon size={15} />,
           },
           {
             key: 'routes_kpis' as const,
-            label: 'خطوط السير والرقابة الميدانية',
-            icon: <MapPinIcon size={16} />,
+            label: 'خطوط السير والرقابة',
+            icon: <MapPinIcon size={15} />,
           },
           {
             key: 'returns' as const,
-            label: 'مرتجعات البيع الميداني',
+            label: 'مرتجعات الميدان',
             count: pendingReturns.length > 0 ? pendingReturns.length : undefined,
             badgeBg: pendingReturns.length > 0 ? '#fee2e2' : undefined,
             badgeColor: pendingReturns.length > 0 ? '#b91c1c' : undefined,
-            icon: <FileTextIcon size={16} />,
+            icon: <FileTextIcon size={15} />,
           },
           {
             key: 'targets' as const,
-            label: 'تارجت ومستهدفات المناديب',
-            icon: <CheckCircleIcon size={16} />,
+            label: 'مستهدفات البيع',
+            icon: <CheckCircleIcon size={15} />,
           },
           {
             key: 'fleet' as const,
-            label: 'أسطول سيارات الشركة',
-            icon: <TruckIcon size={16} />,
+            label: 'أسطول السيارات',
+            icon: <TruckIcon size={15} />,
           },
           {
             key: 'drivers' as const,
-            label: 'مناديب وسائقي الفان',
+            label: 'مناديب الفان',
             count: vanDrivers.length,
-            icon: <UsersIcon size={16} />,
+            icon: <UsersIcon size={15} />,
           },
         ].map((tab) => {
           const isActive = activeTab === tab.key;
@@ -170,12 +171,15 @@ export default function VanSalesAdminManagementPage() {
                 setSearchParams({ tab: tab.key });
               }}
               style={{
+                flex: 1,
+                minWidth: 0,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '9px 18px',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '8px 4px',
                 borderRadius: '8px',
-                fontSize: '13px',
+                fontSize: '12.5px',
                 fontWeight: 600,
                 border: isActive ? '1px solid #170e5e' : '1px solid transparent',
                 background: isActive ? '#170e5e' : 'transparent',
@@ -186,18 +190,27 @@ export default function VanSalesAdminManagementPage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              {tab.icon}
-              <span>{tab.label}</span>
+              <span style={{ display: 'inline-flex', flexShrink: 0 }}>{tab.icon}</span>
+              <span
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {tab.label}
+              </span>
               {tab.count !== undefined && (
                 <span
                   style={{
+                    flexShrink: 0,
                     background: isActive
                       ? 'rgba(255,255,255,0.2)'
                       : tab.badgeBg || '#f1f5f9',
                     color: isActive ? '#ffffff' : tab.badgeColor || '#64748b',
                     fontSize: '11px',
                     fontWeight: 700,
-                    padding: '1px 7px',
+                    padding: '1px 6px',
                     borderRadius: '12px',
                   }}
                 >

@@ -128,14 +128,16 @@ export function VanTripsTab() {
         </div>
       </div>
 
-      {/* Trips Table */}
+      {/* Trips Table (Zero Horizontal Scroll Standard) */}
       <div
         style={{
           background: '#ffffff',
           borderRadius: '12px',
           border: '1px solid #e2e8f0',
-          overflowX: 'auto',
+          overflow: 'hidden',
           boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+          width: '100%',
+          boxSizing: 'border-box',
         }}
       >
         {isTripsLoading ? (
@@ -147,76 +149,104 @@ export function VanTripsTab() {
             لا توجد رحلات توزيع مسجلة مطابقة للفلاتر.
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              textAlign: 'right',
+              fontSize: '12px',
+              tableLayout: 'fixed',
+            }}
+          >
+            <colgroup>
+              <col style={{ width: '4.5%' }} />
+              <col style={{ width: '17.5%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '7.5%' }} />
+              <col style={{ width: '8.5%' }} />
+              <col style={{ width: '8.5%' }} />
+              <col style={{ width: '8.5%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '10.5%' }} />
+              <col style={{ width: '7.5%' }} />
+            </colgroup>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}># الرحلة</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>المندوب والمركبة</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>الوردية والعداد</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>المستودع المصدر</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>البضاعة المحمّلة</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>المبيعات</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الكاش المحصل</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>عجز / زيادة</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>تاريخ الفتح والإغلاق</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>#</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>المندوب والمركبة</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>الوردية والعداد</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>المستودع</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>الحالة</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>المحمّل</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>المبيعات</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>المحصّل</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>عجز / زيادة</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>التاريخ والتوقيت</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>الإجراءات</th>
               </tr>
             </thead>
             <tbody>
               {trips.map((t) => (
                 <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontWeight: 800, color: '#0f172a' }}>
+                  <td style={{ padding: '8px 6px', fontFamily: 'monospace', fontWeight: 800, color: '#0f172a', textAlign: 'center', fontSize: '11.5px' }}>
                     #{t.id}
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px' }}>{t.repName}</div>
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
+                  <td style={{ padding: '8px 6px' }}>
+                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {t.repName}
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
                       {t.vehiclePlate ? (
-                        <span style={{ fontSize: '10.5px', background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
-                          لوحة: {t.vehiclePlate}
+                        <span style={{ fontSize: '10px', background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd', padding: '0 4px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          {t.vehiclePlate}
                         </span>
                       ) : null}
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>{t.vanLocationName}</span>
+                      <span style={{ fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {t.vanLocationName}
+                      </span>
                     </div>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div style={{ fontWeight: 600, color: '#334155' }}>{t.shiftName || 'وردية أساسية'}</div>
+                  <td style={{ padding: '8px 6px' }}>
+                    <div style={{ fontWeight: 600, color: '#334155', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
+                      {t.shiftName || 'وردية أساسية'}
+                    </div>
                     {t.startOdometer !== undefined && (
-                      <div style={{ fontSize: '10.5px', color: '#64748b', fontFamily: 'monospace' }}>
-                        عداد: {t.startOdometer} كم {t.endOdometer ? `← ${t.endOdometer} كم` : ''}
+                      <div style={{ fontSize: '10px', color: '#64748b', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                        عداد: {t.startOdometer} {t.endOdometer ? `← ${t.endOdometer}` : ''}
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: '12px 14px', color: '#475569', fontWeight: 600 }}>
+                  <td style={{ padding: '8px 6px', color: '#475569', fontWeight: 600, fontSize: '11.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {t.sourceWarehouseName}
                   </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                  <td style={{ padding: '8px 6px', textAlign: 'center' }}>
                     <span
                       style={{
                         display: 'inline-block',
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        fontSize: '11px',
+                        padding: '2px 6px',
+                        borderRadius: '10px',
+                        fontSize: '10.5px',
                         fontWeight: 700,
                         background: t.status === 'open' ? '#dcfce7' : '#f1f5f9',
                         color: t.status === 'open' ? '#15803d' : '#475569',
                         border: `1px solid ${t.status === 'open' ? '#bbf7d0' : '#e2e8f0'}`,
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {t.status === 'open' ? 'نشطة بالشارع' : 'تمت التصفية'}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 700, color: '#1e293b' }}>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, color: '#1e293b', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                     {t.loadedAmount.toFixed(2)} <CurrencySymbol />
                   </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 800, color: '#0f172a', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                     {t.salesAmount.toFixed(2)} <CurrencySymbol />
                   </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 800, color: '#15803d' }}>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 800, color: '#15803d', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                     {t.cashCollected.toFixed(2)} <CurrencySymbol />
                   </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'center', fontFamily: 'monospace', fontWeight: 800 }}>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', fontFamily: 'monospace', fontWeight: 800, fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                     {t.variance === 0 ? (
                       <span style={{ color: '#94a3b8' }}>0.00</span>
                     ) : t.variance < 0 ? (
@@ -225,21 +255,21 @@ export function VanTripsTab() {
                       <span style={{ color: '#2563eb' }}>+{t.variance.toFixed(2)}</span>
                     )}
                   </td>
-                  <td style={{ padding: '12px 14px', fontSize: '11px', color: '#64748b' }}>
-                    <div>بدء: {new Date(t.openedAt).toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</div>
+                  <td style={{ padding: '8px 6px', fontSize: '10.5px', color: '#64748b', lineHeight: 1.3 }}>
+                    <div style={{ whiteSpace: 'nowrap' }}>بدء: {new Date(t.openedAt).toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</div>
                     {t.closedAt && (
-                      <div style={{ color: '#94a3b8' }}>
+                      <div style={{ color: '#94a3b8', whiteSpace: 'nowrap' }}>
                         إغلاق: {new Date(t.closedAt).toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                  <td style={{ padding: '8px 6px', textAlign: 'center' }}>
                     <Button
                       variant="secondary"
-                      style={{ fontSize: '11px', padding: '4px 10px' }}
+                      style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
                       onClick={() => setSelectedTripId(t.id)}
                     >
-                      تفاصيل ومواقع الرحلة ↗
+                      تفاصيل ↗
                     </Button>
                   </td>
                 </tr>
