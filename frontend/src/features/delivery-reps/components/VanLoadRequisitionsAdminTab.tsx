@@ -12,6 +12,7 @@ import {
   MinusIcon,
   Trash2Icon,
   XIcon,
+  PrinterIcon,
 } from '@/shared/components/icons/AppIcons';
 
 export interface AdminReviewLine {
@@ -239,6 +240,132 @@ export function VanLoadRequisitionsAdminTab() {
     });
   };
 
+  const handlePrintRequisition = (req: VanLoadRequisitionRecord) => {
+    const printWindow = window.open('', '_blank', 'width=840,height=900');
+    if (!printWindow) {
+      toast.error('يرجى السماح بالنوافذ المنبثقة للطباعة');
+      return;
+    }
+
+    const items = (req.approvedItems && req.approvedItems.length > 0 ? req.approvedItems : req.requestedItems) || [];
+    const totalPieces = items.reduce((sum: number, it: any) => sum + (Number(it.qty) || 0), 0);
+    const dateFormatted = new Date(req.createdAt).toLocaleDateString('ar-EG', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const rowsHtml = items
+      .map(
+        (it: any, idx: number) => `
+        <tr>
+          <td style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: center;">${idx + 1}</td>
+          <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-family: monospace;">${it.barcode || '—'}</td>
+          <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold;">${it.productName || 'صنف'}</td>
+          <td style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: center; font-size: 14px; font-weight: 800;">${it.qty}</td>
+          <td style="padding: 8px 10px; border: 1px solid #cbd5e1;"></td>
+        </tr>
+      `,
+      )
+      .join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="utf-8" />
+          <title>إذن صرف وتحميل بضاعة #${req.docNo}</title>
+          <style>
+            @page { size: A4; margin: 15mm; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: rtl; color: #0f172a; margin: 0; padding: 20px; font-size: 13px; line-height: 1.5; }
+            .header-table { width: 100%; border-bottom: 2px solid #170e5e; padding-bottom: 12px; margin-bottom: 16px; }
+            .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+            .meta-item { display: flex; justify-content: space-between; font-size: 12.5px; }
+            .meta-label { color: #64748b; font-weight: 600; }
+            .meta-value { color: #0f172a; font-weight: 800; }
+            table.items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            table.items th { background: #170e5e; color: #ffffff; padding: 10px; border: 1px solid #170e5e; font-size: 12.5px; font-weight: 700; }
+            .summary-box { display: flex; justify-content: space-between; background: #f1f5f9; padding: 12px 18px; border-radius: 8px; font-weight: bold; margin-bottom: 30px; font-size: 14px; }
+            .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 40px; text-align: center; }
+            .sig-box { border-top: 1px dashed #64748b; padding-top: 8px; font-size: 12px; font-weight: 700; color: #334155; }
+          </style>
+        </head>
+        <body>
+          <table class="header-table">
+            <tr>
+              <td>
+                <h2 style="margin: 0; color: #170e5e; font-size: 20px;">منظومة توزيع الفان والجملة (FMCG)</h2>
+                <div style="font-size: 12px; color: #64748b; margin-top: 4px;">إذن صرف وتحميل بضاعة لسيارة التوزيع الميداني</div>
+              </td>
+              <td style="text-align: left;">
+                <div style="font-size: 18px; font-weight: 900; color: #170e5e; font-family: monospace;">#${req.docNo}</div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${dateFormatted}</div>
+              </td>
+            </tr>
+          </table>
+
+          <div class="meta-grid">
+            <div class="meta-item"><span class="meta-label">مندوب التوزيع (السائق):</span> <span class="meta-value">${req.repName}</span></div>
+            <div class="meta-item"><span class="meta-label">لوحة المركبة:</span> <span class="meta-value">${req.vehiclePlate || '—'}</span></div>
+            <div class="meta-item"><span class="meta-label">المستودع المصدر:</span> <span class="meta-value">${req.sourceWarehouseName}</span></div>
+            <div class="meta-item"><span class="meta-label">مستودع الفان المتنقل:</span> <span class="meta-value">${req.vanLocationName || 'مستودع سيارة المندوب'}</span></div>
+            <div class="meta-item"><span class="meta-label">رقم رحلة التوزيع:</span> <span class="meta-value">${req.tripId ? `#${req.tripId}` : '—'}</span></div>
+            <div class="meta-item"><span class="meta-label">حالة الإذن:</span> <span class="meta-value">${req.status === 'dispatched' ? 'تم الصرف والتحميل' : req.status === 'pending' ? 'قيد المراجعة' : 'مرفوض'}</span></div>
+          </div>
+
+          <table class="items">
+            <thead>
+              <tr>
+                <th style="width: 40px;">م</th>
+                <th style="width: 130px;">الباركود</th>
+                <th>بيان الصنف والمواصفات</th>
+                <th style="width: 120px; text-align: center;">الكمية المنصرفة</th>
+                <th style="width: 140px;">ملاحظات الفحص والمطابقة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <div class="summary-box">
+            <span>إجمالي عدد البنود: ${items.length} صنف</span>
+            <span>إجمالي الكمية المنصرفة: ${totalPieces} قطعة / وحدة</span>
+          </div>
+
+          <div class="signatures">
+            <div class="sig-box">
+              <div>أمين المستودع (الصارف)</div>
+              <div style="height: 50px;"></div>
+              <div>الاسم والتوقيع: ............................</div>
+            </div>
+            <div class="sig-box">
+              <div>مندوب الفان (المستلم)</div>
+              <div style="height: 50px;"></div>
+              <div>الاسم والتوقيع: ............................</div>
+            </div>
+            <div class="sig-box">
+              <div>مشرف الحركة والتوزيع</div>
+              <div style="height: 50px;"></div>
+              <div>الاعتماد: ............................</div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
       {/* KPI Cards */}
@@ -432,6 +559,14 @@ export function VanLoadRequisitionsAdminTab() {
                         >
                           <FileTextIcon size={12} />
                           {isPending ? 'مراجعة واعتماد' : 'معاينة الإذن'}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          style={{ fontSize: '11px', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          onClick={() => handlePrintRequisition(r)}
+                        >
+                          <PrinterIcon size={12} />
+                          طباعة
                         </Button>
                         {isPending && (
                           <Button
@@ -822,6 +957,14 @@ export function VanLoadRequisitionsAdminTab() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
               <Button variant="secondary" onClick={() => setSelectedReq(null)}>
                 إغلاق
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => handlePrintRequisition(selectedReq)}
+                style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <PrinterIcon size={14} />
+                طباعة إذن التحميل
               </Button>
               {selectedReq.status === 'pending' && (
                 <>

@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/shared/ui/button';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { CustomSelect } from '@/shared/ui/custom-select';
+import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { matchesArabic } from '@/lib/arabic-normalization';
 import {
   useDriverLoadRequisition,
   type DriverProductStock,
@@ -13,7 +15,6 @@ import {
   PlusIcon,
   MinusIcon,
   ArrowRightIcon,
-  XIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 
@@ -53,7 +54,6 @@ export function DriverNewLoadRequisitionPage({
     warehouses,
     isLoadingWarehouses,
     availableProducts,
-    isLoadingProducts,
     submitRequisition,
     isSubmitting,
   } = useDriverLoadRequisition(selectedWarehouseFilter);
@@ -77,17 +77,20 @@ export function DriverNewLoadRequisitionPage({
     },
   ]);
 
-  // Close search dropdowns when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.line-search-container')) {
-        setLines((prev) => prev.map((l) => ({ ...l, isSearchOpen: false })));
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  // Options for SearchableCombobox (portal-based dropdown)
+  const productOptions = useMemo(() => {
+    return (availableProducts || []).map((p) => ({
+      id: String(p.id),
+      name: p.name,
+      barcode: p.barcode || p.sku || '',
+      sku: p.sku || '',
+      totalStock: p.totalStock,
+      unit: p.unit || 'قطعة',
+      retailPrice: p.retailPrice,
+      product: p,
+      searchTerms: `${p.name} ${p.barcode || ''} ${p.sku || ''}`.toLowerCase(),
+    }));
+  }, [availableProducts]);
 
   // Update line's warehouse when top warehouse filter changes
   useEffect(() => {
@@ -489,6 +492,8 @@ export function DriverNewLoadRequisitionPage({
         {/* Section 1: "المعلومات الأساسية" matching IssueOrderHeaderSection */}
         <section
           style={{
+            position: 'relative',
+            zIndex: 10,
             backgroundColor: '#ffffff',
             borderRadius: '12px',
             border: '1px solid #cbd5e1',
@@ -698,14 +703,16 @@ export function DriverNewLoadRequisitionPage({
 
           {/* Table Container */}
           <div
+            className="purchase-prototype-items-table-wrapper"
             style={{
               overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
               border: '1px solid #cbd5e1',
               borderRadius: '8px',
               backgroundColor: '#ffffff',
             }}
           >
-            <table style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'right' }}>
+            <table className="purchase-prototype-items-table" style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
                 <tr>
                   <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '38%' }}>
@@ -727,23 +734,12 @@ export function DriverNewLoadRequisitionPage({
               </thead>
               <tbody>
                 {lines.map((line, index) => {
-                  const filteredMatches = (availableProducts || [])
-                    .filter((p) => {
-                      if (!line.searchQuery || !line.searchQuery.trim()) return true;
-                      const q = line.searchQuery.toLowerCase().trim();
-                      const name = (p.name || '').toLowerCase();
-                      const barcode = (p.barcode || '').toLowerCase();
-                      const sku = (p.sku || '').toLowerCase();
-                      return name.includes(q) || barcode.includes(q) || sku.includes(q);
-                    })
-                    .slice(0, 15);
-
                   // Warehouses with positive stock for this line's product
                   const productWarehouseOptions = (line.warehouseStocks || [])
                     .filter((w) => w.qty > 0)
                     .map((w) => ({
-                      value: String(w.warehouseId),
-                      label: `${w.warehouseName} (متاح: ${w.qty})`,
+                      id: String(w.warehouseId),
+                      name: `${w.warehouseName} (متاح: ${w.qty})`,
                     }));
 
                   return (
@@ -754,177 +750,81 @@ export function DriverNewLoadRequisitionPage({
                         backgroundColor: line.productId ? '#ffffff' : '#fcfcfd',
                       }}
                     >
-                      {/* Product Search & Selection Cell */}
-                      <td style={{ padding: '8px 12px', verticalAlign: 'top', position: 'relative' }}>
-                        <div className="line-search-container" style={{ position: 'relative' }}>
-                          <div style={{ position: 'relative' }}>
-                            <input
-                              type="text"
-                              value={line.searchQuery ?? ''}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setLines((prev) =>
-                                  prev.map((l) =>
-                                    l.id === line.id
-                                      ? { ...l, searchQuery: val, isSearchOpen: true }
-                                      : l,
-                                  ),
-                                );
-                              }}
-                              onFocus={() => {
-                                setLines((prev) =>
-                                  prev.map((l) =>
-                                    l.id === line.id ? { ...l, isSearchOpen: true } : { ...l, isSearchOpen: false },
-                                  ),
-                                );
-                              }}
-                              placeholder="ابحث عن الصنف بالاسم أو الباركود..."
-                              style={{
-                                width: '100%',
-                                height: '38px',
-                                backgroundColor: '#ffffff',
-                                border: '1px solid #cbd5e1',
-                                borderRadius: '6px',
-                                padding: '0 10px',
-                                fontSize: '12.5px',
-                                color: '#0f172a',
-                                fontWeight: line.productId ? 700 : 500,
-                                boxSizing: 'border-box',
-                              }}
-                            />
-                            {line.productId && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setLines((prev) =>
-                                    prev.map((l) =>
-                                      l.id === line.id
+                      {/* Product Search & Selection Cell via Portal Combobox */}
+                      <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
+                        <SearchableCombobox
+                          inputId={`product-input-${line.id}`}
+                          options={productOptions}
+                          value={line.productName || line.searchQuery || ''}
+                          onChange={(val) => {
+                            setLines((prev) =>
+                              prev.map((l) =>
+                                l.id === line.id
+                                  ? {
+                                      ...l,
+                                      productName: val,
+                                      searchQuery: val,
+                                      ...(val === ''
                                         ? {
-                                            ...l,
                                             productId: '',
-                                            productName: '',
                                             barcode: '',
-                                            unitPrice: 0,
                                             availableInWarehouse: 0,
                                             warehouseStocks: [],
-                                            searchQuery: '',
-                                            isSearchOpen: true,
+                                            unitPrice: 0,
                                           }
-                                        : l,
-                                    ),
-                                  );
-                                }}
-                                style={{
-                                  position: 'absolute',
-                                  left: '8px',
-                                  top: '50%',
-                                  transform: 'translateY(-50%)',
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#94a3b8',
-                                  cursor: 'pointer',
-                                  padding: '2px',
-                                }}
-                                title="إلغاء التحديد"
-                              >
-                                <XIcon size={14} />
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Floating Dropdown for Product Autocomplete */}
-                          {line.isSearchOpen && (
-                            <div
-                              style={{
-                                position: 'absolute',
-                                top: '100%',
-                                right: 0,
-                                left: 0,
-                                zIndex: 60,
-                                marginTop: '4px',
-                                backgroundColor: '#ffffff',
-                                border: '1px solid #cbd5e1',
-                                borderRadius: '8px',
-                                boxShadow: '0 6px 20px rgba(0,0,0,0.12)',
-                                maxHeight: '240px',
-                                overflowY: 'auto',
-                              }}
-                            >
-                              {isLoadingProducts ? (
-                                <div style={{ padding: '12px', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>
-                                  جارٍ تحميل قائمة الأصناف...
-                                </div>
-                              ) : filteredMatches.length === 0 ? (
-                                <div style={{ padding: '12px', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
-                                  لا توجد أصناف مطابقة للبحث
-                                </div>
-                              ) : (
-                                filteredMatches.map((prod) => (
-                                  <div
-                                    key={prod.id}
-                                    onClick={() => handleSelectProduct(line.id, prod)}
-                                    style={{
-                                      padding: '8px 12px',
-                                      borderBottom: '1px solid #f1f5f9',
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      alignItems: 'center',
-                                      fontSize: '12px',
-                                      transition: 'background-color 0.15s ease',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.backgroundColor = '#ffffff';
-                                    }}
-                                  >
-                                    <div>
-                                      <span style={{ fontWeight: 800, color: '#0f172a', display: 'block' }}>
-                                        {prod.name}
-                                      </span>
-                                      <span style={{ fontSize: '10.5px', color: '#94a3b8', fontFamily: 'monospace' }}>
-                                        {prod.barcode || prod.sku || 'بدون باركود'}
-                                      </span>
-                                    </div>
-                                    <div style={{ textAlign: 'left' }}>
-                                      <span
-                                        style={{
-                                          fontSize: '11px',
-                                          fontWeight: 800,
-                                          color: prod.totalStock > 0 ? '#15803d' : '#dc2626',
-                                          backgroundColor: prod.totalStock > 0 ? '#dcfce7' : '#fee2e2',
-                                          padding: '2px 6px',
-                                          borderRadius: '4px',
-                                          display: 'inline-block',
-                                          marginBottom: '2px',
-                                        }}
-                                      >
-                                        متاح: {prod.totalStock} {prod.unit}
-                                      </span>
-                                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
-                                        {prod.retailPrice.toFixed(2)} <CurrencySymbol />
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          )}
-                        </div>
+                                        : {}),
+                                    }
+                                  : l,
+                              ),
+                            );
+                          }}
+                          onSelect={(opt) => {
+                            handleSelectProduct(line.id, opt.product);
+                          }}
+                          getLabel={(opt) => opt.name}
+                          getMeta={(opt) =>
+                            `متاح: ${opt.totalStock} ${opt.unit} ${opt.barcode ? `| باركود: ${opt.barcode}` : ''}`
+                          }
+                          search={(opt, query) => {
+                            if (!query || !query.trim()) return true;
+                            const q = query.toLowerCase().trim();
+                            return (
+                              opt.searchTerms.includes(q) ||
+                              matchesArabic(opt.name, q) ||
+                              matchesArabic(opt.barcode, q)
+                            );
+                          }}
+                          placeholder="ابحث عن الصنف بالاسم أو الباركود..."
+                          inline={true}
+                          inputClassName="purchase-prototype-field-input"
+                          inputStyle={{ height: '38px', borderRadius: '6px' }}
+                        />
                       </td>
 
                       {/* Source Warehouse Cell (when "all warehouses" is active) */}
                       {selectedWarehouseFilter === 'all' && (
-                        <td style={{ padding: '8px 12px', verticalAlign: 'top' }}>
+                        <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
                           {line.productId ? (
                             productWarehouseOptions.length > 0 ? (
-                              <CustomSelect
-                                value={String(line.sourceWarehouseId)}
-                                onChange={(val) => handleChangeLineWarehouse(line.id, val)}
+                              <SearchableCombobox
+                                inputId={`warehouse-input-${line.id}`}
                                 options={productWarehouseOptions}
+                                value={line.sourceWarehouseName || ''}
+                                onChange={(val) => {
+                                  setLines((prev) =>
+                                    prev.map((l) => (l.id === line.id ? { ...l, sourceWarehouseName: val } : l)),
+                                  );
+                                }}
+                                onSelect={(opt) => handleChangeLineWarehouse(line.id, opt.id)}
+                                getLabel={(opt) => opt.name}
+                                search={(opt, query) => {
+                                  if (!query || !query.trim()) return true;
+                                  return matchesArabic(opt.name, query);
+                                }}
                                 placeholder="اختر المخزن..."
+                                inline={true}
+                                inputClassName="purchase-prototype-field-input"
+                                inputStyle={{ height: '38px', borderRadius: '6px' }}
                               />
                             ) : (
                               <span style={{ fontSize: '11.5px', color: '#dc2626', fontWeight: 700 }}>

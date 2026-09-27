@@ -11,20 +11,22 @@ import {
   CopyIcon,
   FileTextIcon,
   CheckCircleIcon,
+  MapPinIcon,
 } from '@/shared/components/icons/AppIcons';
 import { FleetVehiclesTab } from '../components/FleetVehiclesTab';
 import { VanTripsTab } from '../components/VanTripsTab';
 import { VanLoadRequisitionsAdminTab } from '../components/VanLoadRequisitionsAdminTab';
 import { VanFieldReturnsAdminTab } from '../components/VanFieldReturnsAdminTab';
 import { VanRepTargetsAdminTab } from '../components/VanRepTargetsAdminTab';
+import { VanRoutesKpiAdminTab } from '../components/VanRoutesKpiAdminTab';
 import { UpsertDeliveryRepModal } from '@/shared/components/delivery-reps/UpsertDeliveryRepModal';
 import { useVanSalesAdmin, type DeliveryRep } from '../hooks/useVanSalesAdmin';
 
 export default function VanSalesAdminManagementPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab') as 'trips' | 'requisitions' | 'returns' | 'targets' | 'fleet' | 'drivers' | null;
+  const tabParam = searchParams.get('tab') as 'trips' | 'requisitions' | 'routes_kpis' | 'returns' | 'targets' | 'fleet' | 'drivers' | null;
 
-  const [activeTab, setActiveTab] = useState<'trips' | 'requisitions' | 'returns' | 'targets' | 'fleet' | 'drivers'>(
+  const [activeTab, setActiveTab] = useState<'trips' | 'requisitions' | 'routes_kpis' | 'returns' | 'targets' | 'fleet' | 'drivers'>(
     () => tabParam || 'trips',
   );
 
@@ -129,6 +131,11 @@ export default function VanSalesAdminManagementPage() {
             icon: <TruckIcon size={16} />,
           },
           {
+            key: 'routes_kpis' as const,
+            label: 'خطوط السير والرقابة الميدانية',
+            icon: <MapPinIcon size={16} />,
+          },
+          {
             key: 'returns' as const,
             label: 'مرتجعات البيع الميداني',
             count: pendingReturns.length > 0 ? pendingReturns.length : undefined,
@@ -207,6 +214,9 @@ export default function VanSalesAdminManagementPage() {
 
       {/* Tab 2: Requisitions */}
       {activeTab === 'requisitions' && <VanLoadRequisitionsAdminTab />}
+
+      {/* Tab: Routes & Field Supervision KPIs */}
+      {activeTab === 'routes_kpis' && <VanRoutesKpiAdminTab />}
 
       {/* Tab 3: Returns */}
       {activeTab === 'returns' && <VanFieldReturnsAdminTab />}
