@@ -61,6 +61,26 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({ rece
             <span style={{ color: '#64748b' }}>طريقة الدفع:</span>
             <span style={{ fontWeight: 700, color: '#0f172a' }}>{receipt.paymentMethod === 'cash' ? 'نقدي' : 'آجل'}</span>
           </div>
+          {receipt.packagingBreakdown && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#eef2ff', padding: '6px 8px', borderRadius: '6px', fontSize: '11.5px', color: '#170e5e', fontWeight: 700 }}>
+              <span>تفقيط الطرود:</span>
+              <span>
+                {receipt.packagingBreakdown.cartonsCount ? `${receipt.packagingBreakdown.cartonsCount} كرتونة | ` : ''}
+                {receipt.packagingBreakdown.piecesCount ? `${receipt.packagingBreakdown.piecesCount} قطعة | ` : ''}
+                {receipt.packagingBreakdown.itemsCount} بنود
+              </span>
+            </div>
+          )}
+          {receipt.deliveryProofPhoto && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
+              <span style={{ color: '#64748b' }}>صورة إثبات التسليم:</span>
+              <img
+                src={receipt.deliveryProofPhoto}
+                alt="Proof"
+                style={{ width: '48px', height: '48px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#166534', fontWeight: 800, paddingTop: '8px', borderTop: '1px solid #e2e8f0', fontSize: '13.5px' }}>
             <span>الإجمالي:</span>
             <span>{receipt.total} <CurrencySymbol /></span>

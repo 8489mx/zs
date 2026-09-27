@@ -12,6 +12,10 @@ interface CustomerOption {
   name: string;
   phone?: string;
   balance: number;
+  creditLimit?: number;
+  customerCode?: string;
+  route?: string;
+  locationUrl?: string;
 }
 
 interface VanCollectionTabProps {
@@ -213,12 +217,27 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 { value: '', label: '-- اختر العميل --' },
                 ...customers.map((c) => ({
                   value: String(c.id),
-                  label: `${c.name} ${c.phone ? `(${c.phone})` : ''}`,
-                  hint: `مديونية: ${c.balance.toFixed(2)} ${getGlobalCurrencySymbol()}`,
+                  label: `${c.customerCode ? `[#${c.customerCode}] ` : ''}${c.name}${c.route ? ` (${c.route})` : ''}`,
+                  hint: `مديونية: ${c.balance.toFixed(2)} ${getGlobalCurrencySymbol()}${c.creditLimit ? ` | سقف: ${c.creditLimit.toFixed(2)}` : ''}`,
                 })),
               ]}
               placeholder="اختر العميل المطلوب تحصيل حسابه"
             />
+            {(() => {
+              const selectedC = customers.find((c) => c.id === colCustomerId);
+              return selectedC?.locationUrl ? (
+                <div style={{ marginTop: '6px' }}>
+                  <a
+                    href={selectedC.locationUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: '11.5px', color: '#0284c7', textDecoration: 'underline', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    فتح موقع المحل على خرائط جوجل ↗
+                  </a>
+                </div>
+              ) : null;
+            })()}
           </div>
 
           <div>

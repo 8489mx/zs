@@ -16,6 +16,10 @@ interface CustomerOption {
   name: string;
   phone?: string;
   balance: number;
+  creditLimit?: number;
+  customerCode?: string;
+  route?: string;
+  locationUrl?: string;
 }
 
 interface VanSaleTabProps {
@@ -32,6 +36,10 @@ interface VanSaleTabProps {
   onGoToInventory: () => void;
   onSubmitSale: () => void;
   isSubmitting: boolean;
+  deliveryProofPhoto?: string;
+  onDeliveryProofPhotoChange?: (photo: string) => void;
+  cartonsCount?: string;
+  onCartonsCountChange?: (count: string) => void;
 }
 
 export const VanSaleTab: React.FC<VanSaleTabProps> = ({
@@ -48,7 +56,26 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
   onGoToInventory,
   onSubmitSale,
   isSubmitting,
+  deliveryProofPhoto = '',
+  onDeliveryProofPhotoChange,
+  cartonsCount = '',
+  onCartonsCountChange,
 }) => {
+  const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
+  const totalPieces = cart.reduce((sum, it) => sum + it.qty, 0);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string' && onDeliveryProofPhotoChange) {
+        onDeliveryProofPhotoChange(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div
       style={{
@@ -74,12 +101,24 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
             { value: '', label: '-- عميل نقدي عام (أو اختر من خط السير) --' },
             ...customers.map((c) => ({
               value: String(c.id),
-              label: `${c.name} ${c.phone ? `(${c.phone})` : ''}`,
-              hint: `مديونية: ${c.balance.toFixed(2)}`,
+              label: `${c.customerCode ? `[#${c.customerCode}] ` : ''}${c.name}${c.route ? ` (${c.route})` : ''}`,
+              hint: `مديونية: ${c.balance.toFixed(2)}${c.creditLimit ? ` | سقف: ${c.creditLimit.toFixed(2)}` : ''}`,
             })),
           ]}
           placeholder="اختر المحل / العميل"
         />
+        {selectedCustomer?.locationUrl && (
+          <div style={{ marginTop: '6px' }}>
+            <a
+              href={selectedCustomer.locationUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontSize: '11.5px', color: '#0284c7', textDecoration: 'underline', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              فتح موقع المحل على خرائط جوجل ↗
+            </a>
+          </div>
+        )}
       </div>
 
       {!selectedCustomerId && (
@@ -194,6 +233,100 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
 
       {cart.length > 0 && (
         <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Packaging Breakdown Banner */}
+          <div
+            style={{
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '10px 12px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '12px',
+              flexWrap: 'wrap',
+              gap: '6px',
+            }}
+          >
+            <span>عدد البنود: <strong style={{ color: '#170e5e' }}>{cart.length}</strong></span>
+            <span>إجمالي القطع: <strong style={{ color: '#170e5e' }}>{totalPieces}</strong></span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontWeight: 700, color: '#334155' }}>عدد الكراتين:</label>
+              <input
+                type="number"
+                min="0"
+                value={cartonsCount}
+                onChange={(e) => onCartonsCountChange?.(e.target.value)}
+                placeholder="0"
+                style={{ width: '60px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', textAlign: 'center' }}
+              />
+            </div>
+          </div>
+
+          {/* Delivery Proof Photo */}
+          <div
+            style={{
+              border: '1px dashed #cbd5e1',
+              borderRadius: '10px',
+              padding: '10px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              backgroundColor: '#fafafa',
+            }}
+          >
+            <div>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b', display: 'block' }}>
+                📷 صورة إثبات تسليم البضاعة للمحل:
+              </span>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>
+                {deliveryProofPhoto ? 'تم التقاط صورة إثبات التسليم' : 'التقط صورة للبضاعة أمام المحل أو إيصال الاستلام'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {deliveryProofPhoto ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <img
+                    src={deliveryProofPhoto}
+                    alt="Proof"
+                    style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #cbd5e1' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onDeliveryProofPhotoChange?.('')}
+                    style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 800 }}
+                  >
+                    حذف
+                  </button>
+                </div>
+              ) : (
+                <label
+                  style={{
+                    backgroundColor: '#eef2ff',
+                    color: '#170e5e',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '11.5px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    border: '1px solid #c7d2fe',
+                  }}
+                >
+                  التقاط / رفع صورة
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handlePhotoUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 900, fontSize: '15px', backgroundColor: '#f1f5f9', padding: '12px', borderRadius: '10px' }}>
             <span>إجمالي الفاتورة المطلوب:</span>
             <span style={{ color: '#059669' }}>{cartTotal.toFixed(2)} <CurrencySymbol /></span>

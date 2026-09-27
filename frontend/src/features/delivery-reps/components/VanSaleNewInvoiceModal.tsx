@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -22,6 +22,9 @@ import {
   DollarSignIcon,
   FileTextIcon,
   Trash2Icon,
+  CameraIcon,
+  PackageIcon,
+  XIcon,
 } from '@/shared/components/icons/AppIcons';
 
 interface VanSaleItem {
@@ -54,7 +57,31 @@ export function VanSaleNewInvoiceModal({
     customerName: string;
     customerPhone: string;
     items: VanSaleItem[];
+    totalLines?: number;
+    totalUnits?: number;
+    totalCartons?: number;
+    deliveryImage?: string | null;
   } | null>(null);
+
+  // Delivery image & cartons
+  const [deliveryImage, setDeliveryImage] = useState<string | null>(null);
+  const [customCartons, setCustomCartons] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.warning('حجم الصورة كبير جداً، يرجى اختيار صورة أقل من 5 ميجابايت');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setDeliveryImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Customer selection
   const [isCashCustomer, setIsCashCustomer] = useState(true);
@@ -138,7 +165,7 @@ export function VanSaleNewInvoiceModal({
     if (found) {
       handleAddProduct(found);
     } else {
-      alert(`لم يتم العثور على صنف بالباركود: ${clean}`);
+      toast.warning(`لم يتم العثور على صنف بالباركود: ${clean}`);
     }
   };
 
@@ -146,12 +173,36 @@ export function VanSaleNewInvoiceModal({
     return cart.reduce((sum, item) => sum + item.qty * item.price, 0);
   }, [cart]);
 
+  const totalLines = cart.length;
+
+  const totalUnits = useMemo(() => {
+    return cart.reduce((sum, item) => sum + item.qty, 0);
+  }, [cart]);
+
+  const autoCalculatedCartons = useMemo(() => {
+    return cart.reduce((sum, item) => {
+      const perCarton = Number((item.product as any).items_per_carton || (item.product as any).itemsPerCarton || 0);
+      if (perCarton > 0) {
+        return sum + item.qty / perCarton;
+      }
+      return sum;
+    }, 0);
+  }, [cart]);
+
+  const effectiveCartons = customCartons !== '' ? Number(customCartons) : (autoCalculatedCartons > 0 ? autoCalculatedCartons : 0);
+
   // Create Sale Mutation
   const createSaleMutation = useMutation({
     mutationFn: async () => {
       const selectedCustomer = customers.find((c) => String(c.id) === selectedCustomerId);
       const effectiveCustomerName = isCashCustomer ? (customerName || 'عميل نقدي / فان سيلز') : (selectedCustomer?.name || 'عميل');
       const effectiveCustomerPhone = isCashCustomer ? customerPhone : (selectedCustomer?.phone || '');
+
+      const saleNotesParts = [
+        notes ? `فان سيلز: ${notes}` : 'بيع مباشر من السيارة (Van Sale)',
+        `[عدد البنود: ${totalLines} | إجمالي القطع: ${totalUnits} | إجمالي الكراتين: ${effectiveCartons}]`,
+        deliveryImage ? '[مرفق صورة تسليم البضاعة]' : '',
+      ].filter(Boolean);
 
       const payload = {
         customerId: !isCashCustomer && selectedCustomerId ? Number(selectedCustomerId) : undefined,
@@ -162,7 +213,7 @@ export function VanSaleNewInvoiceModal({
         collectionStatus: paymentMethod === 'cash' ? 'prepaid_by_rep' : 'cod',
         paymentType: paymentMethod,
         paymentChannel: paymentMethod === 'cash' ? 'cash' : 'credit',
-        note: notes ? `فان سيلز: ${notes}` : 'بيع مباشر من السيارة (Van Sale)',
+        note: saleNotesParts.join(' - '),
         items: cart.map((item) => ({
           productId: Number(item.product.id),
           qty: item.qty,
@@ -194,11 +245,15 @@ export function VanSaleNewInvoiceModal({
         customerName: data.customerName,
         customerPhone: data.customerPhone,
         items: [...cart],
+        totalLines,
+        totalUnits,
+        totalCartons: effectiveCartons,
+        deliveryImage,
       });
       onSuccess?.();
     },
     onError: (err: any) => {
-      alert(err.message || 'حدث خطأ أثناء حفظ فاتورة الفان سيلز.');
+      toast.error(err.message || 'حدث خطأ أثناء حفظ فاتورة الفان سيلز.');
     },
   });
 
@@ -225,7 +280,12 @@ export function VanSaleNewInvoiceModal({
         <div><b>الهاتف:</b> ${completedSale.customerPhone || 'غير مسجل'}</div>
         <div><b>التاريخ:</b> ${new Date().toLocaleDateString('ar-EG')}</div>
       </div>
-      <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 0; margin-bottom: 6px;">
+      <div style="display: flex; justify-content: space-between; font-size: 10.5px; padding: 4px 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; margin-bottom: 6px;">
+        <span>البنود: <b>${completedSale.totalLines || completedSale.items.length}</b></span>
+        <span>القطع: <b>${completedSale.totalUnits || completedSale.items.reduce((s, i) => s + i.qty, 0)}</b></span>
+        <span>الكراتين: <b>${completedSale.totalCartons || 0}</b></span>
+      </div>
+      <div style="border-bottom: 1px dashed #000; padding: 6px 0; margin-bottom: 6px;">
         ${itemsHtml}
       </div>
       <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 8px;">
@@ -242,15 +302,18 @@ export function VanSaleNewInvoiceModal({
   const handleSendWhatsAppReceipt = () => {
     if (!completedSale) return;
     if (!completedSale.customerPhone) {
-      alert('رقم هاتف العميل غير متوفر.');
+      toast.warning('رقم هاتف العميل غير متوفر.');
       return;
     }
-    const message = formatInvoiceShareMessage({
-      customerName: completedSale.customerName,
-      docNo: completedSale.docNo,
-      total: completedSale.total,
-      itemsCount: completedSale.items.length,
-    });
+    const message = [
+      formatInvoiceShareMessage({
+        customerName: completedSale.customerName,
+        docNo: completedSale.docNo,
+        total: completedSale.total,
+        itemsCount: completedSale.items.length,
+      }),
+      `إجمالي الكراتين: ${completedSale.totalCartons || 0} | عدد القطع: ${completedSale.totalUnits || 0}`,
+    ].join('\n');
     openWhatsAppChat(completedSale.customerPhone, message);
   };
 
@@ -263,6 +326,8 @@ export function VanSaleNewInvoiceModal({
     setIsCashCustomer(true);
     setPaymentMethod('cash');
     setNotes('');
+    setDeliveryImage(null);
+    setCustomCartons('');
     onClose();
   };
 
@@ -322,10 +387,27 @@ export function VanSaleNewInvoiceModal({
             <h3 style={{ margin: '0 0 6px 0', color: '#166534', fontWeight: 'bold', fontSize: '16px' }}>
               تم حفظ وترحيل الفاتورة بنجاح!
             </h3>
-            <p className="muted small" style={{ margin: '0 0 16px 0' }}>
+            <p className="muted small" style={{ margin: '0 0 12px 0' }}>
               رقم الفاتورة: <strong>#{completedSale.docNo}</strong> بمبلغ{' '}
               <strong>{formatCurrency(completedSale.total)}</strong>
             </p>
+
+            <div style={{ display: 'inline-flex', gap: '16px', background: '#f8fafc', padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', margin: '0 auto 14px auto', fontSize: '12px' }}>
+              <span>البنود: <b>{completedSale.totalLines ?? completedSale.items.length}</b></span>
+              <span>القطع: <b>{completedSale.totalUnits ?? completedSale.items.reduce((s, i) => s + i.qty, 0)}</b></span>
+              <span>الكراتين: <b>{completedSale.totalCartons ?? 0}</b></span>
+            </div>
+
+            {completedSale.deliveryImage && (
+              <div style={{ margin: '0 auto 12px auto', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>صورة إثبات التسليم المرفقة:</div>
+                <img
+                  src={completedSale.deliveryImage}
+                  alt="إثبات التسليم"
+                  style={{ maxHeight: '110px', maxWidth: '200px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+            )}
           </div>
         ) : (
           /* New Sale Form */
@@ -487,6 +569,128 @@ export function VanSaleNewInvoiceModal({
                   </div>
                 ))
               )}
+            </div>
+
+            {/* Cargo / Quantities Summary Bar */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '8px',
+                padding: '8px 12px',
+                background: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                fontSize: '12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#334155' }}>
+                  <PackageIcon size={14} color="#170e5e" />
+                  <span>عدد البنود:</span>
+                  <b style={{ color: '#170e5e' }}>{totalLines}</b>
+                </div>
+
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#334155' }}>
+                  <span>إجمالي القطع:</span>
+                  <b style={{ color: '#170e5e' }}>{totalUnits}</b>
+                </div>
+
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#334155' }}>
+                  <span>إجمالي الكراتين:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={customCartons}
+                    onChange={(e) => setCustomCartons(e.target.value)}
+                    placeholder={autoCalculatedCartons > 0 ? String(autoCalculatedCartons) : '0'}
+                    style={{
+                      width: '64px',
+                      padding: '2px 6px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      color: '#170e5e',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '4px',
+                      textAlign: 'center',
+                      background: '#fff',
+                    }}
+                    title="يمكنك تعديل إجمالي عدد الكراتين يدوياً أو تركه للحساب التلقائي"
+                  />
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>كرتونة</span>
+                </div>
+              </div>
+
+              {/* Delivery Photo Capture/Attachment */}
+              <div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  ref={fileInputRef}
+                  onChange={handleImageCapture}
+                  style={{ display: 'none' }}
+                />
+                {!deliveryImage ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      fontSize: '11.5px',
+                      padding: '4px 10px',
+                      background: '#fff',
+                      border: '1px dashed #94a3b8',
+                      color: '#1e293b',
+                    }}
+                    title="التقاط صورة بضاعة التسليم بالكاميرا أو إرفاق صورة"
+                  >
+                    <CameraIcon size={14} color="#170e5e" />
+                    <span>تصوير البضاعة المسلّمة</span>
+                  </Button>
+                ) : (
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: '#f0fdf4',
+                      border: '1px solid #86efac',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                    }}
+                  >
+                    <img
+                      src={deliveryImage}
+                      alt="البضاعة"
+                      style={{ width: '24px', height: '24px', objectFit: 'cover', borderRadius: '4px' }}
+                    />
+                    <span style={{ fontSize: '11px', color: '#166534', fontWeight: 600 }}>تم إرفاق صورة</span>
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryImage(null)}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        color: '#ef4444',
+                        padding: '0 2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                      title="حذف الصورة"
+                    >
+                      <XIcon size={12} color="#ef4444" />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Payment Method & Total Bar */}

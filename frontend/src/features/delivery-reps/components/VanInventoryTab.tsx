@@ -7,6 +7,8 @@ interface VanInventoryTabProps {
   onSearchChange: (value: string) => void;
   filteredInventory: VanStockItem[];
   onAddToCart: (item: VanStockItem) => void;
+  onOpenTransferModal?: () => void;
+  pendingTransfersCount?: number;
 }
 
 export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
@@ -14,25 +16,67 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
   onSearchChange,
   filteredInventory,
   onAddToCart,
+  onOpenTransferModal,
+  pendingTransfersCount = 0,
 }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <input
-        type="text"
-        value={stockSearch}
-        onChange={(e) => onSearchChange(e.target.value)}
-        placeholder="بحث في بضاعة السيارة بالاسم أو الباركود..."
-        style={{
-          width: '100%',
-          height: '42px',
-          backgroundColor: '#ffffff',
-          border: '1px solid #cbd5e1',
-          borderRadius: '10px',
-          padding: '0 14px',
-          fontSize: '12.5px',
-          boxSizing: 'border-box',
-        }}
-      />
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <input
+          type="text"
+          value={stockSearch}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="بحث في بضاعة السيارة بالاسم أو الباركود..."
+          style={{
+            flex: 1,
+            height: '42px',
+            backgroundColor: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: '10px',
+            padding: '0 14px',
+            fontSize: '12.5px',
+            boxSizing: 'border-box',
+          }}
+        />
+
+        {onOpenTransferModal && (
+          <button
+            type="button"
+            onClick={onOpenTransferModal}
+            style={{
+              height: '42px',
+              padding: '0 14px',
+              backgroundColor: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '12px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span>مناقلة سيارات (شارع)</span>
+            {pendingTransfersCount > 0 && (
+              <span
+                style={{
+                  backgroundColor: '#dc2626',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: 900,
+                  borderRadius: '10px',
+                  padding: '1px 6px',
+                }}
+              >
+                {pendingTransfersCount}
+              </span>
+            )}
+          </button>
+        )}
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
         {filteredInventory.map((item) => (
           <div
