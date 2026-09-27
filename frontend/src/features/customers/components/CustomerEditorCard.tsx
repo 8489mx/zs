@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -13,12 +14,19 @@ import { customerFormSchema, type CustomerFormInput, type CustomerFormOutput } f
 import type { Customer } from '@/types/domain';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useCustomerProfile } from '@/features/customers/constants/customer-profiles';
+import { deliveryRepsApi } from '@/shared/api/delivery-reps.api';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer; onSaved?: () => void }) {
   const profile = useCustomerProfile();
   const settingsQuery = useSettingsQuery();
   const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
+  const repsQuery = useQuery({
+    queryKey: ['delivery-reps'],
+    queryFn: deliveryRepsApi.list,
+    staleTime: 60000,
+  });
+
   const form = useForm<CustomerFormInput, undefined, CustomerFormOutput>({
     resolver: zodResolver(customerFormSchema),
     defaultValues: { name: '', phone: '', address: '', balance: 0, type: 'cash', creditLimit: 0 }
@@ -162,6 +170,32 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
                       { value: 'الخميس', label: 'الخميس' },
                       { value: 'الجمعة', label: 'الجمعة' },
                     ]}
+                  />
+                )}
+              />
+            </Field>
+
+            <Field label="المندوب المسؤول / المخصص" hint="المندوب الذي يظهر له هذا المحل في خط سيره">
+              <Controller
+                name="metadata.assigned_rep_id"
+                control={form.control}
+                render={({ field }) => (
+                  <CustomSelect
+                    value={field.value ? String(field.value) : ''}
+                    onChange={(val) => {
+                      field.onChange(val ? Number(val) : null);
+                      const rep = repsQuery.data?.find((r) => String(r.id) === String(val));
+                      form.setValue('metadata.assigned_rep_name', rep?.name || '');
+                    }}
+                    disabled={mutation.isPending}
+                    options={[
+                      { value: '', label: 'بدون تخصيص (مشترك / عام)' },
+                      ...(repsQuery.data || []).map((r) => ({
+                        value: String(r.id),
+                        label: `${r.name} ${r.vehicle_plate ? `(${r.vehicle_plate})` : ''}`,
+                      })),
+                    ]}
+                    placeholder="اختر المندوب..."
                   />
                 )}
               />

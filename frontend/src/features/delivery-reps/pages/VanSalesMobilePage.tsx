@@ -62,7 +62,8 @@ export default function VanSalesMobilePage() {
       }
     },
     enabled: Boolean(session),
-    refetchInterval: 15000,
+    refetchInterval: 60000,
+    staleTime: 30000,
     retry: false,
   });
 
@@ -71,15 +72,16 @@ export default function VanSalesMobilePage() {
     queryKey: ['driver-my-requisitions'],
     queryFn: () => vanSalesApi.listMyRequisitions(),
     enabled: Boolean(session),
-    refetchInterval: 15000,
+    staleTime: 60000,
   });
 
-  // Itinerary Query - Always enabled for driver to plan their day
+  // Itinerary Query - Always enabled for driver to plan their day (on-demand updates, no CPU-heavy polling)
   const { data: itinerary = [], isLoading: isItineraryLoading, refetch: refetchItinerary } = useQuery({
     queryKey: ['driver-itinerary'],
     queryFn: () => vanSalesApi.getMyItinerary(),
     enabled: Boolean(session),
-    refetchInterval: 20000,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   });
 
   // Fuel Logs Query - Always enabled to track vehicle history
@@ -87,7 +89,8 @@ export default function VanSalesMobilePage() {
     queryKey: ['driver-fuel-logs'],
     queryFn: () => vanSalesApi.getDriverFuelLogs(),
     enabled: Boolean(session),
-    refetchInterval: 30000,
+    staleTime: 120000,
+    refetchOnWindowFocus: false,
   });
 
   // Maintenance Alerts Query - Critical for vehicle health & oil changes
@@ -95,7 +98,8 @@ export default function VanSalesMobilePage() {
     queryKey: ['driver-maintenance-alerts'],
     queryFn: () => vanSalesApi.getDriverMaintenanceAlerts(),
     enabled: Boolean(session),
-    refetchInterval: 30000,
+    staleTime: 120000,
+    refetchOnWindowFocus: false,
   });
 
   // Peer Inter-Van Transfers Query
@@ -103,7 +107,8 @@ export default function VanSalesMobilePage() {
     queryKey: ['driver-transfers'],
     queryFn: () => vanSalesApi.getDriverTransfers(),
     enabled: Boolean(session),
-    refetchInterval: 15000,
+    refetchInterval: 45000,
+    staleTime: 20000,
   });
 
   // Peer Delivery Reps for Street Transfers

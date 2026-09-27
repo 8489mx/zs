@@ -1,5 +1,6 @@
 import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -12,6 +13,7 @@ import { useCreateCustomerMutation } from '@/features/customers/hooks/useCreateC
 import { customerFormSchema, type CustomerFormInput, type CustomerFormOutput } from '@/features/customers/schemas/customer.schema';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useCustomerProfile } from '@/features/customers/constants/customer-profiles';
+import { deliveryRepsApi } from '@/shared/api/delivery-reps.api';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 
 const DEFAULT_VALUES = { name: '', phone: '', address: '', balance: 0, type: 'cash' as const, creditLimit: 0, metadata: { currency: 'EGP' } };
@@ -20,6 +22,11 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const profile = useCustomerProfile();
   const settingsQuery = useSettingsQuery();
   const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
+  const repsQuery = useQuery({
+    queryKey: ['delivery-reps'],
+    queryFn: deliveryRepsApi.list,
+    staleTime: 60000,
+  });
 
   const form = useForm<CustomerFormInput, undefined, CustomerFormOutput>({
     resolver: zodResolver(customerFormSchema),
@@ -167,6 +174,32 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
                       { value: 'الخميس', label: 'الخميس' },
                       { value: 'الجمعة', label: 'الجمعة' },
                     ]}
+                  />
+                )}
+              />
+            </Field>
+
+            <Field label="المندوب المسؤول / المخصص" hint="المندوب الذي يظهر له هذا المحل في خط سيره">
+              <Controller
+                name="metadata.assigned_rep_id"
+                control={form.control}
+                render={({ field }) => (
+                  <CustomSelect
+                    value={field.value ? String(field.value) : ''}
+                    onChange={(val) => {
+                      field.onChange(val ? Number(val) : null);
+                      const rep = repsQuery.data?.find((r) => String(r.id) === String(val));
+                      form.setValue('metadata.assigned_rep_name', rep?.name || '');
+                    }}
+                    disabled={mutation.isPending}
+                    options={[
+                      { value: '', label: 'بدون تخصيص (مشترك / عام)' },
+                      ...(repsQuery.data || []).map((r) => ({
+                        value: String(r.id),
+                        label: `${r.name} ${r.vehicle_plate ? `(${r.vehicle_plate})` : ''}`,
+                      })),
+                    ]}
+                    placeholder="اختر المندوب..."
                   />
                 )}
               />

@@ -259,8 +259,12 @@ export interface VanCustomerItineraryItem {
   customerAddress: string;
   customerCode: string;
   route: string;
-  routeSequence: number;
+  visitDay?: string;
   visitDays: string[];
+  isScheduledToday?: boolean;
+  currentDayName?: string;
+  assignedRepId?: number | null;
+  assignedRepName?: string;
   locationUrl: string;
   balance: number;
   creditLimit: number;

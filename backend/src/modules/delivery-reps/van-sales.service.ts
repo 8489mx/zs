@@ -3397,6 +3397,27 @@ export class VanSalesService {
       .orderBy('id', 'asc')
       .execute();
 
+    // 1. Calculate today's Arabic day name
+    const arabicDays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const currentDayName = arabicDays[new Date().getDay()];
+
+    // 2. Filter customers based on rep assignment:
+    // If the rep has explicit assignments: include ONLY customers assigned to him.
+    // If the rep has no explicit assignments yet: include unassigned customers, but exclude any customer assigned to other reps.
+    const repHasExplicitAssignments = customers.some((c: any) => {
+      const m = typeof c.metadata === 'object' && c.metadata !== null ? c.metadata : {};
+      return m.assigned_rep_id && Number(m.assigned_rep_id) === Number(repId);
+    });
+
+    const repCustomers = customers.filter((c: any) => {
+      const m = typeof c.metadata === 'object' && c.metadata !== null ? c.metadata : {};
+      const cAssignedRepId = m.assigned_rep_id ? Number(m.assigned_rep_id) : null;
+      if (repHasExplicitAssignments) {
+        return cAssignedRepId === Number(repId);
+      }
+      return cAssignedRepId === null || cAssignedRepId === Number(repId);
+    });
+
     const todayVisits = await this.anyDb
       .selectFrom('van_field_visits as vfv')
       .leftJoin('sales as s', 's.id', 'vfv.sale_id')
@@ -3437,7 +3458,7 @@ export class VanSalesService {
       negativeMap.set(Number(r.customerId), Number(r.negativeCount || 0));
     }
 
-    return customers.map((c: any) => {
+    return repCustomers.map((c: any) => {
       const cId = Number(c.id);
       const meta = typeof c.metadata === 'object' && c.metadata !== null ? c.metadata : {};
       const todayVisit = visitMap.get(cId);
@@ -3448,6 +3469,12 @@ export class VanSalesService {
         status = todayVisit.visitType;
       }
 
+      const visitDays: string[] = Array.isArray(meta.visit_days)
+        ? meta.visit_days
+        : (meta.visit_day ? [meta.visit_day] : []);
+      const isScheduledToday = visitDays.length > 0 ? visitDays.includes(currentDayName) : true;
+      const assignedRepId = meta.assigned_rep_id ? Number(meta.assigned_rep_id) : null;
+
       return {
         customerId: cId,
         customerName: c.name,
@@ -3456,7 +3483,12 @@ export class VanSalesService {
         customerCode: meta.customer_code || `#CUST-${cId}`,
         route: meta.route || 'الخط العام',
         routeSequence: Number(meta.route_sequence || 0),
-        visitDays: Array.isArray(meta.visit_days) ? meta.visit_days : (meta.visit_day ? [meta.visit_day] : []),
+        visitDay: meta.visit_day || '',
+        visitDays,
+        isScheduledToday,
+        currentDayName,
+        assignedRepId,
+        assignedRepName: meta.assigned_rep_name || '',
         locationUrl: meta.location_url || '',
         balance: Number(c.balance || 0),
         creditLimit: Number(c.creditLimit || 0),

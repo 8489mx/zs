@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Button } from '@/shared/ui/button';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
 import { vanSalesApi, VanCustomerItineraryItem } from '../api/van-sales.api';
-import { MapPinIcon, CheckCircleIcon, XCircleIcon, ClockIcon, SearchIcon, PhoneIcon } from '@/shared/components/icons/AppIcons';
+import { MapPinIcon, CheckCircleIcon, XCircleIcon, ClockIcon, SearchIcon, PhoneIcon, ArrowRightIcon, ArrowLeftIcon, CalendarIcon } from '@/shared/components/icons/AppIcons';
 
 interface VanItineraryTabProps {
   itinerary: VanCustomerItineraryItem[];
@@ -24,6 +24,32 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [routeFilter, setRouteFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'positive' | 'negative'>('all');
+  const [dayFilter, setDayFilter] = useState<'today' | 'all' | string>('today');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 25;
+
+  const arabicDayNames = useMemo(() => ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'], []);
+  const todayArabicName = useMemo(() => {
+    return itinerary[0]?.currentDayName || arabicDayNames[new Date().getDay()];
+  }, [itinerary, arabicDayNames]);
+
+  // Check if any shops have scheduled visit days
+  const hasScheduledShops = useMemo(() => {
+    return itinerary.some((i) => (i.visitDays && i.visitDays.length > 0) || i.visitDay);
+  }, [itinerary]);
+
+  const todayCount = useMemo(() => {
+    if (!hasScheduledShops) return itinerary.length;
+    return itinerary.filter(
+      (i) => i.isScheduledToday || i.visitDay === todayArabicName || i.visitDays?.includes(todayArabicName),
+    ).length;
+  }, [itinerary, hasScheduledShops, todayArabicName]);
+
+  // Reset pagination to first page when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, routeFilter, statusFilter, dayFilter]);
 
   // Negative visit modal state
   const [negativeModalOpen, setNegativeModalOpen] = useState(false);
@@ -36,19 +62,43 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Extract unique routes
-  const routes = Array.from(new Set(itinerary.map((i) => i.route).filter(Boolean)));
+  const routes = useMemo(() => {
+    return Array.from(new Set(itinerary.map((i) => i.route).filter(Boolean)));
+  }, [itinerary]);
 
-  const filtered = itinerary.filter((item) => {
-    if (routeFilter !== 'all' && item.route !== routeFilter) return false;
-    if (!searchTerm.trim()) return true;
-    const q = searchTerm.toLowerCase();
-    return (
-      item.customerName.toLowerCase().includes(q) ||
-      item.customerCode.toLowerCase().includes(q) ||
-      item.customerPhone.includes(q) ||
-      item.route.toLowerCase().includes(q)
-    );
-  });
+  const filtered = useMemo(() => {
+    return itinerary.filter((item) => {
+      // Day / schedule filter
+      if (dayFilter === 'today' && hasScheduledShops) {
+        const isToday =
+          item.isScheduledToday ||
+          item.visitDay === todayArabicName ||
+          (item.visitDays && item.visitDays.includes(todayArabicName));
+        if (!isToday) return false;
+      } else if (dayFilter !== 'today' && dayFilter !== 'all') {
+        const matchesDay =
+          item.visitDay === dayFilter || (item.visitDays && item.visitDays.includes(dayFilter));
+        if (!matchesDay) return false;
+      }
+
+      if (statusFilter !== 'all' && item.visitStatus !== statusFilter) return false;
+      if (routeFilter !== 'all' && item.route !== routeFilter) return false;
+      if (!searchTerm.trim()) return true;
+      const q = searchTerm.toLowerCase();
+      return (
+        item.customerName.toLowerCase().includes(q) ||
+        item.customerCode.toLowerCase().includes(q) ||
+        item.customerPhone.includes(q) ||
+        item.route.toLowerCase().includes(q)
+      );
+    });
+  }, [itinerary, dayFilter, hasScheduledShops, todayArabicName, statusFilter, routeFilter, searchTerm]);
+
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const startIdx = (currentPage - 1) * pageSize;
+  const paginatedItems = useMemo(() => {
+    return filtered.slice(startIdx, startIdx + pageSize);
+  }, [filtered, startIdx, pageSize]);
 
   const openNegativeVisitModal = (customer: VanCustomerItineraryItem) => {
     setActiveCustomer(customer);
@@ -158,18 +208,147 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center' }}>
-          <div style={{ backgroundColor: '#ecfdf5', borderRadius: '8px', padding: '6px 8px', border: '1px solid #a7f3d0' }}>
+          <div
+            onClick={() => setStatusFilter((prev) => (prev === 'positive' ? 'all' : 'positive'))}
+            style={{
+              backgroundColor: statusFilter === 'positive' ? '#d1fae5' : '#ecfdf5',
+              borderRadius: '8px',
+              padding: '6px 8px',
+              border: statusFilter === 'positive' ? '2px solid #059669' : '1px solid #a7f3d0',
+              cursor: 'pointer',
+              userSelect: 'none',
+              boxShadow: statusFilter === 'positive' ? '0 0 0 2px rgba(16, 185, 129, 0.2)' : 'none',
+              transition: 'background-color 0.1s ease',
+            }}
+            title="انقر لتصفية المحلات التي تم البيع لها"
+          >
             <span style={{ fontSize: '10.5px', color: '#065f46', fontWeight: 700, display: 'block' }}>تم البيع (إيجابية)</span>
             <span style={{ fontSize: '15px', fontWeight: 900, color: '#047857' }}>{positiveCount}</span>
           </div>
-          <div style={{ backgroundColor: '#fef2f2', borderRadius: '8px', padding: '6px 8px', border: '1px solid #fecaca' }}>
+          <div
+            onClick={() => setStatusFilter((prev) => (prev === 'negative' ? 'all' : 'negative'))}
+            style={{
+              backgroundColor: statusFilter === 'negative' ? '#fee2e2' : '#fef2f2',
+              borderRadius: '8px',
+              padding: '6px 8px',
+              border: statusFilter === 'negative' ? '2px solid #dc2626' : '1px solid #fecaca',
+              cursor: 'pointer',
+              userSelect: 'none',
+              boxShadow: statusFilter === 'negative' ? '0 0 0 2px rgba(220, 38, 38, 0.2)' : 'none',
+              transition: 'background-color 0.1s ease',
+            }}
+            title="انقر لتصفية الزيارات السلبية"
+          >
             <span style={{ fontSize: '10.5px', color: '#991b1b', fontWeight: 700, display: 'block' }}>زيارة سلبية</span>
             <span style={{ fontSize: '15px', fontWeight: 900, color: '#b91c1c' }}>{negativeCount}</span>
           </div>
-          <div style={{ backgroundColor: '#f8fafc', borderRadius: '8px', padding: '6px 8px', border: '1px solid #e2e8f0' }}>
+          <div
+            onClick={() => setStatusFilter((prev) => (prev === 'pending' ? 'all' : 'pending'))}
+            style={{
+              backgroundColor: statusFilter === 'pending' ? '#e2e8f0' : '#f8fafc',
+              borderRadius: '8px',
+              padding: '6px 8px',
+              border: statusFilter === 'pending' ? '2px solid #334155' : '1px solid #e2e8f0',
+              cursor: 'pointer',
+              userSelect: 'none',
+              boxShadow: statusFilter === 'pending' ? '0 0 0 2px rgba(51, 65, 85, 0.2)' : 'none',
+              transition: 'background-color 0.1s ease',
+            }}
+            title="انقر لتصفية المحلات المتبقية للزيارة"
+          >
             <span style={{ fontSize: '10.5px', color: '#475569', fontWeight: 700, display: 'block' }}>متبقي للزيارة</span>
             <span style={{ fontSize: '15px', fontWeight: 900, color: '#1e293b' }}>{pendingCount}</span>
           </div>
+        </div>
+      </div>
+
+      {/* Schedule Tabs Bar: Today's Route vs All Shops vs Day Picker */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '6px',
+          alignItems: 'center',
+          backgroundColor: '#ffffff',
+          borderRadius: '10px',
+          padding: '6px 10px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+          flexWrap: 'wrap',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setDayFilter('today')}
+          style={{
+            padding: '6px 12px',
+            borderRadius: '8px',
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: dayFilter === 'today' ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+            backgroundColor: dayFilter === 'today' ? '#170e5e' : '#f8fafc',
+            color: dayFilter === 'today' ? '#ffffff' : '#334155',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'background-color 0.1s ease',
+          }}
+        >
+          <CalendarIcon size={14} />
+          <span>جدول اليوم ({todayArabicName})</span>
+          <span
+            style={{
+              backgroundColor: dayFilter === 'today' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+              padding: '1px 6px',
+              borderRadius: '10px',
+              fontSize: '10.5px',
+            }}
+          >
+            {todayCount}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setDayFilter('all')}
+          style={{
+            padding: '6px 12px',
+            borderRadius: '8px',
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: dayFilter === 'all' ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+            backgroundColor: dayFilter === 'all' ? '#170e5e' : '#f8fafc',
+            color: dayFilter === 'all' ? '#ffffff' : '#334155',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'background-color 0.1s ease',
+          }}
+        >
+          <span>كافة المحلات المسندة</span>
+          <span
+            style={{
+              backgroundColor: dayFilter === 'all' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+              padding: '1px 6px',
+              borderRadius: '10px',
+              fontSize: '10.5px',
+            }}
+          >
+            {total}
+          </span>
+        </button>
+
+        <div style={{ marginInlineStart: 'auto', minWidth: '130px' }}>
+          <CustomSelect
+            value={dayFilter !== 'today' && dayFilter !== 'all' ? dayFilter : ''}
+            onChange={(val) => setDayFilter(val || 'all')}
+            options={[
+              { value: '', label: 'فرز بيوم آخر...' },
+              ...arabicDayNames.map((d) => ({ value: d, label: `يوم ${d}` })),
+            ]}
+            placeholder="اختر يوماً..."
+          />
         </div>
       </div>
 
@@ -210,6 +389,50 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         )}
       </div>
 
+      {/* Active filter badge / reset */}
+      {statusFilter !== 'all' && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: '#f1f5f9',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            fontSize: '11.5px',
+            color: '#334155',
+            border: '1px solid #e2e8f0',
+          }}
+        >
+          <span>
+            تصفية نشطة:{' '}
+            <strong>
+              {statusFilter === 'pending'
+                ? 'المحلات المتبقية فقط'
+                : statusFilter === 'positive'
+                ? 'المحلات التي تم البيع لها'
+                : 'الزيارات السلبية'}
+            </strong>{' '}
+            ({filtered.length} محل)
+          </span>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#0284c7',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '11.5px',
+              padding: 0,
+            }}
+          >
+            إلغاء التصفية وعرض الكل
+          </button>
+        </div>
+      )}
+
       {/* Customers List */}
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: '13px' }}>
@@ -230,10 +453,11 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {filtered.map((item, idx) => {
+          {paginatedItems.map((item, idx) => {
             const isPositive = item.visitStatus === 'positive';
             const isNegative = item.visitStatus === 'negative';
             const isPending = item.visitStatus === 'pending';
+            const itemNumber = startIdx + idx + 1;
 
             return (
               <div
@@ -262,15 +486,16 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                         color: '#ffffff',
                         fontSize: '11px',
                         fontWeight: 800,
-                        width: '22px',
+                        minWidth: '22px',
                         height: '22px',
+                        padding: '0 4px',
                         borderRadius: '6px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
                     >
-                      {idx + 1}
+                      {itemNumber}
                     </span>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -281,7 +506,30 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                           {item.customerName}
                         </h4>
                       </div>
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>{item.route}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>{item.route}</span>
+                        {(item.visitDay || (item.visitDays && item.visitDays.length > 0)) && (
+                          <span
+                            style={{
+                              fontSize: '10.5px',
+                              backgroundColor: item.isScheduledToday ? '#ecfdf5' : '#f1f5f9',
+                              color: item.isScheduledToday ? '#047857' : '#475569',
+                              border: item.isScheduledToday ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontWeight: 700,
+                            }}
+                          >
+                            يوم الزيارة: {item.visitDay || item.visitDays.join('، ')}
+                            {item.isScheduledToday && ' (اليوم)'}
+                          </span>
+                        )}
+                        {item.assignedRepName && (
+                          <span style={{ fontSize: '10.5px', color: '#0369a1', fontWeight: 600 }}>
+                            • المندوب: {item.assignedRepName}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -450,6 +698,62 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {filtered.length > pageSize && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            backgroundColor: '#ffffff',
+            borderRadius: '10px',
+            padding: '10px 14px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+            gap: '8px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
+            عرض {startIdx + 1} - {Math.min(startIdx + pageSize, filtered.length)} من أصل {filtered.length} محلاً
+          </span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={currentPage <= 1}
+              onClick={() => {
+                setCurrentPage((p) => Math.max(1, p - 1));
+              }}
+              style={{ fontSize: '12px', padding: '4px 10px', height: '30px' }}
+            >
+              <ArrowRightIcon size={13} style={{ marginInlineEnd: '4px' }} />
+              السابق
+            </Button>
+
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', padding: '0 6px' }}>
+              {currentPage} / {totalPages}
+            </span>
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={currentPage >= totalPages}
+              onClick={() => {
+                setCurrentPage((p) => Math.min(totalPages, p + 1));
+              }}
+              style={{ fontSize: '12px', padding: '4px 10px', height: '30px' }}
+            >
+              التالي
+              <ArrowLeftIcon size={13} style={{ marginInlineStart: '4px' }} />
+            </Button>
+          </div>
         </div>
       )}
 
