@@ -82,10 +82,13 @@ export function useLoginForm() {
     setIsSubmitting(true);
 
     try {
+      const explicitCompanyCode = values.companyCode?.trim();
       const activeCompanyCode = isDesktopApp
         ? undefined
+        : explicitCompanyCode
+        ? explicitCompanyCode
         : showCompanyCodeInput
-        ? (values.companyCode?.trim() || undefined)
+        ? undefined
         : (rememberedCompanyCode?.trim() || undefined);
 
       const loginResult = await authApi.login({

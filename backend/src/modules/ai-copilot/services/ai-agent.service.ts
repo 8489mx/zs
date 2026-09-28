@@ -120,9 +120,9 @@ export class AiAgentService {
         tenant_id: tenantId,
         role: 'assistant',
         content: aiReply.answer,
-        reasoning_steps: reasoningSteps as any,
-        tool_calls: toolsUsed as any,
-        suggested_questions: aiReply.suggestedQuestions as any,
+        reasoning_steps: JSON.stringify(reasoningSteps || []) as any,
+        tool_calls: JSON.stringify(toolsUsed || []) as any,
+        suggested_questions: JSON.stringify(aiReply.suggestedQuestions || []) as any,
       })
       .execute();
 
@@ -504,13 +504,23 @@ ${JSON.stringify(reasoningSteps, null, 2)}
    */
   async getSessionMessages(sessionId: string, actor: AuthContext) {
     const { tenantId } = requireTenantScope(actor);
-    return this.db
+    const rows = await this.db
       .selectFrom('ai_chat_messages')
       .select(['id', 'role', 'content', 'reasoning_steps', 'tool_calls', 'suggested_questions', 'created_at'])
       .where('session_id', '=', sessionId)
       .where('tenant_id', '=', tenantId)
       .orderBy('id', 'asc')
       .execute();
+
+    return rows.map((r) => ({
+      id: String(r.id),
+      role: r.role,
+      content: r.content,
+      reasoningSteps: typeof r.reasoning_steps === 'string' ? JSON.parse(r.reasoning_steps) : (r.reasoning_steps || []),
+      toolCalls: typeof r.tool_calls === 'string' ? JSON.parse(r.tool_calls) : (r.tool_calls || []),
+      suggestedQuestions: typeof r.suggested_questions === 'string' ? JSON.parse(r.suggested_questions) : (r.suggested_questions || []),
+      createdAt: r.created_at,
+    }));
   }
 
   /**

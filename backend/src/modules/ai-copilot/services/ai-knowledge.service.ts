@@ -66,7 +66,7 @@ export class AiKnowledgeService {
         status: 'processing',
         chunk_count: 0,
         token_count: Math.ceil(rawText.length / 4),
-        metadata: dto.metadata || {},
+        metadata: JSON.stringify(dto.metadata || {}) as any,
         created_by: userId || null,
       })
       .returning(['id', 'title', 'source_type', 'status'])
@@ -99,9 +99,9 @@ export class AiKnowledgeService {
           source_id: source.id,
           chunk_index: chunk.chunkIndex,
           content: chunk.content,
-          embedding: embedding as any,
+          embedding: JSON.stringify(embedding || []) as any,
           token_count: chunk.tokenCount,
-          metadata: { ...dto.metadata, chunk_index: chunk.chunkIndex },
+          metadata: JSON.stringify({ ...(dto.metadata || {}), chunk_index: chunk.chunkIndex }) as any,
         })
         .execute();
 
@@ -179,8 +179,15 @@ export class AiKnowledgeService {
     const qLower = q.toLowerCase();
     const scored = rows.map((r) => {
       let sim = 0;
-      const emb = r.embedding as number[] | null;
-      if (emb && queryEmbedding && emb.length === queryEmbedding.length) {
+      let emb = r.embedding as any;
+      if (typeof emb === 'string') {
+        try {
+          emb = JSON.parse(emb);
+        } catch {
+          emb = null;
+        }
+      }
+      if (Array.isArray(emb) && queryEmbedding && emb.length === queryEmbedding.length) {
         sim = AiEmbeddingEngine.cosineSimilarity(queryEmbedding, emb);
       }
 
@@ -196,6 +203,15 @@ export class AiKnowledgeService {
 
       const totalScore = Math.min(1.0, Math.max(0, sim + keywordBoost));
 
+      let meta = r.metadata as any;
+      if (typeof meta === 'string') {
+        try {
+          meta = JSON.parse(meta);
+        } catch {
+          meta = undefined;
+        }
+      }
+
       return {
         chunkId: r.chunk_id,
         sourceId: r.source_id,
@@ -203,7 +219,7 @@ export class AiKnowledgeService {
         sourceType: r.source_type,
         content: r.content,
         similarity: Number(totalScore.toFixed(4)),
-        metadata: r.metadata as Record<string, unknown> | undefined,
+        metadata: meta as Record<string, unknown> | undefined,
       };
     });
 
