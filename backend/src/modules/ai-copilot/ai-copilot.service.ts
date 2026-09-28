@@ -353,7 +353,7 @@ export class AiCopilotService {
         if (aiConfig.provider === 'openai' || aiConfig.provider === 'custom' || aiConfig.apiKey.startsWith('sk-')) {
           llmResponse = await this.askOpenAi(question, snapshot, aiConfig.apiKey.trim(), aiConfig.model, aiConfig.baseUrl);
         } else {
-          llmResponse = await this.askGemini(question, snapshot, aiConfig.apiKey.trim());
+          llmResponse = await this.askGemini(question, snapshot, aiConfig.apiKey.trim(), aiConfig.model);
         }
 
         if (llmResponse) {
@@ -377,6 +377,7 @@ export class AiCopilotService {
     question: string,
     snapshot: Record<string, unknown>,
     apiKey: string,
+    configuredModel?: string,
   ): Promise<{ answer: string; suggestedQuestions: string[] } | null> {
     const prompt = `أنت (زاد AI)، المساعد والمستشار التجاري والمالي الذكي لنظام إدارة المنشآت Z-Systems.
 لديك البيانات الحالية المباشرة لنشاط المنشأة كمرجع لك عند الحاجة:
@@ -398,10 +399,12 @@ ${JSON.stringify(snapshot, null, 2)}
   "suggestedQuestions": ["سؤال 1", "سؤال 2", "سؤال 3"]
 }`;
 
+    const cleanConfigured = (configuredModel || '').trim();
     const candidateModels = [
-      'gemini-3.6-flash',
-      'gemini-3.7-flash',
+      ...(cleanConfigured ? [cleanConfigured] : []),
       'gemini-3.8-flash',
+      'gemini-3.7-flash',
+      'gemini-3.6-flash',
       'gemini-3.5-flash',
       'gemini-flash-latest',
       'gemini-2.5-flash',
@@ -797,10 +800,16 @@ ${JSON.stringify(snapshot, null, 2)}
     actor: AuthContext,
   ): Promise<{ ok: boolean }> {
     const { tenantId, accountId } = requireTenantScope(actor);
-    const keyVal = (payload.apiKey ?? payload.geminiApiKey ?? '').trim();
-    let provider = payload.provider || (keyVal.startsWith('sk-') ? 'openai' : 'gemini');
-    const model = (payload.model || '').trim();
-    const baseUrl = (payload.baseUrl || '').trim();
+    const existingConfig = await this.getEffectiveAiConfig(tenantId);
+    
+    // Explicit delete when apiKey is explicitly passed as empty string or null
+    const isExplicitDelete = payload.apiKey === '' || payload.apiKey === null;
+    const isExplicitKeyPassed = typeof payload.apiKey === 'string' && payload.apiKey.trim().length > 0;
+    const keyVal = isExplicitDelete ? '' : isExplicitKeyPassed ? payload.apiKey!.trim() : (existingConfig.apiKey || '');
+
+    let provider = payload.provider || existingConfig.provider || (keyVal.startsWith('sk-') ? 'openai' : 'gemini');
+    const model = isExplicitDelete ? '' : (payload.model !== undefined ? payload.model.trim() : (existingConfig.model || ''));
+    const baseUrl = isExplicitDelete ? '' : (payload.baseUrl !== undefined ? payload.baseUrl.trim() : ((existingConfig as any).baseUrl || ''));
 
     if (keyVal) {
       await sql`
@@ -825,6 +834,45 @@ ${JSON.stringify(snapshot, null, 2)}
     return { ok: true };
   }
 
+  async getAvailableModels(
+    params: { apiKey?: string; provider?: AiProvider },
+    actor: AuthContext,
+  ): Promise<{ models: Array<{ id: string; displayName: string }> }> {
+    const { tenantId } = requireTenantScope(actor);
+    const config = await this.getEffectiveAiConfig(tenantId);
+    const keyToUse = (params.apiKey || config.apiKey || '').trim();
+    const provider = params.provider || config.provider || 'gemini';
+
+    if (provider === 'gemini' && keyToUse) {
+      for (const apiVer of ['v1beta', 'v1']) {
+        try {
+          const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models?pageSize=100`, {
+            headers: { 'x-goog-api-key': keyToUse },
+          });
+
+          const listData = await listRes.json().catch(() => ({}));
+          if (listRes.ok && Array.isArray(listData?.models)) {
+            const models = listData.models
+              .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+              .map((m: any) => ({
+                id: m.name.replace(/^models\//, ''),
+                displayName: m.displayName || m.name.replace(/^models\//, ''),
+              }));
+            if (models.length > 0) {
+              return { models };
+            }
+          }
+        } catch {
+          // ignore error and try next version
+        }
+      }
+    }
+
+    return {
+      models: [],
+    };
+  }
+
   async testAiKey(
     params: {
       apiKey?: string;
@@ -833,13 +881,13 @@ ${JSON.stringify(snapshot, null, 2)}
       baseUrl?: string;
     },
     actor?: AuthContext,
-  ): Promise<{ success: boolean; message: string; model?: string; provider?: string }> {
+  ): Promise<{ success: boolean; message: string; model?: string; provider?: string; availableModels?: Array<{ id: string; displayName: string }> }> {
     const { tenantId } = actor ? requireTenantScope(actor) : { tenantId: '' };
     const config = tenantId ? await this.getEffectiveAiConfig(tenantId) : { provider: 'gemini' as AiProvider, apiKey: null, model: '' };
 
     const keyToTest = (params.apiKey || config.apiKey || '').trim();
     let provider = params.provider || (keyToTest.startsWith('sk-') ? 'openai' : config.provider || 'gemini');
-    const model = params.model || config.model || (provider === 'openai' ? 'gpt-4o-mini' : 'gemini-flash-latest');
+    const model = params.model !== undefined ? params.model : config.model;
     const baseUrl = params.baseUrl || (config as any).baseUrl || 'https://api.openai.com/v1';
 
     if (!keyToTest) {
@@ -847,13 +895,22 @@ ${JSON.stringify(snapshot, null, 2)}
     }
 
     if (provider === 'openai' || provider === 'custom' || keyToTest.startsWith('sk-')) {
-      return this.testOpenAiKey(keyToTest, model, baseUrl);
+      return this.testOpenAiKey(keyToTest, model || 'gpt-4o-mini', baseUrl);
     }
 
-    return this.testGeminiKey(keyToTest, actor);
+    return this.testGeminiKey(keyToTest, actor, model);
   }
 
-  async testGeminiKey(apiKey?: string, actor?: AuthContext): Promise<{ success: boolean; message: string; model?: string }> {
+  async testGeminiKey(
+    apiKey?: string,
+    actor?: AuthContext,
+    requestedModel?: string,
+  ): Promise<{
+    success: boolean;
+    message: string;
+    model?: string;
+    availableModels?: Array<{ id: string; displayName: string }>;
+  }> {
     let keyToTest = (apiKey || '').trim();
     if (!keyToTest && actor) {
       const { tenantId } = requireTenantScope(actor);
@@ -864,28 +921,38 @@ ${JSON.stringify(snapshot, null, 2)}
       return { success: false, message: 'لم يتم توفير مفتاح Gemini لاختباره' };
     }
 
-    // 1. First, ask Google directly which models are active for this specific key
+    // 1. Fetch available models from Google API
+    let availableModels: Array<{ id: string; displayName: string }> = [];
     let detectedModel: string | null = null;
     let listError: string | null = null;
 
     for (const apiVer of ['v1beta', 'v1']) {
       try {
-        const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models`, {
+        const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models?pageSize=100`, {
           headers: { 'x-goog-api-key': keyToTest },
         });
 
         const listData = await listRes.json().catch(() => ({}));
         if (listRes.ok && Array.isArray(listData?.models)) {
-          const flash = listData.models.find(
-            (m: any) =>
-              m.supportedGenerationMethods?.includes('generateContent') &&
-              (m.name?.includes('flash') || m.displayName?.toLowerCase()?.includes('flash')),
+          const contentModels = listData.models.filter((m: any) =>
+            m.supportedGenerationMethods?.includes('generateContent'),
           );
-          const anyGen = listData.models.find((m: any) => m.supportedGenerationMethods?.includes('generateContent'));
-          const chosen = flash || anyGen;
-          if (chosen?.name) {
-            detectedModel = chosen.name.replace(/^models\//, '');
-            break;
+
+          if (contentModels.length > 0) {
+            availableModels = contentModels.map((m: any) => ({
+              id: m.name.replace(/^models\//, ''),
+              displayName: m.displayName || m.name.replace(/^models\//, ''),
+            }));
+
+            const flash =
+              contentModels.find((m: any) => m.name?.includes('3.8-flash')) ||
+              contentModels.find((m: any) => m.name?.includes('3.7-flash')) ||
+              contentModels.find((m: any) => m.name?.includes('flash'));
+            const chosen = flash || contentModels[0];
+            if (chosen?.name) {
+              detectedModel = chosen.name.replace(/^models\//, '');
+              break;
+            }
           }
         } else if (listData?.error?.message) {
           listError = listData.error.message;
@@ -895,22 +962,72 @@ ${JSON.stringify(snapshot, null, 2)}
       }
     }
 
-    // 2. Candidate models prioritizing high-performance active flash models
+    // 2. If a specific model was requested by the user, test it directly first
+    const cleanRequested = (requestedModel || '').trim();
+    let requestedModelError: string | null = null;
+
+    if (cleanRequested) {
+      for (const apiVer of ['v1beta', 'v1']) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 7000);
+        try {
+          const url = `https://generativelanguage.googleapis.com/${apiVer}/models/${cleanRequested}:generateContent`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': keyToTest,
+            },
+            signal: controller.signal,
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: 'Respond with OK' }] }],
+              generationConfig: { maxOutputTokens: 10 },
+            }),
+          });
+
+          if (res.ok) {
+            return {
+              success: true,
+              message: `تم الاتصال بنموذج Google (${cleanRequested}) الذي حددته بنجاح وفاعلية!`,
+              model: cleanRequested,
+              availableModels: availableModels.length > 0 ? availableModels : undefined,
+            };
+          }
+
+          const errData = await res.json().catch(() => ({}));
+          const errMsg = errData?.error?.message || `HTTP ${res.status}`;
+          requestedModelError = errMsg;
+        } catch (err: any) {
+          requestedModelError = err?.message || String(err);
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+
+      // If the user explicitly requested a specific model and Google failed to respond for it,
+      // report the exact error from Google rather than secretly switching models!
+      const friendlyErr = requestedModelError?.includes('503')
+        ? 'النموذج يواجه ضغطاً مؤقتاً في سيرفرات Google حالياً (503 High Demand) - Spikes in demand are temporary.'
+        : requestedModelError?.includes('404') || requestedModelError?.includes('no longer available')
+        ? 'النموذج غير متاح أو تم إيقافه لمفتاحك من قِبل Google (404 Deprecated).'
+        : requestedModelError?.includes('429')
+        ? 'تم تجاوز الحصة المتاحة لهذا النموذج من قِبل Google (429 Quota Exceeded).'
+        : requestedModelError || 'فشل الاتصال بالنموذج المحدد من قِبل Google';
+
+      return {
+        success: false,
+        message: `تعذر الاتصال بالنموذج المحدد (${cleanRequested}) من قِبل Google: ${friendlyErr}`,
+        model: cleanRequested,
+        availableModels: availableModels.length > 0 ? availableModels : undefined,
+      };
+    }
+
+    // 3. Auto mode (no specific model requested): test models discovered from Google API
     const candidateModels = [
-      'gemini-3.6-flash',
-      'gemini-3.7-flash',
-      'gemini-3.8-flash',
-      'gemini-3.5-flash',
-      'gemini-flash-latest',
       ...(detectedModel ? [detectedModel] : []),
-      'gemini-2.5-flash',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-flash-8b',
-      'gemini-2.0-flash-exp',
-      'gemini-1.5-pro',
-      'gemini-1.5-flash',
-      'gemini-pro',
+      ...(availableModels.length > 0 ? availableModels.map((m) => m.id) : []),
+      'gemini-3.6-flash',
+      'gemini-flash-latest',
     ];
     const uniqueModels = Array.from(new Set(candidateModels));
 
@@ -922,7 +1039,6 @@ ${JSON.stringify(snapshot, null, 2)}
         const timeout = setTimeout(() => controller.abort(), 7000);
 
         try {
-          // Pass key in header (official standard for new AQ. keys)
           const url = `https://generativelanguage.googleapis.com/${apiVer}/models/${model}:generateContent`;
           const res = await fetch(url, {
             method: 'POST',
@@ -940,8 +1056,9 @@ ${JSON.stringify(snapshot, null, 2)}
           if (res.ok) {
             return {
               success: true,
-              message: `تم الاتصال بنموذج Google (${model}) بنجاح وفاعلية!`,
+              message: `تم فحص المفتاح والاتصال بنموذج Google (${model}) المتاح لحسابك بنجاح!`,
               model,
+              availableModels: availableModels.length > 0 ? availableModels : undefined,
             };
           }
 
@@ -957,7 +1074,6 @@ ${JSON.stringify(snapshot, null, 2)}
           }
 
           if (res.status !== 404 && !errMsg.toLowerCase().includes('not found')) {
-            // Not a missing model error, move to next or return
             break;
           }
         } catch (err: any) {
@@ -968,7 +1084,11 @@ ${JSON.stringify(snapshot, null, 2)}
       }
     }
 
-    return { success: false, message: `فشل الاتصال بجوجل: ${lastError}` };
+    return {
+      success: false,
+      message: `فشل الاتصال بجوجل: ${lastError}`,
+      availableModels: availableModels.length > 0 ? availableModels : undefined,
+    };
   }
 
   async generateSalesBotReply(params: {
@@ -1059,6 +1179,7 @@ ${JSON.stringify(snapshot, null, 2)}
               currency: 'ج.م',
               storefrontUrl,
               customPrompt,
+              model: aiConfig.model,
             },
             aiConfig.apiKey.trim(),
           );
@@ -1097,7 +1218,7 @@ ${JSON.stringify(snapshot, null, 2)}
   private async askGeminiSalesBot(
     customerMessage: string,
     products: Array<{ name: string; price: number; stock: number; color?: string | null; size?: string | null }>,
-    businessInfo: { name: string; currency: string; storefrontUrl?: string; customPrompt?: string },
+    businessInfo: { name: string; currency: string; storefrontUrl?: string; customPrompt?: string; model?: string },
     apiKey: string,
   ): Promise<string | null> {
     const catalogText = products.slice(0, 45).map((p, idx) =>
@@ -1122,10 +1243,12 @@ ${businessInfo.customPrompt ? `تعليمات التاجر الإضافية: ${b
 
 اكتب الرد النهائي الموجه للعميل مباشرة دون مقدمات أو شروحات إضافية.`;
 
+    const cleanModel = (businessInfo.model || '').trim();
     const candidateModels = [
-      'gemini-3.6-flash',
-      'gemini-3.7-flash',
+      ...(cleanModel ? [cleanModel] : []),
       'gemini-3.8-flash',
+      'gemini-3.7-flash',
+      'gemini-3.6-flash',
       'gemini-3.5-flash',
       'gemini-flash-latest',
       'gemini-2.5-flash',

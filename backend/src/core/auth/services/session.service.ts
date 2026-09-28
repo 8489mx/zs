@@ -532,8 +532,10 @@ export class SessionService {
     }
 
     if (!user) return null;
-    if (!user.is_active) return null;
-    if (user.locked_until && user.locked_until > new Date()) return null;
+    if (user.locked_until && user.locked_until > new Date()) {
+      const remainingMinutes = Math.max(1, Math.ceil((user.locked_until.getTime() - Date.now()) / 60000));
+      throw new UnauthorizedException(`تم قفل هذا الحساب مؤقتاً بسبب تكرار المحاولات الخاطئة. يرجى المحاولة بعد ${remainingMinutes} دقيقة.`);
+    }
     const passwordCheck = await verifyPassword(password, user.password_hash, user.password_salt);
     if (!passwordCheck.valid) {
       const { maxAttempts, lockoutMinutes } = this.lockoutConfig;

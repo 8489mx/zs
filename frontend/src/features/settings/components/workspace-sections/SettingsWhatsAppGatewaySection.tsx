@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
-import { MessageSquareIcon, LightbulbIcon } from '@/shared/components/icons/AppIcons';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { MessageSquareIcon, LightbulbIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
 
 export interface WhatsAppGatewayConfig {
   enabled: boolean;
@@ -108,6 +109,34 @@ export function SettingsWhatsAppGatewaySection() {
   const [customModel, setCustomModel] = useState('');
   const [customBaseUrl, setCustomBaseUrl] = useState('');
   const [aiFeedback, setAiFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
+  const [fetchingModels, setFetchingModels] = useState(false);
+  const [geminiAvailableModels, setGeminiAvailableModels] = useState<Array<{ id: string; displayName: string }>>([]);
+
+  const fetchKeyModels = async (keyToUse?: string) => {
+    const k = (keyToUse || customApiKey).trim();
+    if (!k && !aiConfig?.hasApiKey) {
+      setGeminiAvailableModels([]);
+      return;
+    }
+    setFetchingModels(true);
+    try {
+      const res = await http<{ models: Array<{ id: string; displayName: string }> }>('/api/ai-copilot/models', {
+        method: 'POST',
+        body: JSON.stringify({ apiKey: k || undefined, provider: selectedProvider }),
+      });
+      if (res?.models && res.models.length > 0) {
+        setGeminiAvailableModels(res.models);
+        setAiFeedback({ kind: 'success', message: `تم جلب ${res.models.length} نموذج متاح لمفتاحك من سيرفرات Google!` });
+        setTimeout(() => setAiFeedback(null), 3000);
+      } else {
+        setGeminiAvailableModels([]);
+      }
+    } catch {
+      setGeminiAvailableModels([]);
+    } finally {
+      setFetchingModels(false);
+    }
+  };
 
   useEffect(() => {
     if (aiConfig) {
@@ -120,21 +149,33 @@ export function SettingsWhatsAppGatewaySection() {
       if (aiConfig.baseUrl) {
         setCustomBaseUrl(aiConfig.baseUrl);
       }
+      if (aiConfig.hasApiKey && aiConfig.provider === 'gemini') {
+        fetchKeyModels();
+      } else {
+        setGeminiAvailableModels([]);
+      }
     }
   }, [aiConfig]);
 
   const handleApiKeyChange = (val: string) => {
     setCustomApiKey(val);
     const trimmed = val.trim();
-    if (trimmed.startsWith('sk-')) {
+    if (!trimmed) {
+      if (!aiConfig?.hasApiKey) {
+        setGeminiAvailableModels([]);
+      }
+    } else if (trimmed.startsWith('sk-')) {
       setSelectedProvider('openai');
     } else if (trimmed.startsWith('AIza') || trimmed.startsWith('AQ.')) {
       setSelectedProvider('gemini');
+      if (trimmed.length >= 25) {
+        fetchKeyModels(trimmed);
+      }
     }
   };
 
   const saveAiKeyMutation = useMutation({
-    mutationFn: (payload: { apiKey: string; provider: 'gemini' | 'openai' | 'custom'; model?: string; baseUrl?: string }) =>
+    mutationFn: (payload: { apiKey?: string; provider: 'gemini' | 'openai' | 'custom'; model?: string; baseUrl?: string }) =>
       http<{ ok: boolean }>('/api/ai-copilot/config', {
         method: 'POST',
         body: JSON.stringify(payload),
@@ -150,9 +191,27 @@ export function SettingsWhatsAppGatewaySection() {
     },
   });
 
+  const deleteAiKeyMutation = useMutation({
+    mutationFn: () =>
+      http<{ ok: boolean }>('/api/ai-copilot/config', {
+        method: 'POST',
+        body: JSON.stringify({ apiKey: '' }),
+      }),
+    onSuccess: () => {
+      refetchAiConfig();
+      setCustomApiKey('');
+      setCustomModel('');
+      setAiFeedback({ kind: 'success', message: 'تم حذف المفتاح المخصص وإلغاء الربط بنجاح!' });
+      setTimeout(() => setAiFeedback(null), 3500);
+    },
+    onError: (err: any) => {
+      setAiFeedback({ kind: 'error', message: err?.message || 'فشل حذف المفتاح المخصص' });
+    },
+  });
+
   const testAiKeyMutation = useMutation({
     mutationFn: (params?: { apiKey?: string; provider?: 'gemini' | 'openai' | 'custom'; model?: string; baseUrl?: string }) =>
-      http<{ success: boolean; message: string }>('/api/ai-copilot/test-key', {
+      http<{ success: boolean; message: string; model?: string; availableModels?: Array<{ id: string; displayName: string }> }>('/api/ai-copilot/test-key', {
         method: 'POST',
         body: JSON.stringify({
           provider: params?.provider || selectedProvider,
@@ -164,6 +223,12 @@ export function SettingsWhatsAppGatewaySection() {
     onSuccess: (res) => {
       if (res.success) {
         setAiFeedback({ kind: 'success', message: res.message });
+        if (res.model && !customModel) {
+          setCustomModel(res.model);
+        }
+        if (res.availableModels && res.availableModels.length > 0) {
+          setGeminiAvailableModels(res.availableModels);
+        }
       } else {
         setAiFeedback({ kind: 'error', message: res.message });
       }
@@ -382,7 +447,96 @@ export function SettingsWhatsAppGatewaySection() {
             />
           </div>
 
-          {/* Custom Model and Base URL Fields */}
+          {/* Gemini Model Selection - 100% Dynamic from Google */}
+          {selectedProvider === 'gemini' && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>
+                  اختيار نموذج Google Gemini (Model):
+                </label>
+                {(customApiKey.trim() || aiConfig?.hasApiKey) && (
+                  <button
+                    type="button"
+                    onClick={() => fetchKeyModels()}
+                    disabled={fetchingModels}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#1d4ed8',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '2px 6px',
+                    }}
+                    title="استعراض كافة النماذج التي يدعمها مفتاحك من سيرفرات جوجل مباشرة"
+                  >
+                    <RefreshCwIcon size={12} className={fetchingModels ? 'animate-spin' : ''} />
+                    <span>{fetchingModels ? 'جاري الفحص من جوجل...' : 'استعراض نماذج مفتاحك من جوجل'}</span>
+                  </button>
+                )}
+              </div>
+
+              {!customApiKey.trim() && !aiConfig?.hasApiKey ? (
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: '#f8fafc',
+                    border: '1px dashed #cbd5e1',
+                    color: '#64748b',
+                    fontSize: '12px',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  أدخل مفتاح Google Gemini أعلاه لجلب واستعراض النماذج المتاحة لمفتاحك من سيرفرات Google مباشرة.
+                </div>
+              ) : geminiAvailableModels.length === 0 ? (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      color: '#64748b',
+                      fontSize: '12px',
+                    }}
+                  >
+                    {fetchingModels ? 'جاري فحص وجلب النماذج المدعومة لمفتاحك من Google...' : 'لم يتم جلب النماذج بعد. اضغط على الزر المقابل لفحص النماذج المتاحة لمفتاحك.'}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={fetchingModels}
+                    onClick={() => fetchKeyModels()}
+                    style={{ fontSize: '11.5px', padding: '6px 14px', whiteSpace: 'nowrap' }}
+                  >
+                    استعراض نماذج المفتاح
+                  </Button>
+                </div>
+              ) : (
+                <CustomSelect
+                  value={customModel || ''}
+                  onChange={(val) => setCustomModel(val)}
+                  placeholder="اختر نموذجاً من النماذج المدعومة بمفتاحك"
+                  options={[
+                    { value: '', label: 'تلقائي (اختيار أحدث نموذج متاح ومستقر لمفتاحك تلقائياً)', hint: 'تلقائي' },
+                    ...geminiAvailableModels.map((m) => ({
+                      value: m.id,
+                      label: m.displayName && m.displayName !== m.id ? `${m.displayName} (${m.id})` : m.id,
+                      hint: m.id,
+                    })),
+                  ]}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Custom Model and Base URL Fields for OpenAI / Custom */}
           {selectedProvider !== 'gemini' && (
             <div style={{ display: 'grid', gridTemplateColumns: selectedProvider === 'custom' ? '1fr 1fr' : '1fr', gap: '12px' }}>
               <div>
@@ -442,7 +596,7 @@ export function SettingsWhatsAppGatewaySection() {
               disabled={saveAiKeyMutation.isPending || (!customApiKey.trim() && !aiConfig?.hasApiKey && !customModel && !customBaseUrl)}
               onClick={() =>
                 saveAiKeyMutation.mutate({
-                  apiKey: customApiKey.trim(),
+                  apiKey: customApiKey.trim() || undefined,
                   provider: selectedProvider,
                   model: customModel.trim() || undefined,
                   baseUrl: customBaseUrl.trim() || undefined,
@@ -474,18 +628,12 @@ export function SettingsWhatsAppGatewaySection() {
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() =>
-                  saveAiKeyMutation.mutate({
-                    apiKey: '',
-                    provider: 'gemini',
-                    model: '',
-                    baseUrl: '',
-                  })
-                }
+                disabled={deleteAiKeyMutation.isPending}
+                onClick={() => deleteAiKeyMutation.mutate()}
                 style={{ fontSize: '12px', padding: '8px 12px', color: '#dc2626' }}
                 title="حذف المفتاح المخصص والرجوع للإعداد الافتراضي"
               >
-                حذف المفتاح المخصص
+                {deleteAiKeyMutation.isPending ? 'جاري الحذف...' : 'حذف المفتاح المخصص'}
               </Button>
             )}
           </div>

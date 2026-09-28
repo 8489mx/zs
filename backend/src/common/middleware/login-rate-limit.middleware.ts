@@ -27,10 +27,14 @@ export class LoginRateLimitMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: RequestWithAuth, res: Response, next: NextFunction): Promise<void> {
-    const limit = this.configService.get<number>('LOGIN_RATE_LIMIT_MAX') ?? 10;
-    const windowSeconds = this.configService.get<number>('LOGIN_RATE_LIMIT_WINDOW_SECONDS') ?? 600;
-    const username = normalizeUsername((req.body as Record<string, unknown> | undefined)?.username);
     const ip = normalizeIp(req);
+    const isDev = (this.configService.get<string>('NODE_ENV') || process.env.NODE_ENV) !== 'production';
+    const isLoopback = ['127.0.0.1', '::1', 'localhost'].includes(ip) || ip.startsWith('::ffff:127.0.0.1');
+    const defaultLimit = isDev || isLoopback ? 100 : 10;
+    const defaultWindow = isDev || isLoopback ? 60 : 600;
+    const limit = this.configService.get<number>('LOGIN_RATE_LIMIT_MAX') ?? defaultLimit;
+    const windowSeconds = this.configService.get<number>('LOGIN_RATE_LIMIT_WINDOW_SECONDS') ?? defaultWindow;
+    const username = normalizeUsername((req.body as Record<string, unknown> | undefined)?.username);
 
     const keys = [`auth:login:ip:${ip}`];
     if (username) {

@@ -84,7 +84,9 @@ export function useLoginForm() {
     try {
       const activeCompanyCode = isDesktopApp
         ? undefined
-        : (values.companyCode?.trim() || rememberedCompanyCode?.trim() || undefined);
+        : showCompanyCodeInput
+        ? (values.companyCode?.trim() || undefined)
+        : (rememberedCompanyCode?.trim() || undefined);
 
       const loginResult = await authApi.login({
         username: values.username.trim(),
@@ -227,6 +229,12 @@ export function useLoginForm() {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('zs_last_company_code');
       localStorage.removeItem('zs_last_company_name');
+    }
+    if (typeof window !== 'undefined' && window.location.search) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('c');
+      url.searchParams.delete('tenant');
+      window.history.replaceState({}, '', url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : ''));
     }
     setRememberedCompanyCode(null);
     setRememberedCompanyName(null);

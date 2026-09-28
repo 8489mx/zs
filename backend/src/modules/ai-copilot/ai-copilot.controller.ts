@@ -157,6 +157,18 @@ export class AiCopilotController {
     return this.copilotService.testAiKey(body, req.authContext!);
   }
 
+  @Post('models')
+  getModels(
+    @Body()
+    body: {
+      apiKey?: string;
+      provider?: 'gemini' | 'openai' | 'custom';
+    },
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.copilotService.getAvailableModels(body, req.authContext!);
+  }
+
   @Post('simulate-bot')
   simulateBot(
     @Body('question') question: string,

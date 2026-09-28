@@ -247,17 +247,18 @@ export function LoginPage() {
                       type="button"
                       onClick={handleClearRememberedTenant}
                       style={{
-                        background: 'none',
-                        border: 'none',
+                        background: '#ede9fe',
+                        border: '1px solid #c4b5fd',
                         color: '#170e5e',
-                        fontSize: '12px',
+                        borderRadius: '6px',
+                        fontSize: '11.5px',
                         fontWeight: 700,
                         cursor: 'pointer',
-                        textDecoration: 'underline',
-                        padding: '0',
+                        padding: '4px 10px',
                       }}
+                      title="إلغاء المنشأة المحفوظة وتسجيل الدخول لمنشأة أخرى أو البحث التلقائي"
                     >
-                      تغيير
+                      تغيير المنشأة
                     </button>
                   </div>
                 );
@@ -292,6 +293,9 @@ export function LoginPage() {
                       placeholder="مثال: my-store أو المعرف الخاص بالمنشأة"
                       className="login-input-pro"
                     />
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                    اتركه فارغاً إذا كنت تريد البحث التلقائي عن حسابك دون تحديد منشأة.
                   </div>
                 </div>
               ) : null}
