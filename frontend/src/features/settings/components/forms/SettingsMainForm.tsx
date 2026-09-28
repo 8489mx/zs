@@ -425,9 +425,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   useEffect(() => {
     if (!settings) return;
     const clothingEnabled = settings.clothingModuleEnabled === true;
-    const rawActivity = String(tenant?.activityType || tenant?.pillar || settings.activityType || (settings as any)?.businessIndustry || 'retail_general').trim().toLowerCase();
+    const rawActivity = String(tenant?.activityType || tenant?.pillar || settings.activityType || (settings as any)?.businessIndustry || tenant?.businessName || settings?.storeName || 'retail_general').trim().toLowerCase();
     const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
     const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+    const isWholesaleVertical = rawActivity === 'wholesale_van' || rawActivity === 'wholesale' || rawActivity === 'distribution' || rawActivity.includes('توزيع') || rawActivity.includes('فان') || rawActivity.includes('جمل');
 
     form.reset({
       storeName: settings.storeName || 'Z Systems',
@@ -445,7 +446,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       autoBackup: settings.autoBackup === 'off' ? 'off' : 'on',
       accentColor: settings.accentColor || '#170c5c',
       logoData: settings.logoData || '',
-      businessIndustry: ((settings as any)?.businessIndustry as any) || 'general',
+      businessIndustry: ((settings as any)?.businessIndustry as any) || (isWholesaleVertical ? 'wholesale' : 'general'),
       currentBranchId: settings.currentBranchId || '',
       currentLocationId: settings.currentLocationId || '',
       clothingModuleEnabled: clothingEnabled,
@@ -453,7 +454,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       enablePharmacyModule: settings.enablePharmacyModule === true,
       servicesModuleEnabled: settings.servicesModuleEnabled === true,
       maintenanceProfile: settings.maintenanceProfile || 'mobile',
-      enableEnterpriseFeatures: isContractingVertical || isMaritimeVertical ? true : (settings.enableEnterpriseFeatures === true),
+      enableEnterpriseFeatures: isContractingVertical || isMaritimeVertical || isWholesaleVertical ? true : (settings.enableEnterpriseFeatures === true),
       technicianCommissionRate: Number(settings.technicianCommissionRate ?? 30),
       defaultProductKind: clothingEnabled && settings.defaultProductKind === 'fashion' ? 'fashion' : 'standard',
       defaultPosMode: settings.defaultPosMode === 'touch' ? 'touch' : 'scanner',
@@ -469,18 +470,18 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       phoneOrdersModuleEnabled: settings.phoneOrdersModuleEnabled === true,
       posShowCartMeta: settings.posShowCartMeta === true,
       printDeliveryRepOnReceipt: settings.printDeliveryRepOnReceipt === true,
-      posModuleEnabled: isContractingVertical || isMaritimeVertical ? false : (settings.posModuleEnabled !== false),
+      posModuleEnabled: isContractingVertical || isMaritimeVertical || isWholesaleVertical ? false : (settings.posModuleEnabled !== false),
       purchasesModuleEnabled: isContractingVertical || isMaritimeVertical ? true : (settings.purchasesModuleEnabled !== false),
       inventoryModuleEnabled: isContractingVertical ? true : (isMaritimeVertical ? false : (settings.inventoryModuleEnabled !== false)),
       hrModuleEnabled: isContractingVertical || isMaritimeVertical ? true : (settings.hrModuleEnabled === true),
       storefrontModuleEnabled: settings.storefrontModuleEnabled === true,
-      installmentsModuleEnabled: settings.installmentsModuleEnabled === true,
+      installmentsModuleEnabled: isWholesaleVertical ? true : (settings.installmentsModuleEnabled === true),
       fixedAssetsModuleEnabled: isContractingVertical || isMaritimeVertical ? true : (settings.fixedAssetsModuleEnabled === true),
       taxDeclarationModuleEnabled: isContractingVertical || isMaritimeVertical ? true : (settings.taxDeclarationModuleEnabled === true),
-      deliveryFleetModuleEnabled: settings.deliveryFleetModuleEnabled === true,
+      deliveryFleetModuleEnabled: isWholesaleVertical ? true : (settings.deliveryFleetModuleEnabled === true),
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
       allowZeroPurchaseCost: settings.allowZeroPurchaseCost === true,
-      requireCashierShiftForSales: settings.requireCashierShiftForSales !== false,
+      requireCashierShiftForSales: isWholesaleVertical ? false : (settings.requireCashierShiftForSales !== false),
       restaurantTablesCount: Math.min(200, Math.max(1, Math.floor(Number(settings.restaurantTablesCount || 12)))),
       loyaltyEnabled: (settings as any)?.loyaltyEnabled !== false,
       loyaltyPointsPer100Egp: Number((settings as any)?.loyaltyPointsPer100Egp ?? 10),
@@ -744,11 +745,12 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
 
       form.clearErrors('root.serverError');
 
-      const rawActivity = String(values.businessIndustry || tenant?.activityType || tenant?.pillar || settings?.activityType || 'retail_general').trim().toLowerCase();
+      const rawActivity = String(values.businessIndustry || tenant?.activityType || tenant?.pillar || settings?.activityType || tenant?.businessName || settings?.storeName || 'retail_general').trim().toLowerCase();
       const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
       const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
       const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
       const isServicesVertical = rawActivity === 'services' || rawActivity === 'consulting' || rawActivity === 'استشارات';
+      const isWholesaleVertical = rawActivity === 'wholesale_van' || rawActivity === 'wholesale' || rawActivity === 'distribution' || rawActivity.includes('توزيع') || rawActivity.includes('فان') || rawActivity.includes('جمل');
 
       if (isContractingVertical) {
         values.contractingModuleEnabled = true;
@@ -786,6 +788,16 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         values.maritimeFreightModuleEnabled = false;
         values.servicesModuleEnabled = false;
         values.posModuleEnabled = false;
+      } else if (isWholesaleVertical) {
+        values.posModuleEnabled = false;
+        values.requireCashierShiftForSales = false;
+        values.deliveryFleetModuleEnabled = true;
+        values.enableEnterpriseFeatures = true;
+        values.installmentsModuleEnabled = true;
+        values.contractingModuleEnabled = false;
+        values.maritimeFreightModuleEnabled = false;
+        values.manufacturingModuleEnabled = false;
+        values.servicesModuleEnabled = false;
       } else {
         values.contractingModuleEnabled = false;
         values.maritimeFreightModuleEnabled = false;

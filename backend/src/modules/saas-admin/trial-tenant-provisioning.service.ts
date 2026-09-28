@@ -72,7 +72,7 @@ export class TrialTenantProvisioningService {
     return normalized || null;
   }
 
-  private getIndustrySettingsPatch(industry: string): Record<string, any> {
+  getIndustrySettingsPatch(industry: string): Record<string, any> {
     const normalized = normalizeIndustryProfileKey(industry);
     const base: Record<string, any> = {
       businessIndustry: normalized,

@@ -17,6 +17,7 @@ import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
 import { SettingsDemoDataService } from '../settings/services/settings-demo-data.service';
 import { SettingsService } from '../settings/settings.service';
 import { PLAN_MANAGED_MODULES_SETTING_KEY } from '../../common/constants/platform-settings-keys';
+import { normalizeIndustryProfileKey } from '../../core/tenant/industry-profiles';
 
 type TenantStatus = 'trial' | 'active' | 'expired' | 'suspended';
 
@@ -905,7 +906,7 @@ export class SaasAdminService {
     return { ok: true };
   }
 
-  async updateTenantPlan(id: string, dto: { planId?: string; extraFeatures?: string[] }, auth: AuthContext) {
+  async updateTenantPlan(id: string, dto: { planId?: string; extraFeatures?: string[]; activityType?: string }, auth: AuthContext) {
     this.assertPlatformAccess(auth);
     this.assertNotPlatformTenantTarget(id);
 
@@ -915,11 +916,24 @@ export class SaasAdminService {
     const updateData: any = {};
     if (dto.planId !== undefined) updateData.plan_id = dto.planId;
     if (dto.extraFeatures !== undefined) updateData.extra_features = JSON.stringify(dto.extraFeatures);
+    if (dto.activityType !== undefined && String(dto.activityType).trim().length > 0) {
+      const normalized = normalizeIndustryProfileKey(dto.activityType);
+      updateData.activity_type = normalized;
+      const patch = this.provisioning.getIndustrySettingsPatch(normalized);
+      for (const [k, v] of Object.entries(patch)) {
+        await sql`
+          INSERT INTO settings (tenant_id, account_id, key, value)
+          VALUES (${id}, ${id || 'main'}, ${k}, ${JSON.stringify(v)}::jsonb)
+          ON CONFLICT (tenant_id, key)
+          DO UPDATE SET value = EXCLUDED.value;
+        `.execute(this.db);
+      }
+    }
 
     if (Object.keys(updateData).length > 0) {
       await this.db.updateTable('tenants').set(updateData).where('id', '=', id).execute();
       this.authCache.invalidateTenant(id);
-      await this.audit.log('تحديث الباقة', `تم تحديث باقة النسخة ${tenant.slug}`, auth, {
+      await this.audit.log('تحديث الباقة والنشاط', `تم تحديث باقة ونشاط النسخة ${tenant.slug}`, auth, {
         targetTenantId: tenant.id,
         eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_PLAN_UPDATED,
       });

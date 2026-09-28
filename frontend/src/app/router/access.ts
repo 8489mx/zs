@@ -623,12 +623,16 @@ export function hasRequiredFeature(target: string, user?: AuthUser | null): bool
   const tenant = useAuthStore.getState().tenant;
   if (!tenant) return true;
 
-  const rawActivity = String(tenant?.activityType || tenant?.pillar || '').trim().toLowerCase();
+  const rawActivity = String(tenant?.activityType || tenant?.pillar || tenant?.businessName || (tenant as any)?.name || '').trim().toLowerCase();
   const isContracting = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
   const isMaritime = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
   const isManufacturing = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
+  const isWholesaleVan = rawActivity === 'wholesale_van' || rawActivity === 'wholesale' || rawActivity === 'distribution' || rawActivity.includes('توزيع') || rawActivity.includes('فان') || rawActivity.includes('مناديب') || rawActivity.includes('جمل');
   const isCommerce = !isContracting && !isMaritime && !isManufacturing;
 
+  if (isWholesaleVan && ['deliveryReps', 'catalog', 'products', 'sales', 'purchases', 'inventory', 'accounting', 'hr', 'crm', 'pricing', 'suppliers', 'customers'].includes(requiredFeature)) {
+    return true;
+  }
   if (isContracting && ['contracting', 'purchases', 'inventory', 'catalog', 'products', 'suppliers', 'customers', 'crm', 'accounting', 'hr'].includes(requiredFeature)) {
     return true;
   }

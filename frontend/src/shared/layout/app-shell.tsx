@@ -342,6 +342,9 @@ export function AppShell({ children }: PropsWithChildren) {
       tenant?.activityType,
       settings?.activityType,
       tenant?.pillar,
+      tenant?.businessName,
+      settings?.storeName,
+      settings?.companyName,
     ].map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
     const rawActivity = activityCandidates.find(
       (a) => a !== 'retail_general' && a !== 'general' && a !== 'retail'
@@ -367,8 +370,8 @@ export function AppShell({ children }: PropsWithChildren) {
       rawActivity.includes('توزيع') ||
       rawActivity.includes('فان') ||
       rawActivity.includes('مناديب') ||
-      rawActivity.includes('جملة') ||
-      rawActivity.includes('موزعون') ||
+      rawActivity.includes('جمل') ||
+      rawActivity.includes('موزع') ||
       rawActivity.includes('wholesale') ||
       rawActivity.includes('distribution');
     const isRetailOrMarketVertical =
@@ -385,6 +388,7 @@ export function AppShell({ children }: PropsWithChildren) {
     const wholesaleVanOrder = [
       'dashboard',
       'van-sales-admin',
+      'delivery-reps',
       'inventory-warehouses',
       'inventory-issue-orders',
       'inventory',
@@ -939,6 +943,10 @@ export function AppShell({ children }: PropsWithChildren) {
         const manufacturingSuiteFeatures = ['manufacturing', 'crm', 'purchases', 'inventory', 'products', 'suppliers', 'customers', 'sales', 'pricing', 'accounting', 'hr', 'fixed_assets', 'vat_declaration', 'reports', 'approvals', 'treasury'];
         if (manufacturingSuiteFeatures.includes(feat)) return true;
       }
+      if (isWholesaleVanVertical) {
+        const wholesaleVanSuiteFeatures = ['deliveryReps', 'sales', 'inventory', 'products', 'catalog', 'purchases', 'suppliers', 'customers', 'treasury', 'expenses', 'reports', 'pricing', 'installments', 'accounting'];
+        if (wholesaleVanSuiteFeatures.includes(feat)) return true;
+      }
       if (isRetailOrMarketVertical || isRestaurantVertical || isPharmacyVertical || isElectronicsVertical || (!isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isServicesVertical)) {
         const commerceRetailSuiteFeatures = ['pos', 'sales', 'inventory', 'products', 'catalog', 'purchases', 'suppliers', 'customers', 'treasury', 'expenses', 'reports', 'pricing', 'installments'];
         if (isEnterpriseCommerceActive) {
@@ -1011,7 +1019,6 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'installments' && (settings?.installmentsModuleEnabled !== true || !hasFeature('installments'))) return false;
         if (item.key === 'vat-declaration' && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && (settings?.taxDeclarationModuleEnabled !== true || !hasFeature('vat_declaration') || !isEnterpriseCommerceActive)) return false;
         if (item.key === 'accounting-fixed-assets' && !isContractingVertical && !isManufacturingVertical && (settings?.fixedAssetsModuleEnabled !== true || !hasFeature('fixed_assets') || !isEnterpriseCommerceActive)) return false;
-        if (item.key === 'delivery-reps' && isWholesaleVanVertical) return false;
         if ((item.key === 'delivery-reps' || item.key === 'van-sales-admin') && (settings?.deliveryFleetModuleEnabled !== true || !hasFeature('deliveryReps')) && !isWholesaleVanVertical) return false;
         if (item.key === 'kds' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         if (item.key === 'product-modifiers' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
@@ -1078,6 +1085,9 @@ export function AppShell({ children }: PropsWithChildren) {
       tenant?.activityType,
       settings?.activityType,
       tenant?.pillar,
+      tenant?.businessName,
+      settings?.storeName,
+      settings?.companyName,
     ].map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
     const rawActivity = activityCandidates.find(
       (a) => a !== 'retail_general' && a !== 'general' && a !== 'retail'
@@ -1101,8 +1111,8 @@ export function AppShell({ children }: PropsWithChildren) {
       rawActivity.includes('توزيع') ||
       rawActivity.includes('فان') ||
       rawActivity.includes('مناديب') ||
-      rawActivity.includes('جملة') ||
-      rawActivity.includes('موزعون') ||
+      rawActivity.includes('جمل') ||
+      rawActivity.includes('موزع') ||
       rawActivity.includes('wholesale') ||
       rawActivity.includes('distribution');
 
@@ -1123,7 +1133,7 @@ export function AppShell({ children }: PropsWithChildren) {
     }
 
     if (isWholesaleVanVertical) {
-      return [...dashKeys, 'van-sales-admin', 'customers', 'sales'];
+      return [...dashKeys, 'van-sales-admin', 'delivery-reps', 'customers', 'sales'];
     }
 
     if (isServicesVertical && !isContractingVertical && !isMaritimeVertical) {
@@ -1156,6 +1166,9 @@ export function AppShell({ children }: PropsWithChildren) {
       tenant?.activityType,
       settings?.activityType,
       tenant?.pillar,
+      tenant?.businessName,
+      settings?.storeName,
+      settings?.companyName,
     ].map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
     const rawActivity = activityCandidates.find(
       (a) => a !== 'retail_general' && a !== 'general' && a !== 'retail'
@@ -1178,8 +1191,8 @@ export function AppShell({ children }: PropsWithChildren) {
       rawActivity.includes('توزيع') ||
       rawActivity.includes('فان') ||
       rawActivity.includes('مناديب') ||
-      rawActivity.includes('جملة') ||
-      rawActivity.includes('موزعون') ||
+      rawActivity.includes('جمل') ||
+      rawActivity.includes('موزع') ||
       rawActivity.includes('wholesale') ||
       rawActivity.includes('distribution');
     const isRestaurantVertical = rawActivity === 'restaurant' || rawActivity === 'cafe' || rawActivity === 'مطعم' || rawActivity === 'كافيه';
@@ -1512,7 +1525,7 @@ export function AppShell({ children }: PropsWithChildren) {
         key: 'sales-group',
         label: isWholesaleVanVertical ? 'المبيعات وتوزيع الفان' : t('sidebar.sales-group', 'المبيعات'),
         itemKeys: isWholesaleVanVertical
-          ? ['van-sales-admin', 'customers', 'sales', 'returns', 'sales-orders', 'quotations', 'price-lists']
+          ? ['van-sales-admin', 'delivery-reps', 'customers', 'sales', 'returns', 'sales-orders', 'quotations', 'price-lists']
           : isEnterpriseCommerceActive
           ? ['crm', 'quotations', 'sales-orders', 'price-lists', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher']
           : ['pos', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher'].filter(k => k !== 'pos' || settings?.posModuleEnabled !== false),

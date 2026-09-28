@@ -225,6 +225,10 @@ export class UpdateTenantPlanDto {
   @IsArray()
   @IsString({ each: true })
   extraFeatures?: string[];
+
+  @IsOptional()
+  @IsString()
+  activityType?: string;
 }
 
 export class UpdateSaasPlanDto {
