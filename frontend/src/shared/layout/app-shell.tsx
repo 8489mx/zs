@@ -344,7 +344,8 @@ export function AppShell({ children }: PropsWithChildren) {
       tenant?.pillar,
       tenant?.businessName,
       settings?.storeName,
-      settings?.companyName,
+      settings?.brandName,
+      (settings as any)?.companyName,
     ].map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
     const rawActivity = activityCandidates.find(
       (a) => a !== 'retail_general' && a !== 'general' && a !== 'retail'
@@ -1087,7 +1088,8 @@ export function AppShell({ children }: PropsWithChildren) {
       tenant?.pillar,
       tenant?.businessName,
       settings?.storeName,
-      settings?.companyName,
+      settings?.brandName,
+      (settings as any)?.companyName,
     ].map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
     const rawActivity = activityCandidates.find(
       (a) => a !== 'retail_general' && a !== 'general' && a !== 'retail'
@@ -1168,7 +1170,8 @@ export function AppShell({ children }: PropsWithChildren) {
       tenant?.pillar,
       tenant?.businessName,
       settings?.storeName,
-      settings?.companyName,
+      settings?.brandName,
+      (settings as any)?.companyName,
     ].map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
     const rawActivity = activityCandidates.find(
       (a) => a !== 'retail_general' && a !== 'general' && a !== 'retail'

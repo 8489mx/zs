@@ -1,4 +1,4 @@
-import { XIcon, CheckShieldIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, ShieldCheckIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -186,7 +186,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#170e5e', marginBottom: '2px' }}>
-              <CheckShieldIcon size={15} color="#170e5e" />
+              <ShieldCheckIcon size={15} color="#170e5e" />
               <span>توجيه إداري: الفرق بين نمط النشاط (المود القطاعي) والباقة</span>
             </div>
             <div>
