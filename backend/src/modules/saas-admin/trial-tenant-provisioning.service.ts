@@ -97,7 +97,7 @@ export class TrialTenantProvisioningService {
       enableEnterpriseFeatures: false,
     };
 
-    switch (normalized) {
+    switch (normalized as string) {
       case 'contracting':
         base.contractingModuleEnabled = true;
         base.posModuleEnabled = false;
@@ -110,6 +110,7 @@ export class TrialTenantProvisioningService {
         break;
 
       case 'maritime_freight':
+      case 'maritime':
         base.maritimeFreightModuleEnabled = true;
         base.posModuleEnabled = false;
         base.requireCashierShiftForSales = false;
@@ -118,7 +119,8 @@ export class TrialTenantProvisioningService {
         base.taxDeclarationModuleEnabled = true;
         break;
 
-      case 'storefront' as any:
+      case 'storefront':
+      case 'ecommerce':
         base.storefrontModuleEnabled = true;
         base.deliveryFleetModuleEnabled = true;
         base.enableEnterpriseFeatures = true;
@@ -142,12 +144,14 @@ export class TrialTenantProvisioningService {
         break;
 
       case 'maintenance':
+      case 'electronics':
         base.enableMobileStoreFeatures = true;
         base.servicesModuleEnabled = true;
         base.installmentsModuleEnabled = true;
         break;
 
       case 'restaurant':
+      case 'cafe':
         base.restaurantModuleEnabled = true;
         base.defaultPosMode = 'touch';
         base.posKitchenPrinterEnabled = true;
@@ -162,6 +166,7 @@ export class TrialTenantProvisioningService {
         break;
 
       case 'wholesale_van':
+      case 'wholesale':
         base.posModuleEnabled = false;
         base.requireCashierShiftForSales = false;
         base.deliveryFleetModuleEnabled = true;

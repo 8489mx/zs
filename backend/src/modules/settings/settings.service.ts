@@ -232,7 +232,7 @@ export class SettingsService {
       if (settings.clothingModuleEnabled === undefined) {
         settings.clothingModuleEnabled = (settings.industryProfile as any)?.subVertical === 'clothing';
       }
-      if (settings.industryProfile?.key === 'wholesale_van') {
+      if (settings.activityType === 'wholesale_van' || (settings.industryProfile as any)?.key === 'wholesale_van') {
         settings.posModuleEnabled = false;
         settings.requireCashierShiftForSales = false;
         settings.deliveryFleetModuleEnabled = true;

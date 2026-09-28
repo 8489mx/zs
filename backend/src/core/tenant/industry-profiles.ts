@@ -373,22 +373,6 @@ export function normalizeIndustryProfileKey(raw?: string | null): IndustryProfil
     return 'clothing';
   }
 
-  if (
-    trimmed === 'services' ||
-    trimmed.includes('خدمات') ||
-    trimmed.includes('استشارية')
-  ) {
-    return 'services';
-  }
-
-  if (
-    trimmed === 'supermarket' ||
-    trimmed.includes('سوبرماركت') ||
-    trimmed.includes('بقالة')
-  ) {
-    return 'supermarket';
-  }
-
   return 'retail_general';
 }
 
