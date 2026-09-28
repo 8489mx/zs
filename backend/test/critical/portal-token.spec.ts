@@ -48,16 +48,25 @@ function expectAppError(code: string, fn: () => unknown): void {
 const CLOUD_ENV = {
   APP_MODE: 'CLOUD_SAAS',
   SESSION_SECRET: undefined,
+  SESSION_CSRF_SECRET: undefined,
   PORTABLE_MODE: undefined,
   IS_ELECTRON: undefined,
 };
 
 function run(): void {
-  // 1. فشل آمن: في السحابة بلا SESSION_SECRET لا يُصدَر ولا يُقبَل أي رمز إطلاقاً.
+  // 1. فشل آمن: في السحابة بلا سر لا يُصدَر ولا يُقبَل أي رمز إطلاقاً.
   //    (عكس هذا هو النمط F12 — قيمة افتراضية تجعل التحقق يمر.)
   withEnv(CLOUD_ENV, () => {
     expectAppError('PORTAL_TOKEN_SECRET_MISSING', () => resolvePortalTokenSecret());
     expectAppError('PORTAL_TOKEN_SECRET_MISSING', () => signPortalToken({ employeeId: 1 }, PORTAL_TOKEN_TTL_MS));
+  });
+
+  // 1-b. استخدام SESSION_CSRF_SECRET كبديل آمن عند غياب SESSION_SECRET
+  withEnv({ ...CLOUD_ENV, SESSION_CSRF_SECRET: REAL_SECRET }, () => {
+    assert.equal(resolvePortalTokenSecret(), REAL_SECRET);
+    const token = signPortalToken({ employeeId: 10, tenantId: 'tenant-x' }, PORTAL_TOKEN_TTL_MS);
+    const payload = verifyPortalToken<any>(`Bearer ${token}`, ERRORS);
+    assert.equal(payload.employeeId, 10);
   });
 
   // 2. سر قصير جداً في السحابة يُعامَل كغياب سر.
