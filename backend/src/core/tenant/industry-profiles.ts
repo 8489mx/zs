@@ -249,61 +249,144 @@ export function normalizeIndustryProfileKey(raw?: string | null): IndustryProfil
     trimmed === 'فان' ||
     trimmed === 'مناديب' ||
     trimmed === 'جملة' ||
-    trimmed === 'جملة_وتوزيع'
+    trimmed === 'جملة_وتوزيع' ||
+    trimmed.includes('توزيع') ||
+    trimmed.includes('فان') ||
+    trimmed.includes('مناديب') ||
+    trimmed.includes('جملة') ||
+    trimmed.includes('موزعون') ||
+    trimmed.includes('وكلاء') ||
+    trimmed.includes('wholesale') ||
+    trimmed.includes('distribution')
   ) {
     return 'wholesale_van';
   }
 
-  if (trimmed === 'contracting' || trimmed === 'construction' || trimmed === 'مقاولات') {
+  if (
+    trimmed === 'contracting' ||
+    trimmed === 'construction' ||
+    trimmed === 'مقاولات' ||
+    trimmed.includes('مقاول') ||
+    trimmed.includes('إنشاءات') ||
+    trimmed.includes('مشاريع هندسية')
+  ) {
     return 'contracting';
   }
+
   if (
     trimmed === 'maritime_freight' ||
     trimmed === 'maritime' ||
     trimmed === 'freight' ||
     trimmed === 'shipping' ||
-    trimmed === 'شحن'
+    trimmed === 'شحن' ||
+    trimmed.includes('شحن') ||
+    trimmed.includes('ملاحة') ||
+    trimmed.includes('موانئ') ||
+    trimmed.includes('لوجست')
   ) {
     return 'maritime_freight';
   }
-  if (trimmed === 'pharmacy' || trimmed === 'صيدلية' || trimmed === 'صيدليات') {
+
+  if (
+    trimmed === 'pharmacy' ||
+    trimmed === 'صيدلية' ||
+    trimmed === 'صيدليات' ||
+    trimmed.includes('صيدل') ||
+    trimmed.includes('علاجية') ||
+    trimmed.includes('أدوية')
+  ) {
     return 'pharmacy';
   }
-  if (trimmed === 'restaurant' || trimmed === 'cafe' || trimmed === 'مطعم' || trimmed === 'كافيه') {
+
+  if (
+    trimmed === 'restaurant' ||
+    trimmed === 'cafe' ||
+    trimmed === 'مطعم' ||
+    trimmed === 'كافيه' ||
+    trimmed.includes('مطعم') ||
+    trimmed.includes('مطاعم') ||
+    trimmed.includes('كافيه') ||
+    trimmed.includes('أغذية مجهزة')
+  ) {
     return 'restaurant';
   }
-  if (trimmed === 'manufacturing' || trimmed === 'production' || trimmed === 'تصنيع' || trimmed === 'مصنع') {
+
+  if (
+    trimmed === 'manufacturing' ||
+    trimmed === 'production' ||
+    trimmed === 'تصنيع' ||
+    trimmed === 'مصنع' ||
+    trimmed.includes('تصنيع') ||
+    trimmed.includes('معامل') ||
+    trimmed.includes('ورش')
+  ) {
     return 'manufacturing';
   }
-  if (trimmed === 'maintenance' || trimmed === 'صيانة' || trimmed === 'repair' || trimmed === 'ورشة') {
+
+  if (
+    trimmed === 'maintenance' ||
+    trimmed === 'صيانة' ||
+    trimmed === 'repair' ||
+    trimmed === 'ورشة' ||
+    trimmed === 'electronics' ||
+    trimmed.includes('صيانة') ||
+    trimmed.includes('موبايل') ||
+    trimmed.includes('إلكترونيات')
+  ) {
     return 'maintenance';
   }
+
   if (
     trimmed === 'import_export' ||
     trimmed === 'import' ||
     trimmed === 'استيراد' ||
     trimmed === 'شراكة' ||
-    trimmed === 'استيراد_وتصدير'
+    trimmed === 'استيراد_وتصدير' ||
+    trimmed.includes('استيراد') ||
+    trimmed.includes('تصدير') ||
+    trimmed.includes('جمارك') ||
+    trimmed.includes('حاويات')
   ) {
     return 'import_export';
   }
+
   if (
     trimmed === 'auto_parts' ||
     trimmed === 'autoparts' ||
     trimmed === 'قطع_غيار' ||
     trimmed === 'قطع غيار' ||
-    trimmed === 'سيارات'
+    trimmed.includes('قطع غيار')
   ) {
     return 'auto_parts';
   }
+
   if (
     trimmed === 'clothing' ||
     trimmed === 'fashion' ||
     trimmed === 'apparel' ||
     trimmed === 'ملابس' ||
-    trimmed === 'أزياء'
+    trimmed === 'أزياء' ||
+    trimmed.includes('ملابس') ||
+    trimmed.includes('أزياء') ||
+    trimmed.includes('أحذية')
   ) {
     return 'clothing';
+  }
+
+  if (
+    trimmed === 'services' ||
+    trimmed.includes('خدمات') ||
+    trimmed.includes('استشارية')
+  ) {
+    return 'services';
+  }
+
+  if (
+    trimmed === 'supermarket' ||
+    trimmed.includes('سوبرماركت') ||
+    trimmed.includes('بقالة')
+  ) {
+    return 'supermarket';
   }
 
   return 'retail_general';

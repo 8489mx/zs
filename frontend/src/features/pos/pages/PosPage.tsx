@@ -13,8 +13,18 @@ export function PosPage() {
     );
   }
 
-  const industry = String(settings?.businessIndustry || '').toLowerCase();
-  const isNonRetailVertical = industry === 'contracting' || industry === 'maritime';
+  const rawIndustry = String(settings?.businessIndustry || settings?.activityType || '').toLowerCase();
+  const isWholesaleVertical =
+    rawIndustry === 'wholesale_van' ||
+    rawIndustry === 'wholesale' ||
+    rawIndustry === 'distribution' ||
+    rawIndustry === 'توزيع' ||
+    rawIndustry === 'فان' ||
+    rawIndustry === 'مناديب' ||
+    rawIndustry.includes('توزيع') ||
+    rawIndustry.includes('فان') ||
+    rawIndustry.includes('wholesale');
+  const isNonRetailVertical = isWholesaleVertical || rawIndustry === 'contracting' || rawIndustry === 'maritime' || rawIndustry === 'services';
   const isPosDisabled = settings?.posModuleEnabled === false || isNonRetailVertical;
 
   if (isPosDisabled) {
@@ -66,11 +76,35 @@ export function PosPage() {
             موديول نقطة البيع (الكاشير) غير مفعّل
           </h3>
           <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6, marginBottom: '24px' }}>
-            {isNonRetailVertical
-              ? 'هذا الحساب مخصص لقطاع تخصصي (مشاريع مقاولات أو شحن ولوجستيات) لا يعتمد على نقاط البيع المباشرة.'
+            {isWholesaleVertical
+              ? 'هذا الحساب مهيأ لنمط تجارة الجملة والتوزيع المؤسسي وأسطول سيارات الفان، حيث تتم المبيعات الميدانية وإصدار الفواتير وأوامر البيع عبر شاشات توزيع الفان وسجل الفواتير بدون كاشير.'
+              : isNonRetailVertical
+              ? 'هذا الحساب مخصص لقطاع تخصصي (مشاريع مقاولات أو شحن ولوجستيات أو خدمات) لا يعتمد على نقاط البيع المباشرة.'
               : 'تم تعطيل موديول نقطة البيع والكاشير في إعدادات المنشأة. يمكنك تفعيله من شاشة إعدادات الموديولات.'}
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {isWholesaleVertical && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.location.href = '/inventory/van-sales';
+                  }
+                }}
+                style={{
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '10px 22px',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                سيارات التوزيع (الفان)
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -79,9 +113,9 @@ export function PosPage() {
                 }
               }}
               style={{
-                background: '#170e5e',
-                color: '#ffffff',
-                border: 'none',
+                background: isWholesaleVertical ? '#f1f5f9' : '#170e5e',
+                color: isWholesaleVertical ? '#334155' : '#ffffff',
+                border: isWholesaleVertical ? '1px solid #cbd5e1' : 'none',
                 borderRadius: '8px',
                 padding: '10px 22px',
                 fontSize: '14px',

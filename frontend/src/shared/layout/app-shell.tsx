@@ -337,7 +337,16 @@ export function AppShell({ children }: PropsWithChildren) {
   };
 
   const visibleNavigationItems = useMemo(() => {
-    const rawActivity = String(tenant?.activityType || tenant?.pillar || settings?.activityType || settings?.businessIndustry || 'retail_general').trim().toLowerCase();
+    const activityCandidates = [
+      settings?.businessIndustry,
+      tenant?.activityType,
+      settings?.activityType,
+      tenant?.pillar,
+    ].map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
+    const rawActivity = activityCandidates.find(
+      (a) => a !== 'retail_general' && a !== 'general' && a !== 'retail'
+    ) || activityCandidates[0] || 'retail_general';
+
     const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || settings?.contractingModuleEnabled === true;
     const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
     const isRestaurantVertical = rawActivity === 'restaurant' || rawActivity === 'cafe' || rawActivity === 'مطعم' || rawActivity === 'كافيه';
@@ -352,7 +361,16 @@ export function AppShell({ children }: PropsWithChildren) {
       rawActivity === 'distribution' ||
       rawActivity === 'توزيع' ||
       rawActivity === 'فان' ||
-      rawActivity === 'مناديب';
+      rawActivity === 'مناديب' ||
+      rawActivity === 'جملة' ||
+      rawActivity === 'جملة_وتوزيع' ||
+      rawActivity.includes('توزيع') ||
+      rawActivity.includes('فان') ||
+      rawActivity.includes('مناديب') ||
+      rawActivity.includes('جملة') ||
+      rawActivity.includes('موزعون') ||
+      rawActivity.includes('wholesale') ||
+      rawActivity.includes('distribution');
     const isRetailOrMarketVertical =
       !isContractingVertical &&
       !isMaritimeVertical &&
@@ -368,7 +386,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'dashboard',
       'van-sales-admin',
       'inventory-warehouses',
-      'inventory-transfers',
+      'inventory-issue-orders',
       'inventory',
       'inventory-tree',
       'inventory-issue-orders',
@@ -1055,7 +1073,16 @@ export function AppShell({ children }: PropsWithChildren) {
     const hasReports = isPlatformAdminUser || Boolean(tenant?.features?.includes('reports'));
     const dashKeys = hasReports ? ['dashboard'] : [];
 
-    const rawActivity = String(tenant?.activityType || tenant?.pillar || settings?.activityType || settings?.businessIndustry || 'retail_general').trim().toLowerCase();
+    const activityCandidates = [
+      settings?.businessIndustry,
+      tenant?.activityType,
+      settings?.activityType,
+      tenant?.pillar,
+    ].map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
+    const rawActivity = activityCandidates.find(
+      (a) => a !== 'retail_general' && a !== 'general' && a !== 'retail'
+    ) || activityCandidates[0] || 'retail_general';
+
     const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || settings?.contractingModuleEnabled === true;
     const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
     const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
@@ -1068,7 +1095,16 @@ export function AppShell({ children }: PropsWithChildren) {
       rawActivity === 'distribution' ||
       rawActivity === 'توزيع' ||
       rawActivity === 'فان' ||
-      rawActivity === 'مناديب';
+      rawActivity === 'مناديب' ||
+      rawActivity === 'جملة' ||
+      rawActivity === 'جملة_وتوزيع' ||
+      rawActivity.includes('توزيع') ||
+      rawActivity.includes('فان') ||
+      rawActivity.includes('مناديب') ||
+      rawActivity.includes('جملة') ||
+      rawActivity.includes('موزعون') ||
+      rawActivity.includes('wholesale') ||
+      rawActivity.includes('distribution');
 
     if (isContractingVertical) {
       return [...dashKeys, 'contracting-projects', 'contracting-boq'];
@@ -1115,7 +1151,16 @@ export function AppShell({ children }: PropsWithChildren) {
     const isPlatformAdminUser = isPlatformAdmin(user);
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
 
-    const rawActivity = String(tenant?.activityType || tenant?.pillar || settings?.activityType || settings?.businessIndustry || 'retail_general').trim().toLowerCase();
+    const activityCandidates = [
+      settings?.businessIndustry,
+      tenant?.activityType,
+      settings?.activityType,
+      tenant?.pillar,
+    ].map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
+    const rawActivity = activityCandidates.find(
+      (a) => a !== 'retail_general' && a !== 'general' && a !== 'retail'
+    ) || activityCandidates[0] || 'retail_general';
+
     const isDedicatedContractingOnly = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || settings?.contractingModuleEnabled === true;
     const isDedicatedMaritimeOnly = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
     const isDedicatedManufacturingOnly = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
@@ -1127,7 +1172,16 @@ export function AppShell({ children }: PropsWithChildren) {
       rawActivity === 'distribution' ||
       rawActivity === 'توزيع' ||
       rawActivity === 'فان' ||
-      rawActivity === 'مناديب';
+      rawActivity === 'مناديب' ||
+      rawActivity === 'جملة' ||
+      rawActivity === 'جملة_وتوزيع' ||
+      rawActivity.includes('توزيع') ||
+      rawActivity.includes('فان') ||
+      rawActivity.includes('مناديب') ||
+      rawActivity.includes('جملة') ||
+      rawActivity.includes('موزعون') ||
+      rawActivity.includes('wholesale') ||
+      rawActivity.includes('distribution');
     const isRestaurantVertical = rawActivity === 'restaurant' || rawActivity === 'cafe' || rawActivity === 'مطعم' || rawActivity === 'كافيه';
     const isPharmacyVertical = rawActivity === 'pharmacy' || rawActivity === 'صيدلية' || rawActivity === 'صيدليات';
     const isElectronicsVertical = rawActivity === 'electronics' || rawActivity === 'maintenance' || rawActivity === 'repair' || rawActivity === 'صيانة';

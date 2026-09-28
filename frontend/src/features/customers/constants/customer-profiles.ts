@@ -177,7 +177,15 @@ export function getCustomerProfileByRaw(rawActivity: string, pathname: string): 
     normActivity === 'wholesale' ||
     normActivity === 'distribution' ||
     normActivity === 'توزيع' ||
-    normActivity === 'فان';
+    normActivity === 'فان' ||
+    normActivity === 'مناديب' ||
+    normActivity === 'جملة' ||
+    normActivity.includes('توزيع') ||
+    normActivity.includes('فان') ||
+    normActivity.includes('مناديب') ||
+    normActivity.includes('جملة') ||
+    normActivity.includes('wholesale') ||
+    normActivity.includes('distribution');
 
   if (isDistribution) return DISTRIBUTION_CUSTOMER_PROFILE;
 

@@ -140,13 +140,28 @@ export class SettingsService {
       if (!settings.ownerName && tenant.owner_name) settings.ownerName = tenant.owner_name;
       if (!settings.email && tenant.owner_email) settings.email = tenant.owner_email;
 
-      const effectiveType = tenant.activity_type || (settings.activityType as string) || 'retail_general';
+      const candidates = [
+        settings.businessIndustry as string,
+        settings.activityType as string,
+        tenant.activity_type,
+      ].map(v => String(v || '').trim().toLowerCase()).filter(Boolean);
+      const specificCandidate = candidates.find(
+        c => c !== 'retail_general' && c !== 'general' && c !== 'retail'
+      ) || candidates[0] || 'retail_general';
+      const effectiveType = normalizeIndustryProfileKey(specificCandidate);
       const profile = getIndustryProfile(effectiveType);
       settings.activityType = profile.key;
       settings.pillar = profile.pillar;
       settings.industryProfile = profile;
     } else {
-      const profile = getIndustryProfile((settings.activityType as string) || 'retail_general');
+      const candidates = [
+        settings.businessIndustry as string,
+        settings.activityType as string,
+      ].map(v => String(v || '').trim().toLowerCase()).filter(Boolean);
+      const specificCandidate = candidates.find(
+        c => c !== 'retail_general' && c !== 'general' && c !== 'retail'
+      ) || candidates[0] || 'retail_general';
+      const profile = getIndustryProfile(normalizeIndustryProfileKey(specificCandidate));
       settings.activityType = profile.key;
       settings.pillar = profile.pillar;
       settings.industryProfile = profile;
@@ -216,6 +231,12 @@ export class SettingsService {
       }
       if (settings.clothingModuleEnabled === undefined) {
         settings.clothingModuleEnabled = (settings.industryProfile as any)?.subVertical === 'clothing';
+      }
+      if (settings.industryProfile?.key === 'wholesale_van') {
+        settings.posModuleEnabled = false;
+        settings.requireCashierShiftForSales = false;
+        settings.deliveryFleetModuleEnabled = true;
+        settings.enableEnterpriseFeatures = true;
       }
     }
 
