@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
-import { MessageSquareIcon, LightbulbIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
+import { MessageSquareIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
 
 export interface WhatsAppGatewayConfig {
   enabled: boolean;
@@ -108,6 +108,7 @@ export function SettingsWhatsAppGatewaySection() {
   const [customApiKey, setCustomApiKey] = useState('');
   const [customModel, setCustomModel] = useState('');
   const [customBaseUrl, setCustomBaseUrl] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const [fetchingModels, setFetchingModels] = useState(false);
   const [geminiAvailableModels, setGeminiAvailableModels] = useState<Array<{ id: string; displayName: string }>>([]);
@@ -126,6 +127,9 @@ export function SettingsWhatsAppGatewaySection() {
       });
       if (res?.models && res.models.length > 0) {
         setGeminiAvailableModels(res.models);
+        try {
+          localStorage.setItem('zs_gemini_models_cache', JSON.stringify(res.models));
+        } catch {}
         setAiFeedback({ kind: 'success', message: `تم جلب ${res.models.length} نموذج متاح لمفتاحك من سيرفرات Google!` });
         setTimeout(() => setAiFeedback(null), 3000);
       } else {
@@ -138,22 +142,33 @@ export function SettingsWhatsAppGatewaySection() {
     }
   };
 
+  // 1. Hydrate cached models from localStorage on mount (0ms, zero network calls)
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem('zs_gemini_models_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setGeminiAvailableModels(parsed);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // 2. Hydrate saved configuration from backend without re-fetching models automatically
   useEffect(() => {
     if (aiConfig) {
       if (aiConfig.provider) {
         setSelectedProvider(aiConfig.provider);
       }
-      if (aiConfig.model) {
-        setCustomModel(aiConfig.model);
-      }
+      const rawModel = (aiConfig.model || '').trim();
+      const cleanModel = rawModel && !/[^\x20-\x7E]/.test(rawModel) ? rawModel : '';
+      setCustomModel(cleanModel);
       if (aiConfig.baseUrl) {
         setCustomBaseUrl(aiConfig.baseUrl);
       }
-      if (aiConfig.hasApiKey && aiConfig.provider === 'gemini') {
-        fetchKeyModels();
-      } else {
-        setGeminiAvailableModels([]);
-      }
+      // Note: We deliberately do NOT call fetchKeyModels() automatically on page load.
+      // The user's saved model is preserved and shown, and models are only queried on explicit user demand.
     }
   }, [aiConfig]);
 
@@ -168,9 +183,6 @@ export function SettingsWhatsAppGatewaySection() {
       setSelectedProvider('openai');
     } else if (trimmed.startsWith('AIza') || trimmed.startsWith('AQ.')) {
       setSelectedProvider('gemini');
-      if (trimmed.length >= 25) {
-        fetchKeyModels(trimmed);
-      }
     }
   };
 
@@ -201,6 +213,10 @@ export function SettingsWhatsAppGatewaySection() {
       refetchAiConfig();
       setCustomApiKey('');
       setCustomModel('');
+      setGeminiAvailableModels([]);
+      try {
+        localStorage.removeItem('zs_gemini_models_cache');
+      } catch {}
       setAiFeedback({ kind: 'success', message: 'تم حذف المفتاح المخصص وإلغاء الربط بنجاح!' });
       setTimeout(() => setAiFeedback(null), 3500);
     },
@@ -223,11 +239,11 @@ export function SettingsWhatsAppGatewaySection() {
     onSuccess: (res) => {
       if (res.success) {
         setAiFeedback({ kind: 'success', message: res.message });
-        if (res.model && !customModel) {
-          setCustomModel(res.model);
-        }
         if (res.availableModels && res.availableModels.length > 0) {
           setGeminiAvailableModels(res.availableModels);
+          try {
+            localStorage.setItem('zs_gemini_models_cache', JSON.stringify(res.availableModels));
+          } catch {}
         }
       } else {
         setAiFeedback({ kind: 'error', message: res.message });
@@ -368,7 +384,7 @@ export function SettingsWhatsAppGatewaySection() {
             </label>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {[
-                { id: 'gemini', label: 'Google Gemini (مجاني وسريع)', tag: 'موصى به' },
+                { id: 'gemini', label: 'Google Gemini', tag: 'موصى به' },
                 { id: 'openai', label: 'OpenAI / ChatGPT (GPT-4o & Mini)', tag: 'متقدم' },
                 { id: 'custom', label: 'مزود مخصص (DeepSeek / Groq / Local)', tag: 'مفتوح' },
               ].map((p) => {
@@ -411,17 +427,44 @@ export function SettingsWhatsAppGatewaySection() {
             </div>
           </div>
 
-          {/* API Key Input */}
+          {/* API Key Input - Anti-Autofill Protected */}
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
-              {selectedProvider === 'gemini'
-                ? 'مفتاح Google Gemini API:'
-                : selectedProvider === 'openai'
-                ? 'مفتاح OpenAI API (sk-...):'
-                : 'مفتاح API الخاص بالمزود المخصص:'}
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>
+                {selectedProvider === 'gemini'
+                  ? 'مفتاح Google Gemini API:'
+                  : selectedProvider === 'openai'
+                  ? 'مفتاح OpenAI API (sk-...):'
+                  : 'مفتاح API الخاص بالمزود المخصص:'}
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowApiKey(!showApiKey)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#1d4ed8',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  padding: '2px 4px',
+                }}
+              >
+                {showApiKey ? 'إخفاء الرمز' : 'إظهار الرمز'}
+              </button>
+            </div>
             <input
-              type="password"
+              type="text"
+              name="ai_gateway_token_no_autofill"
+              autoComplete="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-form-type="other"
+              data-bwignore="true"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              className={showApiKey ? '' : 'secure-password-field'}
               placeholder={
                 aiConfig?.hasApiKey
                   ? `المفتاح مسجل: ${aiConfig.maskedKey}`
@@ -491,40 +534,18 @@ export function SettingsWhatsAppGatewaySection() {
                     lineHeight: 1.5,
                   }}
                 >
-                  أدخل مفتاح Google Gemini أعلاه لجلب واستعراض النماذج المتاحة لمفتاحك من سيرفرات Google مباشرة.
-                </div>
-              ) : geminiAvailableModels.length === 0 ? (
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <div
-                    style={{
-                      flex: 1,
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      background: '#f8fafc',
-                      border: '1px solid #cbd5e1',
-                      color: '#64748b',
-                      fontSize: '12px',
-                    }}
-                  >
-                    {fetchingModels ? 'جاري فحص وجلب النماذج المدعومة لمفتاحك من Google...' : 'لم يتم جلب النماذج بعد. اضغط على الزر المقابل لفحص النماذج المتاحة لمفتاحك.'}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={fetchingModels}
-                    onClick={() => fetchKeyModels()}
-                    style={{ fontSize: '11.5px', padding: '6px 14px', whiteSpace: 'nowrap' }}
-                  >
-                    استعراض نماذج المفتاح
-                  </Button>
+                  أدخل مفتاح Google Gemini أعلاه لاختيار نموذج من النماذج المتاحة لمفتاحك.
                 </div>
               ) : (
                 <CustomSelect
                   value={customModel || ''}
                   onChange={(val) => setCustomModel(val)}
-                  placeholder="اختر نموذجاً من النماذج المدعومة بمفتاحك"
+                  placeholder={customModel || 'اختر نموذجاً أو اتركه تلقائياً'}
                   options={[
                     { value: '', label: 'تلقائي (اختيار أحدث نموذج متاح ومستقر لمفتاحك تلقائياً)', hint: 'تلقائي' },
+                    ...(customModel && !geminiAvailableModels.some((m) => m.id === customModel)
+                      ? [{ value: customModel, label: customModel, hint: 'النموذج المحفوظ حالياً' }]
+                      : []),
                     ...geminiAvailableModels.map((m) => ({
                       value: m.id,
                       label: m.displayName && m.displayName !== m.id ? `${m.displayName} (${m.id})` : m.id,
@@ -598,7 +619,7 @@ export function SettingsWhatsAppGatewaySection() {
                 saveAiKeyMutation.mutate({
                   apiKey: customApiKey.trim() || undefined,
                   provider: selectedProvider,
-                  model: customModel.trim() || undefined,
+                  model: customModel.trim(),
                   baseUrl: customBaseUrl.trim() || undefined,
                 })
               }
@@ -615,7 +636,7 @@ export function SettingsWhatsAppGatewaySection() {
                 testAiKeyMutation.mutate({
                   provider: selectedProvider,
                   apiKey: customApiKey.trim() || undefined,
-                  model: customModel.trim() || undefined,
+                  model: customModel.trim(),
                   baseUrl: customBaseUrl.trim() || undefined,
                 })
               }
@@ -638,38 +659,6 @@ export function SettingsWhatsAppGatewaySection() {
             )}
           </div>
 
-          {/* Quick Guide Card */}
-          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px 14px', fontSize: '12px', color: '#1e40af', lineHeight: 1.6 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-              <LightbulbIcon size={15} color="#1d4ed8" />
-              <strong>إرشادات الحصول على مفاتيح الذكاء الاصطناعي:</strong>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
-              <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #dbeafe' }}>
-                <strong>1. Google Gemini (مجاني وسريع):</strong>
-                <br />
-                احصل على مفتاح مجاني بدون بطاقة بنكية عبر{' '}
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: '#1d4ed8', fontWeight: 800, textDecoration: 'underline' }}>
-                  Google AI Studio
-                </a>
-                . يدعم أحدث نماذج فلاش الحديثة تلقائياً.
-              </div>
-              <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #dbeafe' }}>
-                <strong>2. OpenAI / ChatGPT:</strong>
-                <br />
-                احصل على المفتاح من منصة{' '}
-                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" style={{ color: '#1d4ed8', fontWeight: 800, textDecoration: 'underline' }}>
-                  OpenAI Platform
-                </a>
-                . متوافق مع GPT-4o و GPT-4o-mini.
-              </div>
-              <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #dbeafe' }}>
-                <strong>3. المزود المخصص (DeepSeek / Groq / خادم محلي):</strong>
-                <br />
-                يمكنك ربط أي مزود يقدم واجهة متوافقة مع OpenAI API فقط بتحديد عنوان الرابط واسم النموذج.
-              </div>
-            </div>
-          </div>
 
           {aiFeedback && (
             <div

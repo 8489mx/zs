@@ -705,6 +705,9 @@ ${JSON.stringify(snapshot, null, 2)}
       }
 
       customModel = String(map.get('ai_model') || '').trim();
+      if (/[^\x20-\x7E]/.test(customModel)) {
+        customModel = '';
+      }
       customBaseUrl = String(map.get('ai_base_url') || '').trim();
     } catch (err: any) {
       this.logger.warn(`Failed to read tenant AI config: ${err?.message || err}`);
@@ -766,11 +769,8 @@ ${JSON.stringify(snapshot, null, 2)}
       masked = `${aiConfig.apiKey.slice(0, 4)}••••${aiConfig.apiKey.slice(-4)}`;
     }
 
-    const providerNames: Record<AiProvider, string> = {
-      gemini: 'Google Gemini Flash (المحرك السحابي الفائق)',
-      openai: `OpenAI ChatGPT (${aiConfig.model || 'gpt-4o-mini'})`,
-      custom: `مزود مخصص (${aiConfig.model || 'OpenAI Compatible'})`,
-    };
+    // Clean model: return actual technical model identifier (e.g. gemini-3.6-flash), sanitizing any legacy Arabic string
+    const cleanModel = (aiConfig.model && !/[^\x20-\x7E]/.test(aiConfig.model)) ? aiConfig.model : '';
 
     return {
       hasApiKey: hasKey,
@@ -784,7 +784,7 @@ ${JSON.stringify(snapshot, null, 2)}
             ? 'custom_llm'
             : 'gemini_llm',
       provider: aiConfig.provider,
-      model: providerNames[aiConfig.provider] || aiConfig.model,
+      model: cleanModel,
       baseUrl: aiConfig.baseUrl,
     };
   }
@@ -808,7 +808,10 @@ ${JSON.stringify(snapshot, null, 2)}
     const keyVal = isExplicitDelete ? '' : isExplicitKeyPassed ? payload.apiKey!.trim() : (existingConfig.apiKey || '');
 
     let provider = payload.provider || existingConfig.provider || (keyVal.startsWith('sk-') ? 'openai' : 'gemini');
-    const model = isExplicitDelete ? '' : (payload.model !== undefined ? payload.model.trim() : (existingConfig.model || ''));
+    let model = isExplicitDelete ? '' : (payload.model !== undefined ? payload.model.trim() : (existingConfig.model || ''));
+    if (/[^\x20-\x7E]/.test(model)) {
+      model = '';
+    }
     const baseUrl = isExplicitDelete ? '' : (payload.baseUrl !== undefined ? payload.baseUrl.trim() : ((existingConfig as any).baseUrl || ''));
 
     if (keyVal) {
@@ -887,7 +890,8 @@ ${JSON.stringify(snapshot, null, 2)}
 
     const keyToTest = (params.apiKey || config.apiKey || '').trim();
     let provider = params.provider || (keyToTest.startsWith('sk-') ? 'openai' : config.provider || 'gemini');
-    const model = params.model !== undefined ? params.model : config.model;
+    const rawModel = (params.model !== undefined ? params.model : config.model) || '';
+    const model = rawModel && !/[^\x20-\x7E]/.test(rawModel) ? rawModel.trim() : '';
     const baseUrl = params.baseUrl || (config as any).baseUrl || 'https://api.openai.com/v1';
 
     if (!keyToTest) {
@@ -962,11 +966,12 @@ ${JSON.stringify(snapshot, null, 2)}
       }
     }
 
-    // 2. If a specific model was requested by the user, test it directly first
+    // 2. If a specific valid model was requested by the user, test it directly first
     const cleanRequested = (requestedModel || '').trim();
+    const isValidRequestedModel = cleanRequested && !/[^\x20-\x7E]/.test(cleanRequested);
     let requestedModelError: string | null = null;
 
-    if (cleanRequested) {
+    if (isValidRequestedModel) {
       for (const apiVer of ['v1beta', 'v1']) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 7000);
