@@ -330,4 +330,35 @@ button:focus-visible,
   outline-offset: 1px !important;
 }
 
+/* ========================================================
+   GLOBAL NO-SPIN-ARROWS FOR NUMBER INPUTS
+   ======================================================== */
+.no-spin-arrows::-webkit-outer-spin-button,
+.no-spin-arrows::-webkit-inner-spin-button,
+input[type="number"].no-spin-arrows::-webkit-outer-spin-button,
+input[type="number"].no-spin-arrows::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+.no-spin-arrows,
+input[type="number"].no-spin-arrows {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
+/* ========================================================
+   GLOBAL SPIN ANIMATION FOR REFRESH BUTTONS
+   ======================================================== */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin-animation {
+  animation: spin 0.75s linear infinite !important;
+  display: inline-block;
+}
+
+
 

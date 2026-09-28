@@ -798,6 +798,8 @@ export interface DeliveryRepTargetTable {
   rep_id: number;
   period_month: string;
   target_amount: number;
+  collection_target?: number | null;
+  visits_target?: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -4298,6 +4300,62 @@ export interface Database {
   contracting_rfis: ContractingRfiTable;
   contracting_schedule_tasks: ContractingScheduleTaskTable;
   contracting_material_requisitions: ContractingMaterialRequisitionTable;
+  ai_knowledge_sources: AiKnowledgeSourceTable;
+  ai_knowledge_chunks: AiKnowledgeChunkTable;
+  ai_chat_sessions: AiChatSessionTable;
+  ai_chat_messages: AiChatMessageTable;
+}
+
+export interface AiKnowledgeSourceTable {
+  id: Generated<number>;
+  tenant_id: string;
+  title: string;
+  source_type: string;
+  content_hash: string | null;
+  raw_text: string | null;
+  file_url: string | null;
+  file_size: number;
+  status: string;
+  chunk_count: number;
+  token_count: number;
+  metadata: Record<string, unknown> | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface AiKnowledgeChunkTable {
+  id: Generated<number>;
+  tenant_id: string;
+  source_id: number;
+  chunk_index: number;
+  content: string;
+  embedding: number[] | null;
+  token_count: number;
+  metadata: Record<string, unknown> | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface AiChatSessionTable {
+  id: string;
+  tenant_id: string;
+  user_id: number | null;
+  title: string;
+  is_active: boolean;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface AiChatMessageTable {
+  id: Generated<number>;
+  session_id: string;
+  tenant_id: string;
+  role: string;
+  content: string;
+  reasoning_steps: Array<Record<string, unknown>> | null;
+  tool_calls: Array<Record<string, unknown>> | null;
+  suggested_questions: string[] | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
 

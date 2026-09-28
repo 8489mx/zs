@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { toast } from '@/shared/components/system-alert';
 import {
   TruckIcon,
   RefreshCwIcon,
@@ -46,6 +48,21 @@ export function DeliveryDriverHeader({
   statusFilter,
   setStatusFilter,
 }: DeliveryDriverHeaderProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetchOrders();
+      await new Promise((r) => setTimeout(r, 450));
+      toast.success('تم تحديث الطلبات بنجاح');
+    } catch {
+      toast.error('حدث خطأ أثناء تحديث الطلبات');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <>
       {/* Top Mobile Bar */}
@@ -58,11 +75,29 @@ export function DeliveryDriverHeader({
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
               type="button"
-              onClick={() => refetchOrders()}
-              style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
+              disabled={isRefreshing}
+              onClick={handleRefresh}
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                border: 'none',
+                color: '#fff',
+                padding: '6px 10px',
+                borderRadius: '8px',
+                cursor: isRefreshing ? 'wait' : 'pointer',
+                opacity: isRefreshing ? 0.75 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '12px',
+              }}
+              title="تحديث قائمة الطلبات"
             >
-              <RefreshCwIcon size={14} />
-              <span>تحديث</span>
+              <RefreshCwIcon
+                size={14}
+                className={isRefreshing ? 'spin-animation' : undefined}
+                style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
+              />
+              <span>{isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}</span>
             </button>
           </div>
         </div>

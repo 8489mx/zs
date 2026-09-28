@@ -43,6 +43,7 @@
 
 ## 3. Strict Execution Policy
 - NEVER run `npm run build` or `git push` automatically without explicit user command.
+- NEVER run extensive guards, typechecks (`tsc`), or test suites automatically between iterative testing workflow steps. Postpone them strictly until the very end upon explicit user command to preserve flow and speed.
 - Consultation Mode: If the user asks a question with `?` or `؟`, advise first without running modifying code.
 
 ## 4. UI & Arabic Design System
@@ -53,6 +54,10 @@
 - Strict Ban on Lightning / Zap Icons: NEVER use the lightning bolt / zap icon (`ZapIcon` / `Zap` or `13 2 3 14 12 14 11 22...` SVG) anywhere in the ERP system. The system is a serious, institutional ERP platform; automated processes, speed, and settings must always be represented by real operational business icons (`SlidersIcon`, `SettingsIcon`, `CheckShieldIcon`, `RefreshCwIcon`, `CpuIcon`, etc.).
 - Standard modal framework (`StandardDialog` / `DialogShell`).
 - Centralized combobox system (`CustomSelect`).
+- **Strict RTL Stepper Standard (دستور أزرار العدادات والكميات: الزائد يميناً والناقص يساراً):**
+  - في كافة أزرار العدادات وتعديل الكميات (`Stepper` / `Quantity Controls`) عبر المنظومة بالكامل (نقاط البيع، فواتير التوزيع الميداني، أذونات التحميل، وسلات الشراء والمودالات):
+  - **الزائد (`+`) يجب أن يكون دائماً على اليمين، والناقص (`-`) دائماً على اليسار!**
+  - في بيئات RTL، العنصر الأول في DOM يظهر جهة اليمين، لذا يجب برمجياً كتابة زر الزيادة `+` أولاً، تليه خانة/نص الكمية في المنتصف، ثم زر الإنقاص `-` أخيراً جهة اليسار: `[+] (الكمية) [-]`. يُمنع منعاً باتاً عكس هذا الترتيب.
 
 ## 5. Workspace Keep-Alive & Anti-Flicker Architecture
 - Multi-tab workspaces must use single unified routes (`path: 'workspace'` and `path: 'workspace/*'`) to prevent layout and provider unmounting.

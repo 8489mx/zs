@@ -9,6 +9,8 @@ export interface DeliveryRep {
   address?: string | null;
   vehicle_plate?: string | null;
   pin_code?: string | null;
+  pin_hash?: string | null;
+  has_pin?: boolean;
   rep_type?: 'delivery' | 'van' | 'both' | string | null;
   is_van_rep?: boolean;
   van_location_id?: number | null;
@@ -117,6 +119,15 @@ export const deliveryRepsApi = {
   getSummary: async (repId: number): Promise<DeliveryRepSummary> => {
     const res = await http<{ summary: DeliveryRepSummary }>(`/api/delivery-reps/${repId}/summary`);
     return res.summary;
+  },
+
+  listVehicles: async (): Promise<Array<{ id: number; plateNumber: string; modelName?: string }>> => {
+    try {
+      const res = await http<{ ok: boolean; vehicles: Array<{ id: number; plateNumber: string; modelName?: string }> }>('/api/van-sales/admin/vehicles');
+      return res?.vehicles || [];
+    } catch {
+      return [];
+    }
   },
 };
 

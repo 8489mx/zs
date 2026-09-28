@@ -19,12 +19,14 @@ import { VanSalesLogin } from '../components/VanSalesLogin';
 import { VanSalesReceiptModal } from '../components/VanSalesReceiptModal';
 import { VanInventoryTab } from '../components/VanInventoryTab';
 import { VanSaleTab, CartItem } from '../components/VanSaleTab';
+import { VanSaleCheckoutModal } from '../components/VanSaleCheckoutModal';
 import { VanCollectionTab } from '../components/VanCollectionTab';
 import { VanSettleTab } from '../components/VanSettleTab';
 import { VanItineraryTab } from '../components/VanItineraryTab';
 import { VanFleetTab } from '../components/VanFleetTab';
 import { VanTransferModal } from '../components/VanTransferModal';
 import { DriverNewLoadRequisitionView } from '../components/DriverNewLoadRequisitionView';
+import { VanSalesHistoryTab } from '../components/VanSalesHistoryTab';
 
 export default function VanSalesMobilePage() {
   const queryClient = useQueryClient();
@@ -119,15 +121,17 @@ export default function VanSalesMobilePage() {
     staleTime: 60000,
   });
 
-  const [activeTab, setActiveTab] = useState<'cockpit' | 'itinerary' | 'inventory' | 'sale' | 'collection' | 'fleet' | 'settle' | 'requisitions'>('cockpit');
+  const [activeTab, setActiveTab] = useState<'cockpit' | 'itinerary' | 'inventory' | 'sale' | 'sales-history' | 'collection' | 'fleet' | 'settle' | 'requisitions'>('cockpit');
   const [stockSearch, setStockSearch] = useState('');
   const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [saleNotes, setSaleNotes] = useState('');
   const [deliveryProofPhoto, setDeliveryProofPhoto] = useState('');
   const [cartonsCount, setCartonsCount] = useState('');
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | ''>('');
   const [newCustomerName, setNewCustomerName] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card' | 'split'>('cash');
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const [colCustomerId, setColCustomerId] = useState<number | ''>('');
@@ -194,21 +198,68 @@ export default function VanSalesMobilePage() {
     );
   };
 
+  const allAvailableCustomers = useMemo(() => {
+    const map = new Map<number, any>();
+    if (data?.customers && Array.isArray(data.customers)) {
+      for (const c of data.customers) {
+        map.set(c.id, c);
+      }
+    }
+    if (itinerary && Array.isArray(itinerary)) {
+      for (const it of itinerary) {
+        if (!map.has(it.customerId)) {
+          map.set(it.customerId, {
+            id: it.customerId,
+            name: it.customerName,
+            phone: it.customerPhone,
+            address: it.customerAddress,
+            balance: it.balance,
+            creditLimit: it.creditLimit,
+            customerCode: it.customerCode,
+            route: it.route,
+            locationUrl: it.locationUrl,
+          });
+        }
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+  }, [data?.customers, itinerary]);
+
   const cartTotal = useMemo(() => cart.reduce((sum, c) => sum + c.qty * c.unitPrice, 0), [cart]);
 
   const executeSaleMutation = useMutation({
     mutationFn: vanSalesApi.executeSale,
     onSuccess: (res) => {
       showAlert('success', `تم إصدار الفاتورة #${res.docNo} بمبلغ ${res.total} ${getGlobalCurrencySymbol()} بنجاح!`);
+      const matchedCustomer = allAvailableCustomers.find((c) => String(c.id) === String(selectedCustomerId));
       setLastSaleReceipt({
         ...res,
+        paidAmount: res.cashPaid,
+        remainingCredit: res.creditOwed,
         packagingBreakdown: {
           cartonsCount: Number(cartonsCount) || 0,
           piecesCount: cart.reduce((s, it) => s + it.qty, 0),
           itemsCount: cart.length,
         },
         deliveryProofPhoto: deliveryProofPhoto || undefined,
+        customerName: res.customerName || matchedCustomer?.name || newCustomerName || 'عميل نقدي',
+        customerPhone: matchedCustomer?.phone || '',
+        customerCode: matchedCustomer?.customerCode || '',
+        customerAddress: matchedCustomer?.address || '',
+        items: cart.map((c) => ({
+          productId: c.productId,
+          name: c.name,
+          qty: c.qty,
+          unitPrice: c.unitPrice,
+          lineTotal: c.qty * c.unitPrice,
+        })),
+        repName: data?.trip?.repName || (session?.rep as any)?.name || 'مندوب التوزيع',
+        vehiclePlate: data?.assignedVehicle?.plateNumber || data?.trip?.vehiclePlate || '',
+        warehouseName: data?.trip?.sourceWarehouseName || '',
+        date: new Date().toISOString(),
       });
+      setCheckoutModalOpen(false);
+      setSaleNotes('');
       setDeliveryProofPhoto('');
       setCartonsCount('');
       setCart([]);
@@ -216,6 +267,7 @@ export default function VanSalesMobilePage() {
       setNewCustomerName('');
       queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] });
       queryClient.invalidateQueries({ queryKey: ['driver-itinerary'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-sales-history'] });
     },
     onError: (err: any) => showAlert('error', err?.message || 'فشل إصدار الفاتورة'),
   });
@@ -258,6 +310,7 @@ export default function VanSalesMobilePage() {
     if (!data?.inventory) return 0;
     return data.inventory.reduce((sum, item) => sum + item.qty * item.retailPrice, 0);
   }, [data?.inventory]);
+
 
   const vehicle = useMemo(() => {
     if (data?.trip?.vehiclePlate) {
@@ -405,53 +458,207 @@ export default function VanSalesMobilePage() {
 
       {/* Main Container */}
       <main style={{ padding: '14px 16px', maxWidth: '820px', margin: '0 auto' }}>
-        {/* Monthly Target Progress Card */}
-        {data?.targetMetrics && data.targetMetrics.targetAmount > 0 && (
+        {/* Monthly Multi-Dimensional Target Progress Card */}
+        {data?.targetMetrics && (
+          (data.targetMetrics.targetAmount > 0) ||
+          ((data.targetMetrics.collectionTarget ?? 0) > 0) ||
+          ((data.targetMetrics.visitsTarget ?? 0) > 0)
+        ) && (
           <div
             style={{
               backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              padding: '12px 14px',
+              borderRadius: '14px',
+              padding: '14px 16px',
               border: '1px solid #e2e8f0',
-              marginBottom: '12px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              marginBottom: '14px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e' }}>
-                تارجت مبيعات الشهر ({data.targetMetrics.periodMonth}): {data.targetMetrics.targetAmount.toFixed(2)} {getGlobalCurrencySymbol()}
-              </span>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>
+                  مستهدفات وإنجازات الشهر ({data.targetMetrics.periodMonth})
+                </span>
+              </div>
               <span
                 style={{
                   fontSize: '11px',
-                  fontWeight: 800,
-                  color: data.targetMetrics.isTargetAchieved ? '#15803d' : '#4338ca',
-                  backgroundColor: data.targetMetrics.isTargetAchieved ? '#dcfce7' : '#eef2ff',
-                  padding: '2px 8px',
+                  fontWeight: 700,
+                  color: '#475569',
+                  backgroundColor: '#f1f5f9',
+                  padding: '3px 10px',
                   borderRadius: '6px',
+                  border: '1px solid #e2e8f0',
                 }}
               >
-                {data.targetMetrics.isTargetAchieved ? 'تم تحقيق الهدف بنجاح!' : `محقق: ${data.targetMetrics.achievementRate}%`}
+                متبقي {data.targetMetrics.remainingWorkingDays} يوم عمل (مستبعداً الجمعات)
               </span>
             </div>
 
-            {/* Progress Bar */}
-            <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
-              <div
-                style={{
-                  width: `${Math.min(100, data.targetMetrics.achievementRate)}%`,
-                  height: '100%',
-                  backgroundColor: data.targetMetrics.isTargetAchieved ? '#16a34a' : '#170e5e',
-                  transition: 'width 0.3s ease',
-                }}
-              />
-            </div>
+            {/* Target Dimensions Grid */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '12px',
+              }}
+            >
+              {/* 1. Sales Target */}
+              {data.targetMetrics.targetAmount > 0 && (
+                <div
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#1e293b' }}>
+                      المبيعات: {data.targetMetrics.targetAmount.toFixed(0)} {getGlobalCurrencySymbol()}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: 800,
+                        color: data.targetMetrics.isTargetAchieved ? '#15803d' : '#1d4ed8',
+                        backgroundColor: data.targetMetrics.isTargetAchieved ? '#dcfce7' : '#eff6ff',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      {data.targetMetrics.isTargetAchieved ? 'تم الإنجاز' : `${data.targetMetrics.achievementRate}%`}
+                    </span>
+                  </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', flexWrap: 'wrap', gap: '6px' }}>
-              <span>المحقق فعلياً: <strong style={{ color: '#0f172a' }}>{data.targetMetrics.actualSalesMTD.toFixed(2)}</strong></span>
-              <span>المتبقي: <strong style={{ color: '#dc2626' }}>{data.targetMetrics.remainingTarget.toFixed(2)}</strong></span>
-              <span>متبقي <strong style={{ color: '#170e5e' }}>{data.targetMetrics.remainingWorkingDays}</strong> يوم عمل (مستبعداً الجمعات)</span>
-              <span>المطلوب يومياً: <strong style={{ color: '#d97706' }}>{data.targetMetrics.requiredDailyTarget.toFixed(2)} {getGlobalCurrencySymbol()}/يوم</strong></span>
+                  <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
+                    <div
+                      style={{
+                        width: `${Math.min(100, data.targetMetrics.achievementRate)}%`,
+                        height: '100%',
+                        backgroundColor: data.targetMetrics.isTargetAchieved ? '#16a34a' : '#170e5e',
+                        transition: 'width 0.3s ease',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ fontSize: '10.5px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>المحقق بالشهر: <strong style={{ color: '#0f172a' }}>{data.targetMetrics.actualSalesMTD.toFixed(0)}</strong></span>
+                      <span>المتبقي: <strong style={{ color: '#dc2626' }}>{data.targetMetrics.remainingTarget.toFixed(0)}</strong></span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #e2e8f0', paddingTop: '3px', marginTop: '2px' }}>
+                      <span>بيع رحلة اليوم: <strong style={{ color: '#16a34a' }}>{(data.targetMetrics.todaySales ?? 0).toFixed(0)}</strong></span>
+                      <span>المطلوب يومياً: <strong style={{ color: '#d97706' }}>{data.targetMetrics.requiredDailyTarget.toFixed(0)}/يوم</strong></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Collection Target */}
+              {(data.targetMetrics.collectionTarget ?? 0) > 0 && (
+                <div
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#1e293b' }}>
+                      التحصيل: {(data.targetMetrics.collectionTarget ?? 0).toFixed(0)} {getGlobalCurrencySymbol()}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: 800,
+                        color: data.targetMetrics.isCollectionAchieved ? '#15803d' : '#0369a1',
+                        backgroundColor: data.targetMetrics.isCollectionAchieved ? '#dcfce7' : '#e0f2fe',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      {data.targetMetrics.isCollectionAchieved ? 'تم الإنجاز' : `${data.targetMetrics.collectionAchievementRate ?? 0}%`}
+                    </span>
+                  </div>
+
+                  <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
+                    <div
+                      style={{
+                        width: `${Math.min(100, data.targetMetrics.collectionAchievementRate ?? 0)}%`,
+                        height: '100%',
+                        backgroundColor: data.targetMetrics.isCollectionAchieved ? '#16a34a' : '#0284c7',
+                        transition: 'width 0.3s ease',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ fontSize: '10.5px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>المحصل بالشهر: <strong style={{ color: '#0f172a' }}>{(data.targetMetrics.actualCollectionsMTD ?? 0).toFixed(0)}</strong></span>
+                      <span>المتبقي: <strong style={{ color: '#dc2626' }}>{(data.targetMetrics.remainingCollection ?? 0).toFixed(0)}</strong></span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #e2e8f0', paddingTop: '3px', marginTop: '2px' }}>
+                      <span>كاش رحلة اليوم: <strong style={{ color: '#0284c7' }}>{(data.targetMetrics.todayCollections ?? 0).toFixed(0)}</strong></span>
+                      <span>المطلوب يومياً: <strong style={{ color: '#d97706' }}>{(data.targetMetrics.requiredDailyCollection ?? 0).toFixed(0)}/يوم</strong></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Field Visits Target */}
+              {(data.targetMetrics.visitsTarget ?? 0) > 0 && (
+                <div
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#1e293b' }}>
+                      الزيارات: {data.targetMetrics.visitsTarget} زيارة
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: 800,
+                        color: data.targetMetrics.isVisitsAchieved ? '#15803d' : '#7c3aed',
+                        backgroundColor: data.targetMetrics.isVisitsAchieved ? '#dcfce7' : '#f5f3ff',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      {data.targetMetrics.isVisitsAchieved ? 'تم الإنجاز' : `${data.targetMetrics.visitsAchievementRate ?? 0}%`}
+                    </span>
+                  </div>
+
+                  <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
+                    <div
+                      style={{
+                        width: `${Math.min(100, data.targetMetrics.visitsAchievementRate ?? 0)}%`,
+                        height: '100%',
+                        backgroundColor: data.targetMetrics.isVisitsAchieved ? '#16a34a' : '#7c3aed',
+                        transition: 'width 0.3s ease',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ fontSize: '10.5px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>منجز بالشهر: <strong style={{ color: '#0f172a' }}>{data.targetMetrics.actualVisitsMTD ?? 0}</strong></span>
+                      <span>المتبقي: <strong style={{ color: '#dc2626' }}>{data.targetMetrics.remainingVisits ?? 0}</strong></span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #e2e8f0', paddingTop: '3px', marginTop: '2px' }}>
+                      <span>زيارات اليوم: <strong style={{ color: '#7c3aed' }}>{data.targetMetrics.todayVisits ?? 0}</strong></span>
+                      <span>المطلوب يومياً: <strong style={{ color: '#d97706' }}>{data.targetMetrics.requiredDailyVisits ?? 0} زيارة/يوم</strong></span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -539,6 +746,24 @@ export default function VanSalesMobilePage() {
                     }}
                   >
                     فاتورة بيع {cart.length > 0 && `(${cart.length})`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('sales-history')}
+                    style={{
+                      flex: 1,
+                      minWidth: '70px',
+                      padding: '8px 4px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      backgroundColor: currentTab === 'sales-history' ? '#170e5e' : 'transparent',
+                      color: currentTab === 'sales-history' ? '#ffffff' : '#475569',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    سجل الفواتير
                   </button>
                   <button
                     type="button"
@@ -730,6 +955,24 @@ export default function VanSalesMobilePage() {
                     }}
                   >
                     فاتورة بيع
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('sales-history')}
+                    style={{
+                      flex: 1,
+                      minWidth: '70px',
+                      padding: '8px 4px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      backgroundColor: currentTab === 'sales-history' ? '#170e5e' : 'transparent',
+                      color: currentTab === 'sales-history' ? '#ffffff' : '#475569',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    سجل الفواتير
                   </button>
                 </>
               )}
@@ -1082,13 +1325,17 @@ export default function VanSalesMobilePage() {
                 isLoading={isItineraryLoading}
                 onSelectCustomerForSale={(customerId) => {
                   setSelectedCustomerId(customerId);
+                  setNewCustomerName('');
                   if (data?.hasActiveTrip) {
                     setActiveTab('sale');
                   } else {
                     toast.info('يرجى بدء رحلة التوزيع أولاً لإصدار فاتورة بيع');
                   }
                 }}
-                onRefreshItinerary={() => refetchItinerary()}
+                onRefreshItinerary={() => {
+                  refetchItinerary();
+                  queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] });
+                }}
               />
             )}
 
@@ -1098,14 +1345,17 @@ export default function VanSalesMobilePage() {
                 stockSearch={stockSearch}
                 onSearchChange={setStockSearch}
                 filteredInventory={filteredInventory}
+                cart={cart}
+                cartTotal={cartTotal}
                 onAddToCart={(item) => {
                   if (data?.hasActiveTrip) {
                     addToCart(item);
-                    setActiveTab('sale');
                   } else {
                     toast.info('يرجى بدء رحلة التوزيع أولاً لإضافة الأصناف للفاتورة');
                   }
                 }}
+                onUpdateCartQty={updateCartQty}
+                onGoToSale={() => setActiveTab('sale')}
                 onOpenTransferModal={() => setTransferModalOpen(true)}
                 pendingTransfersCount={peerTransfers.filter((t) => t.status === 'pending').length}
               />
@@ -1211,7 +1461,7 @@ export default function VanSalesMobilePage() {
             {currentTab === 'sale' && (
               data?.hasActiveTrip ? (
                 <VanSaleTab
-                  customers={data.customers}
+                  customers={allAvailableCustomers}
                   selectedCustomerId={selectedCustomerId}
                   onSelectCustomer={(val) => {
                     setSelectedCustomerId(val);
@@ -1224,41 +1474,20 @@ export default function VanSalesMobilePage() {
                   cart={cart}
                   onUpdateCartQty={updateCartQty}
                   cartTotal={cartTotal}
+                  inventory={data?.inventory || []}
+                  onAddToCart={addToCart}
                   deliveryProofPhoto={deliveryProofPhoto}
                   onDeliveryProofPhotoChange={setDeliveryProofPhoto}
                   cartonsCount={cartonsCount}
                   onCartonsCountChange={setCartonsCount}
                   onGoToInventory={() => setActiveTab('inventory')}
-                  onSubmitSale={async () => {
-                    let gpsLat: number | undefined;
-                    let gpsLng: number | undefined;
-                    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-                      try {
-                        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-                          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3500, enableHighAccuracy: true });
-                        });
-                        gpsLat = pos.coords.latitude;
-                        gpsLng = pos.coords.longitude;
-                      } catch {}
+                  onGoToSalesHistory={() => setActiveTab('sales-history')}
+                  onSubmitSale={() => {
+                    if (cart.length === 0) {
+                      showAlert('error', 'السلة فارغة حالياً. يرجى اختيار صنف واحد على الأقل لإصدار الفاتورة.');
+                      return;
                     }
-
-                    executeSaleMutation.mutate({
-                      tripId: data.trip!.id,
-                      customerId: selectedCustomerId ? Number(selectedCustomerId) : undefined,
-                      customerName: newCustomerName || undefined,
-                      paymentMethod,
-                      deliveryGpsLat: gpsLat,
-                      deliveryGpsLng: gpsLng,
-                      deliveryProofPhoto: deliveryProofPhoto || undefined,
-                      packagingBreakdown: cartonsCount
-                        ? {
-                            cartonsCount: Number(cartonsCount) || 0,
-                            piecesCount: cart.reduce((s, it) => s + it.qty, 0),
-                            itemsCount: cart.length,
-                          }
-                        : undefined,
-                      items: cart.map((c) => ({ productId: c.productId, qty: c.qty, unitPrice: c.unitPrice })),
-                    });
+                    setCheckoutModalOpen(true);
                   }}
                   isSubmitting={executeSaleMutation.isPending}
                 />
@@ -1281,6 +1510,17 @@ export default function VanSalesMobilePage() {
                   </Button>
                 </div>
               )
+            )}
+
+            {/* TAB CONTENT: SALES HISTORY */}
+            {currentTab === 'sales-history' && (
+              <VanSalesHistoryTab
+                tripId={data?.trip?.id}
+                customers={allAvailableCustomers}
+                onViewReceipt={(receiptData) => setLastSaleReceipt(receiptData)}
+                onGoToNewSale={() => setActiveTab('sale')}
+                storeName={data?.trip?.sourceWarehouseName || 'مبيعات التوزيع الميداني'}
+              />
             )}
 
             {/* TAB CONTENT: COLLECTION */}
@@ -1394,11 +1634,65 @@ export default function VanSalesMobilePage() {
         />
       )}
 
+      {/* Field Sale Checkout & Payment Modal */}
+      {data?.trip && checkoutModalOpen && (
+        <VanSaleCheckoutModal
+          open={checkoutModalOpen}
+          onClose={() => setCheckoutModalOpen(false)}
+          cartTotal={cartTotal}
+          cartItemsCount={cart.length}
+          cartTotalPieces={cart.reduce((s, it) => s + it.qty, 0)}
+          customer={allAvailableCustomers.find((c) => String(c.id) === String(selectedCustomerId)) || null}
+          newCustomerName={newCustomerName}
+          cartonsCount={cartonsCount}
+          onCartonsCountChange={setCartonsCount}
+          deliveryProofPhoto={deliveryProofPhoto}
+          onDeliveryProofPhotoChange={setDeliveryProofPhoto}
+          notes={saleNotes}
+          onNotesChange={setSaleNotes}
+          isSubmitting={executeSaleMutation.isPending}
+          onConfirmCheckout={async (checkoutData) => {
+            let gpsLat: number | undefined;
+            let gpsLng: number | undefined;
+            if (typeof navigator !== 'undefined' && navigator.geolocation) {
+              try {
+                const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                  navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3500, enableHighAccuracy: true });
+                });
+                gpsLat = pos.coords.latitude;
+                gpsLng = pos.coords.longitude;
+              } catch {}
+            }
+
+            executeSaleMutation.mutate({
+              tripId: data.trip!.id,
+              customerId: selectedCustomerId ? Number(selectedCustomerId) : undefined,
+              customerName: newCustomerName || undefined,
+              paymentMethod: checkoutData.paymentMethod,
+              paidAmount: checkoutData.paidAmount,
+              notes: checkoutData.notes,
+              deliveryGpsLat: gpsLat,
+              deliveryGpsLng: gpsLng,
+              deliveryProofPhoto: checkoutData.deliveryProofPhoto || deliveryProofPhoto || undefined,
+              packagingBreakdown: checkoutData.cartonsCount
+                ? {
+                    cartonsCount: Number(checkoutData.cartonsCount) || 0,
+                    piecesCount: cart.reduce((s, it) => s + it.qty, 0),
+                    itemsCount: cart.length,
+                  }
+                : undefined,
+              items: cart.map((c) => ({ productId: c.productId, qty: c.qty, unitPrice: c.unitPrice })),
+            });
+          }}
+        />
+      )}
+
       {/* Sale Receipt Modal */}
       {lastSaleReceipt && (
         <VanSalesReceiptModal
           receipt={lastSaleReceipt}
           onClose={() => setLastSaleReceipt(null)}
+          storeName={data?.trip?.sourceWarehouseName || 'مبيعات التوزيع الميداني'}
         />
       )}
     </div>

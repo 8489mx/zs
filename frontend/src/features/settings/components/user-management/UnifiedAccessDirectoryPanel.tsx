@@ -301,22 +301,27 @@ export function DeliveryRepsAccessPanel() {
                       {rep.phone || <span style={{ color: '#dc2626', fontSize: '11px' }}>غير محدد</span>}
                     </td>
                     <td style={{ padding: '10px 10px' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          padding: '2px 7px',
-                          background: rep.pin_code ? '#f0fdf4' : '#fef2f2',
-                          border: `1px solid ${rep.pin_code ? '#bbf7d0' : '#fecaca'}`,
-                          color: rep.pin_code ? '#15803d' : '#b91c1c',
-                          borderRadius: '6px',
-                          fontFamily: 'monospace',
-                          fontWeight: 700,
-                          letterSpacing: '1px',
-                          fontSize: '11.5px',
-                        }}
-                      >
-                        {rep.pin_code ? `•••• (${rep.pin_code})` : 'بدون رمز'}
-                      </span>
+                      {(() => {
+                        const hasPin = Boolean(rep.has_pin || (rep as any).hasPin || (rep as any).pin_hash || rep.pin_code);
+                        return (
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              background: hasPin ? '#ecfdf5' : '#fef2f2',
+                              border: `1px solid ${hasPin ? '#a7f3d0' : '#fecaca'}`,
+                              color: hasPin ? '#065f46' : '#b91c1c',
+                              borderRadius: '6px',
+                              fontFamily: 'monospace',
+                              fontWeight: 700,
+                              letterSpacing: '1px',
+                              fontSize: '11.5px',
+                            }}
+                          >
+                            {hasPin ? '•••• مفعل' : 'بدون رمز'}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td style={{ padding: '10px 8px' }}>
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>

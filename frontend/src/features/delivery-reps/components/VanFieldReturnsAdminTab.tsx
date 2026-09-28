@@ -23,6 +23,7 @@ export function VanFieldReturnsAdminTab() {
   const [selectedReturn, setSelectedReturn] = useState<VanFieldReturnRecord | null>(null);
   const [rejectModalReturn, setRejectModalReturn] = useState<VanFieldReturnRecord | null>(null);
   const [rejectReasonInput, setRejectReasonInput] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     data: returns = [],
@@ -33,6 +34,23 @@ export function VanFieldReturnsAdminTab() {
     queryFn: () => vanSalesApi.listAdminReturns({ status: statusFilter || undefined }),
     refetchInterval: 15000,
   });
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['van-admin-field-returns'] }),
+        queryClient.invalidateQueries({ queryKey: ['van-admin-pending-returns-badge'] }),
+        refetch(),
+      ]);
+      await new Promise((r) => setTimeout(r, 450));
+      toast.success('تم تحديث مرتجعات الميدان بنجاح');
+    } catch {
+      toast.error('حدث خطأ أثناء تحديث البيانات');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const pendingReturns = returns.filter((r) => r.status === 'pending_approval');
   const pendingTotal = pendingReturns.reduce((sum, r) => sum + r.totalAmount, 0);
@@ -174,7 +192,9 @@ export function VanFieldReturnsAdminTab() {
 
         <button
           type="button"
-          onClick={() => refetch()}
+          disabled={isRefreshing}
+          onClick={handleManualRefresh}
+          title="تحديث قائمة مرتجعات الميدان من السيرفر"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -185,12 +205,17 @@ export function VanFieldReturnsAdminTab() {
             padding: '6px 12px',
             fontSize: '12px',
             fontWeight: 600,
-            cursor: 'pointer',
+            cursor: isRefreshing ? 'wait' : 'pointer',
+            opacity: isRefreshing ? 0.75 : 1,
             color: '#334155',
           }}
         >
-          <RefreshCwIcon size={14} />
-          تحديث
+          <RefreshCwIcon
+            size={14}
+            className={isRefreshing ? 'spin-animation' : undefined}
+            style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
+          />
+          {isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}
         </button>
       </div>
 

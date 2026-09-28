@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { toast } from '@/shared/components/system-alert';
 import {
   TruckIcon,
   SearchIcon,
@@ -27,7 +28,9 @@ import { SendToMaintenanceModal } from './SendToMaintenanceModal';
 import { CompleteMaintenanceModal } from './CompleteMaintenanceModal';
 
 export function FleetVehiclesTab() {
+  const queryClient = useQueryClient();
   const [vehicleSearch, setVehicleSearch] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [vehicleStatusFilter, setVehicleStatusFilter] = useState<'all' | 'available' | 'assigned' | 'maintenance'>('all');
   const [isUpsertVehicleOpen, setIsUpsertVehicleOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<FleetVehicle | null>(null);
@@ -109,12 +112,28 @@ export function FleetVehiclesTab() {
     });
   }, [vehicles, vehicleStatusFilter, vehicleSearch]);
 
-  const refreshAll = () => {
-    refetchVehicles();
-    refetchReps();
-    refetchAlerts();
-    refetchOilChanges();
-    refetchFuelLogs();
+  const refreshAll = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['fleet-vehicles'] }),
+        queryClient.invalidateQueries({ queryKey: ['delivery-reps'] }),
+        queryClient.invalidateQueries({ queryKey: ['fleet-maintenance-alerts'] }),
+        queryClient.invalidateQueries({ queryKey: ['fleet-oil-changes'] }),
+        queryClient.invalidateQueries({ queryKey: ['fleet-fuel-logs'] }),
+        refetchVehicles(),
+        refetchReps(),
+        refetchAlerts(),
+        refetchOilChanges(),
+        refetchFuelLogs(),
+      ]);
+      await new Promise((r) => setTimeout(r, 450));
+      toast.success('تم تحديث أسطول السيارات بنجاح');
+    } catch {
+      toast.error('حدث خطأ أثناء تحديث البيانات');
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -291,11 +310,24 @@ export function FleetVehiclesTab() {
 
           <Button
             variant="secondary"
-            style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            disabled={isRefreshing}
+            style={{
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: isRefreshing ? 'wait' : 'pointer',
+              opacity: isRefreshing ? 0.75 : 1,
+            }}
             onClick={refreshAll}
+            title="تحديث بيانات أسطول السيارات من السيرفر"
           >
-            <RefreshCwIcon size={14} />
-            تحديث
+            <RefreshCwIcon
+              size={14}
+              className={isRefreshing ? 'spin-animation' : undefined}
+              style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
+            />
+            {isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}
           </Button>
         </div>
       </div>

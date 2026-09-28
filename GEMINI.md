@@ -1,12 +1,17 @@
 # Project Rules & Guidelines for Z-Systems (d:\zn)
 
-## 1. Strict Build & Push Rule
+## 1. Strict Build, Push & Verification Policy (قاعدة البناء والبوش وتأجيل الحراس)
 - **NEVER** run `npm run build` or any production bundle build command automatically unless the user explicitly commands it (e.g. "رن بيلد", "اعمل بيلد وبوش", "build").
 - **NEVER** run `git push` automatically unless the user explicitly requests it (e.g. "اعمل بوش", "بوش للـ main", "push").
+- **تأجيل الحراس والتايب تشيك حتى النهاية:** ممنوع تشغيل الحراس واختبارات الأمان والفحص البرمجي الموسع (`guards`, `typecheck`, `test:critical`, `qa:architecture`) أثناء خطوات التجربة والورك فلو السريعة خطوة بخطوة؛ وتؤجل تماماً حتى نهاية العمل بالكامل وبأمر صريح من المستخدم، لمنع إهدار الوقت والحفاظ على سرعة وسلاسة التجربة.
 
 ## 2. Arabic & RTL UI
 - RTL layout by default for Arabic UI elements (`dir="rtl"`).
 - Chat responses wrapped in `<div dir="rtl">...</div>`.
+- **دستور أزرار العدادات والكميات في الواجهات العربية (Strict RTL Stepper Standard):**
+  - في كافة أزرار العدادات وتعديل الكميات (`Stepper` / `Quantity Controls`) عبر المنظومة بالكامل (نقاط البيع، فواتير التوزيع الميداني، أذونات التحميل، وسلات الشراء والمودالات):
+  - **الزائد (`+`) يجب أن يكون دائماً على اليمين، والناقص (`-`) دائماً على اليسار!**
+  - في بيئات RTL، العنصر الأول في DOM يظهر جهة اليمين، لذا يجب برمجياً كتابة زر الزيادة `+` أولاً، تليه خانة/نص الكمية في المنتصف، ثم زر الإنقاص `-` أخيراً جهة اليسار: `[+] (الكمية) [-]`. يُمنع منعاً باتاً عكس هذا الترتيب في أي شاشة أو مكون.
 
 ## 3. Consultation Mode
 - If user prompt contains `?` or `؟`, act purely as advisor without running modifying code or execution commands until instructed with "نفذ".

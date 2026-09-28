@@ -9,7 +9,8 @@ import {
 import { driverPortalApi } from '@/shared/api/delivery-reps.api';
 import { toast } from '@/shared/components/system-alert';
 
-export function useDriverLoadRequisition(selectedWarehouseFilter: string) {
+export function useDriverLoadRequisition(selectedWarehouseFilter: string, options?: { enabled?: boolean }) {
+  const isEnabled = options?.enabled ?? true;
   const queryClient = useQueryClient();
   const session = useMemo(() => driverPortalApi.getStoredSession(), []);
 
@@ -31,6 +32,7 @@ export function useDriverLoadRequisition(selectedWarehouseFilter: string) {
         throw err;
       }
     },
+    enabled: isEnabled,
     staleTime: 60_000,
   });
 
@@ -49,6 +51,7 @@ export function useDriverLoadRequisition(selectedWarehouseFilter: string) {
         throw err;
       }
     },
+    enabled: isEnabled,
     staleTime: 30_000,
   });
 

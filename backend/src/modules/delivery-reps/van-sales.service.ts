@@ -6,7 +6,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { DeliveryRepsService } from './delivery-reps.service';
 import { applyStockDelta } from '../../common/utils/location-stock-ledger';
-import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
+import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../common/utils/document-number.util';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { calculateRepTargetMetrics, type RepTargetCalculationResult } from './rep-target.engine';
@@ -408,7 +408,7 @@ export class VanSalesService {
       .where('c.tenant_id', '=', tenantId)
       .where('c.is_active', '=', true)
       .orderBy('c.name', 'asc')
-      .limit(100)
+      .limit(2500)
       .execute();
 
     const customers = customerRows.map((c: any) => {
@@ -460,12 +460,18 @@ export class VanSalesService {
 
     const targetRow = await this.anyDb
       .selectFrom('delivery_rep_targets')
-      .select(['target_amount'])
+      .select(['target_amount', 'collection_target', 'visits_target'])
       .where('rep_id', '=', repId)
       .where('period_month', '=', currentPeriodMonth)
       .where('tenant_id', '=', tenantId)
       .executeTakeFirst();
     const targetAmount = Number(targetRow?.target_amount || 0);
+    const collectionTarget = targetRow?.collection_target !== null && targetRow?.collection_target !== undefined
+      ? Number(targetRow.collection_target)
+      : null;
+    const visitsTarget = targetRow?.visits_target !== null && targetRow?.visits_target !== undefined
+      ? Number(targetRow.visits_target)
+      : null;
 
     const salesMtdRow = await this.anyDb
       .selectFrom('sales')
@@ -478,15 +484,62 @@ export class VanSalesService {
       .executeTakeFirst();
     const actualSalesMtd = Number(salesMtdRow?.total_mtd || 0);
 
+    const collectionsMtdRow = await this.anyDb
+      .selectFrom('van_sales_trips')
+      .select([sql<number>`coalesce(sum(cast(cash_collected as numeric)), 0)`.as('total_collected')])
+      .where('rep_id', '=', repId)
+      .where('tenant_id', '=', tenantId)
+      .where('opened_at', '>=', startOfMonth)
+      .where('opened_at', '<=', endOfMonth)
+      .executeTakeFirst();
+    const actualCollectionsMtd = Number(collectionsMtdRow?.total_collected || 0);
+
+    const visitsMtdRow = await this.anyDb
+      .selectFrom('van_field_visits')
+      .select([sql<number>`count(*)`.as('total_visits')])
+      .where('rep_id', '=', repId)
+      .where('tenant_id', '=', tenantId)
+      .where('visited_at', '>=', startOfMonth)
+      .where('visited_at', '<=', endOfMonth)
+      .executeTakeFirst();
+    const actualVisitsMtd = Number(visitsMtdRow?.total_visits || 0);
+
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    const todayVisitsRow = await this.anyDb
+      .selectFrom('van_field_visits')
+      .select([sql<number>`count(*)`.as('today_visits')])
+      .where('rep_id', '=', repId)
+      .where('tenant_id', '=', tenantId)
+      .where('visited_at', '>=', startOfToday)
+      .where('visited_at', '<=', endOfToday)
+      .executeTakeFirst();
+    const todayVisits = Number(todayVisitsRow?.today_visits || 0);
+
     const officialHolidays = await this.getMonthlyOfficialHolidayDates(tenantId, startOfMonth, endOfMonth);
 
-    const targetMetrics = calculateRepTargetMetrics({
+    const baseMetrics = calculateRepTargetMetrics({
       targetAmount,
       actualSalesMTD: actualSalesMtd,
+      collectionTarget,
+      actualCollectionsMTD: actualCollectionsMtd,
+      visitsTarget,
+      actualVisitsMTD: actualVisitsMtd,
       currentDate: now,
       weekendDays: [5], // Friday
       officialHolidays,
     });
+
+    const todaySales = Number(tripRow?.salesAmount || 0);
+    const todayCollections = Number(tripRow?.cashCollected || 0);
+
+    const targetMetrics = {
+      ...baseMetrics,
+      todaySales,
+      todayCollections,
+      todayVisits,
+    };
 
     if (!tripRow) {
       return {
@@ -733,7 +786,8 @@ export class VanSalesService {
       customerId?: number;
       customerName?: string;
       customerPhone?: string;
-      paymentMethod: 'cash' | 'credit';
+      paymentMethod: 'cash' | 'credit' | 'card' | 'split';
+      paidAmount?: number;
       items: { productId: number; qty: number; unitPrice?: number }[];
       notes?: string;
       deliveryGpsLat?: number;
@@ -746,9 +800,11 @@ export class VanSalesService {
     saleId: number;
     docNo: string;
     total: number;
-    paymentMethod: 'cash' | 'credit';
+    paymentMethod: string;
     customerName: string;
     itemsCount: number;
+    cashPaid?: number;
+    creditOwed?: number;
   }> {
     if (!payload.items || !payload.items.length) {
       throw new AppError('يجب تحديد صنف واحد على الأقل لإصدار الفاتورة', 'EMPTY_SALE_ITEMS', 400);
@@ -773,27 +829,38 @@ export class VanSalesService {
     let resolvedCustomerId: number | null = payload.customerId ? Number(payload.customerId) : null;
     let customerName = payload.customerName || 'عميل نقدي ميداني';
 
-    if (payload.paymentMethod === 'credit' && !resolvedCustomerId) {
-      if (!payload.customerName) {
-        throw new AppError('البيع الآجل يتطلب تحديد أو إدخال اسم العميل / المحل', 'CREDIT_REQUIRES_CUSTOMER', 400);
+    const isCreditOrSplit = payload.paymentMethod === 'credit' || payload.paymentMethod === 'split';
+    if (isCreditOrSplit && !resolvedCustomerId && !payload.customerName) {
+      throw new AppError('البيع الآجل أو المجزأ يتطلب تحديد أو إدخال اسم العميل / المحل', 'CREDIT_REQUIRES_CUSTOMER', 400);
+    }
+
+    if (!resolvedCustomerId && payload.customerName && payload.customerName.trim() && payload.customerName !== 'عميل نقدي ميداني') {
+      const existing = await this.anyDb
+        .selectFrom('customers')
+        .select(['id', 'name'])
+        .where('name', '=', payload.customerName.trim())
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+
+      if (existing) {
+        resolvedCustomerId = Number(existing.id);
+        customerName = existing.name;
+      } else {
+        const [newCust] = await this.anyDb
+          .insertInto('customers')
+          .values({
+            name: payload.customerName.trim(),
+            phone: payload.customerPhone || null,
+            is_active: true,
+            tenant_id: tenantId,
+            account_id: accountId,
+          })
+          .returning(['id', 'name'])
+          .execute();
+        resolvedCustomerId = Number(newCust.id);
+        customerName = newCust.name;
       }
-      const [newCust] = await this.anyDb
-        .insertInto('customers')
-        .values({
-          name: payload.customerName,
-          phone: payload.customerPhone || null,
-          is_active: true,
-          tenant_id: tenantId,
-          account_id: accountId,
-        })
-        .returning(['id', 'name'])
-        .execute();
-      resolvedCustomerId = Number(newCust.id);
-      customerName = newCust.name;
     } else if (resolvedCustomerId) {
-      // O27: customerId comes from the driver's request body. Without the tenant filter this read
-      // returned another tenant's customer name, and the balance update below (correctly scoped)
-      // then matched nothing, writing balance_after = 0 into customer_ledger.
       const cust = await this.anyDb
         .selectFrom('customers')
         .select(['name'])
@@ -807,6 +874,8 @@ export class VanSalesService {
     let docNo = '';
     let totalSale = 0;
     let createdSaleId = 0;
+    let cashPaid = 0;
+    let creditOwed = 0;
 
     await this.db.transaction().execute(async (trx) => {
       const trxAny = trx as any;
@@ -872,6 +941,29 @@ export class VanSalesService {
       const systemAuth = await this.resolveSystemAuthContext(tenantId, accountId);
       const createdByUserId = systemAuth.userId > 0 ? systemAuth.userId : null;
 
+      const isCash = payload.paymentMethod === 'cash';
+      const isCard = payload.paymentMethod === 'card';
+      const isCredit = payload.paymentMethod === 'credit';
+      const isSplit = payload.paymentMethod === 'split';
+
+      cashPaid = 0;
+      creditOwed = 0;
+
+      if (isCash) {
+        cashPaid = totalSale;
+        creditOwed = 0;
+      } else if (isCredit) {
+        cashPaid = 0;
+        creditOwed = totalSale;
+      } else if (isCard) {
+        cashPaid = 0;
+        creditOwed = 0;
+      } else if (isSplit) {
+        const rawPaid = Number(payload.paidAmount || 0);
+        cashPaid = Math.max(0, Math.min(totalSale, Number(rawPaid.toFixed(2))));
+        creditOwed = Math.max(0, Number((totalSale - cashPaid).toFixed(2)));
+      }
+
       const tempDocNo = `TMP-VAN-${Date.now()}`;
       const insertedSale = await trxAny
         .insertInto('sales')
@@ -880,7 +972,6 @@ export class VanSalesService {
           total: totalSale,
           subtotal: totalSale,
           discount: 0,
-          tax_amount: 0,
           // Money collected in the field sits with the rep, not the till, until settleTrip — so
           // this is never marked paid here. postSale below books the full total as a receivable,
           // exactly like a cash-on-delivery order, and postVanTripSettlement clears it later.
@@ -889,8 +980,8 @@ export class VanSalesService {
           prices_include_tax: false,
           status: 'posted',
           payment_type: payload.paymentMethod,
-          payment_channel: payload.paymentMethod === 'cash' ? 'cash' : 'credit',
-          collection_status: payload.paymentMethod === 'cash' ? 'prepaid_by_rep' : null,
+          payment_channel: isCash ? 'cash' : (isCard ? 'card' : (isCredit ? 'credit' : 'mixed')),
+          collection_status: isCash ? 'prepaid_by_rep' : (isSplit && cashPaid > 0 ? 'prepaid_by_rep' : null),
           customer_id: resolvedCustomerId,
           branch_id: branchId,
           location_id: vanLocId,
@@ -910,7 +1001,7 @@ export class VanSalesService {
         .executeTakeFirstOrThrow();
 
       createdSaleId = Number(insertedSale.id);
-      docNo = formatDailyDocumentNumber('VAN', createdSaleId);
+      docNo = await this.generateDailySequenceNumber(trxAny, 'sales', 'doc_no', 'VAN', tenantId);
 
       await trxAny
         .updateTable('sales')
@@ -967,7 +1058,7 @@ export class VanSalesService {
         await this.accountingPosting.recordPostingFailure(trx, { tenantId, accountId }, 'sale', createdSaleId, message);
       }
 
-      if (payload.paymentMethod === 'cash') {
+      if (isCash) {
         await trxAny
           .updateTable('van_sales_trips')
           .set({
@@ -978,7 +1069,17 @@ export class VanSalesService {
           .where('id', '=', payload.tripId)
           .where('tenant_id', '=', tenantId)
           .execute();
-      } else {
+      } else if (isCard) {
+        await trxAny
+          .updateTable('van_sales_trips')
+          .set({
+            sales_amount: sql`sales_amount + ${totalSale}`,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', payload.tripId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      } else if (isCredit) {
         await trxAny
           .updateTable('van_sales_trips')
           .set({
@@ -1016,6 +1117,45 @@ export class VanSalesService {
             })
             .execute();
         }
+      } else if (isSplit) {
+        await trxAny
+          .updateTable('van_sales_trips')
+          .set({
+            sales_amount: sql`sales_amount + ${totalSale}`,
+            cash_collected: sql`cash_collected + ${cashPaid}`,
+            credit_sales: sql`credit_sales + ${creditOwed}`,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', payload.tripId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+
+        if (resolvedCustomerId && creditOwed > 0) {
+          const updatedCust = await trxAny
+            .updateTable('customers')
+            .set({ balance: sql`COALESCE(balance, 0) + ${creditOwed}`, updated_at: sql`NOW()` })
+            .where('id', '=', resolvedCustomerId)
+            .where('tenant_id', '=', tenantId)
+            .returning(['balance'])
+            .executeTakeFirst();
+          const balanceAfter = Number(updatedCust?.balance || 0);
+
+          await trxAny
+            .insertInto('customer_ledger')
+            .values({
+              customer_id: resolvedCustomerId,
+              entry_type: 'sale_credit',
+              amount: creditOwed,
+              balance_after: balanceAfter,
+              note: `فاتورة بيع ميدانية مجزأة (#${docNo}) - مسدد نقداً: ${cashPaid.toFixed(2)}، متبقي آجل: ${creditOwed.toFixed(2)}`,
+              reference_type: 'sale',
+              reference_id: createdSaleId,
+              van_trip_id: payload.tripId,
+              tenant_id: tenantId,
+              account_id: accountId,
+            })
+            .execute();
+        }
       }
     });
 
@@ -1027,6 +1167,8 @@ export class VanSalesService {
       paymentMethod: payload.paymentMethod,
       customerName,
       itemsCount: payload.items.length,
+      cashPaid,
+      creditOwed,
     };
   }
 
@@ -1095,7 +1237,7 @@ export class VanSalesService {
         .returning(['id'])
         .executeTakeFirstOrThrow();
 
-      receiptNo = formatDailyDocumentNumber('COL', Number(insertedPayment.id));
+      receiptNo = await this.generateDailySequenceNumber(trxAny, 'customer_payments', 'note', 'COL', tenantId);
       const finalNote = payload.notes || `سند تحصيل نقدي ميداني بواسطة المندوب (#${receiptNo})`;
 
       await trxAny
@@ -2122,7 +2264,7 @@ export class VanSalesService {
       .execute();
 
     const returnId = Number(inserted.id);
-    const docNo = formatDailyDocumentNumber('VRET', returnId);
+    const docNo = await this.generateDailySequenceNumber(this.anyDb, 'van_field_returns', 'doc_no', 'VRET', tenantId);
     await this.anyDb
       .updateTable('van_field_returns')
       .set({ doc_no: docNo })
@@ -2364,10 +2506,25 @@ export class VanSalesService {
   }
 
   /**
-   * Sets or updates a representative's monthly sales target.
+   * Sets or updates a representative's monthly sales, collection, and visits targets.
    */
-  async setRepTarget(tenantId: string, accountId: string, repId: number, periodMonth: string, targetAmount: number) {
+  async setRepTarget(
+    tenantId: string,
+    accountId: string,
+    repId: number,
+    periodMonth: string,
+    targetAmount: number,
+    collectionTarget?: number | null,
+    visitsTarget?: number | null,
+  ) {
     const target = Math.max(0, Number(Number(targetAmount || 0).toFixed(2)));
+    const colTarget = collectionTarget !== undefined && collectionTarget !== null && !isNaN(Number(collectionTarget))
+      ? Math.max(0, Number(Number(collectionTarget).toFixed(2)))
+      : null;
+    const visTarget = visitsTarget !== undefined && visitsTarget !== null && !isNaN(Number(visitsTarget))
+      ? Math.max(0, Math.round(Number(visitsTarget)))
+      : null;
+
     const rep = await this.anyDb
       .selectFrom('delivery_representatives')
       .select(['id', 'name'])
@@ -2387,7 +2544,12 @@ export class VanSalesService {
     if (existing) {
       await this.anyDb
         .updateTable('delivery_rep_targets')
-        .set({ target_amount: target, updated_at: sql`NOW()` })
+        .set({
+          target_amount: target,
+          collection_target: colTarget,
+          visits_target: visTarget,
+          updated_at: sql`NOW()`,
+        })
         .where('id', '=', existing.id)
         .where('tenant_id', '=', tenantId)
         .execute();
@@ -2400,6 +2562,8 @@ export class VanSalesService {
           rep_id: repId,
           period_month: periodMonth,
           target_amount: target,
+          collection_target: colTarget,
+          visits_target: visTarget,
         })
         .execute();
     }
@@ -2458,12 +2622,18 @@ export class VanSalesService {
 
     const targetRow = await this.anyDb
       .selectFrom('delivery_rep_targets')
-      .select(['target_amount'])
+      .select(['target_amount', 'collection_target', 'visits_target'])
       .where('rep_id', '=', repId)
       .where('period_month', '=', month)
       .where('tenant_id', '=', tenantId)
       .executeTakeFirst();
     const targetAmount = Number(targetRow?.target_amount || 0);
+    const collectionTarget = targetRow?.collection_target !== null && targetRow?.collection_target !== undefined
+      ? Number(targetRow.collection_target)
+      : null;
+    const visitsTarget = targetRow?.visits_target !== null && targetRow?.visits_target !== undefined
+      ? Number(targetRow.visits_target)
+      : null;
 
     const salesMtdRow = await this.anyDb
       .selectFrom('sales')
@@ -2476,11 +2646,35 @@ export class VanSalesService {
       .executeTakeFirst();
     const actualSalesMtd = Number(salesMtdRow?.total_mtd || 0);
 
+    const collectionsMtdRow = await this.anyDb
+      .selectFrom('van_sales_trips')
+      .select([sql<number>`coalesce(sum(cast(cash_collected as numeric)), 0)`.as('total_collected')])
+      .where('rep_id', '=', repId)
+      .where('tenant_id', '=', tenantId)
+      .where('opened_at', '>=', startOfMonth)
+      .where('opened_at', '<=', endOfMonth)
+      .executeTakeFirst();
+    const actualCollections = Number(collectionsMtdRow?.total_collected || 0);
+
+    const visitsMtdRow = await this.anyDb
+      .selectFrom('van_field_visits')
+      .select([sql<number>`count(*)`.as('total_visits')])
+      .where('rep_id', '=', repId)
+      .where('tenant_id', '=', tenantId)
+      .where('visited_at', '>=', startOfMonth)
+      .where('visited_at', '<=', endOfMonth)
+      .executeTakeFirst();
+    const actualVisits = Number(visitsMtdRow?.total_visits || 0);
+
     const officialHolidays = await this.getMonthlyOfficialHolidayDates(tenantId, startOfMonth, endOfMonth);
 
     const metrics = calculateRepTargetMetrics({
       targetAmount,
       actualSalesMTD: actualSalesMtd,
+      collectionTarget,
+      actualCollectionsMTD: actualCollections,
+      visitsTarget,
+      actualVisitsMTD: actualVisits,
       currentDate: now,
       weekendDays: [5], // Friday
       officialHolidays,
@@ -2492,6 +2686,18 @@ export class VanSalesService {
       phone: rep.phone,
       vehiclePlate: rep.vehiclePlate,
       metrics,
+      collectionTarget,
+      actualCollections,
+      collectionAchievementRate: metrics.collectionAchievementRate,
+      remainingCollection: metrics.remainingCollection,
+      requiredDailyCollection: metrics.requiredDailyCollection,
+      isCollectionAchieved: metrics.isCollectionAchieved,
+      visitsTarget,
+      actualVisits,
+      visitsAchievementRate: metrics.visitsAchievementRate,
+      remainingVisits: metrics.remainingVisits,
+      requiredDailyVisits: metrics.requiredDailyVisits,
+      isVisitsAchieved: metrics.isVisitsAchieved,
     };
   }
 
@@ -2515,12 +2721,18 @@ export class VanSalesService {
 
     const targets = await this.anyDb
       .selectFrom('delivery_rep_targets')
-      .select(['rep_id', 'target_amount'])
+      .select(['rep_id', 'target_amount', 'collection_target', 'visits_target'])
       .where('period_month', '=', month)
       .where('tenant_id', '=', tenantId)
       .execute();
-    const targetMap = new Map<number, number>();
-    for (const t of targets) targetMap.set(Number(t.rep_id), Number(t.target_amount || 0));
+    const targetMap = new Map<number, { targetAmount: number; collectionTarget: number | null; visitsTarget: number | null }>();
+    for (const t of targets) {
+      targetMap.set(Number(t.rep_id), {
+        targetAmount: Number(t.target_amount || 0),
+        collectionTarget: t.collection_target !== null && t.collection_target !== undefined ? Number(t.collection_target) : null,
+        visitsTarget: t.visits_target !== null && t.visits_target !== undefined ? Number(t.visits_target) : null,
+      });
+    }
 
     const salesMtd = await this.anyDb
       .selectFrom('sales')
@@ -2535,15 +2747,49 @@ export class VanSalesService {
     const salesMap = new Map<number, number>();
     for (const s of salesMtd) salesMap.set(Number(s.delivery_rep_id), Number(s.total_mtd || 0));
 
+    const collectionsMtd = await this.anyDb
+      .selectFrom('van_sales_trips')
+      .select(['rep_id', sql<number>`coalesce(sum(cast(cash_collected as numeric)), 0)`.as('total_collected')])
+      .where('tenant_id', '=', tenantId)
+      .where('opened_at', '>=', startOfMonth)
+      .where('opened_at', '<=', endOfMonth)
+      .where(sql<boolean>`rep_id is not null`)
+      .groupBy('rep_id')
+      .execute();
+    const collectionsMap = new Map<number, number>();
+    for (const c of collectionsMtd) collectionsMap.set(Number(c.rep_id), Number(c.total_collected || 0));
+
+    const visitsMtd = await this.anyDb
+      .selectFrom('van_field_visits')
+      .select(['rep_id', sql<number>`count(*)`.as('total_visits')])
+      .where('tenant_id', '=', tenantId)
+      .where('visited_at', '>=', startOfMonth)
+      .where('visited_at', '<=', endOfMonth)
+      .where(sql<boolean>`rep_id is not null`)
+      .groupBy('rep_id')
+      .execute();
+    const visitsMap = new Map<number, number>();
+    for (const v of visitsMtd) visitsMap.set(Number(v.rep_id), Number(v.total_visits || 0));
+
     const officialHolidays = await this.getMonthlyOfficialHolidayDates(tenantId, startOfMonth, endOfMonth);
 
     return reps.map((r: any) => {
       const repId = Number(r.id);
-      const targetAmount = targetMap.get(repId) || 0;
+      const repTargetInfo = targetMap.get(repId);
+      const targetAmount = repTargetInfo?.targetAmount || 0;
+      const collectionTarget = repTargetInfo?.collectionTarget ?? null;
+      const visitsTarget = repTargetInfo?.visitsTarget ?? null;
       const actualSales = salesMap.get(repId) || 0;
+      const actualCollections = collectionsMap.get(repId) || 0;
+      const actualVisits = visitsMap.get(repId) || 0;
+
       const metrics = calculateRepTargetMetrics({
         targetAmount,
         actualSalesMTD: actualSales,
+        collectionTarget,
+        actualCollectionsMTD: actualCollections,
+        visitsTarget,
+        actualVisitsMTD: actualVisits,
         currentDate: now,
         weekendDays: [5],
         officialHolidays,
@@ -2562,6 +2808,18 @@ export class VanSalesService {
         remainingWorkingDays: metrics.remainingWorkingDays,
         requiredDailyTarget: metrics.requiredDailyTarget,
         isTargetAchieved: metrics.isTargetAchieved,
+        collectionTarget,
+        actualCollections,
+        collectionAchievementRate: metrics.collectionAchievementRate,
+        remainingCollection: metrics.remainingCollection,
+        requiredDailyCollection: metrics.requiredDailyCollection,
+        isCollectionAchieved: metrics.isCollectionAchieved,
+        visitsTarget,
+        actualVisits,
+        visitsAchievementRate: metrics.visitsAchievementRate,
+        remainingVisits: metrics.remainingVisits,
+        requiredDailyVisits: metrics.requiredDailyVisits,
+        isVisitsAchieved: metrics.isVisitsAchieved,
       };
     });
   }
@@ -2622,7 +2880,7 @@ export class VanSalesService {
       .execute();
 
     const requisitionId = Number(inserted.id);
-    const docNo = formatDailyDocumentNumber('REQ', requisitionId);
+    const docNo = await this.generateDailySequenceNumber(this.anyDb, 'van_load_requisitions', 'doc_no', 'REQ', tenantId);
     await this.anyDb
       .updateTable('van_load_requisitions')
       .set({ doc_no: docNo })
@@ -2631,6 +2889,56 @@ export class VanSalesService {
       .execute();
 
     return { ok: true, docNo, requisitionId };
+  }
+
+  /**
+   * Manager directly creates a load requisition for a specific representative/van,
+   * with the option to dispatch and load the vehicle immediately (opening the trip).
+   */
+  async createLoadRequisitionByAdmin(
+    tenantId: string,
+    accountId: string,
+    userId: number,
+    payload: {
+      repId: number;
+      sourceWarehouseId?: number;
+      items: { productId: number; qty: number; sourceWarehouseId?: number; sourceWarehouseName?: string }[];
+      notes?: string;
+      dispatchImmediately?: boolean;
+    },
+  ) {
+    const repId = Number(payload.repId);
+    if (!repId) {
+      throw new AppError('يرجى تحديد مندوب التوزيع أولاً', 'REP_REQUIRED', 400);
+    }
+    const subRes = await this.submitLoadRequisition(repId, tenantId, accountId, {
+      sourceWarehouseId: payload.sourceWarehouseId,
+      items: payload.items,
+      notes: payload.notes,
+    });
+
+    if (payload.dispatchImmediately) {
+      const dispatchRes = await this.approveAndDispatchRequisition(
+        tenantId,
+        accountId,
+        subRes.requisitionId,
+        userId,
+      );
+      return {
+        ok: true,
+        docNo: subRes.docNo,
+        requisitionId: subRes.requisitionId,
+        dispatched: true,
+        tripId: dispatchRes.tripId,
+      };
+    }
+
+    return {
+      ok: true,
+      docNo: subRes.docNo,
+      requisitionId: subRes.requisitionId,
+      dispatched: false,
+    };
   }
 
   /**
@@ -2647,7 +2955,19 @@ export class VanSalesService {
         'vlr.doc_no as docNo',
         'vlr.rep_id as repId',
         sql<string>`coalesce(dr.name, '')`.as('repName'),
-        sql<string>`coalesce(dr.vehicle_plate, '')`.as('vehiclePlate'),
+        sql<string>`coalesce(
+          dr.vehicle_plate,
+          (SELECT fv.plate_number 
+           FROM fleet_vehicle_drivers fvd 
+           JOIN fleet_vehicles fv ON fv.id = fvd.vehicle_id 
+           WHERE fvd.rep_id = vlr.rep_id AND fvd.tenant_id = vlr.tenant_id AND fvd.is_active = true 
+           ORDER BY fvd.id DESC LIMIT 1),
+          (SELECT fv2.plate_number 
+           FROM fleet_vehicles fv2 
+           WHERE fv2.assigned_rep_id = vlr.rep_id AND fv2.tenant_id = vlr.tenant_id 
+           ORDER BY fv2.id DESC LIMIT 1),
+          ''
+        )`.as('vehiclePlate'),
         'vlr.source_warehouse_id as sourceWarehouseId',
         sql<string>`coalesce(src.name, '')`.as('sourceWarehouseName'),
         'vlr.status',
@@ -2829,6 +3149,28 @@ export class VanSalesService {
       .execute();
 
     return { ok: true, requisitionId, status: 'rejected' };
+  }
+
+  /**
+   * Deletes a pending or rejected requisition.
+   */
+  async deleteLoadRequisition(tenantId: string, requisitionId: number) {
+    const req = await this.anyDb
+      .selectFrom('van_load_requisitions')
+      .select(['id', 'status', 'doc_no'])
+      .where('id', '=', requisitionId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    if (!req) throw new AppError('طلب التحميل غير موجود', 'REQUISITION_NOT_FOUND', 404);
+    if (req.status === 'dispatched') {
+      throw new AppError('لا يمكن حذف إذن تحميل تم صرفه وتحميله بالفعل على السيارة، يمكنك تصفية الرحلة من شاشة الرحلات', 'CANNOT_DELETE_DISPATCHED', 400);
+    }
+    await this.anyDb
+      .deleteFrom('van_load_requisitions')
+      .where('id', '=', requisitionId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+    return { ok: true, requisitionId, docNo: req.doc_no };
   }
 
   /**
@@ -3362,15 +3704,124 @@ export class VanSalesService {
       .returning(['id'])
       .executeTakeFirstOrThrow();
 
+    // Sync vehicle info to delivery_representatives
+    const vehicle = await this.anyDb
+      .selectFrom('fleet_vehicles')
+      .select(['id', 'plate_number', 'van_location_id', 'assigned_rep_id'])
+      .where('id', '=', payload.vehicleId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (vehicle) {
+      await this.anyDb
+        .updateTable('delivery_representatives')
+        .set({
+          vehicle_plate: vehicle.plate_number,
+          is_van_rep: true,
+          van_location_id: vehicle.van_location_id || undefined,
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', payload.repId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      if (!vehicle.assigned_rep_id) {
+        await this.anyDb
+          .updateTable('fleet_vehicles')
+          .set({
+            assigned_rep_id: payload.repId,
+            status: 'assigned',
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', payload.vehicleId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      }
+    }
+
     return { ok: true, assignmentId: Number(inserted.id) };
   }
 
   async removeVehicleDriver(tenantId: string, assignmentId: number) {
+    const assignment = await this.anyDb
+      .selectFrom('fleet_vehicle_drivers')
+      .select(['id', 'vehicle_id', 'rep_id'])
+      .where('id', '=', assignmentId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
     await this.anyDb
       .deleteFrom('fleet_vehicle_drivers')
       .where('id', '=', assignmentId)
       .where('tenant_id', '=', tenantId)
       .execute();
+
+    if (assignment) {
+      const otherAssignment = await this.anyDb
+        .selectFrom('fleet_vehicle_drivers as fvd')
+        .innerJoin('fleet_vehicles as fv', 'fv.id', 'fvd.vehicle_id')
+        .select(['fv.plate_number', 'fv.van_location_id'])
+        .where('fvd.tenant_id', '=', tenantId)
+        .where('fvd.rep_id', '=', assignment.rep_id)
+        .where('fvd.is_active', '=', true)
+        .orderBy('fvd.id', 'desc')
+        .executeTakeFirst();
+
+      if (otherAssignment) {
+        await this.anyDb
+          .updateTable('delivery_representatives')
+          .set({
+            vehicle_plate: otherAssignment.plate_number,
+            van_location_id: otherAssignment.van_location_id || undefined,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', assignment.rep_id)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      } else {
+        const vehicle = await this.anyDb
+          .selectFrom('fleet_vehicles')
+          .select(['plate_number', 'assigned_rep_id'])
+          .where('id', '=', assignment.vehicle_id)
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst();
+
+        if (vehicle) {
+          await this.anyDb
+            .updateTable('delivery_representatives')
+            .set({
+              vehicle_plate: null,
+              updated_at: sql`NOW()`,
+            })
+            .where('id', '=', assignment.rep_id)
+            .where('tenant_id', '=', tenantId)
+            .where('vehicle_plate', '=', vehicle.plate_number)
+            .execute();
+
+          if (vehicle.assigned_rep_id === assignment.rep_id) {
+            const nextDriver = await this.anyDb
+              .selectFrom('fleet_vehicle_drivers')
+              .select(['rep_id'])
+              .where('vehicle_id', '=', assignment.vehicle_id)
+              .where('tenant_id', '=', tenantId)
+              .where('is_active', '=', true)
+              .orderBy('id', 'asc')
+              .executeTakeFirst();
+
+            await this.anyDb
+              .updateTable('fleet_vehicles')
+              .set({
+                assigned_rep_id: nextDriver?.rep_id || null,
+                status: nextDriver?.rep_id ? 'assigned' : 'available',
+                updated_at: sql`NOW()`,
+              })
+              .where('id', '=', assignment.vehicle_id)
+              .where('tenant_id', '=', tenantId)
+              .execute();
+          }
+        }
+      }
+    }
 
     return { ok: true };
   }
@@ -3496,6 +3947,169 @@ export class VanSalesService {
         todayVisit: todayVisit || null,
         repeatedNegativesCount: totalNegatives,
         hasRepeatedNegativeAlert: totalNegatives >= 3,
+      };
+    });
+  }
+
+  /**
+   * Lists field sales executed by or assigned to a delivery representative,
+   * supporting filtering by date scope, customer, payment method, or search query.
+   * Includes line items for seamless reprinting on thermal receipts or sharing.
+   */
+  async listDriverSales(
+    tenantId: string,
+    repId: number,
+    filters?: {
+      dateScope?: 'today' | 'yesterday' | 'week' | 'all';
+      customerId?: number;
+      paymentMethod?: string;
+      search?: string;
+      tripId?: number;
+      limit?: number;
+    },
+  ) {
+    let query = this.anyDb
+      .selectFrom('sales as s')
+      .leftJoin('customers as c', 'c.id', 's.customer_id')
+      .leftJoin('delivery_representatives as dr', 'dr.id', 's.delivery_rep_id')
+      .leftJoin('van_sales_trips as vt', 'vt.id', 's.van_trip_id')
+      .leftJoin('fleet_vehicles as fv', 'fv.id', 'vt.vehicle_id')
+      .select([
+        's.id',
+        's.doc_no as docNo',
+        sql<number>`cast(s.total as numeric)`.as('total'),
+        sql<number>`cast(coalesce(s.subtotal, s.total) as numeric)`.as('subtotal'),
+        sql<number>`cast(coalesce(s.discount, 0) as numeric)`.as('discount'),
+        's.payment_type as paymentMethod',
+        's.payment_channel as paymentChannel',
+        's.created_at as createdAt',
+        's.packaging_breakdown as packagingBreakdown',
+        's.delivery_proof_photo as deliveryProofPhoto',
+        's.customer_id as customerId',
+        'c.name as customerName',
+        'c.phone as customerPhone',
+        sql<string | null>`null`.as('customerCode'),
+        'c.address as customerAddress',
+        sql<string>`coalesce(dr.name, '')`.as('repName'),
+        sql<string>`coalesce(fv.plate_number, dr.vehicle_plate, '')`.as('vehiclePlate'),
+        'vt.id as tripId',
+      ])
+      .where('s.tenant_id', '=', tenantId)
+      .where((eb: any) =>
+        eb.or([
+          eb('s.delivery_rep_id', '=', repId),
+          eb('vt.rep_id', '=', repId),
+        ]),
+      );
+
+    if (filters?.customerId) {
+      query = query.where('s.customer_id', '=', filters.customerId);
+    }
+
+    if (filters?.paymentMethod && filters.paymentMethod !== 'all') {
+      query = query.where('s.payment_type', '=', filters.paymentMethod);
+    }
+
+    if (filters?.tripId) {
+      query = query.where('s.van_trip_id', '=', filters.tripId);
+    }
+
+    if (filters?.search && filters.search.trim()) {
+      const q = `%${filters.search.trim()}%`;
+      query = query.where((eb: any) =>
+        eb.or([
+          eb('s.doc_no', 'ilike', q),
+          eb('c.name', 'ilike', q),
+          eb('c.phone', 'ilike', q),
+        ]),
+      );
+    }
+
+    if (filters?.dateScope && filters.dateScope !== 'all') {
+      const now = new Date();
+      if (filters.dateScope === 'today') {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        query = query.where('s.created_at', '>=', startOfToday);
+      } else if (filters.dateScope === 'yesterday') {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
+        query = query.where('s.created_at', '>=', startOfYesterday).where('s.created_at', '<', startOfToday);
+      } else if (filters.dateScope === 'week') {
+        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7, 0, 0, 0);
+        query = query.where('s.created_at', '>=', startOfWeek);
+      }
+    }
+
+    const maxLimit = Math.min(Number(filters?.limit || 100), 200);
+    const rows = await query.orderBy('s.id', 'desc').limit(maxLimit).execute();
+
+    if (!rows.length) {
+      return [];
+    }
+
+    const saleIds = rows.map((r: any) => Number(r.id));
+    const items = await this.anyDb
+      .selectFrom('sale_items as si')
+      .select([
+        'si.sale_id as saleId',
+        'si.product_id as productId',
+        'si.product_name as name',
+        sql<number>`cast(si.qty as numeric)`.as('qty'),
+        sql<number>`cast(si.unit_price as numeric)`.as('unitPrice'),
+        sql<number>`cast(si.line_total as numeric)`.as('lineTotal'),
+      ])
+      .where('si.tenant_id', '=', tenantId)
+      .where('si.sale_id', 'in', saleIds)
+      .orderBy('si.id', 'asc')
+      .execute();
+
+    const itemsBySaleId = new Map<number, any[]>();
+    for (const item of items) {
+      const sId = Number(item.saleId);
+      if (!itemsBySaleId.has(sId)) {
+        itemsBySaleId.set(sId, []);
+      }
+      itemsBySaleId.get(sId)!.push({
+        productId: Number(item.productId),
+        name: item.name,
+        qty: Number(item.qty),
+        unitPrice: Number(item.unitPrice),
+        lineTotal: Number(item.lineTotal),
+      });
+    }
+
+    return rows.map((r: any) => {
+      let packagingBreakdown = null;
+      if (r.packagingBreakdown) {
+        try {
+          packagingBreakdown = typeof r.packagingBreakdown === 'string'
+            ? JSON.parse(r.packagingBreakdown)
+            : r.packagingBreakdown;
+        } catch {}
+      }
+
+      const saleItems = itemsBySaleId.get(Number(r.id)) || [];
+
+      return {
+        id: Number(r.id),
+        docNo: r.docNo,
+        total: Number(r.total),
+        subtotal: Number(r.subtotal),
+        discount: Number(r.discount),
+        paymentMethod: r.paymentMethod || 'cash',
+        createdAt: r.createdAt,
+        packagingBreakdown,
+        deliveryProofPhoto: r.deliveryProofPhoto || null,
+        customerId: r.customerId ? Number(r.customerId) : null,
+        customerName: r.customerName || 'عميل نقدي',
+        customerPhone: r.customerPhone || null,
+        customerCode: r.customerCode || null,
+        customerAddress: r.customerAddress || null,
+        repName: r.repName || 'مندوب التوزيع',
+        vehiclePlate: r.vehiclePlate || null,
+        tripId: r.tripId ? Number(r.tripId) : null,
+        itemsCount: saleItems.length,
+        items: saleItems,
       };
     });
   }
@@ -3695,7 +4309,7 @@ export class VanSalesService {
       .executeTakeFirstOrThrow();
 
     const transferId = Number(inserted.id);
-    const transferNo = formatDailyDocumentNumber('XFR', transferId);
+    const transferNo = await this.generateDailySequenceNumber(this.anyDb, 'van_stock_transfers', 'transfer_no', 'XFR', tenantId);
 
     await this.anyDb
       .updateTable('van_stock_transfers')
@@ -4048,6 +4662,65 @@ export class VanSalesService {
       phone: r.phone || '',
       vehiclePlate: r.vehicle_plate || '',
     }));
+  }
+
+  /**
+   * Generates a collision-proof, tenant-scoped daily sequence number (0001, 0002, ...)
+   * strictly adhering to the Universal Document Numbering Standard (PREFIX-YYMMDD-XXXX).
+   * Automatically resets to 0001 every single day, and guards against legacy high IDs.
+   */
+  private async generateDailySequenceNumber(
+    trxOrDb: any,
+    tableName: string,
+    columnName: string,
+    prefix: string,
+    tenantId: string,
+    date = new Date(),
+  ): Promise<string> {
+    const dailyPrefix = getDailyDocumentPrefix(prefix, date);
+
+    // Advisory transaction lock to prevent concurrent races for this tenant + daily prefix
+    try {
+      await trxOrDb.executeQuery(
+        sql`SELECT pg_advisory_xact_lock(hashtext(${'daily_seq_' + tenantId + '_' + dailyPrefix}))`.compile(this.db),
+      );
+    } catch {
+      // Fallback if advisory lock is not supported in test mocks
+    }
+
+    let lastSeq = 0;
+    if (tableName === 'customer_payments') {
+      const res = await trxOrDb
+        .selectFrom('customer_payments')
+        .select(
+          sql<number>`COALESCE(MAX(
+            CASE WHEN note ~ ${'#' + dailyPrefix + '[0-9]{1,4}\\)'}
+                 THEN CAST(SUBSTRING(note FROM ${'#' + dailyPrefix + '([0-9]{1,4})\\)'}) AS INTEGER)
+                 ELSE 0 END
+          ), 0)`.as('last_seq'),
+        )
+        .where('tenant_id', '=', tenantId)
+        .where('note', 'like', `%#${dailyPrefix}%`)
+        .executeTakeFirst();
+      lastSeq = Number(res?.last_seq || 0);
+    } else {
+      const res = await trxOrDb
+        .selectFrom(tableName)
+        .select(
+          sql<number>`COALESCE(MAX(
+            CASE WHEN ${sql.ref(columnName)} ~ ${'^' + dailyPrefix + '[0-9]{1,4}$'}
+                 THEN CAST(SPLIT_PART(${sql.ref(columnName)}, '-', 3) AS INTEGER)
+                 ELSE 0 END
+          ), 0)`.as('last_seq'),
+        )
+        .where('tenant_id', '=', tenantId)
+        .where(sql.ref(columnName), 'like', `${dailyPrefix}%`)
+        .executeTakeFirst();
+      lastSeq = Number(res?.last_seq || 0);
+    }
+
+    const nextSeq = lastSeq + 1;
+    return formatDailyDocumentNumber(prefix, nextSeq, date);
   }
 }
 

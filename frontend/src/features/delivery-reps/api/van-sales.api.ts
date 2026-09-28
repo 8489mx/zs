@@ -71,6 +71,21 @@ export interface RepTargetMetrics {
   requiredDailyTarget: number;
   excludedFridaysCount: number;
   excludedHolidaysCount: number;
+  todaySales?: number;
+  collectionTarget?: number | null;
+  actualCollectionsMTD?: number;
+  todayCollections?: number;
+  collectionAchievementRate?: number | null;
+  remainingCollection?: number;
+  requiredDailyCollection?: number;
+  isCollectionAchieved?: boolean;
+  visitsTarget?: number | null;
+  actualVisitsMTD?: number;
+  todayVisits?: number;
+  visitsAchievementRate?: number | null;
+  remainingVisits?: number;
+  requiredDailyVisits?: number;
+  isVisitsAchieved?: boolean;
 }
 
 export interface VanAssignedVehicle {
@@ -110,6 +125,41 @@ export interface VanActiveTripResponse {
     customerName?: string;
   }[];
   targetMetrics?: RepTargetMetrics;
+}
+
+export interface DriverSaleHistoryItem {
+  id: number;
+  docNo: string;
+  total: number;
+  subtotal: number;
+  discount: number;
+  paymentMethod: 'cash' | 'credit' | 'card' | 'split';
+  paymentChannel?: string;
+  paidAmount?: number;
+  remainingCredit?: number;
+  createdAt: string;
+  packagingBreakdown?: {
+    cartonsCount?: number;
+    piecesCount?: number;
+    itemsCount?: number;
+  } | null;
+  deliveryProofPhoto?: string | null;
+  customerId?: number | null;
+  customerName: string;
+  customerPhone?: string | null;
+  customerCode?: string | null;
+  customerAddress?: string | null;
+  repName?: string;
+  vehiclePlate?: string | null;
+  tripId?: number | null;
+  itemsCount: number;
+  items: Array<{
+    productId: number;
+    name: string;
+    qty: number;
+    unitPrice: number;
+    lineTotal: number;
+  }>;
 }
 
 export interface CustomerEligibleSaleItem {
@@ -210,6 +260,18 @@ export interface RepTargetSummary {
   remainingWorkingDays: number;
   requiredDailyTarget: number;
   isTargetAchieved: boolean;
+  collectionTarget?: number | null;
+  actualCollections?: number;
+  collectionAchievementRate?: number | null;
+  remainingCollection?: number;
+  requiredDailyCollection?: number;
+  isCollectionAchieved?: boolean;
+  visitsTarget?: number | null;
+  actualVisits?: number;
+  visitsAchievementRate?: number | null;
+  remainingVisits?: number;
+  requiredDailyVisits?: number;
+  isVisitsAchieved?: boolean;
 }
 
 export interface TripAdminDetails {
@@ -420,7 +482,8 @@ export const vanSalesApi = {
     customerId?: number;
     customerName?: string;
     customerPhone?: string;
-    paymentMethod: 'cash' | 'credit';
+    paymentMethod: 'cash' | 'credit' | 'card' | 'split';
+    paidAmount?: number;
     items: { productId: number; qty: number; unitPrice?: number }[];
     notes?: string;
     deliveryGpsLat?: number;
@@ -432,14 +495,36 @@ export const vanSalesApi = {
     saleId: number;
     docNo: string;
     total: number;
-    paymentMethod: 'cash' | 'credit';
+    paymentMethod: string;
     customerName: string;
     itemsCount: number;
+    cashPaid?: number;
+    creditOwed?: number;
   }> => {
     return http('/api/driver-portal/van-sales/sales', {
       method: 'POST',
       headers: getDriverAuthHeaders(),
       body: JSON.stringify(payload),
+    });
+  },
+
+  getDriverSales: async (params?: {
+    dateScope?: 'today' | 'yesterday' | 'week' | 'all';
+    customerId?: number;
+    paymentMethod?: string;
+    search?: string;
+    tripId?: number;
+  }): Promise<{ ok: boolean; sales: DriverSaleHistoryItem[] }> => {
+    const sp = new URLSearchParams();
+    if (params?.dateScope) sp.set('dateScope', params.dateScope);
+    if (params?.customerId) sp.set('customerId', String(params.customerId));
+    if (params?.paymentMethod) sp.set('paymentMethod', params.paymentMethod);
+    if (params?.search) sp.set('search', params.search);
+    if (params?.tripId) sp.set('tripId', String(params.tripId));
+    const qs = sp.toString();
+    return http(`/api/driver-portal/van-sales/sales${qs ? '?' + qs : ''}`, {
+      method: 'GET',
+      headers: getDriverAuthHeaders(),
     });
   },
 
@@ -793,8 +878,26 @@ export const vanSalesApi = {
     return res.requisitions || [];
   },
 
-  getAdminAvailableProducts: async (warehouseId?: number): Promise<DriverAvailableProduct[]> => {
-    const query = warehouseId ? `?warehouseId=${warehouseId}` : '';
+  getAdminWarehouses: async (): Promise<DriverWarehouse[]> => {
+    const res = await http<{ ok: boolean; warehouses: DriverWarehouse[] }>('/api/van-sales/admin/warehouses');
+    return res.warehouses || [];
+  },
+
+  createAdminLoadRequisition: async (payload: {
+    repId: number;
+    sourceWarehouseId?: number;
+    items: { productId: number; qty: number; productName?: string; barcode?: string }[];
+    notes?: string;
+    dispatchImmediately?: boolean;
+  }): Promise<{ ok: boolean; docNo: string; requisitionId: number; dispatched: boolean; tripId?: number }> => {
+    return http('/api/van-sales/admin/requisitions', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getAdminAvailableProducts: async (warehouseId?: number | string): Promise<DriverAvailableProduct[]> => {
+    const query = warehouseId && warehouseId !== 'all' ? `?warehouseId=${warehouseId}` : '';
     const res = await http<{ ok: boolean; products: DriverAvailableProduct[] }>(
       `/api/van-sales/admin/available-products${query}`,
     );
@@ -819,16 +922,28 @@ export const vanSalesApi = {
     });
   },
 
+  deleteRequisition: async (id: number): Promise<{ ok: boolean; requisitionId: number; docNo: string }> => {
+    return http(`/api/van-sales/admin/requisitions/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   // Admin Rep Targets API
   listRepTargets: async (month?: string): Promise<RepTargetSummary[]> => {
     const res = await http<{ ok: boolean; targets: RepTargetSummary[] }>(`/api/van-sales/admin/targets${month ? `?month=${month}` : ''}`);
     return res.targets || [];
   },
 
-  setRepTarget: async (repId: number, month: string, targetAmount: number) => {
+  setRepTarget: async (
+    repId: number,
+    month: string,
+    targetAmount: number,
+    collectionTarget?: number | null,
+    visitsTarget?: number | null,
+  ) => {
     return http('/api/van-sales/admin/targets', {
       method: 'POST',
-      body: JSON.stringify({ repId, month, targetAmount }),
+      body: JSON.stringify({ repId, month, targetAmount, collectionTarget, visitsTarget }),
     });
   },
 

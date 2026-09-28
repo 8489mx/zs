@@ -45,6 +45,9 @@ export function AssignDriverModal({
       toast.success('تم تخصيص السائق والوردية للمركبة بنجاح');
       queryClient.invalidateQueries({ queryKey: ['vehicle-drivers', vehicle?.id] });
       queryClient.invalidateQueries({ queryKey: ['fleet-vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['delivery-reps'] });
+      queryClient.invalidateQueries({ queryKey: ['van-admin-load-requisitions'] });
+      queryClient.invalidateQueries({ queryKey: ['van-sales-admin-trips'] });
       setSelectedRepId('');
       setShiftNotes('');
       onSuccess?.();
@@ -61,6 +64,9 @@ export function AssignDriverModal({
       toast.info('تم فك ارتباط السائق بالمركبة');
       queryClient.invalidateQueries({ queryKey: ['vehicle-drivers', vehicle?.id] });
       queryClient.invalidateQueries({ queryKey: ['fleet-vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['delivery-reps'] });
+      queryClient.invalidateQueries({ queryKey: ['van-admin-load-requisitions'] });
+      queryClient.invalidateQueries({ queryKey: ['van-sales-admin-trips'] });
       onSuccess?.();
     },
     onError: (err: any) => {

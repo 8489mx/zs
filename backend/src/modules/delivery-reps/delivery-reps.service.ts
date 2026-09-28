@@ -79,13 +79,55 @@ export class DeliveryRepsService {
 
   async list(actor: AuthContext): Promise<Record<string, unknown>> {
     const reps = await this.db
-      .selectFrom('delivery_representatives')
-      .selectAll()
+      .selectFrom('delivery_representatives as dr')
+      .selectAll('dr')
+      .select([
+        sql<string | null>`coalesce(
+          (SELECT fv.plate_number 
+           FROM fleet_vehicle_drivers fvd 
+           JOIN fleet_vehicles fv ON fv.id = fvd.vehicle_id 
+           WHERE fvd.rep_id = dr.id AND fvd.tenant_id = dr.tenant_id AND fvd.is_active = true 
+           ORDER BY fvd.id DESC LIMIT 1),
+          (SELECT fv2.plate_number 
+           FROM fleet_vehicles fv2 
+           WHERE fv2.assigned_rep_id = dr.id AND fv2.tenant_id = dr.tenant_id 
+           ORDER BY fv2.id DESC LIMIT 1),
+          dr.vehicle_plate
+        )`.as('vehicle_plate'),
+        sql<number | null>`coalesce(
+          (SELECT fv.van_location_id 
+           FROM fleet_vehicle_drivers fvd 
+           JOIN fleet_vehicles fv ON fv.id = fvd.vehicle_id 
+           WHERE fvd.rep_id = dr.id AND fvd.tenant_id = dr.tenant_id AND fvd.is_active = true 
+           ORDER BY fvd.id DESC LIMIT 1),
+          (SELECT fv2.van_location_id 
+           FROM fleet_vehicles fv2 
+           WHERE fv2.assigned_rep_id = dr.id AND fv2.tenant_id = dr.tenant_id 
+           ORDER BY fv2.id DESC LIMIT 1),
+          dr.van_location_id
+        )`.as('van_location_id'),
+        sql<string | null>`(
+          SELECT fvd.shift_name 
+          FROM fleet_vehicle_drivers fvd 
+          WHERE fvd.rep_id = dr.id AND fvd.tenant_id = dr.tenant_id AND fvd.is_active = true 
+          ORDER BY fvd.id DESC LIMIT 1
+        )`.as('shift_name'),
+      ])
       .where(this.tenantPredicate(actor))
-      .orderBy('is_active', 'desc')
-      .orderBy('name', 'asc')
+      .orderBy('dr.is_active', 'desc')
+      .orderBy('dr.name', 'asc')
       .execute();
-    return { ok: true, deliveryReps: reps };
+
+    const sanitized = reps.map((r) => {
+      const { pin_hash, pin_salt, ...rest } = r as any;
+      return {
+        ...rest,
+        // حالة وجود الرمز فقط كقيمة منطقية دون تسريب التجزئة (البند O20)
+        has_pin: Boolean(pin_hash),
+      };
+    });
+
+    return { ok: true, deliveryReps: sanitized };
   }
 
   async create(payload: UpsertDeliveryRepDto, actor: AuthContext): Promise<Record<string, unknown>> {

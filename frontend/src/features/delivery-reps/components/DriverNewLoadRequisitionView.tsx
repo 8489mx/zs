@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, memo, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -8,7 +9,10 @@ import {
   useDriverLoadRequisition,
   type DriverProductStock,
   type DriverAvailableProduct,
+  type DriverWarehouse,
 } from '../hooks/useDriverLoadRequisition';
+import { deliveryRepsApi, type DeliveryRep } from '@/shared/api/delivery-reps.api';
+import { vanSalesApi } from '../api/van-sales.api';
 import {
   CheckCircleIcon,
   Trash2Icon,
@@ -16,7 +20,8 @@ import {
   MinusIcon,
   ArrowRightIcon,
 } from '@/shared/components/icons/AppIcons';
-import { toast } from '@/shared/components/system-alert';
+import { systemConfirm, toast } from '@/shared/components/system-alert';
+import { useFormDraft } from '@/shared/hooks/use-form-draft';
 
 export interface RequisitionLineItem {
   id: string;
@@ -34,29 +39,457 @@ export interface RequisitionLineItem {
   isSearchOpen?: boolean;
 }
 
+export interface ProductOptionItem {
+  id: string;
+  name: string;
+  barcode: string;
+  sku: string;
+  totalStock: number;
+  unit: string;
+  retailPrice: number;
+  product: DriverAvailableProduct;
+  searchTerms: string;
+}
+
+// Stable combobox helper functions (preventing inline allocations and unneeded re-filtering)
+const getProductOptionLabel = (opt: ProductOptionItem) => opt.name;
+const getProductOptionMeta = (opt: ProductOptionItem) =>
+  `متاح: ${opt.totalStock} ${opt.unit} ${opt.barcode ? `| باركود: ${opt.barcode}` : ''}`;
+const searchProductOption = (opt: ProductOptionItem, query: string) => {
+  if (!query || !query.trim()) return true;
+  const q = query.toLowerCase().trim();
+  return (
+    opt.searchTerms.includes(q) ||
+    matchesArabic(opt.name, q) ||
+    matchesArabic(opt.barcode, q)
+  );
+};
+
+const getWarehouseOptionLabel = (opt: { id: string; name: string }) => opt.name;
+const searchWarehouseOption = (opt: { id: string; name: string }, query: string) => {
+  if (!query || !query.trim()) return true;
+  return matchesArabic(opt.name, query);
+};
+
+interface RequisitionLineRowProps {
+  line: RequisitionLineItem;
+  index?: number;
+  isLast: boolean;
+  productOptions: ProductOptionItem[];
+  selectedWarehouseFilter: string;
+  onSelectProduct: (lineId: string, product: DriverAvailableProduct) => void;
+  onLineProductChange: (lineId: string, val: string) => void;
+  onChangeLineWarehouse: (lineId: string, warehouseIdStr: string) => void;
+  onLineWarehouseChange: (lineId: string, val: string) => void;
+  onUpdateLineQty: (lineId: string, newQty: number) => void;
+  onRemoveLine: (lineId: string) => void;
+  onEnterQty?: () => void;
+}
+
+const RequisitionLineRow = memo(function RequisitionLineRow({
+  line,
+  isLast,
+  productOptions,
+  selectedWarehouseFilter,
+  onSelectProduct,
+  onLineProductChange,
+  onChangeLineWarehouse,
+  onLineWarehouseChange,
+  onUpdateLineQty,
+  onRemoveLine,
+  onEnterQty,
+}: RequisitionLineRowProps) {
+  const qtyInputRef = useRef<HTMLInputElement | null>(null);
+  const shouldFocusQtyRef = useRef<boolean>(false);
+
+  // Warehouses with positive stock for this line's product
+  const productWarehouseOptions = useMemo(() => {
+    return (line.warehouseStocks || [])
+      .filter((w) => w.qty > 0)
+      .map((w) => ({
+        id: String(w.warehouseId),
+        name: `${w.warehouseName} (متاح: ${w.qty})`,
+      }));
+  }, [line.warehouseStocks]);
+
+  const handleProductChange = useCallback(
+    (val: string) => {
+      onLineProductChange(line.id, val);
+    },
+    [line.id, onLineProductChange],
+  );
+
+  const handleProductSelect = useCallback(
+    (opt: ProductOptionItem) => {
+      shouldFocusQtyRef.current = true;
+      onSelectProduct(line.id, opt.product);
+      setTimeout(() => {
+        if (qtyInputRef.current) {
+          qtyInputRef.current.focus();
+          qtyInputRef.current.select();
+          shouldFocusQtyRef.current = false;
+        }
+      }, 60);
+    },
+    [line.id, onSelectProduct],
+  );
+
+  useEffect(() => {
+    if (shouldFocusQtyRef.current && qtyInputRef.current) {
+      shouldFocusQtyRef.current = false;
+      const timer = setTimeout(() => {
+        if (qtyInputRef.current) {
+          qtyInputRef.current.focus();
+          qtyInputRef.current.select();
+        }
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [line.productId]);
+
+  const handleWarehouseChange = useCallback(
+    (val: string) => {
+      onLineWarehouseChange(line.id, val);
+    },
+    [line.id, onLineWarehouseChange],
+  );
+
+  const handleWarehouseSelect = useCallback(
+    (opt: { id: string; name: string }) => {
+      onChangeLineWarehouse(line.id, opt.id);
+    },
+    [line.id, onChangeLineWarehouse],
+  );
+
+  const handleQtyMinus = useCallback(() => {
+    onUpdateLineQty(line.id, line.qty - 1);
+  }, [line.id, line.qty, onUpdateLineQty]);
+
+  const handleQtyPlus = useCallback(() => {
+    onUpdateLineQty(line.id, line.qty + 1);
+  }, [line.id, line.qty, onUpdateLineQty]);
+
+  const handleQtyChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = parseInt(e.target.value, 10);
+      if (!isNaN(val)) onUpdateLineQty(line.id, val);
+    },
+    [line.id, onUpdateLineQty],
+  );
+
+  const handleRemove = useCallback(() => {
+    onRemoveLine(line.id);
+  }, [line.id, onRemoveLine]);
+
+  return (
+    <tr
+      style={{
+        borderBottom: !isLast ? '1px solid #e2e8f0' : 'none',
+        backgroundColor: line.productId ? '#ffffff' : '#fcfcfd',
+      }}
+    >
+      {/* Product Search & Selection Cell via Portal Combobox */}
+      <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
+        <SearchableCombobox
+          inputId={`product-input-${line.id}`}
+          options={productOptions}
+          value={line.productName || line.searchQuery || ''}
+          onChange={handleProductChange}
+          onSelect={handleProductSelect}
+          getLabel={getProductOptionLabel}
+          getMeta={getProductOptionMeta}
+          search={searchProductOption}
+          placeholder="ابحث عن الصنف بالاسم أو الباركود..."
+          inline={true}
+          inputClassName="purchase-prototype-field-input"
+          inputStyle={{ height: '38px', borderRadius: '6px' }}
+        />
+      </td>
+
+      {/* Source Warehouse Cell (when "all warehouses" is active) */}
+      {selectedWarehouseFilter === 'all' && (
+        <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
+          {line.productId ? (
+            productWarehouseOptions.length > 0 ? (
+              <SearchableCombobox
+                inputId={`warehouse-input-${line.id}`}
+                options={productWarehouseOptions}
+                value={line.sourceWarehouseName || ''}
+                onChange={handleWarehouseChange}
+                onSelect={handleWarehouseSelect}
+                getLabel={getWarehouseOptionLabel}
+                search={searchWarehouseOption}
+                placeholder="اختر المخزن..."
+                inline={true}
+                inputClassName="purchase-prototype-field-input"
+                inputStyle={{ height: '38px', borderRadius: '6px' }}
+              />
+            ) : (
+              <span style={{ fontSize: '11.5px', color: '#dc2626', fontWeight: 700 }}>
+                لا يتوفر رصيد بأي مخزن
+              </span>
+            )
+          ) : (
+            <span style={{ fontSize: '12px', color: '#94a3b8' }}>- اختر صنفاً أولاً -</span>
+          )}
+        </td>
+      )}
+
+      {/* Available Stock in Warehouse Cell */}
+      <td style={{ padding: '8px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
+        {line.productId ? (
+          <span
+            style={{
+              fontSize: '13px',
+              fontWeight: 900,
+              color: line.availableInWarehouse > 0 ? '#15803d' : '#dc2626',
+              backgroundColor: line.availableInWarehouse > 0 ? '#ecfdf5' : '#fef2f2',
+              border: `1px solid ${line.availableInWarehouse > 0 ? '#bbf7d0' : '#fecaca'}`,
+              padding: '4px 10px',
+              borderRadius: '6px',
+              display: 'inline-block',
+            }}
+          >
+            {line.availableInWarehouse}
+          </span>
+        ) : (
+          <span style={{ color: '#94a3b8' }}>-</span>
+        )}
+      </td>
+
+      {/* Requested Qty Stepper Cell */}
+      <td style={{ padding: '8px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
+        {line.productId ? (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              backgroundColor: '#ffffff',
+              overflow: 'hidden',
+            }}
+          >
+            <button
+              type="button"
+              onClick={handleQtyPlus}
+              disabled={line.availableInWarehouse > 0 && line.qty >= line.availableInWarehouse}
+              style={{
+                width: '32px',
+                height: '34px',
+                border: 'none',
+                backgroundColor: '#f8fafc',
+                color: '#475569',
+                cursor:
+                  line.availableInWarehouse > 0 && line.qty >= line.availableInWarehouse
+                    ? 'not-allowed'
+                    : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <PlusIcon size={14} />
+            </button>
+            <input
+              ref={qtyInputRef}
+              type="number"
+              className="no-spin-arrows"
+              min={1}
+              max={line.availableInWarehouse || 999999}
+              value={line.qty}
+              onChange={handleQtyChange}
+              onFocus={(e) => e.target.select()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  onEnterQty?.();
+                }
+              }}
+              style={{
+                width: '50px',
+                height: '34px',
+                border: 'none',
+                textAlign: 'center',
+                fontSize: '13px',
+                fontWeight: 800,
+                color: '#0f172a',
+                outline: 'none',
+                MozAppearance: 'textfield',
+                appearance: 'textfield',
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleQtyMinus}
+              disabled={line.qty <= 1}
+              style={{
+                width: '32px',
+                height: '34px',
+                border: 'none',
+                backgroundColor: '#f8fafc',
+                color: '#475569',
+                cursor: line.qty <= 1 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <MinusIcon size={14} />
+            </button>
+          </div>
+        ) : (
+          <span style={{ color: '#94a3b8' }}>-</span>
+        )}
+      </td>
+
+      {/* Delete Line Action Cell */}
+      <td style={{ padding: '8px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
+        <button
+          type="button"
+          onClick={handleRemove}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#ef4444',
+            cursor: 'pointer',
+            padding: '6px',
+            borderRadius: '6px',
+          }}
+          title="حذف هذا السطر"
+        >
+          <Trash2Icon size={16} />
+        </button>
+      </td>
+    </tr>
+  );
+});
+
 export interface DriverNewLoadRequisitionViewProps {
+  mode?: 'driver' | 'admin';
   onBack: () => void;
   onRequisitionSubmitted?: (docNo: string) => void;
 }
 
 export function DriverNewLoadRequisitionView({
+  mode = 'driver',
   onBack,
   onRequisitionSubmitted,
 }: DriverNewLoadRequisitionViewProps) {
+  const queryClient = useQueryClient();
+  const isAdmin = mode === 'admin';
+
   // 'all' means automatic source warehouse selection; otherwise a specific warehouseId string
   const [selectedWarehouseFilter, setSelectedWarehouseFilter] = useState<string>('all');
   const [notes, setNotes] = useState('');
   const [submittedDocNo, setSubmittedDocNo] = useState<string | null>(null);
 
-  const {
-    driverName,
-    vehiclePlate,
-    warehouses,
-    isLoadingWarehouses,
-    availableProducts,
-    submitRequisition,
-    isSubmitting,
-  } = useDriverLoadRequisition(selectedWarehouseFilter);
+  // Admin Mode State:
+  const [selectedRepId, setSelectedRepId] = useState<string>('');
+  const [adminSubmitResult, setAdminSubmitResult] = useState<{
+    docNo: string;
+    dispatched: boolean;
+    tripId?: number;
+    repName: string;
+  } | null>(null);
+
+  // Driver Hook (only enabled when in driver mode to avoid 401 redirects in ERP session)
+  const driverHook = useDriverLoadRequisition(selectedWarehouseFilter, { enabled: !isAdmin });
+
+  // Admin Queries (only enabled when in admin mode)
+  const adminWarehousesQuery = useQuery<DriverWarehouse[]>({
+    queryKey: ['admin-warehouses'],
+    queryFn: () => vanSalesApi.getAdminWarehouses(),
+    enabled: isAdmin,
+    staleTime: 10_000,
+  });
+
+  const adminRepsQuery = useQuery<DeliveryRep[]>({
+    queryKey: ['delivery-reps'],
+    queryFn: deliveryRepsApi.list,
+    enabled: isAdmin,
+    staleTime: 10_000,
+  });
+
+  const adminProductsQuery = useQuery<DriverAvailableProduct[]>({
+    queryKey: ['admin-available-products', selectedWarehouseFilter],
+    queryFn: () => vanSalesApi.getAdminAvailableProducts(selectedWarehouseFilter),
+    enabled: isAdmin,
+    staleTime: 30_000,
+  });
+
+  const adminReps = useMemo(() => {
+    return (adminRepsQuery.data || []).filter((r) => r.is_active !== false);
+  }, [adminRepsQuery.data]);
+
+  const repSelectOptions = useMemo(() => {
+    return adminReps.map((r) => {
+      const plate = r.vehicle_plate ? ` [لوحة: ${r.vehicle_plate}]` : '';
+      const phone = r.phone ? ` (${r.phone})` : '';
+      const labelName = r.name || r.full_name || 'مندوب';
+      return {
+        value: String(r.id),
+        label: `${labelName}${phone}${plate}`,
+      };
+    });
+  }, [adminReps]);
+
+  useEffect(() => {
+    if (isAdmin && !selectedRepId && repSelectOptions.length > 0) {
+      setSelectedRepId(repSelectOptions[0].value);
+    }
+  }, [isAdmin, selectedRepId, repSelectOptions]);
+
+  const selectedRep = useMemo(() => {
+    return adminReps.find((r) => String(r.id) === selectedRepId);
+  }, [adminReps, selectedRepId]);
+
+  // Unified data sources
+  const warehouses = isAdmin ? (adminWarehousesQuery.data || []) : driverHook.warehouses;
+  const isLoadingWarehouses = isAdmin ? adminWarehousesQuery.isLoading : driverHook.isLoadingWarehouses;
+  const availableProducts = isAdmin ? (adminProductsQuery.data || []) : driverHook.availableProducts;
+  const driverName = isAdmin ? (selectedRep?.name || selectedRep?.full_name || 'اختر مندوب التوزيع') : driverHook.driverName;
+  const vehiclePlate = isAdmin
+    ? (selectedRep?.vehicle_plate ? `سيارة رقم [${selectedRep.vehicle_plate}]` : 'لا توجد سيارة مسجلة')
+    : driverHook.vehiclePlate;
+
+  interface VanRequisitionDraftData {
+    lines: RequisitionLineItem[];
+    selectedWarehouseFilter: string;
+    notes: string;
+    selectedRepId?: string;
+  }
+
+  // Admin submit mutation
+  const adminSubmitMutation = useMutation({
+    mutationFn: vanSalesApi.createAdminLoadRequisition,
+    onSuccess: (res, vars) => {
+      clearDraft();
+      const rep = adminReps.find((r) => r.id === vars.repId);
+      const repName = rep?.name || 'المندوب';
+      queryClient.invalidateQueries({ queryKey: ['van-admin-load-requisitions'] });
+      queryClient.invalidateQueries({ queryKey: ['van-sales-admin-trips'] });
+      setAdminSubmitResult({
+        docNo: res.docNo,
+        dispatched: res.dispatched,
+        tripId: res.tripId,
+        repName,
+      });
+      if (res.dispatched) {
+        toast.success(`تم اعتماد وصرف البضاعة وتحميل السيارة وبدء الرحلة #${res.tripId} بنجاح!`);
+      } else {
+        toast.success(`تم حفظ إذن التحميل #${res.docNo} كمسودة معلقة للمراجعة.`);
+      }
+      if (onRequisitionSubmitted) {
+        onRequisitionSubmitted(res.docNo);
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'فشل تسجيل إذن التحميل الإداري');
+    },
+  });
+
+  const isSubmitting = isAdmin ? adminSubmitMutation.isPending : driverHook.isSubmitting;
 
   // Initialize with one empty line ready for user input (mirroring NewIssueOrderPage)
   const [lines, setLines] = useState<RequisitionLineItem[]>([
@@ -77,6 +510,43 @@ export function DriverNewLoadRequisitionView({
     },
   ]);
 
+  // Draft auto-save and restore engine
+  const draftKey = `zs_van_load_requisition_draft_${mode}`;
+
+  const {
+    clearDraft,
+    isDraftRestored,
+    dismissRestoredNotice,
+    hasSavedDraft,
+    flushDraft,
+  } = useFormDraft<VanRequisitionDraftData>({
+    key: draftKey,
+    data: {
+      lines,
+      selectedWarehouseFilter,
+      notes,
+      selectedRepId: isAdmin ? selectedRepId : undefined,
+    },
+    isEmpty: (draft) =>
+      (!draft.lines || !draft.lines.some((l) => Boolean(l.productId))) &&
+      (!draft.notes || !draft.notes.trim()),
+    onRestore: (restored) => {
+      if (restored.lines && restored.lines.length > 0) {
+        setLines(restored.lines);
+      }
+      if (restored.selectedWarehouseFilter) {
+        setSelectedWarehouseFilter(restored.selectedWarehouseFilter);
+      }
+      if (typeof restored.notes === 'string') {
+        setNotes(restored.notes);
+      }
+      if (isAdmin && restored.selectedRepId) {
+        setSelectedRepId(restored.selectedRepId);
+      }
+    },
+    debounceMs: 300,
+  });
+
   // Options for SearchableCombobox (portal-based dropdown)
   const productOptions = useMemo(() => {
     return (availableProducts || []).map((p) => ({
@@ -91,6 +561,14 @@ export function DriverNewLoadRequisitionView({
       searchTerms: `${p.name} ${p.barcode || ''} ${p.sku || ''}`.toLowerCase(),
     }));
   }, [availableProducts]);
+
+  const warehouseSelectOptions = useMemo(() => [
+    { value: 'all', label: 'كل المخازن (تحديد تلقائي للمستودع الأوفر رصيداً)' },
+    ...warehouses.map((w) => ({
+      value: String(w.id),
+      label: `${w.name} ${w.code ? `(${w.code})` : ''}`,
+    })),
+  ], [warehouses]);
 
   // Update line's warehouse when top warehouse filter changes
   useEffect(() => {
@@ -115,8 +593,52 @@ export function DriverNewLoadRequisitionView({
     );
   }, [selectedWarehouseFilter, warehouses]);
 
+  // Synchronize live warehouse stock & retail prices for restored draft items
+  useEffect(() => {
+    if (!availableProducts || availableProducts.length === 0) return;
+
+    setLines((prevLines) => {
+      let hasChanges = false;
+      const updated = prevLines.map((line) => {
+        if (!line.productId) return line;
+        const prod = availableProducts.find((p) => p.id === Number(line.productId));
+        if (!prod) return line;
+
+        const whId = line.sourceWarehouseId !== '' ? Number(line.sourceWarehouseId) : undefined;
+        let freshAvail = prod.totalStock;
+        if (whId !== undefined) {
+          const matchWh = (prod.warehouseStocks || []).find((s) => s.warehouseId === whId);
+          freshAvail = matchWh ? matchWh.qty : 0;
+        }
+
+        const freshPrice = prod.retailPrice ?? line.unitPrice;
+        const freshStocks = prod.warehouseStocks || [];
+
+        if (
+          line.availableInWarehouse !== freshAvail ||
+          line.unitPrice !== freshPrice ||
+          line.unit !== (prod.unit || line.unit) ||
+          line.warehouseStocks !== freshStocks
+        ) {
+          hasChanges = true;
+          return {
+            ...line,
+            availableInWarehouse: freshAvail,
+            unitPrice: freshPrice,
+            unit: prod.unit || line.unit,
+            warehouseStocks: freshStocks,
+            qty: freshAvail > 0 ? Math.min(line.qty, freshAvail) : line.qty,
+          };
+        }
+        return line;
+      });
+
+      return hasChanges ? updated : prevLines;
+    });
+  }, [availableProducts]);
+
   // Add a new empty row to the table
-  const handleAddLine = () => {
+  const handleAddLine = useCallback(() => {
     const newLineId = `line-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
     setLines((prev) => [
       ...prev,
@@ -136,10 +658,16 @@ export function DriverNewLoadRequisitionView({
         isSearchOpen: true, // open dropdown immediately so cashier/driver can pick
       },
     ]);
-  };
+    setTimeout(() => {
+      const input = document.getElementById(`product-input-${newLineId}`) as HTMLInputElement | null;
+      if (input) {
+        input.focus();
+      }
+    }, 80);
+  }, []);
 
   // Remove a row
-  const handleRemoveLine = (lineId: string) => {
+  const handleRemoveLine = useCallback((lineId: string) => {
     setLines((prev) => {
       const filtered = prev.filter((l) => l.id !== lineId);
       // If all deleted, keep at least one empty row
@@ -164,10 +692,10 @@ export function DriverNewLoadRequisitionView({
       }
       return filtered;
     });
-  };
+  }, []);
 
   // Select a product into a specific line
-  const handleSelectProduct = (lineId: string, product: DriverAvailableProduct) => {
+  const handleSelectProduct = useCallback((lineId: string, product: DriverAvailableProduct) => {
     // Determine the source warehouse for this line
     let sourceWhId: number;
     let sourceWhName: string;
@@ -217,10 +745,10 @@ export function DriverNewLoadRequisitionView({
         };
       }),
     );
-  };
+  }, [selectedWarehouseFilter, warehouses]);
 
   // Change warehouse for a specific line (when "all warehouses" is active)
-  const handleChangeLineWarehouse = (lineId: string, warehouseIdStr: string) => {
+  const handleChangeLineWarehouse = useCallback((lineId: string, warehouseIdStr: string) => {
     const whId = Number(warehouseIdStr);
     setLines((prev) =>
       prev.map((line) => {
@@ -237,10 +765,10 @@ export function DriverNewLoadRequisitionView({
         };
       }),
     );
-  };
+  }, [warehouses]);
 
   // Update line quantity
-  const handleUpdateLineQty = (lineId: string, newQty: number) => {
+  const handleUpdateLineQty = useCallback((lineId: string, newQty: number) => {
     setLines((prev) =>
       prev.map((line) => {
         if (line.id !== lineId) return line;
@@ -249,7 +777,36 @@ export function DriverNewLoadRequisitionView({
         return { ...line, qty: clamped };
       }),
     );
-  };
+  }, []);
+
+  const handleLineProductChange = useCallback((lineId: string, val: string) => {
+    setLines((prev) =>
+      prev.map((l) =>
+        l.id === lineId
+          ? {
+              ...l,
+              productName: val,
+              searchQuery: val,
+              ...(val === ''
+                ? {
+                    productId: '',
+                    barcode: '',
+                    availableInWarehouse: 0,
+                    warehouseStocks: [],
+                    unitPrice: 0,
+                  }
+                : {}),
+            }
+          : l,
+      ),
+    );
+  }, []);
+
+  const handleLineWarehouseChange = useCallback((lineId: string, val: string) => {
+    setLines((prev) =>
+      prev.map((l) => (l.id === lineId ? { ...l, sourceWarehouseName: val } : l)),
+    );
+  }, []);
 
   // Summary statistics
   const validLines = useMemo(() => lines.filter((l) => l.productId !== ''), [lines]);
@@ -257,7 +814,56 @@ export function DriverNewLoadRequisitionView({
   const totalUnitsCount = useMemo(() => validLines.reduce((acc, l) => acc + l.qty, 0), [validLines]);
   const totalEstimatedValue = useMemo(() => validLines.reduce((acc, l) => acc + l.qty * l.unitPrice, 0), [validLines]);
 
-  // Handle submit using hook
+  const hasDraftContent = useMemo(() => {
+    return lines.some((l) => Boolean(l.productId)) || notes.trim() !== '';
+  }, [lines, notes]);
+
+  const handleGoBack = useCallback(() => {
+    flushDraft();
+    onBack();
+  }, [flushDraft, onBack]);
+
+  const handleClearDraft = useCallback(async () => {
+    if (!hasDraftContent && !hasSavedDraft) {
+      clearDraft();
+      toast.info('لا توجد مسودة حالية لحذفها');
+      return;
+    }
+
+    const confirmed = await systemConfirm({
+      title: 'حذف مسودة طلب التحميل',
+      message: 'هل أنت متأكد من حذف مسودة طلب التحميل الحالية؟ سيتم مسح جميع الأصناف والبيانات المدخلة والبدء من جديد.',
+      confirmText: 'نعم، احذف المسودة',
+      cancelText: 'إلغاء',
+      variant: 'danger',
+    });
+
+    if (confirmed) {
+      clearDraft();
+      setLines([
+        {
+          id: `line-${Date.now()}-1`,
+          productId: '',
+          productName: '',
+          barcode: '',
+          unitPrice: 0,
+          unit: 'قطعة',
+          sourceWarehouseId: '',
+          sourceWarehouseName: '',
+          availableInWarehouse: 0,
+          warehouseStocks: [],
+          qty: 1,
+          searchQuery: '',
+          isSearchOpen: false,
+        },
+      ]);
+      setNotes('');
+      dismissRestoredNotice();
+      toast.success('تم حذف المسودة بنجاح وتفريغ البيانات');
+    }
+  }, [hasDraftContent, hasSavedDraft, clearDraft, dismissRestoredNotice]);
+
+  // Handle submit in driver mode
   const handleSubmit = async () => {
     if (validLines.length === 0) {
       toast.error('يرجى اختيار صنف واحد على الأقل لطلب التحميل');
@@ -281,14 +887,15 @@ export function DriverNewLoadRequisitionView({
       items: validLines.map((item) => ({
         productId: Number(item.productId),
         qty: item.qty,
-        sourceWarehouseId: Number(item.sourceWarehouseId),
+        sourceWarehouseId: item.sourceWarehouseId ? Number(item.sourceWarehouseId) : undefined,
         sourceWarehouseName: item.sourceWarehouseName,
       })),
       notes: notes.trim() || undefined,
     };
 
     try {
-      const res = await submitRequisition(payload);
+      const res = await driverHook.submitRequisition(payload);
+      clearDraft();
       setSubmittedDocNo(res.docNo);
       if (onRequisitionSubmitted) {
         onRequisitionSubmitted(res.docNo);
@@ -298,7 +905,167 @@ export function DriverNewLoadRequisitionView({
     }
   };
 
-  // Success view if submitted
+  // Handle submit in admin mode (direct dispatch or pending)
+  const handleAdminSubmit = async (dispatchImmediately: boolean) => {
+    if (!selectedRepId) {
+      toast.error('يرجى اختيار مندوب التوزيع أولاً');
+      return;
+    }
+    if (validLines.length === 0) {
+      toast.error('يرجى اختيار صنف واحد على الأقل لطلب التحميل');
+      return;
+    }
+
+    for (const line of validLines) {
+      if (line.availableInWarehouse <= 0) {
+        toast.error(`الصنف "${line.productName}" رصيده نافد في مستودع "${line.sourceWarehouseName}"`);
+        return;
+      }
+      if (line.qty > line.availableInWarehouse) {
+        toast.error(`الكمية المطلوبة من "${line.productName}" (${line.qty}) تتجاوز المتاح (${line.availableInWarehouse})`);
+        return;
+      }
+    }
+
+    if (dispatchImmediately) {
+      const ok = await systemConfirm({
+        title: 'اعتماد وصرف وتحميل السيارة فوراً',
+        message: `هل تود صرف هذه الأصناف (${distinctItemsCount} صنف بإجمالي ${totalUnitsCount} قطعة) من المستودع وتحميل سيارة المندوب "${driverName}" وبدء رحلة التوزيع فوراً؟ سيتم خصم الكميات من المستودع وفتح الرحلة تلقائياً.`,
+        confirmText: 'صرف وتحميل السيارة وبدء الرحلة',
+        cancelText: 'إلغاء',
+        variant: 'primary',
+      });
+      if (!ok) return;
+    }
+
+    const payload = {
+      repId: Number(selectedRepId),
+      sourceWarehouseId: selectedWarehouseFilter !== 'all' ? Number(selectedWarehouseFilter) : undefined,
+      items: validLines.map((item) => ({
+        productId: Number(item.productId),
+        qty: item.qty,
+        productName: item.productName,
+        barcode: item.barcode,
+        sourceWarehouseId: item.sourceWarehouseId ? Number(item.sourceWarehouseId) : undefined,
+        sourceWarehouseName: item.sourceWarehouseName,
+      })),
+      notes: notes.trim() || undefined,
+      dispatchImmediately,
+    };
+
+    try {
+      await adminSubmitMutation.mutateAsync(payload);
+    } catch {
+      // Error handled in mutation onError
+    }
+  };
+
+  // Success view if submitted by Admin
+  if (adminSubmitResult) {
+    return (
+      <div
+        dir="rtl"
+        style={{
+          minHeight: '85vh',
+          backgroundColor: '#f8fafc',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px 16px',
+          fontFamily: 'inherit',
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            padding: '36px 28px',
+            maxWidth: '560px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+          }}
+        >
+          <div
+            style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              backgroundColor: '#ecfdf5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}
+          >
+            <CheckCircleIcon size={36} color="#10b981" />
+          </div>
+
+          <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: '0 0 8px' }}>
+            {adminSubmitResult.dispatched
+              ? 'تم صرف البضاعة وتحميل السيارة وبدء رحلة التوزيع!'
+              : 'تم حفظ إذن التحميل كمسودة معلقة بنجاح!'}
+          </h2>
+
+          <div
+            style={{
+              backgroundColor: '#f1f5f9',
+              borderRadius: '8px',
+              padding: '12px 18px',
+              margin: '14px 0 20px',
+              display: 'inline-flex',
+              gap: '20px',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div>
+              <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block' }}>رقم إذن التحميل:</span>
+              <span style={{ fontSize: '17px', fontWeight: 900, color: '#170e5e', fontFamily: 'monospace' }}>
+                #{adminSubmitResult.docNo}
+              </span>
+            </div>
+            {adminSubmitResult.tripId && (
+              <>
+                <div style={{ height: '28px', width: '1px', backgroundColor: '#cbd5e1' }} />
+                <div>
+                  <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block' }}>رقم رحلة التوزيع:</span>
+                  <span style={{ fontSize: '17px', fontWeight: 900, color: '#15803d', fontFamily: 'monospace' }}>
+                    #{adminSubmitResult.tripId}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
+          <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6, margin: '0 0 24px' }}>
+            {adminSubmitResult.dispatched
+              ? `تم خصم كميات البضاعة من المستودع وتحويلها رسمياً لعهدة سيارة المندوب "${adminSubmitResult.repName}". السيارة محملة الآن والرحلة الميدانية نشطة وجاهزة لتسجيل الفواتير والتحصيلات.`
+              : `تم تسجيل طلب التحميل وإسناده للمندوب "${adminSubmitResult.repName}". يمكنك مراجعته أو تعديل كمياته وصرفه في أي وقت من جدول أذونات التحميل.`}
+          </p>
+
+          <Button
+            variant="primary"
+            onClick={onBack}
+            style={{
+              backgroundColor: '#170e5e',
+              color: '#ffffff',
+              fontSize: '13.5px',
+              fontWeight: 800,
+              padding: '10px 24px',
+              width: '100%',
+              borderRadius: '10px',
+            }}
+          >
+            العودة لقائمة أذونات التحميل
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Success view if submitted in driver mode
   if (submittedDocNo) {
     return (
       <div
@@ -383,16 +1150,19 @@ export function DriverNewLoadRequisitionView({
     );
   }
 
-  const warehouseSelectOptions = [
-    { value: 'all', label: 'كل المخازن (تحديد تلقائي للمستودع الأوفر رصيداً)' },
-    ...warehouses.map((w) => ({
-      value: String(w.id),
-      label: `${w.name} ${w.code ? `(${w.code})` : ''}`,
-    })),
-  ];
-
   return (
     <div dir="rtl" style={{ width: '100%', minHeight: '100vh', backgroundColor: '#f8fafc', paddingBottom: '100px' }}>
+      <style>{`
+        input.no-spin-arrows::-webkit-outer-spin-button,
+        input.no-spin-arrows::-webkit-inner-spin-button {
+          -webkit-appearance: none !important;
+          margin: 0 !important;
+        }
+        input.no-spin-arrows {
+          -moz-appearance: textfield !important;
+          appearance: textfield !important;
+        }
+      `}</style>
       <div style={{ maxWidth: '1280px', width: 'min(100%, 1280px)', margin: '0 auto', padding: '16px' }}>
         {/* Top Header Bar matching NewIssueOrderPage */}
         <header
@@ -413,7 +1183,7 @@ export function DriverNewLoadRequisitionView({
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button
               type="button"
-              onClick={onBack}
+              onClick={handleGoBack}
               style={{
                 width: '36px',
                 height: '36px',
@@ -426,68 +1196,186 @@ export function DriverNewLoadRequisitionView({
                 cursor: 'pointer',
                 color: '#475569',
               }}
-              title="العودة للرئيسية"
+              title="العودة للقائمة"
             >
               <ArrowRightIcon size={18} />
             </button>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h1 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                  طلب شحن بضاعة صباحي (إذن تحميل سيارة)
+                  {isAdmin
+                    ? 'إسناد وصرف إذن تحميل سيارة التوزيع (FMCG)'
+                    : 'طلب شحن بضاعة صباحي (إذن تحميل سيارة)'}
                 </h1>
                 <span
                   style={{
-                    backgroundColor: '#e0e7ff',
-                    color: '#3730a3',
+                    backgroundColor: isAdmin ? '#fef3c7' : '#e0e7ff',
+                    color: isAdmin ? '#92400e' : '#3730a3',
                     fontSize: '11px',
                     fontWeight: 700,
                     padding: '2px 8px',
                     borderRadius: '6px',
                   }}
                 >
-                  مسودة جديدة
+                  {isAdmin ? 'إسناد إداري مباشر' : 'مسودة جديدة'}
                 </span>
               </div>
               <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                تحديد أصناف وكميات البضاعة المطلوبة من المستودعات لسيارة التوزيع الميدانية
+                {isAdmin
+                  ? 'إعداد إذن التحميل وصرف البضاعة وتحميل السيارة مباشرة للمندوب لبدء رحلة التوزيع'
+                  : 'تحديد أصناف وكميات البضاعة المطلوبة من المستودعات لسيارة التوزيع الميدانية'}
               </span>
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {(hasDraftContent || hasSavedDraft) && (
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={handleClearDraft}
+                style={{
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  color: '#dc2626',
+                  borderColor: '#fca5a5',
+                  backgroundColor: '#fef2f2',
+                  padding: '8px 14px',
+                }}
+              >
+                حذف المسودة
+              </Button>
+            )}
+
             <Button
               variant="secondary"
               type="button"
-              onClick={onBack}
+              onClick={handleGoBack}
               style={{
                 fontSize: '12.5px',
                 fontWeight: 700,
-                color: '#b91c1c',
-                borderColor: 'rgba(239, 68, 68, 0.3)',
+                color: '#475569',
+                borderColor: '#cbd5e1',
                 padding: '8px 14px',
               }}
             >
-              إلغاء المسودة
+              العودة للقائمة
             </Button>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={handleSubmit}
-              disabled={isSubmitting || validLines.length === 0}
-              style={{
-                backgroundColor: '#170e5e',
-                color: '#ffffff',
-                fontSize: '12.5px',
-                fontWeight: 800,
-                padding: '8px 18px',
-              }}
-            >
-              {isSubmitting
-                ? 'جارٍ الإرسال...'
-                : `إرسال طلب التحميل للمشرف (${distinctItemsCount} أصناف)`}
-            </Button>
+            {isAdmin ? (
+              <>
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={() => handleAdminSubmit(false)}
+                  disabled={isSubmitting || validLines.length === 0}
+                  style={{
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    color: '#170e5e',
+                    borderColor: '#170e5e',
+                    padding: '8px 14px',
+                  }}
+                >
+                  {adminSubmitMutation.isPending ? 'جاري الحفظ...' : 'حفظ كإذن معلق'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => handleAdminSubmit(true)}
+                  disabled={isSubmitting || validLines.length === 0}
+                  style={{
+                    backgroundColor: '#170e5e',
+                    color: '#ffffff',
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    padding: '8px 18px',
+                  }}
+                >
+                  {adminSubmitMutation.isPending
+                    ? 'جاري الصرف والتحميل...'
+                    : `صرف وتحميل السيارة فوراً (${distinctItemsCount} أصناف)`}
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleSubmit}
+                disabled={isSubmitting || validLines.length === 0}
+                style={{
+                  backgroundColor: '#170e5e',
+                  color: '#ffffff',
+                  fontSize: '12.5px',
+                  fontWeight: 800,
+                  padding: '8px 18px',
+                }}
+              >
+                {isSubmitting
+                  ? 'جارٍ الإرسال...'
+                  : `إرسال طلب التحميل للمشرف (${distinctItemsCount} أصناف)`}
+              </Button>
+            )}
           </div>
         </header>
+
+        {/* Draft Restored Banner */}
+        {isDraftRestored && (
+          <div
+            style={{
+              marginBottom: '16px',
+              padding: '10px 16px',
+              backgroundColor: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#1e40af' }}>
+              <CheckCircleIcon size={16} />
+              <span>
+                <strong>تم استرجاع المسودة غير المحفوظة تلقائياً:</strong> تم تحميل الأصناف والبيانات السابقة لمتابعة إذن التحميل دون فقدان.
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={handleClearDraft}
+                style={{
+                  fontSize: '11.5px',
+                  color: '#b91c1c',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  textDecoration: 'underline',
+                  padding: '2px 6px',
+                }}
+              >
+                حذف المسودة
+              </button>
+              <button
+                type="button"
+                onClick={dismissRestoredNotice}
+                style={{
+                  fontSize: '11.5px',
+                  color: '#1e40af',
+                  backgroundColor: '#dbeafe',
+                  border: '1px solid #bfdbfe',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  padding: '3px 10px',
+                }}
+              >
+                إغلاق التنبيه
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Section 1: "المعلومات الأساسية" matching IssueOrderHeaderSection */}
         <section
@@ -547,7 +1435,7 @@ export function DriverNewLoadRequisitionView({
               />
             </div>
 
-            {/* Field 2: Representative (Readonly) */}
+            {/* Field 2: Representative */}
             <div>
               <label
                 style={{
@@ -558,25 +1446,36 @@ export function DriverNewLoadRequisitionView({
                   marginBottom: '6px',
                 }}
               >
-                مندوب التوزيع (المستلم)
+                {isAdmin ? 'مندوب التوزيع (السائق)' : 'مندوب التوزيع (المستلم)'}
+                {isAdmin && <span style={{ color: '#dc2626' }}> *</span>}
               </label>
-              <input
-                type="text"
-                readOnly
-                value={driverName}
-                style={{
-                  width: '100%',
-                  height: '42px',
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
-                  padding: '0 12px',
-                  fontSize: '12.5px',
-                  color: '#0f172a',
-                  fontWeight: 700,
-                  boxSizing: 'border-box',
-                }}
-              />
+              {isAdmin ? (
+                <CustomSelect
+                  value={selectedRepId}
+                  onChange={(val) => setSelectedRepId(val)}
+                  options={repSelectOptions}
+                  placeholder="اختر مندوب التوزيع..."
+                  disabled={adminRepsQuery.isLoading}
+                />
+              ) : (
+                <input
+                  type="text"
+                  readOnly
+                  value={driverName}
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '0 12px',
+                    fontSize: '12.5px',
+                    color: '#0f172a',
+                    fontWeight: 700,
+                    boxSizing: 'border-box',
+                  }}
+                />
+              )}
             </div>
 
             {/* Field 3: Vehicle (Readonly) */}
@@ -622,12 +1521,16 @@ export function DriverNewLoadRequisitionView({
                   marginBottom: '6px',
                 }}
               >
-                وضع الطلب
+                مسار العملية
               </label>
               <input
                 type="text"
                 readOnly
-                value="طلب شحن صباحي (بانتظار موافقة مشرف المستودع)"
+                value={
+                  isAdmin
+                    ? 'إسناد وصرف مباشر من المشرف'
+                    : 'طلب شحن صباحي (بانتظار موافقة مشرف المستودع)'
+                }
                 style={{
                   width: '100%',
                   height: '42px',
@@ -733,231 +1636,23 @@ export function DriverNewLoadRequisitionView({
                 </tr>
               </thead>
               <tbody>
-                {lines.map((line, index) => {
-                  // Warehouses with positive stock for this line's product
-                  const productWarehouseOptions = (line.warehouseStocks || [])
-                    .filter((w) => w.qty > 0)
-                    .map((w) => ({
-                      id: String(w.warehouseId),
-                      name: `${w.warehouseName} (متاح: ${w.qty})`,
-                    }));
-
-                  return (
-                    <tr
-                      key={line.id}
-                      style={{
-                        borderBottom: index < lines.length - 1 ? '1px solid #e2e8f0' : 'none',
-                        backgroundColor: line.productId ? '#ffffff' : '#fcfcfd',
-                      }}
-                    >
-                      {/* Product Search & Selection Cell via Portal Combobox */}
-                      <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
-                        <SearchableCombobox
-                          inputId={`product-input-${line.id}`}
-                          options={productOptions}
-                          value={line.productName || line.searchQuery || ''}
-                          onChange={(val) => {
-                            setLines((prev) =>
-                              prev.map((l) =>
-                                l.id === line.id
-                                  ? {
-                                      ...l,
-                                      productName: val,
-                                      searchQuery: val,
-                                      ...(val === ''
-                                        ? {
-                                            productId: '',
-                                            barcode: '',
-                                            availableInWarehouse: 0,
-                                            warehouseStocks: [],
-                                            unitPrice: 0,
-                                          }
-                                        : {}),
-                                    }
-                                  : l,
-                              ),
-                            );
-                          }}
-                          onSelect={(opt) => {
-                            handleSelectProduct(line.id, opt.product);
-                          }}
-                          getLabel={(opt) => opt.name}
-                          getMeta={(opt) =>
-                            `متاح: ${opt.totalStock} ${opt.unit} ${opt.barcode ? `| باركود: ${opt.barcode}` : ''}`
-                          }
-                          search={(opt, query) => {
-                            if (!query || !query.trim()) return true;
-                            const q = query.toLowerCase().trim();
-                            return (
-                              opt.searchTerms.includes(q) ||
-                              matchesArabic(opt.name, q) ||
-                              matchesArabic(opt.barcode, q)
-                            );
-                          }}
-                          placeholder="ابحث عن الصنف بالاسم أو الباركود..."
-                          inline={true}
-                          inputClassName="purchase-prototype-field-input"
-                          inputStyle={{ height: '38px', borderRadius: '6px' }}
-                        />
-                      </td>
-
-                      {/* Source Warehouse Cell (when "all warehouses" is active) */}
-                      {selectedWarehouseFilter === 'all' && (
-                        <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
-                          {line.productId ? (
-                            productWarehouseOptions.length > 0 ? (
-                              <SearchableCombobox
-                                inputId={`warehouse-input-${line.id}`}
-                                options={productWarehouseOptions}
-                                value={line.sourceWarehouseName || ''}
-                                onChange={(val) => {
-                                  setLines((prev) =>
-                                    prev.map((l) => (l.id === line.id ? { ...l, sourceWarehouseName: val } : l)),
-                                  );
-                                }}
-                                onSelect={(opt) => handleChangeLineWarehouse(line.id, opt.id)}
-                                getLabel={(opt) => opt.name}
-                                search={(opt, query) => {
-                                  if (!query || !query.trim()) return true;
-                                  return matchesArabic(opt.name, query);
-                                }}
-                                placeholder="اختر المخزن..."
-                                inline={true}
-                                inputClassName="purchase-prototype-field-input"
-                                inputStyle={{ height: '38px', borderRadius: '6px' }}
-                              />
-                            ) : (
-                              <span style={{ fontSize: '11.5px', color: '#dc2626', fontWeight: 700 }}>
-                                لا يتوفر رصيد بأي مخزن
-                              </span>
-                            )
-                          ) : (
-                            <span style={{ fontSize: '12px', color: '#94a3b8' }}>- اختر صنفاً أولاً -</span>
-                          )}
-                        </td>
-                      )}
-
-                      {/* Available Stock in Warehouse Cell */}
-                      <td style={{ padding: '8px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
-                        {line.productId ? (
-                          <span
-                            style={{
-                              fontSize: '13px',
-                              fontWeight: 900,
-                              color: line.availableInWarehouse > 0 ? '#15803d' : '#dc2626',
-                              backgroundColor: line.availableInWarehouse > 0 ? '#ecfdf5' : '#fef2f2',
-                              border: `1px solid ${line.availableInWarehouse > 0 ? '#bbf7d0' : '#fecaca'}`,
-                              padding: '4px 10px',
-                              borderRadius: '6px',
-                              display: 'inline-block',
-                            }}
-                          >
-                            {line.availableInWarehouse}
-                          </span>
-                        ) : (
-                          <span style={{ color: '#94a3b8' }}>-</span>
-                        )}
-                      </td>
-
-                      {/* Requested Qty Stepper Cell */}
-                      <td style={{ padding: '8px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
-                        {line.productId ? (
-                          <div
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: '8px',
-                              backgroundColor: '#ffffff',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateLineQty(line.id, line.qty - 1)}
-                              disabled={line.qty <= 1}
-                              style={{
-                                width: '32px',
-                                height: '34px',
-                                border: 'none',
-                                backgroundColor: '#f8fafc',
-                                color: '#475569',
-                                cursor: line.qty <= 1 ? 'not-allowed' : 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              <MinusIcon size={14} />
-                            </button>
-                            <input
-                              type="number"
-                              min={1}
-                              max={line.availableInWarehouse || 999999}
-                              value={line.qty}
-                              onChange={(e) => {
-                                const val = parseInt(e.target.value, 10);
-                                if (!isNaN(val)) handleUpdateLineQty(line.id, val);
-                              }}
-                              style={{
-                                width: '50px',
-                                height: '34px',
-                                border: 'none',
-                                textAlign: 'center',
-                                fontSize: '13px',
-                                fontWeight: 800,
-                                color: '#0f172a',
-                                outline: 'none',
-                              }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateLineQty(line.id, line.qty + 1)}
-                              disabled={line.availableInWarehouse > 0 && line.qty >= line.availableInWarehouse}
-                              style={{
-                                width: '32px',
-                                height: '34px',
-                                border: 'none',
-                                backgroundColor: '#f8fafc',
-                                color: '#475569',
-                                cursor:
-                                  line.availableInWarehouse > 0 && line.qty >= line.availableInWarehouse
-                                    ? 'not-allowed'
-                                    : 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              <PlusIcon size={14} />
-                            </button>
-                          </div>
-                        ) : (
-                          <span style={{ color: '#94a3b8' }}>-</span>
-                        )}
-                      </td>
-
-                      {/* Delete Line Action Cell */}
-                      <td style={{ padding: '8px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveLine(line.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#ef4444',
-                            cursor: 'pointer',
-                            padding: '6px',
-                            borderRadius: '6px',
-                          }}
-                          title="حذف هذا السطر"
-                        >
-                          <Trash2Icon size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {lines.map((line, index) => (
+                  <RequisitionLineRow
+                    key={line.id}
+                    line={line}
+                    index={index}
+                    isLast={index === lines.length - 1}
+                    productOptions={productOptions}
+                    selectedWarehouseFilter={selectedWarehouseFilter}
+                    onSelectProduct={handleSelectProduct}
+                    onLineProductChange={handleLineProductChange}
+                    onChangeLineWarehouse={handleChangeLineWarehouse}
+                    onLineWarehouseChange={handleLineWarehouseChange}
+                    onUpdateLineQty={handleUpdateLineQty}
+                    onRemoveLine={handleRemoveLine}
+                    onEnterQty={handleAddLine}
+                  />
+                ))}
               </tbody>
             </table>
           </div>
@@ -1063,30 +1758,85 @@ export function DriverNewLoadRequisitionView({
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
+            {(hasDraftContent || hasSavedDraft) && (
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={handleClearDraft}
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: '#dc2626',
+                  borderColor: '#fca5a5',
+                  backgroundColor: '#fef2f2',
+                  padding: '10px 18px',
+                }}
+              >
+                حذف المسودة
+              </Button>
+            )}
             <Button
               variant="secondary"
               type="button"
-              onClick={onBack}
-              style={{ fontSize: '13px', fontWeight: 700 }}
+              onClick={handleGoBack}
+              style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}
             >
-              إلغاء المسودة
+              العودة للقائمة
             </Button>
-            <Button
-              variant="primary"
-              type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitting || validLines.length === 0}
-              style={{
-                backgroundColor: '#170e5e',
-                color: '#ffffff',
-                fontWeight: 800,
-                fontSize: '13px',
-                padding: '10px 24px',
-                borderRadius: '8px',
-              }}
-            >
-              {isSubmitting ? 'جارٍ الإرسال...' : 'إرسال طلب التحميل للمشرف'}
-            </Button>
+            {isAdmin ? (
+              <>
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={() => handleAdminSubmit(false)}
+                  disabled={isSubmitting || validLines.length === 0}
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: '#170e5e',
+                    borderColor: '#170e5e',
+                    padding: '10px 18px',
+                  }}
+                >
+                  {adminSubmitMutation.isPending ? 'جاري الحفظ...' : 'حفظ كإذن معلق'}
+                </Button>
+                <Button
+                  variant="primary"
+                  type="button"
+                  onClick={() => handleAdminSubmit(true)}
+                  disabled={isSubmitting || validLines.length === 0}
+                  style={{
+                    backgroundColor: '#170e5e',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '13px',
+                    padding: '10px 24px',
+                    borderRadius: '8px',
+                  }}
+                >
+                  {adminSubmitMutation.isPending
+                    ? 'جارٍ الصرف والتحميل...'
+                    : 'صرف وتحميل السيارة فوراً وبدء الرحلة'}
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="primary"
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSubmitting || validLines.length === 0}
+                style={{
+                  backgroundColor: '#170e5e',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  padding: '10px 24px',
+                  borderRadius: '8px',
+                }}
+              >
+                {isSubmitting ? 'جارٍ الإرسال...' : 'إرسال طلب التحميل للمشرف'}
+              </Button>
+            )}
           </div>
         </section>
       </div>
@@ -1094,4 +1844,5 @@ export function DriverNewLoadRequisitionView({
   );
 }
 
+export const UnifiedLoadRequisitionView = DriverNewLoadRequisitionView;
 export default DriverNewLoadRequisitionView;

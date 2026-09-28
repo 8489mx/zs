@@ -760,7 +760,7 @@ export function DriverLoadRequisitionModal({
                                 >
                                   <button
                                     type="button"
-                                    onClick={() => handleUpdateQty(item.lineId, item.qty - 1)}
+                                    onClick={() => handleUpdateQty(item.lineId, item.qty + 1)}
                                     style={{
                                       width: '26px',
                                       height: '26px',
@@ -773,9 +773,9 @@ export function DriverLoadRequisitionModal({
                                       justifyContent: 'center',
                                       color: '#334155',
                                     }}
-                                    title="إنقاص الكمية"
+                                    title="زيادة الكمية"
                                   >
-                                    <MinusIcon size={13} />
+                                    <PlusIcon size={13} />
                                   </button>
                                   <input
                                     type="number"
@@ -797,7 +797,7 @@ export function DriverLoadRequisitionModal({
                                   />
                                   <button
                                     type="button"
-                                    onClick={() => handleUpdateQty(item.lineId, item.qty + 1)}
+                                    onClick={() => handleUpdateQty(item.lineId, item.qty - 1)}
                                     style={{
                                       width: '26px',
                                       height: '26px',
@@ -810,9 +810,9 @@ export function DriverLoadRequisitionModal({
                                       justifyContent: 'center',
                                       color: '#334155',
                                     }}
-                                    title="زيادة الكمية"
+                                    title="إنقاص الكمية"
                                   >
-                                    <PlusIcon size={13} />
+                                    <MinusIcon size={13} />
                                   </button>
                                 </div>
                               </td>

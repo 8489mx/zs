@@ -1,13 +1,119 @@
-import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Req, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AiCopilotService, CopilotResponse } from './ai-copilot.service';
+import { AiAgentService, AgentChatResponse } from './services/ai-agent.service';
+import { AiKnowledgeService } from './services/ai-knowledge.service';
 
 @Controller('api/ai-copilot')
 @UseGuards(SessionAuthGuard)
 export class AiCopilotController {
-  constructor(private readonly copilotService: AiCopilotService) {}
+  constructor(
+    private readonly copilotService: AiCopilotService,
+    private readonly agentService: AiAgentService,
+    private readonly knowledgeService: AiKnowledgeService,
+  ) {}
+
+  /**
+   * New Conversational Reasoning Agent Endpoint (Multi-turn + Tools + Out-of-the-box reasoning)
+   */
+  @Post('agent/chat')
+  async chatAgent(
+    @Body() body: { message: string; sessionId?: string },
+    @Req() req: RequestWithAuth,
+  ): Promise<AgentChatResponse> {
+    const actor = req.authContext!;
+    const { tenantId } = requireTenantScope(actor);
+    const aiConfig = await this.copilotService.getEffectiveAiConfig(tenantId);
+
+    return this.agentService.chat(
+      body.message,
+      body.sessionId,
+      actor,
+      aiConfig.apiKey?.trim(),
+      aiConfig.provider,
+      aiConfig.model,
+      aiConfig.baseUrl,
+    );
+  }
+
+  /**
+   * List recent chat sessions
+   */
+  @Get('agent/sessions')
+  listSessions(@Req() req: RequestWithAuth) {
+    return this.agentService.listUserSessions(req.authContext!);
+  }
+
+  /**
+   * Get messages for a specific session
+   */
+  @Get('agent/sessions/:id/messages')
+  getSessionMessages(@Param('id') sessionId: string, @Req() req: RequestWithAuth) {
+    return this.agentService.getSessionMessages(sessionId, req.authContext!);
+  }
+
+  /**
+   * Add a new document / policy / manual to the knowledge base (Chatbase style)
+   */
+  @Post('knowledge/sources')
+  async addKnowledgeSource(
+    @Body()
+    body: {
+      title: string;
+      sourceType?: string;
+      rawText: string;
+      fileUrl?: string;
+      metadata?: Record<string, unknown>;
+    },
+    @Req() req: RequestWithAuth,
+  ) {
+    const actor = req.authContext!;
+    const { tenantId } = requireTenantScope(actor);
+    const aiConfig = await this.copilotService.getEffectiveAiConfig(tenantId);
+
+    return this.knowledgeService.addSource(
+      body,
+      actor,
+      aiConfig.apiKey?.trim(),
+      aiConfig.provider,
+    );
+  }
+
+  /**
+   * List company knowledge sources
+   */
+  @Get('knowledge/sources')
+  listKnowledgeSources(@Req() req: RequestWithAuth) {
+    return this.knowledgeService.listSources(req.authContext!);
+  }
+
+  /**
+   * Delete a knowledge source
+   */
+  @Delete('knowledge/sources/:id')
+  deleteKnowledgeSource(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.knowledgeService.deleteSource(id, req.authContext!);
+  }
+
+  /**
+   * Auto-index active product catalog into knowledge base
+   */
+  @Post('knowledge/auto-index-products')
+  async autoIndexProducts(@Req() req: RequestWithAuth) {
+    const actor = req.authContext!;
+    const { tenantId } = requireTenantScope(actor);
+    const aiConfig = await this.copilotService.getEffectiveAiConfig(tenantId);
+
+    return this.knowledgeService.autoIndexProducts(
+      actor,
+      aiConfig.apiKey?.trim(),
+      aiConfig.provider,
+    );
+  }
+
+  // --- Legacy Endpoints for Backwards Compatibility ---
 
   @Post('ask')
   ask(
@@ -24,7 +130,8 @@ export class AiCopilotController {
 
   @Post('config')
   saveConfig(
-    @Body() body: {
+    @Body()
+    body: {
       provider?: 'gemini' | 'openai' | 'custom';
       apiKey?: string;
       geminiApiKey?: string;
@@ -38,7 +145,8 @@ export class AiCopilotController {
 
   @Post('test-key')
   testKey(
-    @Body() body: {
+    @Body()
+    body: {
       apiKey?: string;
       provider?: 'gemini' | 'openai' | 'custom';
       model?: string;
@@ -61,4 +169,3 @@ export class AiCopilotController {
     });
   }
 }
-

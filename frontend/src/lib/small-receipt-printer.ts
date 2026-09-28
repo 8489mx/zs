@@ -11,6 +11,7 @@ export interface SmallReceiptPrintOptions {
 
 export function getSmallReceiptStyles(options: { widthMm?: number; marginMm?: number; fontSizePx?: number } = {}) {
   const { widthMm = 58, marginMm = 0, fontSizePx = 10.5 } = options;
+  const effectiveMaxWidth = widthMm > 65 ? Math.min(widthMm, 74) : widthMm;
 
   return `
     @page {
@@ -27,9 +28,9 @@ export function getSmallReceiptStyles(options: { widthMm?: number; marginMm?: nu
       padding: 0;
       background: #fff;
       color: #000;
-      font-family: 'Arial', 'Helvetica', 'Tahoma', sans-serif;
+      font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
       font-size: ${fontSizePx}px;
-      line-height: 1.25;
+      line-height: 1.35;
       direction: rtl;
       text-align: right;
       width: 100%;
@@ -37,14 +38,23 @@ export function getSmallReceiptStyles(options: { widthMm?: number; marginMm?: nu
     }
     .thermal-receipt-container {
       width: 100%;
-      max-width: ${widthMm}mm;
+      max-width: ${effectiveMaxWidth}mm;
       margin: 0 auto;
-      padding: 3mm 4mm;
+      padding: 2mm 3mm;
       page-break-inside: avoid;
       break-inside: avoid;
       background: #fff;
       color: #000;
       box-sizing: border-box;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 3px 0;
+      text-align: right;
+      vertical-align: top;
     }
     @media print {
       body {
@@ -68,11 +78,6 @@ export function printSmallReceiptDocument(htmlContent: string, options: SmallRec
     autoClose = false,
   } = options;
 
-  const printWindow = window.open('', '_blank', `width=${Math.max(380, widthMm * 4)},height=700`);
-  if (!printWindow) {
-    throw new Error('المتصفح منع فتح نافذة الطباعة. يرجى السماح بالنوافذ المنبثقة.');
-  }
-
   const styles = getSmallReceiptStyles({ widthMm, marginMm, fontSizePx });
 
   const fullHtml = `<!doctype html>
@@ -90,15 +95,54 @@ export function printSmallReceiptDocument(htmlContent: string, options: SmallRec
   </body>
 </html>`;
 
+  const printWindow = window.open('', '_blank', `width=${Math.max(380, widthMm * 4)},height=700`);
+  if (!printWindow) {
+    // Graceful fallback to hidden iframe so printing never fails on mobile/tablet or when popups are blocked
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.visibility = 'hidden';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(fullHtml);
+      doc.close();
+      window.setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        window.setTimeout(() => {
+          if (iframe.parentNode) {
+            iframe.parentNode.removeChild(iframe);
+          }
+        }, 2000);
+      }, printDelayMs);
+      return;
+    }
+    throw new Error('المتصفح منع فتح نافذة الطباعة. يرجى السماح بالنوافذ المنبثقة.');
+  }
+
   printWindow.document.open();
   printWindow.document.write(fullHtml);
   printWindow.document.close();
   printWindow.focus();
 
+  if (autoClose) {
+    try {
+      printWindow.onafterprint = () => {
+        window.setTimeout(() => printWindow.close(), 100);
+      };
+    } catch {}
+  }
+
   window.setTimeout(() => {
     printWindow.print();
     if (autoClose) {
-      window.setTimeout(() => printWindow.close(), 200);
+      window.setTimeout(() => printWindow.close(), 300);
     }
   }, printDelayMs);
 }

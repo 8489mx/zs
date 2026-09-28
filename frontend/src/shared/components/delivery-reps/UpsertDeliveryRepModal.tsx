@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { systemAlert } from '@/shared/components/system-alert';
 import { deliveryRepsApi, type DeliveryRep, type UpsertDeliveryRepPayload } from '@/shared/api/delivery-reps.api';
 import { XIcon, TruckIcon, LayersIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
@@ -11,19 +12,36 @@ export interface UpsertDeliveryRepModalProps {
   onClose: () => void;
   rep?: DeliveryRep | null;
   onSuccess?: (rep?: DeliveryRep) => void;
+  defaultRepType?: 'delivery' | 'van' | 'both';
+  hideDeliveryOption?: boolean;
 }
 
-export function UpsertDeliveryRepModal({ open, onClose, rep, onSuccess }: UpsertDeliveryRepModalProps) {
+export function UpsertDeliveryRepModal({
+  open,
+  onClose,
+  rep,
+  onSuccess,
+  defaultRepType = 'delivery',
+  hideDeliveryOption = false,
+}: UpsertDeliveryRepModalProps) {
   const queryClient = useQueryClient();
+
+  const vehiclesQuery = useQuery({
+    queryKey: ['fleet-vehicles-list'],
+    queryFn: deliveryRepsApi.listVehicles,
+    enabled: open,
+  });
+  const fleetVehicles = vehiclesQuery.data || [];
 
   const [nameInput, setNameInput] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
   const [pinCodeInput, setPinCodeInput] = useState('');
-  const [repTypeInput, setRepTypeInput] = useState<'delivery' | 'van' | 'both'>('delivery');
+  const [repTypeInput, setRepTypeInput] = useState<'delivery' | 'van' | 'both'>(defaultRepType);
   const [fullNameInput, setFullNameInput] = useState('');
   const [nationalIdInput, setNationalIdInput] = useState('');
   const [addressInput, setAddressInput] = useState('');
   const [vehiclePlateInput, setVehiclePlateInput] = useState('');
+  const [isActiveInput, setIsActiveInput] = useState<boolean>(true);
 
   useEffect(() => {
     if (open) {
@@ -35,20 +53,22 @@ export function UpsertDeliveryRepModal({ open, onClose, rep, onSuccess }: Upsert
         setNationalIdInput(rep.national_id || '');
         setAddressInput(rep.address || '');
         setVehiclePlateInput(rep.vehicle_plate || '');
+        setIsActiveInput(rep.is_active !== false);
         const currentType = (rep.rep_type as 'delivery' | 'van' | 'both') || (rep.is_van_rep ? 'van' : 'delivery');
         setRepTypeInput(currentType);
       } else {
         setNameInput('');
         setPhoneInput('');
         setPinCodeInput('');
-        setRepTypeInput('delivery');
+        setRepTypeInput(defaultRepType);
         setFullNameInput('');
         setNationalIdInput('');
         setAddressInput('');
         setVehiclePlateInput('');
+        setIsActiveInput(true);
       }
     }
-  }, [open, rep]);
+  }, [open, rep, defaultRepType]);
 
   const createMutation = useMutation({
     mutationFn: (data: UpsertDeliveryRepPayload) => deliveryRepsApi.create(data),
@@ -86,21 +106,40 @@ export function UpsertDeliveryRepModal({ open, onClose, rep, onSuccess }: Upsert
   });
 
   const handleSave = () => {
-    if (!nameInput.trim()) {
+    const trimmedName = nameInput.trim();
+    if (!trimmedName) {
       systemAlert('يرجى كتابة اسم المندوب');
       return;
     }
 
+    const trimmedPhone = phoneInput.trim();
+    if (!trimmedPhone) {
+      systemAlert('يرجى إدخال رقم هاتف المندوب (إجباري لتسجيل الدخول إلى تطبيق الهاتف)');
+      return;
+    }
+
+    const trimmedPin = pinCodeInput.trim();
+    if (!rep && !trimmedPin) {
+      systemAlert('يرجى تعيين رمز الدخول السريع (PIN) للمندوب');
+      return;
+    }
+
+    if (trimmedPin && trimmedPin.length < 4) {
+      systemAlert('يجب أن يتكون رمز الدخول (PIN) من 4 إلى 6 أرقام على الأقل');
+      return;
+    }
+
     const payload: UpsertDeliveryRepPayload = {
-      name: nameInput.trim(),
-      phone: phoneInput.trim() || undefined,
-      pinCode: pinCodeInput.trim() || undefined,
+      name: trimmedName,
+      phone: trimmedPhone,
+      pinCode: trimmedPin || undefined,
       repType: repTypeInput,
       isVanRep: repTypeInput === 'van' || repTypeInput === 'both',
       fullName: fullNameInput.trim() || undefined,
       nationalId: nationalIdInput.trim() || undefined,
       address: addressInput.trim() || undefined,
       vehiclePlate: vehiclePlateInput.trim() || undefined,
+      isActive: isActiveInput,
     };
 
     if (rep) {
@@ -153,22 +192,75 @@ export function UpsertDeliveryRepModal({ open, onClose, rep, onSuccess }: Upsert
         {/* Form Body */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '72vh', overflowY: 'auto' }}>
           
+          {/* Account Status Card (when editing) */}
+          {rep && (
+            <div
+              style={{
+                background: isActiveInput ? '#f0fdf4' : '#fef2f2',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                border: `1px solid ${isActiveInput ? '#bbf7d0' : '#fecaca'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 800,
+                    color: isActiveInput ? '#166534' : '#991b1b',
+                    display: 'block',
+                  }}
+                >
+                  حالة حساب المندوب: {isActiveInput ? 'نشط ويعمل' : 'موقوف ومُعطل'}
+                </span>
+                <span style={{ fontSize: '11px', color: isActiveInput ? '#15803d' : '#b91c1c' }}>
+                  {isActiveInput
+                    ? 'المندوب مفعّل ويمكنه فتح التطبيق واستلام رحلات وإصدار فواتير'
+                    : 'الحساب موقوف ولا يمكن للمندوب الدخول لتطبيق الهاتف حتى يتم تفعيله'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsActiveInput(!isActiveInput)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: `1px solid ${isActiveInput ? '#dc2626' : '#16a34a'}`,
+                  background: isActiveInput ? '#ffffff' : '#16a34a',
+                  color: isActiveInput ? '#dc2626' : '#ffffff',
+                }}
+              >
+                {isActiveInput ? 'إيقاف الحساب' : 'إعادة التفعيل'}
+              </button>
+            </div>
+          )}
+
           {/* Section 0: Representative Type Selection */}
           <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
               طبيعة العمل ونوع المندوب *
             </span>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: hideDeliveryOption ? '1fr 1fr' : 'repeat(3, 1fr)', gap: '10px' }}>
               {[
-                {
-                  key: 'delivery' as const,
-                  label: 'طيار دليفري',
-                  subtitle: 'توصيل أوردرات (/driver)',
-                  icon: <PackageIcon size={18} color={repTypeInput === 'delivery' ? '#ea580c' : '#64748b'} />,
-                  activeBorder: '#ea580c',
-                  activeBg: '#fff7ed',
-                  activeColor: '#9a3412',
-                },
+                ...(hideDeliveryOption
+                  ? []
+                  : [
+                      {
+                        key: 'delivery' as const,
+                        label: 'طيار دليفري',
+                        subtitle: 'توصيل أوردرات (/driver)',
+                        icon: <PackageIcon size={18} color={repTypeInput === 'delivery' ? '#ea580c' : '#64748b'} />,
+                        activeBorder: '#ea580c',
+                        activeBg: '#fff7ed',
+                        activeColor: '#9a3412',
+                      },
+                    ]),
                 {
                   key: 'van' as const,
                   label: 'توزيع فان',
@@ -250,7 +342,7 @@ export function UpsertDeliveryRepModal({ open, onClose, rep, onSuccess }: Upsert
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                  رقم الهاتف / الموبايل
+                  رقم الهاتف / الموبايل <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -274,12 +366,12 @@ export function UpsertDeliveryRepModal({ open, onClose, rep, onSuccess }: Upsert
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                  رمز الدخول (PIN)
+                  رمز الدخول (PIN) {!rep && <span style={{ color: '#dc2626' }}>*</span>}
                 </label>
                 <input
                   type="password"
                   maxLength={6}
-                  placeholder="1234"
+                  placeholder={rep && (rep.has_pin || (rep as any).hasPin || (rep as any).pin_hash || rep.pin_code) ? '•••• (مفعّل)' : '1234'}
                   value={pinCodeInput}
                   onChange={(e) => setPinCodeInput(e.target.value)}
                   style={{
@@ -296,6 +388,11 @@ export function UpsertDeliveryRepModal({ open, onClose, rep, onSuccess }: Upsert
                   }}
                   title="رمز مكون من 4 إلى 6 أرقام يتيح للمندوب تسجيل الدخول لتطبيق الهاتف"
                 />
+                {rep && (rep.has_pin || (rep as any).hasPin || (rep as any).pin_hash || rep.pin_code) && (
+                  <span style={{ display: 'block', fontSize: '10.5px', color: '#16a34a', marginTop: '4px', fontWeight: 600 }}>
+                    الرمز مفعّل (اتركه فارغاً للحفاظ عليه)
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -380,27 +477,71 @@ export function UpsertDeliveryRepModal({ open, onClose, rep, onSuccess }: Upsert
             <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
               {repTypeInput === 'van' ? 'بيانات سيارة التوزيع (الفان)' : repTypeInput === 'both' ? 'بيانات المركبة / السيارة' : 'بيانات دراجة التوصيل / المركبة'}
             </span>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                رقم لوحة المركبة / السيارة
-              </label>
-              <input
-                type="text"
-                placeholder={repTypeInput === 'van' ? 'مثال: 5678 ن و ر (سيارة فان)' : 'مثال: 1234 ص ع'}
-                value={vehiclePlateInput}
-                onChange={(e) => setVehiclePlateInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  minHeight: '36px',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '7px',
-                  fontSize: '13px',
-                  background: '#ffffff',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
+            {fleetVehicles.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px', alignItems: 'flex-start' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+                    اختيار من أسطول سيارات الشركة
+                  </label>
+                  <CustomSelect
+                    options={[
+                      { value: '', label: '— إدخال يدوي / غير مسجلة بالأسطول —' },
+                      ...fleetVehicles.map((v) => ({
+                        value: v.plateNumber,
+                        label: `${v.plateNumber}${v.modelName ? ` (${v.modelName})` : ''}`,
+                      })),
+                    ]}
+                    value={fleetVehicles.some((v) => v.plateNumber === vehiclePlateInput) ? vehiclePlateInput : ''}
+                    onChange={(val) => {
+                      if (val) setVehiclePlateInput(val);
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+                    رقم لوحة المركبة / السيارة
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={repTypeInput === 'van' ? 'مثال: 5678 ن و ر' : 'مثال: 1234 ص ع'}
+                    value={vehiclePlateInput}
+                    onChange={(e) => setVehiclePlateInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      minHeight: '36px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '7px',
+                      fontSize: '13px',
+                      background: '#ffffff',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+                  رقم لوحة المركبة / السيارة
+                </label>
+                <input
+                  type="text"
+                  placeholder={repTypeInput === 'van' ? 'مثال: 5678 ن و ر (سيارة فان)' : 'مثال: 1234 ص ع'}
+                  value={vehiclePlateInput}
+                  onChange={(e) => setVehiclePlateInput(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    minHeight: '36px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '7px',
+                    fontSize: '13px',
+                    background: '#ffffff',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
 

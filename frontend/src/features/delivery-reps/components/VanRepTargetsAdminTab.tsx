@@ -20,6 +20,9 @@ export function VanRepTargetsAdminTab() {
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthString());
   const [editingTargetRep, setEditingTargetRep] = useState<RepTargetSummary | null>(null);
   const [targetAmountInput, setTargetAmountInput] = useState<string>('');
+  const [collectionTargetInput, setCollectionTargetInput] = useState<string>('');
+  const [visitsTargetInput, setVisitsTargetInput] = useState<string>('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     data: targets = [],
@@ -30,41 +33,85 @@ export function VanRepTargetsAdminTab() {
     queryFn: () => vanSalesApi.listRepTargets(selectedMonth),
   });
 
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['van-admin-rep-targets'] }),
+        refetch(),
+      ]);
+      await new Promise((r) => setTimeout(r, 450));
+      toast.success('تم تحديث مستهدفات المناديب بنجاح');
+    } catch {
+      toast.error('حدث خطأ أثناء تحديث البيانات');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const totalTargetAmount = targets.reduce((sum, t) => sum + (t.targetAmount || 0), 0);
   const totalActualSales = targets.reduce((sum, t) => sum + (t.actualSales || 0), 0);
   const overallAchievementRate = totalTargetAmount > 0 ? (totalActualSales / totalTargetAmount) * 100 : 0;
   const achievedRepsCount = targets.filter((t) => t.isTargetAchieved).length;
 
   const setTargetMutation = useMutation({
-    mutationFn: ({ repId, month, targetAmount }: { repId: number; month: string; targetAmount: number }) =>
-      vanSalesApi.setRepTarget(repId, month, targetAmount),
+    mutationFn: ({
+      repId,
+      month,
+      targetAmount,
+      collectionTarget,
+      visitsTarget,
+    }: {
+      repId: number;
+      month: string;
+      targetAmount: number;
+      collectionTarget?: number | null;
+      visitsTarget?: number | null;
+    }) => vanSalesApi.setRepTarget(repId, month, targetAmount, collectionTarget, visitsTarget),
     onSuccess: () => {
-      toast.success('تم حفظ وتحديث المستهدف البيعي للمندوب بنجاح');
+      toast.success('تم حفظ وتحديث مستهدفات المندوب بنجاح');
       queryClient.invalidateQueries({ queryKey: ['van-admin-rep-targets'] });
       setEditingTargetRep(null);
       setTargetAmountInput('');
+      setCollectionTargetInput('');
+      setVisitsTargetInput('');
     },
     onError: (err: any) => {
-      toast.error(err?.message || 'فشل حفظ المستهدف البيعي');
+      toast.error(err?.message || 'فشل حفظ المستهدفات');
     },
   });
 
   const openSetTargetModal = (rep: RepTargetSummary) => {
     setEditingTargetRep(rep);
     setTargetAmountInput(rep.targetAmount ? String(rep.targetAmount) : '');
+    setCollectionTargetInput(rep.collectionTarget ? String(rep.collectionTarget) : '');
+    setVisitsTargetInput(rep.visitsTarget ? String(rep.visitsTarget) : '');
   };
 
   const handleSaveTarget = () => {
     if (!editingTargetRep) return;
     const amount = parseFloat(targetAmountInput);
     if (isNaN(amount) || amount < 0) {
-      toast.warning('يرجى إدخال قيمة مستهدف صحيحة');
+      toast.warning('يرجى إدخال قيمة مستهدف مبيعات صحيحة');
       return;
     }
+    const colAmount = collectionTargetInput.trim() !== '' ? parseFloat(collectionTargetInput) : null;
+    if (colAmount !== null && (isNaN(colAmount) || colAmount < 0)) {
+      toast.warning('يرجى إدخال قيمة مستهدف تحصيل صحيحة أو تركها فارغة');
+      return;
+    }
+    const visAmount = visitsTargetInput.trim() !== '' ? parseInt(visitsTargetInput, 10) : null;
+    if (visAmount !== null && (isNaN(visAmount) || visAmount < 0)) {
+      toast.warning('يرجى إدخال عدد زيارات صحيح أو تركها فارغة');
+      return;
+    }
+
     setTargetMutation.mutate({
       repId: editingTargetRep.repId,
       month: selectedMonth,
       targetAmount: amount,
+      collectionTarget: colAmount,
+      visitsTarget: visAmount,
     });
   };
 
@@ -75,14 +122,14 @@ export function VanRepTargetsAdminTab() {
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#4338ca', display: 'block' }}>إجمالي مستهدف مبيعات الشهر</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#312e81', display: 'block', marginTop: '4px' }}>
-            {totalTargetAmount.toFixed(2)} <span style={{ fontSize: '13px', color: '#a5b4fc' }}><CurrencySymbol /></span>
+            {Math.round(totalTargetAmount).toLocaleString()} <span style={{ fontSize: '13px', color: '#a5b4fc' }}><CurrencySymbol /></span>
           </span>
         </div>
 
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', display: 'block' }}>المبيعات الفعلية المحققة حتى الآن</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#15803d', display: 'block', marginTop: '4px' }}>
-            {totalActualSales.toFixed(2)} <span style={{ fontSize: '13px', color: '#86efac' }}><CurrencySymbol /></span>
+            {totalActualSales % 1 === 0 ? Math.round(totalActualSales).toLocaleString() : totalActualSales.toFixed(2)} <span style={{ fontSize: '13px', color: '#86efac' }}><CurrencySymbol /></span>
           </span>
         </div>
 
@@ -144,11 +191,24 @@ export function VanRepTargetsAdminTab() {
           </span>
           <Button
             variant="secondary"
-            style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-            onClick={() => refetch()}
+            disabled={isRefreshing}
+            style={{
+              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: isRefreshing ? 'wait' : 'pointer',
+              opacity: isRefreshing ? 0.75 : 1,
+            }}
+            onClick={handleManualRefresh}
+            title="تحديث مستهدفات المناديب من السيرفر"
           >
-            <RefreshCwIcon size={13} />
-            تحديث
+            <RefreshCwIcon
+              size={13}
+              className={isRefreshing ? 'spin-animation' : undefined}
+              style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
+            />
+            {isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}
           </Button>
         </div>
       </div>
@@ -232,60 +292,112 @@ export function VanRepTargetsAdminTab() {
                         <span style={{ fontSize: '11px', color: '#94a3b8' }}>بدون سيارة</span>
                       )}
                     </td>
-                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 800, color: '#0f172a', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                       {t.targetAmount > 0 ? (
-                        <>
-                          {t.targetAmount.toFixed(2)} <CurrencySymbol />
-                        </>
+                        <div style={{ fontWeight: 800, color: '#0f172a' }}>
+                          {Math.round(t.targetAmount).toLocaleString()} <CurrencySymbol />
+                        </div>
                       ) : (
                         <span style={{ fontSize: '11px', color: '#94a3b8' }}>غير محدد</span>
                       )}
+                      {t.collectionTarget && t.collectionTarget > 0 ? (
+                        <div style={{ fontSize: '10px', color: '#0369a1', marginTop: '2px', fontWeight: 600 }}>
+                          تحصيل: {Math.round(t.collectionTarget).toLocaleString()} <CurrencySymbol />
+                        </div>
+                      ) : null}
+                      {t.visitsTarget && t.visitsTarget > 0 ? (
+                        <div style={{ fontSize: '10px', color: '#7c3aed', marginTop: '1px', fontWeight: 600 }}>
+                          زيارات: {t.visitsTarget.toLocaleString()}
+                        </div>
+                      ) : null}
                     </td>
-                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 800, color: '#15803d', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
-                      {t.actualSales.toFixed(2)} <CurrencySymbol />
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontWeight: 800, color: '#15803d' }}>
+                        {t.actualSales % 1 === 0 ? Math.round(t.actualSales).toLocaleString() : t.actualSales.toFixed(2)} <CurrencySymbol />
+                      </div>
+                      {t.collectionTarget && t.collectionTarget > 0 ? (
+                        <div style={{ fontSize: '10px', color: '#0284c7', marginTop: '2px', fontWeight: 600 }}>
+                          محصل: {Math.round(t.actualCollections || 0).toLocaleString()} ({t.collectionAchievementRate ?? 0}%)
+                        </div>
+                      ) : null}
+                      {t.visitsTarget && t.visitsTarget > 0 ? (
+                        <div style={{ fontSize: '10px', color: '#6d28d9', marginTop: '1px', fontWeight: 600 }}>
+                          زار: {(t.actualVisits || 0).toLocaleString()} ({t.visitsAchievementRate ?? 0}%)
+                        </div>
+                      ) : null}
                     </td>
                     <td style={{ padding: '8px 6px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '10.5px', fontWeight: 700, color: progressColor }}>
-                          <span>{rate.toFixed(1)}%</span>
-                          {t.isTargetAchieved && <span>تم الإنجاز</span>}
+                      {t.targetAmount > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '10.5px', fontWeight: 700, color: progressColor }}>
+                            <span>{rate.toFixed(1)}%</span>
+                            {t.isTargetAchieved && <span>تم الإنجاز</span>}
+                          </div>
+                          <div style={{ width: '100%', height: '6px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div
+                              style={{
+                                width: `${Math.min(100, rate)}%`,
+                                height: '100%',
+                                backgroundColor: progressColor,
+                                borderRadius: '4px',
+                              }}
+                            />
+                          </div>
                         </div>
-                        <div style={{ width: '100%', height: '6px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div
-                            style={{
-                              width: `${Math.min(100, rate)}%`,
-                              height: '100%',
-                              backgroundColor: progressColor,
-                              borderRadius: '4px',
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px', whiteSpace: 'nowrap' }}>
-                      {t.isTargetAchieved ? (
-                        <span style={{ fontSize: '10.5px', color: '#16a34a', fontWeight: 800, background: '#f0fdf4', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bbf7d0', whiteSpace: 'nowrap' }}>
-                          تم الإنجاز
-                        </span>
                       ) : (
-                        <span style={{ color: '#b91c1c' }}>
-                          {t.remainingTarget.toFixed(2)} <CurrencySymbol />
-                        </span>
+                        <span style={{ color: '#94a3b8' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
+                      {t.targetAmount > 0 ? (
+                        <>
+                          {t.isTargetAchieved ? (
+                            <span style={{ fontSize: '10.5px', color: '#16a34a', fontWeight: 800, background: '#f0fdf4', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bbf7d0', whiteSpace: 'nowrap' }}>
+                              تم الإنجاز
+                            </span>
+                          ) : (
+                            <div style={{ color: '#b91c1c', fontWeight: 700 }}>
+                              {Math.round(t.remainingTarget).toLocaleString()} <CurrencySymbol />
+                            </div>
+                          )}
+                          {t.collectionTarget && t.collectionTarget > 0 ? (
+                            <div style={{ fontSize: '10px', color: t.isCollectionAchieved ? '#16a34a' : '#c2410c', marginTop: '2px', fontWeight: 600 }}>
+                              {t.isCollectionAchieved ? 'تحصيل مكتمل' : `متبقي تحصيل: ${Math.round(t.remainingCollection || 0).toLocaleString()}`}
+                            </div>
+                          ) : null}
+                          {t.visitsTarget && t.visitsTarget > 0 ? (
+                            <div style={{ fontSize: '10px', color: t.isVisitsAchieved ? '#16a34a' : '#6d28d9', marginTop: '1px', fontWeight: 600 }}>
+                              {t.isVisitsAchieved ? 'زيارات مكتملة' : `متبقي زيارات: ${(t.remainingVisits || 0).toLocaleString()}`}
+                            </div>
+                          ) : null}
+                        </>
+                      ) : (
+                        <span style={{ color: '#94a3b8' }}>—</span>
                       )}
                     </td>
                     <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, color: '#475569', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                       {t.remainingWorkingDays} <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>يوم</span>
                     </td>
-                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 800, fontSize: '11.5px', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                       {t.isTargetAchieved ? (
-                        <span style={{ color: '#16a34a' }}>0.00</span>
+                        <div style={{ color: '#16a34a', fontWeight: 800 }}>0</div>
                       ) : t.requiredDailyTarget > 0 ? (
-                        <span style={{ color: '#2563eb' }}>
-                          {t.requiredDailyTarget.toFixed(2)} <CurrencySymbol />
-                        </span>
+                        <div style={{ color: '#2563eb', fontWeight: 800 }}>
+                          {Math.ceil(t.requiredDailyTarget).toLocaleString()} <CurrencySymbol />
+                        </div>
                       ) : (
                         <span style={{ color: '#94a3b8' }}>—</span>
                       )}
+                      {t.collectionTarget && t.collectionTarget > 0 ? (
+                        <div style={{ fontSize: '10px', color: '#0369a1', marginTop: '2px', fontWeight: 600 }}>
+                          تحصيل: {Math.ceil(t.requiredDailyCollection || 0).toLocaleString()} <CurrencySymbol />/يوم
+                        </div>
+                      ) : null}
+                      {t.visitsTarget && t.visitsTarget > 0 ? (
+                        <div style={{ fontSize: '10px', color: '#7c3aed', marginTop: '1px', fontWeight: 600 }}>
+                          زيارات: {(t.requiredDailyVisits || 0).toLocaleString()} زيارة/يوم
+                        </div>
+                      ) : null}
                     </td>
                     <td style={{ padding: '8px 6px', textAlign: 'center' }}>
                       <Button
@@ -310,15 +422,25 @@ export function VanRepTargetsAdminTab() {
         <StandardDialog
           open={Boolean(editingTargetRep)}
           onClose={() => setEditingTargetRep(null)}
-          title={`تحديد مستهدف المبيعات الشهري للمندوب`}
+          title={`تحديد مستهدفات المندوب (المبيعات والتحصيل والزيارات)`}
           subtitle={`المندوب: ${editingTargetRep.repName} • شهر: ${selectedMonth}`}
-          maxWidth="460px"
+          maxWidth="480px"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
             <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <div style={{ fontSize: '12.5px', color: '#334155' }}>
                 <strong>المبيعات الفعلية حتى اليوم:</strong> {editingTargetRep.actualSales.toFixed(2)} <CurrencySymbol />
               </div>
+              {editingTargetRep.actualCollections !== undefined && editingTargetRep.actualCollections > 0 && (
+                <div style={{ fontSize: '12.5px', color: '#334155' }}>
+                  <strong>التحصيل النقدي الفعلي:</strong> {editingTargetRep.actualCollections.toFixed(2)} <CurrencySymbol />
+                </div>
+              )}
+              {editingTargetRep.actualVisits !== undefined && editingTargetRep.actualVisits > 0 && (
+                <div style={{ fontSize: '12.5px', color: '#334155' }}>
+                  <strong>الزيارات الميدانية الفعلية:</strong> {editingTargetRep.actualVisits} زيارة
+                </div>
+              )}
               <div style={{ fontSize: '12px', color: '#64748b' }}>
                 أيام العمل المتبقية بالشهر (باستثناء الجمع والعطلات): <strong>{editingTargetRep.remainingWorkingDays} يوم</strong>
               </div>
@@ -326,7 +448,7 @@ export function VanRepTargetsAdminTab() {
 
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                قيمة المستهدف البيعي للشهر ({selectedMonth}) <span style={{ color: '#dc2626' }}>*</span>
+                مستهدف المبيعات الشهري ({selectedMonth}) <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -349,17 +471,130 @@ export function VanRepTargetsAdminTab() {
               </div>
             </div>
 
-            {/* Live Required Daily Sales Preview */}
-            {parseFloat(targetAmountInput) > 0 && editingTargetRep.remainingWorkingDays > 0 && (
-              <div style={{ backgroundColor: '#eff6ff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #bfdbfe', fontSize: '12px', color: '#1e40af' }}>
-                المطلوب تحقيقه يومياً للمندوب خلال الأيام المتبقية:
-                <strong style={{ display: 'block', fontSize: '14px', color: '#1d4ed8', marginTop: '2px' }}>
-                  {Math.max(
-                    0,
-                    (parseFloat(targetAmountInput) - editingTargetRep.actualSales) / editingTargetRep.remainingWorkingDays,
-                  ).toFixed(2)}{' '}
-                  <CurrencySymbol /> / يوم
-                </strong>
+            {/* Optional Field: Collection Target */}
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                مستهدف التحصيل النقدي <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>(اختياري - ج.م)</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="100"
+                placeholder="اختياري - مثلاً: 40000"
+                value={collectionTargetInput}
+                onChange={(e) => setCollectionTargetInput(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13.5px',
+                  fontWeight: 700,
+                  boxSizing: 'border-box',
+                }}
+              />
+              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '3px' }}>
+                إجمالي النقدية المستهدف تحصيلها من المبيعات وسندات القبض الميدانية
+              </span>
+            </div>
+
+            {/* Optional Field: Visits Target */}
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                مستهدف الزيارات الميدانية <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>(اختياري - زيارة)</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                placeholder="اختياري - مثلاً: 150"
+                value={visitsTargetInput}
+                onChange={(e) => setVisitsTargetInput(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13.5px',
+                  fontWeight: 700,
+                  boxSizing: 'border-box',
+                }}
+              />
+              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '3px' }}>
+                إجمالي الزيارات الميدانية المستهدفة للعملاء خلال الشهر
+              </span>
+            </div>
+
+            {/* Live Required Daily Pacing Preview (Sales, Collection, Visits) */}
+            {editingTargetRep.remainingWorkingDays > 0 && (
+              parseFloat(targetAmountInput) > 0 ||
+              parseFloat(collectionTargetInput) > 0 ||
+              parseFloat(visitsTargetInput) > 0
+            ) && (
+              <div
+                style={{
+                  backgroundColor: '#f8fafc',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '12px',
+                }}
+              >
+                <div style={{ fontWeight: 800, color: '#170e5e', marginBottom: '8px' }}>
+                  المطلوب تحقيقه يومياً للمندوب خلال الأيام المتبقية ({editingTargetRep.remainingWorkingDays} يوم عمل):
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                    gap: '8px',
+                  }}
+                >
+                  {parseFloat(targetAmountInput) > 0 && (
+                    <div style={{ backgroundColor: '#eff6ff', padding: '8px 10px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                      <span style={{ fontSize: '11px', color: '#1e40af', display: 'block', fontWeight: 600 }}>مبيعات يومية:</span>
+                      <strong style={{ fontSize: '13px', color: '#1d4ed8' }}>
+                        {Math.ceil(
+                          Math.max(
+                            0,
+                            (parseFloat(targetAmountInput) - (editingTargetRep.actualSales || 0)) / editingTargetRep.remainingWorkingDays,
+                          ),
+                        ).toLocaleString()}{' '}
+                        <CurrencySymbol /> / يوم
+                      </strong>
+                    </div>
+                  )}
+
+                  {parseFloat(collectionTargetInput) > 0 && (
+                    <div style={{ backgroundColor: '#f0fdf4', padding: '8px 10px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                      <span style={{ fontSize: '11px', color: '#166534', display: 'block', fontWeight: 600 }}>تحصيل يومي:</span>
+                      <strong style={{ fontSize: '13px', color: '#15803d' }}>
+                        {Math.ceil(
+                          Math.max(
+                            0,
+                            (parseFloat(collectionTargetInput) - (editingTargetRep.actualCollections || 0)) / editingTargetRep.remainingWorkingDays,
+                          ),
+                        ).toLocaleString()}{' '}
+                        <CurrencySymbol /> / يوم
+                      </strong>
+                    </div>
+                  )}
+
+                  {parseFloat(visitsTargetInput) > 0 && (
+                    <div style={{ backgroundColor: '#faf5ff', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e9d5ff' }}>
+                      <span style={{ fontSize: '11px', color: '#6b21a8', display: 'block', fontWeight: 600 }}>زيارات يومية:</span>
+                      <strong style={{ fontSize: '13px', color: '#7c3aed' }}>
+                        {Math.ceil(
+                          Math.max(
+                            0,
+                            (parseFloat(visitsTargetInput) - (editingTargetRep.actualVisits || 0)) / editingTargetRep.remainingWorkingDays,
+                          ),
+                        ).toLocaleString()}{' '}
+                        زيارة / يوم
+                      </strong>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -373,7 +608,7 @@ export function VanRepTargetsAdminTab() {
                 onClick={handleSaveTarget}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                {setTargetMutation.isPending ? 'جاري الحفظ...' : 'حفظ المستهدف البيعي'}
+                {setTargetMutation.isPending ? 'جاري الحفظ...' : 'حفظ المستهدفات'}
               </Button>
             </div>
           </div>

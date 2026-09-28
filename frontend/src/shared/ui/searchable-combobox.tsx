@@ -44,6 +44,7 @@ type SearchableComboboxProps<T extends ComboboxOption> = {
 };
 
 const containsDigitLikeCharacter = (value: string) => /[0-9٠-٩۰-۹]/.test(value);
+const EMPTY_OPTIONS: any[] = [];
 
 export function SearchableCombobox<T extends ComboboxOption>({
   label,
@@ -89,15 +90,35 @@ export function SearchableCombobox<T extends ComboboxOption>({
   const hasDigitLikeSearch = containsDigitLikeCharacter(value);
   const hasSearchIntent = normalizedValue.length >= minSearchLength || (searchOnSingleDigit && hasDigitLikeSearch);
   const filteredOptions = useMemo(
-    () => (hasSearchIntent ? options.filter((option) => {
-      if (search && search(option, value)) return true;
-      const labelText = getLabel(option);
-      if (matchesArabic(labelText, value)) return true;
-      const metaText = getMeta?.(option);
-      if (metaText && matchesArabic(metaText, value)) return true;
-      return false;
-    }).slice(0, 8) : []),
-    [getLabel, getMeta, hasSearchIntent, options, search, value]
+    () => {
+      if (!isOpen || !hasSearchIntent) {
+        return EMPTY_OPTIONS as T[];
+      }
+      const results: T[] = [];
+      for (let i = 0; i < options.length; i++) {
+        const option = options[i];
+        if (search) {
+          if (search(option, value)) {
+            results.push(option);
+            if (results.length >= 8) break;
+          }
+          continue;
+        }
+        const labelText = getLabel(option);
+        if (matchesArabic(labelText, value)) {
+          results.push(option);
+          if (results.length >= 8) break;
+          continue;
+        }
+        const metaText = getMeta?.(option);
+        if (metaText && matchesArabic(metaText, value)) {
+          results.push(option);
+          if (results.length >= 8) break;
+        }
+      }
+      return results;
+    },
+    [getLabel, getMeta, hasSearchIntent, isOpen, options, search, value]
   );
   const showCreate = Boolean(onCreate && normalizedValue && hasSearchIntent && filteredOptions.length === 0);
   const optionCount = filteredOptions.length + (showCreate ? 1 : 0);

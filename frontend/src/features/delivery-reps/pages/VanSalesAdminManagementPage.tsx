@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
-import { systemAlert } from '@/shared/components/system-alert';
+import { systemAlert, systemConfirm, toast } from '@/shared/components/system-alert';
+import { deliveryRepsApi } from '@/shared/api/delivery-reps.api';
 import {
   TruckIcon,
   SearchIcon,
@@ -12,6 +14,7 @@ import {
   FileTextIcon,
   CheckCircleIcon,
   MapPinIcon,
+  RefreshCwIcon,
 } from '@/shared/components/icons/AppIcons';
 import { FleetVehiclesTab } from '../components/FleetVehiclesTab';
 import { VanTripsTab } from '../components/VanTripsTab';
@@ -65,10 +68,80 @@ export default function VanSalesAdminManagementPage() {
     });
   }, [vanDrivers, driverSearch]);
 
+  const queryClient = useQueryClient();
+  const [isRefreshingDrivers, setIsRefreshingDrivers] = useState(false);
+
+  const handleRefreshDrivers = async () => {
+    setIsRefreshingDrivers(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['delivery-reps'] }),
+        queryClient.invalidateQueries({ queryKey: ['van-admin-pending-returns-badge'] }),
+        queryClient.invalidateQueries({ queryKey: ['van-admin-pending-requisitions-badge'] }),
+      ]);
+      await new Promise((r) => setTimeout(r, 450));
+      toast.success('تم تحديث قائمة مناديب وسائقي الفان بنجاح');
+    } catch {
+      toast.error('حدث خطأ أثناء تحديث البيانات');
+    } finally {
+      setIsRefreshingDrivers(false);
+    }
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deliveryRepsApi.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['delivery-reps'] });
+      systemAlert('تم إيقاف حساب المندوب بنجاح');
+    },
+    onError: (err: any) => {
+      systemAlert(err.message || 'حدث خطأ أثناء إيقاف المندوب');
+    },
+  });
+
   const copyUrl = (path: string, label: string) => {
     const url = window.location.origin + path;
     navigator.clipboard.writeText(url);
     systemAlert(`تم نسخ رابط ${label} إلى الحافظة:\n${url}`);
+  };
+
+  const copyCredentials = (d: DeliveryRep) => {
+    const portalUrl = `${window.location.origin}/van-sales`;
+    const message = [
+      `مرحباً ${d.name}،`,
+      `إليك بيانات دخولك لتطبيق مبيعات وتوزيع الفان:`,
+      `رابط المنظومة: ${portalUrl}`,
+      `رقم الهاتف: ${d.phone || 'غير مسجل'}`,
+      `رمز الدخول السريع (PIN): الرمز المحدد لك من الإدارة`,
+      d.vehicle_plate ? `المركبة المسندة: لوحة (${d.vehicle_plate})` : '',
+    ].filter(Boolean).join('\n');
+    navigator.clipboard.writeText(message);
+    systemAlert(`تم نسخ بيانات دخول المندوب (${d.name}) إلى الحافظة بنجاح، يمكنك مشاركتها معه الآن.`);
+  };
+
+  const handleToggleActive = async (d: DeliveryRep) => {
+    if (d.is_active) {
+      const confirmed = await systemConfirm({
+        title: 'إيقاف حساب المندوب',
+        message: `هل أنت متأكد من إيقاف حساب المندوب "${d.name}"؟ لن يتمكن من فتح تطبيق الهاتف حتى يتم تفعيله مجدداً.`,
+        confirmText: 'إيقاف الحساب',
+        cancelText: 'إلغاء',
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+      deleteMutation.mutate(d.id);
+    } else {
+      try {
+        await deliveryRepsApi.update(d.id, {
+          name: d.name,
+          isActive: true,
+        });
+        queryClient.invalidateQueries({ queryKey: ['delivery-reps'] });
+        systemAlert(`تمت إعادة تفعيل حساب المندوب "${d.name}" بنجاح.`);
+      } catch (err: any) {
+        systemAlert(err.message || 'حدث خطأ أثناء تفعيل المندوب');
+      }
+    }
   };
 
   return (
@@ -333,9 +406,32 @@ export default function VanSalesAdminManagementPage() {
                 <SearchIcon size={16} />
               </span>
             </div>
-            <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>
-              مناديب الفان المسجلين: {vanDrivers.length}
-            </span>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>
+                مناديب الفان المسجلين: {vanDrivers.length}
+              </span>
+              <Button
+                variant="secondary"
+                disabled={isRefreshingDrivers}
+                style={{
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: isRefreshingDrivers ? 'wait' : 'pointer',
+                  opacity: isRefreshingDrivers ? 0.75 : 1,
+                }}
+                onClick={handleRefreshDrivers}
+                title="تحديث قائمة المناديب من السيرفر"
+              >
+                <RefreshCwIcon
+                  size={13}
+                  className={isRefreshingDrivers ? 'spin-animation' : undefined}
+                  style={isRefreshingDrivers ? { animation: 'spin 0.75s linear infinite' } : undefined}
+                />
+                {isRefreshingDrivers ? 'جارٍ التحديث...' : 'تحديث'}
+              </Button>
+            </div>
           </div>
 
           {/* Drivers Table */}
@@ -404,21 +500,26 @@ export default function VanSalesAdminManagementPage() {
                           )}
                         </td>
                         <td style={{ padding: '12px 14px' }}>
-                          <span
-                            style={{
-                              display: 'inline-block',
-                              padding: '2px 7px',
-                              background: d.pin_code ? '#f0fdf4' : '#fef2f2',
-                              border: `1px solid ${d.pin_code ? '#bbf7d0' : '#fecaca'}`,
-                              color: d.pin_code ? '#15803d' : '#b91c1c',
-                              borderRadius: '6px',
-                              fontFamily: 'monospace',
-                              fontWeight: 700,
-                              fontSize: '11.5px',
-                            }}
-                          >
-                            {d.pin_code ? `•••• (${d.pin_code})` : 'بدون رمز'}
-                          </span>
+                          {(() => {
+                            const hasPin = Boolean(d.has_pin || (d as any).hasPin || (d as any).pin_hash || d.pin_code);
+                            return (
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '2px 8px',
+                                  background: hasPin ? '#ecfdf5' : '#fef2f2',
+                                  border: `1px solid ${hasPin ? '#a7f3d0' : '#fecaca'}`,
+                                  color: hasPin ? '#065f46' : '#b91c1c',
+                                  borderRadius: '6px',
+                                  fontFamily: 'monospace',
+                                  fontWeight: 700,
+                                  fontSize: '11.5px',
+                                }}
+                              >
+                                {hasPin ? '•••• مفعل' : 'بدون رمز'}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td style={{ padding: '12px 14px' }}>
                           <span
@@ -439,16 +540,40 @@ export default function VanSalesAdminManagementPage() {
                           </span>
                         </td>
                         <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                          <Button
-                            variant="secondary"
-                            style={{ fontSize: '11px', padding: '4px 10px' }}
-                            onClick={() => {
-                              setEditingRep(d);
-                              setIsUpsertRepOpen(true);
-                            }}
-                          >
-                            تعديل البيانات
-                          </Button>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <Button
+                              variant="secondary"
+                              style={{ fontSize: '11px', padding: '4px 10px', fontWeight: 600 }}
+                              onClick={() => {
+                                setEditingRep(d);
+                                setIsUpsertRepOpen(true);
+                              }}
+                            >
+                              تعديل البيانات
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              title="نسخ بيانات الدخول لإرسالها للمندوب عبر الواتساب"
+                              style={{ fontSize: '11px', padding: '4px 8px', background: '#f8fafc', color: '#1e293b' }}
+                              onClick={() => copyCredentials(d)}
+                            >
+                              <CopyIcon size={12} /> نسخ بيانات الدخول
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              style={{
+                                fontSize: '11px',
+                                padding: '4px 8px',
+                                background: d.is_active ? '#fff1f2' : '#f0fdf4',
+                                color: d.is_active ? '#b91c1c' : '#15803d',
+                                border: `1px solid ${d.is_active ? '#fecdd3' : '#bbf7d0'}`,
+                                fontWeight: 700,
+                              }}
+                              onClick={() => handleToggleActive(d)}
+                            >
+                              {d.is_active ? 'إيقاف' : 'تفعيل'}
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -468,6 +593,8 @@ export default function VanSalesAdminManagementPage() {
           setEditingRep(null);
         }}
         rep={editingRep}
+        defaultRepType="van"
+        hideDeliveryOption={true}
       />
     </div>
   );

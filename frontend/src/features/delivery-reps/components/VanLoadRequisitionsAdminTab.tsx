@@ -12,8 +12,10 @@ import {
   MinusIcon,
   Trash2Icon,
   XIcon,
+  XCircleIcon,
   PrinterIcon,
 } from '@/shared/components/icons/AppIcons';
+import { DriverNewLoadRequisitionView } from './DriverNewLoadRequisitionView';
 
 export interface AdminReviewLine {
   productId: number;
@@ -26,6 +28,7 @@ export interface AdminReviewLine {
 
 export function VanLoadRequisitionsAdminTab() {
   const queryClient = useQueryClient();
+  const [viewMode, setViewMode] = useState<'list' | 'create'>('list');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [selectedReq, setSelectedReq] = useState<VanLoadRequisitionRecord | null>(null);
   const [reviewLines, setReviewLines] = useState<AdminReviewLine[]>([]);
@@ -58,6 +61,7 @@ export function VanLoadRequisitionsAdminTab() {
   // Rejection modal state
   const [rejectModalReq, setRejectModalReq] = useState<VanLoadRequisitionRecord | null>(null);
   const [rejectReasonInput, setRejectReasonInput] = useState<string>('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     data: requisitions = [],
@@ -69,9 +73,36 @@ export function VanLoadRequisitionsAdminTab() {
     refetchInterval: 15000,
   });
 
-  const pendingReqs = requisitions.filter((r) => r.status === 'pending');
-  const dispatchedReqs = requisitions.filter((r) => r.status === 'dispatched');
-  const rejectedReqs = requisitions.filter((r) => r.status === 'rejected');
+  // Query all requisitions for stable KPI statistics across filters
+  const { data: allRequisitions = [] } = useQuery<VanLoadRequisitionRecord[]>({
+    queryKey: ['van-admin-load-requisitions-all-stats'],
+    queryFn: () => vanSalesApi.listAdminRequisitions(),
+    staleTime: 15_000,
+  });
+
+  const statsSource = allRequisitions.length > 0 ? allRequisitions : requisitions;
+  const pendingReqs = statsSource.filter((r) => r.status === 'pending');
+  const dispatchedReqs = statsSource.filter((r) => r.status === 'dispatched');
+  const rejectedReqs = statsSource.filter((r) => r.status === 'rejected');
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['van-admin-load-requisitions'] }),
+        queryClient.invalidateQueries({ queryKey: ['van-admin-load-requisitions-all-stats'] }),
+        queryClient.invalidateQueries({ queryKey: ['van-admin-pending-requisitions-badge'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin-warehouse-products'] }),
+        refetch(),
+      ]);
+      await new Promise((r) => setTimeout(r, 450));
+      toast.success('تم تحديث أذونات التحميل بنجاح');
+    } catch {
+      toast.error('حدث خطأ أثناء تحديث البيانات');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const openReviewModal = (req: VanLoadRequisitionRecord) => {
     setSelectedReq(req);
@@ -171,37 +202,79 @@ export function VanLoadRequisitionsAdminTab() {
     },
   });
 
+  // Delete Mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => vanSalesApi.deleteRequisition(id),
+    onSuccess: (data) => {
+      toast.success(`تم حذف إذن التحميل #${data.docNo} بنجاح`);
+      queryClient.invalidateQueries({ queryKey: ['van-admin-load-requisitions'] });
+      setSelectedReq(null);
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'فشل حذف إذن التحميل');
+    },
+  });
+
+  const handleDeleteRequisition = async (req: VanLoadRequisitionRecord) => {
+    const ok = await systemConfirm({
+      title: 'حذف إذن التحميل',
+      message: `هل أنت متأكد من حذف إذن التحميل #${req.docNo} للمندوب "${req.repName}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.`,
+      confirmText: 'نعم، حذف الطلب',
+      cancelText: 'إلغاء',
+      variant: 'danger',
+    });
+    if (ok) {
+      deleteMutation.mutate(req.id);
+    }
+  };
+
   const handleDispatch = async (req: VanLoadRequisitionRecord) => {
-    if (reviewLines.length === 0) {
+    const isModalOpen = selectedReq?.id === req.id && reviewLines.length > 0;
+
+    const items = isModalOpen
+      ? reviewLines.map((l) => ({ productId: l.productId, qty: l.approvedQty, productName: l.productName, barcode: l.barcode }))
+      : (req.approvedItems && req.approvedItems.length > 0 ? req.approvedItems : req.requestedItems || []).map((it: any) => ({
+          productId: Number(it.productId),
+          qty: Number(it.qty ?? it.approvedQty ?? 0),
+          productName: it.productName,
+          barcode: it.barcode,
+        }));
+
+    if (!items || items.length === 0) {
       toast.error('لا يمكن اعتماد إذن تحميل خالٍ من الأصناف');
       return;
     }
-    const hasZeroApproved = reviewLines.some((l) => l.approvedQty <= 0);
+
+    const hasZeroApproved = items.some((l) => l.qty <= 0);
     if (hasZeroApproved) {
       toast.error('يرجى حذف الأصناف ذات الكمية الصفرية أو اعتماد كمية أكبر من صفر قبل الصرف');
       return;
     }
 
+    const totalPieces = items.reduce((sum: number, it: any) => sum + (Number(it.qty) || 0), 0);
+
     const ok = await systemConfirm({
       title: 'اعتماد وصرف وتحميل السيارة',
-      message: `هل تود صرف البضاعة من مستودع "${req.sourceWarehouseName}" وتحميل سيارة المندوب "${req.repName}" وبدء رحلة التوزيع فوراً؟ سيتم خصم الكميات من المستودع وتحويلها لعهدة السيارة.`,
+      message: `هل تود صرف البضاعة (${items.length} صنف بإجمالي ${totalPieces} قطعة) من مستودع "${req.sourceWarehouseName}" وتحميل سيارة المندوب "${req.repName}" وبدء رحلة التوزيع فوراً؟ سيتم خصم الكميات من المستودع وتحويلها لعهدة السيارة.`,
       confirmText: 'اعتماد وصرف وتحميل الآن',
       cancelText: 'إلغاء',
       variant: 'primary',
     });
     if (ok) {
       try {
-        // Automatically save reviewed items first, then dispatch!
-        await vanSalesApi.reviewRequisition(
-          req.id,
-          reviewLines.map((l) => ({
-            productId: l.productId,
-            qty: l.approvedQty,
-            productName: l.productName,
-            barcode: l.barcode,
-          })),
-          adminNotes,
-        );
+        if (isModalOpen) {
+          // Automatically save reviewed items first, then dispatch!
+          await vanSalesApi.reviewRequisition(
+            req.id,
+            reviewLines.map((l) => ({
+              productId: l.productId,
+              qty: l.approvedQty,
+              productName: l.productName,
+              barcode: l.barcode,
+            })),
+            adminNotes,
+          );
+        }
         dispatchMutation.mutate(req.id);
       } catch (err: any) {
         toast.error(err?.message || 'فشل تحديث بيانات الإذن قبل الصرف');
@@ -366,6 +439,21 @@ export function VanLoadRequisitionsAdminTab() {
     printWindow.document.close();
   };
 
+  if (viewMode === 'create') {
+    return (
+      <DriverNewLoadRequisitionView
+        mode="admin"
+        onBack={() => {
+          setViewMode('list');
+          refetch();
+        }}
+        onRequisitionSubmitted={() => {
+          refetch();
+        }}
+      />
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
       {/* KPI Cards */}
@@ -450,11 +538,40 @@ export function VanLoadRequisitionsAdminTab() {
           </span>
           <Button
             variant="secondary"
-            style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-            onClick={() => refetch()}
+            disabled={isRefreshing}
+            style={{
+              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: isRefreshing ? 'wait' : 'pointer',
+              opacity: isRefreshing ? 0.75 : 1,
+            }}
+            onClick={handleManualRefresh}
+            title="تحديث قائمة أذونات التحميل من السيرفر"
           >
-            <RefreshCwIcon size={13} />
-            تحديث
+            <RefreshCwIcon
+              size={13}
+              className={isRefreshing ? 'spin-animation' : undefined}
+              style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
+            />
+            {isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}
+          </Button>
+          <Button
+            variant="primary"
+            style={{
+              fontSize: '12px',
+              backgroundColor: '#170e5e',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 700,
+            }}
+            onClick={() => setViewMode('create')}
+          >
+            <PlusIcon size={14} />
+            إنشاء إذن تحميل مباشر
           </Button>
         </div>
       </div>
@@ -572,32 +689,57 @@ export function VanLoadRequisitionsAdminTab() {
                       })}
                     </td>
                     <td style={{ padding: '8px 6px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
                         <Button
                           variant="secondary"
                           style={{ fontSize: '10.5px', padding: '3px 7px', whiteSpace: 'nowrap' }}
                           onClick={() => openReviewModal(r)}
+                          title="معاينة ومراجعة الأصناف والكميات"
                         >
                           <FileTextIcon size={11} />
-                          {isPending ? 'اعتماد' : 'معاينة'}
+                          معاينة
                         </Button>
                         <Button
                           variant="secondary"
                           style={{ fontSize: '10.5px', padding: '3px 6px', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}
                           onClick={() => handlePrintRequisition(r)}
+                          title="طباعة إذن التحميل"
                         >
                           <PrinterIcon size={11} />
                           طباعة
                         </Button>
                         {isPending && (
+                          <>
+                            <Button
+                              variant="primary"
+                              style={{ fontSize: '10.5px', padding: '3px 7px', background: '#15803d', color: '#ffffff', whiteSpace: 'nowrap' }}
+                              onClick={() => handleDispatch(r)}
+                              disabled={dispatchMutation.isPending}
+                              title="صرف وتحميل السيارة فوراً"
+                            >
+                              <TruckIcon size={11} />
+                              صرف
+                            </Button>
+                            <Button
+                              variant="danger"
+                              style={{ fontSize: '10.5px', padding: '3px 6px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', whiteSpace: 'nowrap' }}
+                              onClick={() => openRejectDialog(r)}
+                              title="رفض أو إلغاء الطلب"
+                            >
+                              <XCircleIcon size={11} />
+                              رفض
+                            </Button>
+                          </>
+                        )}
+                        {(isPending || isRejected) && (
                           <Button
-                            variant="primary"
-                            style={{ fontSize: '10.5px', padding: '3px 7px', background: '#15803d', color: '#ffffff', whiteSpace: 'nowrap' }}
-                            onClick={() => handleDispatch(r)}
-                            disabled={dispatchMutation.isPending}
+                            variant="danger"
+                            style={{ fontSize: '10.5px', padding: '3px 5px', color: '#ef4444', background: '#fef2f2', border: '1px solid #fee2e2' }}
+                            onClick={() => handleDeleteRequisition(r)}
+                            disabled={deleteMutation.isPending}
+                            title="حذف الطلب نهائياً"
                           >
-                            <TruckIcon size={11} />
-                            صرف
+                            <Trash2Icon size={11} />
                           </Button>
                         )}
                       </div>
@@ -616,213 +758,275 @@ export function VanLoadRequisitionsAdminTab() {
           open={Boolean(selectedReq)}
           onClose={() => setSelectedReq(null)}
           title={`مراجعة إذن تحميل الصباح #${selectedReq.docNo}`}
-          subtitle={`المندوب: ${selectedReq.repName} • المستودع: ${selectedReq.sourceWarehouseName}`}
-          maxWidth="780px"
+          subtitle={`المندوب: ${selectedReq.repName} • المستودع المصدر: ${selectedReq.sourceWarehouseName}`}
+          width="min(1080px, 96vw)"
+          maxWidth="1080px"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
             {/* Header summary cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>المندوب والسائق:</span>
-                <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{selectedReq.repName}</strong>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>المندوب والسائق:</span>
+                <strong style={{ fontSize: '13px', color: '#0f172a' }}>{selectedReq.repName}</strong>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>المركبة المسندة:</span>
-                <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{selectedReq.vehiclePlate || '—'}</strong>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>المركبة المسندة:</span>
+                <strong style={{ fontSize: '13px', color: '#0f172a' }}>{selectedReq.vehiclePlate || '—'}</strong>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>المستودع المصدر:</span>
-                <strong style={{ fontSize: '12.5px', color: '#0369a1' }}>{selectedReq.sourceWarehouseName}</strong>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>المستودع المصدر:</span>
+                <strong style={{ fontSize: '13px', color: '#0369a1' }}>{selectedReq.sourceWarehouseName}</strong>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>الحالة:</span>
-                <strong style={{ fontSize: '12.5px', color: selectedReq.status === 'dispatched' ? '#15803d' : selectedReq.status === 'rejected' ? '#b91c1c' : '#b45309' }}>
-                  {selectedReq.status === 'dispatched' ? 'تم الصرف' : selectedReq.status === 'rejected' ? 'مرفوض' : 'بانتظار الصرف'}
-                </strong>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>حالة الإذن:</span>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    backgroundColor: selectedReq.status === 'dispatched' ? '#ecfdf5' : selectedReq.status === 'rejected' ? '#fef2f2' : '#fef3c7',
+                    color: selectedReq.status === 'dispatched' ? '#15803d' : selectedReq.status === 'rejected' ? '#b91c1c' : '#b45309',
+                    border: `1px solid ${selectedReq.status === 'dispatched' ? '#bbf7d0' : selectedReq.status === 'rejected' ? '#fecaca' : '#fde68a'}`,
+                  }}
+                >
+                  {selectedReq.status === 'dispatched' ? 'تم الصرف وبدء الرحلة' : selectedReq.status === 'rejected' ? 'مرفوض' : 'بانتظار الصرف'}
+                </span>
               </div>
             </div>
 
             {/* Items Table with warehouse availability check */}
             <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-              <div style={{ padding: '8px 12px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>
-                  الأصناف المطلوبة ومطابقة المخزون بالمستودع ({reviewLines.length} أصناف)
+              <div style={{ padding: '10px 14px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#334155' }}>
+                  الأصناف ومطابقة رصيد المستودع ({reviewLines.length} أصناف)
                 </span>
-                {selectedReq.status === 'pending' && (
+                {selectedReq.status === 'pending' ? (
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
                     يمكنك تعديل الكمية المعتمدة، إضافة أصناف جديدة، أو استبعاد صنف
                   </span>
+                ) : (
+                  <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 700 }}>
+                    تم اعتماد وصرف البضاعة وتحميلها لسيارة المندوب
+                  </span>
                 )}
               </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                    <th style={{ padding: '8px 12px', fontWeight: 700, width: '38%' }}>الصنف والباركود</th>
-                    <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center', width: '15%' }}>طلب المندوب</th>
-                    <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center', width: '20%' }}>المتاح بالمستودع</th>
-                    <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center', width: '20%' }}>المعتمد للصرف</th>
-                    {selectedReq.status === 'pending' && (
-                      <th style={{ padding: '8px 12px', width: '7%', textAlign: 'center' }}>حذف</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {reviewLines.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                        لا توجد أصناف في هذا الإذن. يمكنك إضافة أصناف بالأسفل.
-                      </td>
-                    </tr>
-                  ) : (
-                    reviewLines.map((it) => {
-                      const avail = it.warehouseAvailQty ?? 0;
-                      const isShortage = avail < it.approvedQty;
 
-                      return (
-                        <tr key={it.productId} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '10px 12px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontWeight: 700, color: '#0f172a' }}>{it.productName}</span>
-                              {it.requestedQty === 0 && (
-                                <span
-                                  style={{
-                                    fontSize: '10px',
-                                    fontWeight: 700,
-                                    background: '#e0e7ff',
-                                    color: '#3730a3',
-                                    padding: '1px 6px',
-                                    borderRadius: '4px',
-                                  }}
-                                >
-                                  إضافة المشرف
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxHeight: '380px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
+                  <colgroup>
+                    <col style={{ width: selectedReq.status === 'pending' ? '42%' : '44%' }} />
+                    <col style={{ width: selectedReq.status === 'pending' ? '14%' : '18%' }} />
+                    <col style={{ width: selectedReq.status === 'pending' ? '20%' : '20%' }} />
+                    <col style={{ width: selectedReq.status === 'pending' ? '18%' : '18%' }} />
+                    {selectedReq.status === 'pending' && <col style={{ width: '6%' }} />}
+                  </colgroup>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', position: 'sticky', top: 0, zIndex: 2 }}>
+                      <th style={{ padding: '9px 12px', fontWeight: 700 }}>الصنف والباركود</th>
+                      <th style={{ padding: '9px 12px', fontWeight: 700, textAlign: 'center' }}>طلب المندوب</th>
+                      <th style={{ padding: '9px 12px', fontWeight: 700, textAlign: 'center' }}>المتاح بالمستودع</th>
+                      <th style={{ padding: '9px 12px', fontWeight: 700, textAlign: 'center' }}>المعتمد للصرف</th>
+                      {selectedReq.status === 'pending' && (
+                        <th style={{ padding: '9px 12px', textAlign: 'center' }}>حذف</th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reviewLines.length === 0 ? (
+                      <tr>
+                        <td colSpan={selectedReq.status === 'pending' ? 5 : 4} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                          لا توجد أصناف في هذا الإذن. يمكنك إضافة أصناف بالأسفل.
+                        </td>
+                      </tr>
+                    ) : (
+                      reviewLines.map((it) => {
+                        const avail = it.warehouseAvailQty ?? 0;
+                        const isShortage = avail < it.approvedQty;
+
+                        return (
+                          <tr key={it.productId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
+                              <div style={{ wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'normal', lineHeight: 1.45 }}>
+                                <span style={{ fontWeight: 700, color: '#0f172a' }}>{it.productName}</span>
+                                {it.requestedQty === 0 && (
+                                  <span
+                                    style={{
+                                      fontSize: '10px',
+                                      fontWeight: 700,
+                                      background: '#e0e7ff',
+                                      color: '#3730a3',
+                                      padding: '1px 6px',
+                                      borderRadius: '4px',
+                                      marginInlineStart: '6px',
+                                      display: 'inline-block',
+                                    }}
+                                  >
+                                    إضافة المشرف
+                                  </span>
+                                )}
+                              </div>
+                              {it.barcode && (
+                                <span style={{ fontSize: '10.5px', color: '#64748b', fontFamily: 'monospace', display: 'block', marginTop: '2px' }}>
+                                  باركود: {it.barcode}
                                 </span>
                               )}
-                            </div>
-                            {it.barcode && (
-                              <span style={{ fontSize: '10.5px', color: '#64748b', fontFamily: 'monospace', display: 'block' }}>
-                                باركود: {it.barcode}
-                              </span>
-                            )}
-                          </td>
-                          <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800, fontSize: '13px' }}>
-                            {it.requestedQty > 0 ? it.requestedQty : <span style={{ color: '#94a3b8' }}>—</span>}
-                          </td>
-                          <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                            <span
-                              style={{
-                                display: 'inline-block',
-                                padding: '2px 8px',
-                                borderRadius: '6px',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                background: isShortage ? '#fef2f2' : '#f0fdf4',
-                                color: isShortage ? '#b91c1c' : '#15803d',
-                                border: `1px solid ${isShortage ? '#fca5a5' : '#bbf7d0'}`,
-                              }}
-                            >
-                              {avail} قطعة {isShortage ? '(عجز)' : '(متوفر)'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                            {selectedReq.status === 'pending' ? (
-                              <div
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  border: '1px solid #cbd5e1',
-                                  borderRadius: '6px',
-                                  backgroundColor: '#ffffff',
-                                  overflow: 'hidden',
-                                }}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateLineApprovedQty(it.productId, it.approvedQty - 1)}
-                                  disabled={it.approvedQty <= 0}
-                                  style={{
-                                    width: '26px',
-                                    height: '28px',
-                                    border: 'none',
-                                    backgroundColor: '#f8fafc',
-                                    color: '#475569',
-                                    cursor: it.approvedQty <= 0 ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                  }}
-                                  title="تقليل الكمية"
-                                >
-                                  <MinusIcon size={12} />
-                                </button>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={it.approvedQty}
-                                  onChange={(e) => {
-                                    const val = Math.max(0, parseInt(e.target.value, 10) || 0);
-                                    handleUpdateLineApprovedQty(it.productId, val);
-                                  }}
-                                  style={{
-                                    width: '46px',
-                                    height: '28px',
-                                    border: 'none',
-                                    textAlign: 'center',
-                                    fontSize: '13px',
-                                    fontWeight: 800,
-                                    color: isShortage ? '#dc2626' : '#0f172a',
-                                    outline: 'none',
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateLineApprovedQty(it.productId, it.approvedQty + 1)}
-                                  style={{
-                                    width: '26px',
-                                    height: '28px',
-                                    border: 'none',
-                                    backgroundColor: '#f8fafc',
-                                    color: '#475569',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                  }}
-                                  title="زيادة الكمية"
-                                >
-                                  <PlusIcon size={12} />
-                                </button>
-                              </div>
-                            ) : (
-                              <strong style={{ fontSize: '13px', color: '#0f172a' }}>
-                                {it.approvedQty} قطعة
-                              </strong>
-                            )}
-                          </td>
-                          {selectedReq.status === 'pending' && (
-                            <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveReviewLine(it.productId)}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#ef4444',
-                                  cursor: 'pointer',
-                                  padding: '4px',
-                                  borderRadius: '4px',
-                                }}
-                                title="استبعاد هذا الصنف"
-                              >
-                                <Trash2Icon size={14} />
-                              </button>
                             </td>
-                          )}
-                        </tr>
-                      );
-                    })
+                            <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800, fontSize: '13px', verticalAlign: 'middle' }}>
+                              {it.requestedQty > 0 ? (
+                                <span>{it.requestedQty} <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>قطعة</span></span>
+                              ) : (
+                                <span style={{ color: '#94a3b8' }}>—</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '3px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  background: isShortage ? '#fef2f2' : '#f0fdf4',
+                                  color: isShortage ? '#b91c1c' : '#15803d',
+                                  border: `1px solid ${isShortage ? '#fca5a5' : '#bbf7d0'}`,
+                                }}
+                              >
+                                {avail} قطعة {isShortage ? '(عجز)' : '(متوفر)'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', verticalAlign: 'middle' }}>
+                              {selectedReq.status === 'pending' ? (
+                                <div
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#ffffff',
+                                    overflow: 'hidden',
+                                  }}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateLineApprovedQty(it.productId, it.approvedQty + 1)}
+                                    style={{
+                                      width: '26px',
+                                      height: '28px',
+                                      border: 'none',
+                                      backgroundColor: '#f8fafc',
+                                      color: '#475569',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}
+                                    title="زيادة الكمية"
+                                  >
+                                    <PlusIcon size={12} />
+                                  </button>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={it.approvedQty}
+                                    onChange={(e) => {
+                                      const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                                      handleUpdateLineApprovedQty(it.productId, val);
+                                    }}
+                                    style={{
+                                      width: '46px',
+                                      height: '28px',
+                                      border: 'none',
+                                      textAlign: 'center',
+                                      fontSize: '13px',
+                                      fontWeight: 800,
+                                      color: isShortage ? '#dc2626' : '#0f172a',
+                                      outline: 'none',
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateLineApprovedQty(it.productId, it.approvedQty - 1)}
+                                    disabled={it.approvedQty <= 0}
+                                    style={{
+                                      width: '26px',
+                                      height: '28px',
+                                      border: 'none',
+                                      backgroundColor: '#f8fafc',
+                                      color: '#475569',
+                                      cursor: it.approvedQty <= 0 ? 'not-allowed' : 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}
+                                    title="تقليل الكمية"
+                                  >
+                                    <MinusIcon size={12} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '3px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '12px',
+                                    fontWeight: 800,
+                                    backgroundColor: '#ecfdf5',
+                                    color: '#15803d',
+                                    border: '1px solid #bbf7d0',
+                                  }}
+                                >
+                                  {it.approvedQty} قطعة
+                                </span>
+                              )}
+                            </td>
+                            {selectedReq.status === 'pending' && (
+                              <td style={{ padding: '10px 12px', textAlign: 'center', verticalAlign: 'middle' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveReviewLine(it.productId)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    padding: '4px',
+                                    borderRadius: '4px',
+                                  }}
+                                  title="استبعاد هذا الصنف"
+                                >
+                                  <Trash2Icon size={14} />
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                  {reviewLines.length > 0 && (
+                    <tfoot style={{ backgroundColor: '#f8fafc', borderTop: '2px solid #e2e8f0', fontWeight: 800 }}>
+                      <tr>
+                        <td style={{ padding: '9px 12px', color: '#334155' }}>
+                          إجمالي الأصناف: <span style={{ color: '#170e5e' }}>{reviewLines.length} صنف</span>
+                        </td>
+                        <td style={{ padding: '9px 12px', textAlign: 'center', color: '#0f172a' }}>
+                          {reviewLines.reduce((acc, l) => acc + (l.requestedQty || 0), 0)} <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>قطعة</span>
+                        </td>
+                        <td style={{ padding: '9px 12px', textAlign: 'center', color: '#64748b' }}>
+                          —
+                        </td>
+                        <td style={{ padding: '9px 12px', textAlign: 'center', color: '#15803d' }}>
+                          {reviewLines.reduce((acc, l) => acc + (l.approvedQty || 0), 0)} <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 500 }}>قطعة</span>
+                        </td>
+                        {selectedReq.status === 'pending' && <td />}
+                      </tr>
+                    </tfoot>
                   )}
-                </tbody>
-              </table>
+                </table>
+              </div>
 
               {/* Add Extra Item Section for Admin */}
               {selectedReq.status === 'pending' && (
@@ -1002,7 +1206,16 @@ export function VanLoadRequisitionsAdminTab() {
                     onClick={() => openRejectDialog(selectedReq)}
                     style={{ backgroundColor: '#dc2626', color: '#ffffff', fontSize: '12px' }}
                   >
-                    رفض الطلب
+                    رفض / إلغاء الطلب
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => handleDeleteRequisition(selectedReq)}
+                    disabled={deleteMutation.isPending}
+                    style={{ backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                  >
+                    <Trash2Icon size={13} />
+                    حذف الطلب
                   </Button>
                   <Button
                     variant="primary"
@@ -1065,6 +1278,7 @@ export function VanLoadRequisitionsAdminTab() {
           </div>
         </StandardDialog>
       )}
+
     </div>
   );
 }

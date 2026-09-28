@@ -38,7 +38,8 @@ export class VanSalesController {
       customerId?: number;
       customerName?: string;
       customerPhone?: string;
-      paymentMethod: 'cash' | 'credit';
+      paymentMethod: 'cash' | 'credit' | 'card' | 'split';
+      paidAmount?: number;
       items: { productId: number; qty: number; unitPrice?: number }[];
       notes?: string;
       deliveryGpsLat?: number;
@@ -49,6 +50,26 @@ export class VanSalesController {
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.executeFieldSale(driver.repId, driver.tenantId, driver.accountId, body);
+  }
+
+  @Get('sales')
+  async listDriverSales(
+    @Headers('authorization') authHeader: string,
+    @Query('dateScope') dateScope?: 'today' | 'yesterday' | 'week' | 'all',
+    @Query('customerId') customerId?: string,
+    @Query('paymentMethod') paymentMethod?: string,
+    @Query('search') search?: string,
+    @Query('tripId') tripId?: string,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    const sales = await this.vanSalesService.listDriverSales(driver.tenantId, driver.repId, {
+      dateScope: dateScope || 'all',
+      customerId: customerId ? Number(customerId) : undefined,
+      paymentMethod,
+      search,
+      tripId: tripId ? Number(tripId) : undefined,
+    });
+    return { ok: true, sales };
   }
 
   @Post('collections')
@@ -438,6 +459,33 @@ export class VanSalesAdminController {
     return { ok: true, requisitions };
   }
 
+  @Get('warehouses')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async listAdminWarehouses(@Req() req: RequestWithAuth) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const warehouses = await this.vanSalesService.getDriverWarehouses(tenantId);
+    return { ok: true, warehouses };
+  }
+
+  @Post('requisitions')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async createAdminRequisition(
+    @Req() req: RequestWithAuth,
+    @Body()
+    body: {
+      repId: number;
+      sourceWarehouseId?: number;
+      items: { productId: number; qty: number; sourceWarehouseId?: number; sourceWarehouseName?: string }[];
+      notes?: string;
+      dispatchImmediately?: boolean;
+    },
+  ) {
+    const { tenantId, accountId } = requireTenantScope(req.authContext!);
+    const userId = req.authContext!.userId;
+    const res = await this.vanSalesService.createLoadRequisitionByAdmin(tenantId, accountId, userId, body);
+    return res;
+  }
+
   @Put('requisitions/:id/review')
   @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
   async reviewRequisition(
@@ -475,6 +523,17 @@ export class VanSalesAdminController {
     return res;
   }
 
+  @Delete('requisitions/:id')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async deleteRequisition(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const res = await this.vanSalesService.deleteLoadRequisition(tenantId, id);
+    return res;
+  }
+
   // Targets Management Endpoints
   @Get('targets')
   @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
@@ -491,11 +550,19 @@ export class VanSalesAdminController {
   @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
   async setRepTarget(
     @Req() req: RequestWithAuth,
-    @Body() body: { repId: number; month: string; targetAmount: number },
+    @Body() body: { repId: number; month: string; targetAmount: number; collectionTarget?: number | null; visitsTarget?: number | null },
   ) {
     const { tenantId, accountId } = requireTenantScope(req.authContext!);
-    const res = await this.vanSalesService.setRepTarget(tenantId, accountId, Number(body.repId), body.month, Number(body.targetAmount));
-    return { ok: true, ...res };
+    const res = await this.vanSalesService.setRepTarget(
+      tenantId,
+      accountId,
+      Number(body.repId),
+      body.month,
+      Number(body.targetAmount),
+      body.collectionTarget !== undefined && body.collectionTarget !== null ? Number(body.collectionTarget) : undefined,
+      body.visitsTarget !== undefined && body.visitsTarget !== null ? Number(body.visitsTarget) : undefined,
+    );
+    return res;
   }
 
   // Route KPIs & Field Visits Endpoints

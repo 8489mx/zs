@@ -187,6 +187,7 @@ async function main(): Promise<void> {
     });
     assert.equal(cashSale.ok, true);
     assert.equal(cashSale.total, 75);
+    assert.match(cashSale.docNo, /^VAN-\d{6}-0001$/, 'daily sequence must start at 0001');
 
     const cashSaleRow = await db
       .selectFrom('sales')

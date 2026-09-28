@@ -51,6 +51,7 @@ export function VanRoutesKpiAdminTab() {
   const [sequenceInput, setSequenceInput] = useState('1');
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // 1. Supervisor KPIs Query
   const { data: kpiData, refetch: refetchKpis } = useQuery<SupervisorRouteKpiSummary>({
@@ -72,6 +73,26 @@ export function VanRoutesKpiAdminTab() {
     queryFn: () => vanSalesApi.fetchAdminFieldVisits({ dateFrom: dateFrom || undefined, dateTo: dateTo || undefined }),
     refetchInterval: 25000,
   });
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['van-supervisor-kpis'] }),
+        queryClient.invalidateQueries({ queryKey: ['van-admin-transfers'] }),
+        queryClient.invalidateQueries({ queryKey: ['van-admin-field-visits'] }),
+        refetchKpis(),
+        refetchTransfers(),
+        refetchVisits(),
+      ]);
+      await new Promise((r) => setTimeout(r, 450));
+      toast.success('تم تحديث بيانات خطوط السير والرقابة بنجاح');
+    } catch {
+      toast.error('حدث خطأ أثناء تحديث البيانات');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Schedule mutation
   const scheduleMutation = useMutation({
@@ -199,15 +220,24 @@ export function VanRoutesKpiAdminTab() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Button
             variant="secondary"
-            style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-            onClick={() => {
-              refetchKpis();
-              refetchTransfers();
-              refetchVisits();
+            disabled={isRefreshing}
+            style={{
+              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: isRefreshing ? 'wait' : 'pointer',
+              opacity: isRefreshing ? 0.75 : 1,
             }}
+            onClick={handleManualRefresh}
+            title="تحديث بيانات خطوط السير والرقابة من السيرفر"
           >
-            <RefreshCwIcon size={13} />
-            تحديث البيانات
+            <RefreshCwIcon
+              size={13}
+              className={isRefreshing ? 'spin-animation' : undefined}
+              style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
+            />
+            {isRefreshing ? 'جارٍ التحديث...' : 'تحديث البيانات'}
           </Button>
         </div>
       </div>

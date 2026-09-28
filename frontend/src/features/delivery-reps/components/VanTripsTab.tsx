@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { RefreshCwIcon } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
 import { vanSalesApi, type VanTripSummary, type TripAdminDetails } from '../api/van-sales.api';
 
 export function VanTripsTab() {
+  const queryClient = useQueryClient();
   const [tripStatusFilter, setTripStatusFilter] = useState<string>('');
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     data: trips = [],
@@ -19,6 +22,22 @@ export function VanTripsTab() {
     queryFn: () => vanSalesApi.listAdminTrips({ status: tripStatusFilter || undefined }),
     refetchInterval: 25000,
   });
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['van-sales-admin-trips'] }),
+        refetchTrips(),
+      ]);
+      await new Promise((r) => setTimeout(r, 450));
+      toast.success('تم تحديث رحلات التوزيع بنجاح');
+    } catch {
+      toast.error('حدث خطأ أثناء تحديث البيانات');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Query for trip details when a trip is selected
   const { data: tripDetails, isLoading: isDetailsLoading } = useQuery<TripAdminDetails>({
@@ -119,11 +138,24 @@ export function VanTripsTab() {
           </span>
           <Button
             variant="secondary"
-            style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-            onClick={() => refetchTrips()}
+            disabled={isRefreshing}
+            style={{
+              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: isRefreshing ? 'wait' : 'pointer',
+              opacity: isRefreshing ? 0.75 : 1,
+            }}
+            onClick={handleManualRefresh}
+            title="تحديث قائمة رحلات التوزيع من السيرفر"
           >
-            <RefreshCwIcon size={13} />
-            تحديث
+            <RefreshCwIcon
+              size={13}
+              className={isRefreshing ? 'spin-animation' : undefined}
+              style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
+            />
+            {isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}
           </Button>
         </div>
       </div>

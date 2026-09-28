@@ -9,6 +9,10 @@
 export interface RepTargetCalculationInput {
   targetAmount: number;
   actualSalesMTD: number;
+  collectionTarget?: number | null;
+  actualCollectionsMTD?: number;
+  visitsTarget?: number | null;
+  actualVisitsMTD?: number;
   currentDate?: Date | string;
   weekendDays?: number[]; // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat (Default [5] for Friday)
   officialHolidays?: string[]; // Array of 'YYYY-MM-DD' strings
@@ -28,6 +32,19 @@ export interface RepTargetCalculationResult {
   requiredDailyTarget: number;
   excludedFridaysCount: number;
   excludedHolidaysCount: number;
+  // Multi-dimensional targets
+  collectionTarget?: number | null;
+  actualCollectionsMTD?: number;
+  collectionAchievementRate?: number | null;
+  remainingCollection?: number;
+  requiredDailyCollection?: number;
+  isCollectionAchieved?: boolean;
+  visitsTarget?: number | null;
+  actualVisitsMTD?: number;
+  visitsAchievementRate?: number | null;
+  remainingVisits?: number;
+  requiredDailyVisits?: number;
+  isVisitsAchieved?: boolean;
 }
 
 export function calculateRepTargetMetrics(input: RepTargetCalculationInput): RepTargetCalculationResult {
@@ -88,17 +105,49 @@ export function calculateRepTargetMetrics(input: RepTargetCalculationInput): Rep
   }
 
   const achievementRate = target > 0 ? Number(((actual / target) * 100).toFixed(1)) : 0;
-  const remainingTarget = Number(Math.max(0, target - actual).toFixed(2));
+  const remainingTarget = Math.max(0, Math.round(target - actual));
   const isTargetAchieved = actual >= target && target > 0;
 
   let requiredDailyTarget = 0;
   if (!isTargetAchieved && remainingTarget > 0) {
     if (remainingWorkingDays > 0) {
-      requiredDailyTarget = Number((remainingTarget / remainingWorkingDays).toFixed(2));
+      requiredDailyTarget = Math.ceil(remainingTarget / remainingWorkingDays);
     } else {
       // If no working days left in the month, remaining must be done today
       requiredDailyTarget = remainingTarget;
     }
+  }
+
+  // Multi-dimensional: Collection Target Calculations
+  const colTarget = input.collectionTarget !== undefined && input.collectionTarget !== null && !isNaN(Number(input.collectionTarget))
+    ? Math.max(0, Math.round(Number(input.collectionTarget)))
+    : null;
+  const colActual = input.actualCollectionsMTD !== undefined && input.actualCollectionsMTD !== null
+    ? Math.max(0, Number(Number(input.actualCollectionsMTD).toFixed(2)))
+    : 0;
+
+  const collectionAchievementRate = colTarget && colTarget > 0 ? Number(((colActual / colTarget) * 100).toFixed(1)) : null;
+  const remainingCollection = colTarget && colTarget > 0 ? Math.max(0, Math.round(colTarget - colActual)) : 0;
+  const isCollectionAchieved = colTarget && colTarget > 0 ? colActual >= colTarget : false;
+  let requiredDailyCollection = 0;
+  if (colTarget && colTarget > 0 && !isCollectionAchieved && remainingCollection > 0) {
+    requiredDailyCollection = remainingWorkingDays > 0 ? Math.ceil(remainingCollection / remainingWorkingDays) : remainingCollection;
+  }
+
+  // Multi-dimensional: Visits Target Calculations
+  const visTarget = input.visitsTarget !== undefined && input.visitsTarget !== null && !isNaN(Number(input.visitsTarget))
+    ? Math.max(0, Math.round(Number(input.visitsTarget)))
+    : null;
+  const visActual = input.actualVisitsMTD !== undefined && input.actualVisitsMTD !== null
+    ? Math.max(0, Math.round(Number(input.actualVisitsMTD)))
+    : 0;
+
+  const visitsAchievementRate = visTarget && visTarget > 0 ? Number(((visActual / visTarget) * 100).toFixed(1)) : null;
+  const remainingVisits = visTarget && visTarget > 0 ? Math.max(0, visTarget - visActual) : 0;
+  const isVisitsAchieved = visTarget && visTarget > 0 ? visActual >= visTarget : false;
+  let requiredDailyVisits = 0;
+  if (visTarget && visTarget > 0 && !isVisitsAchieved && remainingVisits > 0) {
+    requiredDailyVisits = remainingWorkingDays > 0 ? Math.ceil(remainingVisits / remainingWorkingDays) : remainingVisits;
   }
 
   return {
@@ -115,5 +164,17 @@ export function calculateRepTargetMetrics(input: RepTargetCalculationInput): Rep
     requiredDailyTarget,
     excludedFridaysCount,
     excludedHolidaysCount,
+    collectionTarget: colTarget,
+    actualCollectionsMTD: colActual,
+    collectionAchievementRate,
+    remainingCollection,
+    requiredDailyCollection,
+    isCollectionAchieved,
+    visitsTarget: visTarget,
+    actualVisitsMTD: visActual,
+    visitsAchievementRate,
+    remainingVisits,
+    requiredDailyVisits,
+    isVisitsAchieved,
   };
 }

@@ -993,6 +993,7 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'installments' && (settings?.installmentsModuleEnabled !== true || !hasFeature('installments'))) return false;
         if (item.key === 'vat-declaration' && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && (settings?.taxDeclarationModuleEnabled !== true || !hasFeature('vat_declaration') || !isEnterpriseCommerceActive)) return false;
         if (item.key === 'accounting-fixed-assets' && !isContractingVertical && !isManufacturingVertical && (settings?.fixedAssetsModuleEnabled !== true || !hasFeature('fixed_assets') || !isEnterpriseCommerceActive)) return false;
+        if (item.key === 'delivery-reps' && isWholesaleVanVertical) return false;
         if ((item.key === 'delivery-reps' || item.key === 'van-sales-admin') && (settings?.deliveryFleetModuleEnabled !== true || !hasFeature('deliveryReps')) && !isWholesaleVanVertical) return false;
         if (item.key === 'kds' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         if (item.key === 'product-modifiers' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
@@ -1457,7 +1458,7 @@ export function AppShell({ children }: PropsWithChildren) {
         key: 'sales-group',
         label: isWholesaleVanVertical ? 'المبيعات وتوزيع الفان' : t('sidebar.sales-group', 'المبيعات'),
         itemKeys: isWholesaleVanVertical
-          ? ['van-sales-admin', 'customers', 'sales', 'returns', 'sales-orders', 'quotations', 'price-lists', 'delivery-reps']
+          ? ['van-sales-admin', 'customers', 'sales', 'returns', 'sales-orders', 'quotations', 'price-lists']
           : isEnterpriseCommerceActive
           ? ['crm', 'quotations', 'sales-orders', 'price-lists', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher']
           : ['pos', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher'].filter(k => k !== 'pos' || settings?.posModuleEnabled !== false),

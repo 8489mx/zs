@@ -223,8 +223,13 @@ export const DriverTopBar: React.FC<DriverTopBarProps> = ({
             disabled={isFetching}
             style={{ padding: '6px 10px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
-            <RefreshCwIcon size={13} color="#475569" />
-            <span>{isFetching ? '...' : 'تحديث'}</span>
+            <RefreshCwIcon
+              size={13}
+              color="#475569"
+              className={isFetching ? 'spin-animation' : undefined}
+              style={isFetching ? { animation: 'spin 0.75s linear infinite' } : undefined}
+            />
+            <span>{isFetching ? 'جارٍ التحديث...' : 'تحديث'}</span>
           </Button>
           <button
             type="button"
