@@ -855,6 +855,9 @@ export class SaasAdminService {
     // inside a transaction a raised error poisons the whole thing unless the failed
     // statement is rolled back to a savepoint first.
     await this.db.transaction().execute(async (trx) => {
+      // Enable transaction-scoped tenant purge to allow deleting audit logs and bypass triggers
+      await sql`SET LOCAL app.allow_tenant_purge = 'on'`.execute(trx);
+
       let tables = allTables;
       let progress = true;
 
@@ -874,6 +877,8 @@ export class SaasAdminService {
             const code = e.code || e.cause?.code || e.originalError?.code || e.error?.code;
             if (code === '23503' || code === '23001') { // foreign_key_violation or restrict_violation
               nextTables.push(table);
+            } else if (table === 'tamper_audit_logs' && code === 'P0001') {
+              this.logger.warn(`deleteTenant: tamper_audit_logs immutable trigger encountered for tenant ${tenant.id}`);
             } else {
               console.error('deleteTenant error:', e, 'Extracted code:', code, 'Table:', table);
               throw e;

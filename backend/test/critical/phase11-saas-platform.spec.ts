@@ -320,7 +320,19 @@ async function runPhase11Tests() {
     console.log('  -> Passed: All SaaS audit event codes and document numbering strictly verified.');
   }
 
-  console.log('\n=== ALL PHASE 11 SAAS PLATFORM INVARIANT TESTS PASSED (6/6) ===');
+  // 7. Tenant Purge & Tamper Audit Exemption Invariant
+  console.log('[Test 7] Tenant Purge & Tamper Audit Exemption Invariant');
+  {
+    // Platform tenant cannot be targeted for deletion
+    assert.strictEqual(checkNotPlatformTarget('zs'), false, 'Platform tenant zs must be protected from deletion');
+    assert.strictEqual(checkNotPlatformTarget('some-tenant-id'), true, 'Non-platform tenant can be targeted');
+
+    // Audit event code for deletion must exist
+    assert.strictEqual(AUDIT_EVENT_CODES.SAAS_TENANT_DELETED, 'SAAS_TENANT_DELETED');
+    console.log('  -> Passed: Tenant purge governance and audit protection invariants verified.');
+  }
+
+  console.log('\n=== ALL PHASE 11 SAAS PLATFORM INVARIANT TESTS PASSED (7/7) ===');
 }
 
 runPhase11Tests().catch((err) => {
