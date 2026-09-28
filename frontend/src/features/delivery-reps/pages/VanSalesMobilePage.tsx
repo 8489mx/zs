@@ -457,7 +457,7 @@ export default function VanSalesMobilePage() {
       )}
 
       {/* Main Container */}
-      <main style={{ padding: '14px 16px', maxWidth: '820px', margin: '0 auto' }}>
+      <main style={{ padding: '14px 16px', maxWidth: '1280px', width: 'min(100%, 1280px)', margin: '0 auto' }}>
         {/* Monthly Multi-Dimensional Target Progress Card */}
         {data?.targetMetrics && (
           (data.targetMetrics.targetAmount > 0) ||
@@ -1588,6 +1588,10 @@ export default function VanSalesMobilePage() {
               data?.hasActiveTrip ? (
                 <VanSettleTab
                   tripData={data.trip}
+                  sales={data.sales || []}
+                  collections={data.collections || []}
+                  returns={data.returns || []}
+                  inventory={data.inventory || []}
                   countedCash={countedCash}
                   onCountedCashChange={setCountedCash}
                   unloadRemaining={unloadRemaining}

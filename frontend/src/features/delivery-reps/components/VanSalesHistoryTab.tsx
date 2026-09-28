@@ -720,7 +720,7 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                   <div style={{ textAlign: 'left' }}>
                     <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي الفاتورة</div>
                     <div style={{ fontSize: '16px', fontWeight: 800, color: '#166534', marginTop: '1px' }}>
-                      {sale.total.toFixed(2)} <CurrencySymbol />
+                      {Number(sale.total || 0).toFixed(2)} <CurrencySymbol />
                     </div>
                   </div>
                 </div>

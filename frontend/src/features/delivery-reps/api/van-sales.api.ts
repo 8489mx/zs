@@ -33,6 +33,7 @@ export interface VanTripSummary {
   cashCollected: number;
   creditSales: number;
   returnsAmount: number;
+  cashRefunds?: number;
   variance: number;
   notes?: string;
 }
@@ -121,6 +122,34 @@ export interface VanActiveTripResponse {
     docNo: string;
     total: number;
     paymentMethod: string;
+    createdAt: string;
+    customerName?: string;
+  }[];
+  sales?: {
+    id: number;
+    docNo: string;
+    total: number;
+    paymentMethod: string;
+    createdAt: string;
+    customerName?: string;
+    customerPhone?: string;
+  }[];
+  collections?: {
+    id: number;
+    amount: number;
+    createdAt: string;
+    customerName: string;
+    note?: string;
+    gpsLat?: number;
+    gpsLng?: number;
+  }[];
+  returns?: {
+    id: number;
+    docNo: string;
+    totalAmount: number;
+    returnReason: string;
+    refundMethod?: 'credit' | 'cash';
+    status: string;
     createdAt: string;
     customerName?: string;
   }[];
@@ -562,6 +591,7 @@ export const vanSalesApi = {
     customerId: number;
     saleId?: number | null;
     returnReason: 'damaged' | 'expired' | 'manufacturing_defect' | 'stagnant' | 'order_mismatch' | 'customer_request';
+    refundMethod?: 'credit' | 'cash';
     items: { productId: number; qty: number; unitPrice: number; saleItemId?: number }[];
     notes?: string;
   }): Promise<{ ok: boolean; returnDocNo: string; returnId: number; status: string; totalAmount: number }> => {

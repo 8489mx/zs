@@ -500,9 +500,11 @@ async function runMfaGate(): Promise<void> {
   db.sessions.length = 0;
   db.userMfa[0].confirmed_at = new Date();
   const savedSecret = process.env.SESSION_SECRET;
+  const savedCsrfSecret = process.env.SESSION_CSRF_SECRET;
   const savedMode = process.env.APP_MODE;
   process.env.APP_MODE = 'CLOUD_SAAS';
   delete process.env.SESSION_SECRET;
+  delete process.env.SESSION_CSRF_SECRET;
   await assert.rejects(
     async () => service.authenticate('owner', password),
     /PORTAL_TOKEN_SECRET_MISSING|إعداد الأمان/,
@@ -527,6 +529,8 @@ async function runMfaGate(): Promise<void> {
 
   if (savedSecret === undefined) delete process.env.SESSION_SECRET;
   else process.env.SESSION_SECRET = savedSecret;
+  if (savedCsrfSecret === undefined) delete process.env.SESSION_CSRF_SECRET;
+  else process.env.SESSION_CSRF_SECRET = savedCsrfSecret;
   if (savedMode === undefined) delete process.env.APP_MODE;
   else process.env.APP_MODE = savedMode;
 }

@@ -44,6 +44,7 @@ export interface VanTripSummary {
   cashCollected: number;
   creditSales: number;
   returnsAmount: number;
+  cashRefunds?: number;
   variance: number;
   notes?: string;
 }
@@ -258,6 +259,9 @@ export class VanSalesService {
     inventory: VanStockItem[];
     customers: { id: number; name: string; phone?: string; address?: string; balance: number }[];
     recentSales: any[];
+    sales?: any[];
+    collections?: any[];
+    returns?: any[];
     targetMetrics?: RepTargetCalculationResult;
   }> {
     const vanLoc = await this.getOrCreateVanLocation(repId, tenantId, accountId);
@@ -324,6 +328,7 @@ export class VanSalesService {
         sql<number>`cast(coalesce(vt.cash_collected, 0) as numeric)`.as('cashCollected'),
         sql<number>`cast(coalesce(vt.credit_sales, 0) as numeric)`.as('creditSales'),
         sql<number>`cast(coalesce(vt.returns_amount, 0) as numeric)`.as('returnsAmount'),
+        sql<number>`cast(coalesce(vt.cash_refunds, 0) as numeric)`.as('cashRefunds'),
         sql<number>`cast(coalesce(vt.variance, 0) as numeric)`.as('variance'),
         'vt.notes',
       ])
@@ -431,16 +436,18 @@ export class VanSalesService {
       };
     });
 
-    // Fetch recent sales on this trip
+    // Fetch sales, collections and returns on this trip
     let recentSales: any[] = [];
+    let tripCollections: any[] = [];
+    let tripReturns: any[] = [];
     if (tripRow?.id) {
-      recentSales = await this.anyDb
+      const rawSales = await this.anyDb
         .selectFrom('sales as s')
         .leftJoin('customers as c', 'c.id', 's.customer_id')
         .select([
           's.id',
           's.doc_no as docNo',
-          sql<number>`cast(s.total as numeric)`.as('total'),
+          sql<number>`cast(s.total as double precision)`.as('total'),
           's.payment_type as paymentMethod',
           's.created_at as createdAt',
           'c.name as customerName',
@@ -448,7 +455,49 @@ export class VanSalesService {
         .where('s.tenant_id', '=', tenantId)
         .where(sql<boolean>`s.van_trip_id = ${Number(tripRow.id)}`)
         .orderBy('s.id', 'desc')
-        .limit(20)
+        .limit(100)
+        .execute();
+
+      recentSales = rawSales.map((s: any) => ({
+        ...s,
+        id: Number(s.id),
+        total: Number(s.total || 0),
+      }));
+
+      tripCollections = await this.anyDb
+        .selectFrom('customer_ledger as cl')
+        .leftJoin('customers as c', 'c.id', 'cl.customer_id')
+        .select([
+          'cl.id',
+          sql<number>`cast(abs(coalesce(cl.amount, 0)) as numeric)`.as('amount'),
+          'cl.created_at as createdAt',
+          sql<string>`coalesce(c.name, 'عميل')`.as('customerName'),
+          'cl.note',
+          sql<number>`cast(cl.gps_lat as double precision)`.as('gpsLat'),
+          sql<number>`cast(cl.gps_lng as double precision)`.as('gpsLng'),
+        ])
+        .where('cl.tenant_id', '=', tenantId)
+        .where(sql<boolean>`cl.van_trip_id = ${Number(tripRow.id)}`)
+        .where('cl.entry_type', '=', 'payment')
+        .orderBy('cl.id', 'desc')
+        .execute();
+
+      tripReturns = await this.anyDb
+        .selectFrom('van_field_returns as vfr')
+        .leftJoin('customers as c', 'c.id', 'vfr.customer_id')
+        .select([
+          'vfr.id',
+          'vfr.doc_no as docNo',
+          sql<number>`cast(coalesce(vfr.total_amount, 0) as numeric)`.as('totalAmount'),
+          'vfr.return_reason as returnReason',
+          'vfr.refund_method as refundMethod',
+          'vfr.status',
+          'vfr.created_at as createdAt',
+          sql<string>`coalesce(c.name, '')`.as('customerName'),
+        ])
+        .where('vfr.tenant_id', '=', tenantId)
+        .where(sql<boolean>`vfr.trip_id = ${Number(tripRow.id)}`)
+        .orderBy('vfr.id', 'desc')
         .execute();
     }
 
@@ -574,6 +623,7 @@ export class VanSalesService {
       cashCollected: Number(tripRow.cashCollected || 0),
       creditSales: Number(tripRow.creditSales || 0),
       returnsAmount: Number(tripRow.returnsAmount || 0),
+      cashRefunds: Number((tripRow as any).cashRefunds || 0),
       variance: Number(tripRow.variance || 0),
       notes: tripRow.notes || '',
     };
@@ -586,6 +636,9 @@ export class VanSalesService {
       inventory,
       customers,
       recentSales,
+      sales: recentSales,
+      collections: tripCollections,
+      returns: tripReturns,
       targetMetrics,
     };
   }
@@ -1475,6 +1528,7 @@ export class VanSalesService {
         sql<number>`cast(coalesce(vt.cash_collected, 0) as numeric)`.as('cashCollected'),
         sql<number>`cast(coalesce(vt.credit_sales, 0) as numeric)`.as('creditSales'),
         sql<number>`cast(coalesce(vt.returns_amount, 0) as numeric)`.as('returnsAmount'),
+        sql<number>`cast(coalesce(vt.cash_refunds, 0) as numeric)`.as('cashRefunds'),
         sql<number>`cast(coalesce(vt.variance, 0) as numeric)`.as('variance'),
         'vt.notes',
       ])
@@ -1517,6 +1571,7 @@ export class VanSalesService {
       cashCollected: Number(r.cashCollected || 0),
       creditSales: Number(r.creditSales || 0),
       returnsAmount: Number(r.returnsAmount || 0),
+      cashRefunds: Number(r.cashRefunds || 0),
       variance: Number(r.variance || 0),
       notes: r.notes || '',
     }));
@@ -1555,6 +1610,7 @@ export class VanSalesService {
         sql<number>`cast(coalesce(vt.cash_collected, 0) as numeric)`.as('cashCollected'),
         sql<number>`cast(coalesce(vt.credit_sales, 0) as numeric)`.as('creditSales'),
         sql<number>`cast(coalesce(vt.returns_amount, 0) as numeric)`.as('returnsAmount'),
+        sql<number>`cast(coalesce(vt.cash_refunds, 0) as numeric)`.as('cashRefunds'),
         sql<number>`cast(coalesce(vt.variance, 0) as numeric)`.as('variance'),
         'vt.notes',
       ])
@@ -1614,6 +1670,7 @@ export class VanSalesService {
         'vfr.doc_no as docNo',
         sql<number>`cast(coalesce(vfr.total_amount, 0) as numeric)`.as('totalAmount'),
         'vfr.return_reason as returnReason',
+        'vfr.refund_method as refundMethod',
         'vfr.status',
         'vfr.created_at as createdAt',
         sql<string>`coalesce(c.name, '')`.as('customerName'),
@@ -1652,6 +1709,7 @@ export class VanSalesService {
         cashCollected: Number(trip.cashCollected || 0),
         creditSales: Number(trip.creditSales || 0),
         returnsAmount: Number(trip.returnsAmount || 0),
+        cashRefunds: Number((trip as any).cashRefunds || 0),
         variance: Number(trip.variance || 0),
       },
       sales: sales.map((s: any) => ({
@@ -1672,6 +1730,7 @@ export class VanSalesService {
         ...r,
         id: Number(r.id),
         totalAmount: Number(r.totalAmount || 0),
+        refundMethod: r.refundMethod || 'credit',
       })),
       vanStock: vanStock.map((v: any) => ({
         ...v,
@@ -2151,6 +2210,7 @@ export class VanSalesService {
       customerId: number;
       saleId?: number | null;
       returnReason: 'damaged' | 'expired' | 'manufacturing_defect' | 'stagnant' | 'order_mismatch' | 'customer_request';
+      refundMethod?: 'credit' | 'cash';
       items: {
         productId: number;
         qty: number;
@@ -2256,6 +2316,7 @@ export class VanSalesService {
         sale_id: payload.saleId || null,
         status: 'pending_approval',
         return_reason: payload.returnReason,
+        refund_method: payload.refundMethod || 'credit',
         total_amount: totalAmount,
         items_json: JSON.stringify(payload.items),
         notes: payload.notes || null,
@@ -2306,6 +2367,7 @@ export class VanSalesService {
         sql<string>`coalesce(s.doc_no, '')`.as('saleDocNo'),
         'vfr.status',
         'vfr.return_reason as returnReason',
+        'vfr.refund_method as refundMethod',
         sql<number>`cast(vfr.total_amount as numeric)`.as('totalAmount'),
         'vfr.items_json as itemsJson',
         'vfr.notes',
@@ -2402,31 +2464,71 @@ export class VanSalesService {
         itemsWithCost.push({ productId: pid, qty, costPrice: Number(prod?.cost_price || 0) });
       }
 
-      const updatedCust = await trxAny
-        .updateTable('customers')
-        .set({ balance: sql`COALESCE(balance, 0) - ${totalAmount}`, updated_at: sql`NOW()` })
-        .where('id', '=', ret.customer_id)
-        .where('tenant_id', '=', tenantId)
-        .returning(['balance'])
-        .executeTakeFirst();
-      const balanceAfter = Number(updatedCust?.balance || 0);
+      const refundMethod = (ret as any).refund_method || 'credit';
+      if (refundMethod === 'credit') {
+        const updatedCust = await trxAny
+          .updateTable('customers')
+          .set({ balance: sql`COALESCE(balance, 0) - ${totalAmount}`, updated_at: sql`NOW()` })
+          .where('id', '=', ret.customer_id)
+          .where('tenant_id', '=', tenantId)
+          .returning(['balance'])
+          .executeTakeFirst();
+        const balanceAfter = Number(updatedCust?.balance || 0);
 
-      await trxAny
-        .insertInto('customer_ledger')
-        .values({
-          customer_id: ret.customer_id,
-          entry_type: 'return',
-          amount: -totalAmount,
-          balance_after: balanceAfter,
-          note: `مرتجع بضاعة ميداني معتمد (#${ret.doc_no})`,
-          reference_type: 'van_field_return',
-          reference_id: returnId,
-          van_trip_id: ret.trip_id,
-          tenant_id: tenantId,
-          account_id: accountId,
-          created_by: approvedByUserId,
-        })
-        .execute();
+        await trxAny
+          .insertInto('customer_ledger')
+          .values({
+            customer_id: ret.customer_id,
+            entry_type: 'return',
+            amount: -totalAmount,
+            balance_after: balanceAfter,
+            note: `مرتجع بضاعة ميداني معتمد (#${ret.doc_no}) - خصم من الحساب`,
+            reference_type: 'van_field_return',
+            reference_id: returnId,
+            van_trip_id: ret.trip_id,
+            tenant_id: tenantId,
+            account_id: accountId,
+            created_by: approvedByUserId,
+          })
+          .execute();
+      } else {
+        // Immediate Cash Refund from Van: deduct from cash_collected and track cash_refunds
+        await trxAny
+          .updateTable('van_sales_trips')
+          .set({
+            cash_refunds: sql`COALESCE(cash_refunds, 0) + ${totalAmount}`,
+            cash_collected: sql`cash_collected - ${totalAmount}`,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', ret.trip_id)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+
+        const currentCust = await trxAny
+          .selectFrom('customers')
+          .select(['balance'])
+          .where('id', '=', ret.customer_id)
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst();
+        const balanceAfter = Number(currentCust?.balance || 0);
+
+        await trxAny
+          .insertInto('customer_ledger')
+          .values({
+            customer_id: ret.customer_id,
+            entry_type: 'return',
+            amount: 0,
+            balance_after: balanceAfter,
+            note: `مرتجع بضاعة نقدي فوري مسدد من عهدة المندوب (#${ret.doc_no}) بقيمة ${totalAmount}`,
+            reference_type: 'van_field_return',
+            reference_id: returnId,
+            van_trip_id: ret.trip_id,
+            tenant_id: tenantId,
+            account_id: accountId,
+            created_by: approvedByUserId,
+          })
+          .execute();
+      }
 
       await trxAny
         .updateTable('van_sales_trips')

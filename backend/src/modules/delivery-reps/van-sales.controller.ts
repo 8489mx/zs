@@ -100,6 +100,7 @@ export class VanSalesController {
       customerId: number;
       saleId?: number | null;
       returnReason: 'damaged' | 'expired' | 'manufacturing_defect' | 'stagnant' | 'order_mismatch' | 'customer_request';
+      refundMethod?: 'credit' | 'cash';
       items: { productId: number; qty: number; unitPrice: number; saleItemId?: number }[];
       notes?: string;
     },

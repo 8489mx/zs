@@ -764,6 +764,7 @@ export interface VanSalesTripTable {
   cash_collected?: number;
   credit_sales?: number;
   returns_amount?: number;
+  cash_refunds?: number;
   variance?: number;
   notes?: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -781,6 +782,7 @@ export interface VanFieldReturnTable {
   sale_id?: number | null;
   status: 'pending_approval' | 'approved' | 'rejected' | string;
   return_reason: 'damaged' | 'expired' | 'manufacturing_defect' | 'stagnant' | 'order_mismatch' | 'customer_request' | string;
+  refund_method?: 'credit' | 'cash' | string;
   total_amount: number;
   items_json: ColumnType<string | any, string | any, string | any>;
   notes?: string | null;

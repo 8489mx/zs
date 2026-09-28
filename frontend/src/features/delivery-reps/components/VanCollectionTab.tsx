@@ -57,6 +57,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
   const [selectedSaleId, setSelectedSaleId] = useState<number | ''>('');
   const [returnReason, setReturnReason] = useState<string>('damaged');
   const [returnNotes, setReturnNotes] = useState<string>('');
+  const [refundMethod, setRefundMethod] = useState<'credit' | 'cash'>('credit');
   const [returnCart, setReturnCart] = useState<Array<{
     productId: number;
     productName: string;
@@ -130,6 +131,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
         customerId: Number(returnCustomerId),
         saleId: selectedSaleId ? Number(selectedSaleId) : null,
         returnReason: returnReason as any,
+        refundMethod,
         items: returnCart.map((c) => ({
           productId: c.productId,
           qty: c.qty,
@@ -469,7 +471,56 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 </div>
               )}
 
-              {/* 5. Return Reason Selection */}
+              {/* 5. Method of Refund (Credit vs Cash) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  طريقة رد وتسوية قيمة المرتجع للعميل (إلزامي):
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setRefundMethod('credit')}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: refundMethod === 'credit' ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                      backgroundColor: refundMethod === 'credit' ? '#eff6ff' : '#ffffff',
+                      color: refundMethod === 'credit' ? '#170e5e' : '#475569',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      textAlign: 'right',
+                    }}
+                  >
+                    <div style={{ fontWeight: 800 }}>خصم من حساب العميل (آجل)</div>
+                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
+                      دائن لحساب العميل • لا يخصم من كاش السيارة
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRefundMethod('cash')}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: refundMethod === 'cash' ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                      backgroundColor: refundMethod === 'cash' ? '#fef2f2' : '#ffffff',
+                      color: refundMethod === 'cash' ? '#b91c1c' : '#475569',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      textAlign: 'right',
+                    }}
+                  >
+                    <div style={{ fontWeight: 800 }}>دفع نقدي فوري (كاش من السيارة)</div>
+                    <div style={{ fontSize: '10.5px', color: '#dc2626', marginTop: '2px' }}>
+                      استرداد كاش فوري • يخصم من كاش التوريد اليومي
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 6. Return Reason Selection */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
                   سبب المرتجع (إلزامي):
