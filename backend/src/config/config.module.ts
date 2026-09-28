@@ -11,6 +11,12 @@ import { validateEnv } from './env.schema';
       isGlobal: true,
       cache: true,
       expandVariables: true,
+      envFilePath: [
+        `.env.${process.env.NODE_ENV || 'development'}.local`,
+        `.env.${process.env.NODE_ENV || 'development'}`,
+        '.env.local',
+        '.env',
+      ],
       load: [appConfig, databaseConfig],
       validate: validateEnv,
     }),

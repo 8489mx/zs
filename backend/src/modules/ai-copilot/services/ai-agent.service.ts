@@ -49,8 +49,35 @@ export class AiAgentService {
     const text = (message || '').trim();
 
     // 1. Get or create session
-    let activeSessionId = sessionId;
-    if (!activeSessionId) {
+    let activeSessionId = (sessionId || '').trim();
+    if (activeSessionId) {
+      const existingSession = await this.db
+        .selectFrom('ai_chat_sessions')
+        .select(['id', 'title'])
+        .where('id', '=', activeSessionId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+
+      if (!existingSession) {
+        await this.db
+          .insertInto('ai_chat_sessions')
+          .values({
+            id: activeSessionId,
+            tenant_id: tenantId,
+            user_id: userId || null,
+            title: text.substring(0, 50) || 'محادثة ذكية',
+            is_active: true,
+          })
+          .execute();
+      } else {
+        await this.db
+          .updateTable('ai_chat_sessions')
+          .set({ updated_at: new Date() })
+          .where('id', '=', activeSessionId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      }
+    } else {
       activeSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
       await this.db
         .insertInto('ai_chat_sessions')

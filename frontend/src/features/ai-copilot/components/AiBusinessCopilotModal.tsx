@@ -249,7 +249,7 @@ function renderFormattedContent(text: string) {
 export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModalProps) {
   const [activeTab, setActiveTab] = useState<'chat' | 'knowledge'>('chat');
   const [input, setInput] = useState('');
-  const [sessionId, setSessionId] = useState<string>(() => `session_${Date.now()}`);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [expandedReasoning, setExpandedReasoning] = useState<Record<string, boolean>>({});
 
   // Knowledge Base State
@@ -301,7 +301,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
         toolsUsed: string[];
       }>('/api/ai-copilot/agent/chat', {
         method: 'POST',
-        body: JSON.stringify({ message: messageText, sessionId }),
+        body: JSON.stringify({ message: messageText, ...(sessionId ? { sessionId } : {}) }),
       }),
     onSuccess: (data) => {
       if (data.sessionId) setSessionId(data.sessionId);
@@ -408,7 +408,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
   };
 
   const handleResetChat = () => {
-    setSessionId(`session_${Date.now()}`);
+    setSessionId(null);
     setMessages([
       {
         id: 'welcome_new',
