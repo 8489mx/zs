@@ -40,7 +40,8 @@ export class AiKnowledgeService {
     apiKey?: string,
     provider: 'gemini' | 'openai' | 'custom' = 'gemini',
   ) {
-    const { tenantId, userId } = requireTenantScope(actor);
+    const { tenantId } = requireTenantScope(actor);
+    const userId = actor.userId;
     const title = (dto.title || '').trim();
     const rawText = (dto.rawText || '').trim();
     const sourceType = dto.sourceType || 'document';
@@ -249,10 +250,20 @@ export class AiKnowledgeService {
     const { tenantId } = requireTenantScope(actor);
 
     const products = await this.db
-      .selectFrom('products')
-      .select(['id', 'name', 'barcode', 'category', 'stock_qty', 'retail_price', 'cost_price', 'notes'])
-      .where('tenant_id', '=', tenantId)
-      .where('is_active', '=', true)
+      .selectFrom('products as p')
+      .leftJoin('product_categories as pc', 'pc.id', 'p.category_id')
+      .select([
+        'p.id',
+        'p.name',
+        'p.barcode',
+        'pc.name as category',
+        'p.stock_qty',
+        'p.retail_price',
+        'p.cost_price',
+        'p.notes',
+      ])
+      .where('p.tenant_id', '=', tenantId)
+      .where('p.is_active', '=', true)
       .limit(300)
       .execute();
 

@@ -44,7 +44,8 @@ export class AiAgentService {
     model?: string,
     baseUrl?: string,
   ): Promise<AgentChatResponse> {
-    const { tenantId, userId } = requireTenantScope(actor);
+    const { tenantId } = requireTenantScope(actor);
+    const userId = actor.userId;
     const text = (message || '').trim();
 
     // 1. Get or create session
@@ -58,6 +59,7 @@ export class AiAgentService {
           tenant_id: tenantId,
           user_id: userId || null,
           title: text.substring(0, 50) || 'محادثة ذكية',
+          is_active: true,
         })
         .execute();
     }
@@ -204,12 +206,13 @@ export class AiAgentService {
       try {
         // High stock items with retail price
         const slowMovers = await this.db
-          .selectFrom('products')
-          .select(['id', 'name', 'stock_qty', 'retail_price', 'cost_price', 'category'])
-          .where('tenant_id', '=', tenantId)
-          .where('is_active', '=', true)
-          .where(sql<boolean>`COALESCE(stock_qty, 0) > 10`)
-          .orderBy('stock_qty', 'desc')
+          .selectFrom('products as p')
+          .leftJoin('product_categories as pc', 'pc.id', 'p.category_id')
+          .select(['p.id', 'p.name', 'p.stock_qty', 'p.retail_price', 'p.cost_price', 'pc.name as category'])
+          .where('p.tenant_id', '=', tenantId)
+          .where('p.is_active', '=', true)
+          .where(sql<boolean>`COALESCE(p.stock_qty, 0) > 10`)
+          .orderBy('p.stock_qty', 'desc')
           .limit(3)
           .execute();
 
@@ -514,7 +517,8 @@ ${JSON.stringify(reasoningSteps, null, 2)}
    * List sessions for user
    */
   async listUserSessions(actor: AuthContext) {
-    const { tenantId, userId } = requireTenantScope(actor);
+    const { tenantId } = requireTenantScope(actor);
+    const userId = actor.userId;
     return this.db
       .selectFrom('ai_chat_sessions')
       .select(['id', 'title', 'created_at', 'updated_at'])

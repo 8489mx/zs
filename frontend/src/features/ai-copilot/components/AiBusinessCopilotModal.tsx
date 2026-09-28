@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { AiRobotIcon } from '@/shared/ui/AiRobotIcon';
@@ -9,7 +9,6 @@ import {
   RefreshCwIcon,
   PlusCircleIcon,
   TrashIcon,
-  LayersIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   SlidersIcon,
@@ -248,7 +247,6 @@ function renderFormattedContent(text: string) {
 }
 
 export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModalProps) {
-  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'chat' | 'knowledge'>('chat');
   const [input, setInput] = useState('');
   const [sessionId, setSessionId] = useState<string>(() => `session_${Date.now()}`);
