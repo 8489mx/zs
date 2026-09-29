@@ -155,21 +155,41 @@ export function SearchableCombobox<T extends ComboboxOption>({
     const maxDropdownWidth = Math.max(120, vw - viewportPadding * 2);
     const dropdownWidth = Math.min(Math.max(200, Math.round(rect.width)), maxDropdownWidth);
     const maxLeft = Math.max(viewportPadding, vw - dropdownWidth - viewportPadding);
-    const left = Math.min(Math.max(Math.round(rect.left), viewportPadding), maxLeft);
 
-    const spaceBelow = vh - rect.bottom - gap - 8;
-    const spaceAbove = rect.top - gap - 8;
+    const isRtl = typeof document !== 'undefined' && (
+      document.documentElement.dir === 'rtl' ||
+      (anchor && window.getComputedStyle(anchor).direction === 'rtl')
+    );
+    let left: number;
+    if (isRtl) {
+      // In RTL, align right edge of dropdown with right edge of input
+      const desiredLeft = Math.round(rect.right - dropdownWidth);
+      left = Math.min(Math.max(desiredLeft, viewportPadding), maxLeft);
+    } else {
+      left = Math.min(Math.max(Math.round(rect.left), viewportPadding), maxLeft);
+    }
+
+    const spaceBelow = Math.max(0, vh - rect.bottom - gap - viewportPadding);
+    const spaceAbove = Math.max(0, rect.top - gap - viewportPadding);
+
+    // Determine whether to flip above the input:
+    // Only flip if space below is genuinely constrained (< 120px) AND space above offers more room
+    const shouldFlip = spaceBelow < 120 && spaceAbove > spaceBelow;
 
     let top: number;
     let maxHeight: number;
+    let transform: string | undefined;
 
-    // Smart vertical placement: If space below is cramped (e.g. mobile keyboard open) and space above is larger, flip above!
-    if (spaceBelow < 180 && spaceAbove > spaceBelow) {
-      maxHeight = Math.max(120, Math.min(260, Math.round(spaceAbove)));
-      top = Math.max(viewportPadding, Math.round(rect.top - maxHeight - gap));
+    if (shouldFlip) {
+      // Anchored directly to top of input using translateY(-100%) so bottom is always (rect.top - gap)
+      maxHeight = Math.max(80, Math.min(240, Math.round(spaceAbove)));
+      top = Math.round(rect.top - gap);
+      transform = 'translateY(-100%)';
     } else {
-      maxHeight = Math.max(120, Math.min(280, Math.round(spaceBelow)));
+      // Normal placement below the input
+      maxHeight = Math.max(80, Math.min(260, Math.round(spaceBelow)));
       top = Math.round(rect.bottom + gap);
+      transform = 'none';
     }
 
     setDropdownStyle({
@@ -178,8 +198,13 @@ export function SearchableCombobox<T extends ComboboxOption>({
       top,
       width: dropdownWidth,
       maxHeight,
+      transform,
+      transformOrigin: shouldFlip ? 'bottom center' : 'top center',
+      boxShadow: shouldFlip
+        ? '0 -10px 25px -5px rgba(15, 23, 42, 0.12), 0 -8px 10px -6px rgba(15, 23, 42, 0.06)'
+        : undefined,
       overflowY: 'auto',
-      zIndex: 1200
+      zIndex: 10050,
     });
   }, [close, inputRef]);
 
@@ -345,6 +370,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
               type="button"
               className={`purchase-prototype-combobox-option${index === highlightedIndex ? ' is-highlighted' : ''}`}
               onMouseEnter={() => setHighlightedIndex(index)}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => selectOption(option)}
             >
               <span className="purchase-prototype-combobox-option-title">{getLabel(option)}</span>
@@ -356,6 +382,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
               type="button"
               className={`purchase-prototype-combobox-create${highlightedIndex === filteredOptions.length ? ' is-highlighted' : ''}`}
               onMouseEnter={() => setHighlightedIndex(filteredOptions.length)}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={createOption}
             >
               {createLabel?.(value)}

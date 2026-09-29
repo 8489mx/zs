@@ -59,7 +59,7 @@
   border: 1px solid var(--combobox-border) !important;
   border-radius: var(--combobox-radius) !important;
   box-shadow: var(--combobox-shadow) !important;
-  max-height: var(--combobox-max-height) !important;
+  max-height: var(--combobox-max-height);
   min-width: var(--combobox-min-width) !important;
   overflow-y: auto !important;
   padding: var(--combobox-padding) !important;
