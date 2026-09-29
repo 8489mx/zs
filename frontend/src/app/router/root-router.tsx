@@ -19,6 +19,7 @@ const SaaSOnboardingPage = lazy(() => import('@/features/activation/pages/SaaSOn
 const SupplierQuickPaymentDialog = lazy(() => import('@/features/accounts/components/SupplierQuickPaymentDialog').then(m => ({ default: m.SupplierQuickPaymentDialog })));
 const QuickCashAdvanceModal = lazy(() => import('@/features/hr/components/QuickCashAdvanceModal').then(m => ({ default: m.QuickCashAdvanceModal })));
 const QuickOffersModal = lazy(() => import('@/features/products/components/QuickOffersModal').then(m => ({ default: m.QuickOffersModal })));
+const LazyLoginPage = createLazyRoute(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })));
 
 const isElectron = typeof window !== 'undefined' && (
   Boolean((window as any).electronAPI) ||
@@ -156,7 +157,7 @@ function LoginRoute() {
     }
   }
 
-  return createLazyRoute(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })));
+  return <>{LazyLoginPage}</>;
 }
 
 const router = storeHostSlug ? createRouter(storeHostRoutes()) : createRouter([

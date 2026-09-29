@@ -120,9 +120,11 @@ export default function VanSalesMobilePage() {
 
       try {
         const live = await vanSalesApi.getActiveTrip();
-        if (live && live.hasActiveTrip) {
-          void vanOfflineDb.saveSnapshot(live, session);
-          // Prefetch & cache warehouse requisition catalog for offline load requisitions
+        if (live) {
+          if (live.hasActiveTrip) {
+            void vanOfflineDb.saveSnapshot(live, session);
+          }
+          // Prefetch & cache warehouse requisition catalog whenever online so driver can always create morning load requisitions offline
           void Promise.allSettled([vanSalesApi.getWarehouses(), vanSalesApi.getAvailableProducts()]).then(([whRes, prodRes]) => {
             const wh = whRes.status === 'fulfilled' ? whRes.value : [];
             const prod = prodRes.status === 'fulfilled' ? prodRes.value : [];

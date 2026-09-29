@@ -47,14 +47,40 @@ initProductIconTheme();
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.location.hostname.includes('electron')) {
   import('virtual:pwa-register')
     .then(({ registerSW }) => {
+      let isRefreshing = false;
+      const safeReload = () => {
+        if (isRefreshing) return;
+        const lastReloadTs = parseInt(sessionStorage.getItem('zerp_pwa_last_reload') || '0', 10);
+        const now = Date.now();
+        // Anti-loop shield: Never auto-reload more than once every 12 seconds
+        if (now - lastReloadTs < 12000) {
+          return;
+        }
+        isRefreshing = true;
+        sessionStorage.setItem('zerp_pwa_last_reload', String(now));
+        window.location.reload();
+      };
+
       const updateSW = registerSW({
         immediate: true,
         onNeedRefresh() {
-          updateSW(true);
+          void updateSW(true);
+        },
+        onNeedReload() {
+          safeReload();
         },
         onOfflineReady() {
           window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
         },
+      });
+
+      // Proactively check for updates when returning to foreground
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && navigator.onLine) {
+          navigator.serviceWorker.getRegistration().then((reg) => {
+            reg?.update().catch(() => {});
+          }).catch(() => {});
+        }
       });
     })
     .catch(() => {});
