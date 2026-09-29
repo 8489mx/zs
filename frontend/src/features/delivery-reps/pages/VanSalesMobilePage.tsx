@@ -1541,7 +1541,7 @@ export default function VanSalesMobilePage() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px', width: '100%' }}>
+                  <div className="keep-grid-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px', width: '100%' }}>
                     <button
                       type="button"
                       onClick={() => setActiveTab('fleet')}
@@ -1732,6 +1732,7 @@ export default function VanSalesMobilePage() {
                       + إنشاء طلب شحن بضاعة (إذن تحميل)
                     </Button>
                     <div
+                      className="keep-grid-row"
                       style={{
                         display: 'grid',
                         gridTemplateColumns: (!data?.inventory || data.inventory.length === 0) ? '1fr 1fr' : '1fr',
