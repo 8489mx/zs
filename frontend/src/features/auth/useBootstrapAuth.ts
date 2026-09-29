@@ -19,29 +19,43 @@ export function useBootstrapAuth() {
     hasRun.current = true;
     ensureAuthStateVersion();
 
+    // FAST-PATH 1: Instant local session hydration (0ms delay)
+    // If an offline session exists, restore it immediately so the UI renders instantly without waiting for network timeouts.
+    const offlineSession = getStoredOfflineSession();
+    if (offlineSession) {
+      setSession(offlineSession);
+      setAppGate('ready');
+    }
+
     const resetTo = async (gate: 'activation' | 'setup' | 'login', status?: Awaited<ReturnType<typeof activationApi.status>>) => {
       await clearQueryClientData(queryClient);
       clearSession();
       setAppGate(gate, status);
     };
 
-    const checkAuth = async (retries = 10) => {
+    const checkAuth = async (retries = 3) => {
+      // FAST-PATH 2: If device is strictly offline and session exists, stay ready immediately without wasting time on network calls.
+      const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+      if (isOffline) {
+        if (offlineSession) {
+          return;
+        }
+      }
+
       try {
         const [statusResult, meResult] = await Promise.allSettled([activationApi.status(), authApi.me()]);
 
         if (statusResult.status === 'rejected') {
-          // If device is offline, restore stored session and keep app ready
-          const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
-          const offlineSession = getStoredOfflineSession();
-          if (offlineSession && (isOffline || retries <= 2)) {
+          // If device is offline or backend is unreachable, keep offline session ready
+          if (offlineSession) {
             setSession(offlineSession);
             setAppGate('ready');
             return;
           }
 
-          if (retries > 0) {
+          if (retries > 0 && navigator.onLine) {
             console.log(`Backend not ready yet, retrying... (${retries} attempts left)`);
-            setTimeout(() => void checkAuth(retries - 1), 2000);
+            setTimeout(() => void checkAuth(retries - 1), 1500);
             return;
           }
           console.error('activation_status_failed', statusResult.reason);

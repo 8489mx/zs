@@ -69,6 +69,14 @@ export const vanSyncEngine = {
             } else {
               throw new Error('Return rejected by server');
             }
+          } else if (item.type === 'load_requisition') {
+            const res = await vanSalesApi.submitLoadRequisition(item.payload);
+            if (res?.ok || res?.requisitionId || res?.docNo) {
+              await vanOfflineDb.markSynced(item.clientTxId, res.docNo);
+              syncedCount++;
+            } else {
+              throw new Error('Load requisition rejected by server');
+            }
           }
 
           if (onProgress) {

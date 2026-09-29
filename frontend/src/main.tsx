@@ -47,8 +47,14 @@ initProductIconTheme();
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.location.hostname.includes('electron')) {
   import('virtual:pwa-register')
     .then(({ registerSW }) => {
-      registerSW({
+      const updateSW = registerSW({
         immediate: true,
+        onNeedRefresh() {
+          updateSW(true);
+        },
+        onOfflineReady() {
+          window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
+        },
       });
     })
     .catch(() => {});

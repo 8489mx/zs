@@ -1,4 +1,4 @@
-import { CSSProperties, KeyboardEvent, RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, KeyboardEvent, RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Field } from '@/shared/ui/field';
 
@@ -125,7 +125,12 @@ export function SearchableCombobox<T extends ComboboxOption>({
 
   const getAnchorElement = () => inputRef?.current ?? (rootRef.current?.querySelector('input') as HTMLInputElement | null);
 
-  const updateDropdownPosition = () => {
+  const close = useCallback(() => {
+    setOpen(false);
+    onOpenChange?.(false);
+  }, [onOpenChange]);
+
+  const updateDropdownPosition = useCallback(() => {
     if (typeof window === 'undefined') {
       return;
     }
@@ -136,15 +141,36 @@ export function SearchableCombobox<T extends ComboboxOption>({
     }
 
     const rect = anchor.getBoundingClientRect();
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+
+    // If anchor is scrolled completely off-screen, close dropdown to avoid floating in empty space
+    if (rect.bottom < 0 || rect.top > vh) {
+      close();
+      return;
+    }
+
     const gap = 6;
     const viewportPadding = 8;
-    const viewportWidth = window.innerWidth;
-    const maxDropdownWidth = Math.max(120, viewportWidth - viewportPadding * 2);
+    const maxDropdownWidth = Math.max(120, vw - viewportPadding * 2);
     const dropdownWidth = Math.min(Math.max(200, Math.round(rect.width)), maxDropdownWidth);
-    const maxLeft = Math.max(viewportPadding, viewportWidth - dropdownWidth - viewportPadding);
+    const maxLeft = Math.max(viewportPadding, vw - dropdownWidth - viewportPadding);
     const left = Math.min(Math.max(Math.round(rect.left), viewportPadding), maxLeft);
-    const top = Math.round(rect.bottom + gap);
-    const maxHeight = Math.max(160, Math.round(window.innerHeight - rect.bottom - 16));
+
+    const spaceBelow = vh - rect.bottom - gap - 8;
+    const spaceAbove = rect.top - gap - 8;
+
+    let top: number;
+    let maxHeight: number;
+
+    // Smart vertical placement: If space below is cramped (e.g. mobile keyboard open) and space above is larger, flip above!
+    if (spaceBelow < 180 && spaceAbove > spaceBelow) {
+      maxHeight = Math.max(120, Math.min(260, Math.round(spaceAbove)));
+      top = Math.max(viewportPadding, Math.round(rect.top - maxHeight - gap));
+    } else {
+      maxHeight = Math.max(120, Math.min(280, Math.round(spaceBelow)));
+      top = Math.round(rect.bottom + gap);
+    }
 
     setDropdownStyle({
       position: 'fixed',
@@ -152,22 +178,22 @@ export function SearchableCombobox<T extends ComboboxOption>({
       top,
       width: dropdownWidth,
       maxHeight,
+      overflowY: 'auto',
       zIndex: 1200
     });
-  };
+  }, [close, inputRef]);
 
   useEffect(() => {
     const onDocumentMouseDown = (event: MouseEvent) => {
       const target = event.target as Node;
       if (!rootRef.current?.contains(target) && !dropdownRef.current?.contains(target)) {
-        setOpen(false);
-        onOpenChange?.(false);
+        close();
       }
     };
 
     document.addEventListener('mousedown', onDocumentMouseDown);
     return () => document.removeEventListener('mousedown', onDocumentMouseDown);
-  }, [onOpenChange]);
+  }, [close]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -191,24 +217,42 @@ export function SearchableCombobox<T extends ComboboxOption>({
 
     updateDropdownPosition();
     const rafId = window.requestAnimationFrame(updateDropdownPosition);
-    const handleViewportChange = () => {
+
+    const handleViewportChange = (e?: Event) => {
+      // If event is a scroll event:
+      if (e && e.type === 'scroll') {
+        const target = e.target as Node | null;
+        // If scrolling inside the dropdown itself, allow natural scrolling
+        if (dropdownRef.current && (dropdownRef.current === target || (target && dropdownRef.current.contains(target)))) {
+          return;
+        }
+        // If scrolling outside on mobile (keyboard open or page moving), close immediately to prevent detachment
+        if (window.innerWidth <= 768) {
+          close();
+          return;
+        }
+      }
       window.requestAnimationFrame(updateDropdownPosition);
     };
 
     document.addEventListener('scroll', handleViewportChange, true);
     window.addEventListener('resize', handleViewportChange);
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', handleViewportChange);
+      vv.addEventListener('scroll', handleViewportChange);
+    }
 
     return () => {
       window.cancelAnimationFrame(rafId);
       document.removeEventListener('scroll', handleViewportChange, true);
       window.removeEventListener('resize', handleViewportChange);
+      if (vv) {
+        vv.removeEventListener('resize', handleViewportChange);
+        vv.removeEventListener('scroll', handleViewportChange);
+      }
     };
-  }, [inputRef, isOpen, normalizedValue, filteredOptions.length, showCreate]);
-
-  const close = () => {
-    setOpen(false);
-    onOpenChange?.(false);
-  };
+  }, [close, inputRef, isOpen, normalizedValue, filteredOptions.length, showCreate, updateDropdownPosition]);
 
   const openDropdown = () => {
     updateDropdownPosition();

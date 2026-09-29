@@ -1,4 +1,4 @@
-import type { VanActiveTripResponse, VanStockItem } from '../api/van-sales.api';
+import type { VanActiveTripResponse, VanStockItem, DriverWarehouse, DriverAvailableProduct } from '../api/van-sales.api';
 import type { DriverPortalUser } from '@/shared/api/delivery-reps.api';
 
 const DB_NAME = 'zsystems_van_sales_offline_db';
@@ -11,7 +11,7 @@ const STORE_OUTBOX = 'van_outbox';
 
 export interface OfflineOutboxItem {
   clientTxId: string;
-  type: 'sale' | 'collection' | 'return';
+  type: 'sale' | 'collection' | 'return' | 'load_requisition';
   docNo: string;
   payload: any;
   createdAt: string;
@@ -643,5 +643,132 @@ export const vanOfflineDb = {
   getPendingCount: async (): Promise<number> => {
     const pending = await vanOfflineDb.getPendingOutbox();
     return pending.length;
+  },
+
+  /**
+   * Save warehouses and available products for load requisitions offline.
+   */
+  saveRequisitionCatalog: async (warehouses: DriverWarehouse[], products: DriverAvailableProduct[]): Promise<void> => {
+    try {
+      const db = await openDb();
+      const tx = db.transaction([STORE_META], 'readwrite');
+      const metaStore = tx.objectStore(STORE_META);
+      if (Array.isArray(warehouses) && warehouses.length > 0) {
+        metaStore.put({ key: 'requisition_warehouses', value: warehouses, updatedAt: new Date().toISOString() });
+      }
+      if (Array.isArray(products) && products.length > 0) {
+        metaStore.put({ key: 'requisition_products', value: products, updatedAt: new Date().toISOString() });
+      }
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch (err) {
+      console.warn('[VanOfflineDB] Failed to save requisition catalog:', err);
+    }
+  },
+
+  /**
+   * Retrieve warehouses and available products for load requisitions when offline.
+   */
+  getRequisitionCatalog: async (): Promise<{ warehouses: DriverWarehouse[]; products: DriverAvailableProduct[] }> => {
+    try {
+      const db = await openDb();
+      const tx = db.transaction([STORE_META, STORE_INVENTORY], 'readonly');
+      const metaStore = tx.objectStore(STORE_META);
+      const invStore = tx.objectStore(STORE_INVENTORY);
+
+      const getReq = (key: string) =>
+        new Promise<any>((resolve) => {
+          const r = metaStore.get(key);
+          r.onsuccess = () => resolve(r.result?.value);
+          r.onerror = () => resolve(null);
+        });
+
+      let warehouses: DriverWarehouse[] = (await getReq('requisition_warehouses')) || [];
+      let products: DriverAvailableProduct[] = (await getReq('requisition_products')) || [];
+
+      // Default fallback warehouses if none saved yet
+      if (!warehouses.length) {
+        warehouses = [
+          { id: 1, name: 'الفرع الرئيسي', code: 'WH-MAIN', locationType: 'main' }
+        ];
+      }
+
+      // Fallback: If requisition products not yet fetched, synthesize from van inventory
+      if (!products.length) {
+        const allInv: VanStockItem[] = await new Promise((resolve) => {
+          const r = invStore.getAll();
+          r.onsuccess = () => resolve(r.result || []);
+          r.onerror = () => resolve([]);
+        });
+        if (allInv.length) {
+          products = allInv.map((item) => ({
+            id: item.productId,
+            name: item.productName,
+            barcode: item.barcode || '',
+            sku: item.barcode || String(item.productId),
+            retailPrice: item.retailPrice || 0,
+            unit: item.unitName || 'قطعة',
+            totalStock: item.qty || 0,
+            warehouseStocks: [
+              { warehouseId: warehouses[0]?.id || 1, warehouseName: warehouses[0]?.name || 'الفرع الرئيسي', qty: item.qty || 0 }
+            ]
+          }));
+        }
+      }
+
+      return { warehouses, products };
+    } catch (err) {
+      console.warn('[VanOfflineDB] Failed to get requisition catalog:', err);
+      return { warehouses: [], products: [] };
+    }
+  },
+
+  /**
+   * Save an offline load requisition to the outbox for subsequent auto-sync.
+   */
+  recordOfflineRequisition: async (payload: {
+    repId?: number;
+    repName?: string;
+    vehiclePlate?: string;
+    sourceWarehouseId?: number;
+    items: { productId: number; qty: number; sourceWarehouseId?: number; sourceWarehouseName?: string }[];
+    notes?: string;
+  }): Promise<{ ok: boolean; docNo: string; requisitionId: number; isOffline: boolean }> => {
+    const db = await openDb();
+    const tx = db.transaction([STORE_OUTBOX], 'readwrite');
+    const outboxStore = tx.objectStore(STORE_OUTBOX);
+
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const randSeq = Math.floor(1000 + Math.random() * 9000);
+    const docNo = `REQ-OFF-${yy}${mm}${dd}-${randSeq}`;
+    const clientTxId = crypto.randomUUID();
+
+    const outboxItem: OfflineOutboxItem = {
+      clientTxId,
+      type: 'load_requisition',
+      docNo,
+      payload,
+      createdAt: now.toISOString(),
+      status: 'pending',
+    };
+
+    outboxStore.put(outboxItem);
+
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+
+    return {
+      ok: true,
+      docNo,
+      requisitionId: -Date.now(),
+      isOffline: true,
+    };
   },
 };

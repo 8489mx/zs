@@ -32,20 +32,61 @@ export default defineConfig(({ mode }) => {
         dir: 'rtl',
         icons: [
           {
-            src: '/apple-touch-icon.png',
-            sizes: '192x192 512x512',
+            src: '/logo.png',
+            sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
+          },
+          {
+            src: '/apple-touch-icon.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ],
+        shortcuts: [
+          {
+            name: 'نقطة البيع (الكاشير)',
+            short_name: 'الكاشير',
+            url: '/pos',
+            icons: [{ src: '/logo.png', sizes: '192x192' }]
+          },
+          {
+            name: 'مبيعات الفان والتوزيع',
+            short_name: 'مبيعات الفان',
+            url: '/van-sales',
+            icons: [{ src: '/logo.png', sizes: '192x192' }]
+          },
+          {
+            name: 'بوابة مندوب التوصيل',
+            short_name: 'المندوب',
+            url: '/driver',
+            icons: [{ src: '/logo.png', sizes: '192x192' }]
+          },
+          {
+            name: 'متابعة المالك الحية',
+            short_name: 'لوحة المالك',
+            url: '/owner-companion',
+            icons: [{ src: '/logo.png', sizes: '192x192' }]
           }
         ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        cleanupOutdatedCaches: true,
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\/.*/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
             options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }, cacheableResponse: { statuses: [0, 200] } }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: { cacheName: 'google-fonts-webfonts', expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 }, cacheableResponse: { statuses: [0, 200] } }
           }
         ]
       }

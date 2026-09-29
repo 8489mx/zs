@@ -112,10 +112,24 @@ export default function VanSalesMobilePage() {
   const { data, isLoading, refetch } = useQuery<VanActiveTripResponse>({
     queryKey: ['van-sales-active-trip'],
     queryFn: async () => {
+      // Fast Path 1: If offline, retrieve active trip immediately from local IndexedDB (<5ms)
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        const offlineData = await vanOfflineDb.getOfflineActiveTrip();
+        if (offlineData) return offlineData;
+      }
+
       try {
         const live = await vanSalesApi.getActiveTrip();
         if (live && live.hasActiveTrip) {
           void vanOfflineDb.saveSnapshot(live, session);
+          // Prefetch & cache warehouse requisition catalog for offline load requisitions
+          void Promise.allSettled([vanSalesApi.getWarehouses(), vanSalesApi.getAvailableProducts()]).then(([whRes, prodRes]) => {
+            const wh = whRes.status === 'fulfilled' ? whRes.value : [];
+            const prod = prodRes.status === 'fulfilled' ? prodRes.value : [];
+            if (wh.length || prod.length) {
+              void vanOfflineDb.saveRequisitionCatalog(wh, prod);
+            }
+          });
         }
         return live;
       } catch (err: any) {
@@ -139,11 +153,47 @@ export default function VanSalesMobilePage() {
     retry: false,
   });
 
-  // Query driver's recent requisitions
+  // Query driver's recent requisitions (supporting local outbox requisitions when offline)
   const { data: myRequisitions = [] } = useQuery<VanLoadRequisitionRecord[]>({
     queryKey: ['driver-my-requisitions'],
-    queryFn: () => vanSalesApi.listMyRequisitions(),
+    queryFn: async () => {
+      const pendingOutbox = await vanOfflineDb.getPendingOutbox();
+      const offlineReqs: VanLoadRequisitionRecord[] = pendingOutbox
+        .filter((item) => item.type === 'load_requisition')
+        .map((item, idx) => ({
+          id: -(idx + 1),
+          docNo: item.docNo,
+          tripId: data?.trip?.id,
+          repId: item.payload?.repId || session?.rep?.id || 0,
+          repName: item.payload?.repName || session?.rep?.fullName || session?.rep?.name || 'مندوب التوزيع الميداني',
+          vehiclePlate: item.payload?.vehiclePlate || session?.rep?.vehiclePlate || 'سيارة التوزيع',
+          sourceWarehouseId: item.payload?.sourceWarehouseId || 1,
+          sourceWarehouseName: item.payload?.items?.[0]?.sourceWarehouseName || 'الفرع الرئيسي',
+          status: 'pending' as const,
+          itemCount: item.payload?.items?.length || 0,
+          totalQty: item.payload?.items?.reduce((s: number, i: any) => s + (i.qty || 0), 0) || 0,
+          notes: item.payload?.notes || '(طلب محلي بانتظار المزامنة)',
+          createdAt: item.createdAt,
+          requestedItems: (item.payload?.items || []).map((i: any) => ({
+            productId: i.productId,
+            productName: i.productName || 'صنف مطلوب',
+            qty: i.qty || 0,
+          })),
+          approvedItems: [],
+        }));
+
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return offlineReqs;
+      }
+      try {
+        const live = await vanSalesApi.listMyRequisitions();
+        return [...offlineReqs, ...(Array.isArray(live) ? live : [])];
+      } catch {
+        return offlineReqs;
+      }
+    },
     enabled: Boolean(session),
+    networkMode: 'always',
     staleTime: 60000,
   });
 
@@ -151,6 +201,12 @@ export default function VanSalesMobilePage() {
   const { data: itinerary = [], isLoading: isItineraryLoading, refetch: refetchItinerary } = useQuery({
     queryKey: ['driver-itinerary'],
     queryFn: async () => {
+      // Fast Path 2: If offline, retrieve cached itinerary immediately from IndexedDB
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        const cached = await vanOfflineDb.getItinerary();
+        if (cached && cached.length > 0) return cached;
+      }
+
       try {
         const live = await vanSalesApi.getMyItinerary();
         if (Array.isArray(live) && live.length > 0) {
