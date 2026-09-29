@@ -70,6 +70,45 @@ function NoWorkspaceAccess() {
   );
 }
 
+function AppSplashLoading() {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#f8fafc',
+        direction: 'rtl',
+        userSelect: 'none',
+      }}
+    >
+      <div
+        style={{
+          width: '60px',
+          height: '60px',
+          borderRadius: '16px',
+          background: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)',
+          border: '1px solid #e2e8f0',
+        }}
+      >
+        <img
+          src="/logo.png"
+          alt="Z-ERP"
+          style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '10px' }}
+          onError={(e) => {
+            (e.currentTarget as HTMLElement).style.display = 'none';
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function AppGateGuard({ expected, children }: { expected: 'activation' | 'setup' | 'login'; children: ReactNode }) {
   const { initialized, appGate, user } = useAuthStore();
   const location = useLocation();
@@ -81,7 +120,7 @@ function AppGateGuard({ expected, children }: { expected: 'activation' | 'setup'
   }
 
   if (!initialized || appGate === 'loading') {
-    return <div className="screen-center"><div className="loading-card">جاري تجهيز النظام...</div></div>;
+    return <AppSplashLoading />;
   }
 
   if (appGate === expected) {
@@ -103,7 +142,7 @@ function ProtectedLayout() {
   useBootstrapAuth();
 
   if (!initialized || appGate === 'loading') {
-    return <div className="screen-center"><div className="loading-card">جاري تجهيز النظام...</div></div>;
+    return <AppSplashLoading />;
   }
 
   if (appGate === 'activation') return <Navigate to="/activate" replace />;
@@ -133,7 +172,7 @@ function LoginRoute() {
   const { initialized, user, appGate } = useAuthStore();
 
   if (!initialized || appGate === 'loading') {
-    return <div className="screen-center"><div className="loading-card">جاري تجهيز النظام...</div></div>;
+    return <AppSplashLoading />;
   }
 
   if (appGate === 'activation') return <Navigate to="/activate" replace />;
@@ -161,9 +200,9 @@ function LoginRoute() {
 }
 
 const router = storeHostSlug ? createRouter(storeHostRoutes()) : createRouter([
-  { path: '/activate', element: <AppGateGuard expected="activation"><Suspense fallback={<div className="screen-center"><div className="loading-card">جاري التجهيز...</div></div>}><ActivationPage /></Suspense></AppGateGuard> },
-  { path: '/setup', element: <AppGateGuard expected="setup"><Suspense fallback={<div className="screen-center"><div className="loading-card">جاري التجهيز...</div></div>}><FirstRunSetupPage /></Suspense></AppGateGuard> },
-  { path: '/onboarding', element: <Suspense fallback={<div className="screen-center"><div className="loading-card">جاري التجهيز...</div></div>}><SaaSOnboardingPage /></Suspense> },
+  { path: '/activate', element: <AppGateGuard expected="activation"><Suspense fallback={<AppSplashLoading />}><ActivationPage /></Suspense></AppGateGuard> },
+  { path: '/setup', element: <AppGateGuard expected="setup"><Suspense fallback={<AppSplashLoading />}><FirstRunSetupPage /></Suspense></AppGateGuard> },
+  { path: '/onboarding', element: <Suspense fallback={<AppSplashLoading />}><SaaSOnboardingPage /></Suspense> },
   {
     path: '/trial',
     element: createLazyRoute(() => import('@/features/public-trial/pages/TrialSignupPage').then((module) => ({ default: module.TrialSignupPage }))),

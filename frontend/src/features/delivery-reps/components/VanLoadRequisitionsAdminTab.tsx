@@ -14,8 +14,11 @@ import {
   XIcon,
   XCircleIcon,
   PrinterIcon,
+  ChevronDownIcon,
 } from '@/shared/components/icons/AppIcons';
 import { DriverNewLoadRequisitionView } from './DriverNewLoadRequisitionView';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
 
 export interface AdminReviewLine {
   productId: number;
@@ -35,6 +38,10 @@ export function VanLoadRequisitionsAdminTab() {
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [productSearch, setProductSearch] = useState('');
   const [adminNotes, setAdminNotes] = useState<string>('');
+  const [activePrintMenuId, setActivePrintMenuId] = useState<number | null>(null);
+
+  const { data: settings } = useSettingsQuery();
+  const defaultPaperSize = (settings?.paperSize === 'receipt' ? 'receipt' : 'a4') as 'a4' | 'receipt';
 
   // 1. Fetch available products in the warehouse for adding items
   const { data: warehouseProducts = [] } = useQuery<DriverAvailableProduct[]>({
@@ -313,13 +320,145 @@ export function VanLoadRequisitionsAdminTab() {
     });
   };
 
-  const handlePrintRequisition = (req: VanLoadRequisitionRecord) => {
+  const handlePrintRequisition = (req: VanLoadRequisitionRecord, preferredFormat?: 'a4' | 'receipt') => {
+    const format = preferredFormat || defaultPaperSize;
+
+    if (format === 'receipt') {
+      const storeName = settings?.storeName || settings?.brandName || 'منظومة Z-ERP';
+      const items = (req.approvedItems && req.approvedItems.length > 0 ? req.approvedItems : req.requestedItems) || [];
+      const totalPieces = items.reduce((sum: number, it: any) => sum + (Number(it.qty) || 0), 0);
+      const now = new Date(req.createdAt);
+      const dateStr = now.toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+      const statusLabel =
+        req.status === 'dispatched' ? 'تم الصرف والتحميل' : req.status === 'pending' ? 'قيد المراجعة' : 'مرفوض';
+
+      const esc = (s: any) =>
+        String(s ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+
+      const rowsHtml = items
+        .map(
+          (it: any, idx: number) => `
+          <tr style="border-bottom: 1px dashed #bbb;">
+            <td style="text-align: right; padding: 5px 0; font-size: 11px; vertical-align: top;">
+              <div style="font-weight: 800; color: #000; line-height: 1.35; margin-bottom: 2px;">
+                ${idx + 1}. ${esc(it.productName || 'صنف')}
+              </div>
+              ${it.barcode ? `<div style="font-size: 9.5px; color: #555; font-family: monospace; letter-spacing: 0.5px;">${esc(it.barcode)}</div>` : ''}
+            </td>
+            <td style="text-align: left; vertical-align: top; padding: 5px 0; white-space: nowrap;">
+              <span style="display: inline-block; border: 1.5px solid #000; border-radius: 4px; padding: 2px 6px; font-weight: 900; font-size: 13px; color: #000; background: #fff;">
+                ${it.qty} <span style="font-size: 10px; font-weight: 600; color: #333;">قطعة</span>
+              </span>
+            </td>
+          </tr>
+        `,
+        )
+        .join('');
+
+      const thermalHtml = `
+        <div style="font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; direction: rtl; text-align: right; color: #000;">
+          <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
+            <div style="font-size: 15px; font-weight: 900; color: #000;">${esc(storeName)}</div>
+            <div style="font-size: 12px; font-weight: 800; margin-top: 3px;">إذن صرف وتحميل بضاعة</div>
+            <div style="font-size: 14px; font-weight: 900; font-family: monospace; margin-top: 4px; direction: ltr; text-align: center;">#${esc(req.docNo)}</div>
+            <div style="font-size: 10.5px; color: #444; margin-top: 3px;">${dateStr} - ${timeStr}</div>
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; font-size: 10.5px; line-height: 1.5; margin-bottom: 6px; border-bottom: 1px dashed #000; padding-bottom: 4px;">
+            <tr>
+              <td style="text-align: right; color: #333; padding: 2px 0;">المندوب:</td>
+              <td style="text-align: left; font-weight: 800; color: #000; padding: 2px 0;">${esc(req.repName)}</td>
+            </tr>
+            <tr>
+              <td style="text-align: right; color: #333; padding: 2px 0;">المركبة:</td>
+              <td style="text-align: left; font-weight: 800; color: #000; padding: 2px 0;">${esc(req.vehiclePlate || '—')}</td>
+            </tr>
+            <tr>
+              <td style="text-align: right; color: #333; padding: 2px 0;">المستودع المصدر:</td>
+              <td style="text-align: left; font-weight: 800; color: #000; padding: 2px 0;">${esc(req.sourceWarehouseName)}</td>
+            </tr>
+            ${
+              req.tripId
+                ? `
+            <tr>
+              <td style="text-align: right; color: #333; padding: 2px 0;">رقم الرحلة:</td>
+              <td style="text-align: left; font-weight: 800; color: #000; padding: 2px 0;">#${esc(req.tripId)}</td>
+            </tr>`
+                : ''
+            }
+            <tr>
+              <td style="text-align: right; color: #333; padding: 2px 0;">حالة الإذن:</td>
+              <td style="text-align: left; font-weight: 800; color: #000; padding: 2px 0;">${statusLabel}</td>
+            </tr>
+          </table>
+
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
+            <thead>
+              <tr style="border-bottom: 1.5px solid #000;">
+                <th style="text-align: right; padding: 3px 0; font-size: 11px;">الصنف والباركود</th>
+                <th style="text-align: left; padding: 3px 0; font-size: 11px; width: 65px;">الكمية</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <div style="border-top: 2px dashed #000; border-bottom: 2px dashed #000; padding: 6px 0; margin-bottom: 10px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+              <tr>
+                <td style="text-align: right; font-weight: 700; padding: 2px 0;">عدد الأصناف:</td>
+                <td style="text-align: left; font-weight: 800; padding: 2px 0;">${items.length} صنف</td>
+              </tr>
+              <tr>
+                <td style="text-align: right; font-weight: 900; font-size: 12.5px; padding: 3px 0;">إجمالي القطع المنصرفة:</td>
+                <td style="text-align: left; font-weight: 900; font-size: 13.5px; padding: 3px 0; white-space: nowrap;">${totalPieces} قطعة</td>
+              </tr>
+            </table>
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 14px; margin-bottom: 12px; font-size: 10.5px;">
+            <tr>
+              <td style="text-align: center; width: 48%; padding: 0 4px; vertical-align: top;">
+                <div style="font-weight: 700; margin-bottom: 26px;">توقيع الصارف (المستودع)</div>
+                <div style="border-bottom: 1px dashed #000; width: 85%; margin: 0 auto;"></div>
+              </td>
+              <td style="width: 4%;"></td>
+              <td style="text-align: center; width: 48%; padding: 0 4px; vertical-align: top;">
+                <div style="font-weight: 700; margin-bottom: 26px;">توقيع المستلم (المندوب)</div>
+                <div style="border-bottom: 1px dashed #000; width: 85%; margin: 0 auto;"></div>
+              </td>
+            </tr>
+          </table>
+
+          <div style="text-align: center; font-size: 9.5px; color: #555; border-top: 1px dotted #ccc; padding-top: 6px;">
+            منظومة Z-ERP للتوزيع الميداني
+          </div>
+        </div>
+      `;
+
+      printSmallReceiptDocument(thermalHtml, {
+        title: `إذن صرف #${req.docNo}`,
+        widthMm: 80,
+        marginMm: 2,
+        fontSizePx: 11,
+      });
+      return;
+    }
+
     const printWindow = window.open('', '_blank', 'width=840,height=900');
     if (!printWindow) {
       toast.error('يرجى السماح بالنوافذ المنبثقة للطباعة');
       return;
     }
 
+    const storeName = settings?.storeName || settings?.brandName || 'منظومة Z-ERP';
     const items = (req.approvedItems && req.approvedItems.length > 0 ? req.approvedItems : req.requestedItems) || [];
     const totalPieces = items.reduce((sum: number, it: any) => sum + (Number(it.qty) || 0), 0);
     const dateFormatted = new Date(req.createdAt).toLocaleDateString('ar-EG', {
@@ -330,15 +469,25 @@ export function VanLoadRequisitionsAdminTab() {
       minute: '2-digit',
     });
 
+    const statusLabel =
+      req.status === 'dispatched' ? 'تم الصرف والتحميل' : req.status === 'pending' ? 'قيد المراجعة' : 'مرفوض';
+
+    const esc = (s: any) =>
+      String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
     const rowsHtml = items
       .map(
         (it: any, idx: number) => `
-        <tr>
-          <td style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: center;">${idx + 1}</td>
-          <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-family: monospace;">${it.barcode || '—'}</td>
-          <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold;">${it.productName || 'صنف'}</td>
-          <td style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: center; font-size: 14px; font-weight: 800;">${it.qty}</td>
-          <td style="padding: 8px 10px; border: 1px solid #cbd5e1;"></td>
+        <tr style="border-bottom: 1px solid #cbd5e1;">
+          <td style="padding: 10px 8px; border: 1px solid #94a3b8; text-align: center; font-weight: 700; color: #334155;">${idx + 1}</td>
+          <td style="padding: 10px 8px; border: 1px solid #94a3b8; font-family: monospace; text-align: center; font-size: 12px; color: #334155;">${esc(it.barcode || '—')}</td>
+          <td style="padding: 10px 12px; border: 1px solid #94a3b8; text-align: right; font-weight: 700; color: #0f172a; line-height: 1.45;">${esc(it.productName || 'صنف')}</td>
+          <td style="padding: 10px 8px; border: 1px solid #94a3b8; text-align: center; font-size: 14px; font-weight: 900; color: #0f172a;">${it.qty}</td>
+          <td style="padding: 10px 8px; border: 1px solid #94a3b8; text-align: center; color: #94a3b8;"></td>
         </tr>
       `,
       )
@@ -349,52 +498,177 @@ export function VanLoadRequisitionsAdminTab() {
       <html dir="rtl" lang="ar">
         <head>
           <meta charset="utf-8" />
-          <title>إذن صرف وتحميل بضاعة #${req.docNo}</title>
+          <title>إذن صرف وتحميل بضاعة - ${req.docNo}</title>
           <style>
-            @page { size: A4; margin: 15mm; }
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: rtl; color: #0f172a; margin: 0; padding: 20px; font-size: 13px; line-height: 1.5; }
-            .header-table { width: 100%; border-bottom: 2px solid #170e5e; padding-bottom: 12px; margin-bottom: 16px; }
-            .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-            .meta-item { display: flex; justify-content: space-between; font-size: 12.5px; }
-            .meta-label { color: #64748b; font-weight: 600; }
-            .meta-value { color: #0f172a; font-weight: 800; }
-            table.items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            table.items th { background: #170e5e; color: #ffffff; padding: 10px; border: 1px solid #170e5e; font-size: 12.5px; font-weight: 700; }
-            .summary-box { display: flex; justify-content: space-between; background: #f1f5f9; padding: 12px 18px; border-radius: 8px; font-weight: bold; margin-bottom: 30px; font-size: 14px; }
-            .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 40px; text-align: center; }
-            .sig-box { border-top: 1px dashed #64748b; padding-top: 8px; font-size: 12px; font-weight: 700; color: #334155; }
+            @page {
+              size: A4 portrait;
+              margin: 12mm 15mm;
+            }
+            *, *::before, *::after {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            body {
+              font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              direction: rtl;
+              color: #0f172a;
+              margin: 0;
+              padding: 0;
+              font-size: 12.5px;
+              line-height: 1.5;
+              background: #fff;
+              -webkit-font-smoothing: antialiased;
+            }
+            .header-table {
+              width: 100%;
+              border-bottom: 2.5px solid #170e5e;
+              padding-bottom: 12px;
+              margin-bottom: 14px;
+            }
+            .meta-card {
+              background: #f8fafc;
+              border: 1.5px solid #cbd5e1;
+              border-radius: 8px;
+              padding: 10px 16px;
+              margin-bottom: 16px;
+            }
+            .meta-table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 12px;
+            }
+            .meta-table td {
+              padding: 4px 6px;
+              vertical-align: middle;
+            }
+            .meta-label {
+              color: #475569;
+              font-weight: 600;
+              width: 120px;
+            }
+            .meta-value {
+              color: #0f172a;
+              font-weight: 800;
+            }
+            table.items {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 18px;
+            }
+            table.items th {
+              background: #170e5e !important;
+              color: #ffffff !important;
+              padding: 10px 8px;
+              border: 1px solid #170e5e;
+              font-size: 12px;
+              font-weight: 800;
+              text-align: center;
+            }
+            table.items td {
+              vertical-align: middle;
+            }
+            .summary-box {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              background: #f1f5f9;
+              border: 1.5px solid #cbd5e1;
+              border-radius: 8px;
+              padding: 10px 18px;
+              margin-bottom: 28px;
+              font-size: 13px;
+              font-weight: 700;
+              color: #1e293b;
+            }
+            .summary-box b {
+              color: #170e5e;
+              font-size: 15px;
+            }
+            .signatures-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 16px;
+              margin-top: 24px;
+            }
+            .sig-card {
+              border: 1px solid #cbd5e1;
+              border-radius: 8px;
+              padding: 10px 14px;
+              background: #fafafa;
+              text-align: center;
+            }
+            .sig-title {
+              font-size: 12px;
+              font-weight: 800;
+              color: #1e293b;
+              padding-bottom: 6px;
+              border-bottom: 1px dashed #cbd5e1;
+            }
+            .sig-space {
+              height: 48px;
+            }
+            .sig-footer {
+              font-size: 11px;
+              font-weight: 600;
+              color: #475569;
+              border-top: 1px dashed #94a3b8;
+              padding-top: 6px;
+            }
+            .doc-footer {
+              margin-top: 20px;
+              text-align: center;
+              font-size: 10px;
+              color: #64748b;
+              border-top: 1px dotted #cbd5e1;
+              padding-top: 6px;
+            }
           </style>
         </head>
         <body>
           <table class="header-table">
             <tr>
-              <td>
-                <h2 style="margin: 0; color: #170e5e; font-size: 20px;">منظومة توزيع الفان والجملة (FMCG)</h2>
-                <div style="font-size: 12px; color: #64748b; margin-top: 4px;">إذن صرف وتحميل بضاعة لسيارة التوزيع الميداني</div>
+              <td style="vertical-align: middle;">
+                <div style="font-size: 19px; font-weight: 900; color: #170e5e; line-height: 1.2;">${esc(storeName)}</div>
+                <div style="font-size: 12.5px; font-weight: 700; color: #475569; margin-top: 3px;">إذن صرف وتحميل بضاعة لسيارة التوزيع الميداني (Van Sales)</div>
               </td>
-              <td style="text-align: left;">
-                <div style="font-size: 18px; font-weight: 900; color: #170e5e; font-family: monospace;">#${req.docNo}</div>
-                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${dateFormatted}</div>
+              <td style="text-align: left; vertical-align: middle;">
+                <div style="font-size: 17px; font-weight: 900; color: #170e5e; font-family: monospace; direction: ltr; text-align: left;">#${esc(req.docNo)}</div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 3px;">${dateFormatted}</div>
               </td>
             </tr>
           </table>
 
-          <div class="meta-grid">
-            <div class="meta-item"><span class="meta-label">مندوب التوزيع (السائق):</span> <span class="meta-value">${req.repName}</span></div>
-            <div class="meta-item"><span class="meta-label">لوحة المركبة:</span> <span class="meta-value">${req.vehiclePlate || '—'}</span></div>
-            <div class="meta-item"><span class="meta-label">المستودع المصدر:</span> <span class="meta-value">${req.sourceWarehouseName}</span></div>
-            <div class="meta-item"><span class="meta-label">مستودع الفان المتنقل:</span> <span class="meta-value">${req.vanLocationName || 'مستودع سيارة المندوب'}</span></div>
-            <div class="meta-item"><span class="meta-label">رقم رحلة التوزيع:</span> <span class="meta-value">${req.tripId ? `#${req.tripId}` : '—'}</span></div>
-            <div class="meta-item"><span class="meta-label">حالة الإذن:</span> <span class="meta-value">${req.status === 'dispatched' ? 'تم الصرف والتحميل' : req.status === 'pending' ? 'قيد المراجعة' : 'مرفوض'}</span></div>
+          <div class="meta-card">
+            <table class="meta-table">
+              <tr>
+                <td class="meta-label">مندوب التوزيع (السائق):</td>
+                <td class="meta-value">${esc(req.repName)}</td>
+                <td class="meta-label">المستودع المصدر:</td>
+                <td class="meta-value">${esc(req.sourceWarehouseName)}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">رقم لوحة المركبة:</td>
+                <td class="meta-value">${esc(req.vehiclePlate || '—')}</td>
+                <td class="meta-label">مستودع الفان المتنقل:</td>
+                <td class="meta-value">${esc(req.vanLocationName || 'مستودع سيارة المندوب')}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">رقم رحلة التوزيع:</td>
+                <td class="meta-value">${req.tripId ? '#' + esc(req.tripId) : '—'}</td>
+                <td class="meta-label">حالة الإذن:</td>
+                <td class="meta-value">${statusLabel}</td>
+              </tr>
+            </table>
           </div>
 
           <table class="items">
             <thead>
               <tr>
-                <th style="width: 40px;">م</th>
-                <th style="width: 130px;">الباركود</th>
-                <th>بيان الصنف والمواصفات</th>
-                <th style="width: 120px; text-align: center;">الكمية المنصرفة</th>
+                <th style="width: 45px;">م</th>
+                <th style="width: 140px;">الباركود</th>
+                <th style="text-align: right; padding-right: 14px;">بيان الصنف والمواصفات</th>
+                <th style="width: 110px;">الكمية المنصرفة</th>
                 <th style="width: 140px;">ملاحظات الفحص والمطابقة</th>
               </tr>
             </thead>
@@ -404,26 +678,30 @@ export function VanLoadRequisitionsAdminTab() {
           </table>
 
           <div class="summary-box">
-            <span>إجمالي عدد البنود: ${items.length} صنف</span>
-            <span>إجمالي الكمية المنصرفة: ${totalPieces} قطعة / وحدة</span>
+            <div>إجمالي عدد البنود: <b>${items.length}</b> صنف</div>
+            <div>إجمالي الكمية المنصرفة: <b>${totalPieces}</b> قطعة / وحدة</div>
           </div>
 
-          <div class="signatures">
-            <div class="sig-box">
-              <div>أمين المستودع (الصارف)</div>
-              <div style="height: 50px;"></div>
-              <div>الاسم والتوقيع: ............................</div>
+          <div class="signatures-grid">
+            <div class="sig-card">
+              <div class="sig-title">أمين المستودع (الصارف)</div>
+              <div class="sig-space"></div>
+              <div class="sig-footer">الاسم والتوقيع: ............................</div>
             </div>
-            <div class="sig-box">
-              <div>مندوب الفان (المستلم)</div>
-              <div style="height: 50px;"></div>
-              <div>الاسم والتوقيع: ............................</div>
+            <div class="sig-card">
+              <div class="sig-title">مندوب الفان (المستلم)</div>
+              <div class="sig-space"></div>
+              <div class="sig-footer">الاسم والتوقيع: ............................</div>
             </div>
-            <div class="sig-box">
-              <div>مشرف الحركة والتوزيع</div>
-              <div style="height: 50px;"></div>
-              <div>الاعتماد: ............................</div>
+            <div class="sig-card">
+              <div class="sig-title">مشرف الحركة والاعتماد</div>
+              <div class="sig-space"></div>
+              <div class="sig-footer">الاعتماد والختم: ............................</div>
             </div>
+          </div>
+
+          <div class="doc-footer">
+            منظومة Z-ERP لإدارة التوزيع والأسطول الميداني — تم استخراج هذا الإذن آلياً
           </div>
 
           <script>
@@ -752,15 +1030,130 @@ export function VanLoadRequisitionsAdminTab() {
                           <FileTextIcon size={12} />
                           معاينة
                         </Button>
-                        <Button
-                          variant="secondary"
-                          style={{ fontSize: '11px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}
-                          onClick={() => handlePrintRequisition(r)}
-                          title="طباعة إذن التحميل"
-                        >
-                          <PrinterIcon size={12} />
-                          طباعة
-                        </Button>
+                        {/* Split Print Button */}
+                        <div style={{ display: 'inline-flex', alignItems: 'stretch', position: 'relative' }}>
+                          <button
+                            type="button"
+                            style={{
+                              fontSize: '11px',
+                              padding: '4px 7px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              whiteSpace: 'nowrap',
+                              backgroundColor: '#ffffff',
+                              color: '#334155',
+                              border: '1px solid #cbd5e1',
+                              borderInlineEnd: 'none',
+                              borderStartStartRadius: '6px',
+                              borderEndStartRadius: '6px',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              lineHeight: '1.2',
+                            }}
+                            onClick={() => handlePrintRequisition(r)}
+                            title={`طباعة مباشرة (${defaultPaperSize === 'receipt' ? 'إيصال حراري 80mm' : 'نموذج A4'})`}
+                          >
+                            <PrinterIcon size={12} />
+                            طباعة
+                          </button>
+                          <button
+                            type="button"
+                            style={{
+                              padding: '4px 4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: '#f8fafc',
+                              color: '#64748b',
+                              border: '1px solid #cbd5e1',
+                              borderStartEndRadius: '6px',
+                              borderEndEndRadius: '6px',
+                              cursor: 'pointer',
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActivePrintMenuId(activePrintMenuId === r.id ? null : r.id);
+                            }}
+                            title="خيارات الطباعة (A4 أو حراري)"
+                          >
+                            <ChevronDownIcon size={11} />
+                          </button>
+
+                          {/* Floating print format menu */}
+                          {activePrintMenuId === r.id && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: 'calc(100% + 4px)',
+                                left: 0,
+                                zIndex: 100,
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '8px',
+                                boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
+                                padding: '4px',
+                                minWidth: '160px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '2px',
+                                textAlign: 'right',
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                type="button"
+                                style={{
+                                  padding: '6px 10px',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  color: defaultPaperSize === 'a4' ? '#170e5e' : '#334155',
+                                  backgroundColor: defaultPaperSize === 'a4' ? '#f1f5f9' : 'transparent',
+                                  border: 'none',
+                                  borderRadius: '5px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  width: '100%',
+                                  textAlign: 'right',
+                                }}
+                                onClick={() => {
+                                  setActivePrintMenuId(null);
+                                  handlePrintRequisition(r, 'a4');
+                                }}
+                              >
+                                <span>طباعة A4 (المستودع)</span>
+                                {defaultPaperSize === 'a4' && <span style={{ fontSize: '10px', color: '#15803d' }}>افتراضي</span>}
+                              </button>
+                              <button
+                                type="button"
+                                style={{
+                                  padding: '6px 10px',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  color: defaultPaperSize === 'receipt' ? '#170e5e' : '#334155',
+                                  backgroundColor: defaultPaperSize === 'receipt' ? '#f1f5f9' : 'transparent',
+                                  border: 'none',
+                                  borderRadius: '5px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  width: '100%',
+                                  textAlign: 'right',
+                                }}
+                                onClick={() => {
+                                  setActivePrintMenuId(null);
+                                  handlePrintRequisition(r, 'receipt');
+                                }}
+                              >
+                                <span>إيصال حراري (80mm)</span>
+                                {defaultPaperSize === 'receipt' && <span style={{ fontSize: '10px', color: '#15803d' }}>افتراضي</span>}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -770,6 +1163,14 @@ export function VanLoadRequisitionsAdminTab() {
           </table>
         )}
       </div>
+
+      {/* Backdrop to close print dropdown when clicking outside */}
+      {activePrintMenuId !== null && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 90 }}
+          onClick={() => setActivePrintMenuId(null)}
+        />
+      )}
 
       {/* Review & Dispatch Modal */}
       {selectedReq && (
@@ -1207,11 +1608,21 @@ export function VanLoadRequisitionsAdminTab() {
               </Button>
               <Button
                 variant="secondary"
-                onClick={() => handlePrintRequisition(selectedReq)}
-                style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                onClick={() => handlePrintRequisition(selectedReq, 'a4')}
+                style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                title="طباعة نموذج المستودع الرسمي A4"
               >
-                <PrinterIcon size={14} />
-                طباعة إذن التحميل
+                <PrinterIcon size={13} />
+                طباعة A4
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => handlePrintRequisition(selectedReq, 'receipt')}
+                style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                title="طباعة إيصال حراري 80mm للمندوب"
+              >
+                <PrinterIcon size={13} />
+                إيصال حراري (80mm)
               </Button>
               {selectedReq.status === 'pending' && (
                 <>
