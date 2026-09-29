@@ -4,7 +4,7 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { formatCurrency } from '@/lib/format';
 import { toast } from '@/shared/components/system-alert';
 import { PlusIcon, Trash2Icon } from '@/shared/components/icons/AppIcons';
-import { customersApi, type Customer } from '@/features/customers/api/customers.api';
+import { customersApi, type Customer } from '@/features/customers';
 import { commercialSubscriptionsApi, type CreateSubscriptionPayload } from '../api/commercial-subscriptions.api';
 
 interface CreateSubscriptionModalProps {

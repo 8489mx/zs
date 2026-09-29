@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
-import { productsApi } from '@/features/products/api/products.api';
+import { productsApi } from '@/features/products';
 import {
   qualityAssuranceApi,
   type QCPointRecord,

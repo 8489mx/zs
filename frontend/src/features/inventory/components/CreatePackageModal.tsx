@@ -3,7 +3,7 @@ import { StandardDialog, StandardDialogFooter } from '@/shared/components/Standa
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
 import { PlusIcon, Trash2Icon, PackageIcon } from '@/shared/components/icons/AppIcons';
-import { productsApi } from '@/features/products/api/products.api';
+import { productsApi } from '@/features/products';
 import {
   warehousePackagesApi,
   type CreatePackagePayload,
