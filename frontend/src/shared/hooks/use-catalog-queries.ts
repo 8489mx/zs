@@ -33,8 +33,22 @@ export function useCategoriesQuery() {
   return useQuery({ queryKey: queryKeys.productsCategories, queryFn: productsApi.categories, staleTime: referenceStaleTime });
 }
 
-export function useSettingsQuery() {
-  return useQuery({ queryKey: queryKeys.settings, queryFn: settingsApi.settings, staleTime: referenceStaleTime });
+export function useSettingsQuery(options?: { enabled?: boolean }) {
+  const isExcludedRoute = typeof window !== 'undefined' && (
+    window.location.pathname.startsWith('/van-sales') ||
+    window.location.pathname.startsWith('/driver') ||
+    window.location.pathname.startsWith('/login') ||
+    window.location.pathname.startsWith('/track') ||
+    window.location.pathname.startsWith('/portal')
+  );
+  const isExplicitlyEnabled = options?.enabled ?? true;
+  return useQuery({
+    queryKey: queryKeys.settings,
+    queryFn: settingsApi.settings,
+    staleTime: referenceStaleTime,
+    enabled: isExplicitlyEnabled && !isExcludedRoute,
+    retry: false,
+  });
 }
 
 export function useBranchesQuery() {

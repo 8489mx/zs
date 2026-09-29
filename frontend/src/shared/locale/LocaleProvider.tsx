@@ -23,11 +23,20 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   const user = useAuthStore((state) => state.user);
   const [language, setLanguageState] = useState<UiLanguage>(() => getStoredUiLanguage());
 
+  const isExcludedRoute = typeof window !== 'undefined' && (
+    window.location.pathname.startsWith('/van-sales') ||
+    window.location.pathname.startsWith('/driver') ||
+    window.location.pathname.startsWith('/login') ||
+    window.location.pathname.startsWith('/track') ||
+    window.location.pathname.startsWith('/portal')
+  );
+
   const settingsQuery = useQuery({
     queryKey: queryKeys.settings,
     queryFn: settingsApi.settings,
-    enabled: Boolean(user),
+    enabled: Boolean(user) && !isExcludedRoute,
     staleTime: 60_000,
+    retry: false,
   });
 
   useEffect(() => {

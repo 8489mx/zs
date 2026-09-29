@@ -11,7 +11,8 @@ import { setGlobalSystemCurrency } from '@/lib/currencies';
 
 function ThemeProvider({ children }: PropsWithChildren) {
   const theme = useAuthStore((state) => state.theme);
-  const { data: settings } = useSettingsQuery();
+  const user = useAuthStore((state) => state.user);
+  const { data: settings } = useSettingsQuery({ enabled: Boolean(user) });
 
   useEffect(() => {
     const root = document.documentElement;
