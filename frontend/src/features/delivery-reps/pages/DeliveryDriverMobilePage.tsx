@@ -222,7 +222,19 @@ export function DeliveryDriverMobilePage() {
   };
 
   return (
-    <div className="page-stack page-shell mobile-driver-portal" dir="rtl" style={{ background: '#f8fafc', minHeight: '100vh', padding: '12px' }}>
+    <div
+      className="page-stack page-shell mobile-driver-portal"
+      dir="rtl"
+      style={{
+        background: '#f8fafc',
+        minHeight: '100vh',
+        paddingTop: 'calc(14px + env(safe-area-inset-top, 0px))',
+        paddingRight: 'max(14px, env(safe-area-inset-right, 0px))',
+        paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+        paddingLeft: 'max(14px, env(safe-area-inset-left, 0px))',
+        boxSizing: 'border-box',
+      }}
+    >
       <main style={{ maxWidth: '600px', margin: '0 auto' }}>
         <DeliveryDriverHeader
           selectedRepId={selectedRepId}

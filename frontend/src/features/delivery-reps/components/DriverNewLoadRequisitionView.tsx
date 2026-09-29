@@ -1151,7 +1151,7 @@ export function DriverNewLoadRequisitionView({
   }
 
   return (
-    <div dir="rtl" style={{ width: '100%', minHeight: '100vh', backgroundColor: '#f8fafc', paddingBottom: '100px' }}>
+    <div dir="rtl" className="driver-requisition-view" style={{ width: '100%', minHeight: '100vh', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}>
       <style>{`
         input.no-spin-arrows::-webkit-outer-spin-button,
         input.no-spin-arrows::-webkit-inner-spin-button {
@@ -1162,8 +1162,53 @@ export function DriverNewLoadRequisitionView({
           -moz-appearance: textfield !important;
           appearance: textfield !important;
         }
+        @media (max-width: 768px) {
+          .driver-req-top-actions {
+            width: 100% !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+            margin-top: 10px !important;
+          }
+          .driver-req-top-actions > * {
+            flex: 1 1 calc(50% - 8px) !important;
+            min-height: 40px !important;
+            justify-content: center !important;
+          }
+          .driver-req-top-actions > .driver-req-primary-btn {
+            flex: 1 1 100% !important;
+            order: -1 !important;
+          }
+          .driver-req-bottom-actions {
+            width: 100% !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+            margin-top: 12px !important;
+          }
+          .driver-req-bottom-actions > * {
+            flex: 1 1 calc(50% - 8px) !important;
+            min-height: 42px !important;
+            justify-content: center !important;
+          }
+          .driver-req-bottom-actions > .driver-req-primary-btn {
+            flex: 1 1 100% !important;
+            order: -1 !important;
+          }
+        }
       `}</style>
-      <div style={{ maxWidth: '1280px', width: 'min(100%, 1280px)', margin: '0 auto', padding: '16px' }}>
+      <div
+        style={{
+          maxWidth: '1280px',
+          width: 'min(100%, 1280px)',
+          margin: '0 auto',
+          paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))',
+          paddingRight: 'max(14px, env(safe-area-inset-right, 0px))',
+          paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
+          paddingLeft: 'max(14px, env(safe-area-inset-left, 0px))',
+          boxSizing: 'border-box',
+        }}
+      >
         {/* Top Header Bar matching NewIssueOrderPage */}
         <header
           style={{
@@ -1245,7 +1290,7 @@ export function DriverNewLoadRequisitionView({
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div className="driver-req-top-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             {(hasDraftContent || hasSavedDraft) && (
               <Button
                 variant="secondary"
@@ -1258,6 +1303,7 @@ export function DriverNewLoadRequisitionView({
                   borderColor: '#fca5a5',
                   backgroundColor: '#fef2f2',
                   padding: '8px 14px',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 حذف المسودة
@@ -1274,6 +1320,7 @@ export function DriverNewLoadRequisitionView({
                 color: '#475569',
                 borderColor: '#cbd5e1',
                 padding: '8px 14px',
+                whiteSpace: 'nowrap',
               }}
             >
               العودة للقائمة
@@ -1291,6 +1338,7 @@ export function DriverNewLoadRequisitionView({
                     color: '#170e5e',
                     borderColor: '#170e5e',
                     padding: '8px 14px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {adminSubmitMutation.isPending ? 'جاري الحفظ...' : 'حفظ كإذن معلق'}
@@ -1298,6 +1346,7 @@ export function DriverNewLoadRequisitionView({
                 <Button
                   type="button"
                   variant="primary"
+                  className="driver-req-primary-btn"
                   onClick={() => handleAdminSubmit(true)}
                   disabled={isSubmitting || validLines.length === 0}
                   style={{
@@ -1306,6 +1355,7 @@ export function DriverNewLoadRequisitionView({
                     fontSize: '12.5px',
                     fontWeight: 800,
                     padding: '8px 18px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {adminSubmitMutation.isPending
@@ -1317,6 +1367,7 @@ export function DriverNewLoadRequisitionView({
               <Button
                 type="button"
                 variant="primary"
+                className="driver-req-primary-btn"
                 onClick={handleSubmit}
                 disabled={isSubmitting || validLines.length === 0}
                 style={{
@@ -1325,6 +1376,7 @@ export function DriverNewLoadRequisitionView({
                   fontSize: '12.5px',
                   fontWeight: 800,
                   padding: '8px 18px',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {isSubmitting
@@ -1774,7 +1826,7 @@ export function DriverNewLoadRequisitionView({
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div className="driver-req-bottom-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             {(hasDraftContent || hasSavedDraft) && (
               <Button
                 variant="secondary"
@@ -1787,6 +1839,7 @@ export function DriverNewLoadRequisitionView({
                   borderColor: '#fca5a5',
                   backgroundColor: '#fef2f2',
                   padding: '10px 18px',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 حذف المسودة
@@ -1796,7 +1849,7 @@ export function DriverNewLoadRequisitionView({
               variant="secondary"
               type="button"
               onClick={handleGoBack}
-              style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}
+              style={{ fontSize: '13px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}
             >
               العودة للقائمة
             </Button>
@@ -1813,6 +1866,7 @@ export function DriverNewLoadRequisitionView({
                     color: '#170e5e',
                     borderColor: '#170e5e',
                     padding: '10px 18px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {adminSubmitMutation.isPending ? 'جاري الحفظ...' : 'حفظ كإذن معلق'}
@@ -1820,6 +1874,7 @@ export function DriverNewLoadRequisitionView({
                 <Button
                   variant="primary"
                   type="button"
+                  className="driver-req-primary-btn"
                   onClick={() => handleAdminSubmit(true)}
                   disabled={isSubmitting || validLines.length === 0}
                   style={{
@@ -1829,6 +1884,7 @@ export function DriverNewLoadRequisitionView({
                     fontSize: '13px',
                     padding: '10px 24px',
                     borderRadius: '8px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {adminSubmitMutation.isPending
@@ -1840,6 +1896,7 @@ export function DriverNewLoadRequisitionView({
               <Button
                 variant="primary"
                 type="button"
+                className="driver-req-primary-btn"
                 onClick={handleSubmit}
                 disabled={isSubmitting || validLines.length === 0}
                 style={{
@@ -1849,6 +1906,7 @@ export function DriverNewLoadRequisitionView({
                   fontSize: '13px',
                   padding: '10px 24px',
                   borderRadius: '8px',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {isSubmitting ? 'جارٍ الإرسال...' : 'إرسال طلب التحميل للمشرف'}
