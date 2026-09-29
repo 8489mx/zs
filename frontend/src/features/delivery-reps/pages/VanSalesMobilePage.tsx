@@ -24,7 +24,7 @@ import { VanSalesReceiptModal } from '../components/VanSalesReceiptModal';
 import { VanInventoryTab } from '../components/VanInventoryTab';
 import { VanSaleTab, CartItem } from '../components/VanSaleTab';
 import { VanSaleCheckoutModal } from '../components/VanSaleCheckoutModal';
-import { VanCollectionTab } from '../components/VanCollectionTab';
+import { VanCollectionTab } from '../components/VanCollectionTab'; // live-synced
 import { VanSettleTab } from '../components/VanSettleTab';
 import { VanItineraryTab } from '../components/VanItineraryTab';
 import { VanFleetTab } from '../components/VanFleetTab';
@@ -645,7 +645,10 @@ export default function VanSalesMobilePage() {
         style={{
           backgroundColor: '#170e5e',
           color: '#ffffff',
-          padding: '12px 16px',
+          paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))',
+          paddingRight: 'max(16px, env(safe-area-inset-right, 0px))',
+          paddingBottom: '12px',
+          paddingLeft: 'max(16px, env(safe-area-inset-left, 0px))',
           boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
           display: 'flex',
           justifyContent: 'space-between',

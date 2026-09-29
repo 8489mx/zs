@@ -4002,20 +4002,30 @@ export class VanSalesService {
       .orderBy('id', 'asc')
       .execute();
 
-    // 1. Calculate today's Arabic day name
+    // 1. Calculate today's Arabic & English day names
     const arabicDays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    const currentDayName = arabicDays[new Date().getDay()];
+    const englishDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayIdx = new Date().getDay();
+    const currentDayName = arabicDays[dayIdx];
+    const currentEnglishDayName = englishDays[dayIdx];
 
     // 2. Filter customers based on rep assignment:
     // If the rep has explicit assignments: include ONLY customers assigned to him.
     // If the rep has no explicit assignments yet: include unassigned customers, but exclude any customer assigned to other reps.
+    const parseCustMeta = (raw: any): any => {
+      if (typeof raw === 'string') {
+        try { return JSON.parse(raw); } catch { return {}; }
+      }
+      return raw && typeof raw === 'object' ? raw : {};
+    };
+
     const repHasExplicitAssignments = customers.some((c: any) => {
-      const m = typeof c.metadata === 'object' && c.metadata !== null ? c.metadata : {};
+      const m = parseCustMeta(c.metadata);
       return m.assigned_rep_id && Number(m.assigned_rep_id) === Number(repId);
     });
 
     const repCustomers = customers.filter((c: any) => {
-      const m = typeof c.metadata === 'object' && c.metadata !== null ? c.metadata : {};
+      const m = parseCustMeta(c.metadata);
       const cAssignedRepId = m.assigned_rep_id ? Number(m.assigned_rep_id) : null;
       if (repHasExplicitAssignments) {
         return cAssignedRepId === Number(repId);
@@ -4065,7 +4075,7 @@ export class VanSalesService {
 
     return repCustomers.map((c: any) => {
       const cId = Number(c.id);
-      const meta = typeof c.metadata === 'object' && c.metadata !== null ? c.metadata : {};
+      const meta = parseCustMeta(c.metadata);
       const todayVisit = visitMap.get(cId);
       const totalNegatives = negativeMap.get(cId) || 0;
 
@@ -4077,7 +4087,19 @@ export class VanSalesService {
       const visitDays: string[] = Array.isArray(meta.visit_days)
         ? meta.visit_days
         : (meta.visit_day ? [meta.visit_day] : []);
-      const isScheduledToday = visitDays.length > 0 ? visitDays.includes(currentDayName) : true;
+      const isScheduledToday =
+        visitDays.length > 0
+          ? visitDays.some((d: string) => {
+              if (!d) return false;
+              const s = String(d).trim().toLowerCase();
+              return (
+                s === currentDayName ||
+                s === currentEnglishDayName ||
+                s.includes(currentDayName) ||
+                s.includes(currentEnglishDayName)
+              );
+            })
+          : true;
       const assignedRepId = meta.assigned_rep_id ? Number(meta.assigned_rep_id) : null;
 
       return {
@@ -4766,6 +4788,8 @@ export class VanSalesService {
       visitDays?: string[];
       customerCode?: string;
       locationUrl?: string;
+      assignedRepId?: number | null;
+      assignedRepName?: string | null;
     },
   ) {
     const cust = await this.anyDb
@@ -4777,8 +4801,28 @@ export class VanSalesService {
 
     if (!cust) throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
 
-    const existingMeta = typeof cust.metadata === 'object' && cust.metadata !== null ? cust.metadata : {};
-    const updatedMeta = {
+    let resolvedRepName = payload.assignedRepName;
+    if (payload.assignedRepId) {
+      const rep = await this.anyDb
+        .selectFrom('delivery_representatives')
+        .select(['id', 'name'])
+        .where('id', '=', payload.assignedRepId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      if (rep) {
+        resolvedRepName = rep.name;
+      }
+    } else if (payload.assignedRepId === null) {
+      resolvedRepName = null;
+    }
+
+    let existingMeta: any = {};
+    if (typeof cust.metadata === 'string') {
+      try { existingMeta = JSON.parse(cust.metadata); } catch { existingMeta = {}; }
+    } else if (cust.metadata && typeof cust.metadata === 'object') {
+      existingMeta = { ...cust.metadata };
+    }
+    const updatedMeta: any = {
       ...existingMeta,
       ...(payload.route !== undefined ? { route: payload.route } : {}),
       ...(payload.routeSequence !== undefined ? { route_sequence: payload.routeSequence } : {}),
@@ -4786,6 +4830,11 @@ export class VanSalesService {
       ...(payload.customerCode !== undefined ? { customer_code: payload.customerCode } : {}),
       ...(payload.locationUrl !== undefined ? { location_url: payload.locationUrl } : {}),
     };
+
+    if (payload.assignedRepId !== undefined) {
+      updatedMeta.assigned_rep_id = payload.assignedRepId;
+      updatedMeta.assigned_rep_name = resolvedRepName;
+    }
 
     await this.anyDb
       .updateTable('customers')
@@ -4799,6 +4848,160 @@ export class VanSalesService {
 
     return { ok: true, customerId, metadata: updatedMeta };
   }
+
+  async bulkAssignCustomerRoutes(
+    tenantId: string,
+    payload: {
+      customerIds: number[];
+      assignedRepId?: number | null;
+      assignedRepName?: string | null;
+      route?: string;
+      visitDays?: string[];
+    },
+  ) {
+    if (!Array.isArray(payload.customerIds) || payload.customerIds.length === 0) {
+      throw new AppError('يرجى تحديد عميل واحد على الأقل', 'INVALID_CUSTOMER_IDS', 400);
+    }
+
+    let resolvedRepName = payload.assignedRepName;
+    if (payload.assignedRepId) {
+      const rep = await this.anyDb
+        .selectFrom('delivery_representatives')
+        .select(['id', 'name'])
+        .where('id', '=', payload.assignedRepId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      if (rep) {
+        resolvedRepName = rep.name;
+      }
+    } else if (payload.assignedRepId === null) {
+      resolvedRepName = null;
+    }
+
+    const customers = await this.anyDb
+      .selectFrom('customers')
+      .select(['id', 'metadata'])
+      .where('id', 'in', payload.customerIds)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    for (const c of customers) {
+      let meta: any = {};
+      if (typeof c.metadata === 'string') {
+        try { meta = JSON.parse(c.metadata); } catch { meta = {}; }
+      } else if (c.metadata && typeof c.metadata === 'object') {
+        meta = { ...c.metadata };
+      }
+
+      if (payload.assignedRepId !== undefined) {
+        meta.assigned_rep_id = payload.assignedRepId;
+        meta.assigned_rep_name = resolvedRepName;
+      }
+      if (payload.route !== undefined && payload.route.trim()) {
+        meta.route = payload.route.trim();
+      }
+      if (payload.visitDays !== undefined) {
+        meta.visit_days = payload.visitDays;
+      }
+
+      await this.anyDb
+        .updateTable('customers')
+        .set({
+          metadata: JSON.stringify(meta),
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', c.id)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+    }
+
+    return {
+      ok: true,
+      updatedCount: customers.length,
+      assignedRepId: payload.assignedRepId,
+      assignedRepName: resolvedRepName,
+    };
+  }
+
+  async getSupervisorCustomerRoutes(
+    tenantId: string,
+    filters?: {
+      search?: string;
+      repId?: number | string;
+      route?: string;
+      unassignedOnly?: boolean;
+    },
+  ) {
+    let query = this.anyDb
+      .selectFrom('customers as c')
+      .select([
+        'c.id',
+        'c.name',
+        'c.phone',
+        'c.address',
+        'c.metadata',
+        sql<number>`cast(coalesce(c.credit_limit, 0) as numeric)`.as('creditLimit'),
+        sql<number>`coalesce(c.balance, 0)`.as('balance'),
+        'c.created_at as createdAt',
+      ])
+      .where('c.tenant_id', '=', tenantId)
+      .where('c.is_active', '=', true);
+
+    if (filters?.search && filters.search.trim()) {
+      const q = `%${filters.search.trim().toLowerCase()}%`;
+      query = query.where((eb: any) =>
+        eb.or([
+          sql<boolean>`lower(c.name) like ${q}`,
+          sql<boolean>`c.phone like ${q}`,
+          sql<boolean>`cast(c.metadata as text) ilike ${q}`,
+        ]),
+      );
+    }
+
+    const rows = await query
+      .orderBy('c.name', 'asc')
+      .limit(3000)
+      .execute();
+
+    let results = rows.map((r: any) => {
+      let meta: any = {};
+      if (typeof r.metadata === 'string') {
+        try { meta = JSON.parse(r.metadata); } catch { meta = {}; }
+      } else if (r.metadata && typeof r.metadata === 'object') {
+        meta = r.metadata;
+      }
+
+      return {
+        customerId: Number(r.id),
+        customerName: r.name,
+        customerPhone: r.phone || '',
+        customerAddress: r.address || '',
+        customerCode: meta.customer_code || meta.code || `#CUST-${r.id}`,
+        route: meta.route || 'غير محدد',
+        routeSequence: Number(meta.route_sequence || 1),
+        visitDays: Array.isArray(meta.visit_days) ? meta.visit_days : [],
+        assignedRepId: meta.assigned_rep_id ? Number(meta.assigned_rep_id) : null,
+        assignedRepName: meta.assigned_rep_name || null,
+        locationUrl: meta.location_url || (meta.gps_lat && meta.gps_lng ? `https://maps.google.com/?q=${meta.gps_lat},${meta.gps_lng}` : ''),
+        balance: Number(r.balance || 0),
+        creditLimit: Number(r.creditLimit || 0),
+      };
+    });
+
+    if (filters?.unassignedOnly || filters?.repId === 'unassigned') {
+      results = results.filter((c: any) => !c.assignedRepId);
+    } else if (filters?.repId && filters.repId !== 'all') {
+      const targetRepId = Number(filters.repId);
+      results = results.filter((c: any) => c.assignedRepId === targetRepId);
+    }
+
+    if (filters?.route && filters.route !== 'all') {
+      results = results.filter((c: any) => c.route === filters.route);
+    }
+
+    return results;
+  }
+
 
   async getPeerReps(tenantId: string, currentRepId: number) {
     const rows = await this.anyDb

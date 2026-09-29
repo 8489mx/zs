@@ -190,7 +190,19 @@ export function DriverPortalPage() {
   }
 
   return (
-    <div style={{ maxWidth: '640px', margin: '0 auto', padding: '16px 14px', width: '100%', boxSizing: 'border-box' }} dir="rtl">
+    <div
+      style={{
+        maxWidth: '640px',
+        margin: '0 auto',
+        paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))',
+        paddingRight: 'max(14px, env(safe-area-inset-right, 0px))',
+        paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+        paddingLeft: 'max(14px, env(safe-area-inset-left, 0px))',
+        width: '100%',
+        boxSizing: 'border-box',
+      }}
+      dir="rtl"
+    >
       <DriverTopBar
         driverUser={driverUser}
         deferredPrompt={deferredPrompt}

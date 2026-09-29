@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Button } from '@/shared/ui/button';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
 import { vanSalesApi, VanCustomerItineraryItem } from '../api/van-sales.api';
-import { MapPinIcon, CheckCircleIcon, XCircleIcon, ClockIcon, SearchIcon, PhoneIcon, ArrowRightIcon, ArrowLeftIcon, CalendarIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
+import { MapPinIcon, CheckCircleIcon, XCircleIcon, ClockIcon, SearchIcon, PhoneIcon, ArrowRightIcon, ArrowLeftIcon, CalendarIcon, AlertTriangleIcon, ChevronDownIcon } from '@/shared/components/icons/AppIcons';
 
 interface VanItineraryTabProps {
   itinerary: VanCustomerItineraryItem[];
@@ -13,6 +13,58 @@ interface VanItineraryTabProps {
   onSelectCustomerForSale: (customerId: number) => void;
   onRefreshItinerary: () => void;
   isLoading?: boolean;
+}
+
+const DAY_ALIASES: Record<string, string[]> = {
+  sunday: ['sunday', 'الأحد', 'احد'],
+  monday: ['monday', 'الإثنين', 'الاثنين', 'إثنين', 'اثنين'],
+  tuesday: ['tuesday', 'الثلاثاء', 'ثلاثاء', 'تلات', 'التلات'],
+  wednesday: ['wednesday', 'الأربعاء', 'الاربعاء', 'أربعاء', 'اربعاء'],
+  thursday: ['thursday', 'الخميس', 'خميس'],
+  friday: ['friday', 'الجمعة', 'جمعة'],
+  saturday: ['saturday', 'السبت', 'سبت'],
+};
+
+function normalizeDayKey(day?: string): string {
+  if (!day) return '';
+  const d = day.trim().toLowerCase();
+  for (const [key, aliases] of Object.entries(DAY_ALIASES)) {
+    if (aliases.some((a) => d === a || d.includes(a))) {
+      return key;
+    }
+  }
+  return d;
+}
+
+function customerMatchesDay(
+  item: VanCustomerItineraryItem,
+  targetDay: string,
+  todayArabicName: string,
+): boolean {
+  if (!targetDay || targetDay === 'all') return true;
+
+  const targetKey = normalizeDayKey(targetDay);
+  const todayKey = normalizeDayKey(todayArabicName);
+  const isTargetToday = targetDay === 'today' || (targetKey && targetKey === todayKey);
+
+  const days: string[] = [
+    ...(Array.isArray(item.visitDays) ? item.visitDays : []),
+    ...(item.visitDay ? [item.visitDay] : []),
+  ];
+
+  // If customer has no specific restricted visit days:
+  // They are available every day (open route / daily itinerary)
+  if (days.length === 0) {
+    return true;
+  }
+
+  // If target day is today and customer is marked scheduled today
+  if (isTargetToday && item.isScheduledToday) {
+    return true;
+  }
+
+  // Match against customer's assigned days (supports Arabic or English names)
+  return days.some((d) => normalizeDayKey(d) === targetKey);
 }
 
 export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
@@ -34,17 +86,26 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
     return itinerary[0]?.currentDayName || arabicDayNames[new Date().getDay()];
   }, [itinerary, arabicDayNames]);
 
-  // Check if any shops have scheduled visit days
-  const hasScheduledShops = useMemo(() => {
-    return itinerary.some((i) => (i.visitDays && i.visitDays.length > 0) || i.visitDay);
-  }, [itinerary]);
-
   const todayCount = useMemo(() => {
-    if (!hasScheduledShops) return itinerary.length;
-    return itinerary.filter(
-      (i) => i.isScheduledToday || i.visitDay === todayArabicName || i.visitDays?.includes(todayArabicName),
-    ).length;
-  }, [itinerary, hasScheduledShops, todayArabicName]);
+    return itinerary.filter((i) => customerMatchesDay(i, 'today', todayArabicName)).length;
+  }, [itinerary, todayArabicName]);
+
+  const [dayDropdownOpen, setDayDropdownOpen] = useState(false);
+  const dayDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (dayDropdownRef.current && !dayDropdownRef.current.contains(e.target as Node)) {
+        setDayDropdownOpen(false);
+      }
+    };
+    if (dayDropdownOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [dayDropdownOpen]);
 
   // Reset pagination to first page when search or filters change
   useEffect(() => {
@@ -69,16 +130,8 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
   const filtered = useMemo(() => {
     return itinerary.filter((item) => {
       // Day / schedule filter
-      if (dayFilter === 'today' && hasScheduledShops) {
-        const isToday =
-          item.isScheduledToday ||
-          item.visitDay === todayArabicName ||
-          (item.visitDays && item.visitDays.includes(todayArabicName));
-        if (!isToday) return false;
-      } else if (dayFilter !== 'today' && dayFilter !== 'all') {
-        const matchesDay =
-          item.visitDay === dayFilter || (item.visitDays && item.visitDays.includes(dayFilter));
-        if (!matchesDay) return false;
+      if (!customerMatchesDay(item, dayFilter, todayArabicName)) {
+        return false;
       }
 
       if (statusFilter !== 'all' && item.visitStatus !== statusFilter) return false;
@@ -92,7 +145,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         item.route.toLowerCase().includes(q)
       );
     });
-  }, [itinerary, dayFilter, hasScheduledShops, todayArabicName, statusFilter, routeFilter, searchTerm]);
+  }, [itinerary, dayFilter, todayArabicName, statusFilter, routeFilter, searchTerm]);
 
   const totalPages = Math.ceil(filtered.length / pageSize) || 1;
   const startIdx = (currentPage - 1) * pageSize;
@@ -276,38 +329,55 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         </div>
 
         {/* Row 2: Day Filter Segment Switcher (اليوم vs الكل vs يوم آخر) */}
-        <div style={{ display: 'flex', flexDirection: 'row', gap: '4px', width: '100%', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'row', gap: '4px', width: '100%', alignItems: 'stretch' }}>
           <button
             type="button"
             onClick={() => setDayFilter('today')}
             style={{
               flex: '1 1 0',
               minWidth: 0,
-              padding: '3px 4px',
+              padding: '0 6px',
               borderRadius: '6px',
               fontSize: '11px',
               fontWeight: 700,
               cursor: 'pointer',
-              border: dayFilter === 'today' ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
-              backgroundColor: dayFilter === 'today' ? '#170e5e' : '#f8fafc',
-              color: dayFilter === 'today' ? '#ffffff' : '#334155',
+              boxSizing: 'border-box',
+              border:
+                dayFilter === 'today' || normalizeDayKey(dayFilter) === normalizeDayKey(todayArabicName)
+                  ? '1.5px solid #170e5e'
+                  : '1px solid #e2e8f0',
+              backgroundColor:
+                dayFilter === 'today' || normalizeDayKey(dayFilter) === normalizeDayKey(todayArabicName)
+                  ? '#170e5e'
+                  : '#f8fafc',
+              color:
+                dayFilter === 'today' || normalizeDayKey(dayFilter) === normalizeDayKey(todayArabicName)
+                  ? '#ffffff'
+                  : '#334155',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '3px',
+              gap: '4px',
               height: '30px',
             }}
           >
-            <CalendarIcon size={12} />
+            <CalendarIcon size={12} style={{ flexShrink: 0 }} />
             <span style={{ whiteSpace: 'nowrap' }}>اليوم ({todayArabicName})</span>
             <span
               style={{
-                backgroundColor: dayFilter === 'today' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
-                color: dayFilter === 'today' ? '#ffffff' : '#475569',
+                backgroundColor:
+                  dayFilter === 'today' || normalizeDayKey(dayFilter) === normalizeDayKey(todayArabicName)
+                    ? 'rgba(255,255,255,0.25)'
+                    : '#e2e8f0',
+                color:
+                  dayFilter === 'today' || normalizeDayKey(dayFilter) === normalizeDayKey(todayArabicName)
+                    ? '#ffffff'
+                    : '#475569',
                 padding: '0 4px',
                 borderRadius: '6px',
                 fontSize: '9.5px',
                 fontWeight: 800,
+                flexShrink: 0,
               }}
             >
               {todayCount}
@@ -320,18 +390,19 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             style={{
               flex: '1 1 0',
               minWidth: 0,
-              padding: '3px 4px',
+              padding: '0 6px',
               borderRadius: '6px',
               fontSize: '11px',
               fontWeight: 700,
               cursor: 'pointer',
+              boxSizing: 'border-box',
               border: dayFilter === 'all' ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
               backgroundColor: dayFilter === 'all' ? '#170e5e' : '#f8fafc',
               color: dayFilter === 'all' ? '#ffffff' : '#334155',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '3px',
+              gap: '4px',
               height: '30px',
             }}
           >
@@ -344,24 +415,125 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 borderRadius: '6px',
                 fontSize: '9.5px',
                 fontWeight: 800,
+                flexShrink: 0,
               }}
             >
               {total}
             </span>
           </button>
 
-          <div style={{ width: '90px', flexShrink: 0 }}>
-            <CustomSelect
-              value={dayFilter !== 'today' && dayFilter !== 'all' ? dayFilter : ''}
-              onChange={(val) => setDayFilter(val || 'all')}
-              dropdownAlign="left"
-              options={[
-                { value: '', label: 'كافة الأيام' },
-                ...arabicDayNames.map((d) => ({ value: d, label: `يوم ${d}` })),
-              ]}
-              placeholder="يوم..."
-              style={{ height: '30px', fontSize: '11px' }}
-            />
+          {/* Day Picker Button & Dropdown */}
+          <div ref={dayDropdownRef} style={{ position: 'relative', width: '85px', flexShrink: 0, height: '30px' }}>
+            <button
+              type="button"
+              onClick={() => setDayDropdownOpen((prev) => !prev)}
+              style={{
+                width: '100%',
+                padding: '0 6px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxSizing: 'border-box',
+                border:
+                  dayFilter !== 'today' && dayFilter !== 'all' && normalizeDayKey(dayFilter) !== normalizeDayKey(todayArabicName)
+                    ? '1.5px solid #170e5e'
+                    : '1px solid #e2e8f0',
+                backgroundColor:
+                  dayFilter !== 'today' && dayFilter !== 'all' && normalizeDayKey(dayFilter) !== normalizeDayKey(todayArabicName)
+                    ? '#170e5e'
+                    : '#f8fafc',
+                color:
+                  dayFilter !== 'today' && dayFilter !== 'all' && normalizeDayKey(dayFilter) !== normalizeDayKey(todayArabicName)
+                    ? '#ffffff'
+                    : '#334155',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '3px',
+                height: '30px',
+              }}
+            >
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {dayFilter !== 'today' && dayFilter !== 'all' && normalizeDayKey(dayFilter) !== normalizeDayKey(todayArabicName)
+                  ? dayFilter
+                  : 'يوم...'}
+              </span>
+              <ChevronDownIcon size={11} style={{ flexShrink: 0 }} />
+            </button>
+
+            {dayDropdownOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: 0,
+                  width: '125px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                  zIndex: 100,
+                  overflow: 'hidden',
+                  padding: '4px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                }}
+              >
+                <div
+                  onClick={() => {
+                    setDayFilter('all');
+                    setDayDropdownOpen(false);
+                  }}
+                  style={{
+                    padding: '6px 8px',
+                    fontSize: '11px',
+                    fontWeight: dayFilter === 'all' ? 800 : 600,
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: dayFilter === 'all' ? '#170e5e' : '#334155',
+                    backgroundColor: dayFilter === 'all' ? '#eef2ff' : 'transparent',
+                  }}
+                >
+                  كافة الأيام
+                </div>
+                {arabicDayNames.map((d) => {
+                  const isCurrent = d === todayArabicName;
+                  const isSelected = dayFilter === d || (isCurrent && dayFilter === 'today');
+                  return (
+                    <div
+                      key={d}
+                      onClick={() => {
+                        if (isCurrent) {
+                          setDayFilter('today');
+                        } else {
+                          setDayFilter(d);
+                        }
+                        setDayDropdownOpen(false);
+                      }}
+                      style={{
+                        padding: '6px 8px',
+                        fontSize: '11px',
+                        fontWeight: isSelected ? 800 : 600,
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        color: isSelected ? '#170e5e' : '#334155',
+                        backgroundColor: isSelected ? '#eef2ff' : 'transparent',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span>يوم {d}</span>
+                      {isCurrent && (
+                        <span style={{ fontSize: '9px', color: '#16a34a', fontWeight: 800 }}>اليوم</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -407,45 +579,53 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
       </div>
 
       {/* Active filter badge / reset */}
-      {statusFilter !== 'all' && (
+      {(statusFilter !== 'all' || (dayFilter !== 'today' && dayFilter !== 'all')) && (
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             backgroundColor: '#f1f5f9',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            fontSize: '11.5px',
+            padding: '5px 10px',
+            borderRadius: '6px',
+            fontSize: '11px',
             color: '#334155',
             border: '1px solid #e2e8f0',
           }}
         >
           <span>
             تصفية نشطة:{' '}
-            <strong>
-              {statusFilter === 'pending'
-                ? 'المحلات المتبقية فقط'
-                : statusFilter === 'positive'
-                ? 'المحلات التي تم البيع لها'
-                : 'الزيارات السلبية'}
-            </strong>{' '}
+            {dayFilter !== 'today' && dayFilter !== 'all' && (
+              <strong style={{ color: '#170e5e', marginInlineEnd: '4px' }}>يوم {dayFilter}</strong>
+            )}
+            {statusFilter !== 'all' && (
+              <strong>
+                {statusFilter === 'pending'
+                  ? 'المحلات المتبقية فقط'
+                  : statusFilter === 'positive'
+                  ? 'المحلات التي تم البيع لها'
+                  : 'الزيارات السلبية'}
+              </strong>
+            )}{' '}
             ({filtered.length} محل)
           </span>
           <button
             type="button"
-            onClick={() => setStatusFilter('all')}
+            onClick={() => {
+              setStatusFilter('all');
+              setDayFilter('today');
+            }}
             style={{
               background: 'none',
               border: 'none',
               color: '#0284c7',
               cursor: 'pointer',
               fontWeight: 700,
-              fontSize: '11.5px',
+              fontSize: '11px',
               padding: 0,
             }}
           >
-            إلغاء التصفية وعرض الكل
+            إلغاء التصفية
           </button>
         </div>
       )}
@@ -526,6 +706,9 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
+                        lineHeight: 1.45,
+                        paddingBottom: '3px',
+                        paddingTop: '1px',
                       }}
                       title={item.customerName}
                     >
@@ -791,10 +974,11 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         <StandardDialog
           open={true}
           onClose={() => setNegativeModalOpen(false)}
-          title="تسجيل زيارة سلبية للمحل"
+          title="تسجيل زيارة غير موفقة"
           subtitle={`${activeCustomer.customerName} [${activeCustomer.customerCode}]`}
           badge="خط السير الميداني"
           width="min(460px, 95vw)"
+          compact={true}
           footerActions={
             <StandardDialogFooter
               onClose={() => setNegativeModalOpen(false)}
@@ -804,7 +988,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   variant="primary"
                   onClick={handleSubmitNegativeVisit}
                   disabled={isSubmitting}
-                  style={{ backgroundColor: '#dc2626', color: '#ffffff', fontSize: '12.5px', fontWeight: 800 }}
+                  style={{ backgroundColor: '#dc2626', color: '#ffffff', fontSize: '12px', fontWeight: 800, padding: '6px 14px' }}
                 >
                   {isSubmitting ? 'جاري الحفظ...' : 'تأكيد وحفظ الزيارة السلبية'}
                 </Button>
@@ -812,29 +996,63 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             />
           }
         >
-          <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                سبب عدم إتمام البيع:
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+                حدد سبب عدم إتمام البيع (لمسة واحدة):
               </label>
-              <CustomSelect
-                value={negativeReason}
-                onChange={(val) => setNegativeReason(val as any)}
-                options={[
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '6px',
+                }}
+              >
+                {[
                   { value: 'shop_closed', label: 'المحل مغلق' },
                   { value: 'no_cash', label: 'مفيش نقدية / رفض الدفع' },
                   { value: 'sufficient_stock', label: 'لديه بضاعة كافية' },
-                  { value: 'item_unavailable', label: 'الصنف المطلوب غير متوفر بالسيارة' },
+                  { value: 'item_unavailable', label: 'الصنف غير متوفر بالسيارة' },
                   { value: 'postponed', label: 'تأجيل الزيارة لموعد لاحق' },
                   { value: 'other', label: 'أسباب أخرى' },
-                ]}
-                placeholder="اختر سبب الزيارة السلبية"
-              />
+                ].map((item) => {
+                  const isSelected = negativeReason === item.value;
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => setNegativeReason(item.value as any)}
+                      style={{
+                        padding: '7px 8px',
+                        borderRadius: '7px',
+                        border: isSelected ? '1.5px solid #dc2626' : '1px solid #cbd5e1',
+                        backgroundColor: isSelected ? '#fef2f2' : '#ffffff',
+                        color: isSelected ? '#991b1b' : '#334155',
+                        fontSize: '11.5px',
+                        fontWeight: isSelected ? 800 : 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                        textAlign: 'center',
+                        lineHeight: 1.3,
+                        minHeight: '36px',
+                      }}
+                    >
+                      {isSelected && (
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#dc2626', display: 'inline-block' }} />
+                      )}
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {negativeReason === 'postponed' && (
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#1e40af', marginBottom: '4px' }}>
+              <div style={{ backgroundColor: '#eff6ff', padding: '8px 10px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#1e40af', marginBottom: '4px' }}>
                   تاريخ التأجيل المقترح:
                 </label>
                 <input
@@ -843,10 +1061,12 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   onChange={(e) => setPostponedDate(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
+                    height: '34px',
+                    padding: '0 8px',
+                    borderRadius: '6px',
                     border: '1.5px solid #93c5fd',
-                    fontSize: '12.5px',
+                    backgroundColor: '#ffffff',
+                    fontSize: '12px',
                     boxSizing: 'border-box',
                   }}
                 />
@@ -854,21 +1074,22 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             )}
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                ملاحظات المندوب الميدانية:
+              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
+                ملاحظات المندوب الميدانية (اختياري):
               </label>
               <textarea
                 value={negativeNotes}
                 onChange={(e) => setNegativeNotes(e.target.value)}
-                placeholder="أي ملاحظات إضافية حول سبب الزيارة..."
-                rows={3}
+                placeholder="أية ملاحظات إضافية حول سبب الزيارة..."
+                rows={2}
                 style={{
                   width: '100%',
-                  padding: '8px 10px',
-                  borderRadius: '8px',
+                  padding: '6px 8px',
+                  borderRadius: '6px',
                   border: '1px solid #cbd5e1',
-                  fontSize: '12.5px',
+                  fontSize: '11.5px',
                   boxSizing: 'border-box',
+                  resize: 'none',
                 }}
               />
             </div>
@@ -876,17 +1097,17 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             <div
               style={{
                 backgroundColor: '#f8fafc',
-                padding: '8px 12px',
-                borderRadius: '8px',
+                padding: '6px 10px',
+                borderRadius: '6px',
                 border: '1px solid #e2e8f0',
-                fontSize: '11px',
+                fontSize: '10.5px',
                 color: '#64748b',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '5px',
               }}
             >
-              <MapPinIcon size={14} color="#0284c7" />
+              <MapPinIcon size={13} color="#0284c7" />
               <span>سيتم التقاط إحداثيات الموقع الجغرافي (GPS) تلقائياً لتوثيق وصول المندوب للمحل.</span>
             </div>
           </div>

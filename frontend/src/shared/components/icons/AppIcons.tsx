@@ -702,10 +702,13 @@ export function QrCodeIcon({ size = 18, color = 'currentColor', strokeWidth = 2,
       <rect x="3" y="3" width="7" height="7" rx="1" />
       <rect x="14" y="3" width="7" height="7" rx="1" />
       <rect x="3" y="14" width="7" height="7" rx="1" />
-      <path d="M14 14h2v2h-2z" />
-      <path d="M19 14h2v2h-2z" />
-      <path d="M14 19h2v2h-2z" />
-      <path d="M19 19h2v2h-2z" />
+      <rect x="5.5" y="5.5" width="2" height="2" fill={color} stroke="none" />
+      <rect x="16.5" y="5.5" width="2" height="2" fill={color} stroke="none" />
+      <rect x="5.5" y="16.5" width="2" height="2" fill={color} stroke="none" />
+      <rect x="14" y="14" width="2.5" height="2.5" fill={color} stroke="none" />
+      <rect x="18.5" y="14" width="2.5" height="2.5" fill={color} stroke="none" />
+      <rect x="14" y="18.5" width="2.5" height="2.5" fill={color} stroke="none" />
+      <rect x="18.5" y="18.5" width="2.5" height="2.5" fill={color} stroke="none" />
     </svg>
   );
 }

@@ -3,11 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Button } from '@/shared/ui/button';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
+import { deliveryRepsApi, DeliveryRep } from '@/shared/api/delivery-reps.api';
 import {
   vanSalesApi,
   SupervisorRouteKpiSummary,
   InterVanTransferRecord,
+  SupervisorCustomerRouteItem,
 } from '../api/van-sales.api';
 import {
   TruckIcon,
@@ -18,6 +21,11 @@ import {
   SlidersIcon,
   EditIcon,
   RefreshCwIcon,
+  CheckCircleIcon,
+  SearchIcon,
+  PhoneIcon,
+  UsersIcon,
+  CheckIcon,
 } from '@/shared/components/icons/AppIcons';
 
 const WEEKDAYS = [
@@ -44,13 +52,6 @@ export function VanRoutesKpiAdminTab() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [activeSection, setActiveSection] = useState<'transfers' | 'visits' | 'scheduling'>('transfers');
-
-  // Customer Route Edit Modal State
-  const [editingCustomer, setEditingCustomer] = useState<any | null>(null);
-  const [routeInput, setRouteInput] = useState('');
-  const [sequenceInput, setSequenceInput] = useState('1');
-  const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  const [customerSearch, setCustomerSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // 1. Supervisor KPIs Query
@@ -74,6 +75,47 @@ export function VanRoutesKpiAdminTab() {
     refetchInterval: 25000,
   });
 
+  // 4. Van Delivery Representatives Query
+  const { data: allReps = [] } = useQuery<DeliveryRep[]>({
+    queryKey: ['delivery-reps'],
+    queryFn: () => deliveryRepsApi.list(),
+  });
+
+  const vanReps = useMemo(() => {
+    return allReps.filter((r) => r.is_active && (r.is_van_rep || r.rep_type === 'van' || r.rep_type === 'both' || !r.rep_type));
+  }, [allReps]);
+
+  // Section 3: Route & Rep Scheduling Filters & Data
+  const [repFilter, setRepFilter] = useState<'all' | 'unassigned' | string>('all');
+  const [routeFilter, setRouteFilter] = useState<'all' | string>('all');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<number[]>([]);
+
+  // 5. Supervisor Customer Routes Query (Full Customer Base from Dedicated API)
+  const {
+    data: customerRoutes = [],
+    isLoading: isRoutesLoading,
+    refetch: refetchCustomerRoutes,
+  } = useQuery<SupervisorCustomerRouteItem[]>({
+    queryKey: ['van-supervisor-customer-routes', customerSearch, repFilter, routeFilter],
+    queryFn: () =>
+      vanSalesApi.getSupervisorCustomerRoutes({
+        search: customerSearch.trim() || undefined,
+        repId: repFilter !== 'all' ? repFilter : undefined,
+        route: routeFilter !== 'all' ? routeFilter : undefined,
+        unassignedOnly: repFilter === 'unassigned',
+      }),
+    staleTime: 30000,
+  });
+
+  const availableRoutes = useMemo(() => {
+    const set = new Set<string>();
+    customerRoutes.forEach((c) => {
+      if (c.route && c.route !== 'غير محدد') set.add(c.route);
+    });
+    return Array.from(set).sort();
+  }, [customerRoutes]);
+
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -81,9 +123,12 @@ export function VanRoutesKpiAdminTab() {
         queryClient.invalidateQueries({ queryKey: ['van-supervisor-kpis'] }),
         queryClient.invalidateQueries({ queryKey: ['van-admin-transfers'] }),
         queryClient.invalidateQueries({ queryKey: ['van-admin-field-visits'] }),
+        queryClient.invalidateQueries({ queryKey: ['van-supervisor-customer-routes'] }),
+        queryClient.invalidateQueries({ queryKey: ['delivery-reps'] }),
         refetchKpis(),
         refetchTransfers(),
         refetchVisits(),
+        refetchCustomerRoutes(),
       ]);
       await new Promise((r) => setTimeout(r, 450));
       toast.success('تم تحديث بيانات خطوط السير والرقابة بنجاح');
@@ -94,34 +139,94 @@ export function VanRoutesKpiAdminTab() {
     }
   };
 
-  // Schedule mutation
+  // Single Customer Route & Rep Edit Modal State
+  const [editingCustomer, setEditingCustomer] = useState<SupervisorCustomerRouteItem | null>(null);
+  const [routeInput, setRouteInput] = useState('');
+  const [sequenceInput, setSequenceInput] = useState('1');
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [assignedRepId, setAssignedRepId] = useState<string>('');
+
   const scheduleMutation = useMutation({
-    mutationFn: (payload: { customerId: number; route: string; routeSequence: number; visitDays: string[] }) =>
-      vanSalesApi.setCustomerRouteSchedule(payload.customerId, {
-        route: payload.route,
-        routeSequence: payload.routeSequence,
-        visitDays: payload.visitDays,
-      }),
+    mutationFn: (payload: {
+      customerId: number;
+      route: string;
+      routeSequence: number;
+      visitDays: string[];
+      assignedRepId?: number | null;
+      assignedRepName?: string;
+    }) => vanSalesApi.setCustomerRouteSchedule(payload.customerId, payload),
     onSuccess: () => {
-      toast.success('تم تحديث وتثبيت خط سير العميل بنجاح');
+      toast.success('تم تحديث وتخصيص خط سير العميل بنجاح');
       setEditingCustomer(null);
-      queryClient.invalidateQueries({ queryKey: ['van-admin-field-visits'] });
+      queryClient.invalidateQueries({ queryKey: ['van-supervisor-customer-routes'] });
+      queryClient.invalidateQueries({ queryKey: ['van-supervisor-kpis'] });
       queryClient.invalidateQueries({ queryKey: ['driver-itinerary'] });
+      queryClient.invalidateQueries({ queryKey: ['van-admin-field-visits'] });
     },
     onError: (err: any) => {
       toast.error(err?.message || 'فشل تحديث خط سير العميل');
     },
   });
 
-  const openScheduleModal = (customer: any) => {
+  const openScheduleModal = (customer: SupervisorCustomerRouteItem) => {
     setEditingCustomer(customer);
-    setRouteInput(customer.route || 'خط رئيسي');
+    setRouteInput(customer.route === 'غير محدد' ? '' : customer.route);
     setSequenceInput(String(customer.routeSequence || 1));
-    setSelectedDays(Array.isArray(customer.visitDays) ? customer.visitDays : ['saturday', 'monday', 'wednesday']);
+    setSelectedDays(Array.isArray(customer.visitDays) && customer.visitDays.length > 0 ? customer.visitDays : ['saturday', 'monday', 'wednesday']);
+    setAssignedRepId(customer.assignedRepId ? String(customer.assignedRepId) : '');
   };
 
   const handleToggleDay = (dayId: string) => {
     setSelectedDays((prev) => (prev.includes(dayId) ? prev.filter((d) => d !== dayId) : [...prev, dayId]));
+  };
+
+  // Bulk Customer Assignment Modal State & Mutation
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkRepId, setBulkRepId] = useState<string>('no_change');
+  const [bulkRouteInput, setBulkRouteInput] = useState<string>('');
+  const [bulkVisitDays, setBulkVisitDays] = useState<string[]>(['saturday', 'monday', 'wednesday']);
+  const [bulkApplyDays, setBulkApplyDays] = useState<boolean>(false);
+
+  const bulkAssignMutation = useMutation({
+    mutationFn: (payload: {
+      customerIds: number[];
+      assignedRepId?: number | null;
+      assignedRepName?: string;
+      route?: string;
+      visitDays?: string[];
+    }) => vanSalesApi.bulkAssignCustomerRoutes(payload),
+    onSuccess: (res) => {
+      toast.success(`تم التخصيص الجماعي بنجاح لـ (${res.updatedCount}) متجر/عميل!`);
+      setBulkModalOpen(false);
+      setSelectedCustomerIds([]);
+      queryClient.invalidateQueries({ queryKey: ['van-supervisor-customer-routes'] });
+      queryClient.invalidateQueries({ queryKey: ['van-supervisor-kpis'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-itinerary'] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'فشل التخصيص الجماعي للمحلات');
+    },
+  });
+
+  const handleToggleBulkDay = (dayId: string) => {
+    setBulkVisitDays((prev) => (prev.includes(dayId) ? prev.filter((d) => d !== dayId) : [...prev, dayId]));
+  };
+
+  // Selection helpers
+  const isAllSelected = customerRoutes.length > 0 && selectedCustomerIds.length === customerRoutes.length;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedCustomerIds([]);
+    } else {
+      setSelectedCustomerIds(customerRoutes.map((c) => c.customerId));
+    }
+  };
+
+  const toggleSelectCustomer = (customerId: number) => {
+    setSelectedCustomerIds((prev) =>
+      prev.includes(customerId) ? prev.filter((id) => id !== customerId) : [...prev, customerId],
+    );
   };
 
   // Repeated negative visits (3+)
@@ -129,33 +234,40 @@ export function VanRoutesKpiAdminTab() {
     return fieldVisits.filter((v) => v.consecutiveNegativeCount >= 3 || v.hasRepeatedNegativeAlert);
   }, [fieldVisits]);
 
-  // Unique customers for scheduling section
-  const customersList = useMemo(() => {
-    const map = new Map<number, any>();
-    fieldVisits.forEach((v) => {
-      if (v.customerId && !map.has(v.customerId)) {
-        map.set(v.customerId, {
-          customerId: v.customerId,
-          customerName: v.customerName,
-          customerCode: v.customerCode || `CUST-${v.customerId}`,
-          customerPhone: v.customerPhone,
-          route: v.route || 'غير محدد',
-          routeSequence: v.routeSequence || 1,
-          visitDays: v.visitDays || [],
-          locationUrl: v.locationUrl,
-        });
-      }
-    });
-    return Array.from(map.values()).filter((c) => {
-      if (!customerSearch.trim()) return true;
-      const q = customerSearch.toLowerCase();
-      return (
-        c.customerName.toLowerCase().includes(q) ||
-        c.customerCode.toLowerCase().includes(q) ||
-        (c.route && c.route.toLowerCase().includes(q))
-      );
-    });
-  }, [fieldVisits, customerSearch]);
+  // Dropdown options for supervisor filters and assignment modals
+  const repFilterOptions = useMemo(() => [
+    { value: 'all', label: 'جميع المناديب' },
+    { value: 'unassigned', label: 'المتاجر غير المخصصة لمندوب' },
+    ...vanReps.map((r) => ({
+      value: String(r.id),
+      label: `${r.name}${r.phone ? ` (${r.phone})` : ''}`,
+    })),
+  ], [vanReps]);
+
+  const routeFilterOptions = useMemo(() => [
+    { value: 'all', label: 'جميع خطوط السير' },
+    ...availableRoutes.map((r) => ({
+      value: r,
+      label: r,
+    })),
+  ], [availableRoutes]);
+
+  const singleRepOptions = useMemo(() => [
+    { value: '', label: '— بدون مندوب (غير مخصص) —' },
+    ...vanReps.map((r) => ({
+      value: String(r.id),
+      label: `${r.name}${r.phone ? ` (${r.phone})` : ''}`,
+    })),
+  ], [vanReps]);
+
+  const bulkRepOptions = useMemo(() => [
+    { value: 'no_change', label: '— الإبقاء على المندوب الحالي لكل متجر (بدون تغيير) —' },
+    { value: 'unassigned', label: 'إلغاء التخصيص (تفريغ المندوب من المحلات المختارة)' },
+    ...vanReps.map((r) => ({
+      value: String(r.id),
+      label: `${r.name}${r.phone ? ` (${r.phone})` : ''}`,
+    })),
+  ], [vanReps]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
@@ -443,7 +555,7 @@ export function VanRoutesKpiAdminTab() {
           }}
         >
           <SlidersIcon size={14} />
-          تحديد وجدولة خطوط سير العملاء
+          تخصيص خطوط السير والمناديب ({customerRoutes.length})
         </button>
       </div>
 
@@ -713,7 +825,7 @@ export function VanRoutesKpiAdminTab() {
         </div>
       )}
 
-      {/* SECTION 3: Customer Route Scheduling */}
+      {/* SECTION 3: Customer Route Scheduling & Rep Assignment */}
       {activeSection === 'scheduling' && (
         <div
           style={{
@@ -724,139 +836,371 @@ export function VanRoutesKpiAdminTab() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
+          {/* Header */}
           <div
             style={{
-              padding: '14px 18px',
+              padding: '16px 20px',
               borderBottom: '1px solid #f1f5f9',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '10px',
+              gap: '12px',
             }}
           >
             <div>
-              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                جدولة وتثبيت خطوط سير المحلات والعملاء
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                تخصيص خطوط السير والمناديب للمتاجر والعملاء
               </h3>
-              <p style={{ margin: '3px 0 0', fontSize: '11.5px', color: '#64748b' }}>
-                تحديد مسار الزيارة (Route)، وترتيب المحل في مسار السيارة، والأيام المفضلة أسبوعياً
+              <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
+                توزيع محلات التوزيع على مناديب الفان، تثبيت مسارات وخطوط السير، تسلسل الزيارة، وأيام التغطية الأسبوعية
               </p>
             </div>
-            <div style={{ width: '240px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  padding: '5px 12px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                }}
+              >
+                إجمالي المتاجر: {customerRoutes.length}
+              </span>
+            </div>
+          </div>
+
+          {/* Supervisor Filters Strip */}
+          <div
+            style={{
+              padding: '12px 20px',
+              background: '#f8fafc',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            {/* Search Input */}
+            <div style={{ flex: '1 1 240px', minWidth: '200px', position: 'relative' }}>
               <input
                 type="text"
-                placeholder="بحث بالاسم أو الخط أو الكود..."
+                placeholder="بحث باسم المحل، الكود، الهاتف، أو خط السير..."
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '6px 12px',
+                  padding: '7px 12px 7px 32px',
                   borderRadius: '8px',
                   border: '1px solid #cbd5e1',
-                  fontSize: '12px',
+                  fontSize: '12.5px',
                   boxSizing: 'border-box',
+                  background: '#ffffff',
                 }}
               />
+              <span
+                style={{
+                  position: 'absolute',
+                  left: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                  color: '#94a3b8',
+                }}
+              >
+                <SearchIcon size={14} />
+              </span>
             </div>
+
+            {/* Rep Filter */}
+            <div style={{ flex: '0 1 220px', minWidth: '180px' }}>
+              <CustomSelect
+                value={repFilter}
+                onChange={(val) => setRepFilter(val as any)}
+                options={repFilterOptions}
+                placeholder="فلترة بالمندوب..."
+              />
+            </div>
+
+            {/* Route Filter */}
+            <div style={{ flex: '0 1 200px', minWidth: '160px' }}>
+              <CustomSelect
+                value={routeFilter}
+                onChange={(val) => setRouteFilter(val as any)}
+                options={routeFilterOptions}
+                placeholder="فلترة بالخط..."
+              />
+            </div>
+
+            {/* Clear Filters Button (if active) */}
+            {(customerSearch || repFilter !== 'all' || routeFilter !== 'all') && (
+              <Button
+                variant="secondary"
+                style={{ fontSize: '11.5px', padding: '6px 12px' }}
+                onClick={() => {
+                  setCustomerSearch('');
+                  setRepFilter('all');
+                  setRouteFilter('all');
+                }}
+              >
+                إعادة ضبط الفلاتر
+              </Button>
+            )}
           </div>
 
-          {customersList.length === 0 ? (
-            <div style={{ padding: '50px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-              لا توجد بيانات محلات مطابقة.
+          {/* Bulk Selection Action Bar */}
+          {selectedCustomerIds.length > 0 && (
+            <div
+              style={{
+                padding: '10px 20px',
+                background: '#eef2ff',
+                borderBottom: '1px solid #c7d2fe',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '10px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckCircleIcon size={16} color="#3730a3" />
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#312e81' }}>
+                  تم تحديد {selectedCustomerIds.length} متجر / عميل
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Button
+                  variant="primary"
+                  style={{
+                    backgroundColor: '#170e5e',
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    padding: '6px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: 700,
+                  }}
+                  onClick={() => {
+                    setBulkRepId('no_change');
+                    setBulkRouteInput('');
+                    setBulkApplyDays(false);
+                    setBulkVisitDays(['saturday', 'monday', 'wednesday']);
+                    setBulkModalOpen(true);
+                  }}
+                >
+                  <SlidersIcon size={13} />
+                  تخصيص جماعي للمندوب والخط ({selectedCustomerIds.length})
+                </Button>
+                <Button
+                  variant="secondary"
+                  style={{ fontSize: '12px', padding: '6px 12px' }}
+                  onClick={() => setSelectedCustomerIds([])}
+                >
+                  إلغاء التحديد
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Table */}
+          {isRoutesLoading ? (
+            <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+              <RefreshCwIcon size={20} className="spin-animation" style={{ margin: '0 auto 10px', display: 'block' }} />
+              جارٍ تحميل قائمة المحلات وبيانات التخصيص...
+            </div>
+          ) : customerRoutes.length === 0 ? (
+            <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+              لا توجد متاجر مطابقة لمعايير البحث والفلترة.
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>كود المحل</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>اسم المحل / العميل</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>خط السير الحالي</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الترتيب في الخط</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>أيام الزيارة الأسبوعية</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customersList.map((c) => (
-                  <tr key={c.customerId} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: '#64748b' }}>
-                      {c.customerCode}
-                    </td>
-                    <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0f172a' }}>
-                      {c.customerName}
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                    <th style={{ padding: '10px 14px', width: '38px', textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={toggleSelectAll}
+                        title="تحديد الكل"
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, width: '90px' }}>كود المحل</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, minWidth: '170px' }}>اسم المحل / العميل</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, minWidth: '150px' }}>المندوب المسؤول</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, minWidth: '130px' }}>خط السير</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center', width: '90px' }}>الترتيب</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, minWidth: '160px' }}>أيام الزيارة الأسبوعية</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'left', minWidth: '100px' }}>رصيد المديونية</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center', width: '110px' }}>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customerRoutes.map((c) => {
+                    const isSelected = selectedCustomerIds.includes(c.customerId);
+                    return (
+                      <tr
+                        key={c.customerId}
                         style={{
-                          background: '#f1f5f9',
-                          color: '#334155',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          fontWeight: 700,
-                          fontSize: '11px',
+                          borderBottom: '1px solid #f1f5f9',
+                          backgroundColor: isSelected ? '#f8fafc' : 'transparent',
+                          transition: 'background-color 0.15s ease',
                         }}
                       >
-                        {c.route}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 800, color: '#170e5e' }}>
-                      #{c.routeSequence}
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        {c.visitDays && c.visitDays.length > 0 ? (
-                          c.visitDays.map((d: string) => {
-                            const found = WEEKDAYS.find((w) => w.id === d);
-                            return (
-                              <span
-                                key={d}
-                                style={{
-                                  background: '#e0e7ff',
-                                  color: '#3730a3',
-                                  padding: '1px 6px',
-                                  borderRadius: '4px',
-                                  fontSize: '10.5px',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {found?.label || d}
-                              </span>
-                            );
-                          })
-                        ) : (
-                          <span style={{ color: '#94a3b8', fontSize: '11px' }}>يومياً / غير محدد</span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                      <Button
-                        variant="secondary"
-                        style={{ fontSize: '11px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                        onClick={() => openScheduleModal(c)}
-                      >
-                        <EditIcon size={12} />
-                        تعديل الخط
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectCustomer(c.customerId)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </td>
+                        <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: '#64748b' }}>
+                          {c.customerCode || `#${c.customerId}`}
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px' }}>
+                            {c.customerName}
+                          </div>
+                          {(c.customerPhone || c.customerAddress) && (
+                            <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', gap: '8px', marginTop: '2px', alignItems: 'center' }}>
+                              {c.customerPhone && <span>{c.customerPhone}</span>}
+                              {c.customerPhone && c.customerAddress && <span>•</span>}
+                              {c.customerAddress && <span>{c.customerAddress}</span>}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          {c.assignedRepName ? (
+                            <span
+                              style={{
+                                background: '#e0f2fe',
+                                color: '#0369a1',
+                                padding: '3px 8px',
+                                borderRadius: '6px',
+                                fontWeight: 700,
+                                fontSize: '11.5px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <TruckIcon size={12} />
+                              {c.assignedRepName}
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                background: '#fef3c7',
+                                color: '#92400e',
+                                padding: '3px 8px',
+                                borderRadius: '6px',
+                                fontWeight: 600,
+                                fontSize: '11px',
+                              }}
+                            >
+                              غير مخصص لمندوب
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <span
+                            style={{
+                              background: '#f1f5f9',
+                              color: '#334155',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontWeight: 700,
+                              fontSize: '11.5px',
+                            }}
+                          >
+                            {c.route || 'غير محدد'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 800, color: '#170e5e' }}>
+                          #{c.routeSequence || 1}
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {Array.isArray(c.visitDays) && c.visitDays.length > 0 ? (
+                              c.visitDays.map((d: string) => {
+                                const found = WEEKDAYS.find((w) => w.id === d);
+                                return (
+                                  <span
+                                    key={d}
+                                    style={{
+                                      background: '#e0e7ff',
+                                      color: '#3730a3',
+                                      padding: '1px 6px',
+                                      borderRadius: '4px',
+                                      fontSize: '10.5px',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {found?.label || d}
+                                  </span>
+                                );
+                              })
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontSize: '11px' }}>يومياً / غير محدد</span>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: Number(c.balance || 0) > 0 ? '#b91c1c' : '#15803d' }}>
+                          {Number(c.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <CurrencySymbol />
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                          <Button
+                            variant="secondary"
+                            style={{ fontSize: '11px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            onClick={() => openScheduleModal(c)}
+                          >
+                            <EditIcon size={12} />
+                            تعديل التخصيص
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
 
-      {/* Edit Customer Route Modal */}
+      {/* Edit Customer Route & Rep Modal */}
       {editingCustomer && (
         <StandardDialog
           open={Boolean(editingCustomer)}
           onClose={() => setEditingCustomer(null)}
-          title={`تخصيص خط سير: ${editingCustomer.customerName}`}
-          subtitle={`كود المحل: ${editingCustomer.customerCode}`}
-          maxWidth="480px"
+          title={`تخصيص خط ومندوب: ${editingCustomer.customerName}`}
+          subtitle={`كود المحل: ${editingCustomer.customerCode || `#${editingCustomer.customerId}`}`}
+          maxWidth="520px"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
+            {/* Assigned Rep Selector */}
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                مندوب الفان المسؤول (Assigned Rep):
+              </label>
+              <CustomSelect
+                value={assignedRepId}
+                onChange={(val) => setAssignedRepId(val)}
+                options={singleRepOptions}
+                placeholder="اختر مندوب الفان المسؤول عن المتجر..."
+              />
+              <small style={{ color: '#64748b', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                عند تخصيص مندوب، سيظهر هذا المحل حصرياً في خطة زيارات وتطبيق هذا المندوب.
+              </small>
+            </div>
+
+            {/* Route Name */}
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                 اسم خط السير (Route Name) <span style={{ color: '#dc2626' }}>*</span>
@@ -877,6 +1221,7 @@ export function VanRoutesKpiAdminTab() {
               />
             </div>
 
+            {/* Sequence in Route */}
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                 الترتيب التسلسلي للزيارة في مسار السيارة
@@ -900,6 +1245,7 @@ export function VanRoutesKpiAdminTab() {
               </small>
             </div>
 
+            {/* Weekly Visit Days */}
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                 أيام الزيارة الأسبوعية المحددة:
@@ -913,7 +1259,7 @@ export function VanRoutesKpiAdminTab() {
                       type="button"
                       onClick={() => handleToggleDay(w.id)}
                       style={{
-                        padding: '6px',
+                        padding: '7px 4px',
                         borderRadius: '6px',
                         border: isChecked ? '1px solid #170e5e' : '1px solid #cbd5e1',
                         background: isChecked ? '#170e5e' : '#f8fafc',
@@ -921,8 +1267,13 @@ export function VanRoutesKpiAdminTab() {
                         fontSize: '12px',
                         fontWeight: 700,
                         cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
                       }}
                     >
+                      {isChecked && <CheckIcon size={12} />}
                       {w.label}
                     </button>
                   );
@@ -938,20 +1289,168 @@ export function VanRoutesKpiAdminTab() {
                 variant="primary"
                 disabled={scheduleMutation.isPending}
                 onClick={() => {
-                  if (!routeInput.trim()) {
-                    toast.warning('يرجى تحديد اسم خط السير');
-                    return;
-                  }
+                  const repObj = vanReps.find((r) => String(r.id) === assignedRepId);
+                  const repName = repObj ? repObj.name : undefined;
+                  const repIdNum = assignedRepId ? parseInt(assignedRepId, 10) : null;
+
                   scheduleMutation.mutate({
                     customerId: editingCustomer.customerId,
-                    route: routeInput.trim(),
+                    route: routeInput.trim() || 'غير محدد',
                     routeSequence: parseInt(sequenceInput, 10) || 1,
                     visitDays: selectedDays,
+                    assignedRepId: repIdNum,
+                    assignedRepName: repName,
                   });
                 }}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                {scheduleMutation.isPending ? 'جاري الحفظ...' : 'حفظ خط السير'}
+                {scheduleMutation.isPending ? 'جاري الحفظ...' : 'حفظ التخصيص'}
+              </Button>
+            </div>
+          </div>
+        </StandardDialog>
+      )}
+
+      {/* Bulk Customer Assignment Modal */}
+      {bulkModalOpen && (
+        <StandardDialog
+          open={bulkModalOpen}
+          onClose={() => setBulkModalOpen(false)}
+          title="تخصيص جماعي لخطوط السير والمناديب"
+          subtitle={`تعديل موحد لـ (${selectedCustomerIds.length}) متجر تم تحديدهم`}
+          maxWidth="540px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                fontSize: '12px',
+                color: '#475569',
+                lineHeight: 1.5,
+              }}
+            >
+              سيتم تطبيق التعديلات المحددة أدناه على كافة المحلات المختارة ({selectedCustomerIds.length} متجر) دفعة واحدة.
+              الحقول التي تترك دون تغيير ستحتفظ بقيمها الحالية في كل محل.
+            </div>
+
+            {/* Bulk Assigned Rep */}
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                تخصيص مندوب الفان المسؤول:
+              </label>
+              <CustomSelect
+                value={bulkRepId}
+                onChange={(val) => setBulkRepId(val)}
+                options={bulkRepOptions}
+                placeholder="اختر الإجراء للمندوب..."
+              />
+            </div>
+
+            {/* Bulk Route Input */}
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                توحيد اسم خط السير (اختياري):
+              </label>
+              <input
+                type="text"
+                placeholder="اترك فارغاً للإبقاء على خط السير الحالي لكل متجر..."
+                value={bulkRouteInput}
+                onChange={(e) => setBulkRouteInput(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {/* Bulk Weekly Visit Days Override */}
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={bulkApplyDays}
+                  onChange={(e) => setBulkApplyDays(e.target.checked)}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>
+                  تطبيق أيام زيارة موحدة على المحلات المختارة
+                </span>
+              </label>
+
+              {bulkApplyDays && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '6px' }}>
+                  {WEEKDAYS.map((w) => {
+                    const isChecked = bulkVisitDays.includes(w.id);
+                    return (
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => handleToggleBulkDay(w.id)}
+                        style={{
+                          padding: '7px 4px',
+                          borderRadius: '6px',
+                          border: isChecked ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                          background: isChecked ? '#170e5e' : '#f8fafc',
+                          color: isChecked ? '#ffffff' : '#334155',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        {isChecked && <CheckIcon size={12} />}
+                        {w.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+              <Button variant="secondary" onClick={() => setBulkModalOpen(false)}>
+                إلغاء
+              </Button>
+              <Button
+                variant="primary"
+                disabled={bulkAssignMutation.isPending}
+                onClick={() => {
+                  let repId: number | null | undefined = undefined;
+                  let repName: string | undefined = undefined;
+
+                  if (bulkRepId === 'unassigned') {
+                    repId = null;
+                    repName = '';
+                  } else if (bulkRepId !== 'no_change') {
+                    const found = vanReps.find((r) => String(r.id) === bulkRepId);
+                    if (found) {
+                      repId = found.id;
+                      repName = found.name;
+                    }
+                  }
+
+                  bulkAssignMutation.mutate({
+                    customerIds: selectedCustomerIds,
+                    assignedRepId: repId,
+                    assignedRepName: repName,
+                    route: bulkRouteInput.trim() ? bulkRouteInput.trim() : undefined,
+                    visitDays: bulkApplyDays ? bulkVisitDays : undefined,
+                  });
+                }}
+                style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
+              >
+                {bulkAssignMutation.isPending ? 'جاري التنفيذ...' : `تطبيق على (${selectedCustomerIds.length}) متجر`}
               </Button>
             </div>
           </div>

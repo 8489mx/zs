@@ -135,66 +135,94 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="التحويل بين سيارتين بالميدان (مناقلة بضاعة)"
-      subtitle="تحويل بضاعة لحظي بين المناديب في الشارع بموافقة الطرفين"
-      badge="تحويل ميداني"
-      width="min(560px, 95vw)"
+      title="مناقلة بضاعة بين سيارتين بالميدان"
+      subtitle="تحويل بضاعة فوري بين المناديب في الشارع بموافقة الطرفين"
+      compact
+      minHeight="auto"
+      width="min(480px, 94vw)"
       footerActions={
-        <Button variant="secondary" onClick={onClose}>
+        <Button variant="secondary" onClick={onClose} style={{ height: '34px', fontSize: '12px' }}>
           إغلاق
         </Button>
       }
     >
-      <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* Tab Buttons */}
-        <div style={{ display: 'flex', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px', fontSize: '12px' }}>
+      <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* Tab Buttons (3 in 1 Row without cut-off) */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#f1f5f9',
+            padding: '3px',
+            borderRadius: '8px',
+            gap: '4px',
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
           <button
             type="button"
             onClick={() => setActiveTab('incoming')}
             style={{
-              flex: 1,
-              padding: '6px 8px',
+              flex: '1 1 0',
+              minWidth: 0,
+              padding: '6px 4px',
               border: 'none',
               borderRadius: '6px',
               backgroundColor: activeTab === 'incoming' ? '#ffffff' : 'transparent',
               color: activeTab === 'incoming' ? '#170e5e' : '#64748b',
-              fontWeight: 600,
+              fontWeight: 800,
+              fontSize: '11.5px',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+              boxShadow: activeTab === 'incoming' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            التحويلات الواردة {incomingPending.length > 0 && `(${incomingPending.length})`}
+            الواردة {incomingPending.length > 0 ? `(${incomingPending.length})` : ''}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('create')}
             style={{
-              flex: 1,
-              padding: '6px 8px',
+              flex: '1 1 0',
+              minWidth: 0,
+              padding: '6px 4px',
               border: 'none',
               borderRadius: '6px',
               backgroundColor: activeTab === 'create' ? '#ffffff' : 'transparent',
               color: activeTab === 'create' ? '#170e5e' : '#64748b',
-              fontWeight: 600,
+              fontWeight: 800,
+              fontSize: '11.5px',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+              boxShadow: activeTab === 'create' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            + تحويل جديد لسيارة أخرى
+            + تحويل جديد
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('history')}
             style={{
-              flex: 1,
-              padding: '6px 8px',
+              flex: '1 1 0',
+              minWidth: 0,
+              padding: '6px 4px',
               border: 'none',
               borderRadius: '6px',
               backgroundColor: activeTab === 'history' ? '#ffffff' : 'transparent',
               color: activeTab === 'history' ? '#170e5e' : '#64748b',
-              fontWeight: 600,
+              fontWeight: 800,
+              fontSize: '11.5px',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+              boxShadow: activeTab === 'history' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            السجل الأخير ({transfers.length})
+            السجل ({transfers.length})
           </button>
         </div>
 
@@ -313,8 +341,8 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
             </div>
 
             {/* Product & Qty Picker */}
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
                   الصنف من سيارتك:
                 </label>
@@ -334,28 +362,46 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
                 />
               </div>
 
-              <div style={{ width: '90px' }}>
-                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
-                  الكمية:
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={transferQty}
-                  onChange={(e) => setTransferQty(e.target.value)}
-                  placeholder="الكمية"
-                  style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', boxSizing: 'border-box' }}
-                />
-              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
+                    الكمية المحولة:
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={transferQty}
+                    onChange={(e) => setTransferQty(e.target.value)}
+                    placeholder="الكمية..."
+                    style={{
+                      width: '100%',
+                      height: '36px',
+                      padding: '0 10px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
 
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleAddItem}
-                style={{ height: '34px', fontSize: '12px', fontWeight: 700 }}
-              >
-                + إضافة
-              </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleAddItem}
+                  style={{
+                    height: '36px',
+                    padding: '0 14px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    backgroundColor: '#f1f5f9',
+                  }}
+                >
+                  + إضافة الصنف
+                </Button>
+              </div>
             </div>
 
             {/* Items List */}

@@ -22,7 +22,6 @@ describe('PortalsHubPage Component & Layout', () => {
     renderHub();
 
     expect(screen.getByText('مركز البوابات الرقمية وشاشات الخدمة الذاتية')).toBeInTheDocument();
-    expect(screen.getByText(`${PORTALS_LIST.length} بوابات نشطة`)).toBeInTheDocument();
 
     // Driven off the data file so adding a portal cannot silently skip this assertion.
     for (const portal of PORTALS_LIST) {

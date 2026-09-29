@@ -200,28 +200,44 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
         backgroundColor: '#ffffff',
         borderRadius: '14px',
         border: '1px solid #e2e8f0',
-        padding: '16px',
+        padding: '14px 14px 28px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '14px',
+        gap: '12px',
       }}
       dir="rtl"
     >
-      {/* Sub-Tabs: Collection vs Return */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
+      {/* Sub-Tabs: Collection vs Return (1 Horizontal Row) */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '10px',
+          gap: '6px',
+          width: '100%',
+          boxSizing: 'border-box',
+        }}
+      >
         <button
           type="button"
           onClick={() => { setSubMode('collection'); setReturnResult(null); }}
           style={{
-            padding: '8px 12px',
+            flex: '1 1 0',
+            minWidth: 0,
+            padding: '8px 8px',
             borderRadius: '8px',
             border: 'none',
             cursor: 'pointer',
             backgroundColor: subMode === 'collection' ? '#ffffff' : 'transparent',
             color: subMode === 'collection' ? '#170e5e' : '#64748b',
-            fontWeight: 700,
+            fontWeight: 800,
             fontSize: '12.5px',
             boxShadow: subMode === 'collection' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+            whiteSpace: 'nowrap',
+            textAlign: 'center',
           }}
         >
           سند تحصيل نقدية
@@ -230,24 +246,28 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
           type="button"
           onClick={() => { setSubMode('return'); setReturnResult(null); }}
           style={{
-            padding: '8px 12px',
+            flex: '1 1 0',
+            minWidth: 0,
+            padding: '8px 8px',
             borderRadius: '8px',
             border: 'none',
             cursor: 'pointer',
             backgroundColor: subMode === 'return' ? '#ffffff' : 'transparent',
             color: subMode === 'return' ? '#170e5e' : '#64748b',
-            fontWeight: 700,
+            fontWeight: 800,
             fontSize: '12.5px',
             boxShadow: subMode === 'return' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+            whiteSpace: 'nowrap',
+            textAlign: 'center',
           }}
         >
-          إذن مرتجع بضاعة ميداني
+          إذن مرتجع ميداني
         </button>
       </div>
 
       {subMode === 'collection' ? (
         <>
-          <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+          <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
             تحصيل مديونية سابقة من عميل في الشارع
           </h3>
           <div>
@@ -269,18 +289,45 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
             />
             {(() => {
               const selectedC = customers.find((c) => c.id === colCustomerId);
-              return selectedC?.locationUrl ? (
-                <div style={{ marginTop: '6px' }}>
-                  <a
-                    href={selectedC.locationUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ fontSize: '11.5px', color: '#0284c7', textDecoration: 'underline', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    فتح موقع المحل على خرائط جوجل ↗
-                  </a>
+              if (!selectedC) return null;
+              return (
+                <div
+                  style={{
+                    marginTop: '8px',
+                    padding: '8px 10px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                  }}
+                >
+                  <div>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>المديونية الحالية: </span>
+                    <strong style={{ fontSize: '13px', color: selectedC.balance > 0 ? '#dc2626' : '#16a34a' }}>
+                      {selectedC.balance.toFixed(2)} <CurrencySymbol />
+                    </strong>
+                  </div>
+                  {selectedC.creditLimit ? (
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>
+                      سقف الائتمان: {selectedC.creditLimit.toFixed(2)} <CurrencySymbol />
+                    </div>
+                  ) : null}
+                  {selectedC.locationUrl && (
+                    <a
+                      href={selectedC.locationUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ fontSize: '11px', color: '#0284c7', textDecoration: 'underline', fontWeight: 700 }}
+                    >
+                      الموقع على الخريطة ↗
+                    </a>
+                  )}
                 </div>
-              ) : null;
+              );
             })()}
           </div>
 
@@ -488,19 +535,45 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <button
                             type="button"
-                            onClick={() => handleUpdateReturnQty(idx, -1)}
-                            style={{ width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', cursor: 'pointer', fontWeight: 700 }}
-                          >
-                            -
-                          </button>
-                          <span style={{ fontWeight: 800, fontSize: '13px', minWidth: '24px', textAlign: 'center' }}>{item.qty}</span>
-                          <button
-                            type="button"
                             onClick={() => handleUpdateReturnQty(idx, 1)}
                             disabled={item.qty >= item.maxQty}
-                            style={{ width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', cursor: item.qty < item.maxQty ? 'pointer' : 'not-allowed', fontWeight: 700 }}
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              border: '1px solid #cbd5e1',
+                              backgroundColor: item.qty < item.maxQty ? '#ffffff' : '#f1f5f9',
+                              cursor: item.qty < item.maxQty ? 'pointer' : 'not-allowed',
+                              fontWeight: 800,
+                              fontSize: '15px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#1e293b',
+                            }}
                           >
                             +
+                          </button>
+                          <span style={{ fontWeight: 800, fontSize: '13px', minWidth: '24px', textAlign: 'center', color: '#0f172a' }}>{item.qty}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateReturnQty(idx, -1)}
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              border: '1px solid #cbd5e1',
+                              backgroundColor: '#ffffff',
+                              cursor: 'pointer',
+                              fontWeight: 800,
+                              fontSize: '15px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#1e293b',
+                            }}
+                          >
+                            −
                           </button>
                         </div>
                       </div>
@@ -518,45 +591,45 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                   طريقة رد وتسوية قيمة المرتجع للعميل (إلزامي):
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', marginBottom: '10px', width: '100%', boxSizing: 'border-box' }}>
                   <button
                     type="button"
                     onClick={() => setRefundMethod('credit')}
                     style={{
-                      padding: '10px 12px',
+                      flex: '1 1 0',
+                      minWidth: 0,
+                      padding: '8px 8px',
                       borderRadius: '8px',
                       border: refundMethod === 'credit' ? '2px solid #170e5e' : '1px solid #cbd5e1',
                       backgroundColor: refundMethod === 'credit' ? '#eff6ff' : '#ffffff',
                       color: refundMethod === 'credit' ? '#170e5e' : '#475569',
-                      fontWeight: 700,
-                      fontSize: '12px',
                       cursor: 'pointer',
-                      textAlign: 'right',
+                      textAlign: 'center',
                     }}
                   >
-                    <div style={{ fontWeight: 800 }}>خصم من حساب العميل (آجل)</div>
-                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
-                      دائن لحساب العميل • لا يخصم من كاش السيارة
+                    <div style={{ fontWeight: 800, fontSize: '11.5px', whiteSpace: 'nowrap' }}>خصم من الحساب (آجل)</div>
+                    <div style={{ fontSize: '9.5px', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap' }}>
+                      لا يخصم من كاش السيارة
                     </div>
                   </button>
                   <button
                     type="button"
                     onClick={() => setRefundMethod('cash')}
                     style={{
-                      padding: '10px 12px',
+                      flex: '1 1 0',
+                      minWidth: 0,
+                      padding: '8px 8px',
                       borderRadius: '8px',
                       border: refundMethod === 'cash' ? '2px solid #dc2626' : '1px solid #cbd5e1',
                       backgroundColor: refundMethod === 'cash' ? '#fef2f2' : '#ffffff',
                       color: refundMethod === 'cash' ? '#b91c1c' : '#475569',
-                      fontWeight: 700,
-                      fontSize: '12px',
                       cursor: 'pointer',
-                      textAlign: 'right',
+                      textAlign: 'center',
                     }}
                   >
-                    <div style={{ fontWeight: 800 }}>دفع نقدي فوري (كاش من السيارة)</div>
-                    <div style={{ fontSize: '10.5px', color: '#dc2626', marginTop: '2px' }}>
-                      استرداد كاش فوري • يخصم من كاش التوريد اليومي
+                    <div style={{ fontWeight: 800, fontSize: '11.5px', whiteSpace: 'nowrap' }}>دفع كاش من السيارة</div>
+                    <div style={{ fontSize: '9.5px', color: '#dc2626', marginTop: '2px', whiteSpace: 'nowrap' }}>
+                      يخصم من توريد الكاش
                     </div>
                   </button>
                 </div>
@@ -584,12 +657,12 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                   type="text"
                   value={returnNotes}
                   onChange={(e) => setReturnNotes(e.target.value)}
-                  placeholder="مثال: كسر في الكرتونة أثناء النقل / رفض الاستلام لانتهاء الصلاحية..."
-                  style={{ width: '100%', height: '38px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', fontSize: '12px', boxSizing: 'border-box' }}
+                  placeholder="ملاحظات إضافية عن سبب المرتجع..."
+                  style={{ width: '100%', height: '36px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', fontSize: '12px', boxSizing: 'border-box' }}
                 />
               </div>
 
-              <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.4 }}>
+              <div style={{ fontSize: '10.5px', color: '#64748b', lineHeight: 1.4, backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 تنبيه رقابي: بمجرد الحفظ، يُقيد المرتجع بحالة (قيد مراجعة المشرف) ولن يتم تسوية الحساب أو إضافة البضاعة للسيارة إلا بعد اعتماد الإدارة.
               </div>
 
@@ -597,7 +670,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 variant="primary"
                 onClick={handleSubmitReturn}
                 disabled={isSubmittingReturn || returnCart.length === 0}
-                style={{ backgroundColor: '#dc2626', color: '#ffffff', height: '44px', fontSize: '13px', fontWeight: 800 }}
+                style={{ backgroundColor: '#dc2626', color: '#ffffff', height: '42px', fontSize: '12.5px', fontWeight: 800 }}
               >
                 {isSubmittingReturn ? 'جاري رفع إذن المرتجع للإدارة...' : `إرسال إذن المرتجع للإدارة (${totalReturnAmount.toFixed(2)} ${getGlobalCurrencySymbol()})`}
               </Button>

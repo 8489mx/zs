@@ -200,3 +200,36 @@
      - Even in Simple Retail Mode, the backend continues to post double-entry ledger entries silently in the background. If a business upgrades from Simple to Enterprise after months of operation, their financial books and ledger history remain 100% intact and immediately ready for auditors.
   4. **Pillar Independence:**
      - Pillars requiring enterprise financials by definition (`contracting`, `maritime_freight`, `manufacturing`) MUST always enforce `enableEnterpriseFeatures: true`. Only the commerce/retail pillar provides the user-toggleable operational mode.
+
+## 19. Strict Mobile Single-Row Horizontal KPI Strip Standard (دستور شرائط الإحصائيات الأفقية المدمجة في شاشات الموبايل وحظر البلوكات المتراكمة)
+- **The Core Problem & Mobile Viewport Trap:**
+  When rendering summary statistics, KPI metrics, or financial breakdowns on mobile screens (e.g. Van Sales, POS, Field Reps, Daily Cash Count):
+  - Naive CSS Grid `repeat(4, 1fr)` or separate vertically stacked card boxes cause disastrous layout collapse. In mobile viewports (<400px), CSS Grid items have a default `min-width: auto` which cannot shrink below content width, forcing tracks to collapse into a single vertical column, or causing each KPI to take a full row (wasting 250px+ of vertical space).
+- **The Bulletproof Flex-Row Architectural Standard (المعيار الهندسي الصارم المعتمد):**
+  - **Single Compact Row:** All 3, 4, or 5 KPI metrics MUST always be presented in **exactly 1 horizontal row** with a total height of ~34px to ~38px.
+  - **Root Container:**
+    ```tsx
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    boxSizing: 'border-box',
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: '8px',
+    padding: '6px 4px',
+    textAlign: 'center',
+    ```
+  - **Child Metric Item (الخلايا الإحصائية الداخلية):**
+    ```tsx
+    flex: '1 1 0',
+    minWidth: 0,
+    borderInlineEnd: isLast ? 'none' : '1px solid #e2e8f0',
+    padding: '2px 4px',
+    textAlign: 'center',
+    ```
+  - **Micro-Typography Hierarchy:**
+    - Label: `fontSize: '9.5px' - '10px'`, `fontWeight: 700`, `color: '#64748b'`, `marginBottom: '2px'`.
+    - Value: `fontSize: '11px' - '12px'`, `fontWeight: 900`, `whiteSpace: 'nowrap'`.
+  - **Strict Ban:** NEVER render KPI stats as separate vertically stacked cards on mobile. NEVER use CSS Grid `repeat(N, 1fr)` without strict min-width overrides.

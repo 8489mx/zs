@@ -147,6 +147,19 @@ export function CustomSelect({
     }
   };
 
+  const {
+    border,
+    borderRadius,
+    background,
+    backgroundColor,
+    height,
+    fontSize,
+    fontWeight,
+    color,
+    textAlign,
+    ...wrapperStyle
+  } = (style || {}) as any;
+
   return (
     <div
       ref={containerRef}
@@ -154,11 +167,11 @@ export function CustomSelect({
       style={{
         position: 'relative',
         width: '100%',
-        ...style,
+        ...wrapperStyle,
         ...(isOpen ? { zIndex: 60 } : {}),
       }}
     >
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', width: '100%' }}>
         {selectedOption?.icon && !isSearching && (
           <div
             style={{
@@ -196,20 +209,22 @@ export function CustomSelect({
           className="purchase-prototype-field-input"
           style={{
             width: '100%',
-            height: style?.height || '36px',
-            background: disabled ? '#f8fafc' : '#ffffff',
+            height: height || '36px',
+            background: background || backgroundColor || (disabled ? '#f8fafc' : '#ffffff'),
             padding: selectedOption?.icon && !isSearching ? '0 28px 0 24px' : '0 8px 0 24px',
-            borderRadius: style?.borderRadius || '8px',
-            border: '1px solid #cbd5e1',
+            borderRadius: borderRadius || '8px',
+            border: border || '1px solid #cbd5e1',
             boxSizing: 'border-box',
-            fontSize: style?.fontSize || '13px',
-            color: style?.color || '#0f172a',
-            fontWeight: style?.fontWeight || 500,
+            fontSize: fontSize || '13px',
+            color: color || '#0f172a',
+            fontWeight: fontWeight || 500,
             cursor: disabled ? 'not-allowed' : 'text',
-            textAlign: 'right',
+            textAlign: textAlign || 'right',
             textOverflow: 'ellipsis',
             overflow: 'hidden',
             whiteSpace: 'nowrap',
+            display: 'block',
+            lineHeight: 'normal',
           }}
           onChange={(e) => {
             setQuery(e.target.value);

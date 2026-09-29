@@ -65,6 +65,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
   onSubmitSettle,
   isSubmitting,
 }) => {
+  const [activeSection, setActiveSection] = useState<'settle' | 'activity'>('settle');
   const [activeSubTab, setActiveSubTab] = useState<'sales' | 'collections' | 'returns' | 'inventory'>('sales');
 
   const salesAmount = Number(tripData?.salesAmount || 0);
@@ -76,6 +77,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
   const creditReturns = Math.max(0, returnsAmount - cashRefunds);
   const cashCollected = Number(tripData?.cashCollected || 0);
   const countedNum = Number(countedCash);
+  const totalActivities = sales.length + collections.length + returns.length;
 
   const formatTime = (iso?: string) => {
     if (!iso) return '—';
@@ -117,58 +119,117 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
   return (
     <div
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
-        gap: '16px',
-        alignItems: 'start',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
         width: '100%',
       }}
+      dir="rtl"
     >
-      {/* COLUMN 1: CLEAR FINANCIAL SETTLEMENT LEDGER & COUNTING */}
+      {/* Top Segmented Sub-Tabs: Settle vs Activity */}
       <div
         style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '14px',
-          border: '1px solid #e2e8f0',
-          padding: '18px',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '14px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '10px',
+          gap: '6px',
+          width: '100%',
+          boxSizing: 'border-box',
         }}
       >
-        {/* Card Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-          <div style={{ width: '40px', height: '40px', backgroundColor: '#eef2ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ReceiptIcon size={22} color="#170e5e" strokeWidth={1.8} />
+        <button
+          type="button"
+          onClick={() => setActiveSection('settle')}
+          style={{
+            flex: '1 1 0',
+            minWidth: 0,
+            padding: '8px 6px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            backgroundColor: activeSection === 'settle' ? '#ffffff' : 'transparent',
+            color: activeSection === 'settle' ? '#170e5e' : '#64748b',
+            fontWeight: 800,
+            fontSize: '12.5px',
+            boxShadow: activeSection === 'settle' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+            whiteSpace: 'nowrap',
+            textAlign: 'center',
+          }}
+        >
+          تصفية ومطابقة العهدة
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSection('activity')}
+          style={{
+            flex: '1 1 0',
+            minWidth: 0,
+            padding: '8px 6px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            backgroundColor: activeSection === 'activity' ? '#ffffff' : 'transparent',
+            color: activeSection === 'activity' ? '#170e5e' : '#64748b',
+            fontWeight: 800,
+            fontSize: '12.5px',
+            boxShadow: activeSection === 'activity' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+            whiteSpace: 'nowrap',
+            textAlign: 'center',
+          }}
+        >
+          حركة وسجل اليوم ({totalActivities})
+        </button>
+      </div>
+
+      {activeSection === 'settle' ? (
+        /* SECTION 1: FINANCIAL SETTLEMENT LEDGER & COUNTING */
+        <div
+          style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '12px 14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+          }}
+        >
+          {/* Card Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+            <div style={{ width: '34px', height: '34px', backgroundColor: '#eef2ff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ReceiptIcon size={18} color="#170e5e" strokeWidth={2} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                تصفية اليومية ومطابقة العهدة النقدية
+              </h3>
+              <p style={{ margin: '1px 0 0', fontSize: '11px', color: '#64748b' }}>
+                بيان تسليم النقدية ومطابقة مبيعات وتحصيلات ومرتجعات السيارة
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-              تصفية اليومية ومطابقة العهدة النقدية
-            </h3>
-            <p style={{ margin: '2px 0 0', fontSize: '11.5px', color: '#64748b' }}>
-              بيان محاسبي شفاف لتسليم النقدية ومطابقة مبيعات وتحصيلات ومرتجعات السيارة
-            </p>
-          </div>
-        </div>
 
         {/* Detailed Financial Ledger */}
         <div
           style={{
             backgroundColor: '#f8fafc',
-            borderRadius: '12px',
-            padding: '14px',
+            borderRadius: '10px',
+            padding: '10px 12px',
             border: '1px solid #e2e8f0',
-            fontSize: '12px',
+            fontSize: '11.5px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px',
+            gap: '6px',
           }}
         >
           {/* Gross Sales */}
           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontWeight: 600 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#64748b' }} />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#64748b' }} />
               إجمالي مبيعات اليوم المحققة:
             </span>
             <span style={{ fontWeight: 800, color: '#0f172a' }}>
@@ -177,7 +238,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           </div>
 
           {/* Cash Sales */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#15803d', fontWeight: 600, paddingRight: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#15803d', fontWeight: 600, paddingRight: '12px' }}>
             <span>• مبيعات نقدية (كاش مباشر بالسيارة):</span>
             <span style={{ fontWeight: 800 }}>
               +{cashSales.toFixed(2)} <CurrencySymbol />
@@ -185,7 +246,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           </div>
 
           {/* Credit Sales */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b45309', fontWeight: 600, paddingRight: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b45309', fontWeight: 600, paddingRight: '12px' }}>
             <span>• مبيعات آجلة (ذمم مدينة على المحلات):</span>
             <span style={{ fontWeight: 800 }}>
               {creditSales.toFixed(2)} <CurrencySymbol />
@@ -193,9 +254,9 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           </div>
 
           {/* Collections */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0369a1', fontWeight: 600, borderTop: '1px dashed #e2e8f0', paddingTop: '8px' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0284c7' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0369a1', fontWeight: 600, borderTop: '1px dashed #e2e8f0', paddingTop: '6px' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0284c7' }} />
               تحصيلات نقدية (سندات قبض مديونيات):
             </span>
             <span style={{ fontWeight: 800, color: '#0284c7' }}>
@@ -204,9 +265,9 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           </div>
 
           {/* Field Returns */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontWeight: 600, borderTop: '1px dashed #e2e8f0', paddingTop: '8px' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#dc2626' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontWeight: 600, borderTop: '1px dashed #e2e8f0', paddingTop: '6px' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#dc2626' }} />
               إجمالي المرتجعات الميدانية ({returns.length} إذن):
             </span>
             <span style={{ fontWeight: 800, color: '#0f172a' }}>
@@ -216,7 +277,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
 
           {/* Cash Refunds vs Credit Returns */}
           {cashRefunds > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626', fontWeight: 700, paddingRight: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626', fontWeight: 700, paddingRight: '12px' }}>
               <span>• مرتجعات نقدية سُددت كاش للعميل من السيارة:</span>
               <span style={{ fontWeight: 800 }}>
                 -{cashRefunds.toFixed(2)} <CurrencySymbol />
@@ -225,7 +286,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           )}
 
           {creditReturns > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontWeight: 600, paddingRight: '14px', fontSize: '11px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontWeight: 600, paddingRight: '12px', fontSize: '10.5px' }}>
               <span>• مرتجعات آجلة (خُصمت من حساب العميل + البضاعة بالسيارة):</span>
               <span style={{ fontWeight: 700 }}>
                 {creditReturns.toFixed(2)} <CurrencySymbol />
@@ -240,21 +301,21 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               justifyContent: 'space-between',
               alignItems: 'center',
               backgroundColor: '#ecfdf5',
-              padding: '10px 12px',
+              padding: '8px 10px',
               borderRadius: '8px',
               border: '1px solid #a7f3d0',
-              marginTop: '4px',
+              marginTop: '2px',
             }}
           >
             <div>
-              <span style={{ fontSize: '13px', fontWeight: 900, color: '#065f46', display: 'block' }}>
+              <span style={{ fontSize: '12px', fontWeight: 900, color: '#065f46', display: 'block' }}>
                 صافي النقدية المتوقع تسليمها (كاش الدرج الإلزامي):
               </span>
-              <span style={{ fontSize: '10.5px', color: '#047857' }}>
+              <span style={{ fontSize: '10px', color: '#047857' }}>
                 = كاش المبيعات ({cashSales.toFixed(0)}) + التحصيلات ({collectionsTotal.toFixed(0)}) - مرتجعات الكاش ({cashRefunds.toFixed(0)})
               </span>
             </div>
-            <span style={{ fontSize: '18px', fontWeight: 900, color: '#065f46' }}>
+            <span style={{ fontSize: '16px', fontWeight: 900, color: '#065f46' }}>
               {cashCollected.toFixed(2)} <CurrencySymbol />
             </span>
           </div>
@@ -262,7 +323,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
 
         {/* Cash Counting Input */}
         <div>
-          <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#1e293b', marginBottom: '4px' }}>
             الكاش الفعلي الموجود معك للتوريد ({getGlobalCurrencySymbol()}):
           </label>
           <input
@@ -273,12 +334,12 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             placeholder="أدخل المبلغ بعد العد الفعلي للأوراق النقدية..."
             style={{
               width: '100%',
-              height: '44px',
+              height: '38px',
               backgroundColor: '#ffffff',
-              border: '2px solid #cbd5e1',
+              border: '1.5px solid #cbd5e1',
               borderRadius: '8px',
-              padding: '0 14px',
-              fontSize: '15px',
+              padding: '0 10px',
+              fontSize: '14px',
               fontWeight: 800,
               color: '#0f172a',
               boxSizing: 'border-box',
@@ -290,14 +351,14 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           {countedCash !== '' && !isNaN(countedNum) && (
             <div
               style={{
-                marginTop: '8px',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                fontSize: '12px',
+                marginTop: '6px',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
                 fontWeight: 700,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '6px',
                 backgroundColor:
                   countedNum === cashCollected
                     ? '#dcfce7'
@@ -321,19 +382,19 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             >
               {countedNum === cashCollected ? (
                 <>
-                  <CheckIcon size={16} color="#15803d" strokeWidth={2.5} />
+                  <CheckIcon size={14} color="#15803d" strokeWidth={2.5} />
                   <span>الكاش مطابق تماماً للعهدة النقدية بنسبة 100% (لا يوجد عجز).</span>
                 </>
               ) : countedNum < cashCollected ? (
                 <>
-                  <AlertTriangleIcon size={16} color="#b91c1c" strokeWidth={2} />
+                  <AlertTriangleIcon size={14} color="#b91c1c" strokeWidth={2} />
                   <span>
                     يوجد عجز نقدي بقيمة {(cashCollected - countedNum).toFixed(2)} <CurrencySymbol /> (سيتم تقييده على عهدة المندوب).
                   </span>
                 </>
               ) : (
                 <>
-                  <CheckIcon size={16} color="#0369a1" strokeWidth={2} />
+                  <CheckIcon size={14} color="#0369a1" strokeWidth={2} />
                   <span>
                     يوجد فائض نقدي بقيمة {(countedNum - cashCollected).toFixed(2)} <CurrencySymbol /> (سيتم توريده لحساب المنشأة).
                   </span>
@@ -348,10 +409,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            padding: '10px 14px',
+            gap: '8px',
+            padding: '8px 10px',
             backgroundColor: '#eff6ff',
-            borderRadius: '10px',
+            borderRadius: '8px',
             border: '1px solid #bfdbfe',
           }}
         >
@@ -360,10 +421,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             id="unloadCheck"
             checked={unloadRemaining}
             onChange={(e) => onUnloadRemainingChange(e.target.checked)}
-            style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#170e5e' }}
+            style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#170e5e' }}
           />
-          <label htmlFor="unloadCheck" style={{ fontSize: '12px', fontWeight: 700, color: '#1e3a8a', cursor: 'pointer' }}>
-            تفريغ البضاعة المتبقية في السيارة ({inventory.length} صنف) وإعادتها للمستودع الرئيسي تلقائياً
+          <label htmlFor="unloadCheck" style={{ fontSize: '11.5px', fontWeight: 700, color: '#1e3a8a', cursor: 'pointer' }}>
+            تفريغ البضاعة المتبقية في السيارة ({inventory.length} صنف) وإعادتها للمستودع تلقائياً
           </label>
         </div>
 
@@ -375,8 +436,8 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           style={{
             backgroundColor: '#170e5e',
             color: '#ffffff',
-            height: '46px',
-            fontSize: '13.5px',
+            height: '42px',
+            fontSize: '13px',
             fontWeight: 800,
             borderRadius: '8px',
           }}
@@ -384,128 +445,139 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           {isSubmitting ? 'جاري التصفية والتوريد...' : 'تأكيد التصفية وإغلاق اليومية وتوريد الكاش'}
         </Button>
       </div>
-
-      {/* COLUMN 2: TRIP ACTIVITY & MOVEMENT EXPLORER */}
+      ) : (
+      /* SECTION 2: TRIP ACTIVITY & MOVEMENT EXPLORER */
       <div
         style={{
           backgroundColor: '#ffffff',
           borderRadius: '14px',
           border: '1px solid #e2e8f0',
-          padding: '18px',
+          padding: '12px 14px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+          gap: '10px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-          <div style={{ width: '40px', height: '40px', backgroundColor: '#f1f5f9', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <FileTextIcon size={22} color="#170e5e" strokeWidth={1.8} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+          <div style={{ width: '34px', height: '34px', backgroundColor: '#f1f5f9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <FileTextIcon size={18} color="#170e5e" strokeWidth={2} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
               حركة رحلة اليوم وسجل العمليات
             </h3>
-            <p style={{ margin: '2px 0 0', fontSize: '11.5px', color: '#64748b' }}>
-              مراجعة فورية لكافة الفواتير والتحصيلات والمرتجعات وبضاعة السيارة
+            <p style={{ margin: '1px 0 0', fontSize: '11px', color: '#64748b' }}>
+              مراجعة الفواتير والتحصيلات والمرتجعات ومخزون السيارة
             </p>
           </div>
         </div>
 
-        {/* Subtab Navigation Bar (Zero Font Flicker, Instant 0ms) */}
+        {/* Subtab Navigation Bar (Single Row, 4 tabs fit 100% without cut-off) */}
         <div
           style={{
             display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
             backgroundColor: '#f1f5f9',
-            padding: '4px',
-            borderRadius: '10px',
+            padding: '3px',
+            borderRadius: '8px',
             gap: '4px',
-            overflowX: 'auto',
+            width: '100%',
+            boxSizing: 'border-box',
           }}
         >
           <button
             type="button"
             onClick={() => setActiveSubTab('sales')}
             style={{
-              flex: 1,
-              padding: '7px 6px',
-              borderRadius: '7px',
+              flex: '1 1 0',
+              minWidth: 0,
+              padding: '6px 2px',
+              borderRadius: '6px',
               border: 'none',
               cursor: 'pointer',
               backgroundColor: activeSubTab === 'sales' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'sales' ? '#ffffff' : '#475569',
-              fontWeight: 600,
-              fontSize: '11.5px',
+              fontWeight: 700,
+              fontSize: '11px',
               whiteSpace: 'nowrap',
+              textAlign: 'center',
             }}
           >
-            فواتير البيع ({sales.length})
+            فواتير ({sales.length})
           </button>
           <button
             type="button"
             onClick={() => setActiveSubTab('collections')}
             style={{
-              flex: 1,
-              padding: '7px 6px',
-              borderRadius: '7px',
+              flex: '1 1 0',
+              minWidth: 0,
+              padding: '6px 2px',
+              borderRadius: '6px',
               border: 'none',
               cursor: 'pointer',
               backgroundColor: activeSubTab === 'collections' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'collections' ? '#ffffff' : '#475569',
-              fontWeight: 600,
-              fontSize: '11.5px',
+              fontWeight: 700,
+              fontSize: '11px',
               whiteSpace: 'nowrap',
+              textAlign: 'center',
             }}
           >
-            سندات التحصيل ({collections.length})
+            تحصيلات ({collections.length})
           </button>
           <button
             type="button"
             onClick={() => setActiveSubTab('returns')}
             style={{
-              flex: 1,
-              padding: '7px 6px',
-              borderRadius: '7px',
+              flex: '1 1 0',
+              minWidth: 0,
+              padding: '6px 2px',
+              borderRadius: '6px',
               border: 'none',
               cursor: 'pointer',
               backgroundColor: activeSubTab === 'returns' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'returns' ? '#ffffff' : '#475569',
-              fontWeight: 600,
-              fontSize: '11.5px',
+              fontWeight: 700,
+              fontSize: '11px',
               whiteSpace: 'nowrap',
+              textAlign: 'center',
             }}
           >
-            المرتجعات ({returns.length})
+            مرتجعات ({returns.length})
           </button>
           <button
             type="button"
             onClick={() => setActiveSubTab('inventory')}
             style={{
-              flex: 1,
-              padding: '7px 6px',
-              borderRadius: '7px',
+              flex: '1 1 0',
+              minWidth: 0,
+              padding: '6px 2px',
+              borderRadius: '6px',
               border: 'none',
               cursor: 'pointer',
               backgroundColor: activeSubTab === 'inventory' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'inventory' ? '#ffffff' : '#475569',
-              fontWeight: 600,
-              fontSize: '11.5px',
+              fontWeight: 700,
+              fontSize: '11px',
               whiteSpace: 'nowrap',
+              textAlign: 'center',
             }}
           >
-            المخزون المتبقي ({inventory.length})
+            المخزون ({inventory.length})
           </button>
         </div>
 
         {/* Subtab Contents Container (Bounded with Slim Scroll) */}
-        <div style={{ maxHeight: '420px', minHeight: '300px', overflowY: 'auto' }}>
+        <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
           {/* 1. SALES INVOICES */}
           {activeSubTab === 'sales' && (
             sales.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
-                <ReceiptIcon size={36} color="#cbd5e1" style={{ margin: '0 auto 8px', display: 'block' }} />
-                <span style={{ fontSize: '13px', fontWeight: 600 }}>لم تصدر أي فواتير بيع في هذه الرحلة حتى الآن</span>
+              <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
+                <ReceiptIcon size={28} color="#cbd5e1" style={{ margin: '0 auto 6px', display: 'block' }} />
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>لم تصدر أي فواتير بيع في هذه الرحلة حتى الآن</span>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -565,9 +637,9 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           {/* 2. CASH COLLECTIONS */}
           {activeSubTab === 'collections' && (
             collections.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
-                <DollarSignIcon size={36} color="#cbd5e1" style={{ margin: '0 auto 8px', display: 'block' }} />
-                <span style={{ fontSize: '13px', fontWeight: 600 }}>لا توجد سندات قبض أو تحصيلات نقدية مسجلة</span>
+              <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
+                <DollarSignIcon size={28} color="#cbd5e1" style={{ margin: '0 auto 6px', display: 'block' }} />
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>لا توجد سندات قبض أو تحصيلات نقدية مسجلة</span>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -613,9 +685,9 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           {/* 3. FIELD RETURNS */}
           {activeSubTab === 'returns' && (
             returns.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
-                <PackageIcon size={36} color="#cbd5e1" style={{ margin: '0 auto 8px', display: 'block' }} />
-                <span style={{ fontSize: '13px', fontWeight: 600 }}>لا توجد أذونات مرتجعات بضاعة مسجلة اليوم</span>
+              <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
+                <PackageIcon size={28} color="#cbd5e1" style={{ margin: '0 auto 6px', display: 'block' }} />
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>لا توجد أذونات مرتجعات بضاعة مسجلة اليوم</span>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -690,9 +762,9 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           {/* 4. REMAINING VAN INVENTORY */}
           {activeSubTab === 'inventory' && (
             inventory.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
-                <PackageIcon size={36} color="#cbd5e1" style={{ margin: '0 auto 8px', display: 'block' }} />
-                <span style={{ fontSize: '13px', fontWeight: 600 }}>السيارة فارغة حالياً (تم بيع أو تفريغ كافة البضاعة)</span>
+              <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
+                <PackageIcon size={28} color="#cbd5e1" style={{ margin: '0 auto 6px', display: 'block' }} />
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>السيارة فارغة حالياً (تم بيع أو تفريغ كافة البضاعة)</span>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -745,6 +817,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };

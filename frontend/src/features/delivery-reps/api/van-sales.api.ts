@@ -232,6 +232,23 @@ export interface VanFieldReturnRecord {
   createdAt: string;
 }
 
+export interface SupervisorCustomerRouteItem {
+  customerId: number;
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  customerCode: string;
+  route: string;
+  routeSequence: number;
+  visitDays: string[];
+  assignedRepId: number | null;
+  assignedRepName: string | null;
+  locationUrl?: string;
+  balance: number;
+  creditLimit: number;
+}
+
+
 export interface VanLoadRequisitionRecord {
   id: number;
   docNo: string;
@@ -1013,6 +1030,8 @@ export const vanSalesApi = {
       visitDays?: string[];
       customerCode?: string;
       locationUrl?: string;
+      assignedRepId?: number | null;
+      assignedRepName?: string;
     },
   ) => {
     return http(`/api/van-sales/admin/customers/${customerId}/route-schedule`, {
@@ -1020,6 +1039,41 @@ export const vanSalesApi = {
       body: JSON.stringify(payload),
     });
   },
+
+  getSupervisorCustomerRoutes: async (filters?: {
+    search?: string;
+    repId?: number | string;
+    route?: string;
+    unassignedOnly?: boolean;
+  }): Promise<SupervisorCustomerRouteItem[]> => {
+    const sp = new URLSearchParams();
+    if (filters?.search) sp.set('search', filters.search);
+    if (filters?.repId && filters.repId !== 'all') sp.set('repId', String(filters.repId));
+    if (filters?.route && filters.route !== 'all') sp.set('route', filters.route);
+    if (filters?.unassignedOnly) sp.set('unassignedOnly', 'true');
+    const qs = sp.toString() ? `?${sp.toString()}` : '';
+    const res = await http<{ ok: boolean; customers: SupervisorCustomerRouteItem[] }>(
+      `/api/van-sales/admin/supervisor/customer-routes${qs}`,
+    );
+    return res.customers || [];
+  },
+
+  bulkAssignCustomerRoutes: async (payload: {
+    customerIds: number[];
+    assignedRepId?: number | null;
+    assignedRepName?: string;
+    route?: string;
+    visitDays?: string[];
+  }): Promise<{ ok: boolean; updatedCount: number; assignedRepId?: number | null; assignedRepName?: string | null }> => {
+    return http<{ ok: boolean; updatedCount: number; assignedRepId?: number | null; assignedRepName?: string | null }>(
+      `/api/van-sales/admin/supervisor/customer-routes/bulk-assign`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
+  },
+
 
   // Fleet Fuel Logs API
   fetchAdminFuelLogs: async (filters?: { vehicleId?: number; repId?: number; dateFrom?: string; dateTo?: string }): Promise<FleetFuelLogRecord[]> => {

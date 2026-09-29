@@ -42,15 +42,15 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
           type="text"
           value={stockSearch}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="بحث في بضاعة السيارة بالاسم أو الباركود..."
+          placeholder="بحث باسم الصنف أو الباركود..."
           style={{
             flex: 1,
-            height: '42px',
+            height: '36px',
             backgroundColor: '#ffffff',
             border: '1px solid #cbd5e1',
-            borderRadius: '10px',
-            padding: '0 14px',
-            fontSize: '12.5px',
+            borderRadius: '8px',
+            padding: '0 12px',
+            fontSize: '12px',
             boxSizing: 'border-box',
           }}
         />
@@ -60,31 +60,31 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
             type="button"
             onClick={onOpenTransferModal}
             style={{
-              height: '42px',
-              padding: '0 14px',
+              height: '36px',
+              padding: '0 12px',
               backgroundColor: '#170e5e',
               color: '#ffffff',
               border: 'none',
-              borderRadius: '10px',
-              fontSize: '12px',
+              borderRadius: '8px',
+              fontSize: '11.5px',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '5px',
               whiteSpace: 'nowrap',
             }}
           >
-            <span>مناقلة سيارات (شارع)</span>
+            <span>مناقلة سيارات</span>
             {pendingTransfersCount > 0 && (
               <span
                 style={{
                   backgroundColor: '#dc2626',
                   color: '#ffffff',
-                  fontSize: '11px',
+                  fontSize: '10.5px',
                   fontWeight: 900,
                   borderRadius: '10px',
-                  padding: '1px 6px',
+                  padding: '1px 5px',
                 }}
               >
                 {pendingTransfersCount}
@@ -174,7 +174,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                 </span>
 
                 {inCartQty > 0 ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div dir="rtl" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <button
                       type="button"
                       onClick={() => onAddToCart(item)}
@@ -186,7 +186,6 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                         border: 'none',
                         borderRadius: '6px',
                         fontWeight: 800,
-                        color: '#ffffff',
                         cursor: isMaxReached ? 'not-allowed' : 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -194,7 +193,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                       }}
                       title={isMaxReached ? 'تم بلوغ أقصى كمية بالسيارة' : 'زيادة صنف في الفاتورة'}
                     >
-                      <PlusIcon size={13} color={isMaxReached ? '#94a3b8' : '#ffffff'} />
+                      <span style={{ fontSize: '15px', fontWeight: 800, lineHeight: 1, color: isMaxReached ? '#94a3b8' : '#ffffff' }}>+</span>
                     </button>
                     <span style={{ fontWeight: 800, fontSize: '12.5px', width: '22px', textAlign: 'center', color: '#170e5e' }}>
                       {inCartQty}
@@ -205,7 +204,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                       style={{
                         width: '28px',
                         height: '28px',
-                        backgroundColor: '#f1f5f9',
+                        backgroundColor: '#ffffff',
                         border: '1px solid #cbd5e1',
                         borderRadius: '6px',
                         fontWeight: 800,
@@ -216,7 +215,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                       }}
                       title="إنقاص صنف من الفاتورة"
                     >
-                      <MinusIcon size={13} color="#0f172a" />
+                      <span style={{ fontSize: '15px', fontWeight: 800, lineHeight: 1, color: '#0f172a' }}>−</span>
                     </button>
                   </div>
                 ) : (
@@ -225,17 +224,19 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                     onClick={() => onAddToCart(item)}
                     disabled={item.qty <= 0}
                     style={{
+                      height: '28px',
                       fontSize: '11.5px',
                       backgroundColor: item.qty <= 0 ? '#cbd5e1' : '#170e5e',
                       color: '#ffffff',
-                      fontWeight: 700,
-                      padding: '5px 10px',
+                      fontWeight: 800,
+                      padding: '0 10px',
                       borderRadius: '6px',
                       border: 'none',
                       cursor: item.qty <= 0 ? 'not-allowed' : 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     <PlusIcon size={12} color="#ffffff" />
@@ -259,20 +260,20 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
             backgroundColor: '#170e5e',
             color: '#ffffff',
             borderRadius: '12px',
-            padding: '12px 16px',
+            padding: '10px 14px',
             boxShadow: '0 8px 24px rgba(23, 14, 94, 0.35)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '12px',
+            gap: '10px',
             border: '1px solid #312e81',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
             <div
               style={{
-                width: '36px',
-                height: '36px',
+                width: '34px',
+                height: '34px',
                 borderRadius: '8px',
                 backgroundColor: 'rgba(255, 255, 255, 0.15)',
                 display: 'flex',
@@ -281,13 +282,13 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                 flexShrink: 0,
               }}
             >
-              <ShoppingCartIcon size={20} color="#ffffff" />
+              <ShoppingCartIcon size={18} color="#ffffff" />
             </div>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 800 }}>
-                الفاتورة الحالية: {cart.length} أصناف ({totalPiecesInCart} قطعة)
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                الفاتورة: {cart.length} {cart.length === 1 ? 'صنف' : cart.length === 2 ? 'صنفان' : cart.length <= 10 ? 'أصناف' : 'صنف'} ({totalPiecesInCart} {totalPiecesInCart === 1 ? 'قطعة' : totalPiecesInCart === 2 ? 'قطعتان' : totalPiecesInCart <= 10 ? 'قطع' : 'قطعة'})
               </div>
-              <div style={{ fontSize: '11.5px', color: '#cbd5e1' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#34d399', whiteSpace: 'nowrap', marginTop: '1px' }}>
                 الإجمالي: {cartTotal.toFixed(2)} <CurrencySymbol />
               </div>
             </div>
@@ -301,18 +302,19 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
               color: '#ffffff',
               border: 'none',
               borderRadius: '8px',
-              padding: '8px 14px',
-              fontSize: '12px',
+              padding: '7px 12px',
+              fontSize: '11.5px',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '4px',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
-            <span>المتابعة لإصدار الفاتورة</span>
-            <span style={{ fontSize: '14px' }}>←</span>
+            <span>متابعة الفاتورة</span>
+            <span style={{ fontSize: '13px' }}>←</span>
           </button>
         </div>
       )}

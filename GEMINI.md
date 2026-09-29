@@ -564,3 +564,20 @@
 وقد مرّ بسببه خطأ فعلي إلى الـCI في 23 سبتمبر 2026 (استدعاء دالة غير مستوردة).
 
 الصحيح: `npm --prefix frontend run typecheck` (وهو `tsc -b`)، أو `-p tsconfig.app.json` صراحة.
+
+### 30. Strict Mobile Single-Row Horizontal KPI Strip Standard (دستور شرائط الإحصائيات الأفقية المدمجة في شاشات الموبايل وحظر البلوكات المتراكمة)
+- **المشكلة ونقطة الفشل المتكررة:**
+  عند عرض الإحصائيات والمؤشرات السريعة (المبيعات، الكاش، الآجل، الطرود، الزيارات) على شاشات الموبايل:
+  - استخدام كروت رأسية منفصلة (Stacked Cards) يلتهم مساحة الشاشة بالكامل ويهدر أكثر من 250 بكسل دون داعٍ.
+  - استخدام CSS Grid الساذج مثل `grid-template-columns: repeat(4, 1fr)` يفشل وينهار تلقائياً في شاشات الموبايل الضيقة (<400px) لأن القيمة الافتراضية لـ `min-width` في عناصر الجريد هي `auto`، مما يجبر الحاوية على تكديس العناصر رأسياً في عمود واحد مشوه.
+- **الحل المعماري الصارم الحاكم (The Bulletproof Flex-Row Standard):**
+  - تجميع كافة المؤشرات (3 أو 4 أو 5 مؤشرات) في **سطر أفقي واحد مدمج (1 Row)** لا يتعدى ارتفاعه 34-38 بكسل.
+  - **الحاوية الأب (Root Container):**
+    `display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 4px', textAlign: 'center'`
+  - **الخلايا الإحصائية الداخلية (Child Items):**
+    كل عنصر إحصائي يجب أن يأخذ حصراً:
+    `flex: '1 1 0', minWidth: 0, borderInlineEnd: isLast ? 'none' : '1px solid #e2e8f0', padding: '2px 4px', textAlign: 'center'`
+  - **نظام التيبوجرافي الدقيق (Micro-Typography):**
+    - اسم المؤشر (Label): `fontSize: '9.5px' - '10px'`, `fontWeight: 700`, `color: '#64748b'`, `marginBottom: '2px'`.
+    - القيمة (Value): `fontSize: '11px' - '12px'`, `fontWeight: 900`, `whiteSpace: 'nowrap'`.
+  - **حظر قطعي:** يُمنع منعاً باتاً تحويل المؤشرات في الموبايل إلى بلوكات أو كروت رأسية متراكمة.

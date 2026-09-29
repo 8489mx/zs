@@ -613,12 +613,52 @@ export class VanSalesAdminController {
       visitDays?: string[];
       customerCode?: string;
       locationUrl?: string;
+      assignedRepId?: number | null;
+      assignedRepName?: string;
     },
   ) {
     const { tenantId } = requireTenantScope(req.authContext!);
     const res = await this.vanSalesService.setCustomerRouteSchedule(tenantId, id, body);
     return res;
   }
+
+  @Get('supervisor/customer-routes')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async getSupervisorCustomerRoutes(
+    @Req() req: RequestWithAuth,
+    @Query('search') search?: string,
+    @Query('repId') repId?: string,
+    @Query('route') route?: string,
+    @Query('unassignedOnly') unassignedOnly?: string,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const customers = await this.vanSalesService.getSupervisorCustomerRoutes(tenantId, {
+      search,
+      repId,
+      route,
+      unassignedOnly: unassignedOnly === 'true',
+    });
+    return { ok: true, customers };
+  }
+
+  @Post('supervisor/customer-routes/bulk-assign')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async bulkAssignCustomerRoutes(
+    @Req() req: RequestWithAuth,
+    @Body()
+    body: {
+      customerIds: number[];
+      assignedRepId?: number | null;
+      assignedRepName?: string;
+      route?: string;
+      visitDays?: string[];
+    },
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const res = await this.vanSalesService.bulkAssignCustomerRoutes(tenantId, body);
+    return res;
+  }
+
 
   // Fleet Fuel Logs Endpoints
   @Get('fuel-logs')

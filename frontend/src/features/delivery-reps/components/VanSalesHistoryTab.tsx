@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import {
   PrinterIcon,
   ReceiptIcon,
@@ -40,10 +41,11 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
   storeName,
 }) => {
   const [dateScope, setDateScope] = useState<'today' | 'yesterday' | 'week' | 'all'>('today');
-  const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'credit'>('all');
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'credit' | 'card' | 'split'>('all');
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [tripOnly, setTripOnly] = useState(false);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
   const { data, isLoading, isRefetching, refetch } = useQuery<{ ok: boolean; sales: DriverSaleHistoryItem[] }>({
     queryKey: ['driver-sales-history', dateScope, selectedCustomerId, paymentFilter, searchQuery, tripOnly ? tripId : undefined],
@@ -58,6 +60,19 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
     staleTime: 15000,
     refetchOnWindowFocus: false,
   });
+
+  const handleRefresh = async () => {
+    setIsManualRefreshing(true);
+    try {
+      const res = await refetch();
+      const count = res.data?.sales?.length ?? 0;
+      toast.success(`تم تحديث سجل الفواتير بنجاح (${count} فاتورة)`);
+    } catch {
+      toast.error('تعذر تحديث سجل الفواتير');
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  };
 
   const sales = useMemo(() => data?.sales || [], [data?.sales]);
 
@@ -175,14 +190,14 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
   };
 
   return (
-    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-      {/* 1. HEADER & KPI CARDS */}
+    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+      {/* 1. HEADER & KPI CARDS (COMPACT SINGLE ROW) */}
       <div
         style={{
           backgroundColor: '#ffffff',
-          borderRadius: '14px',
+          borderRadius: '10px',
           border: '1px solid #e2e8f0',
-          padding: '16px 18px',
+          padding: '8px 10px',
         }}
       >
         <div
@@ -190,57 +205,53 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '10px',
-            marginBottom: '14px',
+            gap: '6px',
+            marginBottom: '6px',
           }}
         >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ReceiptIcon size={20} color="#170e5e" />
-              <h2 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                سجل الفواتير وإعادة الطباعة
-              </h2>
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  backgroundColor: '#eef2ff',
-                  color: '#170e5e',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                }}
-              >
-                {metrics.count} فاتورة
-              </span>
-            </div>
-            <p style={{ fontSize: '12px', color: '#64748b', margin: '3px 0 0' }}>
-              مرجع كامل لفواتير مبيعاتك الميدانية لإعادة طباعتها أو مراجعتها أو مشاركتها عبر الواتساب
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
+            <ReceiptIcon size={15} color="#170e5e" />
+            <h2 style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap' }}>
+              سجل الفواتير
+            </h2>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                backgroundColor: '#eef2ff',
+                color: '#170e5e',
+                padding: '1px 5px',
+                borderRadius: '6px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {metrics.count} فاتورة
+            </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
             <button
               type="button"
-              onClick={() => refetch()}
-              disabled={isLoading || isRefetching}
+              onClick={handleRefresh}
+              disabled={isLoading || isRefetching || isManualRefreshing}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                borderRadius: '8px',
+                gap: '3px',
+                padding: '2px 8px',
+                borderRadius: '6px',
                 border: '1px solid #cbd5e1',
                 backgroundColor: '#ffffff',
                 color: '#475569',
-                fontSize: '11.5px',
+                fontSize: '10.5px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                height: '26px',
               }}
               title="تحديث قائمة الفواتير"
             >
-              <RefreshCwIcon size={14} className={isRefetching ? 'spin-icon' : ''} />
-              <span>تحديث</span>
+              <RefreshCwIcon size={11} className={isRefetching || isManualRefreshing ? 'spin-icon' : ''} />
+              <span>{isManualRefreshing ? 'جاري...' : 'تحديث'}</span>
             </button>
 
             {onGoToNewSale && (
@@ -250,111 +261,88 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 14px',
-                  borderRadius: '8px',
+                  gap: '3px',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
                   border: 'none',
                   backgroundColor: '#170e5e',
                   color: '#ffffff',
-                  fontSize: '12px',
+                  fontSize: '11px',
                   fontWeight: 800,
                   cursor: 'pointer',
+                  height: '26px',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <PlusIcon size={14} color="#ffffff" />
-                <span>فاتورة جديدة</span>
+                <PlusIcon size={11} color="#ffffff" />
+                <span>+ فاتورة</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* METRICS SUMMARY CHIPS */}
+        {/* METRICS SUMMARY STRIP (EXACTLY 1 COMPACT ROW) */}
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-            gap: '8px',
-            marginTop: '4px',
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '6px 4px',
+            textAlign: 'center',
+            width: '100%',
+            boxSizing: 'border-box',
           }}
         >
-          <div
-            style={{
-              backgroundColor: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '10px',
-              padding: '10px 12px',
-            }}
-          >
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي المبيعات</div>
-            <div style={{ fontSize: '15px', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
-              {metrics.totalSales.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-              <CurrencySymbol />
+          <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #e2e8f0', padding: '2px 4px' }}>
+            <div style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, marginBottom: '2px' }}>المبيعات</div>
+            <div style={{ fontSize: '11.5px', fontWeight: 900, color: '#170e5e', whiteSpace: 'nowrap' }}>
+              {metrics.totalSales.toFixed(2)} <CurrencySymbol />
             </div>
           </div>
 
-          <div
-            style={{
-              backgroundColor: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              borderRadius: '10px',
-              padding: '10px 12px',
-            }}
-          >
-            <div style={{ fontSize: '11px', color: '#166534', fontWeight: 600 }}>المحصل نقداً</div>
-            <div style={{ fontSize: '15px', fontWeight: 800, color: '#166534', marginTop: '2px' }}>
-              {metrics.cashSales.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-              <CurrencySymbol />
+          <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #e2e8f0', padding: '2px 4px' }}>
+            <div style={{ fontSize: '9.5px', color: '#166534', fontWeight: 700, marginBottom: '2px' }}>النقدي</div>
+            <div style={{ fontSize: '11.5px', fontWeight: 900, color: '#166534', whiteSpace: 'nowrap' }}>
+              {metrics.cashSales.toFixed(2)} <CurrencySymbol />
             </div>
           </div>
 
-          <div
-            style={{
-              backgroundColor: '#eff6ff',
-              border: '1px solid #bfdbfe',
-              borderRadius: '10px',
-              padding: '10px 12px',
-            }}
-          >
-            <div style={{ fontSize: '11px', color: '#1e40af', fontWeight: 600 }}>المبيعات الآجلة</div>
-            <div style={{ fontSize: '15px', fontWeight: 800, color: '#1e40af', marginTop: '2px' }}>
-              {metrics.creditSales.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-              <CurrencySymbol />
+          <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #e2e8f0', padding: '2px 4px' }}>
+            <div style={{ fontSize: '9.5px', color: '#1e40af', fontWeight: 700, marginBottom: '2px' }}>الآجل</div>
+            <div style={{ fontSize: '11.5px', fontWeight: 900, color: '#1e40af', whiteSpace: 'nowrap' }}>
+              {metrics.creditSales.toFixed(2)} <CurrencySymbol />
             </div>
           </div>
 
-          <div
-            style={{
-              backgroundColor: '#fdf4ff',
-              border: '1px solid #f0abfc',
-              borderRadius: '10px',
-              padding: '10px 12px',
-            }}
-          >
-            <div style={{ fontSize: '11px', color: '#86198f', fontWeight: 600 }}>الطرود والقطع</div>
-            <div style={{ fontSize: '13px', fontWeight: 800, color: '#86198f', marginTop: '2px' }}>
-              {metrics.totalCartons ? `${metrics.totalCartons} كرتونة | ` : ''}
+          <div style={{ flex: '1 1 0', minWidth: 0, padding: '2px 4px' }}>
+            <div style={{ fontSize: '9.5px', color: '#86198f', fontWeight: 700, marginBottom: '2px' }}>الطرود</div>
+            <div style={{ fontSize: '11.5px', fontWeight: 900, color: '#86198f', whiteSpace: 'nowrap' }}>
               {metrics.totalPieces} قطعة
             </div>
           </div>
         </div>
       </div>
 
-      {/* 2. FILTERS CONTROL BAR */}
+      {/* 2. FILTERS CONTROL BAR (HIGH DENSITY) */}
       <div
         style={{
           backgroundColor: '#ffffff',
-          borderRadius: '14px',
+          borderRadius: '10px',
           border: '1px solid #e2e8f0',
-          padding: '14px 16px',
+          padding: '8px 10px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '10px',
+          gap: '6px',
         }}
       >
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-          {/* DATE PILLS */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b', marginLeft: '6px' }}>الفترة:</span>
+        {/* ROW 1: DATE PERIOD + TRIP CHECKBOX */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginInlineEnd: '4px' }}>الفترة:</span>
             {[
               { id: 'today', label: 'اليوم' },
               { id: 'yesterday', label: 'أمس' },
@@ -368,100 +356,102 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                   type="button"
                   onClick={() => setDateScope(p.id as any)}
                   style={{
-                    padding: '5px 12px',
-                    borderRadius: '8px',
-                    fontSize: '11.5px',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
                     fontWeight: 600,
                     border: '1px solid',
                     borderColor: active ? '#170e5e' : '#cbd5e1',
                     backgroundColor: active ? '#170e5e' : '#f8fafc',
                     color: active ? '#ffffff' : '#334155',
                     cursor: 'pointer',
+                    height: '26px',
+                    boxSizing: 'border-box',
                   }}
                 >
                   {p.label}
                 </button>
               );
             })}
-
-            {tripId && (
-              <label
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  color: '#170e5e',
-                  marginRight: '8px',
-                  cursor: 'pointer',
-                  backgroundColor: tripOnly ? '#eef2ff' : 'transparent',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={tripOnly}
-                  onChange={(e) => setTripOnly(e.target.checked)}
-                  style={{ accentColor: '#170e5e' }}
-                />
-                <span>رحلة اليوم الحالية فقط (#{tripId})</span>
-              </label>
-            )}
           </div>
 
-          {/* PAYMENT METHOD PILLS */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b', marginLeft: '6px' }}>الدفع:</span>
-            {[
-              { id: 'all', label: 'الكل' },
-              { id: 'cash', label: 'نقدي' },
-              { id: 'credit', label: 'آجل' },
-              { id: 'split', label: 'دفع مركب' },
-              { id: 'card', label: 'شبكة/فيزا' },
-            ].map((pm) => {
-              const active = paymentFilter === pm.id;
-              return (
-                <button
-                  key={pm.id}
-                  type="button"
-                  onClick={() => setPaymentFilter(pm.id as any)}
-                  style={{
-                    padding: '5px 10px',
-                    borderRadius: '8px',
-                    fontSize: '11.5px',
-                    fontWeight: 600,
-                    border: '1px solid',
-                    borderColor: active ? '#170e5e' : '#cbd5e1',
-                    backgroundColor: active ? '#170e5e' : '#f8fafc',
-                    color: active ? '#ffffff' : '#334155',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {pm.label}
-                </button>
-              );
-            })}
-          </div>
+          {tripId && (
+            <label
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#170e5e',
+                cursor: 'pointer',
+                backgroundColor: tripOnly ? '#eef2ff' : 'transparent',
+                padding: '2px 6px',
+                borderRadius: '4px',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={tripOnly}
+                onChange={(e) => setTripOnly(e.target.checked)}
+                style={{ accentColor: '#170e5e' }}
+              />
+              <span>رحلة اليوم (#{tripId})</span>
+            </label>
+          )}
         </div>
 
-        {/* SEARCH & CUSTOMER ROW */}
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          {/* SEARCH BOX */}
-          <div style={{ flex: '1 1 240px', position: 'relative' }}>
+        {/* ROW 2: PAYMENT METHOD PILLS */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginInlineEnd: '4px' }}>الدفع:</span>
+          {[
+            { id: 'all', label: 'الكل' },
+            { id: 'cash', label: 'نقدي' },
+            { id: 'credit', label: 'آجل' },
+            { id: 'split', label: 'دفع مركب' },
+            { id: 'card', label: 'شبكة/فيزا' },
+          ].map((pm) => {
+            const active = paymentFilter === pm.id;
+            return (
+              <button
+                key={pm.id}
+                type="button"
+                onClick={() => setPaymentFilter(pm.id as any)}
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  border: '1px solid',
+                  borderColor: active ? '#170e5e' : '#cbd5e1',
+                  backgroundColor: active ? '#170e5e' : '#f8fafc',
+                  color: active ? '#ffffff' : '#334155',
+                  cursor: 'pointer',
+                  height: '26px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {pm.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ROW 3: SEARCH & CUSTOMER COMBOBOX */}
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="بحث برقم الفاتورة، اسم العميل، الهاتف، أو الكود..."
+              placeholder="بحث بالفاتورة أو الهاتف..."
               style={{
                 width: '100%',
-                height: '36px',
-                padding: '0 32px 0 28px',
-                borderRadius: '8px',
+                height: '32px',
+                padding: '0 26px 0 20px',
+                borderRadius: '6px',
                 border: '1px solid #cbd5e1',
-                fontSize: '12px',
+                fontSize: '11.5px',
                 boxSizing: 'border-box',
                 outline: 'none',
                 backgroundColor: '#ffffff',
@@ -470,15 +460,16 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
             <div
               style={{
                 position: 'absolute',
-                right: '10px',
+                right: '7px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 color: '#94a3b8',
                 display: 'flex',
                 alignItems: 'center',
+                pointerEvents: 'none',
               }}
             >
-              <SearchIcon size={14} />
+              <SearchIcon size={13} />
             </div>
             {searchQuery && (
               <button
@@ -486,7 +477,7 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                 onClick={() => setSearchQuery('')}
                 style={{
                   position: 'absolute',
-                  left: '8px',
+                  left: '6px',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: 'transparent',
@@ -498,37 +489,25 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                   alignItems: 'center',
                 }}
               >
-                <XIcon size={14} />
+                <XIcon size={13} />
               </button>
             )}
           </div>
 
-          {/* CUSTOMER SELECT (OPTIONAL) */}
           {customers.length > 0 && (
-            <div style={{ flex: '1 1 200px' }}>
-              <select
-                value={selectedCustomerId}
-                onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : '')}
-                style={{
-                  width: '100%',
-                  height: '36px',
-                  padding: '0 10px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '12px',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                  backgroundColor: '#ffffff',
-                  color: selectedCustomerId ? '#0f172a' : '#64748b',
-                }}
-              >
-                <option value="">-- تصفية حسب عميل محدد --</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} {c.customerCode ? `(${c.customerCode})` : ''}
-                  </option>
-                ))}
-              </select>
+            <div style={{ width: '130px', flexShrink: 0 }}>
+              <CustomSelect
+                value={selectedCustomerId ? String(selectedCustomerId) : ''}
+                onChange={(val) => setSelectedCustomerId(val ? Number(val) : '')}
+                options={[
+                  { value: '', label: 'كافة العملاء' },
+                  ...customers.map((c) => ({
+                    value: String(c.id),
+                    label: `${c.name} ${c.customerCode ? `(${c.customerCode})` : ''}`,
+                  })),
+                ]}
+                placeholder="كافة العملاء"
+              />
             </div>
           )}
         </div>
@@ -539,24 +518,24 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
         <div
           style={{
             backgroundColor: '#ffffff',
-            borderRadius: '14px',
+            borderRadius: '10px',
             border: '1px solid #e2e8f0',
-            padding: '48px 20px',
+            padding: '28px 16px',
             textAlign: 'center',
           }}
         >
           <div
             style={{
-              width: '40px',
-              height: '40px',
+              width: '32px',
+              height: '32px',
               borderRadius: '50%',
-              border: '3px solid #e2e8f0',
+              border: '2.5px solid #e2e8f0',
               borderTopColor: '#170e5e',
               animation: 'spin 0.8s linear infinite',
-              margin: '0 auto 12px',
+              margin: '0 auto 10px',
             }}
           />
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>
             جاري جلب سجل الفواتير والمبيعات...
           </div>
         </div>
@@ -564,32 +543,32 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
         <div
           style={{
             backgroundColor: '#ffffff',
-            borderRadius: '14px',
+            borderRadius: '10px',
             border: '1px solid #e2e8f0',
-            padding: '48px 20px',
+            padding: '24px 16px',
             textAlign: 'center',
           }}
         >
           <div
             style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '16px',
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
               backgroundColor: '#f1f5f9',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 12px',
+              margin: '0 auto 10px',
               color: '#64748b',
             }}
           >
-            <ReceiptIcon size={26} />
+            <ReceiptIcon size={22} />
           </div>
-          <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
+          <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
             لا توجد فواتير بيع مسجلة
           </h3>
-          <p style={{ fontSize: '12px', color: '#64748b', margin: '0 auto 16px', maxWidth: '340px' }}>
-            لم يتم العثور على أي فواتير مطابقة لخيارات التصفية المحددة. يمكنك تعديل خيارات البحث أو إصدار فاتورة جديدة.
+          <p style={{ fontSize: '11.5px', color: '#64748b', margin: '0 auto 12px', maxWidth: '320px' }}>
+            لم يتم العثور على أية فواتير مطابقة لخيارات التصفية المحددة.
           </p>
           {onGoToNewSale && (
             <button
@@ -598,18 +577,18 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '8px 18px',
-                borderRadius: '8px',
+                gap: '5px',
+                padding: '6px 14px',
+                borderRadius: '6px',
                 border: 'none',
                 backgroundColor: '#170e5e',
                 color: '#ffffff',
-                fontSize: '12.5px',
+                fontSize: '11.5px',
                 fontWeight: 800,
                 cursor: 'pointer',
               }}
             >
-              <PlusIcon size={14} color="#ffffff" />
+              <PlusIcon size={13} color="#ffffff" />
               <span>إصدار فاتورة بيع جديدة</span>
             </button>
           )}
