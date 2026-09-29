@@ -26,12 +26,12 @@ export class CreateCollectionLogDto {
   @IsString()
   @IsNotEmpty()
   @IsIn(['call', 'whatsapp', 'visit', 'letter', 'dispute', 'promise_to_pay', 'other'])
-  interactionType: string;
+  interactionType!: string;
 
   @IsString()
   @IsNotEmpty()
   @IsIn(['sent', 'answered', 'promise_to_pay', 'no_answer', 'disputed', 'refused', 'escalated', 'settled'])
-  resultStatus: string;
+  resultStatus!: string;
 
   @IsOptional()
   @IsString()
@@ -55,11 +55,11 @@ export class CreateCollectionLogDto {
 export class RecordPromiseToPayDto {
   @IsString()
   @IsNotEmpty()
-  promisedDate: string;
+  promisedDate!: string;
 
   @IsNumber()
   @Min(0.01)
-  promisedAmount: number;
+  promisedAmount!: number;
 
   @IsOptional()
   @IsString()
@@ -68,7 +68,7 @@ export class RecordPromiseToPayDto {
 
 export class ToggleCreditBlockDto {
   @IsBoolean()
-  block: boolean;
+  block!: boolean;
 
   @IsOptional()
   @IsString()

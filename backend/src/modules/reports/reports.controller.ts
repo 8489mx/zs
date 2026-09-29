@@ -113,7 +113,7 @@ export class ReportsController {
     @Body() dto: ExecuteDynamicPivotDto,
     @Req() req: RequestWithAuth,
   ) {
-    return this.pivotService.executePivot(req.auth, dto);
+    return this.pivotService.executePivot(req.authContext!, dto);
   }
 
   @Get('reports/pivot/templates')
@@ -122,7 +122,7 @@ export class ReportsController {
     @Query('dataset') dataset: string,
     @Req() req: RequestWithAuth,
   ) {
-    return this.pivotService.getSavedTemplates(req.auth, dataset);
+    return this.pivotService.getSavedTemplates(req.authContext!, dataset);
   }
 
   @Post('reports/pivot/templates')
@@ -131,7 +131,7 @@ export class ReportsController {
     @Body() dto: SavePivotTemplateDto,
     @Req() req: RequestWithAuth,
   ) {
-    return this.pivotService.saveTemplate(req.auth, dto);
+    return this.pivotService.saveTemplate(req.authContext!, dto);
   }
 
   @Delete('reports/pivot/templates/:id')
@@ -140,6 +140,6 @@ export class ReportsController {
     @Param('id') id: string,
     @Req() req: RequestWithAuth,
   ) {
-    return this.pivotService.deleteTemplate(req.auth, id);
+    return this.pivotService.deleteTemplate(req.authContext!, id);
   }
 }

@@ -18,15 +18,15 @@ export class SubscriptionLineItemDto {
 
   @IsString()
   @IsNotEmpty()
-  description: string;
+  description!: string;
 
   @IsNumber()
   @Min(0.001)
-  quantity: number;
+  quantity!: number;
 
   @IsNumber()
   @Min(0)
-  unitPrice: number;
+  unitPrice!: number;
 
   @IsOptional()
   @IsNumber()
@@ -37,7 +37,7 @@ export class SubscriptionLineItemDto {
 export class CreateCommercialSubscriptionDto {
   @IsNumber()
   @IsNotEmpty()
-  customerId: number;
+  customerId!: number;
 
   @IsOptional()
   @IsString()
@@ -45,11 +45,11 @@ export class CreateCommercialSubscriptionDto {
 
   @IsString()
   @IsIn(['monthly', 'quarterly', 'semi_annual', 'annual'])
-  billingPeriod: 'monthly' | 'quarterly' | 'semi_annual' | 'annual';
+  billingPeriod!: 'monthly' | 'quarterly' | 'semi_annual' | 'annual';
 
   @IsString()
   @IsNotEmpty()
-  startDate: string;
+  startDate!: string;
 
   @IsOptional()
   @IsString()
@@ -70,11 +70,11 @@ export class CreateCommercialSubscriptionDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SubscriptionLineItemDto)
-  lines: SubscriptionLineItemDto[];
+  lines!: SubscriptionLineItemDto[];
 }
 
 export class UpdateSubscriptionStatusDto {
   @IsString()
   @IsIn(['draft', 'active', 'paused', 'canceled'])
-  status: 'draft' | 'active' | 'paused' | 'canceled';
+  status!: 'draft' | 'active' | 'paused' | 'canceled';
 }

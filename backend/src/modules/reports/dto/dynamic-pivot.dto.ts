@@ -5,11 +5,11 @@ export class ExecuteDynamicPivotDto {
   @IsString()
   @IsNotEmpty()
   @IsIn(['sales', 'purchases', 'inventory', 'expenses'])
-  dataset: 'sales' | 'purchases' | 'inventory' | 'expenses';
+  dataset!: 'sales' | 'purchases' | 'inventory' | 'expenses';
 
   @IsString()
   @IsNotEmpty()
-  rowDimension: string;
+  rowDimension!: string;
 
   @IsOptional()
   @IsString()
@@ -18,7 +18,7 @@ export class ExecuteDynamicPivotDto {
   @IsString()
   @IsNotEmpty()
   @IsIn(['total_amount', 'net_profit', 'quantity', 'count', 'avg_amount'])
-  metric: PivotMetric;
+  metric!: PivotMetric;
 
   @IsOptional()
   @IsString()
@@ -35,7 +35,7 @@ export class ExecuteDynamicPivotDto {
 export class SavePivotTemplateDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsOptional()
   @IsString()
@@ -43,11 +43,11 @@ export class SavePivotTemplateDto {
 
   @IsString()
   @IsNotEmpty()
-  dataset: string;
+  dataset!: string;
 
   @IsString()
   @IsNotEmpty()
-  rowDimension: string;
+  rowDimension!: string;
 
   @IsOptional()
   @IsString()
@@ -55,7 +55,7 @@ export class SavePivotTemplateDto {
 
   @IsString()
   @IsNotEmpty()
-  metric: string;
+  metric!: string;
 
   @IsOptional()
   @IsString()

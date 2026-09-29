@@ -204,8 +204,8 @@ export class WarehousePackagesService {
       .groupBy('parent_package_id')
       .execute();
 
-    const itemsMap = new Map(itemsCounts.map((i: any) => [i.package_id, i]));
-    const childrenMap = new Map(childCounts.map((c: any) => [c.parent_package_id, Number(c.children_count || 0)]));
+    const itemsMap = new Map<string, any>(itemsCounts.map((i: any) => [i.package_id, i]));
+    const childrenMap = new Map<string, number>(childCounts.map((c: any) => [c.parent_package_id, Number(c.children_count || 0)]));
 
     return packages.map((p: any) => ({
       ...p,

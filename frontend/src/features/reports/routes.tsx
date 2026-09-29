@@ -8,6 +8,7 @@ const pivotBuilderPage = createLazyRoute(() => import('@/features/reports/pages/
 export const reportsRouteModule: FeatureRouteModule = {
   routes: [
     { path: 'reports', element: <Navigate to="/reports/overview" replace /> },
+    { path: 'reports/overview', element: reportsPage },
     { path: 'reports/pivot-builder', element: pivotBuilderPage },
     { path: 'reports/:section', element: reportsPage }
   ],

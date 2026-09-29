@@ -28,7 +28,7 @@ export class ArCollectionsController {
 
   @Get('overview')
   async getOverview(@Req() req: RequestWithAuth) {
-    return this.collectionsService.getOverview(req.auth);
+    return this.collectionsService.getOverview(req.authContext!);
   }
 
   @Get('cases')
@@ -36,7 +36,7 @@ export class ArCollectionsController {
     @Req() req: RequestWithAuth,
     @Query() query: ArCollectionsQueryDto,
   ) {
-    return this.collectionsService.getCases(req.auth, query);
+    return this.collectionsService.getCases(req.authContext!, query);
   }
 
   @Get('cases/:id')
@@ -44,12 +44,12 @@ export class ArCollectionsController {
     @Req() req: RequestWithAuth,
     @Param('id') id: string,
   ) {
-    return this.collectionsService.getCaseDetails(req.auth, id);
+    return this.collectionsService.getCaseDetails(req.authContext!, id);
   }
 
   @Post('sync')
   async syncCollections(@Req() req: RequestWithAuth) {
-    return this.collectionsService.syncCollections(req.auth);
+    return this.collectionsService.syncCollections(req.authContext!);
   }
 
   @Post('cases/:id/logs')
@@ -58,7 +58,7 @@ export class ArCollectionsController {
     @Param('id') id: string,
     @Body() dto: CreateCollectionLogDto,
   ) {
-    return this.collectionsService.logInteraction(req.auth, id, dto);
+    return this.collectionsService.logInteraction(req.authContext!, id, dto);
   }
 
   @Post('cases/:id/promise-to-pay')
@@ -67,7 +67,7 @@ export class ArCollectionsController {
     @Param('id') id: string,
     @Body() dto: RecordPromiseToPayDto,
   ) {
-    return this.collectionsService.recordPromiseToPay(req.auth, id, dto);
+    return this.collectionsService.recordPromiseToPay(req.authContext!, id, dto);
   }
 
   @Post('cases/:id/toggle-credit-block')
@@ -76,12 +76,12 @@ export class ArCollectionsController {
     @Param('id') id: string,
     @Body() dto: ToggleCreditBlockDto,
   ) {
-    return this.collectionsService.toggleCreditBlock(req.auth, id, dto);
+    return this.collectionsService.toggleCreditBlock(req.authContext!, id, dto);
   }
 
   @Get('dunning-levels')
   async getDunningLevels(@Req() req: RequestWithAuth) {
-    return this.collectionsService.getDunningLevels(req.auth);
+    return this.collectionsService.getDunningLevels(req.authContext!);
   }
 
   @Put('dunning-levels/:id')
@@ -90,6 +90,6 @@ export class ArCollectionsController {
     @Param('id') id: string,
     @Body() dto: UpdateDunningLevelDto,
   ) {
-    return this.collectionsService.updateDunningLevel(req.auth, id, dto);
+    return this.collectionsService.updateDunningLevel(req.authContext!, id, dto);
   }
 }
