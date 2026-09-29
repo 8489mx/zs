@@ -22,6 +22,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 import { systemConfirm, toast } from '@/shared/components/system-alert';
 import { useFormDraft } from '@/shared/hooks/use-form-draft';
+import { useIsMobile } from '@/shared/hooks/use-is-mobile';
 
 export interface RequisitionLineItem {
   id: string;
@@ -365,6 +366,329 @@ const RequisitionLineRow = memo(function RequisitionLineRow({
   );
 });
 
+const RequisitionLineCard = memo(function RequisitionLineCard({
+  line,
+  index = 0,
+  productOptions,
+  selectedWarehouseFilter,
+  onSelectProduct,
+  onLineProductChange,
+  onChangeLineWarehouse,
+  onLineWarehouseChange,
+  onUpdateLineQty,
+  onRemoveLine,
+  onEnterQty,
+}: RequisitionLineRowProps) {
+  const qtyInputRef = useRef<HTMLInputElement | null>(null);
+  const shouldFocusQtyRef = useRef<boolean>(false);
+
+  // Warehouses with positive stock for this line's product
+  const productWarehouseOptions = useMemo(() => {
+    return (line.warehouseStocks || [])
+      .filter((w) => w.qty > 0)
+      .map((w) => ({
+        id: String(w.warehouseId),
+        name: `${w.warehouseName} (متاح: ${w.qty})`,
+      }));
+  }, [line.warehouseStocks]);
+
+  const handleProductChange = useCallback(
+    (val: string) => {
+      onLineProductChange(line.id, val);
+    },
+    [line.id, onLineProductChange],
+  );
+
+  const handleProductSelect = useCallback(
+    (opt: ProductOptionItem) => {
+      shouldFocusQtyRef.current = true;
+      onSelectProduct(line.id, opt.product);
+      setTimeout(() => {
+        if (qtyInputRef.current) {
+          qtyInputRef.current.focus();
+          qtyInputRef.current.select();
+          shouldFocusQtyRef.current = false;
+        }
+      }, 60);
+    },
+    [line.id, onSelectProduct],
+  );
+
+  useEffect(() => {
+    if (shouldFocusQtyRef.current && qtyInputRef.current) {
+      shouldFocusQtyRef.current = false;
+      const timer = setTimeout(() => {
+        if (qtyInputRef.current) {
+          qtyInputRef.current.focus();
+          qtyInputRef.current.select();
+        }
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [line.productId]);
+
+  const handleWarehouseChange = useCallback(
+    (val: string) => {
+      onLineWarehouseChange(line.id, val);
+    },
+    [line.id, onLineWarehouseChange],
+  );
+
+  const handleWarehouseSelect = useCallback(
+    (opt: { id: string; name: string }) => {
+      onChangeLineWarehouse(line.id, opt.id);
+    },
+    [line.id, onChangeLineWarehouse],
+  );
+
+  const handleQtyMinus = useCallback(() => {
+    onUpdateLineQty(line.id, line.qty - 1);
+  }, [line.id, line.qty, onUpdateLineQty]);
+
+  const handleQtyPlus = useCallback(() => {
+    onUpdateLineQty(line.id, line.qty + 1);
+  }, [line.id, line.qty, onUpdateLineQty]);
+
+  const handleQtyChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = parseInt(e.target.value, 10);
+      if (!isNaN(val)) onUpdateLineQty(line.id, val);
+    },
+    [line.id, onUpdateLineQty],
+  );
+
+  const handleRemove = useCallback(() => {
+    onRemoveLine(line.id);
+  }, [line.id, onRemoveLine]);
+
+  return (
+    <div
+      style={{
+        backgroundColor: '#ffffff',
+        border: '1px solid #cbd5e1',
+        borderRadius: '10px',
+        padding: '12px 14px',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+      }}
+    >
+      {/* Card Header: Item index & Unit Price badge */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#475569' }}>
+          بند رقم #{index + 1}
+        </span>
+        {line.productId && line.unitPrice > 0 ? (
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              color: '#170e5e',
+              backgroundColor: '#ede9fe',
+              padding: '2px 8px',
+              borderRadius: '6px',
+            }}
+          >
+            سعر الوحدة: {line.unitPrice.toFixed(2)} <CurrencySymbol />
+          </span>
+        ) : null}
+      </div>
+
+      {/* Product Search & Selection via Portal Combobox */}
+      <div>
+        <SearchableCombobox
+          inputId={`product-card-input-${line.id}`}
+          options={productOptions}
+          value={line.productName || line.searchQuery || ''}
+          onChange={handleProductChange}
+          onSelect={handleProductSelect}
+          getLabel={getProductOptionLabel}
+          getMeta={getProductOptionMeta}
+          search={searchProductOption}
+          placeholder="ابحث عن الصنف بالاسم أو الباركود..."
+          inline={true}
+          inputClassName="purchase-prototype-field-input"
+          inputStyle={{ height: '40px', borderRadius: '8px', fontSize: '13px' }}
+        />
+      </div>
+
+      {/* Source Warehouse (when "all" is active) */}
+      {selectedWarehouseFilter === 'all' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>
+            مخزن الصرف:
+          </label>
+          {line.productId ? (
+            productWarehouseOptions.length > 0 ? (
+              <SearchableCombobox
+                inputId={`warehouse-card-input-${line.id}`}
+                options={productWarehouseOptions}
+                value={line.sourceWarehouseName || ''}
+                onChange={handleWarehouseChange}
+                onSelect={handleWarehouseSelect}
+                getLabel={getWarehouseOptionLabel}
+                search={searchWarehouseOption}
+                placeholder="اختر المخزن..."
+                inline={true}
+                inputClassName="purchase-prototype-field-input"
+                inputStyle={{ height: '38px', borderRadius: '8px', fontSize: '12.5px' }}
+              />
+            ) : (
+              <span style={{ fontSize: '11.5px', color: '#dc2626', fontWeight: 700 }}>
+                لا يتوفر رصيد بأي مخزن
+              </span>
+            )
+          ) : (
+            <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>- اختر صنفاً أولاً -</span>
+          )}
+        </div>
+      )}
+
+      {/* Bottom Action Row: Stock Pill + Stepper [+] [qty] [-] + Delete Button */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingTop: '8px',
+          borderTop: '1px solid #f1f5f9',
+          gap: '8px',
+        }}
+      >
+        {/* Available Stock Pill */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>المتاح:</span>
+          {line.productId ? (
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 800,
+                color: line.availableInWarehouse > 0 ? '#15803d' : '#dc2626',
+                backgroundColor: line.availableInWarehouse > 0 ? '#ecfdf5' : '#fef2f2',
+                border: `1px solid ${line.availableInWarehouse > 0 ? '#bbf7d0' : '#fecaca'}`,
+                padding: '2px 8px',
+                borderRadius: '6px',
+              }}
+            >
+              {line.availableInWarehouse} {line.unit}
+            </span>
+          ) : (
+            <span style={{ color: '#94a3b8', fontSize: '12px' }}>-</span>
+          )}
+        </div>
+
+        {/* Stepper + Delete button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {line.productId ? (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                backgroundColor: '#ffffff',
+                overflow: 'hidden',
+              }}
+            >
+              {/* RTL Stepper: + on right */}
+              <button
+                type="button"
+                onClick={handleQtyPlus}
+                disabled={line.availableInWarehouse > 0 && line.qty >= line.availableInWarehouse}
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  border: 'none',
+                  backgroundColor: '#f8fafc',
+                  color: '#475569',
+                  cursor:
+                    line.availableInWarehouse > 0 && line.qty >= line.availableInWarehouse
+                      ? 'not-allowed'
+                      : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <PlusIcon size={14} />
+              </button>
+              <input
+                ref={qtyInputRef}
+                type="number"
+                className="no-spin-arrows"
+                min={1}
+                max={line.availableInWarehouse || 999999}
+                value={line.qty}
+                onChange={handleQtyChange}
+                onFocus={(e) => e.target.select()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    onEnterQty?.();
+                  }
+                }}
+                style={{
+                  width: '48px',
+                  height: '34px',
+                  border: 'none',
+                  textAlign: 'center',
+                  fontSize: '13.5px',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  outline: 'none',
+                  MozAppearance: 'textfield',
+                  appearance: 'textfield',
+                }}
+              />
+              {/* RTL Stepper: - on left */}
+              <button
+                type="button"
+                onClick={handleQtyMinus}
+                disabled={line.qty <= 1}
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  border: 'none',
+                  backgroundColor: '#f8fafc',
+                  color: '#475569',
+                  cursor: line.qty <= 1 ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <MinusIcon size={14} />
+              </button>
+            </div>
+          ) : null}
+
+          {/* Delete Action Button */}
+          <button
+            type="button"
+            onClick={handleRemove}
+            style={{
+              backgroundColor: '#fee2e2',
+              border: '1px solid #fecaca',
+              color: '#ef4444',
+              cursor: 'pointer',
+              padding: '6px 8px',
+              borderRadius: '7px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '34px',
+            }}
+            title="حذف هذا السطر"
+          >
+            <Trash2Icon size={15} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 export interface DriverNewLoadRequisitionViewProps {
   mode?: 'driver' | 'admin';
   onBack: () => void;
@@ -378,6 +702,7 @@ export function DriverNewLoadRequisitionView({
 }: DriverNewLoadRequisitionViewProps) {
   const queryClient = useQueryClient();
   const isAdmin = mode === 'admin';
+  const isMobile = useIsMobile(768);
 
   // 'all' means automatic source warehouse selection; otherwise a specific warehouseId string
   const [selectedWarehouseFilter, setSelectedWarehouseFilter] = useState<string>('all');
@@ -1108,7 +1433,7 @@ export function DriverNewLoadRequisitionView({
           </div>
 
           <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: '0 0 8px' }}>
-            تم إرسال طلب الشحن الصباحي بنجاح!
+            تم إرسال طلب شحن البضاعة بنجاح!
           </h2>
 
           <div
@@ -1163,6 +1488,9 @@ export function DriverNewLoadRequisitionView({
           appearance: textfield !important;
         }
         @media (max-width: 768px) {
+          .driver-requisition-card {
+            padding: 12px 14px !important;
+          }
           .driver-req-top-actions {
             width: 100% !important;
             display: flex !important;
@@ -1431,6 +1759,7 @@ export function DriverNewLoadRequisitionView({
 
         {/* Section 1: "المعلومات الأساسية" matching IssueOrderHeaderSection */}
         <section
+          className="driver-requisition-card"
           style={{
             position: 'relative',
             zIndex: 10,
@@ -1581,7 +1910,7 @@ export function DriverNewLoadRequisitionView({
                 value={
                   isAdmin
                     ? 'إسناد وصرف مباشر من المشرف'
-                    : 'طلب شحن صباحي (بانتظار موافقة مشرف المستودع)'
+                    : 'طلب شحن بضاعة (بانتظار موافقة مشرف المستودع)'
                 }
                 style={{
                   width: '100%',
@@ -1602,6 +1931,7 @@ export function DriverNewLoadRequisitionView({
 
         {/* Section 2: "الأصناف المطلوبة للتحميل" matching IssueOrderItemsTable */}
         <section
+          className="driver-requisition-card"
           style={{
             backgroundColor: '#ffffff',
             borderRadius: '12px',
@@ -1639,78 +1969,86 @@ export function DriverNewLoadRequisitionView({
                 [{distinctItemsCount} صنف مُحدد]
               </span>
             </div>
+            {/* Top add button removed to avoid duplicate */}
+          </div>
 
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={handleAddLine}
+          {/* Items Container: Responsive Cards on Mobile, Table on Desktop */}
+          {isMobile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {lines.map((line, index) => (
+                <RequisitionLineCard
+                  key={line.id}
+                  line={line}
+                  index={index}
+                  isLast={index === lines.length - 1}
+                  productOptions={productOptions}
+                  selectedWarehouseFilter={selectedWarehouseFilter}
+                  onSelectProduct={handleSelectProduct}
+                  onLineProductChange={handleLineProductChange}
+                  onChangeLineWarehouse={handleChangeLineWarehouse}
+                  onLineWarehouseChange={handleLineWarehouseChange}
+                  onUpdateLineQty={handleUpdateLineQty}
+                  onRemoveLine={handleRemoveLine}
+                  onEnterQty={handleAddLine}
+                />
+              ))}
+            </div>
+          ) : (
+            <div
+              className="purchase-prototype-items-table-wrapper"
               style={{
-                fontSize: '12px',
-                fontWeight: 700,
-                color: '#170e5e',
-                borderColor: '#cbd5e1',
-                padding: '6px 12px',
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                backgroundColor: '#ffffff',
               }}
             >
-              + إضافة صنف جديد
-            </Button>
-          </div>
-
-          {/* Table Container */}
-          <div
-            className="purchase-prototype-items-table-wrapper"
-            style={{
-              overflowX: 'auto',
-              WebkitOverflowScrolling: 'touch',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              backgroundColor: '#ffffff',
-            }}
-          >
-            <table className="purchase-prototype-items-table" style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'right' }}>
-              <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
-                <tr>
-                  <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '38%' }}>
-                    الصنف (بحث بالاسم أو الباركود)
-                  </th>
-                  {selectedWarehouseFilter === 'all' && (
-                    <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '24%' }}>
-                      مخزن الصرف
+              <table className="purchase-prototype-items-table" style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'right' }}>
+                <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
+                  <tr>
+                    <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '38%' }}>
+                      الصنف (بحث بالاسم أو الباركود)
                     </th>
-                  )}
-                  <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '16%', textAlign: 'center' }}>
-                    الكمية المتاحة (بالمخزن)
-                  </th>
-                  <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '16%', textAlign: 'center' }}>
-                    الكمية المطلوبة
-                  </th>
-                  <th style={{ padding: '10px 14px', width: '6%', textAlign: 'center' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, index) => (
-                  <RequisitionLineRow
-                    key={line.id}
-                    line={line}
-                    index={index}
-                    isLast={index === lines.length - 1}
-                    productOptions={productOptions}
-                    selectedWarehouseFilter={selectedWarehouseFilter}
-                    onSelectProduct={handleSelectProduct}
-                    onLineProductChange={handleLineProductChange}
-                    onChangeLineWarehouse={handleChangeLineWarehouse}
-                    onLineWarehouseChange={handleLineWarehouseChange}
-                    onUpdateLineQty={handleUpdateLineQty}
-                    onRemoveLine={handleRemoveLine}
-                    onEnterQty={handleAddLine}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    {selectedWarehouseFilter === 'all' && (
+                      <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '24%' }}>
+                        مخزن الصرف
+                      </th>
+                    )}
+                    <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '16%', textAlign: 'center' }}>
+                      الكمية المتاحة (بالمخزن)
+                    </th>
+                    <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '16%', textAlign: 'center' }}>
+                      الكمية المطلوبة
+                    </th>
+                    <th style={{ padding: '10px 14px', width: '6%', textAlign: 'center' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map((line, index) => (
+                    <RequisitionLineRow
+                      key={line.id}
+                      line={line}
+                      index={index}
+                      isLast={index === lines.length - 1}
+                      productOptions={productOptions}
+                      selectedWarehouseFilter={selectedWarehouseFilter}
+                      onSelectProduct={handleSelectProduct}
+                      onLineProductChange={handleLineProductChange}
+                      onChangeLineWarehouse={handleChangeLineWarehouse}
+                      onLineWarehouseChange={handleLineWarehouseChange}
+                      onUpdateLineQty={handleUpdateLineQty}
+                      onRemoveLine={handleRemoveLine}
+                      onEnterQty={handleAddLine}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Add Line Bottom Bar */}
-          <div style={{ marginTop: '12px', textAlign: 'right' }}>
+          <div style={{ marginTop: '12px', textAlign: isMobile ? 'center' : 'right' }}>
             <Button
               variant="secondary"
               type="button"
@@ -1722,6 +2060,8 @@ export function DriverNewLoadRequisitionView({
                 borderColor: '#cbd5e1',
                 padding: '8px 16px',
                 backgroundColor: '#f8fafc',
+                width: isMobile ? '100%' : 'auto',
+                justifyContent: 'center',
               }}
             >
               + إضافة صنف جديد
@@ -1731,6 +2071,7 @@ export function DriverNewLoadRequisitionView({
 
         {/* Section 3: "الملاحظات" matching NewIssueOrderPage */}
         <section
+          className="driver-requisition-card"
           style={{
             backgroundColor: '#ffffff',
             borderRadius: '12px',
@@ -1777,6 +2118,7 @@ export function DriverNewLoadRequisitionView({
 
         {/* Section 4: Summary Card & Action Bar */}
         <section
+          className="driver-requisition-card"
           style={{
             backgroundColor: '#ffffff',
             borderRadius: '12px',

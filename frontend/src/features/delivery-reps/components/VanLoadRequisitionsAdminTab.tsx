@@ -590,7 +590,7 @@ export function VanLoadRequisitionsAdminTab() {
       >
         {isLoading ? (
           <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
-            جاري تحميل أذونات التحميل الصباحية...
+            جاري تحميل أذونات التحميل...
           </div>
         ) : requisitions.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>

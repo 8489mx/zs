@@ -286,7 +286,7 @@ export function DriverLoadRequisitionModal({
     <StandardDialog
       open={open}
       onClose={handleReset}
-      title="طلب شحن بضاعة صباحي (إذن تحميل سيارة)"
+      title="طلب شحن بضاعة (إذن تحميل سيارة)"
       subtitle="تحديد أصناف وكميات البضاعة المطلوبة من المستودعات لسيارة التوزيع للمراجعة والاعتماد"
       maxWidth="840px"
     >
