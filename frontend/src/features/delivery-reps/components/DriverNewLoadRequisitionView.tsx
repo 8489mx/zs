@@ -1219,6 +1219,23 @@ export function DriverNewLoadRequisitionView({
                 >
                   {isAdmin ? 'إسناد إداري مباشر' : 'مسودة جديدة'}
                 </span>
+                <span
+                  style={{
+                    backgroundColor: '#f1f5f9',
+                    color: '#475569',
+                    fontSize: '10.5px',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    fontFamily: 'monospace',
+                    cursor: 'pointer',
+                    border: '1px solid #e2e8f0',
+                  }}
+                  onClick={() => window.location.reload()}
+                  title="رقم إصدار البيلد - انقر للتحديث الفوري"
+                >
+                  بيلد: {typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev'}
+                </span>
               </div>
               <span style={{ fontSize: '11.5px', color: '#64748b' }}>
                 {isAdmin
@@ -1839,6 +1856,27 @@ export function DriverNewLoadRequisitionView({
             )}
           </div>
         </section>
+
+        {/* Footer Build Indicator */}
+        <footer style={{ textAlign: 'center', marginTop: '20px', paddingBottom: '20px' }}>
+          <span
+            style={{
+              fontSize: '11px',
+              color: '#94a3b8',
+              fontFamily: 'monospace',
+              cursor: 'pointer',
+              display: 'inline-block',
+              padding: '4px 12px',
+              borderRadius: '6px',
+              backgroundColor: '#f1f5f9',
+              border: '1px solid #e2e8f0',
+            }}
+            onClick={() => window.location.reload()}
+            title="انقر للتحديث الفوري"
+          >
+            إصدار المنظومة: v{typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev'}
+          </span>
+        </footer>
       </div>
     </div>
   );

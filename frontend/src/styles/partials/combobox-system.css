@@ -52,9 +52,9 @@
   scrollbar-color: var(--combobox-scrollbar-thumb) var(--combobox-scrollbar-track) !important;
 }
 
-/* Master Dropdown Container (Portalled Fixed Combobox) */
+/* Master Dropdown Container (Portalled Absolute Combobox) */
 .purchase-prototype-combobox-dropdown {
-  position: fixed !important;
+  position: absolute !important;
   background: var(--combobox-bg) !important;
   border: 1px solid var(--combobox-border) !important;
   border-radius: var(--combobox-radius) !important;

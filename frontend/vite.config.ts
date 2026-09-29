@@ -3,9 +3,23 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { VitePWA } from 'vite-plugin-pwa';
 import { createRequire } from 'node:module';
+import { execSync } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
 const pkg = require('./package.json') as { version: string };
+
+const getBuildTag = () => {
+  try {
+    const gitHash = (process.env.GITHUB_SHA || execSync('git rev-parse --short HEAD').toString()).trim().slice(0, 7);
+    const d = new Date();
+    const yy = d.getFullYear().toString().slice(-2);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yy}${mm}${dd}-${gitHash}`;
+  } catch {
+    return Date.now().toString().slice(-6);
+  }
+};
 
 export default defineConfig(({ mode }) => {
   const isDesktop = mode === 'electron' || mode === 'portable' || process.env.ELECTRON === 'true';
@@ -95,7 +109,7 @@ export default defineConfig(({ mode }) => {
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
-    __APP_BUILD_ID__: JSON.stringify(Date.now().toString()),
+    __APP_BUILD_ID__: JSON.stringify(getBuildTag()),
   },
   server: {
     host: true,

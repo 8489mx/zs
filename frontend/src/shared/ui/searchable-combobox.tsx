@@ -150,6 +150,9 @@ export function SearchableCombobox<T extends ComboboxOption>({
       return;
     }
 
+    const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    const scrollX = window.pageXOffset || document.documentElement.scrollX || 0;
+
     const gap = 6;
     const viewportPadding = 8;
     const maxDropdownWidth = Math.max(120, vw - viewportPadding * 2);
@@ -164,9 +167,9 @@ export function SearchableCombobox<T extends ComboboxOption>({
     if (isRtl) {
       // In RTL, align right edge of dropdown with right edge of input
       const desiredLeft = Math.round(rect.right - dropdownWidth);
-      left = Math.min(Math.max(desiredLeft, viewportPadding), maxLeft);
+      left = Math.min(Math.max(desiredLeft, viewportPadding), maxLeft) + scrollX;
     } else {
-      left = Math.min(Math.max(Math.round(rect.left), viewportPadding), maxLeft);
+      left = Math.min(Math.max(Math.round(rect.left), viewportPadding), maxLeft) + scrollX;
     }
 
     const spaceBelow = Math.max(0, vh - rect.bottom - gap - viewportPadding);
@@ -181,19 +184,19 @@ export function SearchableCombobox<T extends ComboboxOption>({
     let transform: string | undefined;
 
     if (shouldFlip) {
-      // Anchored directly to top of input using translateY(-100%) so bottom is always (rect.top - gap)
+      // Anchored directly to top of input in document coordinates
       maxHeight = Math.max(80, Math.min(240, Math.round(spaceAbove)));
-      top = Math.round(rect.top - gap);
+      top = Math.round(rect.top + scrollY - gap);
       transform = 'translateY(-100%)';
     } else {
-      // Normal placement below the input
+      // Normal placement below the input in document coordinates
       maxHeight = Math.max(80, Math.min(260, Math.round(spaceBelow)));
-      top = Math.round(rect.bottom + gap);
+      top = Math.round(rect.bottom + scrollY + gap);
       transform = 'none';
     }
 
     setDropdownStyle({
-      position: 'fixed',
+      position: 'absolute',
       left,
       top,
       width: dropdownWidth,
@@ -244,16 +247,10 @@ export function SearchableCombobox<T extends ComboboxOption>({
     const rafId = window.requestAnimationFrame(updateDropdownPosition);
 
     const handleViewportChange = (e?: Event) => {
-      // If event is a scroll event:
+      // If scrolling inside the dropdown itself, allow natural scrolling
       if (e && e.type === 'scroll') {
         const target = e.target as Node | null;
-        // If scrolling inside the dropdown itself, allow natural scrolling
         if (dropdownRef.current && (dropdownRef.current === target || (target && dropdownRef.current.contains(target)))) {
-          return;
-        }
-        // If scrolling outside on mobile (keyboard open or page moving), close immediately to prevent detachment
-        if (window.innerWidth <= 768) {
-          close();
           return;
         }
       }

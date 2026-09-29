@@ -730,6 +730,24 @@ export default function VanSalesMobilePage() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <span
+            onClick={() => window.location.reload()}
+            title="رقم إصدار البيلد - انقر لإعادة التحميل"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.18)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              color: '#ffffff',
+              borderRadius: '6px',
+              padding: '4px 8px',
+              fontSize: '10.5px',
+              fontFamily: 'monospace',
+              fontWeight: 800,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            v{typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev'}
+          </span>
           <a
             href="/inventory/van-sales"
             title="الانتقال إلى لوحة إدارة المشرف والأسطول المركزية"

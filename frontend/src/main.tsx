@@ -64,18 +64,15 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.loc
         window.location.reload();
       };
 
+      // When a previous controller exists, a 'controlling' event means a new service worker took over (an update)
+      const hadPreviousController = Boolean(navigator.serviceWorker.controller);
+
       wb.addEventListener('waiting', () => {
         wb.messageSkipWaiting();
       });
 
-      wb.addEventListener('controlling', (event) => {
-        if (event.isUpdate) {
-          safeReload();
-        }
-      });
-
-      wb.addEventListener('activated', (event) => {
-        if (event.isUpdate) {
+      wb.addEventListener('controlling', () => {
+        if (hadPreviousController) {
           safeReload();
         }
       });
@@ -84,6 +81,11 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.loc
         if (!event.isUpdate) {
           window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
         }
+      });
+
+      // Check for updates when app gains focus or is resumed from background
+      window.addEventListener('focus', () => {
+        wb.update().catch(() => {});
       });
 
       wb.register({ immediate: true }).catch(() => {});

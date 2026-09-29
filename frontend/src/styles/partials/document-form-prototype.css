@@ -1556,7 +1556,7 @@
   max-height: 16rem;
   overflow: auto;
   padding: 0.35rem;
-  position: fixed;
+  position: absolute;
   z-index: 1200;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
