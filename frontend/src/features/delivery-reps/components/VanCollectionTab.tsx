@@ -6,6 +6,8 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { useQuery } from '@tanstack/react-query';
 import { vanSalesApi, CustomerEligibleSale, CustomerEligibleSaleItem } from '../api/van-sales.api';
 import { CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
+import { vanOfflineDb } from '../offline/van-sales-offline.db';
 
 interface CustomerOption {
   id: number;
@@ -117,36 +119,76 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
 
   const handleSubmitReturn = async () => {
     if (!returnCustomerId) {
-      alert('يرجى اختيار العميل');
+      toast.warning('يرجى اختيار العميل');
       return;
     }
     if (!returnCart.length) {
-      alert('يرجى إضافة صنف واحد على الأقل للمرتجع');
+      toast.warning('يرجى إضافة صنف واحد على الأقل للمرتجع');
       return;
     }
-    try {
-      setIsSubmittingReturn(true);
-      const res = await vanSalesApi.submitFieldReturn({
-        tripId,
-        customerId: Number(returnCustomerId),
-        saleId: selectedSaleId ? Number(selectedSaleId) : null,
-        returnReason: returnReason as any,
-        refundMethod,
-        items: returnCart.map((c) => ({
-          productId: c.productId,
-          qty: c.qty,
-          unitPrice: c.unitPrice,
-          saleItemId: c.saleItemId,
-        })),
-        notes: returnNotes || undefined,
-      });
 
+    const payload = {
+      tripId,
+      customerId: Number(returnCustomerId),
+      saleId: selectedSaleId ? Number(selectedSaleId) : null,
+      returnReason: returnReason as any,
+      refundMethod,
+      items: returnCart.map((c) => ({
+        productId: c.productId,
+        qty: c.qty,
+        unitPrice: c.unitPrice,
+        saleItemId: c.saleItemId,
+      })),
+      notes: returnNotes || undefined,
+    };
+
+    setIsSubmittingReturn(true);
+
+    // Fast check if offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      try {
+        const offRes = await vanOfflineDb.recordOfflineReturn(payload);
+        setReturnResult({ docNo: offRes.docNo, total: offRes.totalAmount });
+        setReturnCart([]);
+        setReturnNotes('');
+        toast.success(`تم حفظ إذن المرتجع أوفلاين #${offRes.docNo} وسيتم ترحيله للسيرفر تلقائياً.`);
+        onReturnSuccess?.(offRes.docNo, offRes.totalAmount);
+      } catch (err: any) {
+        toast.error(err?.message || 'فشل حفظ إذن المرتجع محلياً');
+      } finally {
+        setIsSubmittingReturn(false);
+      }
+      return;
+    }
+
+    try {
+      const res = await vanSalesApi.submitFieldReturn(payload);
       setReturnResult({ docNo: res.returnDocNo, total: res.totalAmount });
       setReturnCart([]);
       setReturnNotes('');
+      toast.success(`تم إرسال إذن المرتجع #${res.returnDocNo} للإدارة بنجاح!`);
       onReturnSuccess?.(res.returnDocNo, res.totalAmount);
     } catch (err: any) {
-      alert(err?.message || 'فشل إرسال إذن المرتجع');
+      const isNetworkErr =
+        !err?.status ||
+        err?.status === 0 ||
+        err?.message?.toLowerCase().includes('failed to fetch');
+
+      if (isNetworkErr) {
+        try {
+          const offRes = await vanOfflineDb.recordOfflineReturn(payload);
+          setReturnResult({ docNo: offRes.docNo, total: offRes.totalAmount });
+          setReturnCart([]);
+          setReturnNotes('');
+          toast.success(`تم حفظ إذن المرتجع أوفلاين #${offRes.docNo} وسيتم ترحيله للسيرفر تلقائياً.`);
+          onReturnSuccess?.(offRes.docNo, offRes.totalAmount);
+          return;
+        } catch (innerErr: any) {
+          toast.error(innerErr?.message || 'فشل حفظ إذن المرتجع محلياً');
+          return;
+        }
+      }
+      toast.error(err?.message || 'فشل إرسال إذن المرتجع');
     } finally {
       setIsSubmittingReturn(false);
     }

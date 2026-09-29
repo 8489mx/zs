@@ -5,7 +5,7 @@ import { StandardDialog, StandardDialogFooter } from '@/shared/components/Standa
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
 import { vanSalesApi, VanCustomerItineraryItem } from '../api/van-sales.api';
-import { MapPinIcon, CheckCircleIcon, XCircleIcon, ClockIcon, SearchIcon, PhoneIcon, ArrowRightIcon, ArrowLeftIcon, CalendarIcon } from '@/shared/components/icons/AppIcons';
+import { MapPinIcon, CheckCircleIcon, XCircleIcon, ClockIcon, SearchIcon, PhoneIcon, ArrowRightIcon, ArrowLeftIcon, CalendarIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 
 interface VanItineraryTabProps {
   itinerary: VanCustomerItineraryItem[];
@@ -189,204 +189,221 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
   const pendingCount = total - positiveCount - negativeCount;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      {/* Top Route Progress Summary */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '24px' }}>
+      {/* Unified High-Density Itinerary Toolbar */}
       <div
         style={{
           backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          padding: '12px 14px',
+          borderRadius: '10px',
+          padding: '8px 10px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>خط سير اليوم والزيارات الميدانية</span>
-          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>
-            إجمالي المحلات: <strong>{total}</strong>
-          </span>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center' }}>
+        {/* Row 1: Visit Status Quick Filters (Height 28px) */}
+        <div style={{ display: 'flex', flexDirection: 'row', gap: '4px', textAlign: 'center', width: '100%' }}>
           <div
             onClick={() => setStatusFilter((prev) => (prev === 'positive' ? 'all' : 'positive'))}
             style={{
-              backgroundColor: statusFilter === 'positive' ? '#d1fae5' : '#ecfdf5',
-              borderRadius: '8px',
-              padding: '6px 8px',
-              border: statusFilter === 'positive' ? '2px solid #059669' : '1px solid #a7f3d0',
+              flex: '1 1 0',
+              minWidth: 0,
+              backgroundColor: statusFilter === 'positive' ? '#d1fae5' : '#f0fdf4',
+              borderRadius: '6px',
+              padding: '2px 4px',
+              border: statusFilter === 'positive' ? '1.5px solid #059669' : '1px solid #bbf7d0',
               cursor: 'pointer',
               userSelect: 'none',
-              boxShadow: statusFilter === 'positive' ? '0 0 0 2px rgba(16, 185, 129, 0.2)' : 'none',
-              transition: 'background-color 0.1s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              height: '28px',
             }}
-            title="انقر لتصفية المحلات التي تم البيع لها"
+            title="المحلات التي تم البيع لها"
           >
-            <span style={{ fontSize: '10.5px', color: '#065f46', fontWeight: 700, display: 'block' }}>تم البيع (إيجابية)</span>
-            <span style={{ fontSize: '15px', fontWeight: 900, color: '#047857' }}>{positiveCount}</span>
+            <span style={{ fontSize: '10px', color: '#166534', fontWeight: 700, whiteSpace: 'nowrap' }}>تم البيع:</span>
+            <strong style={{ fontSize: '12px', fontWeight: 900, color: '#15803d' }}>{positiveCount}</strong>
           </div>
+
           <div
             onClick={() => setStatusFilter((prev) => (prev === 'negative' ? 'all' : 'negative'))}
             style={{
+              flex: '1 1 0',
+              minWidth: 0,
               backgroundColor: statusFilter === 'negative' ? '#fee2e2' : '#fef2f2',
-              borderRadius: '8px',
-              padding: '6px 8px',
-              border: statusFilter === 'negative' ? '2px solid #dc2626' : '1px solid #fecaca',
+              borderRadius: '6px',
+              padding: '2px 4px',
+              border: statusFilter === 'negative' ? '1.5px solid #dc2626' : '1px solid #fecaca',
               cursor: 'pointer',
               userSelect: 'none',
-              boxShadow: statusFilter === 'negative' ? '0 0 0 2px rgba(220, 38, 38, 0.2)' : 'none',
-              transition: 'background-color 0.1s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              height: '28px',
             }}
-            title="انقر لتصفية الزيارات السلبية"
+            title="الزيارات السلبية"
           >
-            <span style={{ fontSize: '10.5px', color: '#991b1b', fontWeight: 700, display: 'block' }}>زيارة سلبية</span>
-            <span style={{ fontSize: '15px', fontWeight: 900, color: '#b91c1c' }}>{negativeCount}</span>
+            <span style={{ fontSize: '10px', color: '#991b1b', fontWeight: 700, whiteSpace: 'nowrap' }}>سلبية:</span>
+            <strong style={{ fontSize: '12px', fontWeight: 900, color: '#b91c1c' }}>{negativeCount}</strong>
           </div>
+
           <div
             onClick={() => setStatusFilter((prev) => (prev === 'pending' ? 'all' : 'pending'))}
             style={{
+              flex: '1 1 0',
+              minWidth: 0,
               backgroundColor: statusFilter === 'pending' ? '#e2e8f0' : '#f8fafc',
-              borderRadius: '8px',
-              padding: '6px 8px',
-              border: statusFilter === 'pending' ? '2px solid #334155' : '1px solid #e2e8f0',
+              borderRadius: '6px',
+              padding: '2px 4px',
+              border: statusFilter === 'pending' ? '1.5px solid #334155' : '1px solid #e2e8f0',
               cursor: 'pointer',
               userSelect: 'none',
-              boxShadow: statusFilter === 'pending' ? '0 0 0 2px rgba(51, 65, 85, 0.2)' : 'none',
-              transition: 'background-color 0.1s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              height: '28px',
             }}
-            title="انقر لتصفية المحلات المتبقية للزيارة"
+            title="المحلات المتبقية للزيارة"
           >
-            <span style={{ fontSize: '10.5px', color: '#475569', fontWeight: 700, display: 'block' }}>متبقي للزيارة</span>
-            <span style={{ fontSize: '15px', fontWeight: 900, color: '#1e293b' }}>{pendingCount}</span>
+            <span style={{ fontSize: '10px', color: '#475569', fontWeight: 700, whiteSpace: 'nowrap' }}>متبقي:</span>
+            <strong style={{ fontSize: '12px', fontWeight: 900, color: '#1e293b' }}>{pendingCount}</strong>
           </div>
         </div>
-      </div>
 
-      {/* Schedule Tabs Bar: Today's Route vs All Shops vs Day Picker */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '6px',
-          alignItems: 'center',
-          backgroundColor: '#ffffff',
-          borderRadius: '10px',
-          padding: '6px 10px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-          flexWrap: 'wrap',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setDayFilter('today')}
-          style={{
-            padding: '6px 12px',
-            borderRadius: '8px',
-            fontSize: '12px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            border: dayFilter === 'today' ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
-            backgroundColor: dayFilter === 'today' ? '#170e5e' : '#f8fafc',
-            color: dayFilter === 'today' ? '#ffffff' : '#334155',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            transition: 'background-color 0.1s ease',
-          }}
-        >
-          <CalendarIcon size={14} />
-          <span>جدول اليوم ({todayArabicName})</span>
-          <span
+        {/* Row 2: Day Filter Segment Switcher (اليوم vs الكل vs يوم آخر) */}
+        <div style={{ display: 'flex', flexDirection: 'row', gap: '4px', width: '100%', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setDayFilter('today')}
             style={{
-              backgroundColor: dayFilter === 'today' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
-              padding: '1px 6px',
-              borderRadius: '10px',
-              fontSize: '10.5px',
+              flex: '1 1 0',
+              minWidth: 0,
+              padding: '3px 4px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: dayFilter === 'today' ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+              backgroundColor: dayFilter === 'today' ? '#170e5e' : '#f8fafc',
+              color: dayFilter === 'today' ? '#ffffff' : '#334155',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              height: '30px',
             }}
           >
-            {todayCount}
-          </span>
-        </button>
+            <CalendarIcon size={12} />
+            <span style={{ whiteSpace: 'nowrap' }}>اليوم ({todayArabicName})</span>
+            <span
+              style={{
+                backgroundColor: dayFilter === 'today' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+                color: dayFilter === 'today' ? '#ffffff' : '#475569',
+                padding: '0 4px',
+                borderRadius: '6px',
+                fontSize: '9.5px',
+                fontWeight: 800,
+              }}
+            >
+              {todayCount}
+            </span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setDayFilter('all')}
-          style={{
-            padding: '6px 12px',
-            borderRadius: '8px',
-            fontSize: '12px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            border: dayFilter === 'all' ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
-            backgroundColor: dayFilter === 'all' ? '#170e5e' : '#f8fafc',
-            color: dayFilter === 'all' ? '#ffffff' : '#334155',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            transition: 'background-color 0.1s ease',
-          }}
-        >
-          <span>كافة المحلات المسندة</span>
-          <span
+          <button
+            type="button"
+            onClick={() => setDayFilter('all')}
             style={{
-              backgroundColor: dayFilter === 'all' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
-              padding: '1px 6px',
-              borderRadius: '10px',
-              fontSize: '10.5px',
+              flex: '1 1 0',
+              minWidth: 0,
+              padding: '3px 4px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: dayFilter === 'all' ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+              backgroundColor: dayFilter === 'all' ? '#170e5e' : '#f8fafc',
+              color: dayFilter === 'all' ? '#ffffff' : '#334155',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              height: '30px',
             }}
           >
-            {total}
-          </span>
-        </button>
+            <span style={{ whiteSpace: 'nowrap' }}>كافة المحلات</span>
+            <span
+              style={{
+                backgroundColor: dayFilter === 'all' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+                color: dayFilter === 'all' ? '#ffffff' : '#475569',
+                padding: '0 4px',
+                borderRadius: '6px',
+                fontSize: '9.5px',
+                fontWeight: 800,
+              }}
+            >
+              {total}
+            </span>
+          </button>
 
-        <div style={{ marginInlineStart: 'auto', minWidth: '130px' }}>
-          <CustomSelect
-            value={dayFilter !== 'today' && dayFilter !== 'all' ? dayFilter : ''}
-            onChange={(val) => setDayFilter(val || 'all')}
-            options={[
-              { value: '', label: 'فرز بيوم آخر...' },
-              ...arabicDayNames.map((d) => ({ value: d, label: `يوم ${d}` })),
-            ]}
-            placeholder="اختر يوماً..."
-          />
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: '180px', position: 'relative' }}>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="بحث باسم المحل، الكود، أو الهاتف..."
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              padding: '8px 12px 8px 32px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              fontSize: '12px',
-            }}
-          />
-          <span style={{ position: 'absolute', left: '10px', top: '9px', color: '#94a3b8' }}>
-            <SearchIcon size={14} />
-          </span>
-        </div>
-
-        {routes.length > 1 && (
-          <div style={{ minWidth: '130px' }}>
+          <div style={{ width: '90px', flexShrink: 0 }}>
             <CustomSelect
-              value={routeFilter}
-              onChange={(val) => setRouteFilter(val || 'all')}
+              value={dayFilter !== 'today' && dayFilter !== 'all' ? dayFilter : ''}
+              onChange={(val) => setDayFilter(val || 'all')}
+              dropdownAlign="left"
               options={[
-                { value: 'all', label: 'كافة الخطوط' },
-                ...routes.map((r) => ({ value: r, label: r })),
+                { value: '', label: 'كافة الأيام' },
+                ...arabicDayNames.map((d) => ({ value: d, label: `يوم ${d}` })),
               ]}
-              placeholder="الخط"
+              placeholder="يوم..."
+              style={{ height: '30px', fontSize: '11px' }}
             />
           </div>
-        )}
+        </div>
+
+        {/* Row 3: Compact Search & Route Filter */}
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="بحث باسم المحل، الكود، أو الهاتف..."
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                padding: '5px 10px 5px 28px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '11.5px',
+                height: '32px',
+              }}
+            />
+            <span style={{ position: 'absolute', left: '8px', top: '8px', color: '#94a3b8' }}>
+              <SearchIcon size={13} />
+            </span>
+          </div>
+
+          {routes.length > 1 && (
+            <div style={{ minWidth: '90px', maxWidth: '110px' }}>
+              <CustomSelect
+                value={routeFilter}
+                onChange={(val) => setRouteFilter(val || 'all')}
+                dropdownAlign="left"
+                options={[
+                  { value: 'all', label: 'كافة الخطوط' },
+                  ...routes.map((r) => ({ value: r, label: r })),
+                ]}
+                placeholder="الخط"
+                style={{ height: '32px', fontSize: '11.5px' }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Active filter badge / reset */}
@@ -452,7 +469,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           لا توجد محلات مسجلة تطابق معايير البحث
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {paginatedItems.map((item, idx) => {
             const isPositive = item.visitStatus === 'positive';
             const isNegative = item.visitStatus === 'negative';
@@ -464,93 +481,76 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 key={item.customerId}
                 style={{
                   backgroundColor: '#ffffff',
-                  borderRadius: '12px',
+                  borderRadius: '10px',
                   border: isPositive
                     ? '1.5px solid #10b981'
                     : isNegative
                     ? '1.5px solid #f87171'
                     : '1px solid #e2e8f0',
-                  padding: '12px 14px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  padding: '7px 10px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '8px',
+                  gap: '4px',
                 }}
               >
                 {/* Header: Sequence, Code, Name, Status Badge */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
                     <span
                       style={{
                         backgroundColor: '#170e5e',
                         color: '#ffffff',
-                        fontSize: '11px',
+                        fontSize: '10px',
                         fontWeight: 800,
-                        minWidth: '22px',
-                        height: '22px',
-                        padding: '0 4px',
-                        borderRadius: '6px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '5px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        flexShrink: 0,
                       }}
                     >
                       {itemNumber}
                     </span>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '11px', fontFamily: 'monospace', fontWeight: 800, color: '#0369a1' }}>
-                          [{item.customerCode}]
-                        </span>
-                        <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                          {item.customerName}
-                        </h4>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>{item.route}</span>
-                        {(item.visitDay || (item.visitDays && item.visitDays.length > 0)) && (
-                          <span
-                            style={{
-                              fontSize: '10.5px',
-                              backgroundColor: item.isScheduledToday ? '#ecfdf5' : '#f1f5f9',
-                              color: item.isScheduledToday ? '#047857' : '#475569',
-                              border: item.isScheduledToday ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
-                              padding: '1px 6px',
-                              borderRadius: '4px',
-                              fontWeight: 700,
-                            }}
-                          >
-                            يوم الزيارة: {item.visitDay || item.visitDays.join('، ')}
-                            {item.isScheduledToday && ' (اليوم)'}
-                          </span>
-                        )}
-                        {item.assignedRepName && (
-                          <span style={{ fontSize: '10.5px', color: '#0369a1', fontWeight: 600 }}>
-                            • المندوب: {item.assignedRepName}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    <span style={{ fontSize: '10.5px', fontFamily: 'monospace', fontWeight: 800, color: '#0369a1', flexShrink: 0 }}>
+                      [{item.customerCode}]
+                    </span>
+                    <h4
+                      style={{
+                        margin: 0,
+                        fontSize: '13px',
+                        fontWeight: 800,
+                        color: '#0f172a',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={item.customerName}
+                    >
+                      {item.customerName}
+                    </h4>
                   </div>
 
                   {/* Status Badge */}
-                  <div>
+                  <div style={{ flexShrink: 0 }}>
                     {isPositive && (
                       <span
                         style={{
                           backgroundColor: '#ecfdf5',
                           color: '#047857',
-                          fontSize: '11px',
+                          fontSize: '10px',
                           fontWeight: 800,
-                          padding: '3px 8px',
-                          borderRadius: '6px',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
                           border: '1px solid #a7f3d0',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '4px',
+                          gap: '3px',
                         }}
                       >
-                        <CheckCircleIcon size={12} color="#047857" />
+                        <CheckCircleIcon size={11} color="#047857" />
                         <span>تم البيع</span>
                       </span>
                     )}
@@ -559,18 +559,18 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                         style={{
                           backgroundColor: '#fef2f2',
                           color: '#b91c1c',
-                          fontSize: '11px',
+                          fontSize: '10px',
                           fontWeight: 800,
-                          padding: '3px 8px',
-                          borderRadius: '6px',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
                           border: '1px solid #fecaca',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '4px',
+                          gap: '3px',
                         }}
                       >
-                        <XCircleIcon size={12} color="#b91c1c" />
-                        <span>زيارة سلبية</span>
+                        <XCircleIcon size={11} color="#b91c1c" />
+                        <span>سلبية</span>
                       </span>
                     )}
                     {isPending && (
@@ -578,18 +578,18 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                         style={{
                           backgroundColor: '#f8fafc',
                           color: '#64748b',
-                          fontSize: '11px',
+                          fontSize: '10px',
                           fontWeight: 700,
-                          padding: '3px 8px',
-                          borderRadius: '6px',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
                           border: '1px solid #e2e8f0',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '4px',
+                          gap: '3px',
                         }}
                       >
-                        <ClockIcon size={12} color="#64748b" />
-                        <span>في الانتظار</span>
+                        <ClockIcon size={11} color="#64748b" />
+                        <span>بالانتظار</span>
                       </span>
                     )}
                   </div>
@@ -601,30 +601,43 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     style={{
                       backgroundColor: '#fffbeb',
                       border: '1px solid #fde68a',
-                      borderRadius: '8px',
-                      padding: '6px 10px',
-                      fontSize: '11px',
+                      borderRadius: '6px',
+                      padding: '3px 8px',
+                      fontSize: '10px',
                       fontWeight: 700,
                       color: '#b45309',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
+                      gap: '4px',
                     }}
                   >
-                    <span>⚠️ تنبيه: زيارات سلبية متكررة ({item.repeatedNegativesCount} زيارات سابقة بدون بيع)</span>
+                    <AlertTriangleIcon size={12} color="#b45309" />
+                    <span>تنبيه: {item.repeatedNegativesCount} زيارات سابقة بدون بيع</span>
                   </div>
                 )}
 
-                {/* Sub-info: Phone, Balance, Location */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11.5px', color: '#475569', flexWrap: 'wrap', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {/* Sub-info: Phone, Route, Debt */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#475569' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                     {item.customerPhone && (
                       <a
                         href={`tel:${item.customerPhone}`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#170e5e', textDecoration: 'none', fontWeight: 700 }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          color: '#170e5e',
+                          backgroundColor: '#eef2ff',
+                          padding: '2px 7px',
+                          borderRadius: '4px',
+                          fontWeight: 700,
+                          fontSize: '10.5px',
+                          textDecoration: 'none',
+                          border: '1px solid #c7d2fe',
+                        }}
                       >
-                        <PhoneIcon size={12} />
-                        <span>{item.customerPhone}</span>
+                        <PhoneIcon size={11} />
+                        <span dir="ltr">{item.customerPhone}</span>
                       </a>
                     )}
                     {item.locationUrl && (
@@ -632,28 +645,40 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                         href={item.locationUrl}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#0284c7', textDecoration: 'underline', fontWeight: 700 }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          color: '#0369a1',
+                          backgroundColor: '#e0f2fe',
+                          padding: '2px 7px',
+                          borderRadius: '4px',
+                          fontWeight: 700,
+                          fontSize: '10.5px',
+                          textDecoration: 'none',
+                          border: '1px solid #bae6fd',
+                        }}
                       >
-                        <MapPinIcon size={12} />
-                        <span>الموقع</span>
+                        <MapPinIcon size={11} />
+                        <span>خريطة</span>
                       </a>
                     )}
+                    <span style={{ fontSize: '10.5px', color: '#64748b' }}>{item.route}</span>
                   </div>
                   <div>
-                    <span>المديونية: </span>
-                    <strong style={{ color: item.balance > 0 ? '#b91c1c' : '#047857' }}>
-                      {item.balance.toFixed(2)} <CurrencySymbol />
+                    <span style={{ color: '#64748b', fontSize: '10.5px' }}>المديونية: </span>
+                    <strong style={{ color: item.balance > 0 ? '#b91c1c' : '#047857', fontSize: '11.5px' }}>
+                      {item.balance.toFixed(0)} <CurrencySymbol />
                     </strong>
                   </div>
                 </div>
 
                 {/* If already visited: show visit outcome details */}
                 {item.todayVisit && (
-                  <div style={{ backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', color: '#475569', border: '1px solid #e2e8f0' }}>
+                  <div style={{ backgroundColor: '#f8fafc', padding: '3px 8px', borderRadius: '4px', fontSize: '10.5px', color: '#475569', border: '1px solid #e2e8f0' }}>
                     {item.todayVisit.visitType === 'positive' ? (
                       <span>
-                        تم إصدار فاتورة رقم <strong>{item.todayVisit.saleDocNo}</strong> بقيمة{' '}
-                        <strong>{item.todayVisit.saleTotal} <CurrencySymbol /></strong>
+                        فاتورة #{item.todayVisit.saleDocNo} بمبلغ <strong>{item.todayVisit.saleTotal} <CurrencySymbol /></strong>
                       </span>
                     ) : (
                       <span>
@@ -666,7 +691,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 )}
 
                 {/* Actions: Direct Sale vs Record Negative Visit */}
-                <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
+                <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
                   <Button
                     variant="primary"
                     onClick={() => onSelectCustomerForSale(item.customerId)}
@@ -676,23 +701,27 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                       color: '#ffffff',
                       fontSize: '11.5px',
                       fontWeight: 800,
-                      height: '32px',
+                      minHeight: '30px',
+                      height: '30px',
+                      padding: '0 8px',
                     }}
                   >
-                    + إصدار فاتورة بيع
+                    + فاتورة بيع
                   </Button>
 
                   <Button
                     variant="secondary"
                     onClick={() => openNegativeVisitModal(item)}
                     style={{
-                      fontSize: '11.5px',
+                      fontSize: '11px',
                       color: '#dc2626',
                       borderColor: '#fca5a5',
-                      height: '32px',
+                      minHeight: '30px',
+                      height: '30px',
+                      padding: '0 8px',
                     }}
                   >
-                    تسجيل زيارة سلبية
+                    زيارة سلبية
                   </Button>
                 </div>
               </div>

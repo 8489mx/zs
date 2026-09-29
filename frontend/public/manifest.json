@@ -37,9 +37,15 @@
       "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     },
     {
+      "name": "مبيعات الفان الميدانية",
+      "short_name": "مبيعات الفان",
+      "url": "/van-sales",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    },
+    {
       "name": "شاشة مندوب التوصيل",
       "short_name": "مندوب التوصيل",
-      "url": "/driver-mobile",
+      "url": "/driver",
       "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     },
     {

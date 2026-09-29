@@ -17,6 +17,7 @@ export interface CustomSelectProps {
   searchable?: boolean;
   style?: React.CSSProperties;
   className?: string;
+  dropdownAlign?: 'right' | 'left';
 }
 
 export function CustomSelect({
@@ -27,6 +28,7 @@ export function CustomSelect({
   disabled = false,
   style,
   className = '',
+  dropdownAlign = 'right',
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -196,7 +198,7 @@ export function CustomSelect({
             width: '100%',
             height: style?.height || '36px',
             background: disabled ? '#f8fafc' : '#ffffff',
-            padding: selectedOption?.icon && !isSearching ? '0 32px 0 36px' : '0 12px 0 36px',
+            padding: selectedOption?.icon && !isSearching ? '0 28px 0 24px' : '0 8px 0 24px',
             borderRadius: style?.borderRadius || '8px',
             border: '1px solid #cbd5e1',
             boxSizing: 'border-box',
@@ -241,12 +243,12 @@ export function CustomSelect({
           }}
           style={{
             position: 'absolute',
-            left: '8px',
+            left: '6px',
             top: '50%',
             transform: 'translateY(-50%)',
             background: 'none',
             border: 'none',
-            padding: '3px',
+            padding: '2px',
             cursor: disabled ? 'default' : 'pointer',
             color: '#64748b',
             display: 'flex',
@@ -281,8 +283,9 @@ export function CustomSelect({
           className="custom-combobox-dropdown"
           style={{
             top: 'calc(100% + 4px)',
-            right: 0,
+            ...(dropdownAlign === 'left' ? { left: 0, right: 'auto' } : { right: 0, left: 'auto' }),
             width: 'max(100%, 190px)',
+            maxWidth: '85vw',
           }}
         >
           {filteredOptions.length > 0 ? (

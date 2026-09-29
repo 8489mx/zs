@@ -23,6 +23,9 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
 }) => {
   if (!receipt) return null;
 
+  const [targetPhone, setTargetPhone] = React.useState(receipt.customerPhone || '');
+  const [showPhoneInput, setShowPhoneInput] = React.useState(!receipt.customerPhone);
+
   const handlePrint = () => {
     try {
       printVanSaleThermalReceipt(receipt, { storeName, widthMm: 80 });
@@ -33,12 +36,14 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
   };
 
   const handleWhatsAppShare = () => {
-    if (!receipt.customerPhone) {
-      toast.warning('رقم هاتف العميل غير متوفر للمشاركة');
+    const phoneToUse = targetPhone.trim();
+    if (!phoneToUse) {
+      setShowPhoneInput(true);
+      toast.warning('يرجى إدخال رقم هاتف العميل للمشاركة');
       return;
     }
     const message = formatVanSaleShareMessage(receipt);
-    const cleanPhone = receipt.customerPhone.replace(/[^0-9]/g, '');
+    const cleanPhone = phoneToUse.replace(/[^0-9]/g, '');
     const target = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone;
     window.open(`https://wa.me/${target}?text=${encodeURIComponent(message)}`, '_blank');
     toast.info('تم فتح تطبيق الواتساب لمشاركة الإيصال');
@@ -58,23 +63,22 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
           cancelText="إغلاق"
           extraActions={
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-              {receipt.customerPhone && (
-                <Button
-                  variant="secondary"
-                  onClick={handleWhatsAppShare}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    borderColor: '#16a34a',
-                    color: '#16a34a',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                  }}
-                >
-                  <span>مشاركة واتساب</span>
-                </Button>
-              )}
+              <Button
+                variant="secondary"
+                onClick={handleWhatsAppShare}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderColor: '#16a34a',
+                  color: '#16a34a',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  height: '38px',
+                }}
+              >
+                <span>مشاركة واتساب</span>
+              </Button>
               <Button
                 variant="primary"
                 onClick={handlePrint}
@@ -86,6 +90,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                   color: '#ffffff',
                   fontSize: '12.5px',
                   fontWeight: 800,
+                  height: '38px',
                 }}
               >
                 <PrinterIcon size={15} />
@@ -156,12 +161,29 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
             </span>
           </div>
 
-          {receipt.customerPhone && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#64748b' }}>هاتف العميل:</span>
-              <span style={{ fontWeight: 600, color: '#334155' }}>{receipt.customerPhone}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+            <span style={{ color: '#64748b' }}>هاتف واتساب للمشاركة:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                type="tel"
+                inputMode="tel"
+                placeholder="أدخل رقم هاتف العميل..."
+                value={targetPhone}
+                onChange={(e) => setTargetPhone(e.target.value)}
+                style={{
+                  height: '32px',
+                  width: '155px',
+                  padding: '0 8px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '12px',
+                  direction: 'ltr',
+                  textAlign: 'right',
+                  boxSizing: 'border-box',
+                }}
+              />
             </div>
-          )}
+          </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: '#64748b' }}>المندوب / السيارة:</span>

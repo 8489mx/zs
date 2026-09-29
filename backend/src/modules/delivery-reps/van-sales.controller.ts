@@ -46,6 +46,7 @@ export class VanSalesController {
       deliveryGpsLng?: number;
       deliveryProofPhoto?: string;
       packagingBreakdown?: { cartonsCount?: number; piecesCount?: number; itemsCount?: number };
+      clientTxId?: string;
     },
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
@@ -75,7 +76,7 @@ export class VanSalesController {
   @Post('collections')
   async recordCollection(
     @Headers('authorization') authHeader: string,
-    @Body() body: { tripId: number; customerId: number; amount: number; notes?: string; gpsLat?: number; gpsLng?: number },
+    @Body() body: { tripId: number; customerId: number; amount: number; notes?: string; gpsLat?: number; gpsLng?: number; clientTxId?: string },
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.recordFieldCollection(driver.repId, driver.tenantId, driver.accountId, body);

@@ -144,16 +144,67 @@ export interface DriverPortalUser {
 }
 
 export const driverPortalApi = {
-  login: async (phone: string, pinCode: string, companyCode?: string): Promise<{ token: string; rep: DriverPortalUser }> => {
-    const res = await http<{ token: string; rep: DriverPortalUser }>('/api/driver-portal/login', {
-      method: 'POST',
-      body: JSON.stringify({ phone, pinCode, ...(companyCode ? { companyCode } : {}) }),
-    });
-    if (res?.token) {
-      localStorage.setItem('zs_driver_portal_token', res.token);
-      localStorage.setItem('zs_driver_portal_rep', JSON.stringify(res.rep));
+  login: async (phone: string, pinCode: string, companyCode?: string): Promise<{ token: string; rep: DriverPortalUser; isOffline?: boolean }> => {
+    const cleanPhone = phone.trim();
+    const cleanPin = pinCode.trim();
+
+    // Fast offline check if browser is known to be offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const cached = driverPortalApi.getOfflineAuthCache();
+      if (cached && cached.phone === cleanPhone && cached.pinCode === cleanPin) {
+        localStorage.setItem('zs_driver_portal_token', cached.token);
+        localStorage.setItem('zs_driver_portal_rep', JSON.stringify(cached.rep));
+        return { token: cached.token, rep: cached.rep, isOffline: true };
+      }
+      throw new Error('أنت غير متصل بالإنترنت حالياً، وبيانات الدخول لا تطابق الحساب المسجل سابقاً على هذا الجهاز.');
     }
-    return res;
+
+    try {
+      const res = await http<{ token: string; rep: DriverPortalUser }>('/api/driver-portal/login', {
+        method: 'POST',
+        body: JSON.stringify({ phone: cleanPhone, pinCode: cleanPin, ...(companyCode ? { companyCode } : {}) }),
+      });
+      if (res?.token) {
+        localStorage.setItem('zs_driver_portal_token', res.token);
+        localStorage.setItem('zs_driver_portal_rep', JSON.stringify(res.rep));
+        localStorage.setItem(
+          'zs_driver_portal_auth_cache',
+          JSON.stringify({
+            phone: cleanPhone,
+            pinCode: cleanPin,
+            token: res.token,
+            rep: res.rep,
+          }),
+        );
+      }
+      return res;
+    } catch (err: any) {
+      // If error is network drop / server unreachable, fallback to verified offline cache
+      const isNetworkError =
+        !err?.status ||
+        err?.status === 0 ||
+        err?.message?.toLowerCase().includes('failed to fetch') ||
+        err?.message?.includes('NetworkError');
+
+      if (isNetworkError) {
+        const cached = driverPortalApi.getOfflineAuthCache();
+        if (cached && cached.phone === cleanPhone && cached.pinCode === cleanPin) {
+          localStorage.setItem('zs_driver_portal_token', cached.token);
+          localStorage.setItem('zs_driver_portal_rep', JSON.stringify(cached.rep));
+          return { token: cached.token, rep: cached.rep, isOffline: true };
+        }
+      }
+      throw err;
+    }
+  },
+
+  getOfflineAuthCache: (): { phone: string; pinCode: string; token: string; rep: DriverPortalUser } | null => {
+    try {
+      const raw = localStorage.getItem('zs_driver_portal_auth_cache');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
   },
 
   getStoredSession: (): { token: string; rep: DriverPortalUser } | null => {

@@ -11,6 +11,7 @@ import { canAccessPath, findFirstAccessibleRoute } from '@/app/router/access';
 import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
 import { AppCloseGuard } from '@/shared/layout/AppCloseGuard';
 import { getStoreHostSlug } from '@/lib/store-public-url';
+import { driverPortalApi } from '@/shared/api/delivery-reps.api';
 
 const ActivationPage = lazy(() => import('@/features/activation/pages/ActivationPage').then(m => ({ default: m.ActivationPage })));
 const FirstRunSetupPage = lazy(() => import('@/features/activation/pages/FirstRunSetupPage').then(m => ({ default: m.FirstRunSetupPage })));
@@ -139,6 +140,20 @@ function LoginRoute() {
   if (user) {
     const state = useAuthStore.getState();
     return <Navigate to={getPostLoginRoute(user, state.storeName, { tenant: state.tenant, deploymentMode: state.activationStatus?.deploymentMode })} replace />;
+  }
+
+  // Smart Role Routing: If device is logged in as a driver / van rep, auto-redirect to their workspace
+  if (typeof localStorage !== 'undefined') {
+    const isForcedAdmin = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('portal') === 'admin';
+    if (!isForcedAdmin) {
+      const driverSession = driverPortalApi.getStoredSession();
+      if (driverSession?.rep) {
+        if (driverSession.rep.isVanRep) {
+          return <Navigate to="/van-sales" replace />;
+        }
+        return <Navigate to="/driver" replace />;
+      }
+    }
   }
 
   return createLazyRoute(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })));

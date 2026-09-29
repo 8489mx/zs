@@ -8,7 +8,10 @@ interface VanSalesLoginProps {
 }
 
 export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) => {
-  const [phoneInput, setPhoneInput] = useState('');
+  const cachedAuth = driverPortalApi.getOfflineAuthCache();
+  const [phoneInput, setPhoneInput] = useState(() => {
+    return cachedAuth?.phone || (typeof localStorage !== 'undefined' ? localStorage.getItem('zs_van_driver_last_phone') : '') || '';
+  });
   const [pinInput, setPinInput] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -33,6 +36,7 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
       if (companyCode) {
         localStorage.setItem('zs_driver_last_company_code', companyCode);
       }
+      localStorage.setItem('zs_van_driver_last_phone', cleanPhone);
       onLoginSuccess(res);
     } catch (err: any) {
       const details = err?.details || err?.error?.details || err?.response?.data?.details || err?.response?.data || err;
@@ -57,6 +61,7 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
       const cleanPin = pinInput.trim();
       const res = await driverPortalApi.login(cleanPhone, cleanPin, tenantId);
       localStorage.setItem('zs_driver_last_company_code', tenantId);
+      localStorage.setItem('zs_van_driver_last_phone', cleanPhone);
       setDisambiguationTenants(null);
       onLoginSuccess(res);
     } catch (err: any) {
@@ -135,6 +140,27 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
           </p>
         </div>
 
+        {cachedAuth && (
+          <div
+            style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              marginBottom: '16px',
+              fontSize: '11.5px',
+              color: '#15803d',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>الجهاز مسجل للمندوب: <strong>{cachedAuth.rep.name}</strong> • متاح الدخول بالـ PIN أوفلاين</span>
+          </div>
+        )}
+
         {loginError && (
           <div
             style={{
@@ -159,17 +185,20 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
               رقم هاتف المندوب
             </label>
             <input
-              type="text"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               placeholder="مثال: 01012345678"
               value={phoneInput}
               onChange={(e) => setPhoneInput(e.target.value)}
               required
               style={{
                 width: '100%',
-                padding: '12px 14px',
+                height: '46px',
+                padding: '0 14px',
                 borderRadius: '10px',
-                border: '1px solid #cbd5e1',
-                fontSize: '14px',
+                border: '1.5px solid #cbd5e1',
+                fontSize: '15px',
                 boxSizing: 'border-box',
                 background: '#ffffff',
                 direction: 'ltr',
@@ -185,22 +214,25 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
             </label>
             <input
               type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
               maxLength={6}
-              placeholder="مثال: 1234"
+              placeholder="••••"
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value)}
               required
               style={{
                 width: '100%',
-                padding: '12px 14px',
+                height: '46px',
+                padding: '0 14px',
                 borderRadius: '10px',
-                border: '1px solid #cbd5e1',
-                fontSize: '16px',
+                border: '1.5px solid #cbd5e1',
+                fontSize: '18px',
                 boxSizing: 'border-box',
                 background: '#ffffff',
                 direction: 'ltr',
                 textAlign: 'center',
-                letterSpacing: '4px',
+                letterSpacing: '6px',
                 outline: 'none',
               }}
             />
@@ -214,17 +246,21 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
             disabled={isLoggingIn}
             style={{
               width: '100%',
-              padding: '13px',
+              height: '48px',
+              padding: '0 16px',
               background: '#170e5e',
               color: '#ffffff',
               border: 'none',
               borderRadius: '10px',
-              fontSize: '14px',
+              fontSize: '14.5px',
               fontWeight: 800,
               cursor: 'pointer',
               boxShadow: '0 4px 14px rgba(23, 14, 94, 0.25)',
-              marginTop: '6px',
+              marginTop: '4px',
               opacity: isLoggingIn ? 0.7 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             {isLoggingIn ? 'جاري التحقق...' : 'تسجيل الدخول ومباشرة البيع'}

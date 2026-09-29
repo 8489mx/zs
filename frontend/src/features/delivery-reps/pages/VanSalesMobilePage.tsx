@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,8 +13,12 @@ import {
   AlertTriangleIcon,
   ClockIcon,
   ReceiptIcon,
+  RefreshCwIcon,
+  CreditCardIcon,
 } from '@/shared/components/icons/AppIcons';
 import { systemConfirm, toast } from '@/shared/components/system-alert';
+import { vanOfflineDb } from '../offline/van-sales-offline.db';
+import { vanSyncEngine } from '../offline/van-sync.engine';
 import { VanSalesLogin } from '../components/VanSalesLogin';
 import { VanSalesReceiptModal } from '../components/VanSalesReceiptModal';
 import { VanInventoryTab } from '../components/VanInventoryTab';
@@ -33,6 +37,61 @@ export default function VanSalesMobilePage() {
 
   const [session, setSession] = useState(() => driverPortalApi.getStoredSession());
   const [viewMode, setViewMode] = useState<'dashboard' | 'new-requisition'>('dashboard');
+  const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Monitor connectivity, load pending outbox items, and listen to sync completion
+  useEffect(() => {
+    vanOfflineDb.getPendingCount().then(setPendingSyncCount);
+
+    const cleanup = vanSyncEngine.startAutoSyncListener((online) => {
+      setIsOnline(online);
+      vanOfflineDb.getPendingCount().then(setPendingSyncCount);
+    });
+
+    const handleSyncComplete = (e: any) => {
+      vanOfflineDb.getPendingCount().then(setPendingSyncCount);
+      queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-itinerary'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-sales-history'] });
+      const synced = e?.detail?.syncedCount || 0;
+      if (synced > 0) {
+        toast.success(`تمت مزامنة ${synced} عملية ميدانية مع الخادم بنجاح!`);
+      }
+    };
+
+    window.addEventListener('van-offline-sync-completed', handleSyncComplete);
+
+    return () => {
+      cleanup();
+      window.removeEventListener('van-offline-sync-completed', handleSyncComplete);
+    };
+  }, [queryClient]);
+
+  const handleManualSync = async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      toast.warning('أنت غير متصل بالإنترنت حالياً للمزامنة');
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      const res = await vanSyncEngine.syncAll();
+      await vanOfflineDb.getPendingCount().then(setPendingSyncCount);
+      if (res.syncedCount > 0) {
+        toast.success(`تمت مزامنة ${res.syncedCount} عملية بنجاح!`);
+        refetch();
+      } else if (res.failedCount > 0) {
+        toast.error(`فشلت مزامنة ${res.failedCount} عملية: ${res.errors.join(' | ')}`);
+      } else {
+        toast.info('جميع العمليات متزامنة بالفعل مع الخادم');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذرت المزامنة');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleLogout = async () => {
     const confirmed = await systemConfirm({
@@ -54,17 +113,28 @@ export default function VanSalesMobilePage() {
     queryKey: ['van-sales-active-trip'],
     queryFn: async () => {
       try {
-        return await vanSalesApi.getActiveTrip();
+        const live = await vanSalesApi.getActiveTrip();
+        if (live && live.hasActiveTrip) {
+          void vanOfflineDb.saveSnapshot(live, session);
+        }
+        return live;
       } catch (err: any) {
         if (err?.status === 401) {
           driverPortalApi.logout();
           setSession(null);
+          throw err;
+        }
+        // Fallback to offline cached snapshot from IndexedDB
+        const offlineData = await vanOfflineDb.getOfflineActiveTrip();
+        if (offlineData) {
+          return offlineData;
         }
         throw err;
       }
     },
     enabled: Boolean(session),
-    refetchInterval: 60000,
+    networkMode: 'always',
+    refetchInterval: isOnline ? 60000 : false,
     staleTime: 30000,
     retry: false,
   });
@@ -80,10 +150,26 @@ export default function VanSalesMobilePage() {
   // Itinerary Query - Always enabled for driver to plan their day (on-demand updates, no CPU-heavy polling)
   const { data: itinerary = [], isLoading: isItineraryLoading, refetch: refetchItinerary } = useQuery({
     queryKey: ['driver-itinerary'],
-    queryFn: () => vanSalesApi.getMyItinerary(),
+    queryFn: async () => {
+      try {
+        const live = await vanSalesApi.getMyItinerary();
+        if (Array.isArray(live) && live.length > 0) {
+          void vanOfflineDb.saveItinerary(live);
+        }
+        return live;
+      } catch (err: any) {
+        const cached = await vanOfflineDb.getItinerary();
+        if (cached && cached.length > 0) {
+          return cached;
+        }
+        throw err;
+      }
+    },
     enabled: Boolean(session),
+    networkMode: 'always',
     staleTime: 60000,
     refetchOnWindowFocus: false,
+    retry: false,
   });
 
   // Fuel Logs Query - Always enabled to track vehicle history
@@ -121,6 +207,30 @@ export default function VanSalesMobilePage() {
     staleTime: 60000,
   });
 
+  const [isGlobalRefreshing, setIsGlobalRefreshing] = useState(false);
+
+  const handleGlobalRefresh = async () => {
+    if (isGlobalRefreshing) return;
+    setIsGlobalRefreshing(true);
+    try {
+      await Promise.allSettled([
+        refetch(),
+        refetchItinerary(),
+        refetchFuelLogs(),
+        refetchTransfers(),
+        queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] }),
+        queryClient.invalidateQueries({ queryKey: ['driver-itinerary'] }),
+        queryClient.invalidateQueries({ queryKey: ['driver-sales-history'] }),
+        queryClient.invalidateQueries({ queryKey: ['driver-maintenance-alerts'] }),
+      ]);
+      toast.success('تم تحديث خط السير وكافة البيانات بنجاح');
+    } catch {
+      toast.error('تعذر استكمال التحديث، يرجى التحقق من الاتصال');
+    } finally {
+      setIsGlobalRefreshing(false);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState<'cockpit' | 'itinerary' | 'inventory' | 'sale' | 'sales-history' | 'collection' | 'fleet' | 'settle' | 'requisitions'>('cockpit');
   const [stockSearch, setStockSearch] = useState('');
   const [transferModalOpen, setTransferModalOpen] = useState(false);
@@ -142,6 +252,7 @@ export default function VanSalesMobilePage() {
 
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [lastSaleReceipt, setLastSaleReceipt] = useState<any | null>(null);
+  const [isTargetMetricsExpanded, setIsTargetMetricsExpanded] = useState(false);
 
   const showAlert = (type: 'success' | 'error', message: string) => {
     setAlert({ type, message });
@@ -228,9 +339,84 @@ export default function VanSalesMobilePage() {
   const cartTotal = useMemo(() => cart.reduce((sum, c) => sum + c.qty * c.unitPrice, 0), [cart]);
 
   const executeSaleMutation = useMutation({
-    mutationFn: vanSalesApi.executeSale,
-    onSuccess: (res) => {
-      showAlert('success', `تم إصدار الفاتورة #${res.docNo} بمبلغ ${res.total} ${getGlobalCurrencySymbol()} بنجاح!`);
+    networkMode: 'always',
+    mutationFn: async (payload: any) => {
+      const isActuallyOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+      if (isActuallyOffline) {
+        const offRes = await vanOfflineDb.recordOfflineSale({
+          tripId: payload.tripId,
+          customerId: payload.customerId,
+          customerName: payload.customerName,
+          items: payload.items,
+          paymentMethod: payload.paymentMethod,
+          paidAmount: payload.paidAmount,
+          notes: payload.notes,
+          gpsLat: payload.deliveryGpsLat,
+          gpsLng: payload.deliveryGpsLng,
+          deliveryProofPhoto: payload.deliveryProofPhoto,
+          cartonsCount: payload.packagingBreakdown?.cartonsCount,
+        });
+        return {
+          ok: true,
+          saleId: -Date.now(),
+          docNo: offRes.docNo,
+          total: offRes.total,
+          paymentMethod: payload.paymentMethod,
+          customerName: payload.customerName || 'عميل نقدي',
+          itemsCount: payload.items.length,
+          cashPaid: payload.paymentMethod === 'cash' ? offRes.total : Number(payload.paidAmount || 0),
+          creditOwed: payload.paymentMethod === 'credit' ? offRes.total : 0,
+          isOffline: true,
+        };
+      }
+
+      try {
+        return await vanSalesApi.executeSale(payload);
+      } catch (err: any) {
+        const isNetworkErr =
+          !err?.status ||
+          err?.status === 0 ||
+          err?.message?.toLowerCase().includes('failed to fetch') ||
+          err?.message?.includes('NetworkError');
+
+        if (isNetworkErr) {
+          const offRes = await vanOfflineDb.recordOfflineSale({
+            tripId: payload.tripId,
+            customerId: payload.customerId,
+            customerName: payload.customerName,
+            items: payload.items,
+            paymentMethod: payload.paymentMethod,
+            paidAmount: payload.paidAmount,
+            notes: payload.notes,
+            gpsLat: payload.deliveryGpsLat,
+            gpsLng: payload.deliveryGpsLng,
+            deliveryProofPhoto: payload.deliveryProofPhoto,
+            cartonsCount: payload.packagingBreakdown?.cartonsCount,
+          });
+          return {
+            ok: true,
+            saleId: -Date.now(),
+            docNo: offRes.docNo,
+            total: offRes.total,
+            paymentMethod: payload.paymentMethod,
+            customerName: payload.customerName || 'عميل نقدي',
+            itemsCount: payload.items.length,
+            cashPaid: payload.paymentMethod === 'cash' ? offRes.total : Number(payload.paidAmount || 0),
+            creditOwed: payload.paymentMethod === 'credit' ? offRes.total : 0,
+            isOffline: true,
+          };
+        }
+        throw err;
+      }
+    },
+    onSuccess: (res: any) => {
+      vanOfflineDb.getPendingCount().then(setPendingSyncCount);
+      const isOff = res?.isOffline;
+      if (isOff) {
+        toast.success(`تم حفظ الفاتورة أوفلاين #${res.docNo} بمبلغ ${res.total} ${getGlobalCurrencySymbol()} وسيتم ترحيلها آلياً عند عودة الشبكة.`);
+      } else {
+        showAlert('success', `تم إصدار الفاتورة #${res.docNo} بمبلغ ${res.total} ${getGlobalCurrencySymbol()} بنجاح!`);
+      }
       const matchedCustomer = allAvailableCustomers.find((c) => String(c.id) === String(selectedCustomerId));
       setLastSaleReceipt({
         ...res,
@@ -273,9 +459,67 @@ export default function VanSalesMobilePage() {
   });
 
   const recordCollectionMutation = useMutation({
-    mutationFn: vanSalesApi.recordCollection,
-    onSuccess: (res) => {
-      showAlert('success', `تم تسجيل تحصيل ${res.amount} ${getGlobalCurrencySymbol()} من "${res.customerName}"، الرصيد المتبقي: ${res.newBalance} ${getGlobalCurrencySymbol()}`);
+    networkMode: 'always',
+    mutationFn: async (payload: any) => {
+      const isActuallyOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+      if (isActuallyOffline) {
+        const cust = allAvailableCustomers.find((c) => Number(c.id) === Number(payload.customerId));
+        const offRes = await vanOfflineDb.recordOfflineCollection({
+          tripId: payload.tripId,
+          customerId: payload.customerId,
+          customerName: cust?.name || 'العميل',
+          amount: payload.amount,
+          note: payload.notes,
+          gpsLat: payload.gpsLat,
+          gpsLng: payload.gpsLng,
+        });
+        return {
+          ok: true,
+          receiptNo: offRes.docNo,
+          amount: payload.amount,
+          customerName: cust?.name || 'العميل',
+          newBalance: Math.max(0, (cust?.balance || 0) - payload.amount),
+          isOffline: true,
+        };
+      }
+
+      try {
+        return await vanSalesApi.recordCollection(payload);
+      } catch (err: any) {
+        const isNetworkErr =
+          !err?.status ||
+          err?.status === 0 ||
+          err?.message?.toLowerCase().includes('failed to fetch');
+        if (isNetworkErr) {
+          const cust = allAvailableCustomers.find((c) => Number(c.id) === Number(payload.customerId));
+          const offRes = await vanOfflineDb.recordOfflineCollection({
+            tripId: payload.tripId,
+            customerId: payload.customerId,
+            customerName: cust?.name || 'العميل',
+            amount: payload.amount,
+            note: payload.notes,
+            gpsLat: payload.gpsLat,
+            gpsLng: payload.gpsLng,
+          });
+          return {
+            ok: true,
+            receiptNo: offRes.docNo,
+            amount: payload.amount,
+            customerName: cust?.name || 'العميل',
+            newBalance: Math.max(0, (cust?.balance || 0) - payload.amount),
+            isOffline: true,
+          };
+        }
+        throw err;
+      }
+    },
+    onSuccess: (res: any) => {
+      vanOfflineDb.getPendingCount().then(setPendingSyncCount);
+      if (res?.isOffline) {
+        toast.success(`تم حفظ التحصيل أوفلاين #${res.receiptNo} بمبلغ ${res.amount} ${getGlobalCurrencySymbol()} وسيتم ترحيله آلياً.`);
+      } else {
+        showAlert('success', `تم تسجيل تحصيل ${res.amount} ${getGlobalCurrencySymbol()} من "${res.customerName}"، الرصيد المتبقي: ${res.newBalance} ${getGlobalCurrencySymbol()}`);
+      }
       setColAmount('');
       setColCustomerId('');
       queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] });
@@ -376,14 +620,33 @@ export default function VanSalesMobilePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', paddingBottom: '40px', fontFamily: 'inherit' }} dir="rtl">
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', paddingBottom: '40px', fontFamily: 'inherit', overflowX: 'hidden' }} dir="rtl">
+      {/* Responsive Styles for Mobile vs Desktop */}
+      <style>{`
+        @media (max-width: 640px) {
+          .van-erp-link { display: none !important; }
+        }
+        @media (max-width: 767px) {
+          .van-top-nav-tabs { display: none !important; }
+          .van-bottom-nav { display: flex !important; }
+        }
+        @media (min-width: 768px) {
+          .van-top-nav-tabs { display: flex !important; }
+          .van-bottom-nav { display: none !important; }
+        }
+        @keyframes vanSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+
       {/* Top Header */}
       <header
         style={{
           backgroundColor: '#170e5e',
           color: '#ffffff',
-          padding: '12px 18px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          padding: '12px 16px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -392,21 +655,24 @@ export default function VanSalesMobilePage() {
           zIndex: 40,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <TruckIcon size={20} color="#ffffff" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <TruckIcon size={22} color="#ffffff" />
           </div>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>مبيعات وتوزيع الفان</h1>
-            <span style={{ fontSize: '11px', opacity: 0.85 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h1 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
+              مبيعات وتوزيع الفان
+            </h1>
+            <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.85)', display: 'block', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {session.rep?.fullName || session.rep?.name || 'المندوب'} • {vehicle?.plate ? `سيارة [${vehicle.plate}]` : 'الميدان'}
             </span>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <a
             href="/inventory/van-sales"
             title="الانتقال إلى لوحة إدارة المشرف والأسطول المركزية"
+            className="van-erp-link"
             style={{
               backgroundColor: 'rgba(255,255,255,0.12)',
               border: '1px solid rgba(255,255,255,0.25)',
@@ -419,26 +685,132 @@ export default function VanSalesMobilePage() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
+              whiteSpace: 'nowrap',
             }}
           >
             لوحة الإدارة (ERP)
           </a>
           <button
             type="button"
-            onClick={() => refetch()}
-            style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: 'none', color: '#ffffff', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}
+            onClick={handleGlobalRefresh}
+            disabled={isGlobalRefreshing}
+            title="تحديث البيانات"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              border: 'none',
+              color: '#ffffff',
+              borderRadius: '8px',
+              height: '32px',
+              padding: '0 10px',
+              fontSize: '11px',
+              cursor: isGlobalRefreshing ? 'not-allowed' : 'pointer',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              opacity: isGlobalRefreshing ? 0.7 : 1,
+            }}
           >
-            تحديث
+            <RefreshCwIcon
+              size={13}
+              color="#ffffff"
+              style={{ animation: isGlobalRefreshing ? 'vanSpin 0.8s linear infinite' : 'none' }}
+            />
+            <span>{isGlobalRefreshing ? 'جاري...' : 'تحديث'}</span>
           </button>
           <button
             type="button"
             onClick={handleLogout}
-            style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}
+            title="تسجيل الخروج"
+            style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.2)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              color: '#fca5a5',
+              borderRadius: '8px',
+              height: '32px',
+              padding: '0 10px',
+              fontSize: '11px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+            }}
           >
             خروج
           </button>
         </div>
       </header>
+
+      {/* Offline & Sync Status Banner */}
+      {(!isOnline || pendingSyncCount > 0) && (
+        <div
+          style={{
+            backgroundColor: !isOnline ? '#fffbeb' : '#eff6ff',
+            borderBottom: `1px solid ${!isOnline ? '#fde68a' : '#bfdbfe'}`,
+            padding: '8px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '12px',
+            fontWeight: 700,
+            color: !isOnline ? '#b45309' : '#1e40af',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: !isOnline ? '#f59e0b' : '#3b82f6',
+                display: 'inline-block',
+              }}
+            />
+            <span>
+              {!isOnline
+                ? 'وضع عدم الاتصال (أوفلاين) • فواتيرك تُحفظ محلياً وتُطبع فوراً'
+                : `تم الاتصال بالإنترنت • يوجد ${pendingSyncCount} عمليات جاهزة للمزامنة`}
+            </span>
+            {pendingSyncCount > 0 && (
+              <span
+                style={{
+                  backgroundColor: !isOnline ? '#fef3c7' : '#dbeafe',
+                  color: !isOnline ? '#92400e' : '#1e3a8a',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                }}
+              >
+                {pendingSyncCount} معلقة
+              </span>
+            )}
+          </div>
+          {isOnline && pendingSyncCount > 0 && (
+            <button
+              type="button"
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              style={{
+                backgroundColor: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                fontSize: '11px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <RefreshCwIcon size={12} color="#ffffff" style={{ animation: isSyncing ? 'spin 1s linear infinite' : 'none' }} />
+              {isSyncing ? 'جاري المزامنة...' : 'مزامنة الآن'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Alert Banner */}
       {alert && (
@@ -457,7 +829,7 @@ export default function VanSalesMobilePage() {
       )}
 
       {/* Main Container */}
-      <main style={{ padding: '14px 16px', maxWidth: '1280px', width: 'min(100%, 1280px)', margin: '0 auto' }}>
+      <main style={{ padding: '14px 16px 88px', maxWidth: '1280px', width: 'min(100%, 1280px)', margin: '0 auto' }}>
         {/* Monthly Multi-Dimensional Target Progress Card */}
         {data?.targetMetrics && (
           (data.targetMetrics.targetAmount > 0) ||
@@ -475,11 +847,27 @@ export default function VanSalesMobilePage() {
             }}
           >
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isTargetMetricsExpanded ? '12px' : '0', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>
                   مستهدفات وإنجازات الشهر ({data.targetMetrics.periodMonth})
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setIsTargetMetricsExpanded((prev) => !prev)}
+                  style={{
+                    border: 'none',
+                    background: '#eef2ff',
+                    color: '#170e5e',
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {isTargetMetricsExpanded ? 'إخفاء التفاصيل ▲' : 'عرض التفاصيل ▼'}
+                </button>
               </div>
               <span
                 style={{
@@ -496,14 +884,57 @@ export default function VanSalesMobilePage() {
               </span>
             </div>
 
+            {/* Compact summary when collapsed */}
+            {!isTargetMetricsExpanded && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-around',
+                  paddingTop: '10px',
+                  marginTop: '10px',
+                  borderTop: '1px dashed #e2e8f0',
+                  fontSize: '11.5px',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                }}
+              >
+                {data.targetMetrics.targetAmount > 0 && (
+                  <div>
+                    <span style={{ color: '#64748b' }}>المبيعات: </span>
+                    <strong style={{ color: data.targetMetrics.isTargetAchieved ? '#16a34a' : '#1d4ed8' }}>
+                      {data.targetMetrics.achievementRate}% ({data.targetMetrics.actualSalesMTD.toFixed(0)}/{data.targetMetrics.targetAmount.toFixed(0)})
+                    </strong>
+                  </div>
+                )}
+                {(data.targetMetrics.collectionTarget ?? 0) > 0 && (
+                  <div>
+                    <span style={{ color: '#64748b' }}>التحصيل: </span>
+                    <strong style={{ color: data.targetMetrics.isCollectionAchieved ? '#16a34a' : '#0284c7' }}>
+                      {data.targetMetrics.collectionAchievementRate ?? 0}% ({(data.targetMetrics.actualCollectionsMTD ?? 0).toFixed(0)}/{(data.targetMetrics.collectionTarget ?? 0).toFixed(0)})
+                    </strong>
+                  </div>
+                )}
+                {(data.targetMetrics.visitsTarget ?? 0) > 0 && (
+                  <div>
+                    <span style={{ color: '#64748b' }}>الزيارات: </span>
+                    <strong style={{ color: data.targetMetrics.isVisitsAchieved ? '#16a34a' : '#7c3aed' }}>
+                      {data.targetMetrics.visitsAchievementRate ?? 0}% ({data.targetMetrics.actualVisitsMTD ?? 0}/{data.targetMetrics.visitsTarget ?? 0})
+                    </strong>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Target Dimensions Grid */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                gap: '12px',
-              }}
-            >
+            {isTargetMetricsExpanded && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                  gap: '12px',
+                }}
+              >
               {/* 1. Sales Target */}
               {data.targetMetrics.targetAmount > 0 && (
                 <div
@@ -660,6 +1091,7 @@ export default function VanSalesMobilePage() {
                 </div>
               )}
             </div>
+            )}
           </div>
         )}
 
@@ -669,28 +1101,53 @@ export default function VanSalesMobilePage() {
           <>
             {/* Live Financial & KPI Strip - Active Trip Mode */}
             {data?.hasActiveTrip && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '14px' }}>
-                <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '12px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', display: 'block' }}>إجمالي مبيعات اليوم</span>
-                  <span style={{ fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>{data.trip?.salesAmount.toFixed(2)} <CurrencySymbol /></span>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '4px',
+                  marginBottom: '8px',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '10px',
+                  padding: '6px 8px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                  textAlign: 'center',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #e2e8f0', padding: '2px 2px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>مبيعات</span>
+                  <span style={{ fontSize: '12px', fontWeight: 900, color: '#0f172a', whiteSpace: 'nowrap' }}>
+                    {(data.trip?.salesAmount ?? 0).toFixed(0)} <CurrencySymbol />
+                  </span>
                 </div>
-                <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '12px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#059669', display: 'block' }}>النقدية المحصلة (كاش)</span>
-                  <span style={{ fontSize: '16px', fontWeight: 900, color: '#047857' }}>{data.trip?.cashCollected.toFixed(2)} <CurrencySymbol /></span>
+                <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #e2e8f0', padding: '2px 2px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#059669', display: 'block', whiteSpace: 'nowrap' }}>كاش</span>
+                  <span style={{ fontSize: '12px', fontWeight: 900, color: '#047857', whiteSpace: 'nowrap' }}>
+                    {(data.trip?.cashCollected ?? 0).toFixed(0)} <CurrencySymbol />
+                  </span>
                 </div>
-                <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '12px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#d97706', display: 'block' }}>المبيعات الآجلة</span>
-                  <span style={{ fontSize: '16px', fontWeight: 900, color: '#b45309' }}>{data.trip?.creditSales.toFixed(2)} <CurrencySymbol /></span>
+                <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #e2e8f0', padding: '2px 2px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#d97706', display: 'block', whiteSpace: 'nowrap' }}>آجل</span>
+                  <span style={{ fontSize: '12px', fontWeight: 900, color: '#b45309', whiteSpace: 'nowrap' }}>
+                    {(data.trip?.creditSales ?? 0).toFixed(0)} <CurrencySymbol />
+                  </span>
                 </div>
-                <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '12px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#170e5e', display: 'block' }}>بضاعة السيارة الحالية</span>
-                  <span style={{ fontSize: '16px', fontWeight: 900, color: '#1e1b4b' }}>{data.inventory.length} أصناف</span>
+                <div style={{ flex: '1 1 0', minWidth: 0, padding: '2px 2px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#170e5e', display: 'block', whiteSpace: 'nowrap' }}>بضاعة</span>
+                  <span style={{ fontSize: '12px', fontWeight: 900, color: '#1e1b4b', whiteSpace: 'nowrap' }}>
+                    {data.inventory.length} صنف
+                  </span>
                 </div>
               </div>
             )}
 
-            {/* Navigation Tabs Bar */}
-            <div style={{ display: 'flex', backgroundColor: '#e2e8f0', padding: '4px', borderRadius: '10px', marginBottom: '14px', fontSize: '11.5px', fontWeight: 600, overflowX: 'auto', gap: '3px' }}>
+            {/* Navigation Tabs Bar - Visible only on Desktop/Tablet, hidden on Mobile where Bottom Navigation is used */}
+            <div className="van-top-nav-tabs" style={{ display: 'flex', backgroundColor: '#e2e8f0', padding: '4px', borderRadius: '10px', marginBottom: '14px', fontSize: '11.5px', fontWeight: 600, overflowX: 'auto', gap: '3px' }}>
               {data?.hasActiveTrip ? (
                 <>
                   <button
@@ -1699,6 +2156,407 @@ export default function VanSalesMobilePage() {
           storeName={data?.trip?.sourceWarehouseName || 'مبيعات التوزيع الميداني'}
         />
       )}
+
+      {/* Mobile Fixed Bottom Navigation Bar (Under-the-Thumb Ergonomics) */}
+      <nav
+        dir="rtl"
+        aria-label="شريط الملاحة الميداني السريع للمندوب"
+        className="van-bottom-nav"
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '60px',
+          backgroundColor: '#ffffff',
+          borderTop: '1px solid #e2e8f0',
+          boxShadow: '0 -4px 16px rgba(15, 23, 42, 0.08)',
+          zIndex: 90,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          padding: '0 4px',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          boxSizing: 'border-box',
+        }}
+      >
+        {data?.hasActiveTrip ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setActiveTab('itinerary')}
+              style={{
+                flex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: currentTab === 'itinerary' ? '#170e5e' : '#64748b',
+                fontWeight: currentTab === 'itinerary' ? 800 : 600,
+                fontSize: '11px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '24px',
+                  borderRadius: '12px',
+                  backgroundColor: currentTab === 'itinerary' ? '#eef2ff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <MapPinIcon size={17} color={currentTab === 'itinerary' ? '#170e5e' : '#64748b'} />
+              </div>
+              <span>خط السير</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('sale')}
+              style={{
+                flex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: (currentTab === 'sale' || currentTab === 'sales-history') ? '#170e5e' : '#64748b',
+                fontWeight: (currentTab === 'sale' || currentTab === 'sales-history') ? 800 : 600,
+                fontSize: '11px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '24px',
+                  borderRadius: '12px',
+                  backgroundColor: (currentTab === 'sale' || currentTab === 'sales-history') ? '#eef2ff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                }}
+              >
+                <ReceiptIcon size={17} color={(currentTab === 'sale' || currentTab === 'sales-history') ? '#170e5e' : '#64748b'} />
+                {cart.length > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      backgroundColor: '#dc2626',
+                      color: '#ffffff',
+                      fontSize: '10px',
+                      fontWeight: 900,
+                      borderRadius: '8px',
+                      padding: '0 4px',
+                      lineHeight: '14px',
+                      minWidth: '14px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {cart.length}
+                  </span>
+                )}
+              </div>
+              <span>فاتورة بيع</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('inventory')}
+              style={{
+                flex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: currentTab === 'inventory' ? '#170e5e' : '#64748b',
+                fontWeight: currentTab === 'inventory' ? 800 : 600,
+                fontSize: '11px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '24px',
+                  borderRadius: '12px',
+                  backgroundColor: currentTab === 'inventory' ? '#eef2ff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <PackageIcon size={17} color={currentTab === 'inventory' ? '#170e5e' : '#64748b'} />
+              </div>
+              <span>السيارة</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('collection')}
+              style={{
+                flex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: currentTab === 'collection' ? '#170e5e' : '#64748b',
+                fontWeight: currentTab === 'collection' ? 800 : 600,
+                fontSize: '11px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '24px',
+                  borderRadius: '12px',
+                  backgroundColor: currentTab === 'collection' ? '#eef2ff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <CreditCardIcon size={17} color={currentTab === 'collection' ? '#170e5e' : '#64748b'} />
+              </div>
+              <span>التحصيل</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('settle')}
+              style={{
+                flex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: (currentTab === 'settle' || currentTab === 'fleet') ? '#170e5e' : '#64748b',
+                fontWeight: (currentTab === 'settle' || currentTab === 'fleet') ? 800 : 600,
+                fontSize: '11px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '24px',
+                  borderRadius: '12px',
+                  backgroundColor: (currentTab === 'settle' || currentTab === 'fleet') ? '#eef2ff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <ClockIcon size={17} color={(currentTab === 'settle' || currentTab === 'fleet') ? '#170e5e' : '#64748b'} />
+              </div>
+              <span>اليومية</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => setActiveTab('cockpit')}
+              style={{
+                flex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: currentTab === 'cockpit' ? '#170e5e' : '#64748b',
+                fontWeight: currentTab === 'cockpit' ? 800 : 600,
+                fontSize: '11px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '24px',
+                  borderRadius: '12px',
+                  backgroundColor: currentTab === 'cockpit' ? '#eef2ff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <TruckIcon size={17} color={currentTab === 'cockpit' ? '#170e5e' : '#64748b'} />
+              </div>
+              <span>لوحة الصباح</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('itinerary')}
+              style={{
+                flex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: currentTab === 'itinerary' ? '#170e5e' : '#64748b',
+                fontWeight: currentTab === 'itinerary' ? 800 : 600,
+                fontSize: '11px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '24px',
+                  borderRadius: '12px',
+                  backgroundColor: currentTab === 'itinerary' ? '#eef2ff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <MapPinIcon size={17} color={currentTab === 'itinerary' ? '#170e5e' : '#64748b'} />
+              </div>
+              <span>خط السير</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('inventory')}
+              style={{
+                flex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: currentTab === 'inventory' ? '#170e5e' : '#64748b',
+                fontWeight: currentTab === 'inventory' ? 800 : 600,
+                fontSize: '11px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '24px',
+                  borderRadius: '12px',
+                  backgroundColor: currentTab === 'inventory' ? '#eef2ff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <PackageIcon size={17} color={currentTab === 'inventory' ? '#170e5e' : '#64748b'} />
+              </div>
+              <span>السيارة</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('requisitions')}
+              style={{
+                flex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: currentTab === 'requisitions' ? '#170e5e' : '#64748b',
+                fontWeight: currentTab === 'requisitions' ? 800 : 600,
+                fontSize: '11px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '24px',
+                  borderRadius: '12px',
+                  backgroundColor: currentTab === 'requisitions' ? '#eef2ff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <ReceiptIcon size={17} color={currentTab === 'requisitions' ? '#170e5e' : '#64748b'} />
+              </div>
+              <span>طلب شحن</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('fleet')}
+              style={{
+                flex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: currentTab === 'fleet' ? '#170e5e' : '#64748b',
+                fontWeight: currentTab === 'fleet' ? 800 : 600,
+                fontSize: '11px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '24px',
+                  borderRadius: '12px',
+                  backgroundColor: currentTab === 'fleet' ? '#eef2ff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <TruckIcon size={17} color={currentTab === 'fleet' ? '#170e5e' : '#64748b'} />
+              </div>
+              <span>المركبة</span>
+            </button>
+          </>
+        )}
+      </nav>
     </div>
   );
 }

@@ -621,8 +621,8 @@ export function ChevronUpIcon({ size = 18, color = 'currentColor', strokeWidth =
 export function MapPinIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-      <circle cx="12" cy="10" r="3" />
+      <path d="M20 10.5c0 6.5-8 12.5-8 12.5s-8-6-8-12.5a8 8 0 0 1 16 0z" />
+      <circle cx="12" cy="10.5" r="3" />
     </svg>
   );
 }

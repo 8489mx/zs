@@ -847,6 +847,7 @@ export class VanSalesService {
       deliveryGpsLng?: number;
       deliveryProofPhoto?: string;
       packagingBreakdown?: { cartonsCount?: number; piecesCount?: number; itemsCount?: number };
+      clientTxId?: string;
     },
   ): Promise<{
     ok: boolean;
@@ -861,6 +862,31 @@ export class VanSalesService {
   }> {
     if (!payload.items || !payload.items.length) {
       throw new AppError('يجب تحديد صنف واحد على الأقل لإصدار الفاتورة', 'EMPTY_SALE_ITEMS', 400);
+    }
+
+    // Idempotency: Prevent duplicate sale posting if offline queue retries
+    if (payload.clientTxId) {
+      const existingSale = await this.anyDb
+        .selectFrom('sales')
+        .select(['id', 'doc_no', 'total', 'payment_type'])
+        .where('tenant_id', '=', tenantId)
+        .where('van_trip_id', '=', payload.tripId)
+        .where('note', 'like', `%[tx:${payload.clientTxId}]%`)
+        .executeTakeFirst();
+
+      if (existingSale) {
+        return {
+          ok: true,
+          saleId: Number(existingSale.id),
+          docNo: existingSale.doc_no,
+          total: Number(existingSale.total),
+          paymentMethod: existingSale.payment_type || payload.paymentMethod,
+          customerName: payload.customerName || 'عميل نقدي ميداني',
+          itemsCount: payload.items.length,
+          cashPaid: 0,
+          creditOwed: 0,
+        };
+      }
     }
 
     const trip = await this.anyDb
@@ -1042,7 +1068,9 @@ export class VanSalesService {
           delivery_rep_id: repId,
           van_trip_id: payload.tripId,
           sale_origin: 'van_sale',
-          note: payload.notes || `فاتورة بيع ميداني من سيارة المندوب`,
+          note: payload.clientTxId
+            ? `${payload.notes || 'فاتورة بيع ميداني من سيارة المندوب'} [tx:${payload.clientTxId}]`
+            : payload.notes || `فاتورة بيع ميداني من سيارة المندوب`,
           delivery_gps_lat: payload.deliveryGpsLat != null ? Number(payload.deliveryGpsLat) : null,
           delivery_gps_lng: payload.deliveryGpsLng != null ? Number(payload.deliveryGpsLng) : null,
           delivery_proof_photo: payload.deliveryProofPhoto || null,
@@ -1239,6 +1267,7 @@ export class VanSalesService {
       notes?: string;
       gpsLat?: number;
       gpsLng?: number;
+      clientTxId?: string;
     },
   ): Promise<{ ok: boolean; receiptNo: string; amount: number; customerName: string; newBalance: number }> {
     const amount = Number(payload.amount || 0);
@@ -1260,6 +1289,27 @@ export class VanSalesService {
 
     const cust = await this.anyDb.selectFrom('customers').select(['id', 'name']).where('id', '=', payload.customerId).where('tenant_id', '=', tenantId).executeTakeFirst();
     if (!cust) throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
+
+    // Idempotency: Prevent duplicate collection posting if offline queue retries
+    if (payload.clientTxId) {
+      const existingPayment = await this.anyDb
+        .selectFrom('customer_payments')
+        .select(['id', 'amount', 'note'])
+        .where('tenant_id', '=', tenantId)
+        .where('customer_id', '=', payload.customerId)
+        .where('note', 'like', `%[tx:${payload.clientTxId}]%`)
+        .executeTakeFirst();
+
+      if (existingPayment) {
+        return {
+          ok: true,
+          receiptNo: existingPayment.note?.match(/#([A-Z0-9-]+)/)?.[1] || 'COL-SYNCED',
+          amount: Number(existingPayment.amount),
+          customerName: cust.name,
+          newBalance: 0,
+        };
+      }
+    }
 
     const branchId = trip.vanBranchId ? Number(trip.vanBranchId) : null;
     const vanLocId = trip.van_location_id ? Number(trip.van_location_id) : null;
@@ -1291,7 +1341,9 @@ export class VanSalesService {
         .executeTakeFirstOrThrow();
 
       receiptNo = await this.generateDailySequenceNumber(trxAny, 'customer_payments', 'note', 'COL', tenantId);
-      const finalNote = payload.notes || `سند تحصيل نقدي ميداني بواسطة المندوب (#${receiptNo})`;
+      const finalNote = payload.clientTxId
+        ? `${payload.notes || 'سند تحصيل نقدي ميداني بواسطة المندوب'} (#${receiptNo}) [tx:${payload.clientTxId}]`
+        : payload.notes || `سند تحصيل نقدي ميداني بواسطة المندوب (#${receiptNo})`;
 
       await trxAny
         .updateTable('customer_payments')

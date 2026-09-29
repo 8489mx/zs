@@ -43,6 +43,17 @@ import { initProductIconTheme } from '@/shared/components/icons/product-icon-the
 
 initProductIconTheme();
 
+// Progressive Web App (PWA) Service Worker Registration for Offline Operation
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.location.hostname.includes('electron')) {
+  import('virtual:pwa-register')
+    .then(({ registerSW }) => {
+      registerSW({
+        immediate: true,
+      });
+    })
+    .catch(() => {});
+}
+
 // Globally suppress intrusive browser autofill overlays on business ERP forms
 if (typeof document !== 'undefined') {
   const suppressAutofill = (el: Element | null) => {
