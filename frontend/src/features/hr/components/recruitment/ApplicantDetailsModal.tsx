@@ -1,4 +1,4 @@
-import { useState, type FC } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { formatCurrency } from '@/lib/format';
@@ -30,7 +30,7 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isHiring, setIsHiring] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (applicant) {
       setCurrentStage(applicant.stage);
       setNotes(applicant.interview_notes || '');
