@@ -150,8 +150,8 @@ export function SearchableCombobox<T extends ComboboxOption>({
       return;
     }
 
-    const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
-    const scrollX = window.pageXOffset || document.documentElement.scrollX || 0;
+    const scrollY = typeof window !== 'undefined' ? (window.scrollY ?? window.pageYOffset ?? document.documentElement.scrollTop ?? 0) : 0;
+    const scrollX = typeof window !== 'undefined' ? (window.scrollX ?? window.pageXOffset ?? document.documentElement.scrollLeft ?? 0) : 0;
 
     const gap = 6;
     const viewportPadding = 8;
