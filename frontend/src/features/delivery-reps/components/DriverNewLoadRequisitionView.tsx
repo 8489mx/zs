@@ -1798,29 +1798,40 @@ export function DriverNewLoadRequisitionView({
             backgroundColor: '#ffffff',
             borderRadius: '12px',
             border: '1px solid #e2e8f0',
-            padding: '16px 20px',
+            padding: '14px 16px',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            flexDirection: 'column',
+            gap: '12px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            flexWrap: 'wrap',
-            gap: '16px',
           }}
         >
-          <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div>
-              <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>عدد الأصناف المطلوبة</span>
-              <strong style={{ fontSize: '14px', color: '#0f172a' }}>{distinctItemsCount} صنف</strong>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr auto 1fr auto 1.2fr',
+              alignItems: 'center',
+              width: '100%',
+              gap: '6px',
+              backgroundColor: '#f8fafc',
+              padding: '10px 12px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>الأصناف</span>
+              <strong style={{ fontSize: '13.5px', color: '#0f172a', whiteSpace: 'nowrap' }}>{distinctItemsCount} صنف</strong>
             </div>
-            <div style={{ height: '24px', width: '1px', backgroundColor: '#e2e8f0' }} />
-            <div>
-              <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>إجمالي القطع</span>
-              <strong style={{ fontSize: '14px', color: '#0f172a' }}>{totalUnitsCount} قطعة</strong>
+            <div style={{ height: '22px', width: '1px', backgroundColor: '#cbd5e1' }} />
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>القطع</span>
+              <strong style={{ fontSize: '13.5px', color: '#0f172a', whiteSpace: 'nowrap' }}>{totalUnitsCount} قطعة</strong>
             </div>
-            <div style={{ height: '24px', width: '1px', backgroundColor: '#e2e8f0' }} />
-            <div>
-              <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>إجمالي القيمة التقديرية</span>
-              <strong style={{ fontSize: '15px', color: '#170e5e', fontWeight: 900 }}>
+            <div style={{ height: '22px', width: '1px', backgroundColor: '#cbd5e1' }} />
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>إجمالي القيمة</span>
+              <strong style={{ fontSize: '14px', color: '#170e5e', fontWeight: 900, whiteSpace: 'nowrap' }}>
                 {totalEstimatedValue.toFixed(2)} <CurrencySymbol />
               </strong>
             </div>
