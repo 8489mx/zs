@@ -2071,20 +2071,6 @@ export function AppShell({ children }: PropsWithChildren) {
               <div className="muted small" style={{ lineHeight: 1.2 }}>{t("sidebar.welcome_msg")} {displayName}</div>
               <div className="muted small" style={{ opacity: 0.85, marginTop: 2, fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
                 <span>الإصدار: {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}</span>
-                <span
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                    padding: '1px 6px',
-                    borderRadius: '4px',
-                    fontFamily: 'monospace',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => window.location.reload()}
-                  title="رقم إصدار البيلد - انقر للتحديث الفوري"
-                >
-                  بيلد: {typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev'}
-                </span>
                 {updateInfo?.updateAvailable && (
                   <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: 'var(--color-warning)', flexShrink: 0 }} title="تحديث جديد متاح" />
                 )}

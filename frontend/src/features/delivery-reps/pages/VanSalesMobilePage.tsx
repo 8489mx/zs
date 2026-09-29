@@ -1702,7 +1702,7 @@ export default function VanSalesMobilePage() {
                     </div>
                   ) : (
                     <p style={{ fontSize: '12.5px', color: '#64748b', margin: '0 0 16px', lineHeight: 1.5 }}>
-                      سيارتك جاهزة لبدء العمل! يمكنك إرسال طلب شحن بضاعة صباحي لمشرف المستودع للمراجعة وصرف البضاعة، أو بدء الرحلة مباشرة للتحصيل وزيارة المتاجر.
+                      سيارتك جاهزة لبدء العمل! يمكنك إرسال طلب شحن بضاعة لمشرف المستودع للمراجعة وصرف البضاعة، أو بدء الرحلة مباشرة للتحصيل وزيارة المتاجر.
                     </p>
                   )}
 
@@ -1713,7 +1713,7 @@ export default function VanSalesMobilePage() {
                       onClick={() => setViewMode('new-requisition')}
                       style={{ backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12.5px', fontWeight: 800 }}
                     >
-                      + إنشاء طلب شحن بضاعة صباحي (إذن تحميل)
+                      + إنشاء طلب شحن بضاعة (إذن تحميل)
                     </Button>
                     {(!data?.inventory || data.inventory.length === 0) && (
                       <Button
@@ -1790,7 +1790,7 @@ export default function VanSalesMobilePage() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                       <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#170e5e' }}>
-                        أحدث طلبات الشحن الصباحية الخاصة بك:
+                        أحدث طلبات شحن وتحميل السيارة:
                       </span>
                       <button
                         type="button"
@@ -1919,7 +1919,7 @@ export default function VanSalesMobilePage() {
               <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '18px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>طلبات الشحن وأذونات التحميل الصباحية</h3>
+                    <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>طلبات الشحن وأذونات تحميل السيارة</h3>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>متابعة حالة صرف البضاعة من المستودع للسيارة</span>
                   </div>
                   <Button

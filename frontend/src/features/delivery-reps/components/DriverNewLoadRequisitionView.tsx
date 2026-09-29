@@ -1246,11 +1246,11 @@ export function DriverNewLoadRequisitionView({
               <ArrowRightIcon size={18} />
             </button>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h1 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h1 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
                   {isAdmin
-                    ? 'إسناد وصرف إذن تحميل سيارة التوزيع (FMCG)'
-                    : 'طلب شحن بضاعة صباحي (إذن تحميل سيارة)'}
+                    ? 'إسناد وصرف إذن تحميل السيارة'
+                    : 'طلب شحن وتحميل سيارة التوزيع'}
                 </h1>
                 <span
                   style={{
@@ -1262,30 +1262,13 @@ export function DriverNewLoadRequisitionView({
                     borderRadius: '6px',
                   }}
                 >
-                  {isAdmin ? 'إسناد إداري مباشر' : 'مسودة جديدة'}
-                </span>
-                <span
-                  style={{
-                    backgroundColor: '#f1f5f9',
-                    color: '#475569',
-                    fontSize: '10.5px',
-                    fontWeight: 800,
-                    padding: '2px 8px',
-                    borderRadius: '6px',
-                    fontFamily: 'monospace',
-                    cursor: 'pointer',
-                    border: '1px solid #e2e8f0',
-                  }}
-                  onClick={() => window.location.reload()}
-                  title="رقم إصدار البيلد - انقر للتحديث الفوري"
-                >
-                  بيلد: {typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev'}
+                  {isAdmin ? 'إسناد إداري' : 'مسودة جديدة'}
                 </span>
               </div>
-              <span style={{ fontSize: '11.5px', color: '#64748b' }}>
+              <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block', marginTop: '3px' }}>
                 {isAdmin
-                  ? 'إعداد إذن التحميل وصرف البضاعة وتحميل السيارة مباشرة للمندوب لبدء رحلة التوزيع'
-                  : 'تحديد أصناف وكميات البضاعة المطلوبة من المستودعات لسيارة التوزيع الميدانية'}
+                  ? 'صرف وتحميل البضاعة للمندوب لبدء الرحلة'
+                  : 'تحديد أصناف وكميات شحن بضاعة السيارة'}
               </span>
             </div>
           </div>
@@ -1925,27 +1908,6 @@ export function DriverNewLoadRequisitionView({
             )}
           </div>
         </section>
-
-        {/* Footer Build Indicator */}
-        <footer style={{ textAlign: 'center', marginTop: '20px', paddingBottom: '20px' }}>
-          <span
-            style={{
-              fontSize: '11px',
-              color: '#94a3b8',
-              fontFamily: 'monospace',
-              cursor: 'pointer',
-              display: 'inline-block',
-              padding: '4px 12px',
-              borderRadius: '6px',
-              backgroundColor: '#f1f5f9',
-              border: '1px solid #e2e8f0',
-            }}
-            onClick={() => window.location.reload()}
-            title="انقر للتحديث الفوري"
-          >
-            بيلد: {typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev'}
-          </span>
-        </footer>
       </div>
     </div>
   );
