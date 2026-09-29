@@ -102,8 +102,16 @@ export function decryptBundle(buffer: Buffer, passphrase: string): Buffer {
   const { key, iv } = deriveKeyIv(passphrase, salt);
   const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
   try {
-    return Buffer.concat([decipher.update(buffer.subarray(16)), decipher.final()]);
-  } catch {
+    const plain = Buffer.concat([decipher.update(buffer.subarray(16)), decipher.final()]);
+    // A decrypted bundle must at least start with a valid zip header ('PK', 0x50 0x4b) or gzip header (0x1f 0x8b).
+    // In AES-CBC with PKCS#7, ~1 out of 256 random decryptions happens to have valid padding by coincidence,
+    // which would silently return corrupted bytes instead of throwing bad decrypt.
+    if (plain.length < 2 || !((plain[0] === 0x50 && plain[1] === 0x4b) || (plain[0] === 0x1f && plain[1] === 0x8b))) {
+      throw new Error('Wrong backup passphrase, or the file is damaged');
+    }
+    return plain;
+  } catch (err: any) {
+    if (err?.message && err.message.includes('Wrong backup passphrase')) throw err;
     throw new Error('Wrong backup passphrase, or the file is damaged');
   }
 }

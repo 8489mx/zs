@@ -23,8 +23,6 @@ import {
   RefreshCwIcon,
   CheckCircleIcon,
   SearchIcon,
-  PhoneIcon,
-  UsersIcon,
   CheckIcon,
 } from '@/shared/components/icons/AppIcons';
 

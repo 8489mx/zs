@@ -1,7 +1,7 @@
 import React from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { VanStockItem } from '../api/van-sales.api';
-import { ShoppingCartIcon, PlusIcon, MinusIcon } from '@/shared/components/icons/AppIcons';
+import { ShoppingCartIcon, PlusIcon } from '@/shared/components/icons/AppIcons';
 
 interface CartItemSummary {
   productId: number;

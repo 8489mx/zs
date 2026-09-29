@@ -24,7 +24,6 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
   if (!receipt) return null;
 
   const [targetPhone, setTargetPhone] = React.useState(receipt.customerPhone || '');
-  const [showPhoneInput, setShowPhoneInput] = React.useState(!receipt.customerPhone);
 
   const handlePrint = () => {
     try {
@@ -38,7 +37,6 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
   const handleWhatsAppShare = () => {
     const phoneToUse = targetPhone.trim();
     if (!phoneToUse) {
-      setShowPhoneInput(true);
       toast.warning('يرجى إدخال رقم هاتف العميل للمشاركة');
       return;
     }

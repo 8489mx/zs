@@ -277,11 +277,8 @@ export const vanOfflineDb = {
     cartonsCount?: number;
   }): Promise<{ docNo: string; clientTxId: string; total: number }> => {
     const db = await openDb();
-    const tx = db.transaction([STORE_META, STORE_INVENTORY, STORE_CUSTOMERS, STORE_OUTBOX], 'readwrite');
+    const tx = db.transaction([STORE_META], 'readonly');
     const metaStore = tx.objectStore(STORE_META);
-    const invStore = tx.objectStore(STORE_INVENTORY);
-    const custStore = tx.objectStore(STORE_CUSTOMERS);
-    const outboxStore = tx.objectStore(STORE_OUTBOX);
 
     const clientTxId = generateClientTxId();
     const dateStr = getTodayYYMMDD();
@@ -399,10 +396,8 @@ export const vanOfflineDb = {
     gpsLng?: number;
   }): Promise<{ docNo: string; clientTxId: string }> => {
     const db = await openDb();
-    const tx = db.transaction([STORE_META, STORE_CUSTOMERS, STORE_OUTBOX], 'readwrite');
+    const tx = db.transaction([STORE_META], 'readonly');
     const metaStore = tx.objectStore(STORE_META);
-    const custStore = tx.objectStore(STORE_CUSTOMERS);
-    const outboxStore = tx.objectStore(STORE_OUTBOX);
 
     const clientTxId = generateClientTxId();
     const dateStr = getTodayYYMMDD();
@@ -495,10 +490,8 @@ export const vanOfflineDb = {
     notes?: string;
   }): Promise<{ docNo: string; clientTxId: string; totalAmount: number }> => {
     const db = await openDb();
-    const tx = db.transaction([STORE_META, STORE_INVENTORY, STORE_OUTBOX], 'readwrite');
+    const tx = db.transaction([STORE_META], 'readonly');
     const metaStore = tx.objectStore(STORE_META);
-    const invStore = tx.objectStore(STORE_INVENTORY);
-    const outboxStore = tx.objectStore(STORE_OUTBOX);
 
     const clientTxId = generateClientTxId();
     const dateStr = getTodayYYMMDD();

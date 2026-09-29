@@ -6,7 +6,6 @@ import { StandardDialog } from '@/shared/components/StandardDialog';
 import { VanStockItem } from '../api/van-sales.api';
 import {
   PlusIcon,
-  MinusIcon,
   PackageIcon,
   ShoppingCartIcon,
   ReceiptIcon,
