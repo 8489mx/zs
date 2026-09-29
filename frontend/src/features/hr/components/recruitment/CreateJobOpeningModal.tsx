@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, type FC, type FormEvent } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
@@ -10,7 +10,7 @@ interface CreateJobOpeningModalProps {
   onSuccess: () => void;
 }
 
-export const CreateJobOpeningModal: React.FC<CreateJobOpeningModalProps> = ({
+export const CreateJobOpeningModal: FC<CreateJobOpeningModalProps> = ({
   open,
   onClose,
   onSuccess,
@@ -21,7 +21,7 @@ export const CreateJobOpeningModal: React.FC<CreateJobOpeningModalProps> = ({
   const [experienceYearsMin, setExperienceYearsMin] = useState('2');
   const [description, setDescription] = useState('');
   const [requirements, setRequirements] = useState('');
-  const [status, setStatus] = useState<'published' | 'draft'>('published');
+  const [status] = useState<'published' | 'draft'>('published');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const departmentOptions = [
@@ -33,8 +33,8 @@ export const CreateJobOpeningModal: React.FC<CreateJobOpeningModalProps> = ({
     { value: 'التصنيع والإنتاج', label: 'التصنيع والإنتاج (Manufacturing)' },
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
     if (!title.trim()) {
       toast.warning('يرجى إدخال المسمى الوظيفي');
       return;
@@ -158,7 +158,7 @@ export const CreateJobOpeningModal: React.FC<CreateJobOpeningModalProps> = ({
           primaryButton={{
             label: isSubmitting ? 'جاري الفتح...' : 'نشر واعتماد الوظيفة',
             disabled: isSubmitting,
-            type: 'submit',
+            onClick: () => handleSubmit(),
           }}
         />
       </form>

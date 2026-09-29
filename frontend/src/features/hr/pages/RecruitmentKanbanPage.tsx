@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type FC } from 'react';
 import {
   recruitmentAtsApi,
   type ApplicantRecord,
@@ -12,9 +12,6 @@ import { toast } from '@/shared/components/system-alert';
 import {
   PlusIcon,
   SearchIcon,
-  UserIcon,
-  CheckCircleIcon,
-  FileTextIcon,
   LayersIcon,
 } from '@/shared/components/icons/AppIcons';
 
@@ -26,7 +23,7 @@ const KANBAN_STAGES: Array<{ id: ApplicantRecord['stage']; label: string; color:
   { id: 'hired', label: '5. تم التعيين والتوظيف', color: '#15803d', bg: '#dcfce7' },
 ];
 
-export const RecruitmentKanbanPage: React.FC = () => {
+export const RecruitmentKanbanPage: FC = () => {
   const [metrics, setMetrics] = useState<any>(null);
   const [jobs, setJobs] = useState<JobOpeningRecord[]>([]);
   const [applicants, setApplicants] = useState<ApplicantRecord[]>([]);

@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/components/system-alert';
 import { arCollectionsApi, type ArDunningLevel } from '../../api/ar-collections.api';
-import { SlidersIcon, CheckShieldIcon } from '@/shared/components/icons/AppIcons';
 
 interface ArDunningLevelsModalProps {
   open: boolean;
@@ -11,7 +10,7 @@ interface ArDunningLevelsModalProps {
   onSaved: () => void;
 }
 
-export const ArDunningLevelsModal: React.FC<ArDunningLevelsModalProps> = ({
+export const ArDunningLevelsModal: FC<ArDunningLevelsModalProps> = ({
   open,
   onClose,
   onSaved,

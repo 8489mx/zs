@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC, type FormEvent } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
-import { PlusIcon, Trash2Icon, PackageIcon } from '@/shared/components/icons/AppIcons';
+import { PlusIcon, Trash2Icon } from '@/shared/components/icons/AppIcons';
 import { productsApi } from '@/features/products';
 import {
   warehousePackagesApi,
@@ -17,7 +17,7 @@ interface CreatePackageModalProps {
   existingPackages: WarehousePackageRecord[];
 }
 
-export const CreatePackageModal: React.FC<CreatePackageModalProps> = ({
+export const CreatePackageModal: FC<CreatePackageModalProps> = ({
   open,
   onClose,
   onSuccess,
@@ -82,8 +82,8 @@ export const CreatePackageModal: React.FC<CreatePackageModalProps> = ({
     setItems(items.map((item, i) => i === idx ? { ...item, [field]: val } : item));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
     setIsSubmitting(true);
     try {
       const payload: CreatePackagePayload = {
@@ -169,6 +169,21 @@ export const CreatePackageModal: React.FC<CreatePackageModalProps> = ({
               value={grossWeightKg}
               onChange={(e) => setGrossWeightKg(e.target.value)}
               placeholder="مثال: 45.5"
+              style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+              الوزن الصافي التقريبي (Net Weight - كجم)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={netWeightKg}
+              onChange={(e) => setNetWeightKg(e.target.value)}
+              placeholder="مثال: 42.0"
               style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
           </div>
@@ -306,7 +321,7 @@ export const CreatePackageModal: React.FC<CreatePackageModalProps> = ({
           primaryButton={{
             label: isSubmitting ? 'جاري الترميز والحفظ...' : 'تأكيد وترميز الطرد',
             disabled: isSubmitting,
-            type: 'submit',
+            onClick: () => handleSubmit(),
           }}
         />
       </form>

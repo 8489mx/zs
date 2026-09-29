@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC, type FormEvent } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
@@ -11,7 +11,7 @@ interface CreateNCRModalProps {
   onSuccess: () => void;
 }
 
-export const CreateNCRModal: React.FC<CreateNCRModalProps> = ({
+export const CreateNCRModal: FC<CreateNCRModalProps> = ({
   open,
   onClose,
   onSuccess,
@@ -50,8 +50,8 @@ export const CreateNCRModal: React.FC<CreateNCRModalProps> = ({
     { value: 'concession_accept', label: 'قبول مشروط باستثناء إداري (Concession Accept)' },
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
     if (!productId) {
       toast.warning('يرجى اختيار الصنف المعيب');
       return;
@@ -159,7 +159,7 @@ export const CreateNCRModal: React.FC<CreateNCRModalProps> = ({
           primaryButton={{
             label: isSubmitting ? 'جاري الفتح والتوثيق...' : 'فتح وتعميم الـ NCR',
             disabled: isSubmitting,
-            type: 'submit',
+            onClick: () => handleSubmit(),
           }}
         />
       </form>

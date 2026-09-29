@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC, type FormEvent } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
@@ -16,7 +16,7 @@ interface RecordInspectionModalProps {
   qcPoints: QCPointRecord[];
 }
 
-export const RecordInspectionModal: React.FC<RecordInspectionModalProps> = ({
+export const RecordInspectionModal: FC<RecordInspectionModalProps> = ({
   open,
   onClose,
   onSuccess,
@@ -87,8 +87,8 @@ export const RecordInspectionModal: React.FC<RecordInspectionModalProps> = ({
     else setPassed(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
     if (!productId) {
       toast.warning('يرجى اختيار الصنف المفحوص');
       return;
@@ -300,7 +300,7 @@ export const RecordInspectionModal: React.FC<RecordInspectionModalProps> = ({
           primaryButton={{
             label: isSubmitting ? 'جاري التقييم والتسجيل...' : 'اعتماد وتسجيل الفحص',
             disabled: isSubmitting,
-            type: 'submit',
+            onClick: () => handleSubmit(),
           }}
         />
       </form>

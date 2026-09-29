@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, type FC, type FormEvent } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
@@ -15,7 +15,7 @@ interface CreateApplicantModalProps {
   jobs: JobOpeningRecord[];
 }
 
-export const CreateApplicantModal: React.FC<CreateApplicantModalProps> = ({
+export const CreateApplicantModal: FC<CreateApplicantModalProps> = ({
   open,
   onClose,
   onSuccess,
@@ -60,8 +60,8 @@ export const CreateApplicantModal: React.FC<CreateApplicantModalProps> = ({
     { value: '5', label: '5 نجوم - كفاءة استثنائية (Top Talent)' },
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
     if (!fullName.trim() || !phone.trim()) {
       toast.warning('يرجى إدخال اسم المرشح ورقم الهاتف');
       return;
@@ -241,7 +241,7 @@ export const CreateApplicantModal: React.FC<CreateApplicantModalProps> = ({
           primaryButton={{
             label: isSubmitting ? 'جاري التسجيل...' : 'تسجيل المرشح',
             disabled: isSubmitting,
-            type: 'submit',
+            onClick: () => handleSubmit(),
           }}
         />
       </form>

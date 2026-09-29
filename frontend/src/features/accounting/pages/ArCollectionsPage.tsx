@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type FC } from 'react';
 import { toast } from '@/shared/components/system-alert';
 import { Button } from '@/shared/ui/button';
 import {
@@ -10,7 +10,6 @@ import {
   PhoneIcon,
   FileTextIcon,
   CheckShieldIcon,
-  AlertCircleIcon,
   ClockIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
@@ -24,7 +23,7 @@ import { ArInteractionLogModal } from '../components/collections/ArInteractionLo
 import { ArDunningLevelsModal } from '../components/collections/ArDunningLevelsModal';
 import { ArCaseDetailsModal } from '../components/collections/ArCaseDetailsModal';
 
-export const ArCollectionsPage: React.FC = () => {
+export const ArCollectionsPage: FC = () => {
   const [overview, setOverview] = useState<ArCollectionsOverview | null>(null);
   const [cases, setCases] = useState<ArCollectionCaseItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -352,7 +351,7 @@ export const ArCollectionsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {cases.map((c, idx) => (
+                {cases.map((c) => (
                   <tr
                     key={c.id}
                     style={{

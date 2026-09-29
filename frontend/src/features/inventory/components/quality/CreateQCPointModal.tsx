@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC, type FormEvent } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
@@ -11,7 +11,7 @@ interface CreateQCPointModalProps {
   onSuccess: () => void;
 }
 
-export const CreateQCPointModal: React.FC<CreateQCPointModalProps> = ({
+export const CreateQCPointModal: FC<CreateQCPointModalProps> = ({
   open,
   onClose,
   onSuccess,
@@ -54,8 +54,8 @@ export const CreateQCPointModal: React.FC<CreateQCPointModalProps> = ({
     { value: 'checklist', label: 'قائمة مراجعة متطلبات (Checklist)' },
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
     if (!name.trim()) {
       toast.warning('يرجى إدخال اسم نقطة الفحص');
       return;
@@ -219,7 +219,7 @@ export const CreateQCPointModal: React.FC<CreateQCPointModalProps> = ({
           primaryButton={{
             label: isSubmitting ? 'جاري الحفظ...' : 'حفظ نقطة الفحص',
             disabled: isSubmitting,
-            type: 'submit',
+            onClick: () => handleSubmit(),
           }}
         />
       </form>

@@ -1,14 +1,11 @@
-import React, { useState } from 'react';
+import { useState, type FC } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { formatCurrency } from '@/lib/format';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import {
-  UserIcon,
   CheckCircleIcon,
   FileTextIcon,
-  SlidersIcon,
-  CheckShieldIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
   recruitmentAtsApi,
@@ -22,7 +19,7 @@ interface ApplicantDetailsModalProps {
   onUpdated: () => void;
 }
 
-export const ApplicantDetailsModal: React.FC<ApplicantDetailsModalProps> = ({
+export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
   open,
   onClose,
   applicant,

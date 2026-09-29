@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import {
   qualityAssuranceApi,
   type QCPointRecord,
@@ -8,18 +8,15 @@ import {
 import { CreateQCPointModal } from '../components/quality/CreateQCPointModal';
 import { RecordInspectionModal } from '../components/quality/RecordInspectionModal';
 import { CreateNCRModal } from '../components/quality/CreateNCRModal';
-import { toast, systemConfirm } from '@/shared/components/system-alert';
+import { toast } from '@/shared/components/system-alert';
 import {
   PlusIcon,
   CheckCircleIcon,
   AlertTriangleIcon,
   CheckShieldIcon,
-  LayersIcon,
-  SearchIcon,
-  FileTextIcon,
 } from '@/shared/components/icons/AppIcons';
 
-export const QualityDashboardPage: React.FC = () => {
+export const QualityDashboardPage: FC = () => {
   const [activeTab, setActiveTab] = useState<'inspections' | 'ncrs' | 'points'>('inspections');
   const [summary, setSummary] = useState<any>(null);
   const [inspections, setInspections] = useState<QCInspectionRecord[]>([]);

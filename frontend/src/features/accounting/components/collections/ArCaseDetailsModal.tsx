@@ -1,16 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/components/system-alert';
 import { arCollectionsApi, type ArCollectionCaseDetails } from '../../api/ar-collections.api';
 import {
   ClockIcon,
-  CheckShieldIcon,
   PhoneIcon,
   MessageSquareIcon,
   FileTextIcon,
   CalendarIcon,
-  UserIcon,
 } from '@/shared/components/icons/AppIcons';
 
 interface ArCaseDetailsModalProps {
@@ -22,7 +20,7 @@ interface ArCaseDetailsModalProps {
   onOpenLogModal: () => void;
 }
 
-export const ArCaseDetailsModal: React.FC<ArCaseDetailsModalProps> = ({
+export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
   open,
   onClose,
   caseId,

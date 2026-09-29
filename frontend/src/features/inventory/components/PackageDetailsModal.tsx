@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import {
-  PackageIcon,
   LayersIcon,
   Trash2Icon,
-  CheckCircleIcon,
-  AlertTriangleIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
   warehousePackagesApi,
@@ -20,7 +17,7 @@ interface PackageDetailsModalProps {
   onUpdated: () => void;
 }
 
-export const PackageDetailsModal: React.FC<PackageDetailsModalProps> = ({
+export const PackageDetailsModal: FC<PackageDetailsModalProps> = ({
   open,
   onClose,
   packageIdentifier,

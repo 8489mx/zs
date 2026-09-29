@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type FC } from 'react';
 import {
   warehousePackagesApi,
   type WarehousePackageRecord,
@@ -11,15 +11,14 @@ import {
   PackageIcon,
   SearchIcon,
   LayersIcon,
-  CheckCircleIcon,
   EyeIcon,
 } from '@/shared/components/icons/AppIcons';
 
-export const PackagesManagementPage: React.FC = () => {
+export const PackagesManagementPage: FC = () => {
   const [packages, setPackages] = useState<WarehousePackageRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<'all' | 'pallet' | 'box'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'sealed' | 'opened'>('all');
+  const [statusFilter] = useState<'all' | 'sealed' | 'opened'>('all');
   const [search, setSearch] = useState('');
   const [scanInput, setScanInput] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);

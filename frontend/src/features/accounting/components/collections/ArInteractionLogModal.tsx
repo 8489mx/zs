@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import { useState, type FC } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
 import { arCollectionsApi, type ArCollectionCaseItem } from '../../api/ar-collections.api';
-import { PhoneIcon } from '@/shared/components/icons/AppIcons';
 
 interface ArInteractionLogModalProps {
   open: boolean;
@@ -13,7 +12,7 @@ interface ArInteractionLogModalProps {
   caseItem: ArCollectionCaseItem | null;
 }
 
-export const ArInteractionLogModal: React.FC<ArInteractionLogModalProps> = ({
+export const ArInteractionLogModal: FC<ArInteractionLogModalProps> = ({
   open,
   onClose,
   onSuccess,
