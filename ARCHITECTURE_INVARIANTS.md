@@ -1507,6 +1507,7 @@ node scripts/<check>.mjs --update-baseline   # لا يُستخدم إلا لاس
 | ~~PO-1~~ | ~~كل بيعة كانت تجعل كل كاشير يعيد تحميل الكتالوج كاملاً كل 5 دقائق~~ | ✅ **أُصلح (قرار المالك، 21 سبتمبر 2026) — الثابت PERF-9، هجرة 137.** البنود PO-2..PO-4 في `PERFORMANCE_CONSTITUTION.md` §5 |
 | ~~O72~~ | ✅ **أُصلح (23 سبتمبر 2026):** حدّ محاولات تسجيل الدخول كان يبني مفتاحه من `req.ip`، وخلف nginx (بلا `trust proxy` في Express) هذا هو عنوان البروكسي نفسه لكل الزوار — أي **دلو واحد للمنصة كلها**: عشر محاولات دخول من عشرة أشخاص مختلفين خلال عشر دقائق تُغلق الدخول على الجميع، والمهاجم من عنوان واحد لا يُميَّز عن بقية الناس. اكتُشف أثناء بناء استعادة كلمة المرور (المرحلة 32). `LoginRateLimitMiddleware` و`AuthBurstRateLimitMiddleware` صارا يستعملان `resolveClientIp` (نفس علاج O69)، وجناح `login-rate-limit.spec.ts` صار يثبت أن زائرين خلف نفس البروكسي لهما دلوان مستقلان وأن `X-Real-IP` لا تُصدَّق من قرين غير داخلي |
 | **PO-3** | `inventory-scope.service.ts:assignProductsToLocation` يكتب `product_location_stock` مباشرة (مخالفة §2.1) | اكتُشف أثناء مسح الأداء؛ بند تدقيق مخزون لا بند سرعة |
+| ~~O77~~ | ✅ **أُصلح (29 سبتمبر 2026):** سكربت سكب البيانات التجريبية `SettingsDemoDataService.seedTenantDemoData` كان يحقن `accountId: tenantId` بدلاً من حساب المالك (`tenantId:main`)، و`CatalogProductService` و`ProductSerialsService` كان شرطهما يرفض الأصناف لاختلاف `account_id`. أُصلح السكربت ليقرأ `account_id` المالك صراحةً، ومُرِّنت شروط الأصناف والسيريالات مع حفظ عزل `tenant_id` الصارم، وأُنشئت هجرة 169 لتوحيد وتطبيع `account_id` عبر الجداول العملياتية كافة |
 
 ---
 

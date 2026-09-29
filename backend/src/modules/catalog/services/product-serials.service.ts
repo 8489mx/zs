@@ -33,8 +33,8 @@ export class ProductSerialsService {
   private tenantPredicate(actor: AuthContext, alias?: string) {
     const { tenantId, accountId } = this.scope(actor);
     return alias
-      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId} AND ${sql.ref(`${alias}.account_id`)} = ${accountId}`
-      : sql<boolean>`tenant_id = ${tenantId} AND account_id = ${accountId}`;
+      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId} AND (${sql.ref(`${alias}.account_id`)} = ${accountId} OR ${sql.ref(`${alias}.account_id`)} = ${tenantId} OR ${sql.ref(`${alias}.account_id`)} IS NULL)`
+      : sql<boolean>`tenant_id = ${tenantId} AND (account_id = ${accountId} OR account_id = ${tenantId} OR account_id IS NULL)`;
   }
 
   async listSerials(

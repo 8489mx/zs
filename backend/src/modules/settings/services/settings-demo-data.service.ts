@@ -507,20 +507,22 @@ export class SettingsDemoDataService {
       await this.assertSuperAdminAndPassword(password, platformActor);
     }
 
-    const targetActor: AuthContext = {
-      ...platformActor,
-      tenantId: tenantId,
-      accountId: tenantId,
-    };
-
-    await this.takeAutoBackup(targetActor, 'before_tenant_wipe');
-
     const primaryUser = await this.db
       .selectFrom('users')
-      .select(['id', 'username'])
+      .select(['id', 'username', 'account_id'])
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .orderBy('created_at', 'asc')
       .executeTakeFirst();
+
+    const targetAccountId = primaryUser?.account_id || `${tenantId}:main`;
+
+    const targetActor: AuthContext = {
+      ...platformActor,
+      tenantId: tenantId,
+      accountId: targetAccountId,
+    };
+
+    await this.takeAutoBackup(targetActor, 'before_tenant_wipe');
 
     const preservedUserId = primaryUser?.id || targetActor.userId;
 
@@ -550,10 +552,19 @@ export class SettingsDemoDataService {
       throw new AppError('فقط السوبر أدمن هو المخول بتنفيذ هذه العملية', 'SUPER_ADMIN_REQUIRED', 403);
     }
 
+    const primaryUser = await this.db
+      .selectFrom('users')
+      .select(['id', 'username', 'account_id'])
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .orderBy('created_at', 'asc')
+      .executeTakeFirst();
+
+    const targetAccountId = primaryUser?.account_id || `${tenantId}:main`;
+
     const targetActor: AuthContext = {
       ...platformActor,
       tenantId: tenantId,
-      accountId: tenantId,
+      accountId: targetAccountId,
       role: 'super_admin',
     };
 

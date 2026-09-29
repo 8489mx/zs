@@ -121,8 +121,8 @@ export class CatalogProductService {
     const tenantId = this.tenantId(actor);
     const accountId = this.accountId(actor);
     return alias
-      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId} AND ${sql.ref(`${alias}.account_id`)} = ${accountId}`
-      : sql<boolean>`tenant_id = ${tenantId} AND account_id = ${accountId}`;
+      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId} AND (${sql.ref(`${alias}.account_id`)} = ${accountId} OR ${sql.ref(`${alias}.account_id`)} = ${tenantId} OR ${sql.ref(`${alias}.account_id`)} IS NULL)`
+      : sql<boolean>`tenant_id = ${tenantId} AND (account_id = ${accountId} OR account_id = ${tenantId} OR account_id IS NULL)`;
   }
 
   // PERF-2: for id lists that can span the whole tenant catalog (listProducts passes every active
