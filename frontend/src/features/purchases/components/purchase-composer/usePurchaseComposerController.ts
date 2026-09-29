@@ -6,7 +6,7 @@ import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard
 import type { AppSettings, Branch, Category, Location, Product, Supplier } from '@/types/domain';
 import { buildPurchaseDraftItem, upsertPurchaseDraftItem, type PurchaseDraftItem } from '@/features/purchases/contracts';
 import { useCreatePurchaseMutation } from '@/features/purchases/hooks/useCreatePurchaseMutation';
-import type { PurchaseRepricingInsights } from '@/features/purchases/api/purchases.api';
+import { checkDuplicateBill, type DuplicateBillCheckResult, type PurchaseRepricingInsights } from '@/features/purchases/api/purchases.api';
 import { purchaseHeaderSchema, purchaseLineSchema, type PurchaseHeaderInput, type PurchaseHeaderOutput } from '@/features/purchases/schemas/purchase.schema';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { sharedProductsApi } from '@/shared/api/products';
@@ -15,7 +15,7 @@ import { queryKeys } from '@/app/query-keys';
 import type { PurchaseQuickCreateDraft } from '@/features/purchases/components/purchase-composer/PurchaseQuickCreateDialog';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 
-const DEFAULT_HEADER_VALUES: PurchaseHeaderInput = { supplierId: '', paymentType: 'cash', discount: 0, branchId: '', locationId: '', note: '' };
+const DEFAULT_HEADER_VALUES: PurchaseHeaderInput = { supplierId: '', supplierInvoiceNo: '', paymentType: 'cash', discount: 0, branchId: '', locationId: '', note: '' };
 const DEFAULT_QUICK_CREATE_DRAFT: PurchaseQuickCreateDraft = {
   name: '',
   barcode: '',
@@ -199,6 +199,35 @@ export function usePurchaseComposerController({
     return pricesIncludeTax ? Number(taxable.toFixed(2)) : Number((taxable + taxAmount).toFixed(2));
   }, [discount, pricesIncludeTax, subTotal, taxAmount]);
 
+  const [duplicateCheckResult, setDuplicateCheckResult] = useState<DuplicateBillCheckResult | null>(null);
+  const [confirmedDuplicateWarning, setConfirmedDuplicateWarning] = useState<boolean>(false);
+  const [allowDuplicateOverride, setAllowDuplicateOverride] = useState<boolean>(false);
+  const [duplicateOverrideReason, setDuplicateOverrideReason] = useState<string>('');
+
+  const watchedSupplierId = headerForm.watch('supplierId');
+  const watchedInvoiceNo = headerForm.watch('supplierInvoiceNo');
+
+  useEffect(() => {
+    if (!watchedSupplierId) {
+      setDuplicateCheckResult(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkDuplicateBill({
+          supplierId: Number(watchedSupplierId),
+          supplierInvoiceNo: watchedInvoiceNo || undefined,
+          total: total > 0 ? total : undefined,
+        });
+        setDuplicateCheckResult(res);
+      } catch {
+        // non-blocking
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [watchedSupplierId, watchedInvoiceNo, total]);
+
   const filteredProducts = useMemo(() => {
     const normalizedSearch = productSearch.trim().toLowerCase();
     if (!normalizedSearch) return products.slice(0, 10);
@@ -306,6 +335,15 @@ export function usePurchaseComposerController({
     repricingInsights,
     hasDraftChanges,
     totals: { subTotal, discount, taxRate, pricesIncludeTax, taxAmount, total },
+    duplicateCheck: {
+      result: duplicateCheckResult,
+      confirmedWarning: confirmedDuplicateWarning,
+      setConfirmedWarning: setConfirmedDuplicateWarning,
+      allowOverride: allowDuplicateOverride,
+      setAllowOverride: setAllowDuplicateOverride,
+      overrideReason: duplicateOverrideReason,
+      setOverrideReason: setDuplicateOverrideReason,
+    },
     quickCreate: {
       open: quickCreateOpen,
       draft: quickCreateDraft,

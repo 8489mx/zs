@@ -366,6 +366,10 @@ export interface CustomerTable {
   metadata: any | null;
   loyalty_points: ColumnType<number, number | undefined, number | undefined>;
   price_list_id?: number | null;
+  is_credit_blocked?: boolean;
+  credit_block_reason?: string | null;
+  credit_blocked_at?: ColumnType<Date, string | Date | undefined, string | Date | undefined> | null;
+  credit_blocked_by?: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -1370,6 +1374,9 @@ export interface PurchaseTable {
   po_id?: number | null;
   grn_id?: number | null;
   three_way_match_status?: string;
+  supplier_invoice_no?: string | null;
+  duplicate_override_reason?: string | null;
+  duplicate_overridden_by?: number | null;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -4359,6 +4366,77 @@ export interface AiChatMessageTable {
   suggested_questions: string[] | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
 }
+
+export interface ArDunningLevelsTable {
+  id: string;
+  tenant_id: string;
+  level_order: number;
+  level_name: string;
+  days_past_due: number;
+  auto_block_sales: boolean;
+  action_type: string;
+  template_text: string;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ArCollectionCasesTable {
+  id: string;
+  tenant_id: string;
+  customer_id: number;
+  current_level_id: string | null;
+  total_overdue: number;
+  oldest_overdue_days: number;
+  status: string;
+  promised_payment_date: string | null;
+  promised_amount: number | null;
+  assigned_collector_id: number | null;
+  last_contact_date: ColumnType<Date, string | Date | undefined, string | Date | undefined> | null;
+  next_followup_date: string | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ArCollectionLogsTable {
+  id: string;
+  tenant_id: string;
+  case_id: string;
+  interaction_type: string;
+  result_status: string;
+  details: string | null;
+  promised_date: string | null;
+  promised_amount: number | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface Database {
+  ar_dunning_levels: ArDunningLevelsTable;
+  ar_collection_cases: ArCollectionCasesTable;
+  ar_collection_logs: ArCollectionLogsTable;
+  custom_bi_pivot_reports: CustomBiPivotReportsTable;
+}
+
+export interface CustomBiPivotReportsTable {
+  id: string;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  dataset: string;
+  row_dimension: string;
+  col_dimension: string | null;
+  metric: string;
+  date_from: string | null;
+  date_to: string | null;
+  filters: any | null;
+  created_by: number | null;
+  is_favorite: boolean;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+
 
 
 

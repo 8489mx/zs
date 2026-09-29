@@ -58,6 +58,22 @@ export class UpsertPurchaseDto {
   supplierId!: number;
 
   @IsOptional()
+  @IsString()
+  supplierInvoiceNo?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  confirmedDuplicateWarning?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowDuplicateOverride?: boolean;
+
+  @IsOptional()
+  @IsString()
+  duplicateOverrideReason?: string;
+
+  @IsOptional()
   @IsIn(['cash', 'credit'])
   paymentType?: 'cash' | 'credit';
 

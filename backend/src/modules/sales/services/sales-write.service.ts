@@ -672,7 +672,7 @@ export class SalesWriteService {
       if (normalized.storeCreditUsed < 0) throw new AppError('Store credit cannot be negative', 'INVALID_STORE_CREDIT', 400);
 
       const customer = normalized.customerId
-        ? await trx.selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit', 'store_credit_balance', 'loyalty_points']).where('id', '=', normalized.customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst()
+        ? await (trx as any).selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit', 'store_credit_balance', 'loyalty_points', 'is_credit_blocked', 'credit_block_reason']).where('id', '=', normalized.customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst()
         : null;
       if (normalized.customerId && !customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
       if (normalized.paymentType === 'credit' && !customer) throw new AppError('Credit sale requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
@@ -979,6 +979,13 @@ export class SalesWriteService {
       const remainingDebt = Number(Math.max(0, collectibleTotal - paidAmount).toFixed(2));
 
       if (normalized.paymentType === 'credit' && customer) {
+        if (customer.is_credit_blocked) {
+          throw new AppError(
+            `تم تعليق البيع الآجل لهذا العميل بقرار تحصيل: ${customer.credit_block_reason || 'متأخرات غير مسددة'}`,
+            'CUSTOMER_CREDIT_BLOCKED',
+            400,
+          );
+        }
         const nextBalance = Number(customer.balance || 0) + remainingDebt;
         if (Number(customer.credit_limit || 0) > 0 && nextBalance > Number(customer.credit_limit || 0)) {
           throw new AppError('Customer credit limit exceeded', 'CUSTOMER_CREDIT_LIMIT', 400);

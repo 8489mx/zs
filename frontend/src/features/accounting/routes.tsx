@@ -64,6 +64,14 @@ export const accountingRouteModule: FeatureRouteModule = {
       element: createLazyRoute(() => import('@/features/accounting/pages/CashFlowStatementPage').then((module) => ({ default: withAccountingGate(module.CashFlowStatementPage) }))),
     },
     {
+      path: 'accounting/collections',
+      element: createLazyRoute(() => import('@/features/accounting/pages/ArCollectionsPage').then((module) => ({ default: withAccountingGate(module.ArCollectionsPage) }))),
+    },
+    {
+      path: 'finance/collections',
+      element: createLazyRoute(() => import('@/features/accounting/pages/ArCollectionsPage').then((module) => ({ default: withAccountingGate(module.ArCollectionsPage) }))),
+    },
+    {
       path: 'accounting/aged-debts',
       element: createLazyRoute(() => import('@/features/accounting/pages/AgedDebtsPage').then((module) => ({ default: withAccountingGate(module.AgedDebtsPage) }))),
     },
@@ -99,6 +107,7 @@ export const accountingRouteModule: FeatureRouteModule = {
     { key: 'accounting-forex', label: 'تقييم العملات وفروق الصرف (IAS 21)', to: '/accounting/forex' },
     { key: 'accounting-balance-sheet', label: 'الميزانية العمومية', to: '/accounting/balance-sheet' },
     { key: 'accounting-cash-flow', label: 'قائمة التدفقات النقدية', to: '/accounting/cash-flow' },
+    { key: 'accounting-collections', label: 'مركز التحصيل والمطالبات (AR Collections)', to: '/accounting/collections' },
     { key: 'accounting-aged-debts', label: 'أعمار الديون', to: '/accounting/aged-debts' },
     { key: 'accounting-bank-reconciliation', label: 'التسويات البنكية', to: '/accounting/bank-reconciliation' },
     { key: 'accounting-fixed-assets', label: 'الأصول الثابتة والإهلاك', to: '/accounting/fixed-assets' },

@@ -4,7 +4,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
-import { DownloadIcon, PrinterIcon, SearchIcon } from '@/shared/components/icons/AppIcons';
+import { DownloadIcon, PrinterIcon, SearchIcon, ClockIcon } from '@/shared/components/icons/AppIcons';
 import {
   financialReportsApi,
   type AgedDebtsSummary,
@@ -96,7 +96,25 @@ export function AgedDebtsPage() {
             ) : null
           }
           actions={
-            <div className="actions compact-actions">
+            <div className="actions compact-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <a
+                href="/accounting/collections"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 12px',
+                  backgroundColor: '#170e5e',
+                  color: '#ffffff',
+                  borderRadius: '8px',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                <ClockIcon size={14} color="#ffffff" />
+                <span>مركز تصعيد التحصيلات (Dunning Hub)</span>
+              </a>
               <Button type="button" variant="secondary" onClick={handleExportCsv} disabled={!data}>
                 <DownloadIcon size={14} style={{ marginInlineEnd: '6px' }} />
                 تصدير CSV

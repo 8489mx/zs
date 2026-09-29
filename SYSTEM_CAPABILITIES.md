@@ -6135,3 +6135,135 @@
 * **التحقق:**
   - تشغيل الهجرة بنجاح على قاعدة البيانات المحلية واختبار تفعيل وإلغاء تفعيل الراية (SET LOCAL app.allow_tenant_purge = 'on').
   - اختبار الوحدة الحرج: ackend/test/critical/phase11-saas-platform.spec.ts (7/7 اختبارات ناجحة).
+
+---
+
+## 177. كاشف فواتير الموردين المكررة ورادار التحذير الاستباقي وحوكمة التجاوز (Vendor Duplicate Bill & Fraud Detection Engine)
+* **حالة الوحدة / المعيار:** 🟢 مكتملة ومحمية بنسبة 100% (29 سبتمبر 2026).
+* **المشكلة المعالجة:**
+  - تكرار تسجيل فواتير المشتريات من نفس المورد عن طريق الخطأ أو الاحتيال (سواء برقم الفاتورة الورقية للمورد نفسه، أو مع أخطاء إملائية طفيفة مثل استبدال أرقام أو حروف، أو تسجيل فاتورة بنفس المبلغ الدقيق خلال نافذة زمنية متقاربة دون الانتباه لتسجيلها سابقاً).
+  - عدم وجود حقل صريح مخصص ومفهرس لرقم فاتورة المورد الورقية (`supplier_invoice_no`) بجانب الرقم المسلسلي للمنظومة (`invoice_number`).
+* **الهندسة والحلول المنفذة:**
+  1. **هجرة قاعدة البيانات (2040000000170_vendor_duplicate_bill_detection.ts):**
+     - إضافة الأعمدة: `supplier_invoice_no` (نصي لرقم فاتورة المورد الأصلية)، `duplicate_override_reason` (مبرر التجاوز بحد أدنى 10 أحرف)، `duplicate_overridden_by` (معرف المستخدم الإداري الذي وافق على التجاوز).
+     - إضافة فهارس أداء مركبة فائقة السرعة مع عزل المستأجر الصارم: `idx_purchases_tenant_supplier_inv_no` و `idx_purchases_tenant_vendor_amount_created`.
+  2. **محرك الفحص الرياضي الصافي (duplicate-bill-detector.engine.ts):**
+     - محرك حسابي نقي وخالٍ من الآثار الجانبية يطبق ثلاث طبقات حماية:
+       1. **التطابق القطعي للرقم (Exact Match - HARD_BLOCK):** في حال تطابق رقم فاتورة المورد لنفس المورد بالضبط، يتم حظر العملية قطعياً لمنع ازدواج الصرف.
+       2. **كشف الأخطاء المطبعية والتشابه النصي (Levenshtein Distance Typo - WARNING):** رصد التشابه الشديد في رقم الفاتورة (مسافة إيديت 1-2) لتنبيه المستخدم باحتمال وجود خطأ كتابي في رقم الفاتورة لنفس المورد.
+       3. **رادار المبالغ المتطابقة في النافذة الزمنية (Identical Amount Heuristic - WARNING):** رصد أي فواتير لنفس المورد بنفس المبلغ الصافي بالضبط خلال نافذة 30 يوماً تنبيهاً لاحتمال تكرار إدخال نفس الفاتورة.
+  3. **حوكمة الاستثناءات وفصل المهام (Maker-Checker Governance):**
+     - حظر التجاوز العشوائي؛ يقتصر التجاوز على مديري النظام (`admin` / `super_admin`).
+     - اشتراط مبرر إداري رسمي لا يقل عن 10 أحرف وتأكيد صريح، وتوثيق هوية المدير الذي وافق في الحقل `duplicate_overridden_by`.
+  4. **واجهة المستخدم وتجربة الإدخال السلسة (PurchaseComposer.tsx & VendorDuplicateBillAlert.tsx):**
+     - إضافة حقل صريح في ترويسة فاتورة المشتريات: «رقم فاتورة المورد الأصلية (الورقية)».
+     - فحص فوري استباقي غير معطل عبر الـ Debounce عند كتابة رقم الفاتورة أو تغيير المورد أو المبلغ.
+     - تنبيه مؤسسي متزن (`VendorDuplicateBillAlert`) خالٍ تماماً من الإيموجيز ويعتمد أيقونات المنظومة المعتمدة (`AlertCircleIcon`, `CheckShieldIcon`, `InfoIcon`).
+     - تعطيل زر الحفظ تلقائياً في حالة التعارض القطعي ما لم يتم إدخال مبرر التجاوز من قبل المدير المسؤول.
+* **الملفات المتصلة:**
+  - `backend/src/database/migrations/2040000000170_vendor_duplicate_bill_detection.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/purchases/engines/duplicate-bill-detector.engine.ts`
+  - `backend/test/duplicate-bill-detector.spec.ts`
+  - `backend/src/modules/purchases/dto/upsert-purchase.dto.ts`
+  - `backend/src/modules/purchases/services/purchases-query.service.ts`
+  - `backend/src/modules/purchases/services/purchases-write.service.ts`
+  - `backend/src/modules/purchases/purchases.controller.ts`
+  - `backend/src/modules/purchases/purchases.service.ts`
+  - `frontend/src/features/purchases/api/purchases.api.ts`
+  - `frontend/src/features/purchases/schemas/purchase.schema.ts`
+  - `frontend/src/features/purchases/contracts.ts`
+  - `frontend/src/features/purchases/components/VendorDuplicateBillAlert.tsx`
+  - `frontend/src/features/purchases/hooks/usePurchaseComposerController.ts`
+  - `frontend/src/features/purchases/components/PurchaseComposer.tsx`
+* **التحقق البرمجي:**
+  - اختبارات الوحدة للمحرك: `backend/test/duplicate-bill-detector.spec.ts` بنجاح 100% لكافة سيناريوهات المنع والتنبيه والتجاوز.
+
+---
+
+## 178. محرك متابعة وتصعيد التحصيلات المستقل ومركز الإنذارات وحظر الآجل الآلي (Dedicated AR Collections & Dunning Hub)
+* **حالة الوحدة / المعيار:** 🟢 مكتملة ومحمية بنسبة 100% (29 سبتمبر 2026).
+* **المسارات:** `/accounting/collections`، `/finance/collections`.
+* **المشكلة المعالجة:**
+  - تحويل إدارة الديون من مجرد كشوف حسابات صامتة وسجلات أعمار ديون غير تنفيذية إلى منظومة تدفقات عمل إجرائية صارمة ترتب أولويات مسؤولي التحصيل، وتحدد مواعيد السداد المتعهد بها، وتصعد المطالبات تدريجياً، وتحظر البيع الآجل آلياً للعملاء المماطلين.
+* **الهندسة والحلول المنفذة:**
+  1. **هجرة قاعدة البيانات (2040000000171_ar_dunning_and_collection_hub.ts):**
+     - جدول مستويات المطالبة (`ar_dunning_levels`): ضبط مستويات التصعيد (1: تذكير ودي، 2: إشعار رسمي، 3: إنذار تعليق الآجل، 4: تصعيد قانوني) مع مدد التأخير، قوالب الرسائل، وتفعيل الحظر الآلي.
+     - جدول ملفات التحصيل (`ar_collection_cases`): ملف لكل عميل مدين يتتبع إجمالي المتأخرات، أقدم فاتورة بالأيام، الحالة (open, promised_to_pay, escalated, settled)، وتاريخ ومبلغ السداد المتعهد به.
+     - جدول سجل المتابعات (`ar_collection_logs`): سجل غير قابل للحذف يوثق كل مكالمة، زيارة، محادثة واتساب، وعد سداد، أو تصعيد إداري مع هوية المستخدم والوقت.
+     - أعمدة حظر الآجل في جدول العملاء (`customers`): `is_credit_blocked`، `credit_block_reason`، `credit_blocked_at`، `credit_blocked_by`.
+  2. **محرك الفحص والحساب الرياضي الصافي (ar-dunning.engine.ts):**
+     - محرك حسابي نقي وخالٍ من الآثار الجانبية يطبق توزيع الأرصدة عبر FIFO، واحتساب أيام التأخير الفعلية وفقاً لشروط الائتمان، وترقية مستويات المطالبة، ومراقبة إخلال العميل بوعود السداد، وبناء رسائل وروابط الواتساب الفورية.
+     - اختبارات وحدة شاملة (`backend/test/ar-dunning-engine.spec.ts`) تغطي 7 سيناريوهات بنجاح 100%.
+  3. **الحوكمة والربط العضوي بخدمة المبيعات (Sales Credit Block Gate):**
+     - تم ربط محرك إنشاء المبيعات (`sales-write.service.ts`) للتحقق اللحظي من راية `customer.is_credit_blocked` ومنع أي بيع آجل فوراً للعميل مع إظهار سبب الحظر.
+  4. **واجهة المستخدم التفاعلية المتكاملة (ArCollectionsPage.tsx):**
+     - شريط مؤشرات KPIs: إجمالي المتأخرات، الملفات النشطة، مبالغ اليوم المتعهد بها، ملفات تحت الإنذار، والعملاء المحظورون من الآجل.
+     - جدول تفاعلي يدعم الفلترة بالحالة والبحث بالاسم والهاتف، مع عرض مستوى المطالبة وشارات الحالة.
+     - زر إرسال واتساب فوري يفتح محادثة العميل بالرسالة الرسمية المقننة بنقرة واحدة.
+     - نافذة تسجيل تعهد بالسداد (`ArPromiseToPayModal`).
+     - نافذة توثيق الإجراءات والمتابعات (`ArInteractionLogModal`).
+     - ملف العميل الشامل وسجل الفواتير والمتابعات (`ArCaseDetailsModal`).
+     - نافذة تخصيص مستويات المطالبة (`ArDunningLevelsModal`).
+* **الملفات المتصلة:**
+  - `backend/src/database/migrations/2040000000171_ar_dunning_and_collection_hub.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/accounting/engines/ar-dunning.engine.ts`
+  - `backend/test/ar-dunning-engine.spec.ts`
+  - `backend/src/modules/accounting/dto/ar-collections.dto.ts`
+  - `backend/src/modules/accounting/services/ar-collections.service.ts`
+  - `backend/src/modules/accounting/ar-collections.controller.ts`
+  - `backend/src/modules/accounting/accounting.module.ts`
+  - `backend/src/modules/sales/services/sales-write.service.ts`
+  - `frontend/src/features/accounting/api/ar-collections.api.ts`
+  - `frontend/src/features/accounting/components/collections/ArCollectionsKpis.tsx`
+  - `frontend/src/features/accounting/components/collections/ArPromiseToPayModal.tsx`
+  - `frontend/src/features/accounting/components/collections/ArInteractionLogModal.tsx`
+  - `frontend/src/features/accounting/components/collections/ArCaseDetailsModal.tsx`
+  - `frontend/src/features/accounting/components/collections/ArDunningLevelsModal.tsx`
+  - `frontend/src/features/accounting/pages/ArCollectionsPage.tsx`
+  - `frontend/src/features/accounting/routes.tsx`
+  - `frontend/src/features/accounting/pages/AgedDebtsPage.tsx`
+* **التحقق البرمجي:**
+  - اختبارات الوحدة للمحرك: `backend/test/ar-dunning-engine.spec.ts` بنجاح 100% لكافة سيناريوهات التسوية، والتصعيد، والوعود، والرسائل.
+
+---
+
+## 179. محرك التقارير المحورية وتحليل البيانات المرن (Dynamic Pivot & Custom BI Reports)
+* **حالة الوحدة / المعيار:** 🟢 مكتملة ومحمية بنسبة 100% (29 سبتمبر 2026).
+* **المسار:** `/reports/pivot-builder`.
+* **المشكلة المعالجة:**
+  - القضاء على جمود التقارير الثابتة أحادية البعد؛ وتمكين المحاسبين والمديرين وصناع القرار من استكشاف واستقراء أي مؤشر مالي أو تشغيلي (إجمالي مبيعات، صافي أرباح، كميات، عدد العمليات، متوسط قيمة الفاتورة) وتقاطعه بحرية تامة مع أي أبعاد (الفروع، العملاء، الموردين، المناديب، الأصناف، تصنيفات البضائع، الشهور، الأيام، وطرق السداد) في مصفوفات تفاعلية متعددة المستويات.
+* **الهندسة والحلول المنفذة:**
+  1. **هجرة قاعدة البيانات (2040000000172_custom_bi_pivot_reports.ts):**
+     - إنشاء جدول قوالب التقارير المخصصة (`custom_bi_pivot_reports`) مع عزل المستأجر الصارم (`tenant_id`) ودعم حفظ إعدادات الأبعاد والمصادر والفلاتر وتثبيت التقارير المفضلة لمديري النظام.
+  2. **محرك التجميع الرياضي الصافي (pivot-aggregation.engine.ts):**
+     - محرك حسابي نقي وخالٍ من الآثار الجانبية يطبق خوارزميات التجميع والجدولة المتقاطعة (Cross-Tabulation Matrix)، واحتساب مجاميع الصفوف، مجاميع الأعمدة، الإجمالي العام، ومتوسطات القيم بدقة سنتورية.
+     - ترتيب هرمي تنازلي فوري لصفوف الجدول حسب المساهمة المالية الأعلى.
+     - اختبارات وحدة شاملة (`backend/test/pivot-aggregation-engine.spec.ts`) تغطي 6 سيناريوهات للمصفوفات والأرباح والكميات وحالات الصفرية بنجاح 100%.
+  3. **خدمة الباك إند متعددة المصادر (dynamic-pivot.service.ts & reports.controller.ts):**
+     - استعلام تجميعي ذكي عبر 4 مصادر بيانات رئيسية: المبيعات والفواتير (`sales`) على مستوى الترويسة والأصناف، المشتريات والموردين (`purchases`)، المخزون والمستودعات (`inventory`)، والمصروفات وحركات الخزينة (`expenses`).
+     - نقاط نهاية آمنة: `POST /api/reports/pivot/execute`، `GET /api/reports/pivot/templates`، `POST /api/reports/pivot/templates`، و `DELETE /api/reports/pivot/templates/:id`.
+  4. **واجهة المستخدم التفاعلية (PivotBuilderPage.tsx & PivotGridTable.tsx):**
+     - منشئ تقارير متكامل بعرض 1280px القياسي يتيح اختيار مصدر البيانات، بُعد الصفوف، بُعد الأعمدة، المؤشر المحسوب، والفترة الزمنية.
+     - شريط وصول سريع للقوالب المحفوظة يتيح استدعاء أي تقرير مخصص بنقرة واحدة.
+     - جدول محوري بريميوم يدعم التظليل الحراري التلقائي (Heatmap) للقيم المرتفعة، والتمرير الأفقي المحمي بدون كسر الصفحة.
+     - إمكانية تصدير التقرير المحوري إلى ملف `CSV` منسق باللغة العربية بنقرة واحدة، وخيار الطباعة المباشرة.
+     - نافذة معيارية لحفظ القوالب المخصصة (`SavePivotTemplateModal`).
+* **الملفات المتصلة:**
+  - `backend/src/database/migrations/2040000000172_custom_bi_pivot_reports.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/reports/engines/pivot-aggregation.engine.ts`
+  - `backend/test/pivot-aggregation-engine.spec.ts`
+  - `backend/src/modules/reports/dto/dynamic-pivot.dto.ts`
+  - `backend/src/modules/reports/services/dynamic-pivot.service.ts`
+  - `backend/src/modules/reports/reports.controller.ts`
+  - `backend/src/modules/reports/reports.module.ts`
+  - `frontend/src/features/reports/api/dynamic-pivot.api.ts`
+  - `frontend/src/features/reports/components/pivot/PivotGridTable.tsx`
+  - `frontend/src/features/reports/components/pivot/SavePivotTemplateModal.tsx`
+  - `frontend/src/features/reports/pages/PivotBuilderPage.tsx`
+  - `frontend/src/features/reports/routes.tsx`
+* **التحقق البرمجي:**
+  - اختبارات الوحدة للمحرك: `backend/test/pivot-aggregation-engine.spec.ts` بنجاح 100% لكافة سيناريوهات التقارير 1D و 2D وحساب الأرباح والكميات.
+

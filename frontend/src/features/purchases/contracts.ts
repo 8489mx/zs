@@ -42,10 +42,24 @@ export function upsertPurchaseDraftItem(items: PurchaseDraftItem[], incoming: Pu
   return next;
 }
 
-export function buildPurchasePayload(values: PurchaseHeaderOutput, items: PurchaseDraftItem[], taxRate: number, pricesIncludeTax: boolean, attachments?: any[]) {
+export function buildPurchasePayload(
+  values: PurchaseHeaderOutput & {
+    confirmedDuplicateWarning?: boolean;
+    allowDuplicateOverride?: boolean;
+    duplicateOverrideReason?: string;
+  },
+  items: PurchaseDraftItem[],
+  taxRate: number,
+  pricesIncludeTax: boolean,
+  attachments?: any[],
+) {
   const discount = Number(Math.max(0, Number(values.discount || 0)).toFixed(2));
   return {
     supplierId: Number(values.supplierId),
+    supplierInvoiceNo: values.supplierInvoiceNo ? String(values.supplierInvoiceNo).trim() : undefined,
+    confirmedDuplicateWarning: Boolean(values.confirmedDuplicateWarning),
+    allowDuplicateOverride: Boolean(values.allowDuplicateOverride),
+    duplicateOverrideReason: values.duplicateOverrideReason ? String(values.duplicateOverrideReason).trim() : undefined,
     paymentType: values.paymentType,
     discount,
     branchId: values.branchId ? Number(values.branchId) : null,

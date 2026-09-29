@@ -308,3 +308,40 @@ export interface GenerateDraftOrdersResponse {
     lifecycleStatus: string;
   }>;
 }
+
+export interface DuplicateBillMatch {
+  purchaseId: number;
+  docNo: string;
+  supplierInvoiceNo?: string;
+  total: number;
+  date: string;
+  reason: 'exact_invoice_no' | 'similar_invoice_no' | 'identical_amount_recent';
+  severity: 'blocking' | 'warning';
+  message: string;
+}
+
+export interface DuplicateBillCheckResult {
+  hasDuplicates: boolean;
+  hasBlockingDuplicates: boolean;
+  hasSuspiciousDuplicates: boolean;
+  matches: DuplicateBillMatch[];
+}
+
+export interface CheckDuplicateBillParams {
+  supplierId: number;
+  supplierInvoiceNo?: string;
+  total?: number;
+  date?: string;
+  excludePurchaseId?: number;
+}
+
+export async function checkDuplicateBill(params: CheckDuplicateBillParams): Promise<DuplicateBillCheckResult> {
+  const query = buildQueryString({
+    supplierId: params.supplierId,
+    supplierInvoiceNo: params.supplierInvoiceNo || undefined,
+    total: params.total !== undefined ? params.total : undefined,
+    date: params.date || undefined,
+    excludePurchaseId: params.excludePurchaseId || undefined,
+  });
+  return http.get<DuplicateBillCheckResult>(`/api/purchases/check-duplicate${query}`);
+}

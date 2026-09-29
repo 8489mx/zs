@@ -17,6 +17,7 @@ import { AccountingPostingService } from '../../accounting/accounting-posting.se
 import { PurchasesFinanceService } from './purchases-finance.service';
 import { PurchasesQueryService } from './purchases-query.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
+import { detectDuplicateBills, normalizeBillNumber, type HistoricalPurchaseRecord } from '../engines/duplicate-bill-detector.engine';
 
 type PurchaseRepricingCandidate = {
   productId: number;
@@ -272,6 +273,78 @@ export class PurchasesWriteService {
       const paymentType = payload.paymentType === 'credit' ? 'credit' : 'cash';
       const { branchId, locationId } = normalizePurchaseScope(payload);
 
+      // Fraud & Duplicate Bill Protection
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const historicalRows = await trx
+        .selectFrom('purchases')
+        .select(['id', 'doc_no', 'supplier_id', 'supplier_invoice_no', 'total', 'created_at', 'status'])
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .where('supplier_id', '=', supplier.id)
+        .where('status', '!=', 'cancelled')
+        .where((eb) =>
+          eb.or([
+            eb('created_at', '>=', ninetyDaysAgo),
+            eb('supplier_invoice_no', 'is not', null),
+          ]),
+        )
+        .execute();
+
+      const historical: HistoricalPurchaseRecord[] = historicalRows.map((r) => ({
+        id: Number(r.id),
+        docNo: r.doc_no || `PUR-${r.id}`,
+        supplierId: Number(r.supplier_id),
+        supplierInvoiceNo: r.supplier_invoice_no || null,
+        total: Number(r.total || 0),
+        createdAt: r.created_at,
+        status: r.status,
+      }));
+
+      const duplicateCheck = detectDuplicateBills(
+        {
+          supplierId: supplier.id,
+          supplierInvoiceNo: payload.supplierInvoiceNo || null,
+          total,
+          date: payload.requiredDate || new Date(),
+        },
+        historical,
+      );
+
+      if (duplicateCheck.hasBlockingDuplicates) {
+        if (payload.allowDuplicateOverride === true) {
+          if (auth.role !== 'admin' && auth.role !== 'super_admin') {
+            throw new AppError(
+              'تجاوز حظر فواتير الموردين المكررة يتطلب صلاحية مسؤول النظام (Admin)',
+              'DUPLICATE_OVERRIDE_UNAUTHORIZED',
+              403,
+            );
+          }
+          const reason = String(payload.duplicateOverrideReason || '').trim();
+          if (reason.length < 10) {
+            throw new AppError(
+              'يجب إدخال سبب معتمد ومفصل لا يقل عن 10 أحرف لتجاوز حظر الفاتورة المكررة',
+              'DUPLICATE_OVERRIDE_REASON_REQUIRED',
+              422,
+            );
+          }
+        } else {
+          const firstBlocking = duplicateCheck.matches.find((m) => m.severity === 'blocking');
+          throw new AppError(
+            firstBlocking?.message || 'تم حظر العملية: هذه الفاتورة مكررة تماماً لنفس المورد',
+            'DUPLICATE_VENDOR_BILL',
+            422,
+            { duplicates: duplicateCheck.matches },
+          );
+        }
+      } else if (duplicateCheck.hasSuspiciousDuplicates && !payload.confirmedDuplicateWarning && !payload.allowDuplicateOverride) {
+        const firstWarning = duplicateCheck.matches.find((m) => m.severity === 'warning');
+        throw new AppError(
+          firstWarning?.message || 'تنبيه رقابي: اشتباه في تكرار فاتورة المورد، يرجى التأكيد للمتابعة',
+          'SUSPICIOUS_VENDOR_BILL',
+          422,
+          { duplicates: duplicateCheck.matches, requiresConfirmation: true },
+        );
+      }
+
       const insert = await trx
         .insertInto('purchases')
         .values({
@@ -283,6 +356,9 @@ export class PurchasesWriteService {
           tax_amount: taxAmount,
           prices_include_tax: Boolean(payload.pricesIncludeTax),
           total,
+          supplier_invoice_no: normalizeBillNumber(payload.supplierInvoiceNo) || null,
+          duplicate_override_reason: payload.allowDuplicateOverride ? String(payload.duplicateOverrideReason || '').trim() : null,
+          duplicate_overridden_by: payload.allowDuplicateOverride ? auth.userId : null,
           note: normalizeOptionalNote(payload.note),
           status: payload.lifecycleStatus === 'purchase_order' ? 'draft' : 'posted',
           lifecycle_status: payload.lifecycleStatus || 'posted',
@@ -737,6 +813,80 @@ export class PurchasesWriteService {
         await this.financeService.addTreasuryTransaction(trx, 'purchase_edit_apply', -totals.total, buildPurchaseReferenceNote('تطبيق تعديل فاتورة شراء', purchase), 'purchase', purchaseId, auth, branchId, locationId);
       }
 
+      // Fraud & Duplicate Bill Protection on Edit
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const historicalRows = await trx
+        .selectFrom('purchases')
+        .select(['id', 'doc_no', 'supplier_id', 'supplier_invoice_no', 'total', 'created_at', 'status'])
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .where('supplier_id', '=', supplier.id)
+        .where('status', '!=', 'cancelled')
+        .where('id', '!=', purchaseId)
+        .where((eb) =>
+          eb.or([
+            eb('created_at', '>=', ninetyDaysAgo),
+            eb('supplier_invoice_no', 'is not', null),
+          ]),
+        )
+        .execute();
+
+      const historical: HistoricalPurchaseRecord[] = historicalRows.map((r) => ({
+        id: Number(r.id),
+        docNo: r.doc_no || `PUR-${r.id}`,
+        supplierId: Number(r.supplier_id),
+        supplierInvoiceNo: r.supplier_invoice_no || null,
+        total: Number(r.total || 0),
+        createdAt: r.created_at,
+        status: r.status,
+      }));
+
+      const duplicateCheck = detectDuplicateBills(
+        {
+          supplierId: supplier.id,
+          supplierInvoiceNo: payload.supplierInvoiceNo || null,
+          total: totals.total,
+          date: payload.requiredDate || purchase.created_at,
+          excludePurchaseId: purchaseId,
+        },
+        historical,
+      );
+
+      if (duplicateCheck.hasBlockingDuplicates) {
+        if (payload.allowDuplicateOverride === true) {
+          if (auth.role !== 'admin' && auth.role !== 'super_admin') {
+            throw new AppError(
+              'تجاوز حظر فواتير الموردين المكررة يتطلب صلاحية مسؤول النظام (Admin)',
+              'DUPLICATE_OVERRIDE_UNAUTHORIZED',
+              403,
+            );
+          }
+          const reason = String(payload.duplicateOverrideReason || '').trim();
+          if (reason.length < 10) {
+            throw new AppError(
+              'يجب إدخال سبب معتمد ومفصل لا يقل عن 10 أحرف لتجاوز حظر الفاتورة المكررة',
+              'DUPLICATE_OVERRIDE_REASON_REQUIRED',
+              422,
+            );
+          }
+        } else {
+          const firstBlocking = duplicateCheck.matches.find((m) => m.severity === 'blocking');
+          throw new AppError(
+            firstBlocking?.message || 'تم حظر العملية: هذه الفاتورة مكررة تماماً لنفس المورد',
+            'DUPLICATE_VENDOR_BILL',
+            422,
+            { duplicates: duplicateCheck.matches },
+          );
+        }
+      } else if (duplicateCheck.hasSuspiciousDuplicates && !payload.confirmedDuplicateWarning && !payload.allowDuplicateOverride) {
+        const firstWarning = duplicateCheck.matches.find((m) => m.severity === 'warning');
+        throw new AppError(
+          firstWarning?.message || 'تنبيه رقابي: اشتباه في تكرار فاتورة المورد، يرجى التأكيد للمتابعة',
+          'SUSPICIOUS_VENDOR_BILL',
+          422,
+          { duplicates: duplicateCheck.matches, requiresConfirmation: true },
+        );
+      }
+
       await trx.updateTable('purchases').set({
         supplier_id: supplier.id,
         payment_type: paymentType,
@@ -746,6 +896,9 @@ export class PurchasesWriteService {
         tax_amount: totals.taxAmount,
         prices_include_tax: Boolean(payload.pricesIncludeTax),
         total: totals.total,
+        supplier_invoice_no: normalizeBillNumber(payload.supplierInvoiceNo) || null,
+        duplicate_override_reason: payload.allowDuplicateOverride ? String(payload.duplicateOverrideReason || '').trim() : null,
+        duplicate_overridden_by: payload.allowDuplicateOverride ? auth.userId : null,
         note: String(payload.note || '').trim(),
         branch_id: branchId,
         location_id: locationId,

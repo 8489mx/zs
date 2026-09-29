@@ -5,10 +5,12 @@ import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
 import { ReportsAdminService } from './services/reports-admin.service';
 import { ReportsSummaryService } from './services/reports-summary.service';
+import { DynamicPivotService } from './services/dynamic-pivot.service';
 
 @Module({
   imports: [DatabaseModule, AuthFoundationModule],
   controllers: [ReportsController],
-  providers: [ReportsService, ReportsSummaryService, ReportsAdminService],
+  providers: [ReportsService, ReportsSummaryService, ReportsAdminService, DynamicPivotService],
+  exports: [DynamicPivotService],
 })
 export class ReportsModule {}

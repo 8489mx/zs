@@ -16,10 +16,12 @@ import { FixedAssetsSchedulerService } from './services/fixed-assets-scheduler.s
 import { AccountingRecoveryService } from './services/accounting-recovery.service';
 import { CostCenterAllocationsService } from './services/cost-center-allocations.service';
 import { ForexRevaluationService } from './services/forex-revaluation.service';
+import { ArCollectionsController } from './ar-collections.controller';
+import { ArCollectionsService } from './services/ar-collections.service';
 
 @Module({
   imports: [DatabaseModule, AuthFoundationModule],
-  controllers: [AccountingController],
+  controllers: [AccountingController, ArCollectionsController],
   providers: [
     AccountingService,
     AccountingPostingService,
@@ -35,6 +37,7 @@ import { ForexRevaluationService } from './services/forex-revaluation.service';
     AccountingRecoveryService,
     CostCenterAllocationsService,
     ForexRevaluationService,
+    ArCollectionsService,
   ],
   exports: [
     AccountingService,
@@ -51,6 +54,7 @@ import { ForexRevaluationService } from './services/forex-revaluation.service';
     AccountingRecoveryService,
     CostCenterAllocationsService,
     ForexRevaluationService,
+    ArCollectionsService,
   ],
 })
 export class AccountingModule {}

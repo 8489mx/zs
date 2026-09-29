@@ -16,6 +16,8 @@ import { PurchaseItemsList } from '@/features/purchases/components/purchase-comp
 import { PurchaseTotals } from '@/features/purchases/components/purchase-composer/PurchaseTotals';
 import { MarginProtectionModal } from '@/features/purchases/components/MarginProtectionModal';
 import { PurchaseQuickCreateDialog } from '@/features/purchases/components/purchase-composer/PurchaseQuickCreateDialog';
+import { VendorDuplicateBillAlert } from '@/features/purchases/components/VendorDuplicateBillAlert';
+import { useAuthStore, isAdminUser } from '@/stores/auth-store';
 
 const PAYMENT_OPTIONS = [
   { value: 'cash', label: 'نقدي' },
@@ -39,7 +41,13 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
   // Must be reset when user explicitly starts a new invoice or after confirmed committed/failed.
   const idempotencyKeyRef = useRef<string | null>(null);
   const controller = usePurchaseComposerController({ products, suppliers, categories, branches, locations, settings });
-  const { headerForm, items, lineDraft, mutation, repricingInsights, hasDraftChanges, totals, quickCreate, actions } = controller;
+  const { headerForm, items, lineDraft, mutation, repricingInsights, hasDraftChanges, totals, duplicateCheck, quickCreate, actions } = controller;
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = isAdminUser(user);
+  const isBlockedByDuplicate = Boolean(
+    duplicateCheck.result?.hasBlockingDuplicates &&
+      (!duplicateCheck.allowOverride || duplicateCheck.overrideReason.trim().length < 10),
+  );
 
   const supplierOptions = useMemo(() => [
     { value: '', label: 'اختر المورد' },
@@ -73,8 +81,32 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
           if (!idempotencyKeyRef.current) {
             idempotencyKeyRef.current = crypto.randomUUID();
           }
-          mutation.mutate({ values, items, taxRate: totals.taxRate, pricesIncludeTax: totals.pricesIncludeTax, idempotencyKey: idempotencyKeyRef.current });
-        })}>          <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="فاتورة الشراء الحالية تحتوي على مسودة غير محفوظة" hint="احفظ الفاتورة أو أعد ضبطها قبل مغادرة الصفحة حتى لا تفقد البنود أو بيانات التوريد." />
+          mutation.mutate({
+            values: {
+              ...values,
+              confirmedDuplicateWarning: duplicateCheck.confirmedWarning,
+              allowDuplicateOverride: duplicateCheck.allowOverride,
+              duplicateOverrideReason: duplicateCheck.overrideReason,
+            },
+            items,
+            taxRate: totals.taxRate,
+            pricesIncludeTax: totals.pricesIncludeTax,
+            idempotencyKey: idempotencyKeyRef.current,
+          });
+        })}>
+          <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="فاتورة الشراء الحالية تحتوي على مسودة غير محفوظة" hint="احفظ الفاتورة أو أعد ضبطها قبل مغادرة الصفحة حتى لا تفقد البنود أو بيانات التوريد." />
+
+          <VendorDuplicateBillAlert
+            checkResult={duplicateCheck.result}
+            confirmedWarning={duplicateCheck.confirmedWarning}
+            onToggleConfirmWarning={duplicateCheck.setConfirmedWarning}
+            allowOverride={duplicateCheck.allowOverride}
+            onToggleAllowOverride={duplicateCheck.setAllowOverride}
+            overrideReason={duplicateCheck.overrideReason}
+            onChangeOverrideReason={duplicateCheck.setOverrideReason}
+            isAdmin={isAdmin}
+          />
+
           <Field label="المورد" error={headerForm.formState.errors.supplierId?.message}>
             <Controller
               name="supplierId"
@@ -88,6 +120,14 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
                   searchable
                 />
               )}
+            />
+          </Field>
+          <Field label="رقم فاتورة المورد الدفترية">
+            <input
+              type="text"
+              placeholder="رقم الفاتورة الورقية من المورد (اختياري)"
+              {...headerForm.register('supplierInvoiceNo')}
+              disabled={mutation.isPending}
             />
           </Field>
           <Field label="نوع السداد">
@@ -175,7 +215,14 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
             successText="تم حفظ فاتورة الشراء وتحديث المخزون بنجاح."
           />
           <div className="actions sticky-form-actions" style={{ gridColumn: '1 / -1' }}>
-            <SubmitButton type="submit" variant="success" isPending={mutation.isPending} idleText="حفظ فاتورة الشراء" pendingText="جارٍ حفظ الفاتورة..." />
+            <SubmitButton
+              type="submit"
+              variant="success"
+              isPending={mutation.isPending}
+              disabled={isBlockedByDuplicate}
+              idleText="حفظ فاتورة الشراء"
+              pendingText="جارٍ حفظ الفاتورة..."
+            />
             <Button type="button" variant="secondary" disabled={mutation.isPending} onClick={() => actions.handleReset()}>إعادة ضبط</Button>
           </div>
         </form>

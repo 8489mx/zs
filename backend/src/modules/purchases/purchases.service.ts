@@ -22,6 +22,10 @@ export class PurchasesService {
     return this.queryService.getPurchaseById(id, auth);
   }
 
+  checkDuplicateBill(candidate: any, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.queryService.checkDuplicateBill(candidate, auth) as unknown as Promise<Record<string, unknown>>;
+  }
+
   getPurchaseAttachment(purchaseId: number, attachmentId: number, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.queryService.getPurchaseAttachment(purchaseId, attachmentId, auth);
   }

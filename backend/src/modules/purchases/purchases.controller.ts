@@ -45,6 +45,21 @@ export class PurchasesController {
     return this.purchasesService.generateDraftPurchaseOrders(payload, req.authContext!);
   }
 
+  @Get('purchases/check-duplicate')
+  @RequirePermissions('purchases')
+  checkDuplicateBill(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.purchasesService.checkDuplicateBill(
+      {
+        supplierId: Number(query.supplierId || 0),
+        supplierInvoiceNo: typeof query.supplierInvoiceNo === 'string' ? query.supplierInvoiceNo : undefined,
+        total: query.total !== undefined ? Number(query.total) : undefined,
+        date: typeof query.date === 'string' ? query.date : undefined,
+        excludePurchaseId: query.excludePurchaseId ? Number(query.excludePurchaseId) : undefined,
+      },
+      req.authContext!,
+    );
+  }
+
   @Get('purchases/:id')
   @RequirePermissions('purchases')
   getPurchase(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

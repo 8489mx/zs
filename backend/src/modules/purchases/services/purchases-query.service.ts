@@ -6,6 +6,7 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { filterPurchases, mapPurchaseRows, paginatePurchases, summarizePurchases } from '../helpers/purchases-query.helper';
+import { detectDuplicateBills, type DuplicateBillCheckResult, type HistoricalPurchaseRecord } from '../engines/duplicate-bill-detector.engine';
 
 @Injectable()
 export class PurchasesQueryService {
@@ -232,5 +233,65 @@ export class PurchasesQueryService {
       })),
       scope,
     };
+  }
+
+  async checkDuplicateBill(
+    candidate: {
+      supplierId: number;
+      supplierInvoiceNo?: string;
+      total?: number;
+      date?: string;
+      excludePurchaseId?: number;
+    },
+    auth: AuthContext,
+  ): Promise<DuplicateBillCheckResult> {
+    const scope = requireTenantScope(auth);
+    if (!candidate.supplierId) {
+      return {
+        hasDuplicates: false,
+        hasBlockingDuplicates: false,
+        hasSuspiciousDuplicates: false,
+        matches: [],
+      };
+    }
+
+    const candidateSupplierId = Number(candidate.supplierId);
+    const candidateDate = candidate.date ? new Date(candidate.date) : new Date();
+    const ninetyDaysAgo = new Date(candidateDate.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+    const rows = await this.db
+      .selectFrom('purchases')
+      .select(['id', 'doc_no', 'supplier_id', 'supplier_invoice_no', 'total', 'created_at', 'status'])
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .where('supplier_id', '=', candidateSupplierId)
+      .where('status', '!=', 'cancelled')
+      .where((eb) =>
+        eb.or([
+          eb('created_at', '>=', ninetyDaysAgo),
+          eb('supplier_invoice_no', 'is not', null),
+        ]),
+      )
+      .execute();
+
+    const historical: HistoricalPurchaseRecord[] = rows.map((r) => ({
+      id: Number(r.id),
+      docNo: r.doc_no || `PUR-${r.id}`,
+      supplierId: Number(r.supplier_id),
+      supplierInvoiceNo: r.supplier_invoice_no || null,
+      total: Number(r.total || 0),
+      createdAt: r.created_at,
+      status: r.status,
+    }));
+
+    return detectDuplicateBills(
+      {
+        supplierId: candidateSupplierId,
+        supplierInvoiceNo: candidate.supplierInvoiceNo || null,
+        total: Number(candidate.total || 0),
+        date: candidateDate,
+        excludePurchaseId: candidate.excludePurchaseId ? Number(candidate.excludePurchaseId) : null,
+      },
+      historical,
+    );
   }
 }

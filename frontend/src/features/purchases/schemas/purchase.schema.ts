@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const purchaseHeaderSchema = z.object({
   supplierId: z.string().trim().min(1, 'اختر المورد'),
+  supplierInvoiceNo: z.string().trim().optional().default(''),
   paymentType: z.enum(['cash', 'credit']),
   discount: z.coerce.number().min(0, 'الخصم لا يكون سالبًا').default(0),
   branchId: z.string().trim().optional().default(''),
