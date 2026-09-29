@@ -15,6 +15,7 @@ import {
   ReceiptIcon,
   RefreshCwIcon,
   CreditCardIcon,
+  HomeIcon,
 } from '@/shared/components/icons/AppIcons';
 import { systemConfirm, toast } from '@/shared/components/system-alert';
 import { vanOfflineDb } from '../offline/van-sales-offline.db';
@@ -1530,50 +1531,51 @@ export default function VanSalesMobilePage() {
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <TruckIcon size={18} color="#170e5e" />
-                      </div>
-                      <div>
-                        <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>مركبة التوزيع والأسطول الميداني</h3>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>حالة السيارة وقراءة العداد وتنبيهات الصيانة</span>
-                      </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <TruckIcon size={18} color="#170e5e" />
                     </div>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('fleet')}
-                        style={{
-                          backgroundColor: '#f8fafc',
-                          border: '1px solid #cbd5e1',
-                          color: '#170e5e',
-                          borderRadius: '8px',
-                          padding: '5px 10px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        + تفويلة وقود
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('fleet')}
-                        style={{
-                          backgroundColor: '#f8fafc',
-                          border: '1px solid #cbd5e1',
-                          color: '#170e5e',
-                          borderRadius: '8px',
-                          padding: '5px 10px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        + غيار زيت
-                      </button>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>مركبة التوزيع والأسطول الميداني</h3>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>حالة السيارة وقراءة العداد وتنبيهات الصيانة</span>
                     </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px', width: '100%' }}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('fleet')}
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        color: '#170e5e',
+                        borderRadius: '8px',
+                        padding: '7px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                      }}
+                    >
+                      + تفويلة وقود
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('fleet')}
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        color: '#170e5e',
+                        borderRadius: '8px',
+                        padding: '7px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                      }}
+                    >
+                      + غيار زيت
+                    </button>
                   </div>
 
                   {/* Vehicle Specs Grid */}
@@ -1662,7 +1664,7 @@ export default function VanSalesMobilePage() {
                       <PackageIcon size={20} color="#170e5e" />
                     </div>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>بدء رحلة التوزيع وعمليات الصباح</h3>
+                      <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>بدء رحلة التوزيع والعمليات الميدانية</h3>
                       <span style={{ fontSize: '11.5px', color: '#64748b' }}>إعداد بضاعة السيارة والانطلاق للميدان</span>
                     </div>
                   </div>
@@ -1677,10 +1679,8 @@ export default function VanSalesMobilePage() {
                         padding: '12px 14px',
                         marginBottom: '16px',
                         display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: '8px',
+                        flexDirection: 'column',
+                        gap: '10px',
                       }}
                     >
                       <div>
@@ -1695,7 +1695,15 @@ export default function VanSalesMobilePage() {
                         variant="primary"
                         onClick={() => startTripMutation.mutate()}
                         disabled={startTripMutation.isPending}
-                        style={{ backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12.5px', fontWeight: 800 }}
+                        style={{
+                          backgroundColor: '#170e5e',
+                          color: '#ffffff',
+                          fontSize: '12.5px',
+                          fontWeight: 800,
+                          width: '100%',
+                          height: '40px',
+                          justifyContent: 'center',
+                        }}
                       >
                         {startTripMutation.isPending ? 'جاري بدء الرحلة...' : 'بدء رحلة التوزيع بالبضاعة الحالية'}
                       </Button>
@@ -1707,27 +1715,60 @@ export default function VanSalesMobilePage() {
                   )}
 
                   {/* Action Buttons */}
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
                     <Button
                       variant="primary"
                       onClick={() => setViewMode('new-requisition')}
-                      style={{ backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12.5px', fontWeight: 800 }}
+                      style={{
+                        backgroundColor: '#170e5e',
+                        color: '#ffffff',
+                        fontSize: '13px',
+                        fontWeight: 800,
+                        width: '100%',
+                        height: '42px',
+                        justifyContent: 'center',
+                      }}
                     >
                       + إنشاء طلب شحن بضاعة (إذن تحميل)
                     </Button>
-                    {(!data?.inventory || data.inventory.length === 0) && (
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: (!data?.inventory || data.inventory.length === 0) ? '1fr 1fr' : '1fr',
+                        gap: '8px',
+                        width: '100%',
+                      }}
+                    >
+                      {(!data?.inventory || data.inventory.length === 0) && (
+                        <Button
+                          variant="secondary"
+                          onClick={() => startTripMutation.mutate()}
+                          disabled={startTripMutation.isPending}
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            width: '100%',
+                            height: '40px',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {startTripMutation.isPending ? 'جاري فتح الرحلة...' : 'بدء الرحلة مباشرة'}
+                        </Button>
+                      )}
                       <Button
                         variant="secondary"
-                        onClick={() => startTripMutation.mutate()}
-                        disabled={startTripMutation.isPending}
-                        style={{ fontSize: '12.5px', fontWeight: 700 }}
+                        onClick={() => refetch()}
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          width: '100%',
+                          height: '40px',
+                          justifyContent: 'center',
+                        }}
                       >
-                        {startTripMutation.isPending ? 'جاري فتح الرحلة...' : 'بدء الرحلة مباشرة (للزيارات والتحصيل)'}
+                        تحديث حالة الرحلة
                       </Button>
-                    )}
-                    <Button variant="secondary" onClick={() => refetch()} style={{ fontSize: '12.5px' }}>
-                      تحديث حالة الرحلة
-                    </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -1740,9 +1781,7 @@ export default function VanSalesMobilePage() {
                     padding: '14px 16px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
+                    flexDirection: 'column',
                     gap: '10px',
                   }}
                 >
@@ -1763,17 +1802,22 @@ export default function VanSalesMobilePage() {
                     type="button"
                     onClick={() => setActiveTab('itinerary')}
                     style={{
+                      width: '100%',
+                      height: '38px',
                       backgroundColor: '#170e5e',
                       border: 'none',
                       color: '#ffffff',
                       borderRadius: '8px',
-                      padding: '7px 14px',
-                      fontSize: '11.5px',
+                      padding: '0 14px',
+                      fontSize: '12px',
                       fontWeight: 700,
                       cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
-                    استعراض خط السير ({itinerary.length} متجر)
+                    استعراض خط السير ({itinerary.length} متجر مجدول)
                   </button>
                 </div>
 
@@ -2492,9 +2536,9 @@ export default function VanSalesMobilePage() {
                   justifyContent: 'center',
                 }}
               >
-                <TruckIcon size={17} color={currentTab === 'cockpit' ? '#170e5e' : '#64748b'} />
+                <HomeIcon size={17} color={currentTab === 'cockpit' ? '#170e5e' : '#64748b'} />
               </div>
-              <span>لوحة الصباح</span>
+              <span>الرئيسية</span>
             </button>
 
             <button
@@ -2564,7 +2608,7 @@ export default function VanSalesMobilePage() {
               >
                 <PackageIcon size={17} color={currentTab === 'inventory' ? '#170e5e' : '#64748b'} />
               </div>
-              <span>السيارة</span>
+              <span>بضاعة السيارة</span>
             </button>
 
             <button
@@ -2634,7 +2678,7 @@ export default function VanSalesMobilePage() {
               >
                 <TruckIcon size={17} color={currentTab === 'fleet' ? '#170e5e' : '#64748b'} />
               </div>
-              <span>المركبة</span>
+              <span>حالة المركبة</span>
             </button>
           </>
         )}
