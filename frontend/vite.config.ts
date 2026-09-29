@@ -95,6 +95,7 @@ export default defineConfig(({ mode }) => {
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    __APP_BUILD_ID__: JSON.stringify(Date.now().toString()),
   },
   server: {
     host: true,

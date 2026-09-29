@@ -45,8 +45,11 @@ initProductIconTheme();
 
 // Progressive Web App (PWA) Service Worker Registration for Offline Operation
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.location.hostname.includes('electron')) {
-  import('virtual:pwa-register')
-    .then(({ registerSW }) => {
+  import('workbox-window')
+    .then(({ Workbox }) => {
+      const swUrl = `/sw.js?v=${typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : Date.now()}`;
+      const wb = new Workbox(swUrl, { scope: '/' });
+
       let isRefreshing = false;
       const safeReload = () => {
         if (isRefreshing) return;
@@ -61,25 +64,34 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.loc
         window.location.reload();
       };
 
-      const updateSW = registerSW({
-        immediate: true,
-        onNeedRefresh() {
-          void updateSW(true);
-        },
-        onNeedReload() {
-          safeReload();
-        },
-        onOfflineReady() {
-          window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
-        },
+      wb.addEventListener('waiting', () => {
+        wb.messageSkipWaiting();
       });
+
+      wb.addEventListener('controlling', (event) => {
+        if (event.isUpdate) {
+          safeReload();
+        }
+      });
+
+      wb.addEventListener('activated', (event) => {
+        if (event.isUpdate) {
+          safeReload();
+        }
+      });
+
+      wb.addEventListener('installed', (event) => {
+        if (!event.isUpdate) {
+          window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
+        }
+      });
+
+      wb.register({ immediate: true }).catch(() => {});
 
       // Proactively check for updates when returning to foreground
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && navigator.onLine) {
-          navigator.serviceWorker.getRegistration().then((reg) => {
-            reg?.update().catch(() => {});
-          }).catch(() => {});
+          wb.update().catch(() => {});
         }
       });
     })
