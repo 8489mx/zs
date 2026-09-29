@@ -11,6 +11,9 @@ import {
 } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
+import { AccountingAccessGuard } from '../../core/auth/guards/accounting-access.guard';
+import { RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
+import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { ArCollectionsService } from './services/ar-collections.service';
 import {
@@ -22,7 +25,9 @@ import {
 } from './dto/ar-collections.dto';
 
 @Controller('api/accounting/collections')
-@UseGuards(SessionAuthGuard, PermissionsGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard, AccountingAccessGuard)
+@RequireFeature('accounting')
+@RequireAnyPermission('accounting', 'accounts')
 export class ArCollectionsController {
   constructor(private readonly collectionsService: ArCollectionsService) {}
 
