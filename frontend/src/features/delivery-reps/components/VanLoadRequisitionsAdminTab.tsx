@@ -456,6 +456,17 @@ export function VanLoadRequisitionsAdminTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+      <style>{`
+        input.no-spin-arrows::-webkit-outer-spin-button,
+        input.no-spin-arrows::-webkit-inner-spin-button {
+          -webkit-appearance: none !important;
+          margin: 0 !important;
+        }
+        input.no-spin-arrows {
+          -moz-appearance: textfield !important;
+          appearance: textfield !important;
+        }
+      `}</style>
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }}>
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
@@ -582,7 +593,7 @@ export function VanLoadRequisitionsAdminTab() {
           background: '#ffffff',
           borderRadius: '12px',
           border: '1px solid #e2e8f0',
-          overflow: 'hidden',
+          overflowX: 'auto',
           boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           width: '100%',
           boxSizing: 'border-box',
@@ -600,6 +611,7 @@ export function VanLoadRequisitionsAdminTab() {
           <table
             style={{
               width: '100%',
+              minWidth: '940px',
               borderCollapse: 'collapse',
               textAlign: 'right',
               fontSize: '12px',
@@ -607,27 +619,27 @@ export function VanLoadRequisitionsAdminTab() {
             }}
           >
             <colgroup>
-              <col style={{ width: '11%' }} />
-              <col style={{ width: '14%' }} />
               <col style={{ width: '10%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '6%' }} />
               <col style={{ width: '11%' }} />
-              <col style={{ width: '7%' }} />
-              <col style={{ width: '7%' }} />
-              <col style={{ width: '12%' }} />
-              <col style={{ width: '11%' }} />
-              <col style={{ width: '17%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '14%' }} />
             </colgroup>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>رقم الإذن</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>مندوب التوزيع</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>المركبة</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>المستودع</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>الأصناف</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>القطع</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>الحالة</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>تاريخ الطلب</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>الإجراءات</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle' }}>رقم الإذن</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle' }}>مندوب التوزيع</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle' }}>المركبة</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle' }}>المستودع</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle' }}>الأصناف</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle' }}>القطع</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle' }}>تاريخ الطلب</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>حالة الإذن والقرار</th>
+                <th style={{ padding: '10px 8px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>المعاينة والطباعة</th>
               </tr>
             </thead>
             <tbody>
@@ -638,14 +650,14 @@ export function VanLoadRequisitionsAdminTab() {
                 const isRejected = r.status === 'rejected';
 
                 return (
-                  <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9', background: isPending ? '#fffdf7' : 'transparent' }}>
-                    <td style={{ padding: '8px 6px', fontFamily: 'monospace', fontWeight: 800, color: '#0f172a', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
+                  <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9', background: isPending ? '#fffdf7' : 'transparent', height: '48px' }}>
+                    <td style={{ padding: '8px 6px', fontFamily: 'monospace', fontWeight: 800, color: '#0f172a', fontSize: '11.5px', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                       {r.docNo}
                     </td>
-                    <td style={{ padding: '8px 6px', fontWeight: 700, color: '#0f172a', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <td style={{ padding: '8px 6px', fontWeight: 700, color: '#0f172a', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'middle' }}>
                       {r.repName}
                     </td>
-                    <td style={{ padding: '8px 6px' }}>
+                    <td style={{ padding: '8px 6px', verticalAlign: 'middle' }}>
                       {r.vehiclePlate ? (
                         <span style={{ fontSize: '10.5px', background: '#f1f5f9', color: '#334155', padding: '1px 5px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           لوحة: {r.vehiclePlate}
@@ -654,33 +666,16 @@ export function VanLoadRequisitionsAdminTab() {
                         <span style={{ fontSize: '11px', color: '#94a3b8' }}>غير محددة</span>
                       )}
                     </td>
-                    <td style={{ padding: '8px 6px', color: '#475569', fontWeight: 600, fontSize: '11.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <td style={{ padding: '8px 6px', color: '#475569', fontWeight: 600, fontSize: '11.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'middle' }}>
                       {r.sourceWarehouseName}
                     </td>
-                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px' }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle' }}>
                       {(r.requestedItems || []).length} صنف
                     </td>
-                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 800, color: '#1e293b', fontSize: '11.5px' }}>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 800, color: '#1e293b', fontSize: '11.5px', verticalAlign: 'middle' }}>
                       {totalReqPieces} قطعة
                     </td>
-                    <td style={{ padding: '8px 6px', textAlign: 'center' }}>
-                      {isPending && (
-                        <span style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '10px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          بانتظار الصرف
-                        </span>
-                      )}
-                      {isDispatched && (
-                        <span style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '10px', background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          تم الصرف #{r.tripId}
-                        </span>
-                      )}
-                      {isRejected && (
-                        <span style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '10px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          مرفوض
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '8px 6px', fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '8px 6px', fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                       {new Date(r.createdAt).toLocaleDateString('ar-EG', {
                         day: 'numeric',
                         month: 'short',
@@ -688,60 +683,84 @@ export function VanLoadRequisitionsAdminTab() {
                         minute: '2-digit',
                       })}
                     </td>
-                    <td style={{ padding: '8px 6px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <Button
-                          variant="secondary"
-                          style={{ fontSize: '10.5px', padding: '3px 7px', whiteSpace: 'nowrap' }}
-                          onClick={() => openReviewModal(r)}
-                          title="معاينة ومراجعة الأصناف والكميات"
-                        >
-                          <FileTextIcon size={11} />
-                          معاينة
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          style={{ fontSize: '10.5px', padding: '3px 6px', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}
-                          onClick={() => handlePrintRequisition(r)}
-                          title="طباعة إذن التحميل"
-                        >
-                          <PrinterIcon size={11} />
-                          طباعة
-                        </Button>
-                        {isPending && (
-                          <>
-                            <Button
-                              variant="primary"
-                              style={{ fontSize: '10.5px', padding: '3px 7px', background: '#15803d', color: '#ffffff', whiteSpace: 'nowrap' }}
-                              onClick={() => handleDispatch(r)}
-                              disabled={dispatchMutation.isPending}
-                              title="صرف وتحميل السيارة فوراً"
-                            >
-                              <TruckIcon size={11} />
-                              صرف
-                            </Button>
-                            <Button
-                              variant="danger"
-                              style={{ fontSize: '10.5px', padding: '3px 6px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', whiteSpace: 'nowrap' }}
-                              onClick={() => openRejectDialog(r)}
-                              title="رفض أو إلغاء الطلب"
-                            >
-                              <XCircleIcon size={11} />
-                              رفض
-                            </Button>
-                          </>
-                        )}
-                        {(isPending || isRejected) && (
+                    <td style={{ padding: '8px 6px', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                      {isPending && (
+                        <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                            بانتظار الصرف
+                          </span>
+                          <Button
+                            variant="primary"
+                            style={{ fontSize: '11px', padding: '3px 7px', background: '#15803d', color: '#ffffff', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                            onClick={() => handleDispatch(r)}
+                            disabled={dispatchMutation.isPending}
+                            title="صرف وتحميل السيارة فوراً"
+                          >
+                            <TruckIcon size={12} />
+                            صرف
+                          </Button>
                           <Button
                             variant="danger"
-                            style={{ fontSize: '10.5px', padding: '3px 5px', color: '#ef4444', background: '#fef2f2', border: '1px solid #fee2e2' }}
+                            style={{ fontSize: '11px', padding: '3px 6px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                            onClick={() => openRejectDialog(r)}
+                            title="رفض أو إلغاء الطلب"
+                          >
+                            <XCircleIcon size={12} />
+                            رفض
+                          </Button>
+                          <Button
+                            variant="danger"
+                            style={{ fontSize: '11px', padding: '3px 5px', color: '#ef4444', background: '#fef2f2', border: '1px solid #fee2e2', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             onClick={() => handleDeleteRequisition(r)}
                             disabled={deleteMutation.isPending}
                             title="حذف الطلب نهائياً"
                           >
-                            <Trash2Icon size={11} />
+                            <Trash2Icon size={12} />
                           </Button>
-                        )}
+                        </div>
+                      )}
+                      {isDispatched && (
+                        <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '10px', background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          تم الصرف #{r.tripId}
+                        </span>
+                      )}
+                      {isRejected && (
+                        <div style={{ display: 'inline-flex', gap: '5px', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '10px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                            مرفوض
+                          </span>
+                          <Button
+                            variant="danger"
+                            style={{ fontSize: '11px', padding: '3px 5px', color: '#ef4444', background: '#fef2f2', border: '1px solid #fee2e2', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                            onClick={() => handleDeleteRequisition(r)}
+                            disabled={deleteMutation.isPending}
+                            title="حذف الطلب نهائياً"
+                          >
+                            <Trash2Icon size={12} />
+                          </Button>
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: '8px 8px', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'inline-flex', gap: '5px', justifyContent: 'center', alignItems: 'center', flexWrap: 'nowrap' }}>
+                        <Button
+                          variant="secondary"
+                          style={{ fontSize: '11px', padding: '4px 8px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                          onClick={() => openReviewModal(r)}
+                          title="معاينة ومراجعة الأصناف والكميات"
+                        >
+                          <FileTextIcon size={12} />
+                          معاينة
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          style={{ fontSize: '11px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}
+                          onClick={() => handlePrintRequisition(r)}
+                          title="طباعة إذن التحميل"
+                        >
+                          <PrinterIcon size={12} />
+                          طباعة
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -757,7 +776,7 @@ export function VanLoadRequisitionsAdminTab() {
         <StandardDialog
           open={Boolean(selectedReq)}
           onClose={() => setSelectedReq(null)}
-          title={`مراجعة إذن تحميل الصباح #${selectedReq.docNo}`}
+          title={`مراجعة إذن تحميل البضاعة #${selectedReq.docNo}`}
           subtitle={`المندوب: ${selectedReq.repName} • المستودع المصدر: ${selectedReq.sourceWarehouseName}`}
           width="min(1080px, 96vw)"
           maxWidth="1080px"
@@ -929,6 +948,7 @@ export function VanLoadRequisitionsAdminTab() {
                                   <input
                                     type="number"
                                     min="0"
+                                    className="no-spin-arrows"
                                     value={it.approvedQty}
                                     onChange={(e) => {
                                       const val = Math.max(0, parseInt(e.target.value, 10) || 0);
@@ -943,6 +963,8 @@ export function VanLoadRequisitionsAdminTab() {
                                       fontWeight: 800,
                                       color: isShortage ? '#dc2626' : '#0f172a',
                                       outline: 'none',
+                                      MozAppearance: 'textfield',
+                                      appearance: 'textfield',
                                     }}
                                   />
                                   <button
@@ -1238,7 +1260,7 @@ export function VanLoadRequisitionsAdminTab() {
         <StandardDialog
           open={Boolean(rejectModalReq)}
           onClose={() => setRejectModalReq(null)}
-          title={`رفض إذن تحميل الصباح #${rejectModalReq.docNo}`}
+          title={`رفض إذن تحميل البضاعة #${rejectModalReq.docNo}`}
           subtitle={`المندوب: ${rejectModalReq.repName} • المستودع: ${rejectModalReq.sourceWarehouseName}`}
           maxWidth="480px"
         >
