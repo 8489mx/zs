@@ -178,6 +178,16 @@ export function ShieldCheckIcon({ size = 18, color = 'currentColor', strokeWidth
   );
 }
 
+export const CheckShieldIcon = ShieldCheckIcon;
+
+export function PlayIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <polygon points="5 3 19 12 5 21 5 3" />
+    </svg>
+  );
+}
+
 export function ZapIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>

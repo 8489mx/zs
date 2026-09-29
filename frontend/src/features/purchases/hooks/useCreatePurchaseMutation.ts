@@ -6,7 +6,11 @@ import { withIdempotency } from '@/lib/idempotency';
 import type { PurchaseHeaderOutput } from '@/features/purchases/schemas/purchase.schema';
 
 interface CreatePurchaseArgs {
-  values: PurchaseHeaderOutput;
+  values: PurchaseHeaderOutput & {
+    confirmedDuplicateWarning?: boolean;
+    allowDuplicateOverride?: boolean;
+    duplicateOverrideReason?: string;
+  };
   items: PurchaseDraftItem[];
   taxRate: number;
   pricesIncludeTax: boolean;

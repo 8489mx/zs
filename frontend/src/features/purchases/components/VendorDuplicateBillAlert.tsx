@@ -1,4 +1,3 @@
-import React from 'react';
 import type { DuplicateBillCheckResult, DuplicateBillMatch } from '../api/purchases.api';
 import { AlertTriangleIcon, CheckShieldIcon } from '@/shared/components/icons/AppIcons';
 

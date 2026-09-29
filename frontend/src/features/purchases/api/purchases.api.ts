@@ -343,5 +343,5 @@ export async function checkDuplicateBill(params: CheckDuplicateBillParams): Prom
     date: params.date || undefined,
     excludePurchaseId: params.excludePurchaseId || undefined,
   });
-  return http.get<DuplicateBillCheckResult>(`/api/purchases/check-duplicate${query}`);
+  return http<DuplicateBillCheckResult>(`/api/purchases/check-duplicate${query}`);
 }

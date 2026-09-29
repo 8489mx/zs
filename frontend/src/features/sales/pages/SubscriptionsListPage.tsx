@@ -1,20 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type FC } from 'react';
 import { commercialSubscriptionsApi, type CommercialSubscription } from '../api/commercial-subscriptions.api';
 import { CreateSubscriptionModal } from '../components/CreateSubscriptionModal';
 import { formatCurrency } from '@/lib/format';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import {
   PlusIcon,
-  RefreshCwIcon,
   PlayIcon,
-  CheckCircleIcon,
-  AlertTriangleIcon,
   FileTextIcon,
   SearchIcon,
-  SlidersIcon,
 } from '@/shared/components/icons/AppIcons';
 
-export const SubscriptionsListPage: React.FC = () => {
+export const SubscriptionsListPage: FC = () => {
   const [subscriptions, setSubscriptions] = useState<CommercialSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

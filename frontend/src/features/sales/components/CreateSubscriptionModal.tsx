@@ -95,8 +95,8 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
   const taxTotal = calculateTax();
   const grandTotal = Math.round((subtotal + taxTotal) * 100) / 100;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!selectedCustomerId) {
       toast.warning('يرجى اختيار العميل');
       return;
@@ -367,7 +367,7 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
           primaryButton={{
             label: isSubmitting ? 'جاري الحفظ والتفعيل...' : 'اعتماد وإنشاء العقد',
             disabled: isSubmitting,
-            type: 'submit',
+            onClick: () => handleSubmit(),
           }}
         />
       </form>
