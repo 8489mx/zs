@@ -5,20 +5,23 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 
+import fs from 'node:fs';
+
 const require = createRequire(import.meta.url);
 const pkg = require('./package.json') as { version: string };
 
 const getBuildTag = () => {
   try {
-    const gitHash = (process.env.GITHUB_SHA || execSync('git rev-parse --short HEAD').toString()).trim().slice(0, 7);
-    const d = new Date();
-    const yy = d.getFullYear().toString().slice(-2);
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yy}${mm}${dd}-${gitHash}`;
-  } catch {
-    return Date.now().toString().slice(-6);
-  }
+    const versionFile = path.resolve(__dirname, 'build-version.json');
+    if (fs.existsSync(versionFile)) {
+      const data = JSON.parse(fs.readFileSync(versionFile, 'utf8'));
+      if (data.buildId) return String(data.buildId).trim();
+    }
+  } catch {}
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${mm}${dd}-0001`;
 };
 
 export default defineConfig(({ mode }) => {

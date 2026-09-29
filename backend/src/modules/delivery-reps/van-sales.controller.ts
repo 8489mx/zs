@@ -29,6 +29,21 @@ export class VanSalesController {
     return this.vanSalesService.openTripAndLoad(driver.repId, driver.tenantId, driver.accountId, body);
   }
 
+  @Post('trips/settle')
+  async settleTrip(
+    @Headers('authorization') authHeader: string,
+    @Body()
+    body: {
+      tripId: number;
+      countedCash: number;
+      unloadRemainingToWarehouse: boolean;
+      notes?: string;
+    },
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.settleTrip(driver.repId, driver.tenantId, driver.accountId, body);
+  }
+
   @Post('sales')
   async executeSale(
     @Headers('authorization') authHeader: string,
@@ -318,6 +333,22 @@ export class VanSalesAdminController {
     const { tenantId } = requireTenantScope(req.authContext!);
     const details = await this.vanSalesService.getTripDetailsForAdmin(tenantId, id);
     return { ok: true, ...details };
+  }
+
+  @Post('trips/:id/settle')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async settleTripAdmin(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { repId: number; countedCash: number; unloadRemainingToWarehouse: boolean; notes?: string },
+  ) {
+    const { tenantId, accountId } = requireTenantScope(req.authContext!);
+    return this.vanSalesService.settleTrip(body.repId, tenantId, accountId, {
+      tripId: id,
+      countedCash: body.countedCash,
+      unloadRemainingToWarehouse: body.unloadRemainingToWarehouse,
+      notes: body.notes,
+    });
   }
 
   @Get('vehicles')

@@ -1874,7 +1874,7 @@ export function DriverNewLoadRequisitionView({
             onClick={() => window.location.reload()}
             title="انقر للتحديث الفوري"
           >
-            إصدار المنظومة: v{typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev'}
+            بيلد: {typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev'}
           </span>
         </footer>
       </div>
