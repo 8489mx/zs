@@ -12,12 +12,32 @@ import { EmployeePortalController } from './employee-portal.controller';
 import { AccountingModule } from '../accounting/accounting.module';
 import { EndOfServiceService } from './services/end-of-service.service';
 import { EndOfServiceController } from './controllers/end-of-service.controller';
+import { RecruitmentAtsController } from './controllers/recruitment-ats.controller';
+import { RecruitmentAtsService } from './services/recruitment-ats.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule],
-  controllers: [HrController, MobileAttendanceController, EmployeePortalController, EndOfServiceController],
-  providers: [HrService, HrTreasuryAdapter, MobileAttendanceService, EmployeePortalService, EndOfServiceService],
-  exports: [MobileAttendanceService, EmployeePortalService, EndOfServiceService],
+  controllers: [
+    HrController,
+    MobileAttendanceController,
+    EmployeePortalController,
+    EndOfServiceController,
+    RecruitmentAtsController,
+  ],
+  providers: [
+    HrService,
+    HrTreasuryAdapter,
+    MobileAttendanceService,
+    EmployeePortalService,
+    EndOfServiceService,
+    RecruitmentAtsService,
+  ],
+  exports: [
+    MobileAttendanceService,
+    EmployeePortalService,
+    EndOfServiceService,
+    RecruitmentAtsService,
+  ],
 })
 export class HrModule {}
 

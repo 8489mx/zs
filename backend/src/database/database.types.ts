@@ -4416,6 +4416,49 @@ export interface Database {
   ar_collection_cases: ArCollectionCasesTable;
   ar_collection_logs: ArCollectionLogsTable;
   custom_bi_pivot_reports: CustomBiPivotReportsTable;
+  commercial_subscriptions: CommercialSubscriptionTable;
+  commercial_subscription_lines: CommercialSubscriptionLinesTable;
+  warehouse_packages: WarehousePackageTable;
+  warehouse_package_items: WarehousePackageItemTable;
+  quality_control_points: QualityControlPointsTable;
+  quality_inspections: QualityInspectionsTable;
+  quality_non_conformance_reports: QualityNonConformanceReportsTable;
+  recruitment_job_openings: RecruitmentJobOpeningsTable;
+  recruitment_applicants: RecruitmentApplicantsTable;
+}
+
+export interface CommercialSubscriptionTable {
+  id: string;
+  tenant_id: string;
+  contract_number: string;
+  customer_id: number;
+  billing_period: string; // 'monthly' | 'quarterly' | 'semi_annual' | 'annual'
+  next_billing_date: string;
+  auto_renew: boolean;
+  recurring_amount: number;
+  status: string; // 'draft' | 'active' | 'paused' | 'canceled' | 'expired'
+  payment_method: string;
+  start_date: string;
+  end_date: string | null;
+  notes: string | null;
+  last_generated_invoice_id: number | null;
+  last_generated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined> | null;
+  invoices_count: number;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface CommercialSubscriptionLinesTable {
+  id: string;
+  tenant_id: string;
+  subscription_id: string;
+  product_id: number | null;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  tax_rate: number;
+  total_price: number;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
 export interface CustomBiPivotReportsTable {
@@ -4432,6 +4475,121 @@ export interface CustomBiPivotReportsTable {
   filters: any | null;
   created_by: number | null;
   is_favorite: boolean;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface WarehousePackageTable {
+  id: string;
+  tenant_id: string;
+  package_number: string;
+  package_type: string; // 'pallet' | 'box' | 'carton' | 'crate'
+  parent_package_id: string | null;
+  warehouse_id: number | null;
+  location_id: number | null;
+  status: string; // 'sealed' | 'opened' | 'shipped' | 'consumed'
+  gross_weight_kg: number | null;
+  net_weight_kg: number | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface WarehousePackageItemTable {
+  id: string;
+  tenant_id: string;
+  package_id: string;
+  product_id: number;
+  quantity: number;
+  unit_name: string | null;
+  batch_number: string | null;
+  serial_numbers: any | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface QualityControlPointsTable {
+  id: string;
+  tenant_id: string;
+  name: string;
+  product_id: number | null;
+  trigger_stage: string; // 'receipt' | 'manufacturing' | 'delivery' | 'internal'
+  test_type: string; // 'pass_fail' | 'measure' | 'checklist'
+  norm_measure_min: number | null;
+  norm_measure_max: number | null;
+  measure_unit: string | null;
+  instructions: string | null;
+  is_mandatory: boolean;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface QualityInspectionsTable {
+  id: string;
+  tenant_id: string;
+  point_id: string | null;
+  reference_doc_type: string; // 'goods_receipt' | 'work_order' | 'delivery' | 'adhoc'
+  reference_doc_id: string;
+  product_id: number;
+  inspected_qty: number;
+  accepted_qty: number;
+  rejected_qty: number;
+  measured_value: number | null;
+  status: string; // 'passed' | 'failed' | 'conditional'
+  inspector_id: string | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface QualityNonConformanceReportsTable {
+  id: string;
+  tenant_id: string;
+  ncr_number: string;
+  inspection_id: string | null;
+  product_id: number;
+  defect_description: string;
+  severity: string; // 'minor' | 'major' | 'critical'
+  root_cause: string | null;
+  disposition_action: string; // 'quarantine_scrap' | 'return_to_vendor' | 'rework' | 'concession_accept'
+  status: string; // 'open' | 'investigating' | 'resolved' | 'closed'
+  resolution_notes: string | null;
+  assigned_to: string | null;
+  closed_at: ColumnType<Date, string | Date | undefined, string | Date | undefined> | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface RecruitmentJobOpeningsTable {
+  id: string;
+  tenant_id: string;
+  job_code: string;
+  title: string;
+  department: string;
+  experience_years_min: number;
+  headcount: number;
+  hired_count: number;
+  description: string | null;
+  requirements: string | null;
+  status: string; // 'draft' | 'published' | 'closed'
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface RecruitmentApplicantsTable {
+  id: string;
+  tenant_id: string;
+  job_id: string | null;
+  applicant_number: string;
+  full_name: string;
+  email: string | null;
+  phone: string;
+  expected_salary: number | null;
+  experience_years: number;
+  stage: string; // 'new' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected'
+  rating: number;
+  talent_pool_tag: string | null;
+  cv_url: string | null;
+  interview_notes: string | null;
+  hired_employee_id: number | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }

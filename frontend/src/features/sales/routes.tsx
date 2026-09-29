@@ -17,10 +17,12 @@ export const salesRouteModule: FeatureRouteModule = {
     { path: 'tax-dispatcher', element: createLazyRoute(() => import('@/features/sales/pages/TaxDispatcherPage').then((module) => ({ default: module.TaxDispatcherPage }))) },
     { path: 'installments', element: createLazyRoute(() => import('@/features/sales/pages/InstallmentsPage').then((module) => ({ default: module.InstallmentsPage }))) },
     { path: 'vat-declaration', element: createLazyRoute(() => import('@/features/sales/pages/VatDeclarationPage').then((module) => ({ default: module.VatDeclarationPage }))) },
-    { path: 'displays', element: createLazyRoute(() => import('@/features/pos/pages/DisplaysPortalPage').then((module) => ({ default: module.DisplaysPortalPage }))) }
+    { path: 'displays', element: createLazyRoute(() => import('@/features/pos/pages/DisplaysPortalPage').then((module) => ({ default: module.DisplaysPortalPage }))) },
+    { path: 'sales/subscriptions', element: createLazyRoute(() => import('@/features/sales/pages/SubscriptionsListPage').then((module) => ({ default: module.SubscriptionsListPage }))) }
   ],
   navigation: [
     { key: 'sales', label: 'المبيعات', to: '/sales', end: true },
+    { key: 'sales-subscriptions', label: 'عقود الاشتراكات والفوترة الدورية', to: '/sales/subscriptions' },
     { key: 'sales-orders', label: 'أوامر البيع وحجز المخزون', to: '/sales/orders' },
     { key: 'price-lists', label: 'قوائم الأسعار والشرائح', to: '/sales/price-lists' },
     { key: 'quotations', label: 'عروض الأسعار', to: '/quotations' },

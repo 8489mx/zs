@@ -9,10 +9,14 @@ const warehouseDetailsPage = createLazyRoute(() => import('@/features/inventory/
 const inventoryTreePage = createLazyRoute(() => import('@/features/inventory/pages/InventoryTreePage').then((module) => ({ default: module.InventoryTreePage })));
 const inventoryBatchesPage = createLazyRoute(() => import('@/features/inventory/pages/InventoryBatchesPage').then((module) => ({ default: module.InventoryBatchesPage })));
 const warehouseBinsPage = createLazyRoute(() => import('@/features/inventory/pages/WarehouseBinsPage').then((module) => ({ default: module.WarehouseBinsPage })));
+const packagesManagementPage = createLazyRoute(() => import('@/features/inventory/pages/PackagesManagementPage').then((module) => ({ default: module.PackagesManagementPage })));
+const qualityDashboardPage = createLazyRoute(() => import('@/features/inventory/pages/QualityDashboardPage').then((module) => ({ default: module.QualityDashboardPage })));
 
 export const inventoryRouteModule: FeatureRouteModule = {
   routes: [
     { path: 'inventory', element: inventoryPage },
+    { path: 'inventory/quality', element: qualityDashboardPage },
+    { path: 'inventory/packages', element: packagesManagementPage },
     { path: 'inventory/bins', element: warehouseBinsPage },
     { path: 'inventory/warehouses', element: warehousesGridPage },
     { path: 'inventory/warehouses-management', element: <Navigate to="/inventory/warehouses" replace /> },
@@ -21,6 +25,8 @@ export const inventoryRouteModule: FeatureRouteModule = {
     { path: 'inventory/issue-order/new', element: newIssueOrderPage },
     { path: 'inventory/tree', element: inventoryTreePage },
     { path: 'inventory-tree', element: <Navigate to="/inventory/tree" replace /> },
+    { path: 'inventory-packages', element: <Navigate to="/inventory/packages" replace /> },
+    { path: 'inventory-quality', element: <Navigate to="/inventory/quality" replace /> },
     { path: 'inventory-bins', element: <Navigate to="/inventory/bins" replace /> },
     { path: 'inventory-warehouses', element: <Navigate to="/inventory/warehouses" replace /> },
     { path: 'inventory/issue-orders', element: <Navigate to="/inventory/transfers" replace /> },
@@ -39,6 +45,8 @@ export const inventoryRouteModule: FeatureRouteModule = {
         '/inventory/movements'
       ]
     },
+    { key: 'inventory-quality', label: 'إدارة الجودة والامتثال (QA / NCR)', to: '/inventory/quality' },
+    { key: 'inventory-packages', label: 'الطرود والطبليات (Pack-in-Pack)', to: '/inventory/packages' },
     { key: 'inventory-batches', label: 'التشغيلات والصلاحيات', to: '/inventory/batches' },
     { key: 'inventory-warehouses', label: 'أماكن المخزون', to: '/inventory/warehouses' },
     { key: 'inventory-bins', label: 'أماكن التخزين والأرفف', to: '/inventory/bins' },

@@ -28,6 +28,7 @@ export const hrRouteModule: FeatureRouteModule = {
     { path: 'hr/attendance', element: createLazyRoute(() => import('@/features/hr/pages/HrAttendancePage').then((module) => ({ default: withHrGate(module.HrAttendancePage) }))) },
     { path: 'hr/leaves', element: createLazyRoute(() => import('@/features/hr/pages/HrLeavesPage').then((module) => ({ default: withHrGate(module.HrLeavesPage) }))) },
     { path: 'hr/assets', element: createLazyRoute(() => import('@/features/hr/pages/HrAssetsPage').then((module) => ({ default: withHrGate(module.HrAssetsPage) }))) },
+    { path: 'hr/recruitment', element: createLazyRoute(() => import('@/features/hr/pages/RecruitmentKanbanPage').then((module) => ({ default: withHrGate(module.RecruitmentKanbanPage) }))) },
     { path: 'hr/settlements', element: createLazyRoute(() => import('@/features/hr/pages/HrEndOfServicePage').then((module) => ({ default: withHrGate(module.HrEndOfServicePage) }))) },
     { path: 'hr/reports', element: createLazyRoute(() => import('@/features/hr/pages/HrReportsPage').then((module) => ({ default: withHrGate(module.HrReportsPage) }))) },
   ],
@@ -39,6 +40,7 @@ export const hrRouteModule: FeatureRouteModule = {
       end: true,
       activePaths: [
         '/hr',
+        '/hr/recruitment',
         '/hr/employees',
         '/hr/employees/new',
         '/hr/payroll',
@@ -51,6 +53,7 @@ export const hrRouteModule: FeatureRouteModule = {
         '/hr/settings',
       ],
     },
+    { key: 'hr-recruitment', label: 'التوظيف وتتبع المتقدمين (ATS)', to: '/hr/recruitment', end: true },
     { key: 'hr-settlements', label: 'مخالصات ونهاية الخدمة', to: '/hr/settlements', end: true },
   ],
 };

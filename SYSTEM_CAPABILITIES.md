@@ -6267,3 +6267,181 @@
 * **التحقق البرمجي:**
   - اختبارات الوحدة للمحرك: `backend/test/pivot-aggregation-engine.spec.ts` بنجاح 100% لكافة سيناريوهات التقارير 1D و 2D وحساب الأرباح والكميات.
 
+---
+
+## 180. إدارة العقود والاشتراكات المتكررة للشركات والفوترة الآلية (B2B Recurring Invoicing & Subscriptions)
+* **حالة الوحدة / المعيار:** 🟢 مكتملة ومحمية بنسبة 100% (29 سبتمبر 2026).
+* **المسار:** `/sales/subscriptions`.
+* **المشكلة المعالجة:**
+  - تمكين قطاعات الخدمات، الصيانة، الاستشارات، تراخيص البرمجيات، وعقود التوريد المتكررة من إدارة الاشتراكات الدورية آلياً، بدلاً من الفواتير اليدوية المتكررة التي ينتج عنها نسيان مواعيد الفوترة وضياع إيرادات الشركة.
+* **الهندسة والحلول المنفذة:**
+  1. **هجرة قاعدة البيانات (2040000000173_b2b_contracts_and_recurring_subscriptions.ts):**
+     - إنشاء جدول عقود الاشتراكات (`commercial_subscriptions`) وجدول بنود الاشتراك (`commercial_subscription_lines`).
+     - ضبط عزل المستأجر الصارم (`tenant_id`) والفهارس المركبة لسرعة استعلام العقود المستحقة للفوترة اليومية.
+  2. **محرك الفوترة الدورية الصافي (subscription-billing.engine.ts):**
+     - حساب مدد ودورات الفوترة بدقة تقويمية مطلقة (شهري، ربع سنوي، نصف سنوي، سنوي) دون تأثر بتغيرات فروق التوقيت أو نهايات الشهور (Calendar Clamping).
+     - احتساب صافي السطور وضريبة القيمة المضافة والإجمالي المالي بدقة سنتورية.
+     - تقييم أهليّة العقد للفوترة (`isDueForBilling`) والتحقق من التجديد التلقائي وانتهاء العقود غير المجددة.
+     - تغطية شاملة باختبارات الوحدة (`backend/test/subscription-billing-engine.spec.ts`) بنجاح 100%.
+  3. **خدمة الباك إند ووحدة التحكم (commercial-subscription.service.ts & commercial-subscription.controller.ts):**
+     - إنشاء العقود، الترقيم المتسلسل التلقائي القياسي (`SUB-YYMMDD-XXXX`).
+     - توليد الفواتير الآلية للمستحق (`generateDueInvoices`) وإدراج فاتورة المبيعات الآجلة برقم مستندي (`SUB-INV-YYMMDD-XXXX`) وترحيل تاريخ الفوترة القادم في معاملة ذرية.
+     - تعديل حالات العقد (نشط، موقوف مؤقتاً، ملغي، منتهي).
+  4. **واجهة المستخدم التفاعلية (SubscriptionsListPage.tsx & CreateSubscriptionModal.tsx):**
+     - لوحة مؤشرات أداء حية: العقود النشطة، الإيراد الشهري المتكرر التقريبي (MRR)، إجمالي الفواتير الصادرة، والعقود المستحقة اليوم.
+     - زر تحكم فوري لتشغيل محرك الفوترة وتوليد فواتير العقود المستحقة بنقرة واحدة مع تأكيد تفاعلي وإشعارات نجاح بعدد الفواتير المولدة.
+     - نافذة منبثقة معيارية لإنشاء العقود ببنود متعددة متوافقة مع دستور النوافذ ودستور العدادات RTL وسياسة 0 إيموجيز.
+* **الملفات المتصلة:**
+  - `backend/src/database/migrations/2040000000173_b2b_contracts_and_recurring_subscriptions.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/sales/engines/subscription-billing.engine.ts`
+  - `backend/test/subscription-billing-engine.spec.ts`
+  - `backend/src/modules/sales/dto/commercial-subscription.dto.ts`
+  - `backend/src/modules/sales/services/commercial-subscription.service.ts`
+  - `backend/src/modules/sales/controllers/commercial-subscription.controller.ts`
+  - `backend/src/modules/sales/sales.module.ts`
+  - `frontend/src/features/sales/api/commercial-subscriptions.api.ts`
+  - `frontend/src/features/sales/components/CreateSubscriptionModal.tsx`
+  - `frontend/src/features/sales/pages/SubscriptionsListPage.tsx`
+  - `frontend/src/features/sales/routes.tsx`
+  - `frontend/src/app/router/access.ts`
+* **التحقق البرمجي:**
+  - اختبارات الوحدة للمحرك: `backend/test/subscription-billing-engine.spec.ts` بنجاح 100% لكافة سيناريوهات الترحيل الزمني وحساب الضرائب والإلغاء والتجديد.
+
+---
+
+## 181. إدارة الطرود والتعبئة متعددة الطبقات والطبليات (Pack-in-Pack & Pallet Barcoding)
+* **حالة الوحدة / المعيار:** 🟢 مكتملة ومحمية بنسبة 100% (29 سبتمبر 2026).
+* **المسار:** `/inventory/packages`.
+* **المشكلة المعالجة:**
+  - تمكين المستودعات والمصانع ومراكز التوزيع من إدارة التعبئة الهرمية متعددة المستويات (قطعة -> علبة/صندوق -> كرتونة -> طبلية/بالتة خشبية -> حاوية شحن)، والقضاء على العجز في جرد أو مناولة البضائع المعبأة في طبليات دون الحاجة لفتح كل صندوق ومعرفة إجمالي ما بداخل الطبلية بمسحة باركود واحدة.
+* **الهندسة والحلول المنفذة:**
+  1. **هجرة قاعدة البيانات (2040000000174_warehouse_packages_and_pallet_barcodes.ts):**
+     - إنشاء جدول الطرود والطبليات (`warehouse_packages`) مع الحقول الهرمية (`parent_package_id`, `package_type`, `gross_weight_kg`, `status`).
+     - إنشاء جدول بنود الطرود (`warehouse_package_items`) لربط الأصناف بالتشغيلات والأرقام التسلسلية.
+     - فهارس مركبة وعزل مستأجر صارم (`tenant_id`) وفهرس فريد لباركود الطرد (`tenant_id, package_number`).
+  2. **محرك التعبئة والتفكيك والوزن القائم الصافي (package-barcode.engine.ts):**
+     - محرك حسابي نقي وخالٍ من الاعتماديات الخارجية.
+     - التحقق الصارم من صحة الهيكل الهرمي (منع وضع طبلية داخل كرتونة، والسماح بالكرتونة داخل الطبلية).
+     - احتساب الوزن القائم التراكمي (وزن الفارغ Tare + الأوزان الصافية للأصناف + مجاميع الطرود الفرعية).
+     - تفكيك وتسطيح الشجرة التراكمية (`flattenPackageContents`) لمعرفة إجمالي كل صنف داخل الطبلية حتى لو كان موزعاً على 50 كرتونة فرعية.
+     - التحقق الأمني من عمليات الفك والتفريغ (حظر التفكيك للطرود المشحونة أو المستهلكة).
+     - تغطية شاملة باختبارات الوحدة (`backend/test/package-barcode-engine.spec.ts`) بنجاح 100%.
+  3. **خدمة الباك إند ووحدة التحكم (warehouse-packages.service.ts & warehouse-packages.controller.ts):**
+     - توليد الترقيم الباركودي الموحد القياسي (`PAL-YYMMDD-XXXX` للطبليات، `BOX-YYMMDD-XXXX` للصناديق).
+     - استرجاع كامل الهيكل الشجري الهرمي بمسحة قارئ الباركود (Barcode Scanner) أو المعرف.
+     - فك وإفراغ الطرود بالكامل أو إزالة صناديق محددة في معاملات ذرية آمنة.
+  4. **واجهة المستخدم التفاعلية (PackagesManagementPage.tsx, CreatePackageModal.tsx, PackageDetailsModal.tsx):**
+     - شريط مسح باركود فوري يتيح لأمناء المخازن توجيه قارئ الباركود لفتح محتويات أي طبلية فورياً.
+     - شجرة تفاعلية متداخلة لطبقات التعبئة تعرض الطرود الفرعية والأصناف المعبأة.
+     - جدول إجمالي المحتويات التراكمي الذي يجمع كميات كل صنف عبر كامل الشجرة.
+     - خيارات الختم (Sealing)، الفتح (Opening)، والتفكيك الكامل بنقرة واحدة مع تأكيدات أمان نظامية.
+* **الملفات المتصلة:**
+  - `backend/src/database/migrations/2040000000174_warehouse_packages_and_pallet_barcodes.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/inventory/engines/package-barcode.engine.ts`
+  - `backend/test/package-barcode-engine.spec.ts`
+  - `backend/src/modules/inventory/dto/warehouse-package.dto.ts`
+  - `backend/src/modules/inventory/services/warehouse-packages.service.ts`
+  - `backend/src/modules/inventory/controllers/warehouse-packages.controller.ts`
+  - `backend/src/modules/inventory/inventory.module.ts`
+  - `frontend/src/features/inventory/api/warehouse-packages.api.ts`
+  - `frontend/src/features/inventory/components/CreatePackageModal.tsx`
+  - `frontend/src/features/inventory/components/PackageDetailsModal.tsx`
+  - `frontend/src/features/inventory/pages/PackagesManagementPage.tsx`
+  - `frontend/src/features/inventory/routes.tsx`
+  - `frontend/src/app/router/access.ts`
+* **التحقق البرمجي:**
+  - اختبارات الوحدة للمحرك: `backend/test/package-barcode-engine.spec.ts` بنجاح 100% لكافة سيناريوهات الهرمية، والأوزان، والتجميع الشجري، وحراس التفكيك.
+
+---
+
+## 182. إدارة الجودة والامتثال الصناعي وتقارير عدم المطابقة (Quality Assurance & NCR)
+* **حالة الوحدة / المعيار:** 🟢 مكتملة ومحمية بنسبة 100% (29 سبتمبر 2026).
+* **المسار:** `/inventory/quality`.
+* **المشكلة المعالجة:**
+  - سد فجوة حوكمة الجودة في المنشآت الصناعية والتجارية، وفرض فحص دوري أو إلزامي على استلامات المشتريات ومخرجات التصنيع والتسليمات للعملاء، ومنع دخول البضائع التالفة أو غير المطابقة للمستودعات، وتوثيق تقارير عدم المطابقة (NCR) آلياً لحفظ حقوق الشركة.
+* **الهندسة والحلول المنفذة:**
+  1. **هجرة قاعدة البيانات (2040000000175_quality_assurance_and_ncr.ts):**
+     - إنشاء جداول معايير ونقاط فحص الجودة (`quality_control_points`)، سجل الفحوصات والمعاينات (`quality_inspections`)، وتقارير عدم المطابقة (`quality_non_conformance_reports`).
+     - تطبيق عزل المستأجر الصارم (`tenant_id`) والفهارس المركبة لربط الفحوصات بأذونات الاستلام وأوامر الشغل.
+  2. **محرك تقييم الجودة وتوليد الـ NCR الصافي (quality-control.engine.ts):**
+     - محرك حسابي نقي وخالٍ من الاعتماديات الخارجية.
+     - تقييم الفحوصات البصرية (Pass/Fail) والفحوصات الكمية (Quantitative Measurement) بالتحقق الصارم من وقوع القيمة المقاسة داخل حدود التسامح المسموح بها [Min - Max].
+     - تقييم القبول المشروط (Conditional Acceptance) في حال وجود نسب هدر أو فرز جزئي.
+     - استنتاج مؤشر خطورة العيب تلقائياً (Critical عند >= 50% تالف، Major عند >= 10%، و Minor فيما دون ذلك).
+     - احتساب نسبة القبول الكلية للجودة بدقة مئوية (`acceptanceRatePercent`).
+     - تغطية شاملة باختبارات الوحدة (`backend/test/quality-control-engine.spec.ts`) بنجاح 100%.
+  3. **خدمة الباك إند ووحدة التحكم (quality-assurance.service.ts & quality-assurance.controller.ts):**
+     - توليد الترقيم المستندي الموحد لتقارير عدم المطابقة (`NCR-YYMMDD-XXXX`).
+     - الربط الآلي: الفحص الراسب يولد تلقائياً تقرير NCR مع تحديد سبب العيب واقتراح الإجراء التصحيحي (حجر وإتلاف، إرجاع للمورد، إصلاح داخلي، أو قبول مشروط).
+     - إدارة دورة حياة الـ NCR من الفتح وحتى التحقيق والحل والإغلاق.
+  4. **واجهة المستخدم التفاعلية (QualityDashboardPage.tsx, RecordInspectionModal.tsx, CreateQCPointModal.tsx, CreateNCRModal.tsx):**
+     - لوحة مؤشرات أداء تشغيلية: معدل القبول العام للجودة، إجمالي الفحوصات المنفذة، تقارير الـ NCR المفتوحة، والعيوب الحرجة النشطة.
+     - 3 تبويبات متخصصة: سجل الفحوصات التفصيلي، مركز تقارير عدم المطابقة مع إجراءات التحقيق والإغلاق بنقرة واحدة، وإدارة نقاط ومعايير الجودة.
+     - نوافذ منبثقة معيارية متوافقة تماماً مع معايير الـ UI البريميوم ودستور العدادات RTL وسياسة 0 إيموجيز.
+* **الملفات المتصلة:**
+  - `backend/src/database/migrations/2040000000175_quality_assurance_and_ncr.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/inventory/engines/quality-control.engine.ts`
+  - `backend/test/quality-control-engine.spec.ts`
+  - `backend/src/modules/inventory/dto/quality-assurance.dto.ts`
+  - `backend/src/modules/inventory/services/quality-assurance.service.ts`
+  - `backend/src/modules/inventory/controllers/quality-assurance.controller.ts`
+  - `backend/src/modules/inventory/inventory.module.ts`
+  - `frontend/src/features/inventory/api/quality-assurance.api.ts`
+  - `frontend/src/features/inventory/components/quality/CreateQCPointModal.tsx`
+  - `frontend/src/features/inventory/components/quality/RecordInspectionModal.tsx`
+  - `frontend/src/features/inventory/components/quality/CreateNCRModal.tsx`
+  - `frontend/src/features/inventory/pages/QualityDashboardPage.tsx`
+  - `frontend/src/features/inventory/routes.tsx`
+  - `frontend/src/app/router/access.ts`
+* **التحقق البرمجي:**
+  - اختبارات الوحدة للمحرك: `backend/test/quality-control-engine.spec.ts` بنجاح 100% لكافة سيناريوهات الفحص البصري والكمي والقبول المشروط واشتقاق خطورة عدم المطابقة.
+
+---
+
+## 183. منظومة تتبع المتقدمين للوظائف ومجمعات المواهب (Recruitment ATS & Talent Pools)
+* **حالة الوحدة / المعيار:** 🟢 مكتملة ومحمية بنسبة 100% (29 سبتمبر 2026).
+* **المسار:** `/hr/recruitment`.
+* **المشكلة المعالجة:**
+  - تمكين إدارات الموارد البشرية والتوظيف من إدارة خط أنابيب المرشحين (Candidate Pipeline) بصرياً عبر لوحة كانبان تفاعلية، وتصنيف السير الذاتية في مجمعات مواهب متخصصة (Talent Pools)، والتحويل المباشر بنقرة واحدة من مرشح وظيفي إلى موظف رسمي معتمد دون إعادة إدخال البيانات يدوياً.
+* **الهندسة والحلول المنفذة:**
+  1. **هجرة قاعدة البيانات (2040000000176_recruitment_ats_and_talent_pools.ts):**
+     - إنشاء جدول الوظائف الشاغرة (`recruitment_job_openings`) مع حقول الترقيم (`job_code`)، القسم، والعدد المستهدف (`headcount`)، وعدد المعينين (`hired_count`).
+     - إنشاء جدول المتقدمين ومجمعات المواهب (`recruitment_applicants`) مع مراحل التوظيف (`stage`)، التقييم (`rating`)، وسوم المواهب (`talent_pool_tag`)، والربط بالموظف الرسمي (`hired_employee_id`).
+     - تطبيق عزل المستأجر الصارم (`tenant_id`) والفهارس المركبة لسرعة استعلام مراحل الكانبان.
+  2. **محرك حوكمة مراحل التوظيف والتحويل الوظيفي الصافي (recruitment-ats.engine.ts):**
+     - محرك حسابي نقي وخالٍ من الاعتماديات الخارجية.
+     - التحقق الصارم من انتقال المراحل (منع التراجع بعد اكتمال التعيين `hired`، والسماح بالرفض `rejected` أو إعادة التفعيل من أي مرحلة).
+     - فحص السعة والشواغر الوظيفية (`checkJobOpeningHeadcount`) وإغلاق الوظيفة آلياً عند اكتمال العدد المطلوب.
+     - اشتقاق وتوليد كائن بيانات الموظف المعتمد (`buildEmployeeFromApplicant`) لربطه بجدول `hr_employees`.
+     - احتساب قمع التوظيف ومعدل التحويل الناجح (`conversionRatePercent`).
+     - تغطية شاملة باختبارات الوحدة (`backend/test/recruitment-ats-engine.spec.ts`) بنجاح 100%.
+  3. **خدمة الباك إند ووحدة التحكم (recruitment-ats.service.ts & recruitment-ats.controller.ts):**
+     - الترقيم المستندي القياسي للوظائف (`JOB-YYMMDD-XXXX`) وللمتقدمين (`APP-YYMMDD-XXXX`).
+     - تدفق التعيين الفوري بنقرة واحدة (1-Click Hire): إنشاء الموظف في `hr_employees` عبر `HrService.upsertEmployee`، وتحديث سجل المتقدم بالمعرف `#id`، وزيادة عداد التعيين في الوظيفة الشاغرة وإغلاقها تلقائياً عند الاكتمال في معاملة ذرية.
+  4. **واجهة المستخدم التفاعلية (RecruitmentKanbanPage.tsx, CreateJobOpeningModal.tsx, CreateApplicantModal.tsx, ApplicantDetailsModal.tsx):**
+     - شريط مؤشرات أداء قمع التوظيف (Recruitment Funnel): إجمالي المتقدمين، قيد الفحص والمقابلات، عروض العمل، تم التعيين، ومعدل التحويل الناجح.
+     - لوحة كانبان (Kanban Board) بـ 5 أعمدة تفاعلية لعرض بطاقات المرشحين وبيانات الاتصال والراتب المتوقع والتقييم.
+     - فلاتر سريعة للوظائف ومجمعات المواهب وبحث فوري بالاسم والهاتف.
+     - نافذة ملف المرشح التفصيلي مع زر التعيين الفوري (`Hire to Employee`) مع حوارات تأكيد وحماية.
+* **الملفات المتصلة:**
+  - `backend/src/database/migrations/2040000000176_recruitment_ats_and_talent_pools.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/hr/engines/recruitment-ats.engine.ts`
+  - `backend/test/recruitment-ats-engine.spec.ts`
+  - `backend/src/modules/hr/dto/recruitment-ats.dto.ts`
+  - `backend/src/modules/hr/services/recruitment-ats.service.ts`
+  - `backend/src/modules/hr/controllers/recruitment-ats.controller.ts`
+  - `backend/src/modules/hr/hr.module.ts`
+  - `frontend/src/features/hr/api/recruitment-ats.api.ts`
+  - `frontend/src/features/hr/components/recruitment/CreateJobOpeningModal.tsx`
+  - `frontend/src/features/hr/components/recruitment/CreateApplicantModal.tsx`
+  - `frontend/src/features/hr/components/recruitment/ApplicantDetailsModal.tsx`
+  - `frontend/src/features/hr/pages/RecruitmentKanbanPage.tsx`
+  - `frontend/src/features/hr/routes.tsx`
+  - `frontend/src/app/router/access.ts`
+* **التحقق البرمجي:**
+  - اختبارات الوحدة للمحرك: `backend/test/recruitment-ats-engine.spec.ts` بنجاح 100% لحوكمة الانتقال بين المراحل، ومطابقة السعة والشواغر، وتوليد كائن الموظف، ومقاييس القمع التوظيفي.
+

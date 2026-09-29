@@ -11,10 +11,19 @@ import { InventoryTransferService } from './services/inventory-transfer.service'
 import { InventoryReplenishmentService } from './services/inventory-replenishment.service';
 import { WarehouseBinsService } from './services/warehouse-bins.service';
 import { WarehouseBinsController } from './controllers/warehouse-bins.controller';
+import { WarehousePackagesController } from './controllers/warehouse-packages.controller';
+import { WarehousePackagesService } from './services/warehouse-packages.service';
+import { QualityAssuranceController } from './controllers/quality-assurance.controller';
+import { QualityAssuranceService } from './services/quality-assurance.service';
 
 @Module({
   imports: [AuditModule, AccountingModule],
-  controllers: [InventoryController, WarehouseBinsController],
+  controllers: [
+    InventoryController,
+    WarehouseBinsController,
+    WarehousePackagesController,
+    QualityAssuranceController,
+  ],
   providers: [
     InventoryScopeService,
     InventoryTransferService,
@@ -23,7 +32,15 @@ import { WarehouseBinsController } from './controllers/warehouse-bins.controller
     InventoryReplenishmentService,
     InventoryService,
     WarehouseBinsService,
+    WarehousePackagesService,
+    QualityAssuranceService,
   ],
-  exports: [InventoryScopeService, InventoryReplenishmentService, WarehouseBinsService],
+  exports: [
+    InventoryScopeService,
+    InventoryReplenishmentService,
+    WarehouseBinsService,
+    WarehousePackagesService,
+    QualityAssuranceService,
+  ],
 })
 export class InventoryModule {}

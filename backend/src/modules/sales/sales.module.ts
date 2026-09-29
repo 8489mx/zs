@@ -25,6 +25,8 @@ import { SalesOrdersController } from './controllers/sales-orders.controller';
 import { SalesOrdersService } from './services/sales-orders.service';
 import { PriceListsController } from './controllers/price-lists.controller';
 import { PriceListsService } from './services/price-lists.service';
+import { CommercialSubscriptionController } from './controllers/commercial-subscription.controller';
+import { CommercialSubscriptionService } from './services/commercial-subscription.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule],
@@ -36,6 +38,7 @@ import { PriceListsService } from './services/price-lists.service';
     CustomerInstallmentsController,
     CashierFraudRadarController,
     KdsController,
+    CommercialSubscriptionController,
     SalesController,
   ],
   providers: [
@@ -51,6 +54,7 @@ import { PriceListsService } from './services/price-lists.service';
     CustomerInstallmentsService,
     CashierFraudRadarService,
     KdsService,
+    CommercialSubscriptionService,
   ],
   exports: [
     SalesService,
@@ -62,6 +66,7 @@ import { PriceListsService } from './services/price-lists.service';
     CustomerInstallmentsService,
     CashierFraudRadarService,
     KdsService,
+    CommercialSubscriptionService,
   ],
 })
 export class SalesModule {}
