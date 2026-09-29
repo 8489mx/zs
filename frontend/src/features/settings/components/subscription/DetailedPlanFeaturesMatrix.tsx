@@ -1,4 +1,4 @@
-import { CheckIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { CheckIcon, XIcon, InfoIcon } from '@/shared/components/icons/AppIcons';
 import type { ResolvedPricing } from '../../api/tenant-subscription.api';
 
 /**
@@ -32,25 +32,72 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
     levels[levelIndex].featureGroups.some((g) => g.name === groupName);
 
   return (
-    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '20px', marginTop: '20px' }}>
-      <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-        مقارنة تفصيلية بين مستويات {pricing.product.name}
-      </h3>
-      <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px' }}>
-        ما يضيفه كل مستوى على الذي قبله.
-      </p>
+    <div
+      style={{
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '16px',
+        padding: '24px',
+        marginTop: '24px',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+      }}
+    >
+      {/* 1. Header */}
+      <div style={{ marginBottom: '20px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
+          مقارنة تفصيلية بين مستويات {pricing.product.name}
+        </h3>
+        <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+          ما يضيفه كل مستوى على الذي قبله لمساعدتك في اختيار الباقة الأنسب لاحتياجاتك التشغيلية.
+        </p>
+      </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+      {/* 2. Zero-Scroll Comparison Table */}
+      <div style={{ width: '100%', overflow: 'hidden' }}>
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'separate',
+            borderSpacing: 0,
+            tableLayout: 'fixed',
+            fontSize: '12.5px',
+          }}
+        >
+          <colgroup>
+            <col style={{ width: 'auto' }} />
+            {levels.map((level) => (
+              <col key={level.id} style={{ width: levels.length <= 3 ? '135px' : '110px' }} />
+            ))}
+          </colgroup>
           <thead>
-            <tr>
-              <th style={{ textAlign: 'start', padding: '10px 12px', color: '#475569', fontWeight: 800, borderBottom: '2px solid #e2e8f0' }}>
-                المجموعة
+            <tr style={{ background: '#f8fafc' }}>
+              <th
+                style={{
+                  textAlign: 'start',
+                  padding: '12px 16px',
+                  color: '#475569',
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  borderBottom: '2px solid #e2e8f0',
+                  borderTopRightRadius: '10px',
+                }}
+              >
+                المجموعة وبيان الميزات
               </th>
-              {levels.map((level) => (
+              {levels.map((level, idx) => (
                 <th
                   key={level.id}
-                  style={{ textAlign: 'center', padding: '10px 12px', color: '#170e5e', fontWeight: 800, borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' }}
+                  style={{
+                    textAlign: 'center',
+                    padding: '12px 10px',
+                    color: '#170e5e',
+                    fontWeight: 800,
+                    fontSize: '13px',
+                    borderBottom: '2px solid #e2e8f0',
+                    borderTopLeftRadius: idx === levels.length - 1 ? '10px' : undefined,
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
+                  }}
                 >
                   {level.name}
                 </th>
@@ -58,69 +105,257 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
             </tr>
           </thead>
           <tbody>
-            {groupNames.map((groupName) => (
-              <tr key={groupName}>
-                <td style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', verticalAlign: 'top' }}>
-                  <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>{groupName}</div>
-                  <div style={{ color: '#64748b', fontSize: '11.5px', lineHeight: 1.7 }}>
-                    {itemsOfGroup(groupName).join(' · ')}
-                  </div>
-                </td>
-                {levels.map((level, idx) => (
+            {groupNames.map((groupName, rIdx) => {
+              const isEven = rIdx % 2 === 1;
+              const items = itemsOfGroup(groupName);
+              return (
+                <tr
+                  key={groupName}
+                  style={{
+                    background: isEven ? '#fafbfc' : '#ffffff',
+                  }}
+                >
                   <td
-                    key={level.id}
-                    style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', textAlign: 'center', verticalAlign: 'top' }}
+                    style={{
+                      padding: '14px 16px',
+                      borderBottom: '1px solid #f1f5f9',
+                      verticalAlign: 'top',
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word',
+                    }}
                   >
-                    {levelHasItem(idx, groupName) ? (
-                      <span style={{ color: '#059669', display: 'inline-flex' }}>
-                        <CheckIcon size={16} strokeWidth={3} />
-                      </span>
-                    ) : (
-                      <span style={{ color: '#cbd5e1', display: 'inline-flex' }}>
-                        <XIcon size={14} />
-                      </span>
-                    )}
+                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px', marginBottom: '6px' }}>
+                      {groupName}
+                    </div>
+                    <div
+                      style={{
+                        color: '#64748b',
+                        fontSize: '11.5px',
+                        lineHeight: 1.65,
+                        textAlign: 'justify',
+                        textJustify: 'inter-word',
+                        textAlignLast: 'start',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {items.join(' · ')}
+                    </div>
                   </td>
-                ))}
-              </tr>
-            ))}
+                  {levels.map((level, idx) => {
+                    const hasItem = levelHasItem(idx, groupName);
+                    return (
+                      <td
+                        key={level.id}
+                        style={{
+                          padding: '14px 10px',
+                          borderBottom: '1px solid #f1f5f9',
+                          textAlign: 'center',
+                          verticalAlign: 'middle',
+                        }}
+                      >
+                        {hasItem ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '50%',
+                              background: '#ecfdf5',
+                              color: '#059669',
+                              border: '1px solid #a7f3d0',
+                            }}
+                            title={`مشمول في ${level.name}`}
+                          >
+                            <CheckIcon size={15} strokeWidth={2.8} />
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '50%',
+                              background: '#f8fafc',
+                              color: '#cbd5e1',
+                              border: '1px solid #f1f5f9',
+                            }}
+                            title={`غير مشمول في ${level.name}`}
+                          >
+                            <XIcon size={13} strokeWidth={2.2} />
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
+      {/* 3. Floors & Addons Section */}
       {pricing.floors.length > 0 && (
-        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
-          <h4 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a', margin: '0 0 10px' }}>
-            طوابق تُضاف على المستويين الأول والثاني
-          </h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
-            {pricing.floors.map((floor) => (
-              <div
-                key={floor.id}
-                style={{
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '10px 12px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <span style={{ fontSize: '12px', color: '#334155', fontWeight: 600 }}>{floor.name}</span>
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
-                  {floor.contactForPrice
-                    ? 'اتصل بنا'
-                    : floor.pricingRule
-                      ? floor.pricingRule
-                      : `${(floor.monthly ?? 0).toLocaleString('ar-EG')} ${levels[0].currency} / شهر`}
-                </span>
-              </div>
-            ))}
+        <div style={{ marginTop: '28px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
+              طوابق وإضافات مخصصة (تُضاف على المستويين الأول والثاني)
+            </h4>
+            <p style={{ fontSize: '12.5px', color: '#64748b', margin: 0 }}>
+              باقات ووحدات وظيفية متقدمة يمكنك إضافتها لاشتراكك، مع العلم أنها مضمّنة تلقائياً في المستوى الشامل (الأعلى).
+            </p>
           </div>
-          <p style={{ fontSize: '11.5px', color: '#64748b', margin: '10px 0 0' }}>
-            الطوابق المعلَّمة مضمّنة تلقائياً في المستوى الأعلى.
-          </p>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+              gap: '12px',
+            }}
+          >
+            {pricing.floors.map((floor) => {
+              const isIncludedInHighest = Boolean(floor.includedFromLevel);
+              const includedLevel = isIncludedInHighest
+                ? levels.find((l) => l.id === floor.includedFromLevel)
+                : null;
+
+              return (
+                <div
+                  key={floor.id}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
+                  }}
+                >
+                  {/* Title & Badge */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: '#1e293b',
+                        lineHeight: 1.45,
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {floor.name}
+                    </div>
+                    {includedLevel ? (
+                      <div style={{ marginTop: '5px' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            color: '#047857',
+                            background: '#ecfdf5',
+                            border: '1px solid #a7f3d0',
+                            borderRadius: '6px',
+                            padding: '1px 7px',
+                          }}
+                        >
+                          <CheckIcon size={11} strokeWidth={2.5} />
+                          <span>مضمّن في {includedLevel.name}</span>
+                        </span>
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: '5px' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            color: '#64748b',
+                            background: '#f1f5f9',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px',
+                            padding: '1px 7px',
+                          }}
+                        >
+                          طابق إضافي اختياري
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Price Badge */}
+                  <div style={{ flexShrink: 0 }}>
+                    <div
+                      style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        padding: '6px 12px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {floor.contactForPrice ? (
+                        <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
+                          اتصل بنا
+                        </span>
+                      ) : floor.pricingRule ? (
+                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
+                          {floor.pricingRule}
+                        </span>
+                      ) : (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'baseline',
+                            gap: '4px',
+                            whiteSpace: 'nowrap',
+                            direction: 'rtl',
+                          }}
+                        >
+                          <span style={{ fontSize: '14px', fontWeight: 900, color: '#170e5e' }}>
+                            {(floor.monthly ?? 0).toLocaleString('ar-EG')}
+                          </span>
+                          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>
+                            {levels[0]?.currency ?? 'EGP'}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>/ شهر</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div
+            style={{
+              marginTop: '16px',
+              padding: '10px 14px',
+              background: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px solid #f1f5f9',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '12px',
+              color: '#64748b',
+            }}
+          >
+            <InfoIcon size={15} color="#64748b" />
+            <span>
+              كافة الطوابق الموسومة بـ «مضمّن في...» تكون مفعّلة تلقائياً بدون أي تكلفة إضافية عند ترقية الاشتراك للمستوى الشامل.
+            </span>
+          </div>
         </div>
       )}
     </div>
