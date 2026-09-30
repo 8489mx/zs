@@ -58,8 +58,8 @@ function buildDamagedDefaults(locations: Location[]): DamagedStockInput {
   return {
     productId: '',
     qty: 1,
-    reason: 'damage',
-    note: '',
+    reason: 'كسر أثناء النقل / تلف مخزني',
+    note: 'كسر أثناء النقل / تلف مخزني',
     branchId: '',
     locationId: SINGLE_STORE_MODE ? (locations[0]?.id || '') : '',
   };
@@ -421,7 +421,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                   </small>
                 </Field>
               )}
-              <Field label="ملاحظات"><textarea rows={3} {...damagedForm.register('note')} disabled={damagedMutation.isPending || !canManageInventory} /></Field>
+              <Field label="ملاحظات وتفاصيل التلف (8 أحرف على الأقل)" error={damagedForm.formState.errors.note?.message}><textarea rows={3} {...damagedForm.register('note')} disabled={damagedMutation.isPending || !canManageInventory} placeholder="تفاصيل التلف أو محضر الهالك..." /></Field>
               <div className="stats-grid compact-grid workspace-stats-grid inventory-damage-mini-grid" style={{ marginTop: 12 }}>
                 <div className="stat-card"><span>المخزون الحالي</span><strong>{selectedDamagedProduct ? selectedDamagedProduct.stock : 0}</strong></div>
                 <div className="stat-card"><span>الكمية التالفة</span><strong>{damagedQty || 0}</strong></div>

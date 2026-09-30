@@ -19,7 +19,16 @@ export const damagedStockSchema = z.object({
   branchId: z.string().trim().optional().default(''),
   locationId: z.string().trim().optional().default(''),
   managerPin: z.string().trim().optional()
-});
+}).refine(
+  (data) => {
+    const effective = (data.note || data.reason || '').trim();
+    return effective.length >= 8;
+  },
+  {
+    message: 'اكتب سبب أو تفاصيل التلف بوضوح في 8 أحرف على الأقل',
+    path: ['note'],
+  }
+);
 
 export type InventoryAdjustmentInput = z.input<typeof inventoryAdjustmentSchema>;
 export type InventoryAdjustmentOutput = z.output<typeof inventoryAdjustmentSchema>;

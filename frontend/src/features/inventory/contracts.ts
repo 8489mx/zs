@@ -19,11 +19,12 @@ export function buildInventoryAdjustmentPayload(values: InventoryAdjustmentOutpu
 
 export function buildDamagedStockPayload(values: DamagedStockOutput) {
   const parsed = damagedStockSchema.parse(values);
+  const effectiveNote = parsed.note?.trim() || parsed.reason?.trim() || '';
   const payload: Record<string, unknown> = {
     productId: parsed.productId,
     qty: parsed.qty,
     reason: parsed.reason,
-    note: parsed.note || '',
+    note: effectiveNote,
     branchId: parsed.branchId || null,
     locationId: parsed.locationId || null,
   };

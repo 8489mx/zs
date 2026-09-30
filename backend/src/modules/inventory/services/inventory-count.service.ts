@@ -280,8 +280,9 @@ export class InventoryCountService {
     }
 
     const location = await this.scope.assertLocationScope(payload.locationId, auth, false, 'write');
-    assertInventoryLocationBranchMatch(payload.branchId, location.branchId);
-    if (String(payload.note || '').trim().length < 8) throw new AppError('اكتب سبب التالف بوضوح في 8 أحرف على الأقل', 'DAMAGE_NOTE_REQUIRED', 400);
+    const effectiveNote = String(payload.note || '').trim() || String(payload.reason || '').trim();
+    if (effectiveNote.length < 8) throw new AppError('اكتب سبب التالف بوضوح في 8 أحرف على الأقل', 'DAMAGE_NOTE_REQUIRED', 400);
+    payload.note = effectiveNote;
     await this.tx.runInTransaction(this.db, async (trx) => {
       const product = await trx.selectFrom('products').selectAll().where('id', '=', payload.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);

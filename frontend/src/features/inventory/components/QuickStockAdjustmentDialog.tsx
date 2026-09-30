@@ -93,7 +93,7 @@ export function QuickStockAdjustmentDialog({
       productId: '',
       qty: 1,
       reason: 'كسر أثناء النقل / تلف مخزني',
-      note: '',
+      note: 'كسر أثناء النقل / تلف مخزني',
       branchId: '',
       locationId: SINGLE_STORE_MODE ? (locationList[0]?.id || '') : '',
     },
@@ -134,9 +134,13 @@ export function QuickStockAdjustmentDialog({
         defaultLocId = product.defaultLocationId;
         const loc = locationList.find((l) => String(l.id) === String(defaultLocId));
         if (loc?.branchId) defaultBranchId = String(loc.branchId);
+      } else if (locationList.length > 0) {
+        defaultLocId = String(locationList[0].id);
+        if (locationList[0].branchId) defaultBranchId = String(locationList[0].branchId);
       }
     } else {
-      defaultLocId = locationList[0]?.id || '';
+      defaultLocId = locationList[0]?.id ? String(locationList[0].id) : '';
+      if (locationList[0]?.branchId) defaultBranchId = String(locationList[0].branchId);
     }
 
     adjustmentForm.reset({
@@ -153,7 +157,7 @@ export function QuickStockAdjustmentDialog({
       productId: String(product.id),
       qty: 1,
       reason: 'كسر أثناء النقل / تلف مخزني',
-      note: '',
+      note: 'كسر أثناء النقل / تلف مخزني',
       branchId: defaultBranchId,
       locationId: defaultLocId,
     });
@@ -430,7 +434,11 @@ export function QuickStockAdjustmentDialog({
                     render={({ field }) => (
                       <CustomSelect
                         value={field.value || ''}
-                        onChange={(val) => field.onChange(val)}
+                        onChange={(val) => {
+                          field.onChange(val);
+                          const loc = locationList.find((l) => String(l.id) === String(val));
+                          if (loc?.branchId) adjustmentForm.setValue('branchId', String(loc.branchId));
+                        }}
                         options={locationOptions}
                         placeholder="بدون مخزن محدد"
                         disabled={isSubmitting || !canManageInventory}
@@ -516,7 +524,11 @@ export function QuickStockAdjustmentDialog({
                     render={({ field }) => (
                       <CustomSelect
                         value={field.value || ''}
-                        onChange={(val) => field.onChange(val)}
+                        onChange={(val) => {
+                          field.onChange(val);
+                          const loc = locationList.find((l) => String(l.id) === String(val));
+                          if (loc?.branchId) damagedForm.setValue('branchId', String(loc.branchId));
+                        }}
                         options={locationOptions}
                         placeholder="بدون مخزن محدد"
                         disabled={isSubmitting || !canManageInventory}
@@ -527,7 +539,7 @@ export function QuickStockAdjustmentDialog({
               )}
             </div>
 
-            <Field label="ملاحظات (اختياري)">
+            <Field label="ملاحظات وتفاصيل التلف (8 أحرف على الأقل)" error={damagedForm.formState.errors.note?.message}>
               <textarea
                 rows={2}
                 {...damagedForm.register('note')}

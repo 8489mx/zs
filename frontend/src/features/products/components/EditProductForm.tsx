@@ -5,11 +5,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
-import { SmartphoneIcon } from '@/shared/components/icons/AppIcons';
+import { SlidersIcon, SmartphoneIcon } from '@/shared/components/icons/AppIcons';
 import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
-import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useCustomersQuery, useLocationsQuery } from '@/shared/hooks/use-catalog-queries';
+import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useCustomersQuery } from '@/shared/hooks/use-catalog-queries';
+import { inventoryApi } from '@/shared/api/inventory.api';
+import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
+import { QuickStockAdjustmentDialog } from '@/features/inventory/components/QuickStockAdjustmentDialog';
 import type { Product, ProductCustomerPrice, ProductUnit } from '@/types/domain';
 import { ProductCustomerPricesCard } from '@/features/products/components/workspace-sections/ProductCustomerPricesCard';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from '@/features/products/components/workspace-sections/product-workspace.utils';
@@ -64,8 +67,19 @@ export function EditProductForm({
   const categories = categoriesQuery.data || [];
   const suppliers = suppliersQuery.data || [];
   const customers = (customersQuery.data || []).map((customer) => ({ id: String(customer.id), name: customer.name }));
-  const locationsQuery = useLocationsQuery();
-  const locations = locationsQuery.data || [];
+  const inventoryCatalog = useInventoryActionCatalog();
+  const locations = inventoryCatalog.locationsQuery.data || [];
+  const branches = inventoryCatalog.branchesQuery.data || [];
+
+  const [isStockAdjustmentOpen, setIsStockAdjustmentOpen] = useState(false);
+
+  const handleCloseStockAdjustment = () => {
+    setIsStockAdjustmentOpen(false);
+    queryClient.invalidateQueries({ queryKey: ['product', productId] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.products });
+    queryClient.invalidateQueries({ queryKey: ['location-stocks'] });
+    inventoryCatalog.locationStocksQuery.refetch();
+  };
 
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
@@ -493,8 +507,79 @@ export function EditProductForm({
           </div>
           <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
             <div className="product-form-grid-4">
-              <Field label="المخزون الحالي (للعرض)">
-                <input className="purchase-prototype-field-input" type="number" value={Number(product.stock || 0)} disabled readOnly style={{ background: '#f8fafc', fontWeight: 700 }} />
+              <Field label="المخزون الحالي">
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'stretch',
+                    height: '40px',
+                    minHeight: '40px',
+                    maxHeight: '40px',
+                    boxSizing: 'border-box',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#f8fafc',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '0 10px',
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      userSelect: 'all',
+                      minWidth: 0,
+                    }}
+                    title={`الرصيد الفعلي: ${Number(product?.stock || 0)}`}
+                  >
+                    <span>{Number(product?.stock || 0).toLocaleString('en-US')}</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginInlineStart: '4px' }}>
+                      {units[0]?.unitName || 'قطعة'}
+                    </span>
+                  </div>
+                  {product?.itemType !== 'service' && (
+                    <button
+                      type="button"
+                      onClick={() => setIsStockAdjustmentOpen(true)}
+                      disabled={isFormDisabled}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '0 10px',
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        border: 'none',
+                        borderInlineStart: '1px solid #bfdbfe',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        cursor: isFormDisabled ? 'not-allowed' : 'pointer',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isFormDisabled) {
+                          e.currentTarget.style.background = '#170e5e';
+                          e.currentTarget.style.color = '#ffffff';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isFormDisabled) {
+                          e.currentTarget.style.background = '#eff6ff';
+                          e.currentTarget.style.color = '#1d4ed8';
+                        }
+                      }}
+                      title="تسوية وتعديل رصيد المخزون (إضافة / خصم / تسوية إلى كمية نهائية / تالف)"
+                    >
+                      <SlidersIcon size={12} />
+                      <span>تسوية</span>
+                    </button>
+                  )}
+                </div>
               </Field>
               <Field label="الحد الأدنى للتنبيه (نواقص)">
                 <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
@@ -590,6 +675,18 @@ export function EditProductForm({
           </details>
         </div>
       </main>
+
+      {isStockAdjustmentOpen && product && (
+        <QuickStockAdjustmentDialog
+          open={isStockAdjustmentOpen}
+          onClose={handleCloseStockAdjustment}
+          product={product}
+          branches={inventoryCatalog.branchesQuery.data || []}
+          locations={inventoryCatalog.locationsQuery.data || []}
+          locationStocks={Array.isArray(inventoryCatalog.locationStocksQuery.data) ? inventoryCatalog.locationStocksQuery.data : []}
+          canManageInventory={true}
+        />
+      )}
     </div>
   );
 }
