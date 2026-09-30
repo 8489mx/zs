@@ -105,14 +105,20 @@ export function buildLedgerSummary(
 ) {
   const totalDebits = toMoney(totalsRow?.debits_total ?? 0);
   const totalCredits = Math.abs(toMoney(totalsRow?.credits_total ?? 0));
-  const openBal = toMoney(openingBalance ?? 0);
-  return {
+  const base = {
     totalEntries: totalItems,
-    openingBalance: openBal,
     totalDebits,
     totalCredits,
-    closingBalance: toMoney(openBal + totalDebits - totalCredits),
   };
+  if (openingBalance !== undefined) {
+    const openBal = toMoney(openingBalance);
+    return {
+      ...base,
+      openingBalance: openBal,
+      closingBalance: toMoney(openBal + totalDebits - totalCredits),
+    };
+  }
+  return base;
 }
 
 export function buildCustomerLedgerPayload(args: {
