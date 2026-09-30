@@ -9,14 +9,10 @@ const checks = [
   'BACKUP_RESTORE.md',
   'MONITORING_READINESS.md',
   'DEPLOYMENT_RUNBOOK.md',
-  'GO_LIVE_GATE.md',
-  'PERMISSIONS_AUDIT.md',
-  'RELEASE_GATE_FINAL.md',
   'PRE_SALE_HARDENING.md',
   'PHASE12_FINANCIAL_INTEGRITY.md',
   'PHASE13_CRITICAL_FLOW_CONFIDENCE.md',
   'PHASE14_OPERATIONS_READINESS.md',
-  'PHASE15_FINAL_COMMERCIAL_POLISH.md',
   'scripts/check-architecture-guardrails.cjs',
   'scripts/check-go-live.cjs',
   'scripts/check-permissions-audit.cjs',
@@ -36,6 +32,17 @@ const checks = [
 ];
 
 const missing = checks.filter((entry) => !fs.existsSync(path.join(root, entry)));
+const archivedChecks = [
+  'GO_LIVE_GATE.md',
+  'PERMISSIONS_AUDIT.md',
+  'RELEASE_GATE_FINAL.md',
+  'PHASE15_FINAL_COMMERCIAL_POLISH.md',
+];
+missing.push(...archivedChecks.filter((entry) => !fs.existsSync(path.join(repoRoot, 'docs', 'archive', entry)))
+  .map((entry) => `docs/archive/${entry}`));
+if (!fs.existsSync(path.join(repoRoot, 'docs', 'LIVE_SAAS_OPERATIONS_CHECKLIST.md'))) {
+  missing.push('docs/LIVE_SAAS_OPERATIONS_CHECKLIST.md');
+}
 if (missing.length) {
   console.error('[check:commercial-ready] missing required release assets:');
   for (const entry of missing) console.error(` - ${entry}`);
@@ -50,4 +57,4 @@ for (const scriptName of ['qa', 'qa:release', 'package:clean', 'qa:sale-ready'])
   }
 }
 
-console.log('[check:commercial-ready] release assets, stock-ledger guardrails, and repo QA entrypoints are present');
+console.log('[check:commercial-ready] release assets and QA entrypoints are present; live UAT sign-off is a separate gate');

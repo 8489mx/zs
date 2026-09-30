@@ -8,14 +8,10 @@ const requiredBackendFiles = [
   'BACKUP_RESTORE.md',
   'MONITORING_READINESS.md',
   'DEPLOYMENT_RUNBOOK.md',
-  'PERMISSIONS_AUDIT.md',
-  'RELEASE_GATE_FINAL.md',
-  'GO_LIVE_GATE.md',
   'PRE_SALE_HARDENING.md',
   'PHASE12_FINANCIAL_INTEGRITY.md',
   'PHASE13_CRITICAL_FLOW_CONFIDENCE.md',
   'PHASE14_OPERATIONS_READINESS.md',
-  'PHASE15_FINAL_COMMERCIAL_POLISH.md',
   '.env.example',
   'scripts/check-architecture-guardrails.cjs',
   'src/common/utils/location-stock-ledger.ts',
@@ -49,6 +45,10 @@ function assertFile(base, rel) {
 }
 
 for (const file of requiredBackendFiles) assertFile(backendRoot, file);
+for (const file of ['PERMISSIONS_AUDIT.md', 'RELEASE_GATE_FINAL.md', 'GO_LIVE_GATE.md', 'PHASE15_FINAL_COMMERCIAL_POLISH.md']) {
+  assertFile(path.join(repoRoot, 'docs', 'archive'), file);
+}
+assertFile(path.join(repoRoot, 'docs'), 'LIVE_SAAS_OPERATIONS_CHECKLIST.md');
 
 const envExample = fs.readFileSync(path.join(backendRoot, '.env.example'), 'utf8');
 for (const key of requiredEnvKeys) {
@@ -94,4 +94,4 @@ if (!saleReadyScript.includes('npm run qa')) {
   throw new Error('Sale readiness script must execute the QA suite before packaging');
 }
 
-console.log('[check:go-live] backend/repo release wiring, stock ledger migration, and QA scripts look ready.');
+console.log('[check:go-live] release wiring and QA scripts are present; live UAT sign-off is a separate gate.');

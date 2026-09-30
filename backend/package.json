@@ -27,6 +27,7 @@
     "test:auth": "ts-node test/critical/session-auth.spec.ts && ts-node test/critical/session-auth.guard.spec.ts && ts-node test/critical/super-admin-role.guard.spec.ts && ts-node test/critical/bootstrap-admin-safety.spec.ts && ts-node test/critical/login-rate-limit.spec.ts",
     "test:returns-cost": "ts-node test/critical/sales-return-cost.spec.ts",
     "test:e2e:approvals": "ts-node test/e2e/approval-workflow.e2e.ts",
+    "test:e2e:saas-lifecycle": "ts-node test/e2e/public-trial-signup.e2e.ts && ts-node test/e2e/saas-lifecycle.e2e.ts",
     "check:readiness": "node scripts/verify-readiness.cjs && npm run check:architecture",
     "check:permissions": "node scripts/check-permissions-audit.cjs",
     "check:env-safety": "node scripts/check-env-safety.cjs",

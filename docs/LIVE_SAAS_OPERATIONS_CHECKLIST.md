@@ -57,6 +57,8 @@ Whenever releasing a major update to the SaaS billing engine, run a manual or au
 - [ ] **Lockout Check**: Shift the `ends_at` date past the grace period. Verify login is blocked with `SubscriptionExpired` or `PaymentRequired`.
 - [ ] **Suspension**: Manually set status to `suspended` and verify immediate lockout.
 
+The CI integration tests exercise local trial signup and the tenant lifecycle with disposable tenants, then remove them. The unchecked items above still require a separate production-like UAT run; console-mode mail in CI does not prove SMTP delivery.
+
 ## 5. Offline Updates in Cloud Mode
 
 - The endpoints `/api/local-updates/apply` and `/api/local-updates/apply-local-zip` are protected by `OfflineUpdatesProtectedController`.

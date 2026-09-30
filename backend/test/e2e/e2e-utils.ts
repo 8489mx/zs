@@ -7,6 +7,10 @@ const DEFAULT_PASSWORD = process.env.E2E_PASSWORD || process.env.DEFAULT_ADMIN_P
 
 type JsonValue = Record<string, any>;
 
+function safeJson(value: unknown): string {
+  return JSON.stringify(value, (key, item) => /password|secret|token|authorization/i.test(key) ? '[REDACTED]' : item) ?? 'null';
+}
+
 export function uniqueSuffix(prefix = 'e2e'): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 }
@@ -53,7 +57,7 @@ export class E2EClient {
       headers['Content-Type'] = 'application/json';
     }
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())) {
-      const csrfToken = this.cookies.get('zs_cloud_csrf_token') || this.cookies.get('zs_dev_csrf_token') || this.cookies.get('zs_csrf_token');
+      const csrfToken = this.cookies.get('zs_cloud_csrf_token') || this.cookies.get('zs_dev_csrf_token') || this.cookies.get('zs_csrf_token') || this.cookies.get('csrf_token');
       if (csrfToken) headers['x-csrf-token'] = csrfToken;
     }
     const response = await fetch(`${this.baseUrl}${path}`, {
@@ -80,9 +84,9 @@ export class E2EClient {
         await new Promise(resolve => setTimeout(resolve, 15000));
         continue;
       }
-      assert.equal(response.status, 201, `Login failed: ${JSON.stringify(json)}`);
+      assert.equal(response.status, 201, `Login failed: ${safeJson(json)}`);
       assert.ok(this.cookies.get('zs_cloud_session') || this.cookies.get('zs_dev_session') || this.cookies.get('zs_session'), 'session cookie missing after login');
-      assert.ok(this.cookies.get('zs_cloud_csrf_token') || this.cookies.get('zs_dev_csrf_token') || this.cookies.get('zs_csrf_token'), 'csrf_token cookie missing after login');
+      assert.ok(this.cookies.get('zs_cloud_csrf_token') || this.cookies.get('zs_dev_csrf_token') || this.cookies.get('zs_csrf_token') || this.cookies.get('csrf_token'), 'csrf_token cookie missing after login');
       return json || {};
     }
     assert.fail("Login failed after 5 retries due to 429");
@@ -97,10 +101,10 @@ export class E2EClient {
   async post(path: string, body: unknown, expectedStatus = 201, customHeaders?: Record<string, string>): Promise<JsonValue> {
     const { response, json } = await this.request('POST', path, body, customHeaders);
     if (response.status !== expectedStatus) {
-      console.log(`POST ${path} Payload:`, JSON.stringify(body));
-      console.log(`POST ${path} Response:`, JSON.stringify(json));
+      console.log(`POST ${path} Payload:`, safeJson(body));
+      console.log(`POST ${path} Response:`, safeJson(json));
     }
-    assert.equal(response.status, expectedStatus, `POST ${path} failed: ${JSON.stringify(json)}`);
+    assert.equal(response.status, expectedStatus, `POST ${path} failed: ${safeJson(json)}`);
     return json || {};
   }
 

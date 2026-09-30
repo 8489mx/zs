@@ -47,7 +47,7 @@ jobs:
       LOGIN_MAX_ATTEMPTS: 5
       LOGIN_LOCKOUT_MINUTES: 15
       CORS_ORIGINS: http://127.0.0.1:5173
-      LOGIN_RATE_LIMIT_MAX: 10
+      LOGIN_RATE_LIMIT_MAX: 100
       LOGIN_RATE_LIMIT_WINDOW_SECONDS: 600
       AUTH_BURST_RATE_LIMIT_MAX: 60
       AUTH_BURST_RATE_LIMIT_WINDOW_SECONDS: 60
@@ -55,6 +55,8 @@ jobs:
       E2E_BASE_URL: http://127.0.0.1:3001
       E2E_USERNAME: owner
       E2E_PASSWORD: OwnerBootstrap2026!
+      MAIL_DELIVERY_MODE: console
+      PUBLIC_TRIAL_DEBUG_CREDENTIALS: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -108,6 +110,9 @@ jobs:
         working-directory: backend
       - name: Approval workflow integration
         run: npm run test:e2e:approvals
+        working-directory: backend
+      - name: SaaS onboarding and tenant lifecycle integration
+        run: npm run test:e2e:saas-lifecycle
         working-directory: backend
       - name: Upload backend log on failure
         if: failure()

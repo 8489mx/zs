@@ -2,11 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
+const archivedDocs = path.resolve(root, '..', 'docs', 'archive');
 const requiredDocs = [
   path.join(root, 'ARCHITECTURE.md'),
-  path.join(root, 'CLIENT_UAT_CHECKLIST.md'),
-  path.join(root, 'PHASE15_COMMERCIAL_POLISH.md'),
-  path.join(root, 'UAT_SIGNOFF.md'),
+  path.join(archivedDocs, 'CLIENT_UAT_CHECKLIST.md'),
+  path.join(archivedDocs, 'PHASE15_COMMERCIAL_POLISH.md'),
+  path.join(archivedDocs, 'UAT_SIGNOFF.md'),
+  path.resolve(root, '..', 'docs', 'LIVE_SAAS_OPERATIONS_CHECKLIST.md'),
 ];
 
 const requiredFiles = [
@@ -34,4 +36,4 @@ for (const scriptName of ['build', 'qa:critical', 'qa:guards', 'qa:release', 'qa
 }
 
 if (failed) process.exit(1);
-console.log('[release-audit] ok');
+console.log('[release-audit] release assets present; live UAT sign-off is a separate gate');
