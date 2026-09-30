@@ -10,7 +10,6 @@ import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/c
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
 import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useCustomersQuery } from '@/shared/hooks/use-catalog-queries';
-import { inventoryApi } from '@/shared/api/inventory.api';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
 import { QuickStockAdjustmentDialog } from '@/features/inventory/components/QuickStockAdjustmentDialog';
 import type { Product, ProductCustomerPrice, ProductUnit } from '@/types/domain';
@@ -69,7 +68,6 @@ export function EditProductForm({
   const customers = (customersQuery.data || []).map((customer) => ({ id: String(customer.id), name: customer.name }));
   const inventoryCatalog = useInventoryActionCatalog();
   const locations = inventoryCatalog.locationsQuery.data || [];
-  const branches = inventoryCatalog.branchesQuery.data || [];
 
   const [isStockAdjustmentOpen, setIsStockAdjustmentOpen] = useState(false);
 
@@ -538,7 +536,7 @@ export function EditProductForm({
                   >
                     <span>{Number(product?.stock || 0).toLocaleString('en-US')}</span>
                     <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginInlineStart: '4px' }}>
-                      {units[0]?.unitName || 'قطعة'}
+                      {units[0]?.name || 'قطعة'}
                     </span>
                   </div>
                   {product?.itemType !== 'service' && (

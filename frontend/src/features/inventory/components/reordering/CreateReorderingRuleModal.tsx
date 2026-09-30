@@ -8,7 +8,6 @@ import {
   SlidersIcon,
   TruckIcon,
   CheckShieldIcon,
-  AlertTriangleIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
   reorderingRulesApi,

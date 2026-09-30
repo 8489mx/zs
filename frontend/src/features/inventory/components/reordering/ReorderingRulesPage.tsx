@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/shared/ui/card';
-import { Button } from '@/shared/ui/button';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import {
   LayersIcon,
@@ -11,18 +10,19 @@ import {
   PlusCircleIcon,
   TruckIcon,
   AlertTriangleIcon,
-  ClockIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
   reorderingRulesApi,
   type ReorderingRuleRecord,
 } from '../../api/reordering-rules.api';
 import { useInventoryActionCatalog } from '../../hooks/useInventoryActionCatalog';
+import { useSuppliersQuery } from '@/shared/hooks/use-catalog-queries';
 import { CreateReorderingRuleModal } from './CreateReorderingRuleModal';
 
 export function ReorderingRulesPage() {
   const queryClient = useQueryClient();
   const inventoryCatalog = useInventoryActionCatalog();
+  const suppliersQuery = useSuppliersQuery();
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'breached' | 'normal'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -62,11 +62,11 @@ export function ReorderingRulesPage() {
 
   const suppliers = useMemo(
     () =>
-      (inventoryCatalog.suppliersQuery.data || []).map((s) => ({
+      (suppliersQuery.data || []).map((s: any) => ({
         id: s.id,
         name: s.name,
       })),
-    [inventoryCatalog.suppliersQuery.data],
+    [suppliersQuery.data],
   );
 
   const locations = useMemo(
@@ -343,6 +343,32 @@ export function ReorderingRulesPage() {
             >
               مستقرة وآمنة ({summary.totalRules - summary.breachedCount})
             </button>
+          </div>
+
+          {/* Warehouse Filter */}
+          <div style={{ minWidth: '160px' }}>
+            <select
+              value={selectedWarehouseId || ''}
+              onChange={(e) => setSelectedWarehouseId(e.target.value ? Number(e.target.value) : undefined)}
+              style={{
+                width: '100%',
+                height: '34px',
+                borderRadius: '7px',
+                border: '1px solid #cbd5e1',
+                padding: '0 10px',
+                fontSize: '0.8125rem',
+                boxSizing: 'border-box',
+                background: '#ffffff',
+                color: '#334155',
+              }}
+            >
+              <option value="">كافة المستودعات</option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Search Input */}
