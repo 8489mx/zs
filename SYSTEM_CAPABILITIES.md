@@ -6445,3 +6445,109 @@
 * **التحقق البرمجي:**
   - اختبارات الوحدة للمحرك: `backend/test/recruitment-ats-engine.spec.ts` بنجاح 100% لحوكمة الانتقال بين المراحل، ومطابقة السعة والشواغر، وتوليد كائن الموظف، ومقاييس القمع التوظيفي.
 
+---
+
+## 184. تكامل التسوية السريعة للمخزون داخل شاشة تعديل الصنف بنمط المصدر الموحد (Product Edit Quick Stock Adjustment Single Source Integration)
+* **حالة الوحدة / المعيار:** 🟢 مكتملة ومحمية بنسبة 100% (30 سبتمبر 2026).
+* **المسار:** `/products/:id/edit` ونوافذ تعديل الصنف في الـ POS (`PosEditProductModal`).
+* **المشكلة المعالجة:**
+  - تمكين مديري النظام والمخازن من تعديل وتسوية رصيد الصنف فورياً من داخل شاشة تعديل الصنف دون الحاجة للخروج والانتقال إلى شاشات تسوية الجرد المنفصلة، مع الالتزام التام بعدم كتابة كود مكرر وإعادة استخدام المكون والمحرك المعتمد في المخازن (Single Source of Truth).
+* **الهندسة والحلول المنفذة:**
+  1. **إعادة استخدام المكون الموحد الشامل (QuickStockAdjustmentDialog):**
+     - ربط شاشة `EditProductForm.tsx` بمكون `QuickStockAdjustmentDialog.tsx` المعتمد في موديول المخازن مباشرة دون أي تكرار كودي.
+     - دعم كافة أنماط الحركات: تسوية إلى كمية نهائية (`adjust`)، إضافة كمية للرصيد (`add`)، خصم كمية من الرصيد (`deduct`)، وتسجيل التالف (`damage`).
+  2. **الحوكمة وتكامل المحرك المالي والمخزني المعتمد:**
+     - استدعاء مسار التسوية المعتمد الذي يمر عبر `applyStockDelta` و `createInventoryAdjustment` لضمان توليد إذن جرد رسمي وقيد محاسبي صريح في الأستاذ العام وتحديث أرصدة المواقع وحفظ سجل التدقيق.
+  3. **تحديث الكاش اللحظي والواجهة التفاعلية:**
+     - إضافة زر تفاعلي مؤسسي أنيق «تسوية الرصيد» بأيقونة `<SlidersIcon size={12} />` واللون الكحلي القياسي `#170e5e` أعلى خانة المخزون الحالي.
+     - إبطال كاش الاستعلامات فور الحفظ بنجاح (`['product', productId]`, `['products']`, `['location-stocks']`) لينعكس الرصيد الجديد في حقل المخزون فورياً وتلقائياً.
+  4. **حماية فيض الأرقام المحاسبية للأصناف عالية القيمة (Migration 2040000000177):**
+     - ترقية وتوسيع الدقة الرقمية لحقول التكلفة (`unit_cost NUMERIC(16, 3)` و `total_cost NUMERIC(18, 3)`) في جدولي حركات المخزون `stock_movements` وحركات التالف `damaged_stock_records`.
+     - منع حدوث فيض رقمي (Numeric Field Overflow - Error 22003) عند تسوية كميات كبيرة من الأصناف باهظة الثمن (مثل أجهزة الآيفون أو المواد التي تتجاوز تكلفتها الإجمالية مليار وحدة نقدية).
+   5. **معالجة وتدقيق سبب وملاحظات التالف (Damaged Stock Note Fallback & Validation):**
+      - دعم التراجع التلقائي الذكي (Fallback): إذا قام المستخدم باختيار أو كتابة سبب التلف (مثل "كسر أثناء النقل / تلف مخزني") دون ملء خانة الملاحظات، يعتمد النظام سبب التالف تلقائياً كملاحظة رسمية للحركة (`effectiveNote`) طالما يتجاوز 8 أحرف، مما يقضي تماماً على خطأ `DAMAGE_NOTE_REQUIRED (400)`.
+      - التحقق الفوري بالفرونت إند: مواءمة `damagedStockSchema` لرفض المدخلات الأقل من 8 أحرف وعرض رسالة تنبيه واضحة على الحقل، وتحديث التسمية لمنع التضليل من «ملاحظات (اختياري)» إلى «ملاحظات وتفاصيل التلف (8 أحرف على الأقل)».
+* **الملفات المتصلة:**
+  - `backend/src/modules/inventory/services/inventory-count.service.ts`
+  - `backend/src/database/migrations/2040000000177_expand_stock_movement_cost_precision.ts`
+  - `frontend/src/features/inventory/schemas/inventory.schema.ts`
+  - `frontend/src/features/inventory/contracts.ts`
+  - `frontend/src/features/products/components/EditProductForm.tsx`
+  - `frontend/src/features/inventory/components/QuickStockAdjustmentDialog.tsx`
+  - `frontend/src/features/inventory/components/InventoryActionsPanel.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosEditProductModal.tsx`
+
+---
+
+## 185. معيار ثبات نافذة خيارات وتفريعات الأصناف بنقاط البيع داخل مجال الرؤية المباشر (POS Variants Modal Viewport-Anchored Standard)
+* **حالة الوحدة / المعيار:** 🟢 مكتملة ومحمية بنسبة 100% (30 سبتمبر 2026).
+* **المسار:** `/pos` (شاشة نقاط البيع والكاشير).
+* **المشكلة المعالجة:**
+  - عند التمرير لأسفل (Scroll down) في شبكة منتجات نقطة البيع لمسافات طويلة والنقر على صنف يحتوي على تفريعات أو خيارات (ألوان، مقاسات، عبوات)، كانت النافذة المنبثقة للاختيارات (`InlineGroupPicker`) تفتح في أعلى منطقة التمرير (`top: 0` للحاوية الممررة الداخلية)، مما يجبر الكاشير على التمرير للأعلى لرؤية الخيارات، ويشتت الانتباه ويفقد موقع التمرير.
+* **الهندسة والحلول المنفذة:**
+  1. **حاوية الرؤية المباشرة غير القابلة للتمرير (`pos-products-viewport-wrapper`):**
+     - فصل منطقة التمرير الداخلي (`pos-products-scroll`) عن الحاوية المرجعية النسبية، لتكون حاوية الرؤية الخارجية `position: relative; flex: 1 1 0%; overflow: hidden;`، ونقل نافذة الخيارات لتكون ابناً مباشراً لهذه الحاوية المرجعية.
+  2. **التثبيت الدائم في واجهة الكاشير (Viewport Anchoring):**
+     - تتمركز نافذة الخيارات المنبثقة مباشرة أمام أعين الكاشير وفي مجال الرؤية الحالي بغض النظر عن مدى عمق السكرول الذي وصل إليه في شبكة المنتجات (`inset: 0` نسبةً لحاوية الشاشة المباشرة).
+  3. **تجميد اهتزاز وسكرول الخلفية (Zero Background Jitter & Scroll Lock):**
+     - تطبيق `overflowY: openGroup ? 'hidden' : 'auto'` على شبكة المنتجات أثناء فتح نافذة الخيارات لمنع تحرك الأصناف بالخلفية عند استخدام عجلة الماوس أو اللمس، وعند الإغلاق يستأنف السكرول بنفس الموضع السابق تماماً (0 Scroll Jump).
+  4. **الحفاظ التام على أداء نقاط البيع:**
+     - صفر وميض وصفر إعادة تحميل للكتالوج مع بقاء سلة المشتريات والحسابات الجارية ثابتة ومحمية.
+* **الملفات المتصلة:**
+  - `frontend/src/features/pos/components/PosProductsPanel.tsx`
+  - `frontend/src/styles/partials/pos-compact-fix.css`
+
+---
+
+## 186. محرك قواعد إعادة الطلب التلقائي وتوليد أوامر الشراء (Automated Reordering Rules & Min/Max Auto-PO Generation - Odoo 18 Standard)
+* **حالة الوحدة / المعيار:** 🟢 مكتملة ومحمية ومختبرة بنسبة 100% (30 سبتمبر 2026).
+* **المسار:** `/inventory/reordering` و `/inventory` (زر وصول سريع بهيدر المخزون وقائمة التنقل الجانبية).
+* **المشكلة المعالجة والمطابقة مع أودو 18:**
+  - منع نفاد المخزون (Stockouts) والاعتماد على التقدير اليدوي أو مراقبة الأرفف، ومطابقة معيار أودو 18 (Odoo 18 Automated Reordering Rules) عبر حساب المخزون التقديري الافتراضي (Forecasted Virtual Stock) واحتساب البضاعة التي بالطريق وتوليد أوامر شراء مسودة مجمعة لكل مورد تلقائياً.
+* **الهندسة والحلول المنفذة:**
+  1. **المخزون الافتراضي التقديري (Forecasted / Virtual Stock Standard):**
+     - القاعدة لا تفحص الرصيد الفعلي بالمستودع بمفرده (On-Hand) بل تحسب المعادلة المؤسسية المعتمدة:
+       $$\text{Forecasted Stock} = \text{On-Hand} + \text{Incoming (Open POs)} - \text{Outgoing (Sales Reservations)}$$
+     - تم ربط الكميات المحجوزة فعلياً لطلبات البيع (`reserved_qty`) من جدول أرصدة المواقع `product_location_stock` وجدول الأصناف `products`، ليتم خصمها بالمليم من رصيد الصنف المتوقع، مما يمنع الازدواج المالي ويحمي من عجز التوريد.
+  2. **محرك الحسابات النقي المعزول (Pure Calculation Engine):**
+     - استخراج كامل المنطق الحسابي في `reordering-rule.engine.ts` مستقلاً عن قاعدة البيانات، ويشمل:
+       - `calculateForecastedStock`: حساب المخزون التقديري (الفعلي + الوارد - المحجوز).
+       - `evaluateReorderingRule`: فحص خرق الحد الأدنى (`forecastedStock < min_qty`) وحساب الكمية المطلوبة للوصول إلى الحد الأقصى (`max_qty - forecastedStock`) مع تطبيق مضاعف الدفعة (Batch Multiple Rounding).
+       - `groupReorderItemsBySupplier`: تجميع البنود المنتهية حسب المورد المفضل (Preferred Supplier) لدمجها في أمر شراء واحد.
+  3. **تقريب مضاعف العبوات (Batch Multiple Rounding):**
+     - عند تحديد مضاعف كمية (مثل عبوة كرتونة 12 أو 24 قطعة)، يقوم المحرك بتقريب الكمية المطلوبة تلقائياً للأعلى إلى أقرب مضاعف صحيح باستخدام `Math.ceil(shortage / multiple) * multiple`.
+  4. **تجميع وتوليد أوامر الشراء المسودة (Supplier Consolidation & Auto-PO Generation):**
+     - الخدمة `reordering-rules.service.ts` تقوم بفحص جميع القواعد المفعلة، واسترجاع الكميات المفتوحة في أوامر الشراء المعلقة وأذونات الصرف، وتجميع الأصناف التي خرقت الحد الأدنى حسب المورد المفضل.
+     - توليد أمر شراء مسودة واحد مجمع (Draft PO) لكل مورد يحمل ترقيماً مستندياً موحداً بالصيغة المؤسسية `PO-YYMMDD-XXXX`.
+     - تسجيل توقيت آخر فحص (`last_evaluated_at`) وحالة الخرق (`is_breached`) في جدول `reordering_rules`.
+  5. **الجدولة والأتمتة الآلية في الخلفية (Background Reordering Scheduler):**
+     - خدمة `ReorderingSchedulerService` تعمل بنمط `OnApplicationBootstrap` لفحص دوري أوتوماتيكي عبر كافة الشركات والمستأجرين كل 6 ساعات (مع فحص مبدئي بعد 45 ثانية من الإقلاع)، لتوليد أوامر الشراء المسودة للنواقص تلقائياً في الخلفية تماماً كمعيار أودو دون انتظار التدخل البشري.
+  6. **قاعدة البيانات وهيكل الهجرة (Migration 2040000000178):**
+     - إنشاء جدول `reordering_rules` مدعوماً بفهارس عزل المستأجر `tenant_id`، معرّف الصنف `product_id`، موقع التخزين `location_id`، والمورد المفضل `preferred_supplier_id`.
+  7. **واجهة المستخدم التفاعلية وإدارة القواعد الكاملة (ReorderingRulesPage.tsx & CreateReorderingRuleModal.tsx):**
+     - بطاقات إحصائيات سريعة (إجمالي القواعد المفعلة، الأصناف الخارقة للحد الأدنى، إجمالي أوامر الشراء المقترحة).
+     - جدول استعراض القواعد بالحد الأدنى والأقصى ومضاعف العبوة مع تفصيل كامل للأرصدة (الرصيد الفعلي، الوارد بالطريق، المحجوز لطلبات البيع، والمخزون التقديري الصافي).
+     - دعم كامل لعمليات الإدارة (Full CRUD): إنشاء قاعدة جديدة، تعديل قاعدة قائمة بنقرة زر، وحذف القاعدة مع حوار تأكيد رسمي `systemConfirm`.
+     - زر فحص وتشغيل يدوي فوري «تشغيل فحص إعادة الطلب وتوليد أوامر الشراء» مع إشعارات نجاح فورية وأرقام أوامر الشراء الصادرة.
+* **الملفات المتصلة:**
+  - `backend/src/database/migrations/2040000000178_inventory_automated_reordering_rules.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/inventory/engines/reordering-rule.engine.ts`
+  - `backend/test/reordering-rule-engine.spec.ts`
+  - `backend/src/modules/inventory/dto/reordering-rule.dto.ts`
+  - `backend/src/modules/inventory/services/reordering-rules.service.ts`
+  - `backend/src/modules/inventory/services/reordering-scheduler.service.ts`
+  - `backend/src/modules/inventory/controllers/reordering-rules.controller.ts`
+  - `backend/src/modules/inventory/inventory.module.ts`
+  - `frontend/src/features/inventory/api/reordering-rules.api.ts`
+  - `frontend/src/features/inventory/components/reordering/CreateReorderingRuleModal.tsx`
+  - `frontend/src/features/inventory/components/reordering/ReorderingRulesPage.tsx`
+  - `frontend/src/features/inventory/components/InventoryWorkspaceHeader.tsx`
+  - `frontend/src/features/inventory/routes.tsx`
+  - `frontend/src/app/router/access.ts`
+* **التحقق البرمجي:**
+  - اختبارات الوحدة للمحرك: `backend/test/reordering-rule-engine.spec.ts` بنجاح 100% لفحص الحالات الحدية، التقريب للمضاعف، وتجميع الأصناف حسب المورد، وحساب المخزون الافتراضي.
+
+
+
+
