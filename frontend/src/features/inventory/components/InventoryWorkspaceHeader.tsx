@@ -44,6 +44,20 @@ export function InventoryWorkspaceHeader({
             {primaryAction ? (
               <Link to={primaryAction.to}><Button>{primaryAction.label}</Button></Link>
             ) : null}
+            <Link to="/inventory/reordering">
+              <Button
+                variant="secondary"
+                title="قواعد إعادة الطلب التلقائي وتوليد أوامر الشراء (Min/Max Rules)"
+                style={{
+                  fontWeight: 700,
+                  color: '#1e40af',
+                  backgroundColor: '#eff6ff',
+                  borderColor: '#bfdbfe',
+                }}
+              >
+                قواعد إعادة الطلب
+              </Button>
+            </Link>
             <Button
               variant="secondary"
               onClick={() => setIsSmartRestockOpen(true)}

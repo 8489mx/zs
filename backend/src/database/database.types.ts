@@ -4425,6 +4425,7 @@ export interface Database {
   quality_non_conformance_reports: QualityNonConformanceReportsTable;
   recruitment_job_openings: RecruitmentJobOpeningsTable;
   recruitment_applicants: RecruitmentApplicantsTable;
+  reordering_rules: ReorderingRulesTable;
 }
 
 export interface CommercialSubscriptionTable {
@@ -4593,6 +4594,29 @@ export interface RecruitmentApplicantsTable {
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
+
+export interface ReorderingRulesTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  product_id: number;
+  warehouse_id: number | null;
+  branch_id: number | null;
+  min_qty: number;
+  max_qty: number;
+  qty_multiple: number;
+  preferred_supplier_id: number | null;
+  action_mode: string;
+  is_active: boolean;
+  last_run_at: ColumnType<Date, string | Date | undefined, string | Date | undefined> | null;
+  last_trigger_status: string | null;
+  last_generated_po_id: number | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 
 
 

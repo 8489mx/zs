@@ -59,6 +59,8 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/inventory/packages': 'inventory',
   'inventory-quality': 'inventory',
   '/inventory/quality': 'inventory',
+  'inventory-reordering': 'inventory',
+  '/inventory/reordering': 'inventory',
   'inventory-batches': 'inventory',
   '/inventory/batches': 'inventory',
   'inventory-issue-orders': 'inventory',

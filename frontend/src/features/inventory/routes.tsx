@@ -11,10 +11,12 @@ const inventoryBatchesPage = createLazyRoute(() => import('@/features/inventory/
 const warehouseBinsPage = createLazyRoute(() => import('@/features/inventory/pages/WarehouseBinsPage').then((module) => ({ default: module.WarehouseBinsPage })));
 const packagesManagementPage = createLazyRoute(() => import('@/features/inventory/pages/PackagesManagementPage').then((module) => ({ default: module.PackagesManagementPage })));
 const qualityDashboardPage = createLazyRoute(() => import('@/features/inventory/pages/QualityDashboardPage').then((module) => ({ default: module.QualityDashboardPage })));
+const reorderingRulesPage = createLazyRoute(() => import('@/features/inventory/components/reordering/ReorderingRulesPage').then((module) => ({ default: module.ReorderingRulesPage })));
 
 export const inventoryRouteModule: FeatureRouteModule = {
   routes: [
     { path: 'inventory', element: inventoryPage },
+    { path: 'inventory/reordering', element: reorderingRulesPage },
     { path: 'inventory/quality', element: qualityDashboardPage },
     { path: 'inventory/packages', element: packagesManagementPage },
     { path: 'inventory/bins', element: warehouseBinsPage },
@@ -24,6 +26,7 @@ export const inventoryRouteModule: FeatureRouteModule = {
     { path: 'inventory/batches', element: inventoryBatchesPage },
     { path: 'inventory/issue-order/new', element: newIssueOrderPage },
     { path: 'inventory/tree', element: inventoryTreePage },
+    { path: 'inventory-reordering', element: <Navigate to="/inventory/reordering" replace /> },
     { path: 'inventory-tree', element: <Navigate to="/inventory/tree" replace /> },
     { path: 'inventory-packages', element: <Navigate to="/inventory/packages" replace /> },
     { path: 'inventory-quality', element: <Navigate to="/inventory/quality" replace /> },
@@ -45,6 +48,7 @@ export const inventoryRouteModule: FeatureRouteModule = {
         '/inventory/movements'
       ]
     },
+    { key: 'inventory-reordering', label: 'قواعد إعادة الطلب (Min/Max)', to: '/inventory/reordering' },
     { key: 'inventory-quality', label: 'إدارة الجودة والامتثال (QA / NCR)', to: '/inventory/quality' },
     { key: 'inventory-packages', label: 'الطرود والطبليات (Pack-in-Pack)', to: '/inventory/packages' },
     { key: 'inventory-batches', label: 'التشغيلات والصلاحيات', to: '/inventory/batches' },

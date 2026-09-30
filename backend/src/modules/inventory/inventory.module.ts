@@ -15,6 +15,9 @@ import { WarehousePackagesController } from './controllers/warehouse-packages.co
 import { WarehousePackagesService } from './services/warehouse-packages.service';
 import { QualityAssuranceController } from './controllers/quality-assurance.controller';
 import { QualityAssuranceService } from './services/quality-assurance.service';
+import { ReorderingRulesController } from './controllers/reordering-rules.controller';
+import { ReorderingRulesService } from './services/reordering-rules.service';
+import { ReorderingSchedulerService } from './services/reordering-scheduler.service';
 
 @Module({
   imports: [AuditModule, AccountingModule],
@@ -23,6 +26,7 @@ import { QualityAssuranceService } from './services/quality-assurance.service';
     WarehouseBinsController,
     WarehousePackagesController,
     QualityAssuranceController,
+    ReorderingRulesController,
   ],
   providers: [
     InventoryScopeService,
@@ -34,6 +38,8 @@ import { QualityAssuranceService } from './services/quality-assurance.service';
     WarehouseBinsService,
     WarehousePackagesService,
     QualityAssuranceService,
+    ReorderingRulesService,
+    ReorderingSchedulerService,
   ],
   exports: [
     InventoryScopeService,
@@ -41,6 +47,8 @@ import { QualityAssuranceService } from './services/quality-assurance.service';
     WarehouseBinsService,
     WarehousePackagesService,
     QualityAssuranceService,
+    ReorderingRulesService,
+    ReorderingSchedulerService,
   ],
 })
 export class InventoryModule {}
