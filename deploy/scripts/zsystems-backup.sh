@@ -24,14 +24,14 @@
 # فرفع 24 ملفاً يومياً إلى حساب Free Tier يملأ الحاوية بلا حدّ. الحماية الجغرافية الكاملة تبقى
 # على النسخة اليومية، والساعية تحمي من الأعطال والحذف الخاطئ وفساد القاعدة.
 #
-# مشفّر إن وُجد /etc/zsystems/backup-passphrase (متوافق مع openssl enc -aes-256-cbc -pbkdf2).
+# يُرفض التشغيل إذا غاب /etc/zsystems/backup-passphrase؛ كل نسخة تغادر السيرفر مشفرة
+# (متوافق مع openssl enc -aes-256-cbc -pbkdf2).
 # الاسترجاع: deploy/scripts/zsystems-restore.sh — ودليل كامل في docs/DISASTER_RECOVERY.md.
 # تمرين استرجاع آلي أسبوعي: deploy/scripts/zsystems-restore-drill.sh (DEPLOY-8).
 #
 # الوجهتان الخارجيتان مستقلتان: فشل واحدة لا يمنع الأخرى، لكن السكربت يخرج بخطأ في النهاية.
 #
-# لو فشل تجميع الحزم لأي سبب، تُرفع نسخة pg_dump العادية بدلاً منها: نسخة السيرفر لا تضيع أبداً
-# بسبب خطأ في الحزم.
+# لو فشل تجميع الحزم لأي سبب، تُرفع نسخة pg_dump مشفرة بدلاً منها؛ لا يُسمح برفع dump خام.
 set -euo pipefail
 
 MODE="${1:-daily}"
@@ -53,6 +53,13 @@ DB_NAME="zsystems_db"
 DB_USER="postgres"
 KEEP_DAYS=14
 HOURLY_KEEP_DAYS=3
+
+# النسخ الخارجية تحتوي بيانات كل العملاء. لا نبدأ النسخ أصلاً من غير مفتاح تشفير صالح؛
+# رفع dump خام أو bundle غير مشفر أخطر من تأخير النسخة والإبلاغ بالفشل.
+if [ ! -s "$PASSPHRASE_FILE" ]; then
+  echo "[$(date)] ERROR: $PASSPHRASE_FILE is missing or empty; refusing to create or upload an unencrypted backup" >&2
+  exit 1
+fi
 
 mkdir -p "$BACKUP_DIR"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
@@ -80,18 +87,14 @@ if [ "$MODE" = "hourly" ]; then
   # نسخة الساعة: تشفير مباشر بلا تجميع حزم العملاء. نفس خوارزمية الملف المجمّع
   # حتى يفكّها نفس الأمر المذكور في دليل الاسترجاع.
   UPLOAD_FILE="$DUMP_FILE"
-  if [ -r "$PASSPHRASE_FILE" ]; then
-    ENC_FILE="$DUMP_FILE.enc"
-    if openssl enc -aes-256-cbc -pbkdf2 -salt -in "$DUMP_FILE" -out "$ENC_FILE" -pass "file:$PASSPHRASE_FILE"; then
-      rm -f "$DUMP_FILE"
-      UPLOAD_FILE="$ENC_FILE"
-    else
-      rm -f "$ENC_FILE"
-      echo "[$(date)] ERROR: hourly encryption failed - keeping the plain local copy and NOT uploading it" >&2
-      exit 1
-    fi
+  ENC_FILE="$DUMP_FILE.enc"
+  if openssl enc -aes-256-cbc -pbkdf2 -salt -in "$DUMP_FILE" -out "$ENC_FILE" -pass "file:$PASSPHRASE_FILE"; then
+    rm -f "$DUMP_FILE"
+    UPLOAD_FILE="$ENC_FILE"
   else
-    echo "[$(date)] WARNING: $PASSPHRASE_FILE missing - hourly copy is NOT encrypted" >&2
+    rm -f "$DUMP_FILE" "$ENC_FILE"
+    echo "[$(date)] ERROR: hourly encryption failed - deleting the plain dump and uploading nothing" >&2
+    exit 1
   fi
 
   find "$BACKUP_DIR" -type f -name "zsystems_hourly_*" -mtime +"$HOURLY_KEEP_DAYS" -delete
@@ -118,12 +121,8 @@ fi
 UPLOAD_FILE="$DUMP_FILE"
 BUNDLE_FILE="$BACKUP_DIR/zsystems_backup_$TIMESTAMP.zip"
 PASS_ARGS=()
-if [ -r "$PASSPHRASE_FILE" ]; then
-  BUNDLE_FILE="$BUNDLE_FILE.enc"
-  PASS_ARGS=(--passphrase-file "$PASSPHRASE_FILE")
-else
-  echo "[$(date)] WARNING: $PASSPHRASE_FILE missing - bundle is NOT encrypted" >&2
-fi
+BUNDLE_FILE="$BUNDLE_FILE.enc"
+PASS_ARGS=(--passphrase-file "$PASSPHRASE_FILE")
 
 set +e
 (cd "$APP_BACKEND" && /usr/bin/node --env-file=.env dist/tools/zs-backup-tool.js bundle \
@@ -139,7 +138,15 @@ if [ "$BUNDLE_STATUS" -eq 0 ] || [ "$BUNDLE_STATUS" -eq 2 ]; then
 else
   rm -f "$BUNDLE_FILE"
   FAILED=1
-  echo "[$(date)] ERROR: bundle failed (exit $BUNDLE_STATUS) - uploading the plain database dump instead" >&2
+  ENC_DUMP_FILE="$DUMP_FILE.enc"
+  if ! openssl enc -aes-256-cbc -pbkdf2 -salt -in "$DUMP_FILE" -out "$ENC_DUMP_FILE" -pass "file:$PASSPHRASE_FILE"; then
+    rm -f "$DUMP_FILE" "$ENC_DUMP_FILE"
+    echo "[$(date)] ERROR: bundle failed (exit $BUNDLE_STATUS) and encrypted dump fallback failed; nothing uploaded" >&2
+    exit 1
+  fi
+  rm -f "$DUMP_FILE"
+  UPLOAD_FILE="$ENC_DUMP_FILE"
+  echo "[$(date)] ERROR: bundle failed (exit $BUNDLE_STATUS) - uploading encrypted full-database fallback" >&2
 fi
 
 find "$BACKUP_DIR" -type f \( -name "zsystems_db_*.sql.gz" -o -name "zsystems_backup_*" \) -mtime +"$KEEP_DAYS" -delete

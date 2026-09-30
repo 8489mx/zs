@@ -137,11 +137,17 @@ export class ZatcaOnboardingService {
         const data = await response.json();
         complianceCsid = data.binarySecurityToken || '';
         complianceSecret = data.secret || '';
-      } else {
-        // Fallback for developer simulation testing if offline
+        if (!complianceCsid || !complianceSecret) {
+          throw new Error('ZATCA returned an incomplete compliance credential response');
+        }
+      } else if (egs.environment !== 'production') {
+        // Simulation fallback is allowed only for explicitly non-production EGS units.
+        // A production unit must never be marked compliant without a real ZATCA response.
         const simulatedToken = Buffer.from(`ZATCA-COMPLIANCE-${egs.device_uuid}-${Date.now()}`).toString('base64');
         complianceCsid = simulatedToken;
         complianceSecret = crypto.randomBytes(16).toString('hex');
+      } else {
+        throw new Error(`ZATCA compliance request failed with HTTP ${response.status}`);
       }
 
       await this.db
@@ -182,6 +188,10 @@ export class ZatcaOnboardingService {
       throw new BadRequestException('يجب اجتياز مرحلة الامتثال (Compliance) أولاً.');
     }
 
+    if (egs.environment !== 'production') {
+      throw new BadRequestException('لا يمكن طلب شهادة إنتاج لوحدة EGS غير مضبوطة على بيئة الإنتاج.');
+    }
+
     const baseUrl = this.getZatcaBaseUrl(egs.environment);
     const authHeader = `Basic ${Buffer.from(`${egs.compliance_csid}:${egs.compliance_secret}`).toString('base64')}`;
 
@@ -205,9 +215,11 @@ export class ZatcaOnboardingService {
         const data = await response.json();
         productionCsid = data.binarySecurityToken || '';
         productionSecret = data.secret || '';
+        if (!productionCsid || !productionSecret) {
+          throw new Error('ZATCA returned an incomplete production credential response');
+        }
       } else {
-        productionCsid = Buffer.from(`ZATCA-PRODUCTION-${egs.device_uuid}-${Date.now()}`).toString('base64');
-        productionSecret = crypto.randomBytes(24).toString('hex');
+        throw new Error(`ZATCA production CSID request failed with HTTP ${response.status}`);
       }
 
       await this.db

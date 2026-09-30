@@ -76,6 +76,9 @@ function testBackupScript(): void {
   assert.ok(/set -euo pipefail/.test(backupScript), 'a failed pg_dump must fail the backup, not write an empty file');
   assert.ok(/PostgreSQL database dump complete/.test(backupScript), 'the dump must be verified complete before it is kept');
   assert.ok(/\/etc\/zsystems\/backup-par-url/.test(backupScript), 'the off-site upload URL is read from the server, not the repo');
+  assert.ok(/refusing to create or upload an unencrypted backup/.test(backupScript), 'backups must fail closed when the encryption passphrase is missing');
+  assert.ok(/encrypted full-database fallback/.test(backupScript), 'a failed bundle must fall back to an encrypted dump, never a raw dump');
+  assert.ok(!/uploading the plain database dump instead/.test(backupScript), 'raw database dumps must never be uploaded');
 }
 
 // DEPLOY-6: no Object Storage pre-authenticated URL is ever committed (the repo is public).

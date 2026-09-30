@@ -83,6 +83,9 @@ jobs:
       - name: Sales return cost regression
         run: npm run test:returns-cost
         working-directory: backend
+      - name: ZATCA and encrypted backup safety
+        run: npm run test:zatca-safety
+        working-directory: backend
       - name: Start backend for E2E
         run: |
           npm run migration:run
