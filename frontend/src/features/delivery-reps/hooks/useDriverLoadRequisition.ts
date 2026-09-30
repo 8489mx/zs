@@ -17,7 +17,7 @@ export function useDriverLoadRequisition(selectedWarehouseFilter: string, option
   const session = useMemo(() => driverPortalApi.getStoredSession(), []);
 
   const driverName = session?.rep?.fullName || session?.rep?.name || 'مندوب التوزيع الميداني';
-  const vehiclePlate = session?.rep?.vehiclePlate ? `سيارة رقم [${session.rep.vehiclePlate}]` : 'سيارة التوزيع الميدانية';
+  const vehiclePlate = session?.rep?.vehiclePlate || '';
 
   // 1. Fetch available warehouses (with full offline fallback)
   const warehousesQuery = useQuery<DriverWarehouse[]>({

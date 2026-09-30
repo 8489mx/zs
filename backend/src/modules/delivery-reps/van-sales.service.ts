@@ -20,6 +20,10 @@ export interface VanStockItem {
   costPrice: number;
   retailPrice: number;
   unitName?: string;
+  originalPrice?: number;
+  discountPerUnit?: number;
+  hasActiveOffer?: boolean;
+  offerBadge?: string;
 }
 
 export interface VanTripSummary {
@@ -387,16 +391,74 @@ export class VanSalesService {
       }
     }
 
-    const inventory: VanStockItem[] = invRows.map((r: any) => ({
-      productId: Number(r.productId),
-      productName: r.productName || `صنف #${r.productId}`,
-      barcode: r.barcode || '',
-      qty: Number(r.qty || 0),
-      mainWarehouseQty: mainStockMap.get(Number(r.productId)) || 0,
-      costPrice: Number(r.costPrice || 0),
-      retailPrice: Number(r.retailPrice || 0),
-      unitName: r.unitName || 'قطعة',
-    }));
+    // Query active promotional offers for van inventory items
+    const prodIds = invRows.map((r: any) => Number(r.productId)).filter((id: number) => id > 0);
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const activeOffers = prodIds.length > 0
+      ? await this.anyDb
+          .selectFrom('product_offers')
+          .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
+          .where('product_id', 'in', prodIds)
+          .where('tenant_id', '=', tenantId)
+          .where('is_active', '=', true)
+          .where((eb: any) =>
+            eb.and([
+              eb.or([eb('start_date', 'is', null), eb('start_date', '<=', todayIso)]),
+              eb.or([eb('end_date', 'is', null), eb('end_date', '>=', todayIso)]),
+            ])
+          )
+          .orderBy('id', 'desc')
+          .execute()
+      : [];
+
+    const offersByProdId = new Map<number, any>();
+    for (const off of activeOffers) {
+      const pid = Number(off.product_id);
+      if (!offersByProdId.has(pid)) {
+        offersByProdId.set(pid, off);
+      }
+    }
+
+    const inventory: VanStockItem[] = invRows.map((r: any) => {
+      const pid = Number(r.productId);
+      const baseRetail = Number(r.retailPrice || 0);
+      const offer = offersByProdId.get(pid);
+      let effectiveRetail = baseRetail;
+      let discountPerUnit = 0;
+      let offerBadge: string | undefined;
+
+      if (offer) {
+        const offVal = Number(offer.value || 0);
+        if (offer.offer_type === 'percent' && offVal > 0) {
+          discountPerUnit = Number(((baseRetail * offVal) / 100).toFixed(2));
+          effectiveRetail = Math.max(0, Number((baseRetail - discountPerUnit).toFixed(2)));
+          offerBadge = `خصم ${offVal}%`;
+        } else if (offer.offer_type === 'fixed' && offVal > 0) {
+          discountPerUnit = Math.min(baseRetail, offVal);
+          effectiveRetail = Math.max(0, Number((baseRetail - discountPerUnit).toFixed(2)));
+          offerBadge = `خصم ${offVal} ج.م`;
+        } else if (offer.offer_type === 'price' && offVal > 0) {
+          effectiveRetail = offVal;
+          discountPerUnit = Math.max(0, Number((baseRetail - effectiveRetail).toFixed(2)));
+          offerBadge = `سعر عرض خاص`;
+        }
+      }
+
+      return {
+        productId: pid,
+        productName: r.productName || `صنف #${pid}`,
+        barcode: r.barcode || '',
+        qty: Number(r.qty || 0),
+        mainWarehouseQty: mainStockMap.get(pid) || 0,
+        costPrice: Number(r.costPrice || 0),
+        retailPrice: effectiveRetail,
+        originalPrice: offer && discountPerUnit > 0 ? baseRetail : undefined,
+        discountPerUnit: discountPerUnit > 0 ? discountPerUnit : undefined,
+        hasActiveOffer: Boolean(offer && discountPerUnit > 0),
+        offerBadge,
+        unitName: r.unitName || 'قطعة',
+      };
+    });
 
     // Fetch route customers with current debt balances
     const customerRows = await this.anyDb
@@ -448,6 +510,8 @@ export class VanSalesService {
           's.id',
           's.doc_no as docNo',
           sql<number>`cast(s.total as double precision)`.as('total'),
+          sql<number>`cast(coalesce(s.subtotal, s.total) as double precision)`.as('subtotal'),
+          sql<number>`cast(coalesce(s.discount, 0) as double precision)`.as('discount'),
           's.payment_type as paymentMethod',
           's.created_at as createdAt',
           'c.name as customerName',
@@ -462,6 +526,8 @@ export class VanSalesService {
         ...s,
         id: Number(s.id),
         total: Number(s.total || 0),
+        subtotal: Number(s.subtotal || s.total || 0),
+        discount: Number(s.discount || 0),
       }));
 
       tripCollections = await this.anyDb
@@ -854,6 +920,8 @@ export class VanSalesService {
     saleId: number;
     docNo: string;
     total: number;
+    subtotal?: number;
+    discount?: number;
     paymentMethod: string;
     customerName: string;
     itemsCount: number;
@@ -952,6 +1020,8 @@ export class VanSalesService {
 
     let docNo = '';
     let totalSale = 0;
+    let subtotalSale = 0;
+    let discountSale = 0;
     let createdSaleId = 0;
     let cashPaid = 0;
     let creditOwed = 0;
@@ -1004,8 +1074,11 @@ export class VanSalesService {
         });
 
         const unitPrice = item.unitPrice ? Number(item.unitPrice) : Number(prod?.retail_price || 0);
+        const originalPrice = (item as any).originalPrice ? Number((item as any).originalPrice) : Math.max(unitPrice, Number(prod?.retail_price || 0));
         const lineTotal = unitPrice * qty;
+        const lineSubtotal = originalPrice * qty;
         totalSale += lineTotal;
+        subtotalSale += lineSubtotal;
 
         saleItemRecords.push({
           product_id: pid,
@@ -1016,6 +1089,9 @@ export class VanSalesService {
           cost_price: Number(prod?.cost_price || 0),
         });
       }
+
+      if (subtotalSale < totalSale) subtotalSale = totalSale;
+      discountSale = Number(Math.max(0, subtotalSale - totalSale).toFixed(2));
 
       const systemAuth = await this.resolveSystemAuthContext(tenantId, accountId);
       const createdByUserId = systemAuth.userId > 0 ? systemAuth.userId : null;
@@ -1049,8 +1125,8 @@ export class VanSalesService {
         .values({
           doc_no: tempDocNo,
           total: totalSale,
-          subtotal: totalSale,
-          discount: 0,
+          subtotal: subtotalSale,
+          discount: discountSale,
           // Money collected in the field sits with the rep, not the till, until settleTrip — so
           // this is never marked paid here. postSale below books the full total as a receivable,
           // exactly like a cash-on-delivery order, and postVanTripSettlement clears it later.
@@ -1245,6 +1321,8 @@ export class VanSalesService {
       saleId: createdSaleId,
       docNo,
       total: Number(totalSale.toFixed(2)),
+      subtotal: Number(subtotalSale.toFixed(2)),
+      discount: Number(discountSale.toFixed(2)),
       paymentMethod: payload.paymentMethod,
       customerName,
       itemsCount: payload.items.length,
@@ -3161,6 +3239,52 @@ export class VanSalesService {
       const prodMap = new Map<number, any>();
       prods.forEach((p: any) => prodMap.set(Number(p.id), p));
 
+      const unitRows = await this.anyDb
+        .selectFrom('product_units')
+        .select(['product_id', 'name', 'multiplier', 'is_base_unit'])
+        .where('tenant_id', '=', tenantId)
+        .where('product_id', 'in', pids)
+        .orderBy('multiplier', 'desc')
+        .execute();
+
+      const unitsMap = new Map<number, {
+        baseUnitName: string;
+        packagingUnit?: { name: string; multiplier: number };
+        isWeight: boolean;
+      }>();
+
+      for (const u of unitRows) {
+        const pid = Number(u.product_id);
+        let entry = unitsMap.get(pid);
+        if (!entry) {
+          entry = { baseUnitName: 'قطعة', isWeight: false };
+          unitsMap.set(pid, entry);
+        }
+        const mult = Number(u.multiplier || 1);
+        const name = (u.name || '').trim();
+        const isBase = Boolean(u.is_base_unit) || mult === 1;
+
+        if (isBase) {
+          entry.baseUnitName = name || 'قطعة';
+          const lower = name.toLowerCase();
+          if (
+            lower.includes('كجم') ||
+            lower.includes('كيلو') ||
+            lower.includes('جرام') ||
+            lower.includes('جم') ||
+            lower.includes('طن') ||
+            lower.includes('kg') ||
+            lower.includes('gram')
+          ) {
+            entry.isWeight = true;
+          }
+        } else if (mult > 1) {
+          if (!entry.packagingUnit || name.includes('كرتون') || name.includes('صندوق') || name.includes('طرد') || name.includes('شيكارة')) {
+            entry.packagingUnit = { name: name || 'كرتونة', multiplier: mult };
+          }
+        }
+      }
+
       for (const r of parsedRows) {
         const stocks = await this.anyDb
           .selectFrom('product_location_stock')
@@ -3172,21 +3296,61 @@ export class VanSalesService {
         const stockMap = new Map<number, number>();
         stocks.forEach((s: any) => stockMap.set(Number(s.product_id), Number(s.qty || 0)));
 
-        r.requestedItems = r.requestedItems.map((it: any) => ({
-          ...it,
-          productName: prodMap.get(Number(it.productId))?.name || `صنف #${it.productId}`,
-          barcode: prodMap.get(Number(it.productId))?.barcode || '',
-          retailPrice: Number(prodMap.get(Number(it.productId))?.retailPrice || 0),
-          warehouseAvailQty: stockMap.get(Number(it.productId)) || 0,
-        }));
+        const enrichItem = (it: any) => {
+          const pid = Number(it.productId);
+          const p = prodMap.get(pid);
+          const uInfo = unitsMap.get(pid);
+          const packUnit = it.packagingUnit || uInfo?.packagingUnit;
+          const baseName = it.unitName || uInfo?.baseUnitName || 'قطعة';
+          const isWeight = it.isWeight !== undefined
+            ? Boolean(it.isWeight)
+            : Boolean(uInfo?.isWeight || /كجم|كيلو|جرام|جم|وزن|kg/i.test(p?.name || ''));
 
-        r.approvedItems = r.approvedItems.map((it: any) => ({
-          ...it,
-          productName: prodMap.get(Number(it.productId))?.name || `صنف #${it.productId}`,
-          barcode: prodMap.get(Number(it.productId))?.barcode || '',
-          retailPrice: Number(prodMap.get(Number(it.productId))?.retailPrice || 0),
-          warehouseAvailQty: stockMap.get(Number(it.productId)) || 0,
-        }));
+          let cartons = it.cartons !== undefined ? Number(it.cartons) : undefined;
+          let pieces = it.pieces !== undefined ? Number(it.pieces) : undefined;
+          const qty = Number(it.qty || 0);
+
+          if (cartons === undefined && packUnit && packUnit.multiplier > 1) {
+            cartons = Math.floor(qty / packUnit.multiplier);
+            pieces = qty % packUnit.multiplier;
+          }
+
+          let packingText = it.packingText;
+          if (!packingText) {
+            if (packUnit && (cartons !== undefined || pieces !== undefined)) {
+              const c = cartons || 0;
+              const pCount = pieces || 0;
+              if (c > 0 && pCount > 0) {
+                packingText = `${c} ${packUnit.name} + ${pCount} ${baseName}`;
+              } else if (c > 0) {
+                packingText = `${c} ${packUnit.name}`;
+              } else {
+                packingText = `${pCount} ${baseName}`;
+              }
+            } else if (isWeight) {
+              packingText = `${qty} ${baseName}`;
+            } else {
+              packingText = `${qty} ${baseName}`;
+            }
+          }
+
+          return {
+            ...it,
+            productName: p?.name || `صنف #${pid}`,
+            barcode: p?.barcode || '',
+            retailPrice: Number(p?.retailPrice || 0),
+            warehouseAvailQty: stockMap.get(pid) || 0,
+            unitName: baseName,
+            packagingUnit: packUnit,
+            isWeight,
+            cartons,
+            pieces,
+            packingText,
+          };
+        };
+
+        r.requestedItems = r.requestedItems.map(enrichItem);
+        r.approvedItems = r.approvedItems.map(enrichItem);
       }
     }
 
@@ -3400,10 +3564,62 @@ export class VanSalesService {
       }
     }
 
+    const productIds = products.map((p: any) => Number(p.id));
+    const unitsMap = new Map<number, {
+      baseUnitName: string;
+      packagingUnit?: { name: string; multiplier: number };
+      isWeight: boolean;
+    }>();
+
+    if (productIds.length > 0) {
+      const unitRows = await this.anyDb
+        .selectFrom('product_units')
+        .select(['product_id', 'name', 'multiplier', 'is_base_unit'])
+        .where('tenant_id', '=', tenantId)
+        .where('product_id', 'in', productIds)
+        .orderBy('multiplier', 'desc')
+        .execute();
+
+      for (const u of unitRows) {
+        const pid = Number(u.product_id);
+        let entry = unitsMap.get(pid);
+        if (!entry) {
+          entry = { baseUnitName: 'قطعة', isWeight: false };
+          unitsMap.set(pid, entry);
+        }
+        const mult = Number(u.multiplier || 1);
+        const name = (u.name || '').trim();
+        const isBase = Boolean(u.is_base_unit) || mult === 1;
+
+        if (isBase) {
+          entry.baseUnitName = name || 'قطعة';
+          const lower = name.toLowerCase();
+          if (
+            lower.includes('كجم') ||
+            lower.includes('كيلو') ||
+            lower.includes('جرام') ||
+            lower.includes('جم') ||
+            lower.includes('طن') ||
+            lower.includes('kg') ||
+            lower.includes('gram')
+          ) {
+            entry.isWeight = true;
+          }
+        } else if (mult > 1) {
+          if (!entry.packagingUnit || name.includes('كرتون') || name.includes('صندوق') || name.includes('طرد') || name.includes('شيكارة')) {
+            entry.packagingUnit = { name: name || 'كرتونة', multiplier: mult };
+          }
+        }
+      }
+    }
+
     return products.map((p: any) => {
       const pId = Number(p.id);
       const whStocks = stockMap.get(pId) || [];
       const totalStock = whStocks.reduce((sum, w) => sum + w.qty, 0);
+      const unitInfo = unitsMap.get(pId);
+      const baseUnit = unitInfo?.baseUnitName || 'قطعة';
+      const isWeight = Boolean(unitInfo?.isWeight || /كجم|كيلو|جرام|جم|وزن|kg/i.test(p.name || ''));
 
       return {
         id: pId,
@@ -3411,7 +3627,9 @@ export class VanSalesService {
         barcode: p.barcode || '',
         sku: p.barcode || '',
         retailPrice: Number(p.retail_price || 0),
-        unit: 'قطعة',
+        unit: baseUnit,
+        packagingUnit: unitInfo?.packagingUnit,
+        isWeight,
         totalStock,
         warehouseStocks: whStocks,
       };
@@ -4109,6 +4327,7 @@ export class VanSalesService {
         customerAddress: c.address || '',
         customerCode: meta.customer_code || `#CUST-${cId}`,
         route: meta.route || 'الخط العام',
+        district: meta.district || meta.area || meta.neighborhood || '',
         routeSequence: Number(meta.route_sequence || 0),
         visitDay: meta.visit_day || '',
         visitDays,

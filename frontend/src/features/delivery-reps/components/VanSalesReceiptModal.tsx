@@ -330,6 +330,44 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
             </div>
           )}
 
+          {receipt.subtotal != null && (receipt.discount ?? 0) > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                color: '#64748b',
+                fontSize: '11.5px',
+                paddingTop: '4px',
+              }}
+            >
+              <span>المجموع الفرعي (قبل الخصم):</span>
+              <span style={{ fontWeight: 700 }}>
+                {Number(receipt.subtotal).toFixed(2)} <CurrencySymbol />
+              </span>
+            </div>
+          )}
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: (receipt.discount ?? 0) > 0 ? '#fef2f2' : '#f8fafc',
+              border: `1px solid ${(receipt.discount ?? 0) > 0 ? '#fecaca' : '#e2e8f0'}`,
+              padding: '6px 10px',
+              borderRadius: '6px',
+              fontSize: '11.5px',
+              color: (receipt.discount ?? 0) > 0 ? '#b91c1c' : '#475569',
+              fontWeight: 700,
+            }}
+          >
+            <span>إجمالي الخصومات والعروض:</span>
+            <span style={{ fontWeight: 800 }}>
+              {Number(receipt.discount || 0).toFixed(2)} <CurrencySymbol />
+            </span>
+          </div>
+
           <div
             style={{
               display: 'flex',

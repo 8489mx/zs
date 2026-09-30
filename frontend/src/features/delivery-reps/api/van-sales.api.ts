@@ -9,6 +9,10 @@ export interface VanStockItem {
   costPrice: number;
   retailPrice: number;
   unitName?: string;
+  originalPrice?: number;
+  discountPerUnit?: number;
+  hasActiveOffer?: boolean;
+  offerBadge?: string;
 }
 
 export interface VanTripSummary {
@@ -129,6 +133,8 @@ export interface VanActiveTripResponse {
     id: number;
     docNo: string;
     total: number;
+    subtotal?: number;
+    discount?: number;
     paymentMethod: string;
     createdAt: string;
     customerName?: string;
@@ -249,6 +255,26 @@ export interface SupervisorCustomerRouteItem {
 }
 
 
+export interface RequisitionItemRecord {
+  productId: number;
+  productName: string;
+  barcode?: string;
+  retailPrice?: number;
+  qty: number;
+  unit?: string;
+  unitName?: string;
+  cartonMultiplier?: number;
+  packagingUnitName?: string;
+  packagingUnit?: { name: string; multiplier: number };
+  isWeight?: boolean;
+  cartons?: number;
+  pieces?: number;
+  packingText?: string;
+  warehouseAvailQty?: number;
+  sourceWarehouseId?: number;
+  sourceWarehouseName?: string;
+}
+
 export interface VanLoadRequisitionRecord {
   id: number;
   docNo: string;
@@ -258,8 +284,8 @@ export interface VanLoadRequisitionRecord {
   sourceWarehouseId: number;
   sourceWarehouseName: string;
   status: 'pending' | 'approved' | 'rejected' | 'dispatched';
-  requestedItems: Array<{ productId: number; productName: string; barcode?: string; retailPrice?: number; qty: number; warehouseAvailQty?: number }>;
-  approvedItems: Array<{ productId: number; productName: string; barcode?: string; retailPrice?: number; qty: number; warehouseAvailQty?: number }>;
+  requestedItems: RequisitionItemRecord[];
+  approvedItems: RequisitionItemRecord[];
   notes?: string;
   rejectionReason?: string;
   tripId?: number;
@@ -291,6 +317,8 @@ export interface DriverAvailableProduct {
   unit: string;
   totalStock: number;
   warehouseStocks: DriverProductStock[];
+  packagingUnit?: { name: string; multiplier: number };
+  isWeight?: boolean;
 }
 
 export interface RepTargetSummary {
@@ -367,6 +395,7 @@ export interface VanCustomerItineraryItem {
   customerAddress: string;
   customerCode: string;
   route: string;
+  district?: string;
   visitDay?: string;
   visitDays: string[];
   isScheduledToday?: boolean;

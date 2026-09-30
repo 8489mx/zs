@@ -33,6 +33,8 @@ export interface VanSaleReceiptData {
   };
   deliveryProofPhoto?: string;
   items?: VanSaleReceiptItem[];
+  subtotal?: number;
+  discount?: number;
   repName?: string;
   vehiclePlate?: string;
   warehouseName?: string;
@@ -172,6 +174,16 @@ export function buildVanSaleThermalReceiptHtml(
 
     <!-- FINANCIAL SUMMARY -->
     <div style="border-top: 1.5px solid #000; border-bottom: 1.5px solid #000; padding: 4px 0; margin-bottom: 6px;">
+      ${receipt.subtotal != null && (receipt.discount ?? 0) > 0 ? `
+        <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #444; margin-bottom: 2px;">
+          <span>المجموع الفرعي (قبل الخصم):</span>
+          <span>${Number(receipt.subtotal).toFixed(2)} ${escapeHtml(currency)}</span>
+        </div>
+      ` : ''}
+      <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: ${(receipt.discount ?? 0) > 0 ? '#b91c1c' : '#333'}; font-weight: 700; margin-bottom: 3px;">
+        <span>إجمالي الخصومات والعروض:</span>
+        <span>${Number(receipt.discount || 0).toFixed(2)} ${escapeHtml(currency)}</span>
+      </div>
       <div style="display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 800;">
         <span>الإجمالي المطلوب:</span>
         <span>${Number(receipt.total).toFixed(2)} ${escapeHtml(currency)}</span>
@@ -259,12 +271,13 @@ export function formatVanSaleShareMessage(
     );
   }
 
-  lines.push(
-    '',
-    `*الإجمالي المطلوب:* ${Number(receipt.total).toFixed(2)} ${currency}`,
-    '',
-    'شكراً لتعاملكم معنا!'
-  );
+  lines.push('');
+  if (receipt.subtotal != null && (receipt.discount ?? 0) > 0) {
+    lines.push(`المجموع الفرعي (قبل الخصم): ${Number(receipt.subtotal).toFixed(2)} ${currency}`);
+  }
+  lines.push(`إجمالي الخصومات والعروض: ${Number(receipt.discount || 0).toFixed(2)} ${currency}`);
+  lines.push(`*الإجمالي المطلوب:* ${Number(receipt.total).toFixed(2)} ${currency}`);
+  lines.push('', 'شكراً لتعاملكم معنا!');
 
   return lines.join('\n');
 }

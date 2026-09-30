@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { useQuery } from '@tanstack/react-query';
 import { vanSalesApi, CustomerEligibleSale, CustomerEligibleSaleItem } from '../api/van-sales.api';
-import { CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import {
+  CheckCircleIcon,
+  SearchIcon,
+  PhoneIcon,
+  MapPinIcon,
+  CreditCardIcon,
+  XIcon,
+} from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { vanOfflineDb } from '../offline/van-sales-offline.db';
 
@@ -17,6 +24,7 @@ interface CustomerOption {
   creditLimit?: number;
   customerCode?: string;
   route?: string;
+  district?: string;
   locationUrl?: string;
 }
 
@@ -30,6 +38,8 @@ interface VanCollectionTabProps {
   onSubmitCollection: () => void;
   isSubmitting: boolean;
   onReturnSuccess?: (docNo: string, amount: number) => void;
+  initialSubMode?: 'collection' | 'return';
+  initialReturnCustomerId?: number | '';
 }
 
 const RETURN_REASONS = [
@@ -51,11 +61,25 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
   onSubmitCollection,
   isSubmitting,
   onReturnSuccess,
+  initialSubMode,
+  initialReturnCustomerId,
 }) => {
-  const [subMode, setSubMode] = useState<'collection' | 'return'>('collection');
+  const [subMode, setSubMode] = useState<'collection' | 'return'>(initialSubMode || 'collection');
 
   // Return form state
-  const [returnCustomerId, setReturnCustomerId] = useState<number | ''>('');
+  const [returnCustomerId, setReturnCustomerId] = useState<number | ''>(initialReturnCustomerId || '');
+
+  React.useEffect(() => {
+    if (initialSubMode) {
+      setSubMode(initialSubMode);
+    }
+  }, [initialSubMode]);
+
+  React.useEffect(() => {
+    if (initialReturnCustomerId) {
+      setReturnCustomerId(initialReturnCustomerId);
+    }
+  }, [initialReturnCustomerId]);
   const [selectedSaleId, setSelectedSaleId] = useState<number | ''>('');
   const [returnReason, setReturnReason] = useState<string>('damaged');
   const [returnNotes, setReturnNotes] = useState<string>('');
@@ -70,6 +94,48 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
   }>>([]);
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
   const [returnResult, setReturnResult] = useState<{ docNo: string; total: number } | null>(null);
+
+  // Collections state & filters
+  const [collectionSearch, setCollectionSearch] = useState('');
+  const [showManualCustomerSelect, setShowManualCustomerSelect] = useState(false);
+  const collectionFormRef = useRef<HTMLDivElement>(null);
+
+  // Filter customers with positive debt and sort descending (highest to lowest)
+  const indebtedCustomers = useMemo(() => {
+    return customers
+      .filter((c) => Number(c.balance || 0) > 0)
+      .sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0));
+  }, [customers]);
+
+  const totalIndebtedAmount = useMemo(() => {
+    return indebtedCustomers.reduce((sum, c) => sum + Number(c.balance || 0), 0);
+  }, [indebtedCustomers]);
+
+  const filteredIndebtedCustomers = useMemo(() => {
+    if (!collectionSearch.trim()) return indebtedCustomers;
+    const q = collectionSearch.trim().toLowerCase();
+    return indebtedCustomers.filter((c) => {
+      const name = (c.name || '').toLowerCase();
+      const phone = (c.phone || '').toLowerCase();
+      const code = (c.customerCode || '').toLowerCase();
+      const route = (c.route || '').toLowerCase();
+      const district = (c.district || '').toLowerCase();
+      return name.includes(q) || phone.includes(q) || code.includes(q) || route.includes(q) || district.includes(q);
+    });
+  }, [indebtedCustomers, collectionSearch]);
+
+  const selectedCustomer = useMemo(() => {
+    if (!colCustomerId) return null;
+    return customers.find((c) => c.id === Number(colCustomerId)) || null;
+  }, [customers, colCustomerId]);
+
+  const handleSelectCustomerForCollection = (c: CustomerOption) => {
+    onColCustomerChange(c.id);
+    onColAmountChange(String(c.balance > 0 ? c.balance : ''));
+    if (collectionFormRef.current) {
+      collectionFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Fetch eligible past sales for the selected return customer
   const { data: eligibleSales = [], isLoading: isLoadingSales } = useQuery<CustomerEligibleSale[]>({
@@ -267,102 +333,481 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
 
       {subMode === 'collection' ? (
         <>
-          <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-            تحصيل مديونية سابقة من عميل في الشارع
-          </h3>
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              العميل المطلوب تحصيل حسابه:
-            </label>
-            <CustomSelect
-              value={colCustomerId ? String(colCustomerId) : ''}
-              onChange={(val) => onColCustomerChange(val ? Number(val) : '')}
-              options={[
-                { value: '', label: '-- اختر العميل --' },
-                ...customers.map((c) => ({
-                  value: String(c.id),
-                  label: `${c.customerCode ? `[#${c.customerCode}] ` : ''}${c.name}${c.route ? ` (${c.route})` : ''}`,
-                  hint: `مديونية: ${c.balance.toFixed(2)} ${getGlobalCurrencySymbol()}${c.creditLimit ? ` | سقف: ${c.creditLimit.toFixed(2)}` : ''}`,
-                })),
-              ]}
-              placeholder="اختر العميل المطلوب تحصيل حسابه"
-            />
-            {(() => {
-              const selectedC = customers.find((c) => c.id === colCustomerId);
-              if (!selectedC) return null;
-              return (
-                <div
+          {/* 1. Header with Stats KPI Cards */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              borderBottom: '1px solid #f1f5f9',
+              paddingBottom: '10px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                  تحصيل مديونيات العملاء في خط السير
+                </h3>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>
+                  مرتبة تلقائياً من الأعلى مديونية إلى الأقل لتسريع التحصيل الميداني
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowManualCustomerSelect(!showManualCustomerSelect)}
+                style={{
+                  background: 'none',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#475569',
+                  cursor: 'pointer',
+                }}
+              >
+                {showManualCustomerSelect ? 'إخفاء الاختيار اليدوي' : 'تحصيل من عميل آخر / دفعة مقدمة'}
+              </button>
+            </div>
+
+            {/* KPI Badges */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  flex: '1 1 140px',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                }}
+              >
+                <span style={{ fontSize: '10.5px', color: '#991b1b', fontWeight: 700 }}>إجمالي المديونيات المطلوبة:</span>
+                <strong style={{ fontSize: '15px', color: '#b91c1c', fontWeight: 900 }}>
+                  {totalIndebtedAmount.toFixed(2)} <CurrencySymbol />
+                </strong>
+              </div>
+              <div
+                style={{
+                  flex: '1 1 120px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                }}
+              >
+                <span style={{ fontSize: '10.5px', color: '#475569', fontWeight: 700 }}>عدد العملاء المدينين:</span>
+                <strong style={{ fontSize: '15px', color: '#170e5e', fontWeight: 900 }}>
+                  {indebtedCustomers.length} <span style={{ fontSize: '11px', fontWeight: 600 }}>عميل</span>
+                </strong>
+              </div>
+            </div>
+
+            {/* Instant Search Bar */}
+            <div style={{ position: 'relative', width: '100%' }}>
+              <input
+                type="text"
+                value={collectionSearch}
+                onChange={(e) => setCollectionSearch(e.target.value)}
+                placeholder="بحث باسم العميل، الكود، الحي، أو رقم الهاتف..."
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  padding: '0 32px 0 10px',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  boxSizing: 'border-box',
+                }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  right: '10px',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                  color: '#94a3b8',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <SearchIcon size={15} />
+              </div>
+              {collectionSearch && (
+                <button
+                  type="button"
+                  onClick={() => setCollectionSearch('')}
                   style={{
-                    marginTop: '8px',
-                    padding: '8px 10px',
-                    backgroundColor: '#f8fafc',
-                    borderRadius: '8px',
-                    border: '1px solid #e2e8f0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '6px',
+                    position: 'absolute',
+                    top: '50%',
+                    left: '8px',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: '2px',
                   }}
                 >
-                  <div>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>المديونية الحالية: </span>
-                    <strong style={{ fontSize: '13px', color: selectedC.balance > 0 ? '#dc2626' : '#16a34a' }}>
-                      {selectedC.balance.toFixed(2)} <CurrencySymbol />
-                    </strong>
-                  </div>
-                  {selectedC.creditLimit ? (
-                    <div style={{ fontSize: '11px', color: '#64748b' }}>
-                      سقف الائتمان: {selectedC.creditLimit.toFixed(2)} <CurrencySymbol />
-                    </div>
-                  ) : null}
-                  {selectedC.locationUrl && (
-                    <a
-                      href={selectedC.locationUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ fontSize: '11px', color: '#0284c7', textDecoration: 'underline', fontWeight: 700 }}
-                    >
-                      الموقع على الخريطة ↗
-                    </a>
-                  )}
-                </div>
-              );
-            })()}
+                  <XIcon size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              المبلغ المحصل نقداً ({getGlobalCurrencySymbol()}):
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={colAmount}
-              onChange={(e) => onColAmountChange(e.target.value)}
-              placeholder="0.00"
+          {/* 2. Manual Customer Select Fallback */}
+          {showManualCustomerSelect && (
+            <div style={{ padding: '10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                اختيار أي عميل من القائمة الشاملة:
+              </label>
+              <CustomSelect
+                value={colCustomerId ? String(colCustomerId) : ''}
+                onChange={(val) => {
+                  onColCustomerChange(val ? Number(val) : '');
+                  const found = customers.find((c) => c.id === Number(val));
+                  if (found) onColAmountChange(String(found.balance > 0 ? found.balance : ''));
+                }}
+                options={[
+                  { value: '', label: '-- اختر العميل --' },
+                  ...customers.map((c) => ({
+                    value: String(c.id),
+                    label: `${c.customerCode ? `[#${c.customerCode}] ` : ''}${c.name}${c.district ? ` - ${c.district}` : c.route ? ` (${c.route})` : ''}`,
+                    hint: `مديونية: ${c.balance.toFixed(2)} ${getGlobalCurrencySymbol()}${c.creditLimit ? ` | سقف: ${c.creditLimit.toFixed(2)}` : ''}`,
+                  })),
+                ]}
+                placeholder="اختر العميل المطلوب تحصيل حسابه"
+              />
+            </div>
+          )}
+
+          {/* 3. Focused Active Collection Box (When a customer is selected) */}
+          {selectedCustomer && (
+            <div
+              ref={collectionFormRef}
               style={{
-                width: '100%',
-                height: '40px',
-                backgroundColor: '#f8fafc',
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                padding: '0 10px',
-                fontSize: '13px',
-                fontWeight: 700,
-                boxSizing: 'border-box',
+                backgroundColor: '#f0fdf4',
+                border: '1.5px solid #86efac',
+                borderRadius: '10px',
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
               }}
-            />
-          </div>
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '6px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '10.5px', background: '#dcfce7', color: '#166534', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                      العميل المحدد للتحصيل
+                    </span>
+                    <span style={{ fontSize: '10.5px', color: '#64748b', fontFamily: 'monospace' }}>
+                      {selectedCustomer.customerCode}
+                    </span>
+                  </div>
+                  <h4 style={{ margin: '4px 0 2px', fontSize: '14px', fontWeight: 900, color: '#14532d' }}>
+                    {selectedCustomer.name}
+                  </h4>
+                  <div style={{ fontSize: '11px', color: '#4b5563' }}>
+                    {selectedCustomer.district || selectedCustomer.route || 'الخط العام'}
+                    {selectedCustomer.phone ? ` • ${selectedCustomer.phone}` : ''}
+                  </div>
+                </div>
 
-          <Button
-            variant="primary"
-            onClick={onSubmitCollection}
-            disabled={isSubmitting}
-            style={{ backgroundColor: '#059669', color: '#ffffff', height: '44px', fontSize: '13px', fontWeight: 800 }}
-          >
-            {isSubmitting ? 'جاري قيد السند...' : 'إثبات تحصيل النقدية وتحديث كشف الحساب'}
-          </Button>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '10.5px', color: '#64748b' }}>المديونية الحالية:</div>
+                  <div style={{ fontSize: '16px', fontWeight: 900, color: selectedCustomer.balance > 0 ? '#b91c1c' : '#16a34a' }}>
+                    {selectedCustomer.balance.toFixed(2)} <CurrencySymbol />
+                  </div>
+                </div>
+              </div>
+
+              {/* Fast amount presets */}
+              {selectedCustomer.balance > 0 && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => onColAmountChange(String(selectedCustomer.balance))}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #86efac',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      color: '#15803d',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    سداد كامل المبلغ ({selectedCustomer.balance.toFixed(2)})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onColAmountChange(String((selectedCustomer.balance / 2).toFixed(2)))}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #86efac',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      color: '#15803d',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    نصف المبلغ ({(selectedCustomer.balance / 2).toFixed(2)})
+                  </button>
+                </div>
+              )}
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#14532d', marginBottom: '4px' }}>
+                  المبلغ المحصل نقداً الآن ({getGlobalCurrencySymbol()}):
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={colAmount}
+                  onChange={(e) => onColAmountChange(e.target.value)}
+                  placeholder="0.00"
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    backgroundColor: '#ffffff',
+                    border: '1.5px solid #16a34a',
+                    borderRadius: '8px',
+                    padding: '0 12px',
+                    fontSize: '14px',
+                    fontWeight: 900,
+                    color: '#0f172a',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <Button
+                  variant="primary"
+                  onClick={onSubmitCollection}
+                  disabled={isSubmitting || !Number(colAmount)}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#059669',
+                    color: '#ffffff',
+                    height: '42px',
+                    fontSize: '13px',
+                    fontWeight: 800,
+                  }}
+                >
+                  {isSubmitting ? 'جاري قيد السند...' : 'إثبات تحصيل النقدية وتحديث كشف الحساب'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    onColCustomerChange('');
+                    onColAmountChange('');
+                  }}
+                  style={{ height: '42px', padding: '0 14px', fontSize: '12px' }}
+                >
+                  إلغاء التحديد
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* 4. The Indebted Customers Grid */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155' }}>
+                قائمة العملاء المطلوب تحصيل مديونياتهم ({filteredIndebtedCustomers.length}):
+              </span>
+            </div>
+
+            {filteredIndebtedCustomers.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '24px 16px',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '10px',
+                  border: '1px dashed #cbd5e1',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                  <CheckCircleIcon size={32} color="#16a34a" />
+                </div>
+                <h4 style={{ margin: '0 0 4px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
+                  {collectionSearch ? 'لا توجد نتائج مطابقة لبحثك' : 'لا توجد أي مديونيات مستحقة على عملاء خط السير اليوم'}
+                </h4>
+                <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b' }}>
+                  {collectionSearch
+                    ? 'جرب البحث بكلمة أخرى أو اضغط على إلغاء البحث'
+                    : 'كافة حسابات العملاء مسددة بالكامل. يمكنك استخدام زر "تحصيل من عميل آخر" لتسجيل دفعات مقدمة.'}
+                </p>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
+                  gap: '10px',
+                }}
+              >
+                {filteredIndebtedCustomers.map((c, idx) => {
+                  const isSelected = selectedCustomer?.id === c.id;
+                  return (
+                    <div
+                      key={c.id}
+                      style={{
+                        backgroundColor: isSelected ? '#f0fdf4' : '#ffffff',
+                        border: isSelected ? '2px solid #16a34a' : '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '10px 12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        boxShadow: isSelected ? '0 2px 6px rgba(22, 163, 74, 0.15)' : '0 1px 3px rgba(0,0,0,0.03)',
+                        transition: 'border-color 0.15s ease',
+                      }}
+                    >
+                      {/* Top Row: Rank & Name */}
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span
+                            style={{
+                              background: idx < 3 ? '#fef3c7' : '#f1f5f9',
+                              color: idx < 3 ? '#92400e' : '#475569',
+                              fontSize: '10.5px',
+                              fontWeight: 800,
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            #{idx + 1}
+                          </span>
+                          <span style={{ fontSize: '10px', color: '#64748b', fontFamily: 'monospace' }}>
+                            {c.customerCode || `#CUST-${c.id}`}
+                          </span>
+                        </div>
+                        <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
+                          {c.name}
+                        </h4>
+                      </div>
+
+                      {/* Meta Tags: District / Route / Phone */}
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', fontSize: '11px' }}>
+                        <span
+                          style={{
+                            background: '#e0f2fe',
+                            color: '#0369a1',
+                            fontSize: '10.5px',
+                            fontWeight: 700,
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          {c.district || c.route || 'الخط العام'}
+                        </span>
+                        {c.phone && (
+                          <a
+                            href={`tel:${c.phone}`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              color: '#475569',
+                              textDecoration: 'none',
+                              fontSize: '10.5px',
+                              direction: 'ltr',
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            <PhoneIcon size={10} />
+                            {c.phone}
+                          </a>
+                        )}
+                        {c.locationUrl && (
+                          <a
+                            href={c.locationUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                              color: '#0284c7',
+                              fontSize: '10.5px',
+                              textDecoration: 'none',
+                              fontWeight: 700,
+                            }}
+                          >
+                            <MapPinIcon size={11} />
+                            خريطة
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Financial Debt Box */}
+                      <div
+                        style={{
+                          background: '#fef2f2',
+                          border: '1px solid #fee2e2',
+                          borderRadius: '6px',
+                          padding: '6px 10px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span style={{ fontSize: '11px', color: '#991b1b', fontWeight: 700 }}>
+                          المديونية المستحقة:
+                        </span>
+                        <strong style={{ fontSize: '14.5px', color: '#b91c1c', fontWeight: 900 }}>
+                          {c.balance.toFixed(2)} <CurrencySymbol />
+                        </strong>
+                      </div>
+
+                      {/* Action Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleSelectCustomerForCollection(c)}
+                        style={{
+                          width: '100%',
+                          height: '34px',
+                          border: 'none',
+                          borderRadius: '6px',
+                          backgroundColor: isSelected ? '#16a34a' : '#170e5e',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <CreditCardIcon size={13} color="#ffffff" />
+                        {isSelected ? 'محدد للتحصيل حالياً' : 'تحصيل الآن'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </>
       ) : (
         <>

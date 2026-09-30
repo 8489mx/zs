@@ -24,8 +24,17 @@ export interface AdminReviewLine {
   productId: number;
   productName: string;
   barcode?: string;
+  unit?: string;
+  isWeight?: boolean;
+  packagingUnit?: { name: string; multiplier: number };
   requestedQty: number;
+  requestedCartons?: number;
+  requestedPieces?: number;
+  requestedPackingText?: string;
   approvedQty: number;
+  approvedCartons?: number;
+  approvedPieces?: number;
+  packingText?: string;
   warehouseAvailQty: number;
 }
 
@@ -51,14 +60,30 @@ export function VanLoadRequisitionsAdminTab() {
     staleTime: 30_000,
   });
 
-  // Sync real-time warehouse available quantities
+  // Sync real-time warehouse available quantities and packaging info
   useEffect(() => {
     if (!warehouseProducts || warehouseProducts.length === 0) return;
     setReviewLines((prev) =>
       prev.map((line) => {
         const found = warehouseProducts.find((p) => p.id === line.productId);
         if (found) {
-          return { ...line, warehouseAvailQty: found.totalStock };
+          const mult = found.packagingUnit?.multiplier || 1;
+          const pkg = found.packagingUnit && mult > 1 ? found.packagingUnit : line.packagingUnit;
+          let appCartons = line.approvedCartons;
+          let appPieces = line.approvedPieces;
+          if (pkg && mult > 1 && (appCartons === undefined || appPieces === undefined)) {
+            appCartons = Math.floor(line.approvedQty / mult);
+            appPieces = Math.round(line.approvedQty % mult);
+          }
+          return {
+            ...line,
+            warehouseAvailQty: found.totalStock,
+            unit: found.unit || line.unit,
+            isWeight: found.isWeight ?? line.isWeight,
+            packagingUnit: pkg,
+            approvedCartons: appCartons,
+            approvedPieces: appPieces,
+          };
         }
         return line;
       }),
@@ -119,12 +144,43 @@ export function VanLoadRequisitionsAdminTab() {
     const items = (req.approvedItems && req.approvedItems.length > 0 ? req.approvedItems : req.requestedItems) || [];
     const lines: AdminReviewLine[] = items.map((it: any) => {
       const orig = (req.requestedItems || []).find((r) => r.productId === it.productId);
+      const mult = it.cartonMultiplier || orig?.cartonMultiplier || it.packagingUnit?.multiplier || orig?.packagingUnit?.multiplier || 1;
+      const pkgName = it.packagingUnitName || orig?.packagingUnitName || it.packagingUnit?.name || orig?.packagingUnit?.name;
+      const packagingUnit = pkgName && mult > 1 ? { name: pkgName, multiplier: mult } : undefined;
+      const unit = it.unitName || orig?.unitName || it.unit || orig?.unit || 'قطعة';
+      const isWeight = it.isWeight ?? orig?.isWeight ?? false;
+
+      const appQty = Number(it.qty ?? 0);
+      let appCartons = it.cartons;
+      let appPieces = it.pieces;
+      if (packagingUnit && mult > 1) {
+        if (appCartons === undefined) appCartons = Math.floor(appQty / mult);
+        if (appPieces === undefined) appPieces = Math.round(appQty % mult);
+      }
+
+      const reqQty = orig ? Number(orig.qty) : 0;
+      let reqCartons = orig?.cartons;
+      let reqPieces = orig?.pieces;
+      if (packagingUnit && mult > 1 && orig) {
+        if (reqCartons === undefined) reqCartons = Math.floor(reqQty / mult);
+        if (reqPieces === undefined) reqPieces = Math.round(reqQty % mult);
+      }
+
       return {
         productId: it.productId,
         productName: it.productName || orig?.productName || 'صنف',
         barcode: it.barcode || orig?.barcode || '',
-        requestedQty: orig ? orig.qty : 0,
-        approvedQty: it.qty,
+        unit,
+        isWeight,
+        packagingUnit,
+        requestedQty: reqQty,
+        requestedCartons: reqCartons,
+        requestedPieces: reqPieces,
+        requestedPackingText: orig?.packingText || it.packingText,
+        approvedQty: appQty,
+        approvedCartons: appCartons,
+        approvedPieces: appPieces,
+        packingText: it.packingText,
         warehouseAvailQty: it.warehouseAvailQty ?? orig?.warehouseAvailQty ?? 0,
       };
     });
@@ -133,7 +189,36 @@ export function VanLoadRequisitionsAdminTab() {
 
   const handleUpdateLineApprovedQty = (productId: number, newQty: number) => {
     setReviewLines((prev) =>
-      prev.map((l) => (l.productId === productId ? { ...l, approvedQty: Math.max(0, newQty) } : l)),
+      prev.map((l) => {
+        if (l.productId !== productId) return l;
+        const safe = Math.max(0, newQty);
+        const mult = l.packagingUnit?.multiplier || 1;
+        let c = l.approvedCartons;
+        let p = l.approvedPieces;
+        if (l.packagingUnit && mult > 1) {
+          c = Math.floor(safe / mult);
+          p = Math.round(safe % mult);
+        }
+        return { ...l, approvedQty: safe, approvedCartons: c, approvedPieces: p };
+      }),
+    );
+  };
+
+  const handleUpdateLineCartonsPieces = (productId: number, cartons: number, pieces: number) => {
+    setReviewLines((prev) =>
+      prev.map((l) => {
+        if (l.productId !== productId) return l;
+        const mult = l.packagingUnit?.multiplier || 1;
+        const safeC = Math.max(0, cartons);
+        const safeP = Math.max(0, pieces);
+        const total = safeC * mult + safeP;
+        return {
+          ...l,
+          approvedCartons: safeC,
+          approvedPieces: safeP,
+          approvedQty: total,
+        };
+      }),
     );
   };
 
@@ -146,18 +231,33 @@ export function VanLoadRequisitionsAdminTab() {
     setReviewLines((prev) => {
       const existing = prev.find((l) => l.productId === prod.id);
       if (existing) {
+        const mult = existing.packagingUnit?.multiplier || 1;
+        const inc = mult > 1 ? mult : 1;
+        const newQty = existing.approvedQty + inc;
+        const newCartons = mult > 1 ? (existing.approvedCartons || 0) + 1 : undefined;
         return prev.map((l) =>
-          l.productId === prod.id ? { ...l, approvedQty: l.approvedQty + 1 } : l,
+          l.productId === prod.id
+            ? { ...l, approvedQty: newQty, approvedCartons: newCartons }
+            : l,
         );
       }
+      const mult = prod.packagingUnit?.multiplier || 1;
+      const initialQty = mult > 1 ? mult : 1;
       return [
         ...prev,
         {
           productId: prod.id,
           productName: prod.name,
           barcode: prod.barcode || '',
+          unit: prod.unit || 'قطعة',
+          isWeight: prod.isWeight,
+          packagingUnit: prod.packagingUnit && mult > 1 ? prod.packagingUnit : undefined,
           requestedQty: 0,
-          approvedQty: 1,
+          requestedCartons: 0,
+          requestedPieces: 0,
+          approvedQty: initialQty,
+          approvedCartons: mult > 1 ? 1 : 0,
+          approvedPieces: 0,
           warehouseAvailQty: prod.totalStock,
         },
       ];
@@ -165,6 +265,38 @@ export function VanLoadRequisitionsAdminTab() {
     setIsAddProductOpen(false);
     setProductSearch('');
     toast.success(`تمت إضافة الصنف "${prod.name}" بنجاح`);
+  };
+
+  const formatReviewLinesForPayload = (lines: AdminReviewLine[]) => {
+    return lines.map((l) => {
+      const mult = l.packagingUnit?.multiplier || 1;
+      const isCarton = Boolean(l.packagingUnit && mult > 1);
+      const cartons = l.approvedCartons !== undefined ? l.approvedCartons : (isCarton ? Math.floor(l.approvedQty / mult) : undefined);
+      const pieces = l.approvedPieces !== undefined ? l.approvedPieces : (isCarton ? l.approvedQty % mult : undefined);
+      let packingText = '';
+      if (isCarton && (cartons !== undefined || pieces !== undefined)) {
+        const c = cartons || 0;
+        const p = pieces || 0;
+        if (c > 0 && p > 0) packingText = `${c} ${l.packagingUnit?.name} + ${p} ${l.unit || 'قطعة'}`;
+        else if (c > 0) packingText = `${c} ${l.packagingUnit?.name}`;
+        else packingText = `${p} ${l.unit || 'قطعة'}`;
+      } else {
+        packingText = `${l.approvedQty} ${l.unit || 'قطعة'}`;
+      }
+      return {
+        productId: l.productId,
+        qty: l.approvedQty,
+        productName: l.productName,
+        barcode: l.barcode,
+        cartons,
+        pieces,
+        cartonMultiplier: mult > 1 ? mult : undefined,
+        packagingUnitName: l.packagingUnit?.name,
+        unitName: l.unit,
+        isWeight: l.isWeight,
+        packingText,
+      };
+    });
   };
 
   // Review (Update Quantities & Items) Mutation
@@ -239,12 +371,19 @@ export function VanLoadRequisitionsAdminTab() {
     const isModalOpen = selectedReq?.id === req.id && reviewLines.length > 0;
 
     const items = isModalOpen
-      ? reviewLines.map((l) => ({ productId: l.productId, qty: l.approvedQty, productName: l.productName, barcode: l.barcode }))
+      ? formatReviewLinesForPayload(reviewLines)
       : (req.approvedItems && req.approvedItems.length > 0 ? req.approvedItems : req.requestedItems || []).map((it: any) => ({
           productId: Number(it.productId),
           qty: Number(it.qty ?? it.approvedQty ?? 0),
           productName: it.productName,
           barcode: it.barcode,
+          cartons: it.cartons,
+          pieces: it.pieces,
+          cartonMultiplier: it.cartonMultiplier,
+          packagingUnitName: it.packagingUnitName,
+          unitName: it.unitName,
+          isWeight: it.isWeight,
+          packingText: it.packingText,
         }));
 
     if (!items || items.length === 0) {
@@ -273,12 +412,7 @@ export function VanLoadRequisitionsAdminTab() {
           // Automatically save reviewed items first, then dispatch!
           await vanSalesApi.reviewRequisition(
             req.id,
-            reviewLines.map((l) => ({
-              productId: l.productId,
-              qty: l.approvedQty,
-              productName: l.productName,
-              barcode: l.barcode,
-            })),
+            formatReviewLinesForPayload(reviewLines),
             adminNotes,
           );
         }
@@ -297,12 +431,7 @@ export function VanLoadRequisitionsAdminTab() {
     }
     reviewMutation.mutate({
       id: selectedReq.id,
-      items: reviewLines.map((l) => ({
-        productId: l.productId,
-        qty: l.approvedQty,
-        productName: l.productName,
-        barcode: l.barcode,
-      })),
+      items: formatReviewLinesForPayload(reviewLines),
       notes: adminNotes,
     });
   };
@@ -332,7 +461,7 @@ export function VanLoadRequisitionsAdminTab() {
       const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
 
       const statusLabel =
-        req.status === 'dispatched' ? 'تم الصرف والتحميل' : req.status === 'pending' ? 'قيد المراجعة' : 'مرفوض';
+        req.status === 'dispatched' ? 'تم الصرف' : req.status === 'pending' ? 'قيد المراجعة' : 'مرفوض';
 
       const esc = (s: any) =>
         String(s ?? '')
@@ -350,10 +479,11 @@ export function VanLoadRequisitionsAdminTab() {
                 ${idx + 1}. ${esc(it.productName || 'صنف')}
               </div>
               ${it.barcode ? `<div style="font-size: 9.5px; color: #555; font-family: monospace; letter-spacing: 0.5px;">${esc(it.barcode)}</div>` : ''}
+              ${it.packingText ? `<div style="font-size: 10px; font-weight: 700; color: #170e5e; margin-top: 2px;">[ ${esc(it.packingText)} ]</div>` : ''}
             </td>
             <td style="text-align: left; vertical-align: top; padding: 5px 0; white-space: nowrap;">
               <span style="display: inline-block; border: 1.5px solid #000; border-radius: 4px; padding: 2px 6px; font-weight: 900; font-size: 13px; color: #000; background: #fff;">
-                ${it.qty} <span style="font-size: 10px; font-weight: 600; color: #333;">قطعة</span>
+                ${it.qty} <span style="font-size: 10px; font-weight: 600; color: #333;">${esc(it.unitName || it.unit || 'قطعة')}</span>
               </span>
             </td>
           </tr>
@@ -470,7 +600,7 @@ export function VanLoadRequisitionsAdminTab() {
     });
 
     const statusLabel =
-      req.status === 'dispatched' ? 'تم الصرف والتحميل' : req.status === 'pending' ? 'قيد المراجعة' : 'مرفوض';
+      req.status === 'dispatched' ? 'تم الصرف' : req.status === 'pending' ? 'قيد المراجعة' : 'مرفوض';
 
     const esc = (s: any) =>
       String(s ?? '')
@@ -486,7 +616,8 @@ export function VanLoadRequisitionsAdminTab() {
           <td style="padding: 10px 8px; border: 1px solid #94a3b8; text-align: center; font-weight: 700; color: #334155;">${idx + 1}</td>
           <td style="padding: 10px 8px; border: 1px solid #94a3b8; font-family: monospace; text-align: center; font-size: 12px; color: #334155;">${esc(it.barcode || '—')}</td>
           <td style="padding: 10px 12px; border: 1px solid #94a3b8; text-align: right; font-weight: 700; color: #0f172a; line-height: 1.45;">${esc(it.productName || 'صنف')}</td>
-          <td style="padding: 10px 8px; border: 1px solid #94a3b8; text-align: center; font-size: 14px; font-weight: 900; color: #0f172a;">${it.qty}</td>
+          <td style="padding: 10px 8px; border: 1px solid #94a3b8; text-align: center; font-weight: 700; color: #170e5e; font-size: 12px; background: #f8fafc;">${esc(it.packingText || '—')}</td>
+          <td style="padding: 10px 8px; border: 1px solid #94a3b8; text-align: center; font-size: 14px; font-weight: 900; color: #0f172a;">${it.qty} ${esc(it.unitName || it.unit || '')}</td>
           <td style="padding: 10px 8px; border: 1px solid #94a3b8; text-align: center; color: #94a3b8;"></td>
         </tr>
       `,
@@ -666,10 +797,11 @@ export function VanLoadRequisitionsAdminTab() {
             <thead>
               <tr>
                 <th style="width: 45px;">م</th>
-                <th style="width: 140px;">الباركود</th>
+                <th style="width: 130px;">الباركود</th>
                 <th style="text-align: right; padding-right: 14px;">بيان الصنف والمواصفات</th>
-                <th style="width: 110px;">الكمية المنصرفة</th>
-                <th style="width: 140px;">ملاحظات الفحص والمطابقة</th>
+                <th style="width: 140px;">بيان التعبئة</th>
+                <th style="width: 100px;">الكمية المنصرفة</th>
+                <th style="width: 130px;">ملاحظات الفحص والمطابقة</th>
               </tr>
             </thead>
             <tbody>
@@ -796,7 +928,7 @@ export function VanLoadRequisitionsAdminTab() {
             {[
               { label: 'كافة الطلبات', value: '' },
               { label: `بانتظار الصرف (${pendingReqs.length})`, value: 'pending' },
-              { label: 'تم الصرف والتحميل', value: 'dispatched' },
+              { label: 'تم الصرف', value: 'dispatched' },
               { label: 'مرفوض', value: 'rejected' },
             ].map((f) => (
               <button
@@ -1236,10 +1368,10 @@ export function VanLoadRequisitionsAdminTab() {
               <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxHeight: '380px', overflowY: 'auto' }}>
                 <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
                   <colgroup>
-                    <col style={{ width: selectedReq.status === 'pending' ? '42%' : '44%' }} />
-                    <col style={{ width: selectedReq.status === 'pending' ? '14%' : '18%' }} />
-                    <col style={{ width: selectedReq.status === 'pending' ? '20%' : '20%' }} />
-                    <col style={{ width: selectedReq.status === 'pending' ? '18%' : '18%' }} />
+                    <col style={{ width: selectedReq.status === 'pending' ? '30%' : '36%' }} />
+                    <col style={{ width: selectedReq.status === 'pending' ? '18%' : '20%' }} />
+                    <col style={{ width: selectedReq.status === 'pending' ? '18%' : '20%' }} />
+                    <col style={{ width: selectedReq.status === 'pending' ? '28%' : '24%' }} />
                     {selectedReq.status === 'pending' && <col style={{ width: '6%' }} />}
                   </colgroup>
                   <thead>
@@ -1264,6 +1396,8 @@ export function VanLoadRequisitionsAdminTab() {
                       reviewLines.map((it) => {
                         const avail = it.warehouseAvailQty ?? 0;
                         const isShortage = avail < it.approvedQty;
+                        const isCarton = Boolean(it.packagingUnit && it.packagingUnit.multiplier > 1);
+                        const mult = it.packagingUnit?.multiplier || 1;
 
                         return (
                           <tr key={it.productId} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -1292,10 +1426,29 @@ export function VanLoadRequisitionsAdminTab() {
                                   باركود: {it.barcode}
                                 </span>
                               )}
+                              {isCarton && (
+                                <span style={{ fontSize: '10px', color: '#170e5e', fontWeight: 600, display: 'inline-block', marginTop: '2px', backgroundColor: '#eef2ff', padding: '1px 5px', borderRadius: '4px' }}>
+                                  الكرتونة = {mult} {it.unit || 'قطعة'}
+                                </span>
+                              )}
                             </td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800, fontSize: '13px', verticalAlign: 'middle' }}>
                               {it.requestedQty > 0 ? (
-                                <span>{it.requestedQty} <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>قطعة</span></span>
+                                <div>
+                                  <div>
+                                    <span>{it.requestedQty}</span> <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{it.unit || 'قطعة'}</span>
+                                  </div>
+                                  {it.requestedPackingText ? (
+                                    <div style={{ fontSize: '10.5px', color: '#170e5e', fontWeight: 700, marginTop: '2px' }}>
+                                      {it.requestedPackingText}
+                                    </div>
+                                  ) : isCarton && it.packagingUnit ? (
+                                    <div style={{ fontSize: '10.5px', color: '#170e5e', fontWeight: 700, marginTop: '2px' }}>
+                                      {Math.floor(it.requestedQty / mult)} {it.packagingUnit.name}
+                                      {it.requestedQty % mult > 0 ? ` + ${it.requestedQty % mult} ${it.unit || 'قطعة'}` : ''}
+                                    </div>
+                                  ) : null}
+                                </div>
                               ) : (
                                 <span style={{ color: '#94a3b8' }}>—</span>
                               )}
@@ -1304,7 +1457,7 @@ export function VanLoadRequisitionsAdminTab() {
                               <span
                                 style={{
                                   display: 'inline-block',
-                                  padding: '3px 10px',
+                                  padding: '3px 8px',
                                   borderRadius: '6px',
                                   fontSize: '11px',
                                   fontWeight: 700,
@@ -1313,96 +1466,301 @@ export function VanLoadRequisitionsAdminTab() {
                                   border: `1px solid ${isShortage ? '#fca5a5' : '#bbf7d0'}`,
                                 }}
                               >
-                                {avail} قطعة {isShortage ? '(عجز)' : '(متوفر)'}
+                                {avail} {it.unit || 'قطعة'} {isShortage ? '(عجز)' : '(متوفر)'}
                               </span>
+                              {isCarton && it.packagingUnit && (
+                                <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>
+                                  {Math.floor(avail / mult)} {it.packagingUnit.name}
+                                  {avail % mult > 0 ? ` + ${avail % mult} ${it.unit || 'قطعة'}` : ''}
+                                </div>
+                              )}
                             </td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', verticalAlign: 'middle' }}>
                               {selectedReq.status === 'pending' ? (
-                                <div
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '6px',
-                                    backgroundColor: '#ffffff',
-                                    overflow: 'hidden',
-                                  }}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateLineApprovedQty(it.productId, it.approvedQty + 1)}
-                                    style={{
-                                      width: '26px',
-                                      height: '28px',
-                                      border: 'none',
-                                      backgroundColor: '#f8fafc',
-                                      color: '#475569',
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                    }}
-                                    title="زيادة الكمية"
-                                  >
-                                    <PlusIcon size={12} />
-                                  </button>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    className="no-spin-arrows"
-                                    value={it.approvedQty}
-                                    onChange={(e) => {
-                                      const val = Math.max(0, parseInt(e.target.value, 10) || 0);
-                                      handleUpdateLineApprovedQty(it.productId, val);
-                                    }}
-                                    style={{
-                                      width: '46px',
-                                      height: '28px',
-                                      border: 'none',
-                                      textAlign: 'center',
-                                      fontSize: '13px',
-                                      fontWeight: 800,
-                                      color: isShortage ? '#dc2626' : '#0f172a',
-                                      outline: 'none',
-                                      MozAppearance: 'textfield',
-                                      appearance: 'textfield',
-                                    }}
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateLineApprovedQty(it.productId, it.approvedQty - 1)}
-                                    disabled={it.approvedQty <= 0}
-                                    style={{
-                                      width: '26px',
-                                      height: '28px',
-                                      border: 'none',
-                                      backgroundColor: '#f8fafc',
-                                      color: '#475569',
-                                      cursor: it.approvedQty <= 0 ? 'not-allowed' : 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                    }}
-                                    title="تقليل الكمية"
-                                  >
-                                    <MinusIcon size={12} />
-                                  </button>
-                                </div>
+                                isCarton ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                      {/* Cartons Stepper: + first (right in RTL), - last (left in RTL) */}
+                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                        <div
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            border: '1px solid #cbd5e1',
+                                            borderRadius: '6px',
+                                            backgroundColor: '#ffffff',
+                                            overflow: 'hidden',
+                                            height: '28px',
+                                          }}
+                                        >
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateLineCartonsPieces(it.productId, (it.approvedCartons || 0) + 1, it.approvedPieces || 0)}
+                                            style={{
+                                              width: '24px',
+                                              height: '100%',
+                                              border: 'none',
+                                              backgroundColor: '#f8fafc',
+                                              color: '#334155',
+                                              cursor: 'pointer',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              borderInlineEnd: '1px solid #e2e8f0',
+                                            }}
+                                            title={`زيادة ${it.packagingUnit?.name || 'كرتونة'}`}
+                                          >
+                                            <PlusIcon size={11} />
+                                          </button>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            className="no-spin-arrows"
+                                            value={it.approvedCartons ?? 0}
+                                            onChange={(e) => {
+                                              const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                                              handleUpdateLineCartonsPieces(it.productId, val, it.approvedPieces || 0);
+                                            }}
+                                            style={{
+                                              width: '36px',
+                                              height: '100%',
+                                              border: 'none',
+                                              textAlign: 'center',
+                                              fontSize: '12px',
+                                              fontWeight: 800,
+                                              color: '#0f172a',
+                                              outline: 'none',
+                                            }}
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateLineCartonsPieces(it.productId, Math.max(0, (it.approvedCartons || 0) - 1), it.approvedPieces || 0)}
+                                            disabled={(it.approvedCartons || 0) <= 0}
+                                            style={{
+                                              width: '24px',
+                                              height: '100%',
+                                              border: 'none',
+                                              backgroundColor: '#f8fafc',
+                                              color: '#334155',
+                                              cursor: (it.approvedCartons || 0) <= 0 ? 'not-allowed' : 'pointer',
+                                              opacity: (it.approvedCartons || 0) <= 0 ? 0.4 : 1,
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              borderInlineStart: '1px solid #e2e8f0',
+                                            }}
+                                            title={`إنقاص ${it.packagingUnit?.name || 'كرتونة'}`}
+                                          >
+                                            <MinusIcon size={11} />
+                                          </button>
+                                        </div>
+                                        <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+                                          {it.packagingUnit?.name || 'كرتونة'}
+                                        </span>
+                                      </div>
+
+                                      {/* Pieces Stepper: + first (right in RTL), - last (left in RTL) */}
+                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                        <div
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            border: '1px solid #cbd5e1',
+                                            borderRadius: '6px',
+                                            backgroundColor: '#ffffff',
+                                            overflow: 'hidden',
+                                            height: '28px',
+                                          }}
+                                        >
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateLineCartonsPieces(it.productId, it.approvedCartons || 0, (it.approvedPieces || 0) + 1)}
+                                            style={{
+                                              width: '24px',
+                                              height: '100%',
+                                              border: 'none',
+                                              backgroundColor: '#f8fafc',
+                                              color: '#334155',
+                                              cursor: 'pointer',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              borderInlineEnd: '1px solid #e2e8f0',
+                                            }}
+                                            title={`زيادة ${it.unit || 'قطع'}`}
+                                          >
+                                            <PlusIcon size={11} />
+                                          </button>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            className="no-spin-arrows"
+                                            value={it.approvedPieces ?? 0}
+                                            onChange={(e) => {
+                                              const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                                              handleUpdateLineCartonsPieces(it.productId, it.approvedCartons || 0, val);
+                                            }}
+                                            style={{
+                                              width: '32px',
+                                              height: '100%',
+                                              border: 'none',
+                                              textAlign: 'center',
+                                              fontSize: '12px',
+                                              fontWeight: 800,
+                                              color: '#0f172a',
+                                              outline: 'none',
+                                            }}
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateLineCartonsPieces(it.productId, it.approvedCartons || 0, Math.max(0, (it.approvedPieces || 0) - 1))}
+                                            disabled={(it.approvedPieces || 0) <= 0}
+                                            style={{
+                                              width: '24px',
+                                              height: '100%',
+                                              border: 'none',
+                                              backgroundColor: '#f8fafc',
+                                              color: '#334155',
+                                              cursor: (it.approvedPieces || 0) <= 0 ? 'not-allowed' : 'pointer',
+                                              opacity: (it.approvedPieces || 0) <= 0 ? 0.4 : 1,
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              borderInlineStart: '1px solid #e2e8f0',
+                                            }}
+                                            title={`إنقاص ${it.unit || 'قطع'}`}
+                                          >
+                                            <MinusIcon size={11} />
+                                          </button>
+                                        </div>
+                                        <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+                                          {it.unit || 'قطع'}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Total Approved Summary Badge */}
+                                    <span
+                                      style={{
+                                        fontSize: '11px',
+                                        fontWeight: 800,
+                                        color: isShortage ? '#dc2626' : '#170e5e',
+                                        backgroundColor: isShortage ? '#fef2f2' : '#f1f5f9',
+                                        padding: '2px 8px',
+                                        borderRadius: '5px',
+                                        border: `1px solid ${isShortage ? '#fca5a5' : '#cbd5e1'}`,
+                                      }}
+                                    >
+                                      إجمالي المعتمد: {it.approvedQty} {it.unit || 'قطعة'}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    <div
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: '6px',
+                                        backgroundColor: '#ffffff',
+                                        overflow: 'hidden',
+                                        height: '28px',
+                                      }}
+                                    >
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUpdateLineApprovedQty(it.productId, (it.approvedQty || 0) + (it.isWeight ? 1 : 1))}
+                                        style={{
+                                          width: '26px',
+                                          height: '100%',
+                                          border: 'none',
+                                          backgroundColor: '#f8fafc',
+                                          color: '#475569',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          borderInlineEnd: '1px solid #e2e8f0',
+                                        }}
+                                        title="زيادة الكمية"
+                                      >
+                                        <PlusIcon size={12} />
+                                      </button>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step={it.isWeight ? '0.1' : '1'}
+                                        className="no-spin-arrows"
+                                        value={it.approvedQty}
+                                        onChange={(e) => {
+                                          const val = Math.max(0, (it.isWeight ? parseFloat(e.target.value) : parseInt(e.target.value, 10)) || 0);
+                                          handleUpdateLineApprovedQty(it.productId, val);
+                                        }}
+                                        style={{
+                                          width: '46px',
+                                          height: '100%',
+                                          border: 'none',
+                                          textAlign: 'center',
+                                          fontSize: '13px',
+                                          fontWeight: 800,
+                                          color: isShortage ? '#dc2626' : '#0f172a',
+                                          outline: 'none',
+                                        }}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUpdateLineApprovedQty(it.productId, Math.max(0, (it.approvedQty || 0) - (it.isWeight ? 1 : 1)))}
+                                        disabled={it.approvedQty <= 0}
+                                        style={{
+                                          width: '26px',
+                                          height: '100%',
+                                          border: 'none',
+                                          backgroundColor: '#f8fafc',
+                                          color: '#475569',
+                                          cursor: it.approvedQty <= 0 ? 'not-allowed' : 'pointer',
+                                          opacity: it.approvedQty <= 0 ? 0.4 : 1,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          borderInlineStart: '1px solid #e2e8f0',
+                                        }}
+                                        title="تقليل الكمية"
+                                      >
+                                        <MinusIcon size={12} />
+                                      </button>
+                                    </div>
+                                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>
+                                      {it.unit || 'قطعة'}
+                                    </span>
+                                  </div>
+                                )
                               ) : (
-                                <span
-                                  style={{
-                                    display: 'inline-block',
-                                    padding: '3px 10px',
-                                    borderRadius: '6px',
-                                    fontSize: '12px',
-                                    fontWeight: 800,
-                                    backgroundColor: '#ecfdf5',
-                                    color: '#15803d',
-                                    border: '1px solid #bbf7d0',
-                                  }}
-                                >
-                                  {it.approvedQty} قطعة
-                                </span>
+                                <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                  <span
+                                    style={{
+                                      display: 'inline-block',
+                                      padding: '3px 10px',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      fontWeight: 800,
+                                      backgroundColor: '#ecfdf5',
+                                      color: '#15803d',
+                                      border: '1px solid #bbf7d0',
+                                    }}
+                                  >
+                                    {it.approvedQty} {it.unit || 'قطعة'}
+                                  </span>
+                                  {it.packingText ? (
+                                    <span style={{ fontSize: '10.5px', color: '#170e5e', fontWeight: 700 }}>
+                                      {it.packingText}
+                                    </span>
+                                  ) : isCarton && it.packagingUnit ? (
+                                    <span style={{ fontSize: '10.5px', color: '#170e5e', fontWeight: 700 }}>
+                                      {Math.floor(it.approvedQty / mult)} {it.packagingUnit.name}
+                                      {it.approvedQty % mult > 0 ? ` + ${it.approvedQty % mult} ${it.unit || 'قطعة'}` : ''}
+                                    </span>
+                                  ) : null}
+                                </div>
                               )}
                             </td>
                             {selectedReq.status === 'pending' && (
@@ -1436,13 +1794,13 @@ export function VanLoadRequisitionsAdminTab() {
                           إجمالي الأصناف: <span style={{ color: '#170e5e' }}>{reviewLines.length} صنف</span>
                         </td>
                         <td style={{ padding: '9px 12px', textAlign: 'center', color: '#0f172a' }}>
-                          {reviewLines.reduce((acc, l) => acc + (l.requestedQty || 0), 0)} <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>قطعة</span>
+                          {reviewLines.reduce((acc, l) => acc + (l.requestedQty || 0), 0)} <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>وحدة</span>
                         </td>
                         <td style={{ padding: '9px 12px', textAlign: 'center', color: '#64748b' }}>
                           —
                         </td>
                         <td style={{ padding: '9px 12px', textAlign: 'center', color: '#15803d' }}>
-                          {reviewLines.reduce((acc, l) => acc + (l.approvedQty || 0), 0)} <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 500 }}>قطعة</span>
+                          {reviewLines.reduce((acc, l) => acc + (l.approvedQty || 0), 0)} <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 500 }}>وحدة</span>
                         </td>
                         {selectedReq.status === 'pending' && <td />}
                       </tr>

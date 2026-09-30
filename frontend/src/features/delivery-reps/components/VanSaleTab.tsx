@@ -18,6 +18,8 @@ export interface CartItem {
   qty: number;
   unitPrice: number;
   maxQty: number;
+  originalPrice?: number;
+  offerBadge?: string;
 }
 
 interface CustomerOption {
@@ -78,6 +80,17 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
 }) => {
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
   const totalPieces = cart.reduce((sum, it) => sum + it.qty, 0);
+
+  const cartSubtotal = useMemo(() => {
+    return cart.reduce((sum, it) => {
+      const orig = it.originalPrice && it.originalPrice > it.unitPrice ? it.originalPrice : it.unitPrice;
+      return sum + it.qty * orig;
+    }, 0);
+  }, [cart]);
+
+  const cartDiscount = useMemo(() => {
+    return Math.max(0, cartSubtotal - cartTotal);
+  }, [cartSubtotal, cartTotal]);
 
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
@@ -381,9 +394,21 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
                   <h5 style={{ margin: 0, fontWeight: 800, fontSize: '12px', color: '#0f172a', lineHeight: 1.35, paddingBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {c.name}
                   </h5>
-                  <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>
-                    {c.unitPrice.toFixed(2)} × {c.qty} = {(c.qty * c.unitPrice).toFixed(2)} <CurrencySymbol />
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>
+                      {c.unitPrice.toFixed(2)} × {c.qty} = {(c.qty * c.unitPrice).toFixed(2)} <CurrencySymbol />
+                    </span>
+                    {c.originalPrice && c.originalPrice > c.unitPrice && (
+                      <span style={{ fontSize: '10px', color: '#94a3b8', textDecoration: 'line-through' }}>
+                        {(c.originalPrice * c.qty).toFixed(2)} <CurrencySymbol />
+                      </span>
+                    )}
+                    {c.offerBadge && (
+                      <span style={{ fontSize: '9px', backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                        {c.offerBadge}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div dir="rtl" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   <button
@@ -454,6 +479,45 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
           >
             <span>عدد البنود: <strong style={{ color: '#170e5e' }}>{cart.length} أصناف</strong></span>
             <span>إجمالي الكمية: <strong style={{ color: '#170e5e' }}>{totalPieces} قطعة</strong></span>
+          </div>
+
+          {/* Promotional Discounts and Subtotal */}
+          {cartDiscount > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '11.5px',
+                color: '#64748b',
+                padding: '0 4px',
+              }}
+            >
+              <span>المجموع الفرعي (قبل الخصم):</span>
+              <span style={{ fontWeight: 700 }}>
+                {cartSubtotal.toFixed(2)} <CurrencySymbol />
+              </span>
+            </div>
+          )}
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '12px',
+              color: cartDiscount > 0 ? '#b91c1c' : '#475569',
+              fontWeight: 700,
+              backgroundColor: cartDiscount > 0 ? '#fef2f2' : '#f8fafc',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: `1px solid ${cartDiscount > 0 ? '#fecaca' : '#e2e8f0'}`,
+            }}
+          >
+            <span>إجمالي الخصومات والعروض الممنوحة:</span>
+            <span style={{ fontWeight: 800 }}>
+              {cartDiscount.toFixed(2)} <CurrencySymbol />
+            </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 900, fontSize: '14px', backgroundColor: '#f1f5f9', padding: '9px 12px', borderRadius: '8px' }}>
@@ -562,10 +626,20 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#059669' }}>
                           {item.retailPrice.toFixed(2)} <CurrencySymbol />
                         </span>
+                        {item.originalPrice && item.originalPrice > item.retailPrice && (
+                          <span style={{ fontSize: '10px', color: '#94a3b8', textDecoration: 'line-through' }}>
+                            {item.originalPrice.toFixed(2)} <CurrencySymbol />
+                          </span>
+                        )}
+                        {item.offerBadge && (
+                          <span style={{ fontSize: '9px', backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                            {item.offerBadge}
+                          </span>
+                        )}
                         <span style={{ fontSize: '11px', color: '#64748b' }}>
                           المتاح: {item.qty} {item.unitName || 'قطعة'}
                         </span>

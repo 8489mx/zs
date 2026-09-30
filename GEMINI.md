@@ -27,6 +27,12 @@
 - **Buttons & Brand Colors**:
   - Primary action buttons: deep royal navy (`#170e5e`), matching the "حفظ الإعدادات" button in `settings/core`.
   - Clean input fields with clear labels above them matching the system standard.
+- **Mobile Application Visual Constitution (دستور واجهات تطبيقات الموبايل البريميوم للمنظومة)**:
+  - **Crisp White Cards (البطاقات البيضاء النقية)**: كافة الكروت وبلاطات الإجراءات في شاشات الموبايل يجب أن تكون خلفيتها بيضاء ناصعة (`#ffffff`)، مع حدود ناعمة محكمة (`1px solid #e2e8f0`)، وزوايا منحنية فخمة (`borderRadius: 14px` إلى `16px`)، وظلال متناهية الرقة (`boxShadow: 0 1px 3px rgba(0,0,0,0.03)`). يُمنع منعاً باتاً تلوين خلفية البطاقات بالكامل بألوان فسفورية أو فاقعة أو باستيل كاملة.
+  - **Squircle Icon Badges (أيقونات الأشكال المستديرة الهادئة)**: كل بلاطة إجراءات سريعة تحتوي على أيقونتها في المنتصف أعلى النص داخل مربع مستدير الحواف ناعم (`width: 42px; height: 42px; borderRadius: 12px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center;`) بخلفية ملونة هادئة جداً (مثل البنفسجي الهادئ `#f3e8ff`، النيلي `#eef2ff`، الأخضر الفاتح `#dcfce7`، الكهرماني `#fef3c7`، الوردي `#fee2e2`، السماوي `#e0f2fe`) مع لون أيقونة مطابق رصين.
+  - **Typography & Structure**: عنوان الإجراء بخط داكن عريض بارز (`fontSize: 12.5px; fontWeight: 800; color: #0f172a; margin: 0 0 2px;`)، والوصف التوضيحي بلون رمادي أردوازي أنيق (`fontSize: 10.5px; fontWeight: 500; color: #64748b;`).
+  - **Section Headers (الخط الكحلي الرأسي المميز)**: كل قسم رئيسي يحمل شرطة رأسية كحلية مميزة تسبق العنوان (`<span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />`) متبوعة بالعنوان المؤسسي والوصف الأردوازي.
+  - **2-Column Action Grid (شبكة الإجراءات المتوازنة)**: تنظيم الإجراءات السريعة في شبكة متناسقة ثنائية الأعمدة (`grid-template-columns: 1fr 1fr; gap: 10px;`)، وبلاطات متساوية الارتفاع لتجربة لمس مريحة ومظهر بريميوم مطابق للداشبورد.
 
 ## 5. System Capability Verification Rule (سجل قدرات النظام ومنع تكرار الميزات)
 - **ممنوع نهائياً** اقتراح ميزات أو التخمين بوجود أو عدم وجود ميزة من الذاكرة أو تقديم اقتراحات لميزات معمولة بالفعل عند سؤال المستخدم عن "ما ينقص النظام".

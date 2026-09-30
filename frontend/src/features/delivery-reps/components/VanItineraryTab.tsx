@@ -5,14 +5,43 @@ import { StandardDialog, StandardDialogFooter } from '@/shared/components/Standa
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
 import { vanSalesApi, VanCustomerItineraryItem } from '../api/van-sales.api';
-import { MapPinIcon, CheckCircleIcon, XCircleIcon, ClockIcon, SearchIcon, PhoneIcon, ArrowRightIcon, ArrowLeftIcon, CalendarIcon, AlertTriangleIcon, ChevronDownIcon } from '@/shared/components/icons/AppIcons';
+import {
+  MapPinIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon,
+  SearchIcon,
+  PhoneIcon,
+  ArrowRightIcon,
+  ArrowLeftIcon,
+  CalendarIcon,
+  AlertTriangleIcon,
+  ChevronDownIcon,
+  PlusIcon,
+  SlidersIcon,
+  PlayIcon,
+  CreditCardIcon,
+  ReceiptIcon,
+  RotateCcwIcon,
+} from '@/shared/components/icons/AppIcons';
+import { catalogApi } from '@/lib/api/catalog';
 
 interface VanItineraryTabProps {
   itinerary: VanCustomerItineraryItem[];
   tripId?: number;
   onSelectCustomerForSale: (customerId: number) => void;
+  onSelectCustomerForReturn?: (customerId: number) => void;
+  onSelectCustomerForCollection?: (customerId: number) => void;
   onRefreshItinerary: () => void;
   isLoading?: boolean;
+  activeVisit?: {
+    customerId: number;
+    customerName: string;
+    startedAt: number;
+    startedTimeStr?: string;
+  } | null;
+  onStartVisit?: (customerId: number, customerName: string) => void;
+  onEndVisit?: () => void;
 }
 
 const DAY_ALIASES: Record<string, string[]> = {
@@ -67,19 +96,285 @@ function customerMatchesDay(
   return days.some((d) => normalizeDayKey(d) === targetKey);
 }
 
+interface VanItineraryPaginationProps {
+  startIdx: number;
+  pageSize: number;
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+}
+
+const VanItineraryPagination: React.FC<VanItineraryPaginationProps> = ({
+  startIdx,
+  pageSize,
+  totalCount,
+  currentPage,
+  totalPages,
+  onPageChange,
+  onPageSizeChange,
+}) => {
+  if (totalCount === 0) return null;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+        borderRadius: '10px',
+        padding: '5px 10px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        gap: '6px',
+        flexWrap: 'nowrap',
+        width: '100%',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* Right Cluster: Count & Page Size Selector */}
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+        <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
+          {startIdx + 1}-{Math.min(startIdx + pageSize, totalCount)}
+          <span style={{ color: '#64748b', fontSize: '10.5px', fontWeight: 500, margin: '0 2px' }}>من</span>
+          {totalCount}
+        </span>
+
+        <span style={{ width: '1px', height: '14px', backgroundColor: '#e2e8f0', margin: '0 1px' }} />
+
+        <select
+          value={pageSize}
+          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          title="عدد العناصر المعروضة لكل صفحة"
+          style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            borderRadius: '6px',
+            padding: '1px 5px',
+            fontSize: '11px',
+            fontWeight: 800,
+            color: '#170e5e',
+            cursor: 'pointer',
+            outline: 'none',
+            height: '25px',
+          }}
+        >
+          <option value={10}>10</option>
+          <option value={15}>15</option>
+          <option value={20}>20</option>
+          <option value={25}>25</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+        </select>
+      </div>
+
+      {/* Left Cluster: Page Navigation */}
+      {totalCount > pageSize && (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+          <button
+            type="button"
+            disabled={currentPage <= 1}
+            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+              height: '25px',
+              padding: '0 7px',
+              borderRadius: '6px',
+              border: '1px solid ' + (currentPage <= 1 ? '#e2e8f0' : '#cbd5e1'),
+              backgroundColor: currentPage <= 1 ? '#f8fafc' : '#ffffff',
+              color: currentPage <= 1 ? '#cbd5e1' : '#170e5e',
+              fontSize: '10.5px',
+              fontWeight: 800,
+              cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+              boxShadow: currentPage <= 1 ? 'none' : '0 1px 2px rgba(0,0,0,0.03)',
+            }}
+          >
+            <ArrowRightIcon size={11} />
+            <span>السابق</span>
+          </button>
+
+          <span
+            dir="ltr"
+            style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              color: '#170e5e',
+              minWidth: '32px',
+              textAlign: 'center',
+              userSelect: 'none',
+              whiteSpace: 'nowrap',
+              padding: '0 2px',
+            }}
+          >
+            {currentPage} / {totalPages}
+          </span>
+
+          <button
+            type="button"
+            disabled={currentPage >= totalPages}
+            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+              height: '25px',
+              padding: '0 7px',
+              borderRadius: '6px',
+              border: '1px solid ' + (currentPage >= totalPages ? '#e2e8f0' : '#cbd5e1'),
+              backgroundColor: currentPage >= totalPages ? '#f8fafc' : '#ffffff',
+              color: currentPage >= totalPages ? '#cbd5e1' : '#170e5e',
+              fontSize: '10.5px',
+              fontWeight: 800,
+              cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+              boxShadow: currentPage >= totalPages ? 'none' : '0 1px 2px rgba(0,0,0,0.03)',
+            }}
+          >
+            <span>التالي</span>
+            <ArrowLeftIcon size={11} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
   itinerary,
   tripId,
   onSelectCustomerForSale,
+  onSelectCustomerForReturn,
+  onSelectCustomerForCollection,
   onRefreshItinerary,
   isLoading,
+  activeVisit,
+  onStartVisit,
+  onEndVisit,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [routeFilter, setRouteFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'positive' | 'negative'>('all');
   const [dayFilter, setDayFilter] = useState<'today' | 'all' | string>('today');
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 25;
+  const [pageSize, setPageSize] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('zs_van_itinerary_page_size');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if ([10, 15, 20, 25, 50, 100].includes(parsed)) return parsed;
+      }
+    }
+    return 15;
+  });
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('zs_van_itinerary_page_size', String(size));
+    }
+  };
+
+  // Selected customer for the unified hub modal
+  const [selectedCustomerForHub, setSelectedCustomerForHub] = useState<VanCustomerItineraryItem | null>(null);
+
+  // Route Reordering Mode
+  const [isReorderingMode, setIsReorderingMode] = useState(false);
+
+  // Load saved itinerary ordering from localStorage
+  const [customDistrictOrder, setCustomDistrictOrder] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem('zs_van_district_order');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [customCustomerOrder, setCustomCustomerOrder] = useState<Record<string, number[]>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = localStorage.getItem('zs_van_customer_order');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const saveDistrictOrder = (newOrder: string[]) => {
+    setCustomDistrictOrder(newOrder);
+    try {
+      localStorage.setItem('zs_van_district_order', JSON.stringify(newOrder));
+    } catch {}
+  };
+
+  const saveCustomerOrder = (district: string, customerIds: number[]) => {
+    const updated = { ...customCustomerOrder, [district]: customerIds };
+    setCustomCustomerOrder(updated);
+    try {
+      localStorage.setItem('zs_van_customer_order', JSON.stringify(updated));
+    } catch {}
+  };
+
+  const resetOrderToDefault = () => {
+    setCustomDistrictOrder([]);
+    setCustomCustomerOrder({});
+    try {
+      localStorage.removeItem('zs_van_district_order');
+      localStorage.removeItem('zs_van_customer_order');
+    } catch {}
+    toast.info('تم استعادة الترتيب التلقائي لخط السير');
+  };
+
+  // Add Customer Modal State
+  const [addCustomerModalOpen, setAddCustomerModalOpen] = useState(false);
+  const [newCustName, setNewCustName] = useState('');
+  const [newCustPhone, setNewCustPhone] = useState('');
+  const [newCustDistrict, setNewCustDistrict] = useState('');
+  const [newCustRoute, setNewCustRoute] = useState('');
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+
+  // Memory list of saved districts
+  const savedDistrictsList = useMemo(() => {
+    const set = new Set<string>();
+    // From itinerary
+    itinerary.forEach((it) => {
+      if (it.district) set.add(it.district.trim());
+      else if (it.route) set.add(it.route.trim());
+    });
+    // From localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const localDistricts: string[] = JSON.parse(localStorage.getItem('zs_van_saved_districts') || '[]');
+        localDistricts.forEach((d) => set.add(d.trim()));
+      } catch {}
+    }
+    return Array.from(set).filter(Boolean);
+  }, [itinerary]);
+
+  // Live timer interval for active visit duration
+  const [timerTick, setTimerTick] = useState(Date.now());
+  useEffect(() => {
+    if (!activeVisit) return;
+    const interval = setInterval(() => setTimerTick(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [activeVisit]);
+
+  const elapsedVisitSeconds = activeVisit
+    ? Math.max(0, Math.floor((timerTick - activeVisit.startedAt) / 1000))
+    : 0;
+
+  const formatElapsed = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
 
   const arabicDayNames = useMemo(() => ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'], []);
   const todayArabicName = useMemo(() => {
@@ -142,16 +437,180 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         item.customerName.toLowerCase().includes(q) ||
         item.customerCode.toLowerCase().includes(q) ||
         item.customerPhone.includes(q) ||
-        item.route.toLowerCase().includes(q)
+        item.route.toLowerCase().includes(q) ||
+        (item.district && item.district.toLowerCase().includes(q))
       );
     });
   }, [itinerary, dayFilter, todayArabicName, statusFilter, routeFilter, searchTerm]);
 
-  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  // 1. Group ALL filtered items by District to establish canonical itinerary ordering
+  const allDistrictGroups = useMemo(() => {
+    const groupsMap = new Map<string, VanCustomerItineraryItem[]>();
+
+    for (const item of filtered) {
+      const dName = (item.district || item.route || 'حي عام / بدون تحديد').trim();
+      if (!groupsMap.has(dName)) {
+        groupsMap.set(dName, []);
+      }
+      groupsMap.get(dName)!.push(item);
+    }
+
+    const sortedDistrictNames = Array.from(groupsMap.keys()).sort((a, b) => {
+      const idxA = customDistrictOrder.indexOf(a);
+      const idxB = customDistrictOrder.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.localeCompare(b, 'ar');
+    });
+
+    return sortedDistrictNames.map((name) => {
+      const items = groupsMap.get(name)!;
+      const orderList = customCustomerOrder[name] || [];
+      const sortedItems = [...items].sort((a, b) => {
+        const idxA = orderList.indexOf(a.customerId);
+        const idxB = orderList.indexOf(b.customerId);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.customerName.localeCompare(b.customerName, 'ar');
+      });
+
+      return {
+        name,
+        items: sortedItems,
+        totalCount: sortedItems.length,
+        visitedCount: sortedItems.filter((i) => i.visitStatus !== 'pending').length,
+      };
+    });
+  }, [filtered, customDistrictOrder, customCustomerOrder]);
+
+  // 2. Flatten ordered customers with their permanent global sequence number (1, 2, ... N)
+  const allSortedCustomers = useMemo(() => {
+    const list: Array<VanCustomerItineraryItem & { globalSeq: number }> = [];
+    let seq = 1;
+    for (const group of allDistrictGroups) {
+      for (const item of group.items) {
+        list.push({ ...item, globalSeq: seq++ });
+      }
+    }
+    return list;
+  }, [allDistrictGroups]);
+
+  const totalPages = Math.ceil(allSortedCustomers.length / pageSize) || 1;
   const startIdx = (currentPage - 1) * pageSize;
   const paginatedItems = useMemo(() => {
-    return filtered.slice(startIdx, startIdx + pageSize);
-  }, [filtered, startIdx, pageSize]);
+    return allSortedCustomers.slice(startIdx, startIdx + pageSize);
+  }, [allSortedCustomers, startIdx, pageSize]);
+
+  // 3. Group ONLY the items of the current page (10 items) by District for lightning-fast mobile rendering
+  const districtGroups = useMemo(() => {
+    const groupsMap = new Map<string, Array<VanCustomerItineraryItem & { globalSeq: number }>>();
+
+    for (const item of paginatedItems) {
+      const dName = (item.district || item.route || 'حي عام / بدون تحديد').trim();
+      if (!groupsMap.has(dName)) {
+        groupsMap.set(dName, []);
+      }
+      groupsMap.get(dName)!.push(item);
+    }
+
+    const result: Array<{
+      name: string;
+      items: Array<VanCustomerItineraryItem & { globalSeq: number }>;
+      totalCount: number;
+      visitedCount: number;
+    }> = [];
+
+    for (const group of allDistrictGroups) {
+      const pageItems = groupsMap.get(group.name);
+      if (pageItems && pageItems.length > 0) {
+        result.push({
+          name: group.name,
+          items: pageItems,
+          totalCount: group.totalCount,
+          visitedCount: group.visitedCount,
+        });
+      }
+    }
+
+    return result;
+  }, [paginatedItems, allDistrictGroups]);
+
+  const moveDistrict = (districtName: string, dir: 'up' | 'down') => {
+    const currentOrder = allDistrictGroups.map((g) => g.name);
+    const idx = currentOrder.indexOf(districtName);
+    if (idx === -1) return;
+    const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= currentOrder.length) return;
+    const newOrder = [...currentOrder];
+    const temp = newOrder[idx];
+    newOrder[idx] = newOrder[targetIdx];
+    newOrder[targetIdx] = temp;
+    saveDistrictOrder(newOrder);
+    toast.success(`تم ${dir === 'up' ? 'تقديم' : 'تأخير'} ${districtName}`);
+  };
+
+  const moveCustomer = (districtName: string, customerId: number, dir: 'up' | 'down') => {
+    const grp = allDistrictGroups.find((g) => g.name === districtName);
+    if (!grp) return;
+    const currentIds = grp.items.map((i) => i.customerId);
+    const idx = currentIds.indexOf(customerId);
+    if (idx === -1) return;
+    const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= currentIds.length) return;
+    const newIds = [...currentIds];
+    const temp = newIds[idx];
+    newIds[idx] = newIds[targetIdx];
+    newIds[targetIdx] = temp;
+    saveCustomerOrder(districtName, newIds);
+  };
+
+  const handleCreateCustomer = async () => {
+    if (!newCustName.trim()) {
+      toast.warning('يرجى كتابة اسم المحل / العميل');
+      return;
+    }
+    setIsCreatingCustomer(true);
+    try {
+      const districtVal = newCustDistrict.trim() || undefined;
+      const routeVal = newCustRoute.trim() || undefined;
+      await catalogApi.createCustomer({
+        name: newCustName.trim(),
+        phone: newCustPhone.trim() || undefined,
+        type: 'cash',
+        creditLimit: 0,
+        balance: 0,
+        metadata: {
+          district: districtVal,
+          route: routeVal,
+        },
+      });
+
+      if (districtVal && typeof window !== 'undefined') {
+        try {
+          const saved: string[] = JSON.parse(localStorage.getItem('zs_van_saved_districts') || '[]');
+          if (!saved.includes(districtVal)) {
+            localStorage.setItem('zs_van_saved_districts', JSON.stringify([...saved, districtVal].slice(-50)));
+          }
+        } catch {}
+      }
+
+      toast.success(`تم إضافة المحل (${newCustName.trim()}) لخط السير بنجاح`);
+      setAddCustomerModalOpen(false);
+      setNewCustName('');
+      setNewCustPhone('');
+      setNewCustDistrict('');
+      setNewCustRoute('');
+      onRefreshItinerary();
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر إضافة العميل');
+    } finally {
+      setIsCreatingCustomer(false);
+    }
+  };
+
+
 
   const openNegativeVisitModal = (customer: VanCustomerItineraryItem) => {
     setActiveCustomer(customer);
@@ -210,6 +669,9 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
       }
 
       setNegativeModalOpen(false);
+      if (activeVisit && activeVisit.customerId === activeCustomer.customerId) {
+        onEndVisit?.();
+      }
       onRefreshItinerary();
     } catch (err: any) {
       toast.error(err?.message || 'تعذر تسجيل الزيارة');
@@ -242,8 +704,580 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
   const pendingCount = total - positiveCount - negativeCount;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '24px' }}>
-      {/* Unified High-Density Itinerary Toolbar */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: selectedCustomerForHub ? '6px' : '10px', paddingBottom: selectedCustomerForHub ? '4px' : '24px' }}>
+      {selectedCustomerForHub ? (
+        /* Z-SYSTEMS OFFICIAL MOBILE VISUAL IDENTITY: ZERO-SCROLL CUSTOMER VISIT HUB */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* 1. STORE PROFILE HEADER CARD (Top Bar + Store Info + Quick Actions) */}
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '14px',
+              border: '1px solid #e2e8f0',
+              padding: '8px 12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            {/* Row 1: Back Button + Customer Name + Phone / GPS Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCustomerForHub(null)}
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '4px 8px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: '#170e5e',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    flexShrink: 0,
+                  }}
+                >
+                  <ArrowRightIcon size={13} color="#170e5e" />
+                  <span>خط السير</span>
+                </button>
+
+                <h2
+                  style={{
+                    margin: 0,
+                    fontSize: '14px',
+                    fontWeight: 900,
+                    color: '#0f172a',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                  title={selectedCustomerForHub.customerName}
+                >
+                  {selectedCustomerForHub.customerName}
+                </h2>
+              </div>
+
+              {/* Call & GPS Action Buttons with soft squircle styling */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                {selectedCustomerForHub.customerPhone ? (
+                  <a
+                    href={`tel:${selectedCustomerForHub.customerPhone}`}
+                    style={{
+                      backgroundColor: '#dcfce7',
+                      border: '1px solid #bbf7d0',
+                      color: '#15803d',
+                      borderRadius: '8px',
+                      padding: '4px 8px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                      textDecoration: 'none',
+                    }}
+                    title={selectedCustomerForHub.customerPhone}
+                  >
+                    <PhoneIcon size={12} color="#15803d" />
+                    <span>اتصال</span>
+                  </a>
+                ) : null}
+
+                {selectedCustomerForHub.locationUrl ? (
+                  <a
+                    href={selectedCustomerForHub.locationUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      backgroundColor: '#e0f2fe',
+                      border: '1px solid #bae6fd',
+                      color: '#0284c7',
+                      borderRadius: '8px',
+                      padding: '4px 8px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <MapPinIcon size={12} color="#0284c7" />
+                    <span>GPS</span>
+                  </a>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Row 2: Code, District/Route, Address & Status Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '10.5px', color: '#64748b' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
+                <span
+                  style={{
+                    fontFamily: 'monospace',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: '#170e5e',
+                    backgroundColor: '#eef2ff',
+                    border: '1px solid #c7d2fe',
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    flexShrink: 0,
+                  }}
+                >
+                  #{selectedCustomerForHub.customerCode}
+                </span>
+
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {selectedCustomerForHub.district ? `حي: ${selectedCustomerForHub.district}` : (selectedCustomerForHub.route ? `خط: ${selectedCustomerForHub.route}` : '')}
+                  {selectedCustomerForHub.customerAddress ? ` • ${selectedCustomerForHub.customerAddress}` : ''}
+                </span>
+              </div>
+
+              {/* Status Badge */}
+              <div style={{ flexShrink: 0 }}>
+                {selectedCustomerForHub.visitStatus === 'positive' && (
+                  <span style={{ backgroundColor: '#dcfce7', color: '#15803d', fontSize: '10px', fontWeight: 800, padding: '2px 7px', borderRadius: '6px', border: '1px solid #86efac' }}>
+                    تم البيع
+                  </span>
+                )}
+                {selectedCustomerForHub.visitStatus === 'negative' && (
+                  <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', fontSize: '10px', fontWeight: 800, padding: '2px 7px', borderRadius: '6px', border: '1px solid #fca5a5' }}>
+                    زيارة سلبية
+                  </span>
+                )}
+                {selectedCustomerForHub.visitStatus === 'pending' && (
+                  <span style={{ backgroundColor: '#f1f5f9', color: '#475569', fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                    بانتظار الزيارة
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 2. TWO FINANCIAL METRIC CAPSULES (Debt + Credit Limit) - BALANCED 50% ROW */}
+          <div
+            className="keep-grid-row"
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              gap: '8px',
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
+            {/* Capsule 1: Debt */}
+            <div
+              style={{
+                flex: '1 1 0',
+                minWidth: 0,
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '8px 10px',
+                textAlign: 'center',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                boxSizing: 'border-box',
+              }}
+            >
+              <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '2px' }}>
+                المديونية المستحقة
+              </span>
+              <strong style={{ fontSize: '14px', fontWeight: 900, color: selectedCustomerForHub.balance > 0 ? '#dc2626' : '#15803d', display: 'block', lineHeight: 1.15 }}>
+                {selectedCustomerForHub.balance.toFixed(0)} <CurrencySymbol />
+              </strong>
+            </div>
+
+            {/* Capsule 2: Credit Limit */}
+            <div
+              style={{
+                flex: '1 1 0',
+                minWidth: 0,
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '8px 10px',
+                textAlign: 'center',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                boxSizing: 'border-box',
+              }}
+            >
+              <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '2px' }}>
+                سقف الائتمان
+              </span>
+              <strong style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.15 }}>
+                {selectedCustomerForHub.creditLimit.toFixed(0)} <CurrencySymbol />
+              </strong>
+            </div>
+          </div>
+
+          {/* 3. PRIMARY FULL-WIDTH VISIT TIMER BUTTON / COCKPIT BAR */}
+          {activeVisit?.customerId === selectedCustomerForHub.customerId ? (
+            /* Active Visit Bar */
+            <div
+              style={{
+                width: '100%',
+                backgroundColor: '#f0fdf4',
+                border: '1.5px solid #86efac',
+                borderRadius: '12px',
+                padding: '8px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '8px',
+                    backgroundColor: '#dcfce7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <ClockIcon size={16} color="#15803d" />
+                </div>
+                <div>
+                  <span style={{ fontSize: '10px', color: '#15803d', fontWeight: 700, display: 'block' }}>
+                    الزيارة الميدانية جارية الآن
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: 'monospace',
+                      fontSize: '15px',
+                      fontWeight: 900,
+                      color: '#166534',
+                      letterSpacing: '0.5px',
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {formatElapsed(elapsedVisitSeconds)}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onEndVisit?.()}
+                style={{
+                  backgroundColor: '#fee2e2',
+                  color: '#b91c1c',
+                  border: '1px solid #fca5a5',
+                  borderRadius: '8px',
+                  padding: '5px 12px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <span>إنهاء الزيارة</span>
+              </button>
+            </div>
+          ) : (
+            /* Standalone Primary Full-Width CTA to Start Visit */
+            <button
+              type="button"
+              onClick={() => onStartVisit?.(selectedCustomerForHub.customerId, selectedCustomerForHub.customerName)}
+              style={{
+                width: '100%',
+                backgroundColor: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '9px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 5px rgba(23, 14, 94, 0.18)',
+                boxSizing: 'border-box',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '6px',
+                  backgroundColor: 'rgba(255,255,255,0.18)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <PlayIcon size={12} color="#ffffff" />
+              </div>
+              <span style={{ fontSize: '13px', fontWeight: 800 }}>بدء الزيارة الميدانية وتفعيل المؤقت</span>
+            </button>
+          )}
+
+          {/* 3. SECTION HEADER (Classic Z-Systems Royal Navy Vertical Accent Bar) */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px 0' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              <span style={{ width: '3.5px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+              <span>إجراءات الزيارة الميدانية</span>
+            </h3>
+            <span style={{ fontSize: '10.5px', color: '#64748b' }}>اختر الإجراء المطلوب</span>
+          </div>
+
+          {/* 4. FOUR OPERATIONAL ACTION TILES (Z-Systems Squircle 2x2 Grid - TWO EXPLICIT HORIZONTAL FLEX ROWS) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
+            {/* ROW 1: Sale Invoice & Customer Return */}
+            <div className="keep-grid-row" style={{ display: 'flex', flexDirection: 'row', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
+              {/* Tile 1: New Sale Invoice */}
+              <div
+                onClick={() => {
+                  if (!activeVisit || activeVisit.customerId !== selectedCustomerForHub.customerId) {
+                    onStartVisit?.(selectedCustomerForHub.customerId, selectedCustomerForHub.customerName);
+                  }
+                  const cId = selectedCustomerForHub.customerId;
+                  setSelectedCustomerForHub(null);
+                  onSelectCustomerForSale(cId);
+                }}
+                style={{
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '10px 6px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    backgroundColor: '#f3e8ff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 6px',
+                  }}
+                >
+                  <ReceiptIcon size={18} color="#7c3aed" strokeWidth={2} />
+                </div>
+                <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+                  فاتورة بيع جديدة
+                </h4>
+                <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
+                  بيع وصرف بضاعة
+                </p>
+              </div>
+
+              {/* Tile 2: Customer Return */}
+              <div
+                onClick={() => {
+                  if (!activeVisit || activeVisit.customerId !== selectedCustomerForHub.customerId) {
+                    onStartVisit?.(selectedCustomerForHub.customerId, selectedCustomerForHub.customerName);
+                  }
+                  const cId = selectedCustomerForHub.customerId;
+                  setSelectedCustomerForHub(null);
+                  if (onSelectCustomerForReturn) {
+                    onSelectCustomerForReturn(cId);
+                  } else {
+                    onSelectCustomerForSale(cId);
+                  }
+                }}
+                style={{
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '10px 6px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    backgroundColor: '#ffedd5',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 6px',
+                  }}
+                >
+                  <RotateCcwIcon size={18} color="#ea580c" strokeWidth={2} />
+                </div>
+                <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+                  مرتجع بضاعة
+                </h4>
+                <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
+                  من فواتير العميل
+                </p>
+              </div>
+            </div>
+
+            {/* ROW 2: Debt Collection & Negative Visit */}
+            <div className="keep-grid-row" style={{ display: 'flex', flexDirection: 'row', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
+              {/* Tile 3: Debt Collection */}
+              <div
+                onClick={() => {
+                  if (!activeVisit || activeVisit.customerId !== selectedCustomerForHub.customerId) {
+                    onStartVisit?.(selectedCustomerForHub.customerId, selectedCustomerForHub.customerName);
+                  }
+                  const cId = selectedCustomerForHub.customerId;
+                  setSelectedCustomerForHub(null);
+                  if (onSelectCustomerForCollection) {
+                    onSelectCustomerForCollection(cId);
+                  }
+                }}
+                style={{
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '10px 6px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    backgroundColor: '#dcfce7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 6px',
+                  }}
+                >
+                  <CreditCardIcon size={18} color="#16a34a" strokeWidth={2} />
+                </div>
+                <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+                  سند تحصيل نقدية
+                </h4>
+                <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
+                  سداد وتخفيض مديونية
+                </p>
+              </div>
+
+              {/* Tile 4: Negative Visit */}
+              <div
+                onClick={() => {
+                  const cust = selectedCustomerForHub;
+                  openNegativeVisitModal(cust);
+                }}
+                style={{
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '10px 6px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    backgroundColor: '#fee2e2',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 6px',
+                  }}
+                >
+                  <XCircleIcon size={18} color="#dc2626" strokeWidth={2} />
+                </div>
+                <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+                  تسجيل زيارة سلبية
+                </h4>
+                <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
+                  محل مغلق / لم يشترِ
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Today's Visit Summary if already visited today (Z-Systems Crisp White Card) */}
+          {selectedCustomerForHub.todayVisit && (
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '8px 12px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '11px',
+                gap: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ClockIcon size={13} color="#64748b" />
+                <span style={{ fontWeight: 700, color: '#475569', flexShrink: 0 }}>زيارة سابقة اليوم:</span>
+              </div>
+              {selectedCustomerForHub.todayVisit.visitType === 'positive' ? (
+                <span style={{ color: '#15803d', fontWeight: 800 }}>
+                  فاتورة #{selectedCustomerForHub.todayVisit.saleDocNo} ({selectedCustomerForHub.todayVisit.saleTotal} <CurrencySymbol />)
+                </span>
+              ) : (
+                <span style={{ color: '#b91c1c', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {getReasonLabel(selectedCustomerForHub.todayVisit.negativeReason)}
+                  {selectedCustomerForHub.todayVisit.notes && ` — "${selectedCustomerForHub.todayVisit.notes}"`}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Unified High-Density Itinerary Toolbar */}
       <div
         style={{
           backgroundColor: '#ffffff',
@@ -362,7 +1396,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             }}
           >
             <CalendarIcon size={12} style={{ flexShrink: 0 }} />
-            <span style={{ whiteSpace: 'nowrap' }}>اليوم ({todayArabicName})</span>
+            <span style={{ whiteSpace: 'nowrap' }}>{todayArabicName}</span>
             <span
               style={{
                 backgroundColor:
@@ -537,14 +1571,14 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           </div>
         </div>
 
-        {/* Row 3: Compact Search & Route Filter */}
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+        {/* Row 3: Compact Search, Route Filter & Route Actions */}
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 180px', minWidth: '140px', position: 'relative' }}>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="بحث باسم المحل، الكود، أو الهاتف..."
+              placeholder="بحث باسم المحل، الكود، الحي، أو الهاتف..."
               style={{
                 width: '100%',
                 boxSizing: 'border-box',
@@ -561,7 +1595,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           </div>
 
           {routes.length > 1 && (
-            <div style={{ minWidth: '90px', maxWidth: '110px' }}>
+            <div style={{ minWidth: '85px', maxWidth: '110px', flex: '0 0 auto' }}>
               <CustomSelect
                 value={routeFilter}
                 onChange={(val) => setRouteFilter(val || 'all')}
@@ -575,8 +1609,96 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               />
             </div>
           )}
+
+          {/* Add Store Button */}
+          <button
+            type="button"
+            onClick={() => setAddCustomerModalOpen(true)}
+            style={{
+              height: '32px',
+              padding: '0 8px',
+              borderRadius: '6px',
+              backgroundColor: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              fontSize: '11px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              whiteSpace: 'nowrap',
+            }}
+            title="إضافة محل جديد لخط السير"
+          >
+            <PlusIcon size={12} color="#ffffff" />
+            <span>+ محل</span>
+          </button>
+
+          {/* Toggle Reordering Mode Button */}
+          <button
+            type="button"
+            onClick={() => setIsReorderingMode((prev) => !prev)}
+            style={{
+              height: '32px',
+              padding: '0 8px',
+              borderRadius: '6px',
+              backgroundColor: isReorderingMode ? '#1e293b' : '#f1f5f9',
+              color: isReorderingMode ? '#ffffff' : '#334155',
+              border: isReorderingMode ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              whiteSpace: 'nowrap',
+            }}
+            title="إعادة ترتيب خط السير"
+          >
+            <SlidersIcon size={12} color={isReorderingMode ? '#ffffff' : '#334155'} />
+            <span>{isReorderingMode ? 'إنهاء الترتيب' : 'ترتيب السير'}</span>
+          </button>
         </div>
       </div>
+
+      {/* Active Reordering Mode Banner */}
+      {isReorderingMode && (
+        <div
+          style={{
+            backgroundColor: '#eff6ff',
+            border: '1.5px dashed #3b82f6',
+            borderRadius: '8px',
+            padding: '8px 12px',
+            fontSize: '11px',
+            color: '#1e40af',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '6px',
+          }}
+        >
+          <span>
+            وضع إعادة ترتيب خط السير نشط: استخدم الأسهم (▲/▼) لتقديم أو تأخير الأحياء والمحلات.
+          </span>
+          <button
+            type="button"
+            onClick={resetOrderToDefault}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#dc2626',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+            }}
+          >
+            استعادة الترتيب التلقائي
+          </button>
+        </div>
+      )}
 
       {/* Active filter badge / reset */}
       {(statusFilter !== 'all' || (dayFilter !== 'today' && dayFilter !== 'all')) && (
@@ -649,263 +1771,366 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           لا توجد محلات مسجلة تطابق معايير البحث
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {paginatedItems.map((item, idx) => {
-            const isPositive = item.visitStatus === 'positive';
-            const isNegative = item.visitStatus === 'negative';
-            const isPending = item.visitStatus === 'pending';
-            const itemNumber = startIdx + idx + 1;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Top Compact Pagination Bar */}
+            <VanItineraryPagination
+              startIdx={startIdx}
+              pageSize={pageSize}
+              totalCount={allSortedCustomers.length}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={handlePageSizeChange}
+            />
 
+          {districtGroups.map((group, groupIdx) => {
             return (
               <div
-                key={item.customerId}
+                key={group.name}
                 style={{
-                  backgroundColor: '#ffffff',
-                  borderRadius: '10px',
-                  border: isPositive
-                    ? '1.5px solid #10b981'
-                    : isNegative
-                    ? '1.5px solid #f87171'
-                    : '1px solid #e2e8f0',
-                  padding: '7px 10px',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '4px',
+                  gap: '6px',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  padding: '10px 12px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                 }}
               >
-                {/* Header: Sequence, Code, Name, Status Badge */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
-                    <span
-                      style={{
-                        backgroundColor: '#170e5e',
-                        color: '#ffffff',
-                        fontSize: '10px',
-                        fontWeight: 800,
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '5px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {itemNumber}
-                    </span>
-                    <span style={{ fontSize: '10.5px', fontFamily: 'monospace', fontWeight: 800, color: '#0369a1', flexShrink: 0 }}>
-                      [{item.customerCode}]
-                    </span>
-                    <h4
-                      style={{
-                        margin: 0,
-                        fontSize: '13px',
-                        fontWeight: 800,
-                        color: '#0f172a',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        lineHeight: 1.45,
-                        paddingBottom: '3px',
-                        paddingTop: '1px',
-                      }}
-                      title={item.customerName}
-                    >
-                      {item.customerName}
-                    </h4>
-                  </div>
-
-                  {/* Status Badge */}
-                  <div style={{ flexShrink: 0 }}>
-                    {isPositive && (
-                      <span
-                        style={{
-                          backgroundColor: '#ecfdf5',
-                          color: '#047857',
-                          fontSize: '10px',
-                          fontWeight: 800,
-                          padding: '1px 6px',
-                          borderRadius: '4px',
-                          border: '1px solid #a7f3d0',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                        }}
-                      >
-                        <CheckCircleIcon size={11} color="#047857" />
-                        <span>تم البيع</span>
+                {/* District Group Header */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderBottom: '1px solid #f1f5f9',
+                    paddingBottom: '8px',
+                    marginBottom: '4px',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '6px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <MapPinIcon size={14} color="#170e5e" />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                        {group.name}
                       </span>
-                    )}
-                    {isNegative && (
                       <span
                         style={{
-                          backgroundColor: '#fef2f2',
-                          color: '#b91c1c',
-                          fontSize: '10px',
-                          fontWeight: 800,
-                          padding: '1px 6px',
-                          borderRadius: '4px',
-                          border: '1px solid #fecaca',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                        }}
-                      >
-                        <XCircleIcon size={11} color="#b91c1c" />
-                        <span>سلبية</span>
-                      </span>
-                    )}
-                    {isPending && (
-                      <span
-                        style={{
-                          backgroundColor: '#f8fafc',
-                          color: '#64748b',
                           fontSize: '10px',
                           fontWeight: 700,
+                          backgroundColor: group.visitedCount === group.totalCount && group.totalCount > 0 ? '#dcfce7' : '#e0f2fe',
+                          color: group.visitedCount === group.totalCount && group.totalCount > 0 ? '#15803d' : '#0369a1',
                           padding: '1px 6px',
                           borderRadius: '4px',
-                          border: '1px solid #e2e8f0',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
+                          marginInlineStart: '6px',
                         }}
                       >
-                        <ClockIcon size={11} color="#64748b" />
-                        <span>بالانتظار</span>
+                        {group.visitedCount} / {group.totalCount} تمت زيارتهم
                       </span>
-                    )}
+                    </div>
                   </div>
+
+                  {/* Reordering controls for District */}
+                  {isReorderingMode && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>ترتيب الحي:</span>
+                      <button
+                        type="button"
+                        onClick={() => moveDistrict(group.name, 'up')}
+                        disabled={groupIdx === 0}
+                        style={{
+                          padding: '3px 7px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          backgroundColor: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '5px',
+                          cursor: groupIdx === 0 ? 'not-allowed' : 'pointer',
+                          opacity: groupIdx === 0 ? 0.4 : 1,
+                        }}
+                        title="تقديم الحي في خط السير"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveDistrict(group.name, 'down')}
+                        disabled={groupIdx === districtGroups.length - 1}
+                        style={{
+                          padding: '3px 7px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          backgroundColor: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '5px',
+                          cursor: groupIdx === districtGroups.length - 1 ? 'not-allowed' : 'pointer',
+                          opacity: groupIdx === districtGroups.length - 1 ? 0.4 : 1,
+                        }}
+                        title="تأخير الحي في خط السير"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                {/* Repeated Negative Alert Badge */}
-                {item.hasRepeatedNegativeAlert && (
-                  <div
-                    style={{
-                      backgroundColor: '#fffbeb',
-                      border: '1px solid #fde68a',
-                      borderRadius: '6px',
-                      padding: '3px 8px',
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      color: '#b45309',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <AlertTriangleIcon size={12} color="#b45309" />
-                    <span>تنبيه: {item.repeatedNegativesCount} زيارات سابقة بدون بيع</span>
-                  </div>
-                )}
+                {/* Stores Cards inside this District */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {group.items.map((item, itemIdx) => {
+                    const isPositive = item.visitStatus === 'positive';
+                    const isNegative = item.visitStatus === 'negative';
+                    const isPending = item.visitStatus === 'pending';
+                    const isActiveVisiting = activeVisit?.customerId === item.customerId;
 
-                {/* Sub-info: Phone, Route, Debt */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#475569' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    {item.customerPhone && (
-                      <a
-                        href={`tel:${item.customerPhone}`}
+                    return (
+                      <div
+                        key={item.customerId}
+                        onClick={() => setSelectedCustomerForHub(item)}
                         style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          color: '#170e5e',
-                          backgroundColor: '#eef2ff',
-                          padding: '2px 7px',
-                          borderRadius: '4px',
-                          fontWeight: 700,
-                          fontSize: '10.5px',
-                          textDecoration: 'none',
-                          border: '1px solid #c7d2fe',
+                          backgroundColor: isActiveVisiting ? '#eff6ff' : '#ffffff',
+                          borderRadius: '8px',
+                          border: isActiveVisiting
+                            ? '2px solid #2563eb'
+                            : isPositive
+                            ? '1.5px solid #10b981'
+                            : isNegative
+                            ? '1.5px solid #f87171'
+                            : '1px solid #e2e8f0',
+                          padding: '8px 10px',
+                          boxShadow: isActiveVisiting ? '0 0 0 3px rgba(37,99,235,0.1)' : '0 1px 2px rgba(0,0,0,0.02)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '5px',
+                          cursor: 'pointer',
+                          transition: 'all 0.1s ease',
                         }}
                       >
-                        <PhoneIcon size={11} />
-                        <span dir="ltr">{item.customerPhone}</span>
-                      </a>
-                    )}
-                    {item.locationUrl && (
-                      <a
-                        href={item.locationUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          color: '#0369a1',
-                          backgroundColor: '#e0f2fe',
-                          padding: '2px 7px',
-                          borderRadius: '4px',
-                          fontWeight: 700,
-                          fontSize: '10.5px',
-                          textDecoration: 'none',
-                          border: '1px solid #bae6fd',
-                        }}
-                      >
-                        <MapPinIcon size={11} />
-                        <span>خريطة</span>
-                      </a>
-                    )}
-                    <span style={{ fontSize: '10.5px', color: '#64748b' }}>{item.route}</span>
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b', fontSize: '10.5px' }}>المديونية: </span>
-                    <strong style={{ color: item.balance > 0 ? '#b91c1c' : '#047857', fontSize: '11.5px' }}>
-                      {item.balance.toFixed(0)} <CurrencySymbol />
-                    </strong>
-                  </div>
-                </div>
+                        {/* Header: Sequence, Code, Name, Status Badge & Reorder Arrows */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+                            <span
+                              style={{
+                                backgroundColor: isActiveVisiting ? '#2563eb' : '#170e5e',
+                                color: '#ffffff',
+                                fontSize: '10px',
+                                fontWeight: 800,
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '5px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {item.globalSeq}
+                            </span>
+                            <span style={{ fontSize: '10.5px', fontFamily: 'monospace', fontWeight: 800, color: '#0369a1', flexShrink: 0 }}>
+                              [{item.customerCode}]
+                            </span>
+                            <h4
+                              style={{
+                                margin: 0,
+                                fontSize: '13px',
+                                fontWeight: 800,
+                                color: '#0f172a',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                lineHeight: 1.4,
+                              }}
+                              title={item.customerName}
+                            >
+                              {item.customerName}
+                            </h4>
+                          </div>
 
-                {/* If already visited: show visit outcome details */}
-                {item.todayVisit && (
-                  <div style={{ backgroundColor: '#f8fafc', padding: '3px 8px', borderRadius: '4px', fontSize: '10.5px', color: '#475569', border: '1px solid #e2e8f0' }}>
-                    {item.todayVisit.visitType === 'positive' ? (
-                      <span>
-                        فاتورة #{item.todayVisit.saleDocNo} بمبلغ <strong>{item.todayVisit.saleTotal} <CurrencySymbol /></strong>
-                      </span>
-                    ) : (
-                      <span>
-                        السبب: <strong>{getReasonLabel(item.todayVisit.negativeReason)}</strong>
-                        {item.todayVisit.postponedToDate && ` (تم التأجيل إلى: ${item.todayVisit.postponedToDate})`}
-                        {item.todayVisit.notes && ` — "${item.todayVisit.notes}"`}
-                      </span>
-                    )}
-                  </div>
-                )}
+                          {/* Status Badge & Actions */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                            {isActiveVisiting && (
+                              <span
+                                style={{
+                                  backgroundColor: '#dbeafe',
+                                  color: '#1e40af',
+                                  fontSize: '10px',
+                                  fontWeight: 800,
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #bfdbfe',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                }}
+                              >
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#2563eb', animation: 'pulse 1.5s infinite' }} />
+                                <span>الزيارة جارية ({formatElapsed(elapsedVisitSeconds)})</span>
+                              </span>
+                            )}
+                            {isPositive && (
+                              <span
+                                style={{
+                                  backgroundColor: '#ecfdf5',
+                                  color: '#047857',
+                                  fontSize: '10px',
+                                  fontWeight: 800,
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #a7f3d0',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                }}
+                              >
+                                <CheckCircleIcon size={11} color="#047857" />
+                                <span>تم البيع</span>
+                              </span>
+                            )}
+                            {isNegative && (
+                              <span
+                                style={{
+                                  backgroundColor: '#fef2f2',
+                                  color: '#b91c1c',
+                                  fontSize: '10px',
+                                  fontWeight: 800,
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #fecaca',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                }}
+                              >
+                                <XCircleIcon size={11} color="#b91c1c" />
+                                <span>سلبية</span>
+                              </span>
+                            )}
+                            {isPending && !isActiveVisiting && (
+                              <span
+                                style={{
+                                  backgroundColor: '#f8fafc',
+                                  color: '#64748b',
+                                  fontSize: '10px',
+                                  fontWeight: 700,
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #e2e8f0',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                }}
+                              >
+                                <ClockIcon size={11} color="#64748b" />
+                                <span>بالانتظار</span>
+                              </span>
+                            )}
 
-                {/* Actions: Direct Sale vs Record Negative Visit */}
-                <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
-                  <Button
-                    variant="primary"
-                    onClick={() => onSelectCustomerForSale(item.customerId)}
-                    style={{
-                      flex: 1,
-                      backgroundColor: '#170e5e',
-                      color: '#ffffff',
-                      fontSize: '11.5px',
-                      fontWeight: 800,
-                      minHeight: '30px',
-                      height: '30px',
-                      padding: '0 8px',
-                    }}
-                  >
-                    + فاتورة بيع
-                  </Button>
+                            {/* Up/Down buttons if in reorder mode */}
+                            {isReorderingMode && (
+                              <div style={{ display: 'flex', gap: '2px' }} onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  onClick={() => moveCustomer(group.name, item.customerId, 'up')}
+                                  disabled={itemIdx === 0}
+                                  style={{
+                                    padding: '2px 5px',
+                                    fontSize: '9px',
+                                    fontWeight: 800,
+                                    backgroundColor: '#f1f5f9',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '3px',
+                                    cursor: itemIdx === 0 ? 'not-allowed' : 'pointer',
+                                    opacity: itemIdx === 0 ? 0.3 : 1,
+                                  }}
+                                  title="تقديم المحل"
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => moveCustomer(group.name, item.customerId, 'down')}
+                                  disabled={itemIdx === group.items.length - 1}
+                                  style={{
+                                    padding: '2px 5px',
+                                    fontSize: '9px',
+                                    fontWeight: 800,
+                                    backgroundColor: '#f1f5f9',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '3px',
+                                    cursor: itemIdx === group.items.length - 1 ? 'not-allowed' : 'pointer',
+                                    opacity: itemIdx === group.items.length - 1 ? 0.3 : 1,
+                                  }}
+                                  title="تأخير المحل"
+                                >
+                                  ▼
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
 
-                  <Button
-                    variant="secondary"
-                    onClick={() => openNegativeVisitModal(item)}
-                    style={{
-                      fontSize: '11px',
-                      color: '#dc2626',
-                      borderColor: '#fca5a5',
-                      minHeight: '30px',
-                      height: '30px',
-                      padding: '0 8px',
-                    }}
-                  >
-                    زيارة سلبية
-                  </Button>
+                        {/* Repeated Negative Alert Badge */}
+                        {item.hasRepeatedNegativeAlert && (
+                          <div
+                            style={{
+                              backgroundColor: '#fffbeb',
+                              border: '1px solid #fde68a',
+                              borderRadius: '6px',
+                              padding: '3px 8px',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              color: '#b45309',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <AlertTriangleIcon size={12} color="#b45309" />
+                            <span>تنبيه: {item.repeatedNegativesCount} زيارات سابقة بدون بيع</span>
+                          </div>
+                        )}
+
+                        {/* Sub-info: Phone, Route, Debt */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#475569' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            {item.customerPhone && (
+                              <span style={{ fontSize: '10.5px', color: '#170e5e', fontWeight: 700 }} dir="ltr">
+                                {item.customerPhone}
+                              </span>
+                            )}
+                            <span style={{ fontSize: '10.5px', color: '#64748b' }}>{item.route}</span>
+                          </div>
+                          <div>
+                            <span style={{ color: '#64748b', fontSize: '10.5px' }}>المديونية: </span>
+                            <strong style={{ color: item.balance > 0 ? '#b91c1c' : '#047857', fontSize: '11.5px' }}>
+                              {item.balance.toFixed(0)} <CurrencySymbol />
+                            </strong>
+                          </div>
+                        </div>
+
+                        {/* If already visited: show visit outcome details */}
+                        {item.todayVisit && (
+                          <div style={{ backgroundColor: '#f8fafc', padding: '3px 8px', borderRadius: '4px', fontSize: '10.5px', color: '#475569', border: '1px solid #e2e8f0' }}>
+                            {item.todayVisit.visitType === 'positive' ? (
+                              <span>
+                                فاتورة #{item.todayVisit.saleDocNo} بمبلغ <strong>{item.todayVisit.saleTotal} <CurrencySymbol /></strong>
+                              </span>
+                            ) : (
+                              <span>
+                                السبب: <strong>{getReasonLabel(item.todayVisit.negativeReason)}</strong>
+                                {item.todayVisit.postponedToDate && ` (تم التأجيل إلى: ${item.todayVisit.postponedToDate})`}
+                                {item.todayVisit.notes && ` — "${item.todayVisit.notes}"`}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -913,60 +2138,107 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         </div>
       )}
 
-      {/* Pagination Controls */}
-      {filtered.length > pageSize && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            backgroundColor: '#ffffff',
-            borderRadius: '10px',
-            padding: '10px 14px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-            gap: '8px',
-            flexWrap: 'wrap',
-          }}
+      {/* Add New Customer / Store to Route Modal */}
+      {addCustomerModalOpen && (
+        <StandardDialog
+          open={addCustomerModalOpen}
+          onClose={() => setAddCustomerModalOpen(false)}
+          title="إضافة محل / عميل جديد لخط السير"
+          subtitle="تسجيل بيانات المحل وإدراجه مباشرة في خط سير اليوم"
+          minHeight="420px"
+          footerActions={
+            <StandardDialogFooter
+              onClose={() => setAddCustomerModalOpen(false)}
+              cancelText="إلغاء"
+              extraActions={
+                <Button
+                  variant="primary"
+                  onClick={handleCreateCustomer}
+                  disabled={isCreatingCustomer || !newCustName.trim()}
+                  style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 800 }}
+                >
+                  {isCreatingCustomer ? 'جاري الحفظ...' : 'حفظ وإدراج في خط السير'}
+                </Button>
+              }
+            />
+          }
         >
-          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
-            عرض {startIdx + 1} - {Math.min(startIdx + pageSize, filtered.length)} من أصل {filtered.length} محلاً
-          </span>
+          <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
+                اسم المحل / العميل *
+              </label>
+              <input
+                type="text"
+                value={newCustName}
+                onChange={(e) => setNewCustName(e.target.value)}
+                placeholder="مثال: سوبرماركت البركة"
+                style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
+              />
+            </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={currentPage <= 1}
-              onClick={() => {
-                setCurrentPage((p) => Math.max(1, p - 1));
-              }}
-              style={{ fontSize: '12px', padding: '4px 10px', height: '30px' }}
-            >
-              <ArrowRightIcon size={13} style={{ marginInlineEnd: '4px' }} />
-              السابق
-            </Button>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
+                رقم الهاتف / الموبايل
+              </label>
+              <input
+                type="tel"
+                value={newCustPhone}
+                onChange={(e) => setNewCustPhone(e.target.value)}
+                placeholder="01xxxxxxxxx"
+                dir="ltr"
+                style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box', textAlign: 'right' }}
+              />
+            </div>
 
-            <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', padding: '0 6px' }}>
-              {currentPage} / {totalPages}
-            </span>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
+                الحي / المربع السكني (District)
+              </label>
+              <input
+                list="van-itinerary-saved-districts"
+                value={newCustDistrict}
+                onChange={(e) => setNewCustDistrict(e.target.value)}
+                placeholder="اكتب اسم الحي أو اختر من المحفوظ..."
+                style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
+              />
+              <datalist id="van-itinerary-saved-districts">
+                {savedDistrictsList.map((d) => (
+                  <option key={d} value={d} />
+                ))}
+              </datalist>
+              <span style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                يتم حفظ الأحياء تلقائياً واسترجاعها لترتيب خط السير حسب المنطقة.
+              </span>
+            </div>
 
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={currentPage >= totalPages}
-              onClick={() => {
-                setCurrentPage((p) => Math.min(totalPages, p + 1));
-              }}
-              style={{ fontSize: '12px', padding: '4px 10px', height: '30px' }}
-            >
-              التالي
-              <ArrowLeftIcon size={13} style={{ marginInlineStart: '4px' }} />
-            </Button>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
+                خط السير الرئيسي (Route)
+              </label>
+              <input
+                type="text"
+                value={newCustRoute}
+                onChange={(e) => setNewCustRoute(e.target.value)}
+                placeholder={routes[0] || 'مثال: خط فيصل الرئيسي'}
+                style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
+              />
+            </div>
           </div>
-        </div>
+        </StandardDialog>
+      )}
+
+      {/* Bottom Pagination Bar */}
+      <VanItineraryPagination
+        startIdx={startIdx}
+        pageSize={pageSize}
+        totalCount={allSortedCustomers.length}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={handlePageSizeChange}
+      />
+      </>
       )}
 
       {/* Negative Visit Dialog */}

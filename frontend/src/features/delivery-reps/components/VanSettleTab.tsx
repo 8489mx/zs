@@ -19,6 +19,8 @@ interface VanSettleTabProps {
     id: number;
     docNo: string;
     total: number;
+    subtotal?: number;
+    discount?: number;
     paymentMethod: string;
     createdAt: string;
     customerName?: string;
@@ -78,6 +80,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
   const cashCollected = Number(tripData?.cashCollected || 0);
   const countedNum = Number(countedCash);
   const totalActivities = sales.length + collections.length + returns.length;
+  const totalDiscounts = sales.reduce((sum, s) => sum + Number(s.discount || 0), 0);
 
   const formatTime = (iso?: string) => {
     if (!iso) return '—';
@@ -293,6 +296,28 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               </span>
             </div>
           )}
+
+          {/* Promotional Discounts Granted Strip */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: totalDiscounts > 0 ? '#fef2f2' : '#f8fafc',
+              border: `1px solid ${totalDiscounts > 0 ? '#fecaca' : '#e2e8f0'}`,
+              borderRadius: '8px',
+              padding: '6px 10px',
+              fontSize: '11px',
+              color: totalDiscounts > 0 ? '#b91c1c' : '#475569',
+              fontWeight: 700,
+              marginTop: '2px',
+            }}
+          >
+            <span>إجمالي الخصومات والعروض الترويجية الممنوحة:</span>
+            <span style={{ fontWeight: 800 }}>
+              {totalDiscounts.toFixed(2)} <CurrencySymbol />
+            </span>
+          </div>
 
           {/* Net Cash Required (Single Source of Truth) */}
           <div

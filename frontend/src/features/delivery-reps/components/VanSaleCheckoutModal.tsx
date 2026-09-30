@@ -16,6 +16,8 @@ export interface VanSaleCheckoutModalProps {
   open: boolean;
   onClose: () => void;
   cartTotal: number;
+  cartSubtotal?: number;
+  cartDiscount?: number;
   cartItemsCount: number;
   cartTotalPieces: number;
   customer?: {
@@ -48,6 +50,8 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   open,
   onClose,
   cartTotal,
+  cartSubtotal: _cartSubtotal,
+  cartDiscount,
   cartItemsCount,
   cartTotalPieces,
   customer,
@@ -250,7 +254,12 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
           </div>
 
           <div style={{ textAlign: 'left' }}>
-            <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>إجمالي الفاتورة</span>
+            {cartDiscount != null && cartDiscount > 0 && (
+              <span style={{ fontSize: '10.5px', color: '#b91c1c', display: 'block', fontWeight: 700 }}>
+                (خصومات وعروض: {cartDiscount.toFixed(2)} ج.م)
+              </span>
+            )}
+            <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>المطلوب سداده</span>
             <span style={{ fontSize: '17px', fontWeight: 900, color: '#170e5e' }}>
               {cartTotal.toFixed(2)} <CurrencySymbol />
             </span>

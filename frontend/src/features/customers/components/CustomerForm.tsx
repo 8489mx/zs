@@ -147,6 +147,37 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
               />
             </Field>
 
+            <Field label="الحي / المربع السكني (District)" hint="لتجميع العملاء وترتيب خط سير المندوب تلقائياً">
+              <input
+                list="customer-known-districts"
+                {...form.register('metadata.district')}
+                disabled={mutation.isPending}
+                placeholder="مثال: حي فيصل / العشرين / الطوابق"
+                onChange={(e) => {
+                  form.setValue('metadata.district', e.target.value);
+                  const val = e.target.value.trim();
+                  if (val && typeof window !== 'undefined') {
+                    try {
+                      const saved: string[] = JSON.parse(localStorage.getItem('zs_van_saved_districts') || '[]');
+                      if (!saved.includes(val)) {
+                        localStorage.setItem('zs_van_saved_districts', JSON.stringify([...saved, val].slice(-50)));
+                      }
+                    } catch {}
+                  }
+                }}
+              />
+              <datalist id="customer-known-districts">
+                {(() => {
+                  try {
+                    const list: string[] = JSON.parse(localStorage.getItem('zs_van_saved_districts') || '[]');
+                    return list.map((d) => <option key={d} value={d} />);
+                  } catch {
+                    return null;
+                  }
+                })()}
+              </datalist>
+            </Field>
+
             <Field label="رابط الموقع (Google Maps)" hint="رابط موقع المحل على الخريطة">
               <input
                 {...form.register('metadata.location_url')}

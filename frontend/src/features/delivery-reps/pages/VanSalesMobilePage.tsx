@@ -305,6 +305,80 @@ export default function VanSalesMobilePage() {
 
   const [colCustomerId, setColCustomerId] = useState<number | ''>('');
   const [colAmount, setColAmount] = useState<string>('');
+  const [colSubMode, setColSubMode] = useState<'collection' | 'return'>('collection');
+  const [colReturnCustomerId, setColReturnCustomerId] = useState<number | ''>('');
+
+  // Active Customer Visit Tracking
+  const [activeVisit, setActiveVisit] = useState<{
+    customerId: number;
+    customerName: string;
+    startedAt: number;
+    startedTimeStr?: string;
+  } | null>(() => {
+    try {
+      const saved = localStorage.getItem('zs_van_active_visit');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return null;
+  });
+
+  const [visitDurationSecs, setVisitDurationSecs] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('zs_van_active_visit');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return Math.max(0, Math.floor((Date.now() - parsed.startedAt) / 1000));
+      }
+    } catch {}
+    return 0;
+  });
+
+  // Ticker for active visit
+  useEffect(() => {
+    if (!activeVisit) {
+      setVisitDurationSecs(0);
+      return;
+    }
+    const updateDuration = () => {
+      setVisitDurationSecs(Math.max(0, Math.floor((Date.now() - activeVisit.startedAt) / 1000)));
+    };
+    updateDuration();
+    const interval = setInterval(updateDuration, 1000);
+    return () => clearInterval(interval);
+  }, [activeVisit]);
+
+  const handleStartVisit = (customerId: number, customerName: string) => {
+    const now = Date.now();
+    const nowStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    const visitData = {
+      customerId,
+      customerName,
+      startedAt: now,
+      startedTimeStr: nowStr,
+    };
+    setActiveVisit(visitData);
+    try {
+      localStorage.setItem('zs_van_active_visit', JSON.stringify(visitData));
+    } catch {}
+    toast.info(`بدأ احتساب وقت زيارة: "${customerName}" (${nowStr})`);
+  };
+
+  const handleEndVisit = () => {
+    setActiveVisit(null);
+    try {
+      localStorage.removeItem('zs_van_active_visit');
+    } catch {}
+  };
+
+  const formatDuration = (totalSecs: number) => {
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    if (hrs > 0) {
+      return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
   const [countedCash, setCountedCash] = useState<string>('');
   const [unloadRemaining, setUnloadRemaining] = useState<boolean>(true);
@@ -344,6 +418,8 @@ export default function VanSalesMobilePage() {
           name: item.productName,
           qty: 1,
           unitPrice: item.retailPrice,
+          originalPrice: item.originalPrice,
+          offerBadge: item.offerBadge,
           maxQty: item.qty,
         },
       ];
@@ -387,6 +463,7 @@ export default function VanSalesMobilePage() {
             creditLimit: it.creditLimit,
             customerCode: it.customerCode,
             route: it.route,
+            district: it.district || it.route || '',
             locationUrl: it.locationUrl,
           });
         }
@@ -396,6 +473,17 @@ export default function VanSalesMobilePage() {
   }, [data?.customers, itinerary]);
 
   const cartTotal = useMemo(() => cart.reduce((sum, c) => sum + c.qty * c.unitPrice, 0), [cart]);
+
+  const cartSubtotal = useMemo(() => {
+    return cart.reduce((sum, c) => {
+      const orig = (c.originalPrice && c.originalPrice > c.unitPrice) ? c.originalPrice : c.unitPrice;
+      return sum + c.qty * orig;
+    }, 0);
+  }, [cart]);
+
+  const cartDiscount = useMemo(() => {
+    return Math.max(0, cartSubtotal - cartTotal);
+  }, [cartSubtotal, cartTotal]);
 
   const executeSaleMutation = useMutation({
     networkMode: 'always',
@@ -476,9 +564,16 @@ export default function VanSalesMobilePage() {
       } else {
         showAlert('success', `تم إصدار الفاتورة #${res.docNo} بمبلغ ${res.total} ${getGlobalCurrencySymbol()} بنجاح!`);
       }
+      if (activeVisit) {
+        const durationMins = Math.max(1, Math.round((Date.now() - activeVisit.startedAt) / 60000));
+        toast.success(`تم إتمام زيارة المحل "${activeVisit.customerName}" (استغرقت ${durationMins} دقيقة)`);
+        handleEndVisit();
+      }
       const matchedCustomer = allAvailableCustomers.find((c) => String(c.id) === String(selectedCustomerId));
       setLastSaleReceipt({
         ...res,
+        subtotal: res.subtotal ?? cartSubtotal,
+        discount: res.discount ?? cartDiscount,
         paidAmount: res.cashPaid,
         remainingCredit: res.creditOwed,
         packagingBreakdown: {
@@ -496,6 +591,7 @@ export default function VanSalesMobilePage() {
           name: c.name,
           qty: c.qty,
           unitPrice: c.unitPrice,
+          originalPrice: c.originalPrice,
           lineTotal: c.qty * c.unitPrice,
         })),
         repName: data?.trip?.repName || (session?.rep as any)?.name || 'مندوب التوزيع',
@@ -908,6 +1004,118 @@ export default function VanSalesMobilePage() {
           }}
         >
           {alert.message}
+        </div>
+      )}
+
+      {/* Active Customer Visit Running Timer Banner */}
+      {activeVisit && (
+        <div
+          dir="rtl"
+          style={{
+            backgroundColor: '#170e5e',
+            color: '#ffffff',
+            padding: '10px 16px',
+            borderBottom: '2px solid #38bdf8',
+            boxShadow: '0 4px 12px rgba(23, 14, 94, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px',
+            position: 'sticky',
+            top: 0,
+            zIndex: 85,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <ClockIcon size={18} color="#38bdf8" />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '11px', color: '#93c5fd', fontWeight: 600 }}>
+                  زيارة ميدانية نشطة حالياً:
+                </span>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff' }}>
+                  {activeVisit.customerName}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#cbd5e1' }}>
+                <span>بدأت: {activeVisit.startedTimeStr || 'الآن'}</span>
+                <span>•</span>
+                <span style={{ color: '#38bdf8', fontWeight: 700 }}>
+                  المدة: {formatDuration(visitDurationSecs)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {currentTab !== 'sale' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCustomerId(activeVisit.customerId);
+                  setActiveTab('sale');
+                }}
+                style={{
+                  backgroundColor: '#38bdf8',
+                  color: '#0f172a',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  fontSize: '11.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <ReceiptIcon size={14} color="#0f172a" />
+                <span>+ فاتورة بيع</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={async () => {
+                const confirmed = await systemConfirm({
+                  title: 'إنهاء الزيارة الميدانية',
+                  message: `هل تود إنهاء زيارة "${activeVisit.customerName}" الآن؟ (المدة المنقضية: ${formatDuration(visitDurationSecs)})`,
+                  confirmText: 'إنهاء الزيارة',
+                  cancelText: 'استمرار الزيارة',
+                });
+                if (confirmed) {
+                  const mins = Math.max(1, Math.round((Date.now() - activeVisit.startedAt) / 60000));
+                  toast.info(`تم إنهاء زيارة "${activeVisit.customerName}" (${mins} دقيقة)`);
+                  handleEndVisit();
+                }
+              }}
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.25)',
+                border: '1px solid rgba(239, 68, 68, 0.5)',
+                color: '#fca5a5',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              إنهاء الزيارة
+            </button>
+          </div>
         </div>
       )}
 
@@ -1873,6 +2081,8 @@ export default function VanSalesMobilePage() {
                               fontWeight: 800,
                               padding: '3px 8px',
                               borderRadius: '6px',
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
                               backgroundColor:
                                 req.status === 'dispatched'
                                   ? '#dcfce7'
@@ -1888,10 +2098,10 @@ export default function VanSalesMobilePage() {
                             }}
                           >
                             {req.status === 'dispatched'
-                              ? 'تم الصرف والتحميل'
+                              ? 'تم الصرف'
                               : req.status === 'rejected'
                               ? 'مرفوض'
-                              : 'قيد مراجعة المشرف'}
+                              : 'قيد المراجعة'}
                           </span>
                         </div>
                       ))}
@@ -1907,13 +2117,47 @@ export default function VanSalesMobilePage() {
                 itinerary={itinerary}
                 tripId={data?.trip?.id}
                 isLoading={isItineraryLoading}
+                activeVisit={activeVisit}
+                onStartVisit={handleStartVisit}
+                onEndVisit={handleEndVisit}
                 onSelectCustomerForSale={(customerId) => {
+                  const cust = allAvailableCustomers.find((c) => c.id === customerId);
+                  if (cust && (!activeVisit || activeVisit.customerId !== customerId)) {
+                    handleStartVisit(customerId, cust.name);
+                  }
                   setSelectedCustomerId(customerId);
                   setNewCustomerName('');
                   if (data?.hasActiveTrip) {
                     setActiveTab('sale');
                   } else {
                     toast.info('يرجى بدء رحلة التوزيع أولاً لإصدار فاتورة بيع');
+                  }
+                }}
+                onSelectCustomerForReturn={(customerId) => {
+                  const cust = allAvailableCustomers.find((c) => c.id === customerId);
+                  if (cust && (!activeVisit || activeVisit.customerId !== customerId)) {
+                    handleStartVisit(customerId, cust.name);
+                  }
+                  setColSubMode('return');
+                  setColReturnCustomerId(customerId);
+                  setColCustomerId(customerId);
+                  if (data?.hasActiveTrip) {
+                    setActiveTab('collection');
+                  } else {
+                    toast.info('يرجى بدء رحلة التوزيع أولاً لتسجيل مرتجع بضاعة');
+                  }
+                }}
+                onSelectCustomerForCollection={(customerId) => {
+                  const cust = allAvailableCustomers.find((c) => c.id === customerId);
+                  if (cust && (!activeVisit || activeVisit.customerId !== customerId)) {
+                    handleStartVisit(customerId, cust.name);
+                  }
+                  setColSubMode('collection');
+                  setColCustomerId(customerId);
+                  if (data?.hasActiveTrip) {
+                    setActiveTab('collection');
+                  } else {
+                    toast.info('يرجى بدء رحلة التوزيع أولاً لتسجيل سند تحصيل');
                   }
                 }}
                 onRefreshItinerary={() => {
@@ -2003,6 +2247,8 @@ export default function VanSalesMobilePage() {
                               fontWeight: 800,
                               padding: '3px 8px',
                               borderRadius: '6px',
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
                               backgroundColor:
                                 req.status === 'dispatched'
                                   ? '#dcfce7'
@@ -2018,10 +2264,10 @@ export default function VanSalesMobilePage() {
                             }}
                           >
                             {req.status === 'dispatched'
-                              ? 'تم الصرف والتحميل'
+                              ? 'تم الصرف'
                               : req.status === 'rejected'
                               ? 'مرفوض'
-                              : 'قيد مراجعة المشرف'}
+                              : 'قيد المراجعة'}
                           </span>
                         </div>
                         <div style={{ fontSize: '11.5px', color: '#64748b', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
@@ -2030,8 +2276,29 @@ export default function VanSalesMobilePage() {
                           <span>تاريخ الطلب: {new Date(req.createdAt).toLocaleDateString('ar-EG')}</span>
                         </div>
                         {req.rejectionReason && (
-                          <div style={{ marginTop: '8px', padding: '6px 10px', backgroundColor: '#fef2f2', borderRadius: '6px', fontSize: '11.5px', color: '#b91c1c', fontWeight: 600 }}>
-                            سبب الرفض: {req.rejectionReason}
+                          <div
+                            style={{
+                              marginTop: '6px',
+                              padding: '4px 8px',
+                              backgroundColor: '#fef2f2',
+                              border: '1px solid #fee2e2',
+                              borderRadius: '6px',
+                              fontSize: '10.5px',
+                              color: '#b91c1c',
+                              fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                            title={req.rejectionReason}
+                          >
+                            <span style={{ fontWeight: 800, flexShrink: 0 }}>سبب الرفض:</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {req.rejectionReason}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -2049,7 +2316,13 @@ export default function VanSalesMobilePage() {
                   selectedCustomerId={selectedCustomerId}
                   onSelectCustomer={(val) => {
                     setSelectedCustomerId(val);
-                    if (val) setNewCustomerName('');
+                    if (val) {
+                      setNewCustomerName('');
+                      const cust = allAvailableCustomers.find((c) => c.id === Number(val));
+                      if (cust && (!activeVisit || activeVisit.customerId !== Number(val))) {
+                        handleStartVisit(Number(val), cust.name);
+                      }
+                    }
                   }}
                   newCustomerName={newCustomerName}
                   onNewCustomerNameChange={setNewCustomerName}
@@ -2112,11 +2385,13 @@ export default function VanSalesMobilePage() {
               data?.hasActiveTrip ? (
                 <VanCollectionTab
                   tripId={data.trip!.id}
-                  customers={data.customers}
+                  customers={allAvailableCustomers}
                   colCustomerId={colCustomerId}
                   onColCustomerChange={setColCustomerId}
                   colAmount={colAmount}
                   onColAmountChange={setColAmount}
+                  initialSubMode={colSubMode}
+                  initialReturnCustomerId={colReturnCustomerId}
                   onSubmitCollection={async () => {
                     if (!colCustomerId || !Number(colAmount)) {
                       showAlert('error', 'يرجى اختيار العميل وإدخال مبلغ التحصيل');
@@ -2228,6 +2503,8 @@ export default function VanSalesMobilePage() {
           open={checkoutModalOpen}
           onClose={() => setCheckoutModalOpen(false)}
           cartTotal={cartTotal}
+          cartSubtotal={cartSubtotal}
+          cartDiscount={cartDiscount}
           cartItemsCount={cart.length}
           cartTotalPieces={cart.reduce((s, it) => s + it.qty, 0)}
           customer={allAvailableCustomers.find((c) => String(c.id) === String(selectedCustomerId)) || null}
@@ -2258,6 +2535,8 @@ export default function VanSalesMobilePage() {
               customerName: newCustomerName || undefined,
               paymentMethod: checkoutData.paymentMethod,
               paidAmount: checkoutData.paidAmount,
+              subtotal: cartSubtotal,
+              discount: cartDiscount,
               notes: checkoutData.notes,
               deliveryGpsLat: gpsLat,
               deliveryGpsLng: gpsLng,
@@ -2269,7 +2548,12 @@ export default function VanSalesMobilePage() {
                     itemsCount: cart.length,
                   }
                 : undefined,
-              items: cart.map((c) => ({ productId: c.productId, qty: c.qty, unitPrice: c.unitPrice })),
+              items: cart.map((c) => ({
+                productId: c.productId,
+                qty: c.qty,
+                unitPrice: c.unitPrice,
+                originalPrice: c.originalPrice,
+              })),
             });
           }}
         />
