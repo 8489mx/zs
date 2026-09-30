@@ -28,6 +28,9 @@ class FakeQuery {
   orderBy(): this { return this; }
   groupBy(): this { return this; }
   limit(): this { return this; }
+  $if(condition: boolean, callback: (qb: this) => this): this {
+    return condition ? callback(this) : this;
+  }
   execute(): Promise<unknown[]> { return Promise.resolve(this.rows); }
   executeTakeFirst(): Promise<unknown> { return Promise.resolve(this.rows[0]); }
   executeTakeFirstOrThrow(): Promise<unknown> {
