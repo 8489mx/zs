@@ -23,7 +23,8 @@ jobs:
           --health-retries 20
     env:
       NODE_ENV: test
-      APP_MODE: SELF_CONTAINED
+      APP_MODE: CLOUD_SAAS
+      PLATFORM_TENANT_ID: default
       TENANT_ID: default
       ACCOUNT_ID: default
       APP_HOST: 127.0.0.1
