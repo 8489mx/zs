@@ -4,6 +4,7 @@ import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../../../database/database.constants';
 import { Database } from '../../../../database/database.types';
 import { TaxSettingsService } from '../tax-settings/tax-settings.service';
+import { createPkcs10Csr } from './pkcs10-csr';
 
 export interface CreateEgsUnitDto {
   deviceName: string;
@@ -43,29 +44,35 @@ export class ZatcaOnboardingService {
    */
   async createEgsUnit(tenantId: string, dto: CreateEgsUnitDto) {
     const settings = await this.taxSettings.getSettings(tenantId, 'ZATCA_SAUDI');
-    const vatNumber = settings?.tax_id || '300000000000003';
+    const vatNumber = String(settings?.tax_id || '').trim();
     const deviceUuid = crypto.randomUUID();
     const env = dto.environment || (settings?.environment === 'production' ? 'production' : 'sandbox');
+    if (env === 'production' && !/^3\d{13}3$/.test(vatNumber)) {
+      throw new BadRequestException('يجب ضبط الرقم الضريبي السعودي الصحيح قبل تسجيل وحدة إنتاج.');
+    }
 
-    // Generate ECDSA secp256k1 / prime256v1 cryptographic keypair
+    // Generate the P-256 ECDSA keypair used to sign the PKCS#10 request.
     const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', {
       namedCurve: 'prime256v1',
       publicKeyEncoding: { type: 'spki', format: 'pem' },
       privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
     });
 
-    // Build custom CSR string representation compliant with ZATCA OID structure
+    // Build and sign a real PKCS#10 CSR. The previous base64 subject string was not a CSR.
     const commonName = dto.customId || `EGS-${dto.deviceName.replace(/\s+/g, '-').slice(0, 20)}`;
-    const organization = 'Z-Systems Commercial Entity';
+    const tenant = env === 'production' ? await this.db.selectFrom('tenants').select('business_name')
+      .where('id', '=', tenantId).executeTakeFirst() : null;
+    const organization = String(tenant?.business_name || (env === 'production' ? '' : 'Z-Systems Demo')).trim();
+    if (!organization) throw new BadRequestException('اسم المنشأة القانوني مطلوب لشهادة الإنتاج.');
     const orgUnit = `Branch-${dto.branchId || 1}`;
     const serialNumber = `1-ZS|2-${dto.customId || 'POS'}|3-${deviceUuid}`;
 
-    // Standard RFC CSR placeholder with real public key (in production signed with privateKey)
-    const csrPayload = Buffer.from(
-      `-----BEGIN CERTIFICATE REQUEST-----\n` +
-      Buffer.from(`CN=${commonName}, OU=${orgUnit}, O=${organization}, C=SA, SerialNumber=${serialNumber}, VAT=${vatNumber}`).toString('base64') +
-      `\n-----END CERTIFICATE REQUEST-----`
-    ).toString('base64');
+    const csrPem = createPkcs10Csr(privateKey, [
+      ['2.5.4.6', 'SA'], ['2.5.4.10', organization], ['2.5.4.11', orgUnit],
+      ['2.5.4.3', commonName], ['2.5.4.5', serialNumber],
+      ...(vatNumber ? [['0.9.2342.19200300.100.1.1', vatNumber] as [string, string]] : []),
+    ]);
+    const csrPayload = Buffer.from(csrPem, 'utf8').toString('base64');
 
     const result = await this.db
       .insertInto('zatca_egs_units')
@@ -118,6 +125,7 @@ export class ZatcaOnboardingService {
     try {
       let complianceCsid = '';
       let complianceSecret = '';
+      let complianceRequestId = '';
 
       // Live request to ZATCA Compliance endpoint
       const response = await fetch(`${baseUrl}/compliance`, {
@@ -137,7 +145,8 @@ export class ZatcaOnboardingService {
         const data = await response.json();
         complianceCsid = data.binarySecurityToken || '';
         complianceSecret = data.secret || '';
-        if (!complianceCsid || !complianceSecret) {
+        complianceRequestId = String(data.requestID || data.requestId || '');
+        if (!complianceCsid || !complianceSecret || (egs.environment === 'production' && !complianceRequestId)) {
           throw new Error('ZATCA returned an incomplete compliance credential response');
         }
       } else if (egs.environment !== 'production') {
@@ -155,6 +164,7 @@ export class ZatcaOnboardingService {
         .set({
           compliance_csid: complianceCsid,
           compliance_secret: complianceSecret,
+          compliance_request_id: complianceRequestId || null,
           status: 'compliance_passed',
           updated_at: new Date(),
         })
@@ -191,6 +201,7 @@ export class ZatcaOnboardingService {
     if (egs.environment !== 'production') {
       throw new BadRequestException('لا يمكن طلب شهادة إنتاج لوحدة EGS غير مضبوطة على بيئة الإنتاج.');
     }
+    if (!egs.compliance_request_id) throw new BadRequestException('معرّف طلب الامتثال مفقود. أعد طلب شهادة الامتثال.');
 
     const baseUrl = this.getZatcaBaseUrl(egs.environment);
     const authHeader = `Basic ${Buffer.from(`${egs.compliance_csid}:${egs.compliance_secret}`).toString('base64')}`;
@@ -207,7 +218,7 @@ export class ZatcaOnboardingService {
           'Authorization': authHeader,
         },
         body: JSON.stringify({
-          compliance_request_id: egs.device_uuid,
+          compliance_request_id: egs.compliance_request_id,
         }),
       });
 

@@ -50,9 +50,8 @@ export class PurchaseOrdersController {
   // It wrote stock via a path that never created a `goods_receipt_notes` row, never posted
   // a GRNI journal entry, and never ran `computeThreeWayMatch` — a live bypass of the
   // hardened three-way-match/accounting pipeline. It also had zero frontend callers.
-  // The real, hardened receiving flow is `convertToBill` below (which creates a formal
-  // `purchases` bill) followed by `POST /api/purchases/:id/receive-goods`
-  // (`purchases.service.ts:receivePurchaseGoods`), which is GRN/GRNI/3-way-match backed.
+  // Conversion below creates a draft bill linked to the PO. Physical receipt and
+  // three-way matching use the dedicated goods-receipt endpoints, not this route.
 
   @Post(':id/convert-to-bill')
   convertToBill(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {

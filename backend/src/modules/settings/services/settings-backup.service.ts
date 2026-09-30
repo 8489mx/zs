@@ -11,6 +11,7 @@ import { Database } from '../../../database/database.types';
 import * as crypto from 'crypto';
 import AdmZip from 'adm-zip';
 import { findOrphanedReferences, listTenantTables } from '../../../core/tenant-transfer/tenant-package';
+import { encryptBundle } from '../../../core/tenant-transfer/backup-bundle';
 
 type BackupTableName = Exclude<keyof Database, 'backup_snapshots'>;
 
@@ -235,7 +236,33 @@ export class SettingsBackupService {
   private normalizeTime(value: unknown): string { const raw = String(value || '').trim(); const match = raw.match(/^(\d{1,2}):(\d{2})$/); if (!match) return '03:00'; const hours = Math.min(23, Math.max(0, Number(match[1] || 0))); const minutes = Math.min(59, Math.max(0, Number(match[2] || 0))); return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`; }
   private normalizeWeeklyDay(value: unknown): number { const day = Number(value); return Number.isFinite(day) ? Math.min(6, Math.max(0, Math.floor(day))) : 0; }
   private parseSettingValue<T>(rawValue: string | null | undefined, fallback: T): T { if (rawValue == null) return fallback; try { return JSON.parse(rawValue) as T; } catch { return fallback; } }
-  private assertDesktopMode(): void { /* if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') throw new AppError('Local backup features are only available in the desktop version', 'FEATURE_NOT_AVAILABLE', 400); */ }
+  private assertDesktopMode(): void {
+    if (process.env.APP_MODE === 'CLOUD_SAAS' || (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true')) {
+      throw new AppError('Local backup folders are only available in the desktop version', 'FEATURE_NOT_AVAILABLE', 400);
+    }
+  }
+
+  /** Persist a recoverable backup before destructive demo-data operations. Fail closed. */
+  async savePreMutationBackup(actor: AuthContext, reason: string): Promise<void> {
+    this.assertAdmin(actor);
+    const scope = this.scope(actor);
+    const { zipBuffer, manifest } = await this.exportBackup(actor);
+    const now = new Date();
+    let filePath: string;
+    if (process.env.APP_MODE === 'CLOUD_SAAS') {
+      const passphrase = (await fs.readFile('/etc/zsystems/backup-passphrase', 'utf8')).trim();
+      if (!passphrase) throw new AppError('Backup encryption key is missing', 'BACKUP_KEY_MISSING', 503);
+      const folder = '/var/backups/zsystems';
+      await fs.mkdir(folder, { recursive: true, mode: 0o700 });
+      filePath = path.join(folder, `pre-mutation-${scope.tenantId.replace(/[^A-Za-z0-9_-]/g, '-')}-${now.getTime()}-${crypto.randomBytes(4).toString('hex')}.zip.enc`);
+      await fs.writeFile(filePath, encryptBundle(zipBuffer, passphrase), { mode: 0o600, flag: 'wx' });
+    } else {
+      const state = await this.getBackupConfigState(actor);
+      const result = await this.saveBackupToFolder(state.folderPath, 'demo-data-guard', actor);
+      filePath = result.filePath;
+    }
+    await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${'auto-' + reason + '-' + now.toISOString()}, ${'demo-data-guard'}, ${JSON.stringify({ manifest, filePath })}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db);
+  }
 
   private async tableExists(table: string): Promise<boolean> { const result = await sql<{ exists: boolean }>`select exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = ${table}) as exists`.execute(this.db); return Boolean(result.rows[0]?.exists); }
   private async tableHasColumn(table: string, column: string): Promise<boolean> { const result = await sql<{ exists: boolean }>`select exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = ${table} and column_name = ${column}) as exists`.execute(this.db); return Boolean(result.rows[0]?.exists); }

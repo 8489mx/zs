@@ -38,6 +38,20 @@ function createAdminService() {
 
 async function run(): Promise<void> {
   {
+    const previousMode = process.env.APP_MODE;
+    process.env.APP_MODE = 'CLOUD_SAAS';
+    try {
+      const service = createBackupService();
+      await assert.rejects(
+        () => service.saveBackupToConfiguredFolder(actor({ permissions: ['settings'] })),
+        (error: unknown) => error instanceof AppError && error.code === 'FEATURE_NOT_AVAILABLE',
+      );
+    } finally {
+      if (previousMode === undefined) delete process.env.APP_MODE;
+      else process.env.APP_MODE = previousMode;
+    }
+  }
+  {
     const service = createBackupService();
     const result = await service.restoreBackup(backupPayload, actor({ permissions: ['settings'] }), true);
     assert.equal(result.ok, true);

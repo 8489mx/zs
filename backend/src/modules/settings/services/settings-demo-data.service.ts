@@ -97,11 +97,7 @@ export class SettingsDemoDataService {
   }
 
   private async takeAutoBackup(actor: AuthContext, reason: string): Promise<void> {
-    const scope = this.scope(actor);
-    const now = new Date();
-    const { manifest } = await this.backupService.exportBackup(actor);
-    await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${'auto-' + reason + '-' + now.toISOString()}, ${'demo-data-guard'}, ${JSON.stringify({ manifest })}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db);
-    await this.backupService.saveBackupToConfiguredFolder(actor);
+    await this.backupService.savePreMutationBackup(actor, reason);
   }
 
   async getDemoDataStatus(actor: AuthContext): Promise<{ isEmpty: boolean; productCount: number; saleCount: number; isSuperAdmin: boolean }> {

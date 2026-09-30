@@ -8,6 +8,7 @@ import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../../comm
 import { CreatePurchaseOrderDto, UpdatePurchaseOrderDto } from '../dto/purchase-order.dto';
 import { PurchasesWriteService } from './purchases-write.service';
 import { ApprovalWorkflowService } from '../../approvals/approval-workflow.service';
+import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -292,12 +293,7 @@ export class PurchaseOrdersService {
     return { success: true, status: 'confirmed', message: 'تم اعتماد أمر الشراء بنجاح' };
   }
 
-  // `receiveGoods` was removed here (O3 audit finding): it wrote stock directly via
-  // applyStockDelta but never created a `goods_receipt_notes` row, never posted a GRNI
-  // journal entry, and never ran `computeThreeWayMatch` — a live bypass of the hardened
-  // three-way-match/accounting pipeline, with zero frontend callers. The real, hardened
-  // receiving flow is `convertToBill` below followed by
-  // `purchases.service.ts:receivePurchaseGoods` (GRN/GRNI/3-way-match backed).
+  // Conversion creates a draft bill without posting inventory at conversion time.
 
   async convertToBill(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
@@ -322,41 +318,77 @@ export class PurchaseOrdersService {
       .selectAll()
       .where('purchase_order_id', '=', id)
       .where('tenant_id', '=', scope.tenantId)
+      .where('account_id', '=', scope.accountId)
+      .orderBy('id', 'asc')
       .execute();
 
     if (!items.length) {
       throw new BadRequestException('أمر الشراء لا يحتوي على أصناف صالحة للتحويل');
     }
+    if (!order.supplier_id) throw new BadRequestException('يجب تحديد مورد صالح قبل تحويل أمر الشراء');
+    if (items.some((item) => !Number.isFinite(Number(item.quantity)) || Number(item.quantity) <= 0
+      || !Number.isFinite(Number(item.unit_cost)) || Number(item.unit_cost) <= 0)) {
+      throw new BadRequestException('بنود أمر الشراء تحتوي كمية أو تكلفة غير صالحة');
+    }
+    const subtotal = Number(items.reduce((sum, item) => sum + Number(item.quantity) * Number(item.unit_cost), 0).toFixed(2));
+    const discount = Number(order.discount_amount || 0);
+    const taxAmount = Number(order.tax_amount || 0);
+    if (!Number.isFinite(subtotal) || !Number.isFinite(discount) || !Number.isFinite(taxAmount)
+      || !Number.isFinite(Number(order.total_amount)) || discount < 0 || discount > subtotal || taxAmount < 0) {
+      throw new BadRequestException('إجماليات أمر الشراء غير صالحة');
+    }
+    const taxableBase = subtotal - discount;
+    if (taxAmount > 0 && taxableBase <= 0) throw new BadRequestException('ضريبة أمر الشراء غير صالحة');
+    const taxRate = taxableBase > 0 ? (taxAmount / taxableBase) * 100 : 0;
+    const calculated = computeInvoiceTotals(subtotal, discount, taxRate, false);
+    if (Math.abs(calculated.total - Number(order.total_amount)) > 0.01) {
+      throw new BadRequestException('إجمالي أمر الشراء لا يطابق بنوده؛ راجع القيم قبل التحويل');
+    }
 
     // Call purchasesWrite service to create formal purchase bill
     const purchasePayload = {
-      supplierId: order.supplier_id || 1,
-      invoiceNumber: `INV-${order.order_number}`,
+      supplierId: order.supplier_id,
+      supplierInvoiceNo: `INV-${order.order_number}`,
+      paymentType: 'credit' as const,
+      lifecycleStatus: 'purchase_order',
+      discount,
+      taxRate,
       items: items.map((item) => ({
         productId: item.product_id,
-        quantity: Number(item.quantity),
+        qty: Number(item.quantity),
         cost: Number(item.unit_cost),
-        taxRate: Number(item.tax_rate || 0),
-        discount: Number(item.discount || 0),
         unitName: item.unit_name || 'قطعة',
       })),
-      notes: `فاتورة محولة تلقائياً من أمر الشراء #${order.order_number}`,
+      note: `فاتورة محولة تلقائياً من أمر الشراء #${order.order_number}`,
     };
 
-    const res = await this.purchasesWrite.createPurchase(purchasePayload as any, auth);
-    const createdPurchaseId = Number((res as any)?.id || (res as any)?.purchase?.id || 0);
+    const res = await this.purchasesWrite.createPurchase(purchasePayload, auth, `purchase-order-conversion-${id}`);
+    const createdPurchaseId = Number((res as any)?.purchaseId || (res as any)?.purchase?.id || 0);
     if (!createdPurchaseId) throw new BadRequestException('لم يتم إنشاء فاتورة مشتريات صالحة');
 
-    await this.db
-      .updateTable('purchase_orders')
-      .set({
-        status: 'converted_to_bill',
-        converted_purchase_id: createdPurchaseId,
-        updated_at: new Date(),
-      })
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .execute();
+    await this.db.transaction().execute(async (trx) => {
+      const linked = await trx.updateTable('purchases').set({ po_id: id })
+        .where('id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId).execute();
+      if (Number(linked[0]?.numUpdatedRows || 0) !== 1) throw new BadRequestException('فاتورة المشتريات غير موجودة للربط');
+      const billItems = await trx.selectFrom('purchase_items').select(['id', 'product_id'])
+        .where('purchase_id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId)
+        .orderBy('id', 'asc').execute();
+      if (billItems.length !== items.length) throw new BadRequestException('تعذر ربط بنود الفاتورة بأمر الشراء');
+      for (const [index, billItem] of billItems.entries()) {
+        const source = items[index];
+        if (!source || Number(source.product_id) !== Number(billItem.product_id)) {
+          throw new BadRequestException('تعذر ربط بنود الفاتورة بأمر الشراء');
+        }
+        await trx.updateTable('purchase_items').set({ po_item_id: source.id })
+          .where('id', '=', billItem.id).where('tenant_id', '=', scope.tenantId).execute();
+      }
+      const converted = await trx.updateTable('purchase_orders').set({
+        status: 'converted_to_bill', converted_purchase_id: createdPurchaseId, updated_at: new Date(),
+      }).where('id', '=', id).where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId).where('status', '=', order.status).execute();
+      if (Number(converted[0]?.numUpdatedRows || 0) !== 1) throw new BadRequestException('تغيرت حالة أمر الشراء أثناء التحويل');
+    });
 
     return {
       success: true,

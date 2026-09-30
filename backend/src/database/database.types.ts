@@ -1388,6 +1388,7 @@ export interface PurchaseItemTable {
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   purchase_id: number;
+  po_item_id?: number | null;
   product_id: number | null;
   product_name: string;
   qty: number;
@@ -3341,6 +3342,7 @@ export interface ZatcaEgsUnitTable {
   csr_content: string | null;
   compliance_csid: string | null;
   compliance_secret: string | null;
+  compliance_request_id: string | null;
   production_csid: string | null;
   production_secret: string | null;
   status: 'unregistered' | 'compliance_passed' | 'production_active' | 'revoked';
@@ -4637,8 +4639,6 @@ export interface DailyCommercialRollupTable {
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
-
-
 
 
 

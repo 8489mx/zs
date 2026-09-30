@@ -87,6 +87,9 @@ jobs:
       - name: Sales return cost regression
         run: npm run test:returns-cost
         working-directory: backend
+      - name: Purchase order conversion regression
+        run: npx ts-node test/critical/purchase-order-conversion.spec.ts
+        working-directory: backend
       - name: ZATCA and encrypted backup safety
         run: npm run test:zatca-safety
         working-directory: backend

@@ -94,29 +94,39 @@ export class ApprovalWorkflowService {
     if (dto.isActive !== undefined) updateData.is_active = dto.isActive;
     if (dto.notes !== undefined) updateData.notes = dto.notes;
 
-    const result = await this.db
-      .updateTable('approval_rules')
-      .set(updateData)
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id as any)
-      .returningAll()
-      .executeTakeFirst();
-
-    if (!result) throw new NotFoundException('قاعدة الموافقة غير موجودة.');
+    const result = await this.db.transaction().execute(async (trx) => {
+      const current = await trx.selectFrom('approval_rules').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', id as any).forUpdate().executeTakeFirst();
+      if (!current) throw new NotFoundException('قاعدة الموافقة غير موجودة.');
+      const minAmount = Number(dto.minAmount ?? current.min_amount);
+      const maxAmount = dto.maxAmount === undefined ? (current.max_amount === null ? null : Number(current.max_amount)) : dto.maxAmount === null ? null : Number(dto.maxAmount);
+      const tierLevel = Number(dto.tierLevel ?? current.tier_level);
+      if (!Number.isFinite(minAmount) || minAmount < 0 || (maxAmount !== null && (!Number.isFinite(maxAmount) || maxAmount < minAmount))) throw new BadRequestException('نطاق المبلغ غير صالح.');
+      if (!Number.isInteger(tierLevel) || tierLevel < 1) throw new BadRequestException('مستوى الموافقة غير صالح.');
+      if (Object.keys(dto).some((key) => key !== 'notes')) await this.assertNoPendingRequests(trx, tenantId, current.module);
+      return trx.updateTable('approval_rules').set(updateData)
+        .where('tenant_id', '=', tenantId).where('id', '=', id as any).returningAll().executeTakeFirstOrThrow();
+    });
     return { ok: true, rule: result };
+  }
+
+  private async assertNoPendingRequests(trx: Transaction<Database>, tenantId: string, module: string): Promise<void> {
+    const pending = await trx.selectFrom('approval_requests').select('id')
+      .where('tenant_id', '=', tenantId).where('module', '=', module).where('status', '=', 'pending')
+      .limit(1).executeTakeFirst();
+    if (pending) throw new BadRequestException('لا يمكن تغيير قاعدة الموافقة مع وجود طلبات اعتماد معلقة.');
   }
 
   async deleteRule(id: string, auth: AuthContext) {
     this.requireManager(auth);
     const { tenantId } = requireTenantScope(auth);
-    const deleted = await this.db
-      .deleteFrom('approval_rules')
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id as any)
-      .returningAll()
-      .executeTakeFirst();
-
-    if (!deleted) throw new NotFoundException('قاعدة الموافقة غير موجودة.');
+    await this.db.transaction().execute(async (trx) => {
+      const current = await trx.selectFrom('approval_rules').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', id as any).forUpdate().executeTakeFirst();
+      if (!current) throw new NotFoundException('قاعدة الموافقة غير موجودة.');
+      await this.assertNoPendingRequests(trx, tenantId, current.module);
+      await trx.deleteFrom('approval_rules').where('tenant_id', '=', tenantId).where('id', '=', id as any).execute();
+    });
     return { ok: true };
   }
 
@@ -149,6 +159,7 @@ export class ApprovalWorkflowService {
         ])
       )
       .orderBy('tier_level', 'asc')
+      .forShare()
       .execute();
 
     if (rules.length === 0) {

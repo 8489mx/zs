@@ -33,14 +33,22 @@ async function main(): Promise<void> {
         values (${tenantId}, 'purchase_orders', 100, 1, 'admin')`.execute(trx);
       const order = await trx.insertInto('purchase_orders').values({
         tenant_id: tenantId, account_id: tenantId, order_number: 'PO-260930-9001',
-        supplier_name: 'Test supplier', total_amount: 500, status: 'draft',
+        supplier_id: 44, supplier_name: 'Test supplier', total_amount: 500, status: 'draft',
       }).returning('id').executeTakeFirstOrThrow();
+      await trx.insertInto('purchase_order_items').values({
+        tenant_id: tenantId, account_id: tenantId, purchase_order_id: order.id,
+        product_id: 77, product_name: 'Test product', quantity: 2, unit_cost: 250, total: 500,
+      }).execute();
 
       await assert.rejects(() => approvals.createRule({ module: 'purchase_orders', minAmount: 0 }, maker));
       const pending = await orders.confirmOrder(order.id, maker);
       assert.equal(pending.status, 'pending_approval');
       assert.equal((await trx.selectFrom('purchase_orders').select('status').where('id', '=', order.id).executeTakeFirstOrThrow()).status, 'pending_approval');
       const request = await trx.selectFrom('approval_requests').selectAll().where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
+      const rule = await trx.selectFrom('approval_rules').select('id').where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
+      await assert.rejects(() => approvals.updateRule(String(rule.id), { minAmount: -1 }, approver));
+      await assert.rejects(() => approvals.updateRule(String(rule.id), { isActive: false }, approver));
+      await assert.rejects(() => approvals.deleteRule(String(rule.id), approver));
       await assert.rejects(() => orders.confirmOrder(order.id, maker));
       await assert.rejects(() => orders.convertToBill(order.id, maker));
       await assert.rejects(() => approvals.approveRequest(String(request.id), '', maker));
