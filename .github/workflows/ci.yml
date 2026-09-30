@@ -78,6 +78,9 @@ jobs:
       - name: Backend regression guards (invariants + security specs)
         run: npm run test:infra
         working-directory: backend
+      - name: Sales return cost regression
+        run: npm run test:returns-cost
+        working-directory: backend
       - name: Start backend for E2E
         run: |
           npm run migration:run
@@ -102,6 +105,9 @@ jobs:
         working-directory: backend
       - name: Run backend E2E
         run: npm run test:e2e
+        working-directory: backend
+      - name: Approval workflow integration
+        run: npm run test:e2e:approvals
         working-directory: backend
       - name: Upload backend log on failure
         if: failure()

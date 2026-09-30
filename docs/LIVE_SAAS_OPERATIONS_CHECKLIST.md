@@ -89,7 +89,7 @@ If a deployment breaks the production SaaS:
 ## 8. Remaining Risks and Recommendations Before Public Launch
 
 1. **Bootstrap Admin Enabled in Prod**: Ensure `ENABLE_BOOTSTRAP_ADMIN=false` in production to prevent accidental admin resets.
-2. **Automated CD**: Deployments are currently not fully automated, which could lead to human error during manual SSH deployments.
+2. **Automated CD**: Oracle VPS deployment follows successful CI on a push to `main`. Verify the `ORACLE_SSH_KNOWN_HOSTS` secret and monitor the deployment and health check; see `docs/DEPLOYMENT_PIPELINE.md`.
 3. **SMTP Verification**: If SMTP fails, the current public trial signup throws an error. Ensure robust SMTP credentials are in place to prevent signup blocking.
 
 ## 9. Production Env Migration Checklist

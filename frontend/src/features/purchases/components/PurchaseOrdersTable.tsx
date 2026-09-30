@@ -17,6 +17,8 @@ export const getPurchaseOrderStatusBadge = (status: string) => {
   switch (status) {
     case 'draft':
       return <span style={{ ...baseStyle, backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}>مسودة</span>;
+    case 'pending_approval':
+      return <span style={{ ...baseStyle, backgroundColor: '#fffbeb', color: '#92400e', border: '1px solid #fde68a' }}>بانتظار موافقة المدير</span>;
     case 'confirmed':
       return <span style={{ ...baseStyle, backgroundColor: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe' }}>معتمد وبانتظار التوريد</span>;
     case 'partially_received':

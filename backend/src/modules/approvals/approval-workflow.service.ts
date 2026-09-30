@@ -1,6 +1,6 @@
 import { Inject, Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
-import { Kysely, sql } from '../../database/kysely';
+import { Kysely, Transaction, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
@@ -30,7 +30,14 @@ export class ApprovalWorkflowService {
     private readonly whatsappService: WhatsAppGatewayService,
   ) {}
 
+  private requireManager(auth: AuthContext): void {
+    if (auth.role !== 'admin' && auth.role !== 'super_admin') {
+      throw new ForbiddenException('إدارة قواعد الموافقة تتطلب صلاحية مدير.');
+    }
+  }
+
   async getRules(auth: AuthContext) {
+    this.requireManager(auth);
     const { tenantId } = requireTenantScope(auth);
     return await this.db
       .selectFrom('approval_rules')
@@ -43,12 +50,16 @@ export class ApprovalWorkflowService {
   }
 
   async createRule(dto: CreateApprovalRuleDto, auth: AuthContext) {
+    this.requireManager(auth);
     const { tenantId } = requireTenantScope(auth);
-    if (!dto.module) throw new BadRequestException('الموديول مطلوب.');
+    if (dto.module !== 'purchase_orders') throw new BadRequestException('الموافقات مفعلة لأوامر الشراء فقط حالياً.');
     const minAmount = Number(dto.minAmount ?? 0);
     const maxAmount = dto.maxAmount !== undefined && dto.maxAmount !== null ? Number(dto.maxAmount) : null;
-    const tierLevel = Math.max(1, Number(dto.tierLevel ?? 1));
+    const tierLevel = Number(dto.tierLevel ?? 1);
     const requiredRole = dto.requiredRole || 'admin';
+    if (!Number.isFinite(minAmount) || minAmount < 0 || (maxAmount !== null && (!Number.isFinite(maxAmount) || maxAmount < minAmount))) throw new BadRequestException('نطاق المبلغ غير صالح.');
+    if (!Number.isInteger(tierLevel) || tierLevel < 1) throw new BadRequestException('مستوى الموافقة غير صالح.');
+    if (requiredRole !== 'admin') throw new BadRequestException('الدور المتاح لاعتماد أوامر الشراء هو admin فقط.');
 
     const result = await this.db
       .insertInto('approval_rules')
@@ -70,7 +81,10 @@ export class ApprovalWorkflowService {
   }
 
   async updateRule(id: string, dto: Partial<CreateApprovalRuleDto> & { isActive?: boolean }, auth: AuthContext) {
+    this.requireManager(auth);
     const { tenantId } = requireTenantScope(auth);
+    if (dto.module !== undefined && dto.module !== 'purchase_orders') throw new BadRequestException('الموافقات مفعلة لأوامر الشراء فقط حالياً.');
+    if (dto.requiredRole !== undefined && dto.requiredRole !== 'admin') throw new BadRequestException('الدور المتاح هو admin فقط.');
     const updateData: any = { updated_at: sql`NOW()` };
     if (dto.minAmount !== undefined) updateData.min_amount = Number(dto.minAmount);
     if (dto.maxAmount !== undefined) updateData.max_amount = dto.maxAmount === null ? null : Number(dto.maxAmount);
@@ -93,6 +107,7 @@ export class ApprovalWorkflowService {
   }
 
   async deleteRule(id: string, auth: AuthContext) {
+    this.requireManager(auth);
     const { tenantId } = requireTenantScope(auth);
     const deleted = await this.db
       .deleteFrom('approval_rules')
@@ -115,12 +130,12 @@ export class ApprovalWorkflowService {
     amount: number;
     currency?: string;
     notes?: string;
-  }, auth: AuthContext) {
+  }, auth: AuthContext, queryable: Kysely<Database> | Transaction<Database> = this.db) {
     const { tenantId } = requireTenantScope(auth);
     const amount = Number(params.amount || 0);
 
     // Find active matching rules for this module and amount range
-    const rules = await this.db
+    const rules = await queryable
       .selectFrom('approval_rules')
       .selectAll()
       .where('tenant_id', '=', tenantId)
@@ -141,8 +156,13 @@ export class ApprovalWorkflowService {
     }
 
     const maxTier = Math.max(...rules.map((r) => Number(r.tier_level || 1)));
+    for (let tier = 1; tier <= maxTier; tier++) {
+      if (!rules.some((rule) => Number(rule.tier_level) === tier)) {
+        throw new BadRequestException('مستويات الموافقة يجب أن تكون متصلة من المستوى الأول.');
+      }
+    }
 
-    const createdRequest = await this.db
+    const createdRequest = await queryable
       .insertInto('approval_requests')
       .values({
         tenant_id: tenantId,
@@ -162,7 +182,7 @@ export class ApprovalWorkflowService {
       .executeTakeFirstOrThrow();
 
     // Log request creation
-    await this.db
+    await queryable
       .insertInto('approval_request_logs')
       .values({
         tenant_id: tenantId,
@@ -176,9 +196,6 @@ export class ApprovalWorkflowService {
       } as any)
       .execute();
 
-    // Fire and forget WhatsApp alert to manager if phone setting exists
-    this.sendPendingAlertWhatsApp(tenantId, params.recordRef, amount, params.module).catch(() => {});
-
     return {
       requiresApproval: true,
       requestId: createdRequest.id,
@@ -186,6 +203,10 @@ export class ApprovalWorkflowService {
       maxTier,
       status: 'pending',
     };
+  }
+
+  notifyPendingApproval(tenantId: string, recordRef: string, amount: number): void {
+    this.sendPendingAlertWhatsApp(tenantId, recordRef, amount, 'purchase_orders').catch(() => {});
   }
 
   private async sendPendingAlertWhatsApp(tenantId: string, recordRef: string, amount: number, module: string) {
@@ -217,6 +238,7 @@ export class ApprovalWorkflowService {
   }
 
   async getRequests(filter: ApprovalRequestFilter, auth: AuthContext) {
+    this.requireManager(auth);
     const { tenantId } = requireTenantScope(auth);
     const limit = Math.min(100, Math.max(1, Number(filter.page ? filter.limit || 25 : 50)));
     const offset = Math.max(0, (Number(filter.page || 1) - 1) * limit);
@@ -256,6 +278,7 @@ export class ApprovalWorkflowService {
   }
 
   async getPendingCount(auth: AuthContext): Promise<{ count: number }> {
+    this.requireManager(auth);
     const { tenantId } = requireTenantScope(auth);
     const res = await this.db
       .selectFrom('approval_requests')
@@ -268,6 +291,7 @@ export class ApprovalWorkflowService {
   }
 
   async getRequestDetails(id: string, auth: AuthContext) {
+    this.requireManager(auth);
     const { tenantId } = requireTenantScope(auth);
     const request = await this.db
       .selectFrom('approval_requests')
@@ -301,170 +325,76 @@ export class ApprovalWorkflowService {
 
   async approveRequest(id: string, notes: string, auth: AuthContext) {
     const { tenantId } = requireTenantScope(auth);
-    const request = await this.db
-      .selectFrom('approval_requests')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id as any)
-      .executeTakeFirst();
+    return this.db.transaction().execute(async (trx) => {
+      const request = await trx.selectFrom('approval_requests').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', id as any).forUpdate().executeTakeFirst();
+      if (!request) throw new NotFoundException('طلب الاعتماد غير موجود.');
+      if (request.status !== 'pending') throw new BadRequestException(`لا يمكن اعتماد هذا الطلب لأن حالته الحالية هي: ${request.status}`);
+      if (request.module !== 'purchase_orders') throw new BadRequestException('مسار اعتماد هذا النوع غير مفعل.');
+      if (Number(request.requested_by) === auth.userId) throw new ForbiddenException('لا يجوز لصاحب الطلب اعتماد مستنده.');
 
-    if (!request) throw new NotFoundException('طلب الاعتماد غير موجود.');
-    if (request.status !== 'pending') {
-      throw new BadRequestException(`لا يمكن اعتماد هذا الطلب لأن حالته الحالية هي: ${request.status}`);
-    }
+      const currentTier = Number(request.current_tier || 1);
+      const maxTier = Number(request.max_tier || 1);
+      await this.assertApprover(trx, tenantId, request, auth);
 
-    const currentTier = Number(request.current_tier || 1);
-    const maxTier = Number(request.max_tier || 1);
-
-    // Record log
-    await this.db
-      .insertInto('approval_request_logs')
-      .values({
-        tenant_id: tenantId,
-        request_id: String(request.id),
-        tier_level: currentTier,
-        action: 'approved',
-        action_by: auth.userId || 0,
-        action_by_name: auth.username || 'المسؤول',
-        action_role: auth.role || 'admin',
-        notes: notes || `تمت الموافقة على المستوى ${currentTier}.`,
-      } as any)
-      .execute();
-
-    let newStatus = 'pending';
-    let nextTier = currentTier;
-
-    if (currentTier >= maxTier) {
-      // Completed all approval tiers!
-      newStatus = 'approved';
-      await this.db
-        .updateTable('approval_requests')
-        .set({
-          status: 'approved',
-          updated_at: sql`NOW()`,
-        } as any)
-        .where('id', '=', request.id as any)
-        .where('tenant_id', '=', tenantId)
-        .execute();
-
-      // Execute document lifecycle transition hook
-      await this.applyApprovalToDocument(tenantId, request.module, request.record_id);
-    } else {
-      // Advance to next tier
-      nextTier = currentTier + 1;
-      await this.db
-        .updateTable('approval_requests')
-        .set({
-          current_tier: nextTier,
-          updated_at: sql`NOW()`,
-        } as any)
-        .where('id', '=', request.id as any)
-        .where('tenant_id', '=', tenantId)
-        .execute();
-    }
-
-    return {
-      ok: true,
-      requestId: request.id,
-      status: newStatus,
-      currentTier: nextTier,
-      maxTier,
-      isFullyApproved: newStatus === 'approved',
-    };
+      const final = currentTier >= maxTier;
+      if (final) await this.transitionPurchaseOrder(trx, tenantId, request.record_id, 'confirmed');
+      await trx.insertInto('approval_request_logs').values({
+        tenant_id: tenantId, request_id: String(request.id), tier_level: currentTier,
+        action: 'approved', action_by: auth.userId, action_by_name: auth.username,
+        action_role: auth.role, notes: notes || `تمت الموافقة على المستوى ${currentTier}.`,
+      } as any).execute();
+      await trx.updateTable('approval_requests').set({
+        status: final ? 'approved' : 'pending', current_tier: final ? currentTier : currentTier + 1,
+        updated_at: sql`NOW()`,
+      } as any).where('tenant_id', '=', tenantId).where('id', '=', request.id as any).execute();
+      return { ok: true, requestId: request.id, status: final ? 'approved' : 'pending',
+        currentTier: final ? currentTier : currentTier + 1, maxTier, isFullyApproved: final };
+    });
   }
 
   async rejectRequest(id: string, reason: string, auth: AuthContext) {
     const { tenantId } = requireTenantScope(auth);
-    if (!reason?.trim()) {
-      throw new BadRequestException('سبب الرفض إلزامي لتوثيقه في السجل.');
-    }
-
-    const request = await this.db
-      .selectFrom('approval_requests')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id as any)
-      .executeTakeFirst();
-
-    if (!request) throw new NotFoundException('طلب الاعتماد غير موجود.');
-    if (request.status !== 'pending') {
-      throw new BadRequestException(`لا يمكن رفض هذا الطلب لأن حالته الحالية هي: ${request.status}`);
-    }
-
-    // Log rejection
-    await this.db
-      .insertInto('approval_request_logs')
-      .values({
-        tenant_id: tenantId,
-        request_id: String(request.id),
-        tier_level: Number(request.current_tier || 1),
-        action: 'rejected',
-        action_by: auth.userId || 0,
-        action_by_name: auth.username || 'المسؤول',
-        action_role: auth.role || 'admin',
-        notes: reason,
-      } as any)
-      .execute();
-
-    await this.db
-      .updateTable('approval_requests')
-      .set({
-        status: 'rejected',
-        updated_at: sql`NOW()`,
-      } as any)
-      .where('id', '=', request.id as any)
-      .where('tenant_id', '=', tenantId)
-      .execute();
-
-    // Update document status to rejected
-    await this.applyRejectionToDocument(tenantId, request.module, request.record_id);
-
-    return { ok: true, status: 'rejected' };
+    if (!reason?.trim()) throw new BadRequestException('سبب الرفض إلزامي لتوثيقه في السجل.');
+    return this.db.transaction().execute(async (trx) => {
+      const request = await trx.selectFrom('approval_requests').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', id as any).forUpdate().executeTakeFirst();
+      if (!request) throw new NotFoundException('طلب الاعتماد غير موجود.');
+      if (request.status !== 'pending') throw new BadRequestException(`لا يمكن رفض هذا الطلب لأن حالته الحالية هي: ${request.status}`);
+      if (request.module !== 'purchase_orders') throw new BadRequestException('مسار رفض هذا النوع غير مفعل.');
+      if (Number(request.requested_by) === auth.userId) throw new ForbiddenException('لا يجوز لصاحب الطلب رفض مستنده.');
+      await this.assertApprover(trx, tenantId, request, auth);
+      await this.transitionPurchaseOrder(trx, tenantId, request.record_id, 'draft');
+      await trx.insertInto('approval_request_logs').values({
+        tenant_id: tenantId, request_id: String(request.id), tier_level: Number(request.current_tier || 1),
+        action: 'rejected', action_by: auth.userId, action_by_name: auth.username,
+        action_role: auth.role, notes: reason.trim(),
+      } as any).execute();
+      await trx.updateTable('approval_requests').set({ status: 'rejected', updated_at: sql`NOW()` } as any)
+        .where('tenant_id', '=', tenantId).where('id', '=', request.id as any).execute();
+      return { ok: true, status: 'rejected' };
+    });
   }
 
-  private async applyApprovalToDocument(tenantId: string, module: string, recordId: string | number) {
-    try {
-      const idNum = Number(recordId);
-      if (module === 'purchase_orders') {
-        await this.db
-          .updateTable('purchase_orders' as any)
-          .set({ status: 'approved' } as any)
-          .where('tenant_id', '=', tenantId)
-          .where('id', '=', idNum as any)
-          .execute();
-      } else if (module === 'purchases') {
-        await this.db
-          .updateTable('purchases')
-          .set({ lifecycle_status: 'approved' } as any)
-          .where('tenant_id', '=', tenantId)
-          .where('id', '=', idNum as any)
-          .execute();
-      }
-    } catch {
-      // Document update resilience
+  private async assertApprover(trx: Transaction<Database>, tenantId: string,
+    request: { module: string; amount: number; current_tier: number }, auth: AuthContext): Promise<void> {
+    const rules = await trx.selectFrom('approval_rules').select(['required_role', 'approver_user_id'])
+      .where('tenant_id', '=', tenantId).where('module', '=', request.module)
+      .where('is_active', '=', true).where('tier_level', '=', Number(request.current_tier))
+      .where('min_amount', '<=', Number(request.amount))
+      .where((eb) => eb.or([eb('max_amount', 'is', null), eb('max_amount', '>=', Number(request.amount))]))
+      .execute();
+    if (!rules.some((rule) => (auth.role === rule.required_role || auth.role === 'super_admin')
+      && (rule.approver_user_id === null || Number(rule.approver_user_id) === auth.userId))) {
+      throw new ForbiddenException('ليس لديك صلاحية اعتماد هذا المستوى.');
     }
   }
 
-  private async applyRejectionToDocument(tenantId: string, module: string, recordId: string | number) {
-    try {
-      const idNum = Number(recordId);
-      if (module === 'purchase_orders') {
-        await this.db
-          .updateTable('purchase_orders' as any)
-          .set({ status: 'rejected' } as any)
-          .where('tenant_id', '=', tenantId)
-          .where('id', '=', idNum as any)
-          .execute();
-      } else if (module === 'purchases') {
-        await this.db
-          .updateTable('purchases')
-          .set({ lifecycle_status: 'rejected' } as any)
-          .where('tenant_id', '=', tenantId)
-          .where('id', '=', idNum as any)
-          .execute();
-      }
-    } catch {
-      // Document update resilience
-    }
+  private async transitionPurchaseOrder(trx: Transaction<Database>, tenantId: string,
+    recordId: string | number, status: 'confirmed' | 'draft'): Promise<void> {
+    const result = await trx.updateTable('purchase_orders').set({ status, updated_at: new Date() })
+      .where('tenant_id', '=', tenantId).where('id', '=', Number(recordId))
+      .where('status', '=', 'pending_approval').executeTakeFirst();
+    if (Number(result.numUpdatedRows) !== 1) throw new BadRequestException('أمر الشراء لم يعد في انتظار الموافقة.');
   }
 }

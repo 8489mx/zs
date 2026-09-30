@@ -62,6 +62,12 @@ function testDeploysTestedCommit(): void {
   assert.ok(/github\.event\.workflow_run\.head_sha/.test(workflow), 'deploy must check out workflow_run.head_sha');
   assert.ok(/git reset --hard "\$DEPLOY_SHA"/.test(remoteScript()), 'the server must reset to the same DEPLOY_SHA');
   assert.ok(/cancel-in-progress: false/.test(workflow), 'a running deploy must not be cancelled mid-swap');
+  assert.ok(/workflow_run\.event == 'push'/.test(workflow) && /workflow_run\.head_branch == 'main'/.test(workflow)
+    && /workflow_run\.head_repository\.full_name == github\.repository/.test(workflow),
+    'a successful pull request CI run must never start a privileged production deploy');
+  assert.ok(/secrets\.ORACLE_SSH_KNOWN_HOSTS/.test(workflow) && !/StrictHostKeyChecking=no/.test(workflow)
+    && (workflow.match(/StrictHostKeyChecking=yes/g) || []).length === 2,
+    'both SSH operations must verify the pinned production host key');
 }
 
 // DEPLOY-5: the backup produces a valid dump.

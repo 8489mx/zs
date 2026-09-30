@@ -10,6 +10,7 @@ import {
   deleteApprovalRule,
 } from '../api/approvals.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { systemConfirm } from '@/shared/components/system-alert';
 import { PlusIcon, TrashIcon, CheckIcon, ShieldAlertIcon } from '@/shared/components/icons/AppIcons';
 
 export const ApprovalRulesManager: React.FC = () => {
@@ -20,7 +21,7 @@ export const ApprovalRulesManager: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
 
   // New Rule Form state
-  const [module, setModule] = useState<'purchase_orders' | 'purchases' | 'expenses' | 'treasury_transactions'>('purchase_orders');
+  const module = 'purchase_orders';
   const [minAmount, setMinAmount] = useState<number>(5000);
   const [maxAmount, setMaxAmount] = useState<string>('');
   const [tierLevel, setTierLevel] = useState<number>(1);
@@ -75,7 +76,7 @@ export const ApprovalRulesManager: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذه القاعدة الرقابية؟')) return;
+    if (!await systemConfirm({ title: 'حذف قاعدة الموافقة', message: 'هل أنت متأكد من حذف هذه القاعدة الرقابية؟', confirmText: 'حذف', variant: 'danger' })) return;
     try {
       await deleteApprovalRule(id);
       loadRules();
@@ -250,22 +251,7 @@ export const ApprovalRulesManager: React.FC = () => {
               <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>
                 الموديول الخاضع للاعتماد:
               </label>
-              <select
-                value={module}
-                onChange={(e) => setModule(e.target.value as any)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: 'var(--font-body)',
-                  outline: 'none',
-                }}
-              >
-                <option value="purchase_orders">أوامر الشراء (Purchase Orders)</option>
-                <option value="purchases">فواتير المشتريات (Purchases)</option>
-                <option value="expenses">المصروفات النقدية (Expenses)</option>
-                <option value="treasury_transactions">حركات وسندات الخزينة</option>
-              </select>
+              <p>أوامر الشراء (Purchase Orders)</p>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -350,9 +336,6 @@ export const ApprovalRulesManager: React.FC = () => {
               }}
             >
               <option value="admin">مدير النظام (Admin)</option>
-              <option value="branch_manager">مدير الفرع (Branch Manager)</option>
-              <option value="financial_manager">المدير المالي (Financial Manager)</option>
-              <option value="general_manager">المدير العام / المالك (General Manager / Owner)</option>
             </select>
           </div>
 

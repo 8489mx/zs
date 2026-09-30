@@ -5,6 +5,7 @@ import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AccountingTenantFoundationService } from './accounting-tenant-foundation.service';
 import { AppError } from '../../common/errors/app-error';
+import { calculateSalesReturnCost } from './engines/sales-return-cost.engine';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 
@@ -1179,7 +1180,7 @@ export class AccountingPostingService {
     // Reliable cost source for return COGS reversal: original sale_items.cost_price at sale time.
     const returnItems = await queryable
       .selectFrom('return_items')
-      .select(['product_id', 'qty'])
+      .select(['product_id', 'sale_item_id', 'qty'])
       .where('return_document_id', '=', returnId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .execute();
@@ -1187,39 +1188,13 @@ export class AccountingPostingService {
     const saleItems = sale?.id
       ? await queryable
         .selectFrom('sale_items')
-        .select(['product_id', 'qty', 'cost_price'])
+        .select(['id', 'product_id', 'cost_price'])
         .where('sale_id', '=', Number(sale.id))
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .execute()
       : [];
 
-    const saleItemByProductId = new Map<number, { qty: number; cost_price: number }>();
-    for (const item of saleItems) {
-      const productId = Number(item.product_id || 0);
-      if (!(productId > 0)) continue;
-      if (!saleItemByProductId.has(productId)) {
-        saleItemByProductId.set(productId, { qty: Number(item.qty || 0), cost_price: Number(item.cost_price || 0) });
-      }
-    }
-
-    let inventoryReversalAmount = 0;
-    for (const returnItem of returnItems) {
-      const productId = Number(returnItem.product_id || 0);
-      const returnedQty = Number(returnItem.qty || 0);
-      if (!(productId > 0) || !(returnedQty > 0)) continue;
-      const sourceSaleItem = saleItemByProductId.get(productId);
-      if (!sourceSaleItem) {
-        this.logger.warn(`Missing original sale item for return ${returnId}, product ${productId}; skipping cost reversal for this line`);
-        continue;
-      }
-      const itemCost = Number(sourceSaleItem.cost_price || 0);
-      if (!(itemCost >= 0)) {
-        this.logger.warn(`Invalid sale item cost for return ${returnId}, product ${productId}; skipping cost reversal for this line`);
-        continue;
-      }
-      inventoryReversalAmount += (returnedQty * itemCost);
-    }
-    inventoryReversalAmount = this.toMoney(inventoryReversalAmount);
+    const inventoryReversalAmount = this.toMoney(calculateSalesReturnCost(returnItems, saleItems));
 
     if (inventoryReversalAmount > 0) {
       this.addLine(lines, {
@@ -1242,9 +1217,6 @@ export class AccountingPostingService {
         branchId,
         locationId,
       });
-    } else {
-      // TODO(accounting): if reliable per-line return cost is unavailable in some edge cases, keep posting refund side only.
-      this.logger.warn(`Sales return ${returnId} has no reliable cost lines; posting revenue/refund side only`);
     }
 
     const accountMap = await this.getActiveAccountMap(queryable, scope.tenantId, lines.map((line) => line.accountId));

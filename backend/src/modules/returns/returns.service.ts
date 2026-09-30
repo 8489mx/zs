@@ -345,6 +345,14 @@ export class ReturnsService {
     }
 
     for (const requestItem of items) {
+      if (!requestItem.saleItemId) {
+        const matchingCosts = saleItems
+          .filter((entry) => Number(entry.product_id) === requestItem.productId)
+          .map((entry) => Number(entry.cost_price));
+        if (new Set(matchingCosts).size > 1) {
+          throw new AppError('حدد سطر الفاتورة الأصلي للصنف ذي التكاليف المختلفة', 'SALE_ITEM_ID_REQUIRED', 400);
+        }
+      }
       // If saleItemId is provided, validate it belongs to this invoice AND this product
       if (requestItem.saleItemId) {
         const matchedItem = saleItems.find(
@@ -439,9 +447,7 @@ export class ReturnsService {
     }
 
     const total = calculateReturnDocumentTotal(normalizedLines);
-    // TODO(accounting): Sale returns here can be partial line-level returns.
-    // Do not post full-sale reversal journals for this flow.
-    // Implement dedicated partial return accounting entries when reliable line-level accounting mapping is finalized.
+    // The posting service reverses the returned lines using their original sale-line costs.
     const { id: returnDocumentId, docNo: returnDocNo } = await this.insertReturnDocument(trx, { returnType: 'sale', invoiceId: Number(payload.invoiceId), settlementMode, refundMethod, total, note: String(payload.note || '').trim(), branchId: sale.branch_id, locationId: sale.location_id }, auth);
     for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, saleItemId: line.saleItemId }, auth);
     const customerId = sale.customer_id ? Number(sale.customer_id) : null;

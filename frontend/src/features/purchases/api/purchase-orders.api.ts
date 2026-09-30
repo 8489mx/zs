@@ -34,7 +34,7 @@ export interface PurchaseOrderRecord {
   tax_amount: number | string;
   discount_amount: number | string;
   total_amount: number | string;
-  status: 'draft' | 'confirmed' | 'partially_received' | 'received' | 'converted_to_bill' | 'cancelled';
+  status: 'draft' | 'pending_approval' | 'confirmed' | 'partially_received' | 'received' | 'converted_to_bill' | 'cancelled';
   expected_delivery_date: string | null;
   converted_purchase_id: number | null;
   notes: string | null;

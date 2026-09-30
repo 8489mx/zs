@@ -131,7 +131,7 @@ export function PurchaseOrdersPage() {
   };
 
   const orders = data?.orders || [];
-  const summary = data?.summary || { all: 0, draft: 0, confirmed: 0, partially_received: 0, received: 0, converted_to_bill: 0, cancelled: 0 };
+  const summary = data?.summary || { all: 0, draft: 0, pending_approval: 0, confirmed: 0, partially_received: 0, received: 0, converted_to_bill: 0, cancelled: 0 };
 
   return (
     <div className="page-stack page-shell purchases-orders-page" dir="rtl">
@@ -209,6 +209,7 @@ export function PurchaseOrdersPage() {
                 {[
                   { id: 'all', label: 'الكل' },
                   { id: 'draft', label: 'مسودات' },
+                  { id: 'pending_approval', label: 'بانتظار الموافقة' },
                   { id: 'confirmed', label: 'معتمدة' },
                   { id: 'partially_received', label: 'استلام جزئي' },
                   { id: 'received', label: 'مستلمة' },

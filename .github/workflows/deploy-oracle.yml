@@ -29,7 +29,7 @@ jobs:
     name: Build on GitHub and deploy to Oracle Cloud VPS
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     env:
       DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
@@ -76,14 +76,18 @@ jobs:
       - name: Upload release to server
         env:
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_SSH_KNOWN_HOSTS: ${{ secrets.ORACLE_SSH_KNOWN_HOSTS }}
           ORACLE_HOST: ${{ secrets.ORACLE_HOST || '92.5.178.54' }}
           ORACLE_USER: ${{ secrets.ORACLE_USER || 'ubuntu' }}
           ORACLE_PORT: ${{ secrets.ORACLE_PORT || '22' }}
         run: |
           mkdir -p ~/.ssh
+          test -n "$ORACLE_SSH_KNOWN_HOSTS"
           echo "$ORACLE_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          scp -o StrictHostKeyChecking=no -o ConnectTimeout=20 -P "$ORACLE_PORT" \
+          printf '%s\n' "$ORACLE_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          scp -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -P "$ORACLE_PORT" \
             release.tgz "$ORACLE_USER@$ORACLE_HOST:/tmp/zsystems-release-$DEPLOY_SHA.tgz"
 
       - name: Migrate, swap and reload on server
@@ -92,7 +96,7 @@ jobs:
           ORACLE_USER: ${{ secrets.ORACLE_USER || 'ubuntu' }}
           ORACLE_PORT: ${{ secrets.ORACLE_PORT || '22' }}
         run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=20 -p "$ORACLE_PORT" "$ORACLE_USER@$ORACLE_HOST" \
+          ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -p "$ORACLE_PORT" "$ORACLE_USER@$ORACLE_HOST" \
             "DEPLOY_SHA=$DEPLOY_SHA bash -s" << 'REMOTE'
           set -euo pipefail
           echo "Deploying $DEPLOY_SHA at $(date)"

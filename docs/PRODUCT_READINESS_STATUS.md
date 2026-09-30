@@ -41,8 +41,8 @@ The following critical milestones have been achieved and verified:
 
 ## 3. Known Limitations & Caveats
 
-1. **VPS CI/CD Automation**: 
-   - Deployments to the backend are currently documented as manual (SSH + git pull + build). While safe, this introduces a risk of human error compared to a fully automated pipeline.
+1. **VPS CI/CD Automation**:
+   - The Oracle VPS deploy runs after successful CI for a push to `main` in this repository, with a manual trigger on `main`. It builds on GitHub and uploads a release archive; see `docs/DEPLOYMENT_PIPELINE.md`. Configure `ORACLE_SSH_KNOWN_HOSTS` with a verified host key before the next deploy.
 2. **Offline Local Network Access**:
    - Running the portable version over a local network (LAN) requires proper firewall configuration on the host machine, which falls outside the scope of the software's automated setup.
 3. **Rollback of Database Migrations**:

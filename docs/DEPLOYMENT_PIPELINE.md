@@ -20,7 +20,8 @@ GitHub branch: main
 
 يعمل ملف `.github/workflows/deploy-oracle.yml` بالتسلسل التالي (منذ 22 سبتمبر 2026):
 
-1. **الاعتماد على نجاح الـ CI:** لا يتم تنفيذ النشر إذا فشلت فحوصات الكود أو الاختبارات، ويُنشر نفس الـ commit الذي نجح في الـ CI بالضبط (`workflow_run.head_sha`).
+1. **الاعتماد على نجاح الـ CI:** النشر الآلي يتبع نجاح `push` إلى `main` في نفس المستودع؛ نجاح CI لطلب دمج لا يعطي صلاحية نشر. النشر اليدوي من `main` فقط، ويُنشر نفس الـ commit الذي نجح في الـ CI (`workflow_run.head_sha`).
+   - يلزم ضبط GitHub secret باسم `ORACLE_SSH_KNOWN_HOSTS` بسطر `known_hosts` لخادم Oracle بعد التحقق من بصمته عبر قناة موثوقة. سيرفض النشر الاتصال إذا غاب السر أو تغيّر مفتاح الخادم؛ لا تعتمد على `ssh-keyscan` وحده لإثبات الهوية.
 2. **البناء على GitHub وليس على السيرفر:** يُبنى الباك إند (`nest build`) والفرونت إند (Vite) على جهاز GitHub، ويُحزَّم الناتج في `release.tgz` ويُرفع للسيرفر بـ `scp`.
    - **السبب:** السيرفر نواة واحدة و6 جيجا رام بلا Swap؛ البناء عليه كان يجمّد الكاشيرات لدقائق، وكان `rm -rf dist` قبل البناء يُسقط الباك إند طوال مدة البناء (سجّل PM2 أكثر من 1700 إعادة تشغيل فاشلة بخطأ `Cannot find module dist/main.js`).
    - متغيرات بناء الفرونت إند تأتي من GitHub Variables (`VITE_API_BASE_URL`, `VITE_CSRF_COOKIE_NAME`, `VITE_PLATFORM_TENANT_ID`) مع قيم افتراضية مطابقة لملف `frontend/.env.production` الموجود على السيرفر.
@@ -150,4 +151,3 @@ VITE_STOREFRONT_ROOT_DOMAIN=zsystemai.com
 - **بوابة السائقين:** `https://app.zsystemai.com/driver`
 - **متجر عميل:** `https://<slug>.zsystemai.com`
 - **الموقع التسويقي:** `https://zsystemai.com` (Cloudflare Pages)
-

@@ -4,6 +4,7 @@ import { AuthFoundationModule } from '../../core/auth/auth.module';
 import { DatabaseModule } from '../../database/database.module';
 import { AccountingModule } from '../accounting/accounting.module';
 import { SettingsModule } from '../settings/settings.module';
+import { ApprovalsModule } from '../approvals/approvals.module';
 import { PurchasesController } from './purchases.controller';
 import { PurchasesService } from './purchases.service';
 import { PurchasesFinanceService } from './services/purchases-finance.service';
@@ -21,7 +22,7 @@ import { GoodsReceiptService } from './services/goods-receipt.service';
 import { GoodsReceiptController } from './controllers/goods-receipt.controller';
 
 @Module({
-  imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule],
+  imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule, ApprovalsModule],
   controllers: [PurchaseOrdersController, PurchaseRfqsController, GoodsReceiptController, PurchasesController],
   providers: [
     PurchasesService,

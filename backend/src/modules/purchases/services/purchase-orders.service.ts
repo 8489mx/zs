@@ -7,12 +7,14 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
 import { CreatePurchaseOrderDto, UpdatePurchaseOrderDto } from '../dto/purchase-order.dto';
 import { PurchasesWriteService } from './purchases-write.service';
+import { ApprovalWorkflowService } from '../../approvals/approval-workflow.service';
 
 @Injectable()
 export class PurchaseOrdersService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly purchasesWrite: PurchasesWriteService,
+    private readonly approvals: ApprovalWorkflowService,
   ) {}
 
   async listOrders(
@@ -63,6 +65,7 @@ export class PurchaseOrdersService {
       received: 0,
       converted_to_bill: 0,
       cancelled: 0,
+      pending_approval: 0,
     };
 
     counts.forEach((c) => {
@@ -192,97 +195,101 @@ export class PurchaseOrdersService {
 
   async updateOrder(id: number, payload: UpdatePurchaseOrderDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    const order = await this.db
-      .selectFrom('purchase_orders')
-      .selectAll()
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .where('account_id', '=', scope.accountId)
-      .executeTakeFirst();
+    await this.db.transaction().execute(async (trx) => {
+      const order = await trx
+        .selectFrom('purchase_orders')
+        .selectAll()
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId)
+        .forUpdate()
+        .executeTakeFirst();
 
-    if (!order) {
-      throw new NotFoundException('أمر الشراء غير موجود');
-    }
-
-    if (order.status === 'converted_to_bill') {
-      throw new BadRequestException('لا يمكن تعديل أمر شراء تم تحويله لفاتورة رسمية');
-    }
-
-    await this.db
-      .updateTable('purchase_orders')
-      .set({
-        supplier_id: payload.supplierId !== undefined ? payload.supplierId : order.supplier_id,
-        supplier_name: payload.supplierName || order.supplier_name,
-        supplier_phone: payload.supplierPhone !== undefined ? payload.supplierPhone : order.supplier_phone,
-        warehouse_id: payload.warehouseId !== undefined ? payload.warehouseId : order.warehouse_id,
-        warehouse_name: payload.warehouseName !== undefined ? payload.warehouseName : order.warehouse_name,
-        subtotal: payload.subtotal !== undefined ? payload.subtotal : order.subtotal,
-        tax_amount: payload.taxAmount !== undefined ? payload.taxAmount : order.tax_amount,
-        discount_amount: payload.discountAmount !== undefined ? payload.discountAmount : order.discount_amount,
-        total_amount: payload.totalAmount !== undefined ? payload.totalAmount : order.total_amount,
-        expected_delivery_date: payload.expectedDeliveryDate ? (payload.expectedDeliveryDate as any) : order.expected_delivery_date,
-        notes: payload.notes !== undefined ? payload.notes : order.notes,
-        terms_conditions: payload.termsConditions !== undefined ? payload.termsConditions : order.terms_conditions,
-        status: payload.status || order.status,
-        updated_at: new Date(),
-      })
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .execute();
-
-    if (payload.items && payload.items.length > 0) {
-      await this.db.deleteFrom('purchase_order_items').where('purchase_order_id', '=', id).where('tenant_id', '=', scope.tenantId).execute();
-      for (const item of payload.items) {
-        await this.db
-          .insertInto('purchase_order_items')
-          .values({
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-            purchase_order_id: id,
-            product_id: item.productId,
-            product_name: item.productName,
-            unit_name: item.unitName || null,
-            quantity: item.quantity,
-            received_quantity: item.receivedQuantity || 0,
-            unit_cost: item.unitCost,
-            tax_rate: item.taxRate || 0,
-            discount: item.discount || 0,
-            total: item.total,
-            notes: item.notes || null,
-          })
-          .execute();
+      if (!order) {
+        throw new NotFoundException('أمر الشراء غير موجود');
       }
-    }
+
+      if (order.status !== 'draft') {
+        throw new BadRequestException('يمكن تعديل أمر الشراء في حالة المسودة فقط');
+      }
+      if (payload.status && payload.status !== 'draft') throw new BadRequestException('تغيير حالة أمر الشراء يتم عبر مسار الاعتماد فقط');
+
+      const updated = await trx
+        .updateTable('purchase_orders')
+        .set({
+          supplier_id: payload.supplierId !== undefined ? payload.supplierId : order.supplier_id,
+          supplier_name: payload.supplierName || order.supplier_name,
+          supplier_phone: payload.supplierPhone !== undefined ? payload.supplierPhone : order.supplier_phone,
+          warehouse_id: payload.warehouseId !== undefined ? payload.warehouseId : order.warehouse_id,
+          warehouse_name: payload.warehouseName !== undefined ? payload.warehouseName : order.warehouse_name,
+          subtotal: payload.subtotal !== undefined ? payload.subtotal : order.subtotal,
+          tax_amount: payload.taxAmount !== undefined ? payload.taxAmount : order.tax_amount,
+          discount_amount: payload.discountAmount !== undefined ? payload.discountAmount : order.discount_amount,
+          total_amount: payload.totalAmount !== undefined ? payload.totalAmount : order.total_amount,
+          expected_delivery_date: payload.expectedDeliveryDate ? (payload.expectedDeliveryDate as any) : order.expected_delivery_date,
+          notes: payload.notes !== undefined ? payload.notes : order.notes,
+          terms_conditions: payload.termsConditions !== undefined ? payload.termsConditions : order.terms_conditions,
+          status: 'draft',
+          updated_at: new Date(),
+        })
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId)
+        .where('status', '=', 'draft')
+        .executeTakeFirst();
+      if (Number(updated.numUpdatedRows) !== 1) throw new BadRequestException('أمر الشراء لم يعد مسودة');
+
+      if (payload.items && payload.items.length > 0) {
+        await trx.deleteFrom('purchase_order_items').where('purchase_order_id', '=', id).where('tenant_id', '=', scope.tenantId).execute();
+        for (const item of payload.items) {
+          await trx
+            .insertInto('purchase_order_items')
+            .values({
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+              purchase_order_id: id,
+              product_id: item.productId,
+              product_name: item.productName,
+              unit_name: item.unitName || null,
+              quantity: item.quantity,
+              received_quantity: item.receivedQuantity || 0,
+              unit_cost: item.unitCost,
+              tax_rate: item.taxRate || 0,
+              discount: item.discount || 0,
+              total: item.total,
+              notes: item.notes || null,
+            })
+            .execute();
+        }
+      }
+    });
 
     return { success: true, message: 'تم تحديث أمر الشراء بنجاح' };
   }
 
   async confirmOrder(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    const order = await this.db
-      .selectFrom('purchase_orders')
-      .selectAll()
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .where('account_id', '=', scope.accountId)
-      .executeTakeFirst();
-
-    if (!order) {
-      throw new NotFoundException('أمر الشراء غير موجود');
+    const outcome = await this.db.transaction().execute(async (trx) => {
+      const order = await trx.selectFrom('purchase_orders').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId).forUpdate().executeTakeFirst();
+      if (!order) throw new NotFoundException('أمر الشراء غير موجود');
+      if (order.status !== 'draft') throw new BadRequestException('أمر الشراء ليس في حالة مسودة');
+      const approval = await this.approvals.checkAndInitiateApproval({
+        module: 'purchase_orders', recordId: id, recordRef: order.order_number,
+        amount: Number(order.total_amount),
+      }, auth, trx);
+      await trx.updateTable('purchase_orders').set({
+        status: approval.requiresApproval ? 'pending_approval' : 'confirmed', updated_at: new Date(),
+      }).where('id', '=', id).where('tenant_id', '=', scope.tenantId).where('account_id', '=', scope.accountId).execute();
+      return { approval, orderNumber: order.order_number, amount: Number(order.total_amount) };
+    });
+    if (outcome.approval.requiresApproval) {
+      this.approvals.notifyPendingApproval(scope.tenantId, outcome.orderNumber, outcome.amount);
+      return { success: true, status: 'pending_approval', requestId: outcome.approval.requestId,
+        message: 'أمر الشراء بانتظار موافقة مدير آخر' };
     }
-
-    if (order.status !== 'draft') {
-      throw new BadRequestException('أمر الشراء ليس في حالة مسودة');
-    }
-
-    await this.db
-      .updateTable('purchase_orders')
-      .set({ status: 'confirmed', updated_at: new Date() })
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .execute();
-
-    return { success: true, message: 'تم اعتماد أمر الشراء بنجاح وإرساله للمورد' };
+    return { success: true, status: 'confirmed', message: 'تم اعتماد أمر الشراء بنجاح' };
   }
 
   // `receiveGoods` was removed here (O3 audit finding): it wrote stock directly via
@@ -306,8 +313,8 @@ export class PurchaseOrdersService {
       throw new NotFoundException('أمر الشراء غير موجود');
     }
 
-    if (order.status === 'converted_to_bill') {
-      throw new BadRequestException('تم تحويل أمر الشراء بالفعل لفاتورة مشتريات مسبقاً');
+    if (!['confirmed', 'partially_received', 'received'].includes(order.status)) {
+      throw new BadRequestException('لا يمكن تحويل أمر شراء غير معتمد إلى فاتورة');
     }
 
     const items = await this.db
@@ -336,32 +343,9 @@ export class PurchaseOrdersService {
       notes: `فاتورة محولة تلقائياً من أمر الشراء #${order.order_number}`,
     };
 
-    let createdPurchaseId: number | null = null;
-    try {
-      const res = await this.purchasesWrite.createPurchase(purchasePayload as any, auth);
-      createdPurchaseId = Number((res as any)?.id || (res as any)?.purchase?.id || null);
-    } catch (e: any) {
-      // Fallback: If purchasesWrite has strict validation, insert purchase record
-      const fallbackBill = await this.db
-        .insertInto('purchases')
-        .values({
-          tenant_id: scope.tenantId,
-          account_id: scope.accountId,
-          supplier_id: order.supplier_id || 1,
-          invoice_number: `INV-${order.order_number}`,
-          subtotal: order.subtotal,
-          tax: order.tax_amount,
-          discount: order.discount_amount,
-          total: order.total_amount,
-          paid: 0,
-          status: 'unpaid',
-          notes: `محول من أمر الشراء #${order.order_number}`,
-          created_by: auth.userId ? Number(auth.userId) : null,
-        } as any)
-        .returning('id')
-        .executeTakeFirst();
-      createdPurchaseId = fallbackBill ? Number(fallbackBill.id) : null;
-    }
+    const res = await this.purchasesWrite.createPurchase(purchasePayload as any, auth);
+    const createdPurchaseId = Number((res as any)?.id || (res as any)?.purchase?.id || 0);
+    if (!createdPurchaseId) throw new BadRequestException('لم يتم إنشاء فاتورة مشتريات صالحة');
 
     await this.db
       .updateTable('purchase_orders')
@@ -395,16 +379,19 @@ export class PurchaseOrdersService {
       throw new NotFoundException('أمر الشراء غير موجود');
     }
 
-    if (order.status === 'converted_to_bill') {
-      throw new BadRequestException('لا يمكن إلغاء أمر شراء تم تحويله لفاتورة مشتريات');
+    if (!['draft', 'confirmed'].includes(order.status)) {
+      throw new BadRequestException('لا يمكن إلغاء أمر شراء في حالته الحالية');
     }
 
-    await this.db
+    const updated = await this.db
       .updateTable('purchase_orders')
       .set({ status: 'cancelled', updated_at: new Date() })
       .where('id', '=', id)
       .where('tenant_id', '=', scope.tenantId)
-      .execute();
+      .where('account_id', '=', scope.accountId)
+      .where('status', 'in', ['draft', 'confirmed'])
+      .executeTakeFirst();
+    if (Number(updated.numUpdatedRows) !== 1) throw new BadRequestException('حالة أمر الشراء تغيرت؛ لا يمكن إلغاؤه');
 
     return { success: true, message: 'تم إلغاء أمر الشراء بنجاح' };
   }
@@ -427,8 +414,17 @@ export class PurchaseOrdersService {
       throw new BadRequestException('يمكن حذف أوامر الشراء المسودة أو الملغاة فقط');
     }
 
-    await this.db.deleteFrom('purchase_order_items').where('purchase_order_id', '=', id).where('tenant_id', '=', scope.tenantId).execute();
-    await this.db.deleteFrom('purchase_orders').where('id', '=', id).where('tenant_id', '=', scope.tenantId).execute();
+    await this.db.transaction().execute(async (trx) => {
+      const locked = await trx.selectFrom('purchase_orders').select('status')
+        .where('id', '=', id).where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId).forUpdate().executeTakeFirst();
+      if (!locked || !['draft', 'cancelled'].includes(locked.status)) {
+        throw new BadRequestException('حالة أمر الشراء تغيرت؛ لا يمكن حذفه');
+      }
+      await trx.deleteFrom('purchase_order_items').where('purchase_order_id', '=', id).where('tenant_id', '=', scope.tenantId).execute();
+      await trx.deleteFrom('purchase_orders').where('id', '=', id).where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId).execute();
+    });
 
     return { success: true, message: 'تم حذف أمر الشراء بنجاح' };
   }

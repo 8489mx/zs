@@ -142,7 +142,7 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
                   طباعة A4
                 </Button>
 
-                {order.status !== 'converted_to_bill' && order.status !== 'cancelled' && (
+                {(order.status === 'draft' || order.status === 'confirmed') && (
                   <Button
                     variant="secondary"
                     onClick={handleCancel}
