@@ -808,16 +808,27 @@ function PosProductsPanelComponent({
       </div>
 
       <div
-        className="pos-products-scroll"
+        className="pos-products-viewport-wrapper"
         style={{
+          position: 'relative',
           flex: '1 1 0%',
           minHeight: 0,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
+        <div
+          className="pos-products-scroll"
+          style={{
+            flex: '1 1 0%',
+            minHeight: 0,
+            overflowY: openGroup ? 'hidden' : 'auto',
+            overflowX: 'hidden',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
         {!canShowScannerResults ? (
           <div className="pos-scanner-ready-panel">
             <div className="pos-scanner-ready-copy">
@@ -1142,6 +1153,7 @@ function PosProductsPanelComponent({
             ) : null}
           </>
         ) : null}
+        </div>
 
         {openGroup ? (
           <InlineGroupPicker

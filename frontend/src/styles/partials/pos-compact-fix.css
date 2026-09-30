@@ -1819,6 +1819,15 @@
 }
 
 
+.pos-products-viewport-wrapper {
+  position: relative;
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .pos-products-scroll {
   position: relative;
   scrollbar-width: none; /* Firefox */
