@@ -5,7 +5,7 @@ import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
 import { AuditService } from '../../core/audit/audit.service';
 import type { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
-import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { isPlatformTenantId, requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { verifyPassword } from '../../core/auth/utils/password-hasher';
 import {
   decryptMfaSecret,
@@ -52,8 +52,7 @@ export class MfaService {
    */
   isRequiredFor(auth: AuthContext): boolean {
     if (String(process.env.MFA_REQUIRED_FOR_PLATFORM || '').trim().toLowerCase() !== 'true') return false;
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
-    const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(String(auth.tenantId || '').trim());
+    const isPlatformTenant = isPlatformTenantId(auth.tenantId);
     return isPlatformTenant && ['super_admin', 'admin'].includes(String(auth.role || ''));
   }
 

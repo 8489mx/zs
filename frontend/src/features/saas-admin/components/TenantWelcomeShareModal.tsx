@@ -18,7 +18,7 @@ export function TenantWelcomeShareModal({
   onClose,
 }: TenantWelcomeShareModalProps) {
   const [copied, setCopied] = useState(false);
-  const originUrl = typeof window !== 'undefined' ? window.location.origin : 'https://app.z-systems.io';
+  const originUrl = typeof window !== 'undefined' ? window.location.origin : 'https://app.zsystemai.com';
   const loginUrl = `${originUrl}/login?tenant=${tenant.slug}`;
 
   const resolvedUsername = (username || tenant.ownerUsername || '').trim() || 'admin';

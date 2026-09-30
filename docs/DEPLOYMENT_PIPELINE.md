@@ -28,7 +28,8 @@ GitHub branch: main
 3. **على السيرفر:**
    - `git reset --hard <sha>` (المصدر مطلوب لأن الهجرات تعمل بـ `ts-node`).
    - `npm ci` للباك إند **فقط** إذا تغيّر `package-lock.json` (بصمة محفوظة في `node_modules/.zs-lock-hash`).
-   - فك الحزمة في `/var/www/zsystems/.deploy-stage` ثم تشغيل الهجرات **قبل** تبديل الكود.
+   - فك الحزمة في `/var/www/zsystems/.deploy-stage`، ثم إنشاء نسخة PostgreSQL ساعية مشفرة **قبل** تشغيل أي هجرة. إذا فشل النسخ يتوقف النشر ولا تتغير القاعدة.
+   - تشغيل الهجرات **قبل** تبديل الكود. إذا فشل فحص الصحة بعد التبديل يعود الكود السابق، وتبقى نسخة ما قبل الهجرة متاحة للاسترجاع المتحكم به.
    - تبديل `backend/dist` و`frontend/dist` بعملية `mv` (النسخة السابقة تبقى في `dist.prev`).
 4. **إعادة التحميل:** `pm2 reload zsystems-backend --update-env`.
 5. **فحص الصحة مع رجوع تلقائي:** فحص `/api/health/live` و`/api/health/ready`؛ إن فشل تُعاد `dist.prev` للمكان ويُعاد تحميل PM2 ويفشل الإجراء.
@@ -40,7 +41,7 @@ GitHub branch: main
 
 - السكربت المرجعي: `deploy/scripts/zsystems-backup.sh`، يُثبَّت على السيرفر في `/var/www/zsystems/backup.sh` ويعمل يومياً 3 فجراً من crontab المستخدم `ubuntu`، وسجله في `/var/backups/zsystems/backup.log`.
 - النسخة المحلية في `/var/backups/zsystems` تُحفظ 14 يوماً.
-- **الملف المجمّع (منذ 22 سبتمبر 2026):** الملف `zsystems_backup_<التاريخ>.zip.enc` فيه `full/zsystems_db.sql.gz` (نسخة السيرفر كله) و`tenants/<slug>__<id>.zsbak` (حزمة جاهزة لكل منشأة) و`manifest.json`. بيتعمل بـ `node dist/tools/zs-backup-tool.js bundle`، ومشفّر بكلمة السر اللي في `/etc/zsystems/backup-passphrase`. لو الملف ده مش موجود، الملف المجمّع بيتعمل من غير تشفير ويتكتب تحذير في السجل. ولو التجميع فشل، بيترفع `pg_dump` العادي بدله.
+- **الملف المجمّع (منذ 22 سبتمبر 2026):** الملف `zsystems_backup_<التاريخ>.zip.enc` فيه `full/zsystems_db.sql.gz` (نسخة السيرفر كله) و`tenants/<slug>__<id>.zsbak` (حزمة جاهزة لكل منشأة) و`manifest.json`. بيتعمل بـ `node dist/tools/zs-backup-tool.js bundle`، ومشفّر بكلمة السر اللي في `/etc/zsystems/backup-passphrase`. يرفض السكربت التشغيل إذا غاب مفتاح التشفير، وإذا فشل التجميع يرفع نسخة dump مشفرة فقط.
 - **الاسترجاع منه مباشرة:** `bash deploy/scripts/zsystems-restore.sh list|full|tenant|tenant-file ...` (التفاصيل في `docs/DISASTER_RECOVERY.md`).
 - النسخة خارج السيرفر تُرفع إلى Oracle Object Storage عبر رابط Pre-Authenticated Request (كتابة فقط) محفوظ في `/etc/zsystems/backup-par-url`. بدون هذا الملف تبقى النسخة على السيرفر فقط.
 - نسخة ثالثة **خارج حساب أوراكل** (تحمي من إغلاق الحساب نفسه): Google Drive عبر `rclone` بـ remote اسمه `gdrive` للمستخدم `ubuntu`، بصلاحية `drive.file` (يرى فقط الملفات التي أنشأها هو). المجلد `zsystems-backups`، والنسخ الأقدم من 90 يوماً تُحذف منه تلقائياً. الإعداد يتم مرة واحدة بـ `rclone config` عبر نفق SSH على المنفذ 53682.

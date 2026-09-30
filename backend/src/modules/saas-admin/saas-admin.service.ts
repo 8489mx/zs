@@ -18,6 +18,7 @@ import { SettingsDemoDataService } from '../settings/services/settings-demo-data
 import { SettingsService } from '../settings/settings.service';
 import { PLAN_MANAGED_MODULES_SETTING_KEY } from '../../common/constants/platform-settings-keys';
 import { normalizeIndustryProfileKey } from '../../core/tenant/industry-profiles';
+import { isPlatformTenantId } from '../../core/auth/utils/tenant-boundary';
 
 type TenantStatus = 'trial' | 'active' | 'expired' | 'suspended';
 
@@ -46,10 +47,9 @@ export class SaasAdminService {
     if (auth.role !== 'super_admin') {
       throw new ForbiddenException('غير مسموح: هذه الشاشة مخصصة لمسؤول المنصة فقط.');
     }
-    const platformTenantId = this.getPlatformTenantId();
     const tenantId = String(auth.tenantId || '').trim();
 
-    const isAllowedTenant = tenantId === 'zs' || tenantId === 'default' || tenantId === 'dev-tenant' || (platformTenantId && tenantId === platformTenantId);
+    const isAllowedTenant = isPlatformTenantId(tenantId);
     if (!tenantId || !isAllowedTenant) {
       throw new ForbiddenException('غير مسموح: هذه الشاشة مخصصة لمسؤول المنصة فقط.');
     }
@@ -60,9 +60,8 @@ export class SaasAdminService {
   }
 
   private assertNotPlatformTenantTarget(targetTenantId: string): void {
-    const platformTenantId = this.getPlatformTenantId();
     const tid = String(targetTenantId || '').trim();
-    if (tid === platformTenantId || tid === 'zs') {
+    if (isPlatformTenantId(tid)) {
       throw new ForbiddenException('لا يمكن تعديل حالة نسخة المنصة من هذه الصفحة.');
     }
   }
@@ -1491,4 +1490,3 @@ export class SaasAdminService {
     return this.demoDataService.wipeTenantData(tenant.id, superAdminPassword, auth);
   }
 }
-

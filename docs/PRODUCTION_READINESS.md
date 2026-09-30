@@ -30,6 +30,8 @@ Required variables:
 - `TENANT_ID`
 - `ACCOUNT_ID`
 - `CORS_ORIGINS`
+- `APP_PUBLIC_URL`
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `MAIL_FROM_EMAIL`
 - `SESSION_COOKIE_NAME`
 - `SESSION_COOKIE_DOMAIN`
 - `SESSION_COOKIE_SECURE`
@@ -65,7 +67,9 @@ Use placeholders in templates, then set real values securely in deployment:
 Enable secure cookies in production:
 - `SESSION_COOKIE_SECURE=true`
 - `SESSION_COOKIE_SAME_SITE=strict`
-- `SESSION_COOKIE_DOMAIN=.<your-domain>`
+- Leave `SESSION_COOKIE_DOMAIN` empty so each storefront host keeps a host-only ERP session cookie.
+
+For public trial and password-reset mail, configure a real SMTP host and sender. SaaS production startup fails closed when `SMTP_HOST` or `MAIL_FROM_EMAIL` is missing. Keep `ERROR_TRACKING_ENABLED=false` until a real `SENTRY_DSN` is supplied; enabling it without a DSN is rejected.
 
 ## SaaS Platform Tenant Setup
 

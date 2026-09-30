@@ -5,7 +5,7 @@ import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
-import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { isPlatformTenantId, requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { formatBranchStockLocationName } from '../../common/utils/branch-stock.util';
 import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
 import { invalidateTenantTimezoneCache, isValidTimezone } from '../../common/utils/tenant-timezone.util';
@@ -483,8 +483,7 @@ export class SettingsService {
     const code = String(payload.code || '').trim();
     if (!name) throw new AppError('Branch name is required', 'BRANCH_NAME_REQUIRED', 400);
 
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
-    const isPlatformTenant = scope.tenantId === 'zs' || scope.tenantId === 'default' || scope.tenantId === 'dev-tenant' || (platformTenantId && scope.tenantId === platformTenantId);
+    const isPlatformTenant = isPlatformTenantId(scope.tenantId);
     const isPlatformAdmin = actor.role === 'super_admin' && isPlatformTenant;
 
     if (!isPlatformAdmin) {

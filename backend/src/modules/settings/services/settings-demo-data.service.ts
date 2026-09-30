@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { Kysely, sql } from '../../../database/kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
@@ -7,6 +8,7 @@ import { AppError } from '../../../common/errors/app-error';
 import { AuditService } from '../../../core/audit/audit.service';
 import { SettingsBackupService } from './settings-backup.service';
 import { createPasswordRecord, verifyPassword } from '../../../core/auth/utils/password-hasher';
+import { isPlatformTenantId } from '../../../core/auth/utils/tenant-boundary';
 import { getDemoDataset, listSupportedDemoActivities, mapIndustryToDemoActivity, DemoActivityDataset } from './demo-datasets';
 
 export interface SeedDemoDataDto {
@@ -15,6 +17,12 @@ export interface SeedDemoDataDto {
   wipeExisting?: boolean;
   seedSales?: boolean;
   seedOnlineOrders?: boolean;
+}
+
+export interface DemoCredential {
+  username: string;
+  temporaryPassword: string;
+  mustChangePassword: true;
 }
 
 @Injectable()
@@ -89,15 +97,11 @@ export class SettingsDemoDataService {
   }
 
   private async takeAutoBackup(actor: AuthContext, reason: string): Promise<void> {
-    try {
-      const scope = this.scope(actor);
-      const now = new Date();
-      const { manifest } = await this.backupService.exportBackup(actor);
-      await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${'auto-' + reason + '-' + now.toISOString()}, ${'demo-data-guard'}, ${JSON.stringify({ manifest })}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db).catch(() => undefined);
-      await this.backupService.saveBackupToConfiguredFolder(actor).catch(() => undefined);
-    } catch {
-      // Backup attempt logged, continue with operation
-    }
+    const scope = this.scope(actor);
+    const now = new Date();
+    const { manifest } = await this.backupService.exportBackup(actor);
+    await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${'auto-' + reason + '-' + now.toISOString()}, ${'demo-data-guard'}, ${JSON.stringify({ manifest })}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db);
+    await this.backupService.saveBackupToConfiguredFolder(actor);
   }
 
   async getDemoDataStatus(actor: AuthContext): Promise<{ isEmpty: boolean; productCount: number; saleCount: number; isSuperAdmin: boolean }> {
@@ -498,8 +502,7 @@ export class SettingsDemoDataService {
       throw new AppError('فقط السوبر أدمن هو المخول بتنفيذ هذه العملية', 'SUPER_ADMIN_REQUIRED', 403);
     }
 
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
-    if (tenantId === 'zs' || tenantId === 'default' || tenantId === 'dev-tenant' || tenantId === platformTenantId) {
+    if (isPlatformTenantId(tenantId)) {
       throw new AppError('لا يمكن تصفير بيانات المنصة المركزية', 'CANNOT_WIPE_PLATFORM_TENANT', 400);
     }
 
@@ -547,7 +550,7 @@ export class SettingsDemoDataService {
     tenantId: string,
     options: { activityType?: string; wipeExisting?: boolean; seedSales?: boolean; seedOnlineOrders?: boolean },
     platformActor: AuthContext,
-  ): Promise<{ ok: boolean; message: string; activity?: string; productsCount?: number; salesCount?: number; onlineOrdersCount?: number }> {
+  ): Promise<{ ok: boolean; message: string; activity?: string; productsCount?: number; salesCount?: number; onlineOrdersCount?: number; demoCredentials?: DemoCredential[] }> {
     if (platformActor.role !== 'super_admin') {
       throw new AppError('فقط السوبر أدمن هو المخول بتنفيذ هذه العملية', 'SUPER_ADMIN_REQUIRED', 403);
     }
@@ -580,7 +583,7 @@ export class SettingsDemoDataService {
     }, targetActor);
   }
 
-  async seedComprehensiveDemoData(dtoOrPassword: string | SeedDemoDataDto, actor: AuthContext): Promise<{ ok: boolean; message: string; activity?: string; productsCount?: number; salesCount?: number; onlineOrdersCount?: number }> {
+  async seedComprehensiveDemoData(dtoOrPassword: string | SeedDemoDataDto, actor: AuthContext): Promise<{ ok: boolean; message: string; activity?: string; productsCount?: number; salesCount?: number; onlineOrdersCount?: number; demoCredentials?: DemoCredential[] }> {
     const dto: SeedDemoDataDto = typeof dtoOrPassword === 'string'
       ? { password: dtoOrPassword, activityType: 'supermarket', wipeExisting: true, seedSales: true, seedOnlineOrders: true }
       : {
@@ -630,6 +633,7 @@ export class SettingsDemoDataService {
     let insertedProductsCount = 0;
     let insertedSalesCount = 0;
     let insertedOnlineOrdersCount = 0;
+    const demoCredentials: DemoCredential[] = [];
 
     await this.db.transaction().execute(async (trx) => {
       // 1. Ensure Default Branch & Stock Locations
@@ -664,8 +668,7 @@ export class SettingsDemoDataService {
       const branchId = branch?.id ? Number(branch.id) : 1;
       const locationId = location?.id ? Number(location.id) : 1;
 
-      // 2. Demo Users: كاشير1, كاشير2, admin (Password: 1)
-      const pass1 = await createPasswordRecord('1');
+      // 2. Demo Users: each new account gets a random one-time password.
       const demoUsers = [
         { username: 'كاشير1', display_name: 'أحمد محمود (كاشير 1)', role: 'cashier' as const, permissions_json: '["pos","sales"]' },
         { username: 'كاشير2', display_name: 'محمد إبراهيم (كاشير 2)', role: 'cashier' as const, permissions_json: '["pos","sales"]' },
@@ -675,20 +678,23 @@ export class SettingsDemoDataService {
       for (const u of demoUsers) {
         const existing = await trx.selectFrom('users').select('id').where('username', '=', u.username).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
         if (!existing) {
+          const temporaryPassword = `${randomBytes(18).toString('base64url')}Aa1!`;
+          const passwordRecord = await createPasswordRecord(temporaryPassword);
           await trx.insertInto('users').values({
             username: u.username,
             display_name: u.display_name,
             role: u.role,
-            password_hash: pass1.hash,
-            password_salt: pass1.salt,
+            password_hash: passwordRecord.hash,
+            password_salt: passwordRecord.salt,
             permissions_json: u.permissions_json,
             is_active: true,
-            must_change_password: false,
+            must_change_password: true,
             failed_login_count: 0,
             default_branch_id: branchId,
             tenant_id: scope.tenantId,
             account_id: scope.accountId,
           }).execute();
+          demoCredentials.push({ username: u.username, temporaryPassword, mustChangePassword: true });
         }
       }
 
@@ -1372,6 +1378,7 @@ export class SettingsDemoDataService {
       productsCount: insertedProductsCount,
       salesCount: insertedSalesCount,
       onlineOrdersCount: insertedOnlineOrdersCount,
+      demoCredentials,
     };
   }
 
@@ -1477,4 +1484,3 @@ export class SettingsDemoDataService {
     };
   }
 }
-

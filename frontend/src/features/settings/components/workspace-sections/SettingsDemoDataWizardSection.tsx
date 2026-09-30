@@ -173,6 +173,7 @@ export function SettingsDemoDataWizardSection() {
             >
               <CompassIcon size={20} color="#170e5e" />
             </div>
+
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <strong style={{ fontSize: '0.96rem', color: '#0f172a' }}>
@@ -196,6 +197,7 @@ export function SettingsDemoDataWizardSection() {
                 اختر نشاطك التجاري واضغط استيراد لملء المخزن فورياً بـ 50 صنفاً وفواتير جاهزة، أو يمكنك إضافة أصناف يدوياً.
               </p>
             </div>
+
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
@@ -1121,6 +1123,19 @@ export function SettingsDemoDataWizardSection() {
                 <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>طلبات متجر</span>
               </div>
             </div>
+
+            {successResult.demoCredentials && successResult.demoCredentials.length > 0 && (
+              <div style={{ width: '100%', textAlign: 'right', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '10px', padding: '12px' }}>
+                <strong style={{ display: 'block', color: '#92400e', marginBottom: '8px' }}>بيانات الدخول المؤقتة</strong>
+                <p style={{ margin: '0 0 8px', color: '#78350f', fontSize: '0.8rem' }}>احفظها الآن؛ سيُطلب تغيير كلمة المرور عند أول دخول.</p>
+                {successResult.demoCredentials.map((credential) => (
+                  <div key={credential.username} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', direction: 'rtl', fontFamily: 'monospace', fontSize: '0.86rem', padding: '4px 0' }}>
+                    <span>{credential.username}</span>
+                    <span>{credential.temporaryPassword}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Quick Navigation Buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>

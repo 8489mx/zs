@@ -7,7 +7,7 @@ import { Database } from '../../database/database.types';
 import { AuditService } from '../../core/audit/audit.service';
 import { UpsertUserDto } from './dto/upsert-user.dto';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
-import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { isPlatformTenantId, requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { createPasswordRecord, verifyPassword } from '../../core/auth/utils/password-hasher';
 import { assertStrongPassword } from '../../core/auth/utils/password-policy';
 import { ensureUsersPayload, filterUsers, mapUserRow, normalizeBranchIds, normalizeUserId, normalizeUserListQuery, summarizeUsers } from './helpers/users.helper';
@@ -146,8 +146,7 @@ export class UsersService {
     planName: string;
     planCode: string | null;
   }> {
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
-    const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(tenantId);
+    const isPlatformTenant = isPlatformTenantId(tenantId);
     const isPlatformAdmin = actor.role === 'super_admin' && isPlatformTenant;
 
     if (isPlatformAdmin) {
@@ -300,8 +299,7 @@ export class UsersService {
     await this.ensureUniquePhone(cleanPhone, actor);
     assertStrongPassword(payload.password);
 
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
-    const isPlatformTenant = scope.tenantId === 'zs' || scope.tenantId === 'default' || scope.tenantId === 'dev-tenant' || (platformTenantId && scope.tenantId === platformTenantId);
+    const isPlatformTenant = isPlatformTenantId(scope.tenantId);
     const isPlatformAdmin = actor.role === 'super_admin' && isPlatformTenant;
 
     if (!isPlatformAdmin) {
@@ -378,8 +376,7 @@ export class UsersService {
     }
 
     const scope = this.scope(actor);
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
-    const isPlatformTenant = scope.tenantId === 'zs' || scope.tenantId === 'default' || scope.tenantId === 'dev-tenant' || (platformTenantId && scope.tenantId === platformTenantId);
+    const isPlatformTenant = isPlatformTenantId(scope.tenantId);
     let effectiveRole = payload.role;
     if (effectiveRole === 'super_admin' && !isPlatformTenant) {
       effectiveRole = 'admin';

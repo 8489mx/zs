@@ -101,12 +101,12 @@ async function bootstrap(): Promise<void> {
   const configService = app.get(ConfigService);
 
   app.use(json({
-    limit: '50mb',
+    limit: '2mb',
     verify: (req: any, _res, buf) => {
       req.rawBody = buf;
     },
   }));
-  app.use(urlencoded({ extended: true, limit: '50mb' }));
+  app.use(urlencoded({ extended: true, limit: '256kb' }));
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const compression = require('compression');

@@ -11,6 +11,7 @@ const envSchema = z.object({
   APP_MODE: z.enum(['LOCAL_PILOT', 'SELF_CONTAINED', 'CLOUD_SAAS']).default('CLOUD_SAAS'),
   APP_PORT: z.coerce.number().int().positive().default(3001),
   APP_HOST: z.string().min(1).default('0.0.0.0'),
+  APP_PUBLIC_URL: z.string().trim().default(''),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   CORS_ORIGINS: z.string().default('http://localhost:5173,http://127.0.0.1:5173'),
   DATABASE_HOST: z.string().min(1),
@@ -45,11 +46,21 @@ const envSchema = z.object({
   AUTH_BURST_RATE_LIMIT_MAX: z.coerce.number().int().min(10).max(5000).default(60),
   AUTH_BURST_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().min(10).max(3600).default(60),
   BUSINESS_TIMEZONE: z.string().default('UTC'),
+  SMTP_HOST: z.string().trim().default(''),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+  SMTP_SECURE: booleanString,
+  SMTP_USER: z.string().default(''),
+  SMTP_PASSWORD: z.string().default(''),
+  MAIL_FROM_EMAIL: z.string().trim().default(''),
+  MAIL_FROM_NAME: z.string().trim().default('Z Systems'),
   TENANT_ID: z.string().trim().default('default'),
   ACCOUNT_ID: z.string().trim().default('default'),
   PORTABLE_MODE: booleanString.optional(),
   SAAS_DEFAULT_GRACE_DAYS: z.coerce.number().int().min(0).max(365).default(7),
   SENTRY_DSN: z.string().default(''),
+  SENTRY_ENVIRONMENT: z.string().trim().default('production'),
+  SENTRY_RELEASE: z.string().trim().default(''),
+  SENTRY_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
   ERROR_TRACKING_ENABLED: booleanString,
   SUPPORT_BUNDLE_LOG_TAIL_LINES: z.coerce.number().int().min(100).max(10000).default(2000),
   TELEGRAM_BOT_TOKEN: z.string().default(''),
@@ -99,6 +110,7 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
       APP_MODE: appMode,
       APP_PORT: (config.PORT ?? config.APP_PORT) ? Number(config.PORT ?? config.APP_PORT) : 3001,
       APP_HOST: config.HOST ?? config.APP_HOST ?? '0.0.0.0',
+      APP_PUBLIC_URL: config.APP_PUBLIC_URL ?? '',
       DATABASE_HOST: dbHost,
       DATABASE_PORT: (config.DATABASE_PORT ?? config.DB_PORT ?? config.PGPORT) ? Number(config.DATABASE_PORT ?? config.DB_PORT ?? config.PGPORT) : (isPortable ? 5432 : 5432),
       DATABASE_NAME: config.DATABASE_NAME ?? config.DB_NAME ?? (isPortable ? 'pglite' : undefined),
@@ -127,10 +139,20 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
       ?? `${String(config.DATABASE_PASSWORD ?? config.DB_PASSWORD ?? 'local-dev-csrf-secret')}:csrf:v1`,
     ALLOW_SESSION_ID_HEADER: config.ALLOW_SESSION_ID_HEADER ?? 'false',
     BUSINESS_TIMEZONE: config.BUSINESS_TIMEZONE ?? 'UTC',
+    SMTP_HOST: config.SMTP_HOST ?? '',
+    SMTP_PORT: config.SMTP_PORT ?? 587,
+    SMTP_SECURE: config.SMTP_SECURE ?? 'false',
+    SMTP_USER: config.SMTP_USER ?? '',
+    SMTP_PASSWORD: config.SMTP_PASSWORD ?? '',
+    MAIL_FROM_EMAIL: config.MAIL_FROM_EMAIL ?? '',
+    MAIL_FROM_NAME: config.MAIL_FROM_NAME ?? 'Z Systems',
     TENANT_ID: config.TENANT_ID ?? 'default',
     ACCOUNT_ID: config.ACCOUNT_ID ?? 'default',
     SAAS_DEFAULT_GRACE_DAYS: config.SAAS_DEFAULT_GRACE_DAYS ?? 7,
     SENTRY_DSN: config.SENTRY_DSN ?? '',
+    SENTRY_ENVIRONMENT: config.SENTRY_ENVIRONMENT ?? 'production',
+    SENTRY_RELEASE: config.SENTRY_RELEASE ?? '',
+    SENTRY_SAMPLE_RATE: config.SENTRY_SAMPLE_RATE ?? 0.1,
     ERROR_TRACKING_ENABLED: config.ERROR_TRACKING_ENABLED ?? 'false',
     SUPPORT_BUNDLE_LOG_TAIL_LINES: config.SUPPORT_BUNDLE_LOG_TAIL_LINES ?? 2000,
     TELEGRAM_BOT_TOKEN: config.TELEGRAM_BOT_TOKEN ?? '',
@@ -171,6 +193,14 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
 
     if (isPlaceholderAccount(parsed.ACCOUNT_ID)) {
       throw new Error('ACCOUNT_ID must be explicitly configured for CLOUD_SAAS production mode');
+    }
+
+    if (!parsed.SMTP_HOST || !parsed.MAIL_FROM_EMAIL) {
+      throw new Error('SMTP_HOST and MAIL_FROM_EMAIL must be configured for CLOUD_SAAS production mode');
+    }
+
+    if (parsed.ERROR_TRACKING_ENABLED && !parsed.SENTRY_DSN) {
+      throw new Error('SENTRY_DSN must be configured when ERROR_TRACKING_ENABLED=true');
     }
   }
 

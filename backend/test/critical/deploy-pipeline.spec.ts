@@ -48,10 +48,11 @@ function testNoLiveDistDeletion(): void {
 function testMigrationOrderAndRollback(): void {
   const remote = remoteScript();
   const migrateAt = remote.indexOf('npm run migration:run');
+  const backupAt = remote.indexOf('zsystems-backup.sh" hourly');
   const swapAt = remote.indexOf('swap_in "$TARGET_DIR/backend/dist"');
   const reloadAt = remote.indexOf('pm2 reload zsystems-backend');
-  assert.ok(migrateAt > -1 && swapAt > -1 && reloadAt > -1, 'migrate, swap and reload must all be present');
-  assert.ok(migrateAt < swapAt && swapAt < reloadAt, 'order must be: migrate -> swap -> reload');
+  assert.ok(backupAt > -1 && migrateAt > -1 && swapAt > -1 && reloadAt > -1, 'backup, migrate, swap and reload must all be present');
+  assert.ok(backupAt < migrateAt && migrateAt < swapAt && swapAt < reloadAt, 'order must be: encrypted backup -> migrate -> swap -> reload');
   assert.ok(/if ! check_health; then[\s\S]*?swap_back "\$TARGET_DIR\/backend\/dist"[\s\S]*?exit 1/.test(remote),
     'an unhealthy deploy must swap the previous build back and fail the job');
   assert.ok(/set -euo pipefail/.test(remote), 'the server step must stop on the first error');

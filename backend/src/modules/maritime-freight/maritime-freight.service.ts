@@ -991,7 +991,7 @@ export class MaritimeFreightService {
         }
       }
 
-      const magicLinkUrl = `${process.env.APP_PUBLIC_URL || 'https://app.z-systems.io'}/portal/carrier-quote/${rfq.id}?carrier=${encodeURIComponent(carrier.code)}&token=${encodeURIComponent(rfq.public_quote_token || '')}`;
+      const magicLinkUrl = `${process.env.APP_PUBLIC_URL || 'https://app.zsystemai.com'}/portal/carrier-quote/${rfq.id}?carrier=${encodeURIComponent(carrier.code)}&token=${encodeURIComponent(rfq.public_quote_token || '')}`;
 
       const introHtml = customMailConfig?.emailIntroTemplate?.trim()
         ? `<p>${replacePlaceholders(customMailConfig.emailIntroTemplate, carrier.name_en || carrier.name_ar || 'Carrier').replace(/\n/g, '<br>')}</p>`
@@ -2053,7 +2053,7 @@ export class MaritimeFreightService {
   async getMilestoneWhatsAppMessage(auth: AuthContext, jobId: string, milestoneKey: DcsaMilestoneKey) {
     const job = await this.getJobById(auth, jobId);
     const trackingUrl = job.tracking_token
-      ? `${process.env.APP_PUBLIC_URL || 'https://app.z-systems.io'}/public/track/${job.tracking_token}`
+      ? `${process.env.APP_PUBLIC_URL || 'https://app.zsystemai.com'}/public/track/${job.tracking_token}`
       : '';
 
     const milestoneDef = DCSA_STANDARD_MILESTONES.find((m) => m.key === milestoneKey);

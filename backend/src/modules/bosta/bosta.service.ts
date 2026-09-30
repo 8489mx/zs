@@ -261,15 +261,13 @@ export class BostaService {
       }
     }
 
-    // استجابة محاكاة متناسقة للـ Sandbox
+    // حالة المحاكاة يجب ألا تدّعي أن شحنة حقيقية خرجت للتسليم.
     return {
       ok: true,
       trackingNumber,
-      currentStatus: 'OUT_FOR_DELIVERY',
+      currentStatus: 'SANDBOX_CREATED',
       history: [
-        { state: 'PICKUP_REQUESTED', timestamp: new Date(Date.now() - 86400000).toISOString() },
-        { state: 'RECEIVED_AT_WAREHOUSE', timestamp: new Date(Date.now() - 43200000).toISOString() },
-        { state: 'OUT_FOR_DELIVERY', timestamp: new Date().toISOString(), reason: 'خرجت الشحنة مع مندوب بوسطة للتسليم' },
+        { state: 'SANDBOX_CREATED', timestamp: new Date().toISOString(), reason: 'هذه شحنة محاكاة ولم تُرسل إلى بوسطة.' },
       ],
     };
   }
@@ -308,5 +306,24 @@ export class BostaService {
       ok: true,
       message: 'تم إلغاء شحنة بوسطة بنجاح وإعادة الطلب لحالة مؤكد.',
     };
+  }
+
+  async getAwbUrl(deliveryId: string, actor: AuthContext): Promise<{ url: string; isSandbox: boolean; trackingNumber: string }> {
+    const { tenantId } = requireTenantScope(actor);
+    const order = await this.db
+      .selectFrom('online_orders')
+      .select(['bosta_awb_url', 'bosta_delivery_id', 'bosta_tracking_number'])
+      .where('tenant_id', '=', tenantId)
+      .where('bosta_delivery_id', '=', deliveryId)
+      .executeTakeFirst();
+    if (!order || !order.bosta_awb_url) {
+      throw new NotFoundException('بوليصة الشحن غير موجودة لهذا المتجر.');
+    }
+    const url = String(order.bosta_awb_url).trim();
+    const isSandbox = url.startsWith('https://stg-app.bosta.co/');
+    if (!isSandbox && !url.startsWith('https://app.bosta.co/')) {
+      throw new BadRequestException('رابط بوليصة الشحن غير موثوق.');
+    }
+    return { url, isSandbox, trackingNumber: String(order.bosta_tracking_number || deliveryId) };
   }
 }

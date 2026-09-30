@@ -12,6 +12,7 @@ import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { assertStrongPassword } from '../../core/auth/utils/password-policy';
 import { SUPER_ADMIN_PERMISSIONS } from '../../core/auth/constants/super-admin-permissions';
 import { formatBranchStockLocationName } from '../../common/utils/branch-stock.util';
+import { isPlatformTenantId } from '../../core/auth/utils/tenant-boundary';
 
 interface LicensePayload {
   machineId: string;
@@ -341,8 +342,7 @@ export class ActivationService {
 
         const usersScoped = await this.columnExists('users', 'tenant_id', trx);
         const usersHaveAccountId = usersScoped && await this.columnExists('users', 'account_id', trx);
-        const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
-        const isPlatform = ['zs', 'default', 'dev-tenant', platformTenantId].includes(String(scope.tenantId || '').trim());
+        const isPlatform = isPlatformTenantId(scope.tenantId);
         const userValues: Record<string, unknown> = {
           username: dto.adminUsername.trim(),
           password_hash: passwordRecord.hash,

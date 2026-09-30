@@ -129,10 +129,14 @@ jobs:
           test -f "$STAGE_DIR/backend/dist/main.js"
           test -f "$STAGE_DIR/frontend/dist/index.html"
 
-          echo "=== 4. Database migrations (before the new code goes live) ==="
+          echo "=== 4. Encrypted pre-migration backup ==="
+          test -s /etc/zsystems/backup-passphrase
+          bash "$TARGET_DIR/deploy/scripts/zsystems-backup.sh" hourly
+
+          echo "=== 5. Database migrations (before the new code goes live) ==="
           npm run migration:run
 
-          echo "=== 5. Swap in the new build ==="
+          echo "=== 6. Swap in the new build ==="
           swap_in() {
             local live="$1" fresh="$2"
             rm -rf "$live.prev"

@@ -86,6 +86,9 @@ jobs:
       - name: ZATCA and encrypted backup safety
         run: npm run test:zatca-safety
         working-directory: backend
+      - name: P1 tenant and demo-data safety
+        run: npm run test:p1-safety
+        working-directory: backend
       - name: Start backend for E2E
         run: |
           npm run migration:run

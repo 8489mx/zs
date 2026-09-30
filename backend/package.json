@@ -29,6 +29,7 @@
     "test:e2e:approvals": "ts-node test/e2e/approval-workflow.e2e.ts",
     "test:e2e:saas-lifecycle": "ts-node test/e2e/public-trial-signup.e2e.ts && ts-node test/e2e/saas-lifecycle.e2e.ts",
     "test:zatca-safety": "ts-node test/critical/zatca-onboarding-safety.spec.ts && ts-node test/critical/deploy-pipeline.spec.ts",
+    "test:p1-safety": "ts-node test/critical/platform-tenant-identity.spec.ts && ts-node test/critical/demo-data-safety.spec.ts && ts-node test/critical/deploy-pipeline.spec.ts",
     "check:readiness": "node scripts/verify-readiness.cjs && npm run check:architecture",
     "check:permissions": "node scripts/check-permissions-audit.cjs",
     "check:env-safety": "node scripts/check-env-safety.cjs",

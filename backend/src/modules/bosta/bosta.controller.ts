@@ -54,16 +54,22 @@ export class BostaController {
   @Get('awb/:deliveryId')
   async printAwb(
     @Param('deliveryId') deliveryId: string,
+    @Req() req: RequestWithAuth,
     @Res() res: Response,
   ) {
-    // قالب صفحة بوليصة الشحن التفاعلية القابلة للطباعة فورياً
-    const trackingNo = deliveryId.replace('bst_mock_', '24') || '2498214';
+    const awb = await this.bostaService.getAwbUrl(deliveryId, req.authContext!);
+    if (!awb.isSandbox) {
+      return res.redirect(302, awb.url);
+    }
+    // قالب محاكاة قابل للطباعة؛ البوليصة الرسمية تُفتح من رابط Bosta في الإنتاج.
+    const trackingNo = awb.trackingNumber;
     const html = `
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
   <meta charset="utf-8">
   <title>بوليصة شحن بوسطة - ${trackingNo}</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'">
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; background: #f8fafc; color: #0f172a; }
     .label-card { max-width: 420px; margin: auto; background: #fff; border: 2px solid #000; border-radius: 8px; padding: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -75,23 +81,23 @@ export class BostaController {
     .info-label { color: #64748b; font-weight: 600; }
     .info-value { font-weight: bold; color: #0f172a; }
     .cod-badge { font-size: 18px; font-weight: 800; color: #b91c1c; text-align: center; background: #fee2e2; padding: 8px; border-radius: 6px; margin-top: 10px; border: 1px solid #f87171; }
-    .print-btn { display: block; width: 100%; margin-top: 16px; padding: 10px; background: #170e5e; color: #fff; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .print-help { margin-top: 16px; padding: 10px; background: #fffbeb; color: #92400e; border: 1px solid #fcd34d; border-radius: 6px; font-size: 14px; font-weight: 700; text-align: center; }
     @media print {
       body { background: #fff; padding: 0; }
       .label-card { border: 2px solid #000; box-shadow: none; max-width: 100%; width: 100%; }
-      .print-btn { display: none; }
+      .print-help { display: none; }
     }
   </style>
 </head>
 <body>
   <div class="label-card">
     <div class="header">
-      <div class="bosta-logo">bosta 📦</div>
-      <div style="font-weight: 700; font-size: 14px;">شحنة إكسبريس موثقة</div>
+      <div class="bosta-logo">Bosta</div>
+      <div style="font-weight: 700; font-size: 14px;">بوليصة محاكاة</div>
     </div>
     <div class="tracking-box">
       <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">رقم التتبع (Airway Bill)</div>
-      <div class="barcode-fake">|||| | ||||| ||| ||||</div>
+      <div class="barcode-fake">محاكاة — لا تمثل باركوداً رسمياً</div>
       <div style="font-size: 16px; font-weight: 800; color: #0f172a;">#${trackingNo}</div>
     </div>
     <div class="info-row">
@@ -109,7 +115,7 @@ export class BostaController {
     <div class="cod-badge">
       مبلغ التحصيل (COD): مبيعات معتمدة
     </div>
-    <button class="print-btn" onclick="window.print()">🖨️ طباعة ملصق الشحن (Print AWB)</button>
+    <p class="print-help">للطباعة استخدم Ctrl+P من المتصفح. هذه البوليصة تجريبية.</p>
   </div>
 </body>
 </html>

@@ -86,6 +86,8 @@ function runEnvGuards(): void {
     DATABASE_SSL: 'true',
     DATABASE_SSL_REJECT_UNAUTHORIZED: 'true',
     CORS_ORIGINS: 'https://app.example.com',
+    SMTP_HOST: 'smtp.example.com',
+    MAIL_FROM_EMAIL: 'no-reply@example.com',
   };
 
   assert.throws(() => validateEnv(base), /SESSION_CSRF_SECRET must be explicitly configured in production/);

@@ -13,7 +13,7 @@ import { signPortalToken, verifyPortalToken, type PortalTokenErrorSpec } from '.
 import { verifyTotpCode } from '../utils/totp';
 import { decryptMfaSecret, hashRecoveryCode } from '../utils/mfa-secret-cipher';
 import { resolveTenantContext } from '../utils/tenant-context';
-import { requireTenantScope } from '../utils/tenant-boundary';
+import { isPlatformTenantId, requireTenantScope } from '../utils/tenant-boundary';
 import { SUPER_ADMIN_PERMISSIONS } from '../constants/super-admin-permissions';
 import { generatePhoneSearchVariants } from '../../utils/phone-utils';
 import { AuthCacheService } from './auth-cache.service';
@@ -92,8 +92,7 @@ export class SessionService {
     const normalizedTenantId = toNonEmpty(tenantId);
     if (!normalizedTenantId) return;
 
-    const platformTenantId = (this.configService?.get<string>('PLATFORM_TENANT_ID') || 'zs').trim();
-    const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(normalizedTenantId);
+    const isPlatformTenant = isPlatformTenantId(normalizedTenantId);
     if (isPlatformTenant) {
       this.authCache.setTenantAllowed(normalizedTenantId, true);
       return;
@@ -290,8 +289,7 @@ export class SessionService {
     if (row.locked_until && row.locked_until > new Date()) return null;
     const tenantContext = this.resolveUserTenantContext(row);
     try { await this.assertTenantLoginAllowed(tenantContext.tenantId); } catch { return null; }
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
-    const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(String(tenantContext.tenantId || '').trim());
+    const isPlatformTenant = isPlatformTenantId(tenantContext.tenantId);
     const effectiveRole = (row.role === 'super_admin' && !isPlatformTenant) ? 'admin' : row.role;
     const permissions = effectiveRole === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(row.permissions_json)])) : safeJsonArray(row.permissions_json);
     const profile = getIndustryProfile(row.activity_type);
@@ -619,8 +617,7 @@ export class SessionService {
       this.db.updateTable('users').set(userSecurityUpdates).where('id', '=', user.id).execute(),
     ]);
 
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
-    const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(String(tenantContext.tenantId || '').trim());
+    const isPlatformTenant = isPlatformTenantId(tenantContext.tenantId);
     const effectiveRole = (user.role === 'super_admin' && !isPlatformTenant) ? 'admin' : user.role;
     const userPermissions = effectiveRole === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(user.permissions_json)])) : safeJsonArray(user.permissions_json);
     return { sessionId, expiresAt, auth: { userId: user.id, sessionId, username: user.username, role: effectiveRole, permissions: userPermissions, ...tenantContext } };
@@ -772,8 +769,7 @@ export class SessionService {
     const defaultBranchId = user.default_branch_id ? String(user.default_branch_id) : '';
     if (defaultBranchId && !branchIds.includes(defaultBranchId)) branchIds.push(defaultBranchId);
     const userTenantContext = this.resolveUserTenantContext(user);
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
-    const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(String(userTenantContext.tenantId || '').trim());
+    const isPlatformTenant = isPlatformTenantId(userTenantContext.tenantId);
     const effectiveRole = (user.role === 'super_admin' && !isPlatformTenant) ? 'admin' : String(user.role || auth.role);
     const effectivePermissions = effectiveRole === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(user.permissions_json)])) : (safeJsonArray(user.permissions_json) || auth.permissions);
     return { id: Number(user.id), username: String(user.username || auth.username), role: effectiveRole, permissions: effectivePermissions, displayName: String(user.display_name || user.username || auth.username), branchIds, defaultBranchId, ...userTenantContext, mustChangePassword: Boolean(user.must_change_password), passwordHash: String(user.password_hash || ''), passwordSalt: String(user.password_salt || '') };
@@ -811,9 +807,14 @@ export class SessionService {
     const settingsRows = await this.db.selectFrom('settings').select(['key', 'value']).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
     const settingsMap = new Map(settingsRows.map((row) => [String(row.key || ''), String(row.value || '')]));
     const defaultUsername = (this.configService.get<string>('DEFAULT_ADMIN_USERNAME') || 'admin').trim();
-    const defaultPassword = this.configService.get<string>('DEFAULT_ADMIN_PASSWORD') || 'ChangeMe123!';
-    const defaultPasswordCheck = await verifyPassword(defaultPassword, profile.passwordHash, profile.passwordSalt);
-    const usingDefaultAdminPassword = ['super_admin', 'admin'].includes(profile.role) && profile.username.toLowerCase() === defaultUsername.toLowerCase() && defaultPasswordCheck.valid;
+    const defaultPassword = this.configService.get<string>('DEFAULT_ADMIN_PASSWORD') || '';
+    const defaultPasswordCheck = defaultPassword
+      ? await verifyPassword(defaultPassword, profile.passwordHash, profile.passwordSalt)
+      : { valid: false };
+    const usingDefaultAdminPassword = Boolean(defaultPassword)
+      && ['super_admin', 'admin'].includes(profile.role)
+      && profile.username.toLowerCase() === defaultUsername.toLowerCase()
+      && defaultPasswordCheck.valid;
     
     const taxSettings = await this.db.selectFrom('tenant_tax_settings').select(['is_active']).where('tenant_id', '=', tenantId).where('provider', '=', 'ETA_EGYPT').executeTakeFirst();
     const isEtaActive = taxSettings ? Boolean(taxSettings.is_active) : false;

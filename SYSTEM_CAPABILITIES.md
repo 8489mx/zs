@@ -5801,3 +5801,10 @@
      - استراتيجية التقسيم النطاقي السنوي (Declarative Range Partitioning by Year) لجداول `sales` و `sale_items` و `journal_entry_lines`.
      - سويت الإعدادات المتقدمة وضبط الذاكرة والـ Autovacuum وتخزين الـ NVMe: `deploy/scripts/postgresql-enterprise-scale-tuning.sql`.
 * **التحقق التقني الشامل:** اجتياز الفحص البرمجي الكامل `tsc --noEmit` بنجاح تام بدون أي أخطاء (Exit Code 0).
+## Operational hardening added 30 September 2026
+
+- Trial/demo users are issued one-time random credentials and forced to rotate them at first login.
+- Platform authorization is isolated from legacy local tenant aliases in cloud mode.
+- Demo data deletion fails closed if its automatic backup cannot be written.
+- Production startup validation requires SMTP host and sender configuration for SaaS mail flows.
+- Deployment creates an encrypted pre-migration backup, and shipping tracking/labels distinguish sandbox simulation from a real carrier shipment.

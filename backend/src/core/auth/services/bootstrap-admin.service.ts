@@ -21,12 +21,16 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
   private async sanitizeSuperAdminRoles(): Promise<void> {
     try {
       const platformTenantId = String(this.configService.get<string>('PLATFORM_TENANT_ID') || 'zs').trim();
-      const result = await sql`
-        UPDATE users 
-        SET role = 'admin'
-        WHERE role = 'super_admin'
-          AND tenant_id NOT IN ('zs', 'default', 'dev-tenant', ${platformTenantId});
-      `.execute(this.db);
+      const appMode = String(this.configService.get<string>('APP_MODE') || 'CLOUD_SAAS').trim().toUpperCase();
+      const result = appMode === 'CLOUD_SAAS'
+        ? await sql`
+            UPDATE users SET role = 'admin'
+            WHERE role = 'super_admin' AND tenant_id NOT IN (${platformTenantId});
+          `.execute(this.db)
+        : await sql`
+            UPDATE users SET role = 'admin'
+            WHERE role = 'super_admin' AND tenant_id NOT IN ('zs', 'default', 'dev-tenant', ${platformTenantId});
+          `.execute(this.db);
 
       const numUpdated = Number((result as any)?.numUpdatedRows || 0);
       if (numUpdated > 0) {

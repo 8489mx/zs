@@ -553,7 +553,7 @@ function DemoDataSandboxCard() {
             <strong style={{ color: '#0f172a' }}>الفواتير والتقارير:</strong> مبيعات ومشتريات موزعة على 6 أشهر كاملة.
           </div>
           <div>
-            <strong style={{ color: '#0f172a' }}>حسابات سريعة:</strong> كاشير1 (1)، كاشير2 (1)، admin (1).
+            <strong style={{ color: '#0f172a' }}>حسابات تجريبية:</strong> تُنشأ كلمات مرور مؤقتة عشوائية وتُفرض على المستخدمين عند أول دخول.
           </div>
         </div>
 

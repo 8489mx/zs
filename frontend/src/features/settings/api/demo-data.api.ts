@@ -37,6 +37,11 @@ export interface SeedDemoDataResult {
   productsCount?: number;
   salesCount?: number;
   onlineOrdersCount?: number;
+  demoCredentials?: Array<{
+    username: string;
+    temporaryPassword: string;
+    mustChangePassword: boolean;
+  }>;
 }
 
 export interface ClearDemoDataResult {
