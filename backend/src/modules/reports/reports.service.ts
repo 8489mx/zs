@@ -8,7 +8,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { ReportRangeQueryDto } from './dto/report-query.dto';
 import { buildPagination, filterScope, getBusinessTimezone, parseRange, setBusinessTimezoneResolver } from './helpers/reports-range.helper';
-import { buildReportSummaryPayload } from './helpers/reports-summary.helper';
+import { buildCustomerRfmPayload, buildReportSummaryPayload } from './helpers/reports-summary.helper';
 import { buildDashboardComputedState, buildDashboardOverviewPayload, buildDashboardScope, buildInventorySnapshot, buildPartnerExposureSnapshot } from './helpers/reports-dashboard.helper';
 import { buildCustomerBalancesPayload, buildCustomerLedgerPayload, buildSupplierBalancesPayload, buildSupplierLedgerPayload, LedgerSummaryRow, PartnerLedgerEntryRow } from './helpers/reports-ledger.helper';
 import { buildCustomerLedgerTotals, buildSupplierLedgerTotals } from './helpers/reports-partner-ledger.helper';
@@ -719,79 +719,9 @@ export class ReportsService {
     }
 
     const rows = await baseQuery.execute();
-    const now = Date.now();
-
-    const mapped = (rows as any[]).map((r) => {
-      const frequency = Number(r.frequency || 0);
-      const monetary = Number(Number(r.monetary || 0).toFixed(2));
-      const lastDate = r.lastSaleDate ? new Date(r.lastSaleDate).getTime() : 0;
-      const recencyDays = lastDate ? Math.max(0, Math.floor((now - lastDate) / (1000 * 60 * 60 * 24))) : 999;
-      const aov = frequency > 0 ? Number((monetary / frequency).toFixed(2)) : 0;
-
-      let segment: 'champions' | 'loyal' | 'promising' | 'at_risk' | 'lost' = 'promising';
-      if (recencyDays <= 30 && frequency >= 4) {
-        segment = 'champions';
-      } else if (recencyDays <= 60 && frequency >= 3) {
-        segment = 'loyal';
-      } else if (recencyDays <= 30) {
-        segment = 'promising';
-      } else if (recencyDays > 120) {
-        segment = 'lost';
-      } else if (recencyDays > 60 && frequency >= 2) {
-        segment = 'at_risk';
-      } else {
-        segment = 'at_risk';
-      }
-
-      return {
-        id: String(r.customerId),
-        name: r.customerName,
-        phone: r.customerPhone || '',
-        balance: Number(r.currentBalance || 0),
-        loyaltyPoints: Number(r.loyaltyPoints || 0),
-        frequency,
-        monetary,
-        recencyDays,
-        lastSaleDate: r.lastSaleDate,
-        aov,
-        segment,
-      };
-    });
-
-    const totalCustomers = mapped.length;
-    const championsCount = mapped.filter((c) => c.segment === 'champions').length;
-    const loyalCount = mapped.filter((c) => c.segment === 'loyal').length;
-    const promisingCount = mapped.filter((c) => c.segment === 'promising').length;
-    const atRiskCount = mapped.filter((c) => c.segment === 'at_risk').length;
-    const lostCount = mapped.filter((c) => c.segment === 'lost').length;
-    const totalRevenue = Number(mapped.reduce((sum, c) => sum + c.monetary, 0).toFixed(2));
-    const totalOrders = mapped.reduce((sum, c) => sum + c.frequency, 0);
-    const averageAov = totalOrders > 0 ? Number((totalRevenue / totalOrders).toFixed(2)) : 0;
-    const repeatCount = mapped.filter((c) => c.frequency > 1).length;
-    const repeatRate = totalCustomers > 0 ? Number(((repeatCount / totalCustomers) * 100).toFixed(1)) : 0;
-
-    const targetSegment = (query as any).segment;
-    const items = targetSegment && targetSegment !== 'all'
-      ? mapped.filter((c) => c.segment === targetSegment)
-      : mapped;
-
-    items.sort((a, b) => b.monetary - a.monetary);
-
-    return this.withScope({
-      summary: {
-        totalCustomers,
-        championsCount,
-        loyalCount,
-        promisingCount,
-        atRiskCount,
-        lostCount,
-        totalRevenue,
-        averageAov,
-        repeatRate,
-      },
-      items,
-    }, auth);
+    return this.withScope(buildCustomerRfmPayload(rows as any, (query as any).segment), auth);
   }
+
 
   private async partnerBalances(type: 'customer' | 'supplier', query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const isCust = type === 'customer';

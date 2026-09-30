@@ -10,9 +10,10 @@ import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/c
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
 import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useCustomersQuery } from '@/shared/hooks/use-catalog-queries';
-import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
-import { QuickStockAdjustmentDialog } from '@/features/inventory/components/QuickStockAdjustmentDialog';
+import { QuickStockAdjustmentDialog, useInventoryActionCatalog } from '@/features/inventory';
 import type { Product, ProductCustomerPrice, ProductUnit } from '@/types/domain';
+
+
 import { ProductCustomerPricesCard } from '@/features/products/components/workspace-sections/ProductCustomerPricesCard';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from '@/features/products/components/workspace-sections/product-workspace.utils';
 import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
