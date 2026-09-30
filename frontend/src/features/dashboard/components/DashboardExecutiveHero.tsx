@@ -43,7 +43,7 @@ export function DashboardExecutiveHero({
   treasuryNet,
   totalStockAlerts,
 }: DashboardExecutiveHeroProps) {
-  const [activeMetric, setActiveMetric] = useState<'sales' | 'both'>('sales');
+  const [activeMetric, setActiveMetric] = useState<'sales' | 'both'>('both');
   const [timeframe, setTimeframe] = useState<'7d' | '30d'>('7d');
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>(getInitialTheme);
   const [activeKpi, setActiveKpi] = useState<'sales' | 'invoices' | 'treasury' | 'alerts' | null>(null);

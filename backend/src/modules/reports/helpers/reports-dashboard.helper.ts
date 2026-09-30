@@ -33,6 +33,8 @@ type TodayTopRow = {
 type TimedMoneyRow = {
   created_at: Date | string;
   total?: number | string | null;
+  // Present when rows are pre-aggregated by day in SQL (PERF optimization)
+  invoice_count?: number | string | null;
 };
 
 export type DashboardScope = {
@@ -148,14 +150,18 @@ export function buildPartnerExposureSnapshot(args: {
 }
 
 export function buildTodayOperationsSnapshot(
-  todaySalesRows: Array<{ total?: number | string | null }>,
-  todayPurchasesRows: Array<{ total?: number | string | null }>,
+  todaySalesRows: Array<{ total?: number | string | null; invoice_count?: number | string | null }>,
+  todayPurchasesRows: Array<{ total?: number | string | null; invoice_count?: number | string | null }>,
   topTodayRows: TodayTopRow[],
 ) {
+  // When pre-aggregated by day, invoice_count holds the real invoice count.
+  // Fallback to 1 per row for backwards compat with raw row format.
+  const todaySalesCount = todaySalesRows.reduce((sum, r) => sum + Number(r.invoice_count ?? 1), 0);
+  const todayPurchasesCount = todayPurchasesRows.reduce((sum, r) => sum + Number(r.invoice_count ?? 1), 0);
   return {
-    todaySalesCount: todaySalesRows.length,
+    todaySalesCount,
     todaySalesAmount: sumMoney(todaySalesRows, (row) => row.total),
-    todayPurchasesCount: todayPurchasesRows.length,
+    todayPurchasesCount,
     todayPurchasesAmount: sumMoney(todayPurchasesRows, (row) => row.total),
     topToday: topTodayRows
       .map((row) => ({

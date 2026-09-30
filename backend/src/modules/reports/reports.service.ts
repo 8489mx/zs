@@ -281,21 +281,40 @@ export class ReportsService {
         .orderBy('l.bal', 'desc')
         .limit(5)
         .execute(),
+      // PERF: aggregate by day in SQL → 30 rows max instead of N raw invoice rows.
+      // Branch/location scope applied in WHERE so filterScope is not needed afterwards.
+      // invoice_count carries per-day count so today's invoice count stays accurate.
+      // GROUP BY 1 = group by the first SELECT column (day string) — avoids Kysely
+      // double-parameterizing businessTimezone in both SELECT and GROUP BY expressions.
       this.db
         .selectFrom('sales')
-        .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
+        .select([
+          sql<string>`to_char(created_at AT TIME ZONE ${businessTimezone}, 'YYYY-MM-DD')`.as('created_at'),
+          sql<number>`coalesce(sum(total), 0)`.as('total'),
+          sql<number>`count(*)`.as('invoice_count'),
+        ])
         .where('status', '=', 'posted')
         .where('created_at', '>=', trendStart)
         .where('created_at', '<=', todayEnd)
         .where(this.tenantPredicate(auth))
+        .$if(query.branchId != null, (qb) => qb.where('branch_id', '=', Number(query.branchId)))
+        .$if(query.locationId != null, (qb) => qb.where('location_id', '=', Number(query.locationId)))
+        .groupBy(sql`1`)
         .execute(),
       this.db
         .selectFrom('purchases')
-        .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
+        .select([
+          sql<string>`to_char(created_at AT TIME ZONE ${businessTimezone}, 'YYYY-MM-DD')`.as('created_at'),
+          sql<number>`coalesce(sum(total), 0)`.as('total'),
+          sql<number>`count(*)`.as('invoice_count'),
+        ])
         .where('status', '=', 'posted')
         .where('created_at', '>=', trendStart)
         .where('created_at', '<=', todayEnd)
         .where(this.tenantPredicate(auth))
+        .$if(query.branchId != null, (qb) => qb.where('branch_id', '=', Number(query.branchId)))
+        .$if(query.locationId != null, (qb) => qb.where('location_id', '=', Number(query.locationId)))
+        .groupBy(sql`1`)
         .execute(),
       this.db
         .selectFrom('product_offers')
@@ -325,8 +344,9 @@ export class ReportsService {
         .execute(),
     ]);
 
-    const recentSalesRows = filterScope(rawRecentSalesRows, query);
-    const recentPurchasesRows = filterScope(rawRecentPurchasesRows, query);
+    // Scope already applied in SQL for trend aggregations — no JS filterScope needed.
+    const recentSalesRows = rawRecentSalesRows;
+    const recentPurchasesRows = rawRecentPurchasesRows;
     const topTodayRows = filterScope(rawTopTodayRows, query);
     const activeOffers = activeOffersRows.length;
 
