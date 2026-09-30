@@ -285,6 +285,11 @@ export class UpsertProductDto {
   isCombo?: boolean;
 
   @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
   @IsArray()
   comboComponents?: any[];
 }

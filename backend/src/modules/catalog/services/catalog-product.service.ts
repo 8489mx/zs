@@ -34,6 +34,7 @@ type ProductRow = {
   notes: string;
   track_serials?: boolean | null;
   metadata?: string | Record<string, any> | null;
+  is_active?: boolean | null;
 };
 
 type ProductWriteExecutor = Kysely<Database> | Transaction<Database>;
@@ -274,8 +275,8 @@ export class CatalogProductService {
         .selectFrom('products')
         .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').on('b.is_active', '=', true))
         .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name'])
-        .where('products.is_active', '=', true)
+        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active'])
+        .where(view === 'archived' ? sql<boolean>`products.is_active = false` : sql<boolean>`products.is_active = true`)
         .where(this.tenantPredicate(actor, 'products'))
         .orderBy('id', 'desc')
         .execute() as Promise<ProductRow[]>,
@@ -307,9 +308,22 @@ export class CatalogProductService {
     const pagedBaseRows = filteredBaseRows.slice(start, start + pageSize);
     const pagedIds = pagedBaseRows.map((row) => Number(row.id));
 
-    const relations = brief
-      ? { unitsByProduct: new Map(), offersByProduct: new Map(), pricesByProduct: new Map() }
-      : await this.fetchListProductRelations(pagedIds, offerCapabilities.hasMinQty, actor);
+    const [relations, movementRows] = await Promise.all([
+      brief
+        ? Promise.resolve({ unitsByProduct: new Map(), offersByProduct: new Map(), pricesByProduct: new Map() })
+        : this.fetchListProductRelations(pagedIds, offerCapabilities.hasMinQty, actor),
+      pagedIds.length > 0
+        ? this.db
+            .selectFrom('stock_movements')
+            .select('product_id')
+            .where('product_id', 'in', pagedIds)
+            .where(this.tenantPredicate(actor))
+            .groupBy('product_id')
+            .execute()
+        : Promise.resolve([]),
+    ]);
+    const productIdsWithMovements = new Set((movementRows as any[]).map((r) => Number(r.product_id)));
+
     const pagedRows = this.mapListProducts(pagedBaseRows, {
       canViewCost,
       scopedLocationId: scopedLocation?.id || null,
@@ -321,7 +335,9 @@ export class CatalogProductService {
       unitsByProduct: relations.unitsByProduct,
       offersByProduct: relations.offersByProduct,
       pricesByProduct: relations.pricesByProduct,
+      productIdsWithMovements,
     });
+
 
     return {
       products: pagedRows,
@@ -1121,6 +1137,7 @@ export class CatalogProductService {
       unitsByProduct: Map<string, Record<string, unknown>[]>;
       offersByProduct: Map<string, Record<string, unknown>[]>;
       pricesByProduct: Map<string, Record<string, unknown>[]>;
+      productIdsWithMovements?: Set<number>;
     },
   ): Record<string, unknown>[] {
     return pagedBaseRows.map((product) => {
@@ -1128,6 +1145,8 @@ export class CatalogProductService {
       const activeLocationNames = activeLocIds.map((id) => context.locationsById?.[String(id)]).filter(Boolean) as string[];
       const categoryName = context.categoriesById?.[String(product.category_id || '')] || undefined;
       const supplierName = context.suppliersById?.[String(product.supplier_id || '')] || undefined;
+      const hasMovements = context.productIdsWithMovements ? context.productIdsWithMovements.has(Number(product.id)) : false;
+      const currentStock = this.getListProductStock(product, context.scopedLocationId, context.scopedStockByProduct);
 
       const mapped: Record<string, unknown> = {
         id: String(product.id),
@@ -1147,8 +1166,12 @@ export class CatalogProductService {
         costPrice: Number(product.cost_price || 0),
         retailPrice: Number(product.retail_price || 0),
         wholesalePrice: Number(product.wholesale_price || 0),
-        stock: this.getListProductStock(product, context.scopedLocationId, context.scopedStockByProduct),
+        stock: currentStock,
         minStock: Number(product.min_stock_qty || 0),
+        isActive: product.is_active !== false,
+        is_active: product.is_active !== false,
+        hasMovements,
+        canDelete: !hasMovements && Math.abs(currentStock) <= 0.0001,
         notes: product.notes || '',
         bomId: product.bom_id ? Number(product.bom_id) : undefined,
         hasBom: !!product.bom_id,
@@ -1661,7 +1684,7 @@ export class CatalogProductService {
   }
 
   async updateProduct(id: number, payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> {
-    const existing = await this.db.selectFrom('products').selectAll().where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
+    const existing = await this.db.selectFrom('products').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!existing) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
     const normalized = this.normalizeProductPayload(payload);
     if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
@@ -1713,6 +1736,7 @@ export class CatalogProductService {
         default_location_id: normalized.warehouseId || null,
         notes: normalized.notes,
         metadata: metaObj ? JSON.stringify(metaObj) : null,
+        ...(payload.isActive !== undefined ? { is_active: Boolean(payload.isActive) } : {}),
         updated_at: sql`NOW()`,
       } as any).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
       await this.replaceProductRelations(trx, id, normalized, actor);
@@ -1724,15 +1748,53 @@ export class CatalogProductService {
 
   async deleteProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
     await this.db.transaction().execute(async (trx) => {
-      const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
+      const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
       if (Math.abs(Number(product.stock_qty || 0)) > 0.0001) throw new AppError('Product still has stock on hand', 'PRODUCT_HAS_STOCK', 400);
       const movementCount = await trx.selectFrom('stock_movements').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
       if (Number(movementCount.count || 0) > 0) throw new AppError('Product has transaction history and cannot be deleted', 'PRODUCT_HAS_HISTORY', 400);
-      await trx.updateTable('products').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+
+      await trx.deleteFrom('product_units').where('product_id', '=', id).where(this.tenantPredicate(actor)).execute();
+      await trx.deleteFrom('product_offers').where('product_id', '=', id).where(this.tenantPredicate(actor)).execute();
+      await trx.deleteFrom('product_customer_prices').where('product_id', '=', id).where(this.tenantPredicate(actor)).execute();
+      await trx.deleteFrom('products').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
     });
-    await this.audit.log('حذف صنف', `تم حذف الصنف #${id} بواسطة ${actor.username}`, actor);
+    await this.audit.log('حذف صنف', `تم حذف الصنف #${id} نهائياً بواسطة ${actor.username}`, actor);
     return { ok: true, products: (await this.listProducts({}, actor)).products };
+  }
+
+  async toggleProductArchive(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
+    const product = await this.db
+      .selectFrom('products')
+      .select(['id', 'name', 'is_active'])
+      .where('id', '=', id)
+      .where(this.tenantPredicate(actor))
+      .executeTakeFirst();
+    if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
+
+    const nextActive = !Boolean(product.is_active);
+    await this.db
+      .updateTable('products')
+      .set({
+        is_active: nextActive,
+        updated_at: sql`NOW()`,
+      })
+      .where('id', '=', id)
+      .where(this.tenantPredicate(actor))
+      .execute();
+
+    const actionLabel = nextActive ? 'تنشيط صنف' : 'أرشفة صنف';
+    const auditDetail = nextActive
+      ? `تم إلغاء أرشفة وتنشيط الصنف ${product.name} (#${id}) بواسطة ${actor.username}`
+      : `تم تعطيل وأرشفة الصنف ${product.name} (#${id}) بواسطة ${actor.username}`;
+    await this.audit.log(actionLabel, auditDetail, actor);
+
+    return {
+      ok: true,
+      id,
+      isActive: nextActive,
+      message: nextActive ? 'تم تنشيط الصنف بنجاح وإعادته لدليل الأصناف النشطة' : 'تم أرشفة وتعطيل الصنف بنجاح',
+    };
   }
 
   async getProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
@@ -1743,9 +1805,8 @@ export class CatalogProductService {
       .selectFrom('products')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').on('b.is_active', '=', true))
       .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name'])
+      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active'])
       .where('products.id', '=', id)
-      .where('products.is_active', '=', true)
       .where(this.tenantPredicate(actor, 'products'))
       .executeTakeFirst();
 

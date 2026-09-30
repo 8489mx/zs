@@ -137,6 +137,12 @@ export class CatalogController {
     return this.catalogService.addProductSerials(id, payload?.items || [], req.authContext!);
   }
 
+  @Post('products/:id/toggle-archive')
+  @RequirePermissions('products')
+  toggleProductArchive(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.catalogService.toggleProductArchive(id, req.authContext!);
+  }
+
   @HttpRemove('products/:id')
   @RequirePermissions('canDelete')
   removeProduct(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

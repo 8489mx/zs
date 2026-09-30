@@ -13,9 +13,10 @@ import { resolveBarcodeUnit, type BarcodePrintItem } from '@/lib/barcode-labels'
 
 export function useProductsWorkspaceController() {
   const [search, setSearch] = useState('');
-  const [viewFilter, setViewFilter] = useState<'all' | 'low' | 'out' | 'offers' | 'special'>('all');
+  const [viewFilter, setViewFilter] = useState<'all' | 'low' | 'out' | 'offers' | 'special' | 'archived'>('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [productToArchive, setProductToArchive] = useState<Product | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -44,6 +45,17 @@ export function useProductsWorkspaceController() {
       await invalidateCatalogDomain(queryClient, { includeProducts: true });
       setSelectedProduct(null);
       setProductToDelete(null);
+    }
+  });
+
+  const toggleArchiveMutation = useMutation({
+    mutationFn: (productId: string) => productsApi.toggleArchive(productId),
+    onSuccess: async (data) => {
+      await invalidateCatalogDomain(queryClient, { includeProducts: true });
+      if (selectedProduct && String(selectedProduct.id) === String(productToArchive?.id || '')) {
+        setSelectedProduct((current) => current ? { ...current, isActive: data.isActive, is_active: data.isActive } : null);
+      }
+      setProductToArchive(null);
     }
   });
 
@@ -264,6 +276,7 @@ export function useProductsWorkspaceController() {
     viewFilter,
     selectedProduct,
     productToDelete,
+    productToArchive,
     selectedIds,
     bulkDeleteOpen,
     page,
@@ -276,6 +289,7 @@ export function useProductsWorkspaceController() {
     canPrint,
     canManageSuppliers,
     deleteMutation,
+    toggleArchiveMutation,
     bulkDeleteMutation,
     categoryNames,
     supplierNames,
@@ -295,6 +309,7 @@ export function useProductsWorkspaceController() {
     setViewFilter,
     setSelectedProduct,
     setProductToDelete,
+    setProductToArchive,
     setSelectedIds,
     setBulkDeleteOpen,
     setPage,

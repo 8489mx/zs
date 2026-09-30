@@ -26,6 +26,7 @@ export class CatalogService {
   createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.createProduct(payload, actor); }
   updateProduct(id: number, payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.updateProduct(id, payload, actor); }
   deleteProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.deleteProduct(id, actor); }
+  toggleProductArchive(id: number, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.toggleProductArchive(id, actor); }
   getNextStyleCode(actor: AuthContext): Promise<{ styleCode: string }> { return this.productService.getNextStyleCode(actor); }
   allocateStyleCode(actor: AuthContext): Promise<{ styleCode: string }> { return this.productService.allocateStyleCode(actor); }
   bulkUpdateIcons(updates: Array<{ id: number; icon: string }>, actor: AuthContext): Promise<{ ok: boolean; updated: number }> { return this.productService.bulkUpdateIcons(updates, actor); }

@@ -59,6 +59,10 @@ export interface Product {
   sku?: string;
   color?: string;
   size?: string;
+  isActive?: boolean;
+  is_active?: boolean;
+  hasMovements?: boolean;
+  canDelete?: boolean;
   status?: string;
   statusLabel?: string;
   bomId?: number;

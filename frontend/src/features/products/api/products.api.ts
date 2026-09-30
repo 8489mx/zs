@@ -7,7 +7,7 @@ export interface ProductsListParams {
   page?: number;
   pageSize?: number;
   q?: string;
-  view?: 'all' | 'low' | 'out' | 'offers' | 'special';
+  view?: 'all' | 'low' | 'out' | 'offers' | 'special' | 'archived';
   locationId?: number | string;
   categoryId?: number | string;
   supplierId?: number | string;
@@ -45,6 +45,7 @@ export const productsApi = {
   get: (id: string) => http<Product>(`/api/products/${id}`),
   update: (id: string, payload: unknown) => http<unknown>(`/api/products/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   bulkUpdateIcons: (updates: Array<{ id: number; icon: string }>) => http<{ ok: boolean; updated: number }>('/api/products/bulk-icons', { method: 'POST', body: JSON.stringify({ updates }) }),
+  toggleArchive: (id: string) => http<{ ok: boolean; id: number; isActive: boolean; message: string }>(`/api/products/${id}/toggle-archive`, { method: 'POST' }),
   remove: (id: string) => http<{ ok: boolean }>(`/api/products/${id}`, { method: 'DELETE' }),
   createCategory: (payload: { name: string }) => http<unknown>('/api/categories', { method: 'POST', body: JSON.stringify(payload) }),
   updateCategory: (id: string, payload: { name: string }) => http<unknown>(`/api/categories/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),

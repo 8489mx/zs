@@ -6548,6 +6548,41 @@
 * **التحقق البرمجي:**
   - اختبارات الوحدة للمحرك: `backend/test/reordering-rule-engine.spec.ts` بنجاح 100% لفحص الحالات الحدية، التقريب للمضاعف، وتجميع الأصناف حسب المورد، وحساب المخزون الافتراضي.
 
-
-
-
+## 187. منظومة أرشفة وتعطيل الأصناف الذكية والحذف الشرطي القياسي (Enterprise Product Archiving & Conditional Deletion Standard)
+* **الحالة / الإنجاز:** مكتمل بنسبة 100% (30 سبتمبر 2026).
+* **المسار:** `/products` (دليل الأصناف)، `/products/:id/edit` (تعديل الصنف).
+* **المرجعية المعمارية:**
+  - معيار ERP المالي والمخزني الصارم (مستوحى من أودو Odoo): حظر الحذف الفيزيائي التام لأي صنف له تاريخ حركات مخزنية أو فواتير بيع/شراء أو قيود يومية، حتى لا تنهار دفاتر الحسابات وتقارير كروت الصنف التاريخية.
+  - استبدال الحذف العشوائي بمنظومة "الأرشفة والتعطيل" (Archiving & Deactivation) مع إمكانية التنشيط اللحظي، وحصر الحذف الفيزيائي حصرياً في الأصناف الجديدة الصفرية التي أضيفت بالخطأ ولم تدخل في أي حركة إطلاقاً (`canDelete`).
+* **التفاصيل التقنية المنفذة:**
+  1. **الباك إند ومنطق الحذف والأرشفة الذكي:**
+     - نقطة نهاية برمجية جديدة: `POST /api/products/:id/toggle-archive` لتعديل حالة `is_active` مع تسجيل العمليات في سجل التدقيق الرقابي (`audit_logs`) وتحديث `catalog_updated_at` فورياً لمزامنة كاش الكاشيرات في نقاط البيع ونزع الصنف من نقاط البيع.
+     - في `listProducts`: فحص تاريخ حركات المخزون محصور حصرياً في المعرفات المعروضة في الصفحة الحالية (`pagedIds`) عبر استعلام مفهرس فائق السرعة (< 1ms) التزاماً بدستور الأداء `PERFORMANCE_CONSTITUTION.md` (PERF-9)، لحساب خاصيتي `hasMovements` و `canDelete: !hasMovements && Math.abs(currentStock) <= 0.0001`.
+     - دعم تصفية `view=archived` لعرض الأصناف المؤرشفة والمعطلة على حدة دون تلويث دليل الأصناف النشطة.
+     - تعديل `getProduct` و `updateProduct` للسماح بفتح وتعديل الأصناف المؤرشفة وتعديل حالتها بحرية.
+  2. **الواجهة الأمامية ودليل الأصناف (`ProductsTableCard.tsx`):**
+     - استبدال زر الحذف الأحمر التقليدي بزر شرطي ذكي ثلاثي الأبعاد:
+       - إذا كان الصنف مؤرشفاً (`product.isActive === false`): يظهر زر أخضر زمردي **«تنشيط»** لإعادة إحياء الصنف للعمل فوراً.
+       - إذا كان الصنف جديداً بدون حركات أو رصيد (`product.canDelete`): يظهر زر أحمر **«حذف»** لحذفه نهائياً من قاعدة البيانات.
+       - إذا كان الصنف له حركات سابقة أو رصيد مخزني: يظهر زر كهرماني **«أرشفة»** مع حوار تأكيد وزاري (`ActionConfirmDialog` و `systemConfirm`) يشرح للمستخدم بوضوح أن الأرشفة تحجب الصنف عن عمليات البيع والشراء الجديدة مع صيانة كافة التقارير والحركات التاريخية.
+     - دعم كامل لنفس السلوك على مستوى الموديلات المجمعة للأزياء (`group.children`) والأصناف الفرعية الفردية.
+     - إضافة تبويب فلترة جديد **«المؤرشفة»** في شريط التصفية السريع للوصول إلى كافة الأصناف المعطلة وإدارتها.
+     - إضافة شارة بصرية كبسولية «مؤرشف» بجانب اسم الصنف المؤرشف لسهولة التمييز البصري.
+  3. **شاشة تعديل الصنف (`EditProductForm.tsx`) والمكون الموحد الشامل (`ProductArchiveConfirmDialog.tsx`):**
+     - توحيد نافذة تأكيد الأرشفة والتنشيط في مكون مستقل موحد (`ProductArchiveConfirmDialog.tsx`) كـ Single Source of Truth مشترك ومستدعى من كل من شاشة دليل الأصناف (`ProductsWorkspace.tsx`) وشاشة تعديل الصنف (`EditProductForm.tsx`) دون أي تكرار للكود.
+     - تزويد النافذة الموحدة بأيقونة المثلث الأصفر المؤسسي للتنبيه (`AlertTriangleIcon`) في حاوية تنفيذية بريميوم عند الأرشفة، وأيقونة التأكيد الخضراء (`CheckCircleIcon`) عند التنشيط.
+     - تضمين بطاقة ملخص الصنف (الاسم، الباركود، رصيد المخزن الحالي بالألوان)، وصندوق تنبيه رصيد المخزن المتبقي الكهرماني، والنقاط الإيضاحية التشغيلية الثلاث، وأزرار التنفيذ الموحدة.
+     - إضافة شارة حالة رسمية بجانب عنوان الصنف في الهيدر العلوي («نشط» بالأخضر أو «معطّل / مؤرشف» بالأحمر).
+     - تثبيت الهيدر العلوي في سطر واحد مدمج محاذٍ تماماً لبطاقات الفورم (`margin: 0 auto; max-width: 1120px`) مع أزرار تنفيذ مقتضبة («أرشفة» / «تنشيط»، «إلغاء»، «حفظ»).
+* **الملفات المتصلة:**
+  - `backend/src/modules/catalog/dto/upsert-product.dto.ts`
+  - `backend/src/modules/catalog/services/catalog-product.service.ts`
+  - `backend/src/modules/catalog/catalog.service.ts`
+  - `backend/src/modules/catalog/catalog.controller.ts`
+  - `frontend/src/types/domain-models/catalog.ts`
+  - `frontend/src/features/products/api/products.api.ts`
+  - `frontend/src/features/products/hooks/useProductsWorkspaceController.ts`
+  - `frontend/src/features/products/components/ProductArchiveConfirmDialog.tsx`
+  - `frontend/src/features/products/components/ProductsTableCard.tsx`
+  - `frontend/src/features/products/components/ProductsWorkspace.tsx`
+  - `frontend/src/features/products/components/EditProductForm.tsx`

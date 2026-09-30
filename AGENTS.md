@@ -233,3 +233,12 @@
     - Label: `fontSize: '9.5px' - '10px'`, `fontWeight: 700`, `color: '#64748b'`, `marginBottom: '2px'`.
     - Value: `fontSize: '11px' - '12px'`, `fontWeight: 900`, `whiteSpace: 'nowrap'`.
   - **Strict Ban:** NEVER render KPI stats as separate vertically stacked cards on mobile. NEVER use CSS Grid `repeat(N, 1fr)` without strict min-width overrides.
+
+## 16. Strict Single Source of Truth & Zero-Duplicate Action Dialogs Standard (دستور المصدر الواحد الشامل لنوافذ التأكيد والإجراءات التشغيلية)
+- **حظر تكرار النوافذ البرمجية:** إذا كان هناك إجراء تشغيلي (مثل أرشفة الصنف، حذفه، تنشيطه، أو تغيير حالته) متوفراً في أكثر من شاشة أو مكان (مثل جدول الاستعراض وشاشة التعديل):
+  - **يُمنع منعاً باتاً** برمجة نافذة تأكيد مختلفة أو استخدام `systemConfirm` في مكان ومودال مخصص في مكان آخر لنفس الإجراء.
+- **المكون المشترك الموحد (Shared Reusable Dialog):**
+  - يجب دائماً استخراج نافذة التأكيد في مكون مشترك مستقل (مثل `ProductArchiveConfirmDialog`) كـ Single Source of Truth.
+  - الزر في أي شاشة يكون مجرد مشغل (`Trigger`) يستدعي نفس المكون الموحد ويمرر له البيانات ومؤشرات الحالة.
+- **التوحيد البصري والوظيفي الكامل:**
+  - أي تحسين بصري (مثل إضافة أيقونة التحذير ذات المثلث الأصفر المؤسسي، ملخص الصنف والباركود، شارات التنبيه المخزني، النقاط التشغيلية التوضيحية) يتم إجراؤه في هذا المكون الموحد لتنعكس تلقائياً وفوراً في كافة الشاشات بنسبة 100% وبدون سطر كود واحد مكرر.

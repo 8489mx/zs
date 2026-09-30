@@ -21,12 +21,13 @@ import { useProductIconSettings } from '@/shared/components/icons/product-icon-t
 export interface ProductsTableCardProps {
   search: string;
   onSearchChange: (value: string) => void;
-  viewFilter: 'all' | 'low' | 'out' | 'offers' | 'special';
-  onViewFilterChange: (value: 'all' | 'low' | 'out' | 'offers' | 'special') => void;
+  viewFilter: 'all' | 'low' | 'out' | 'offers' | 'special' | 'archived';
+  onViewFilterChange: (value: 'all' | 'low' | 'out' | 'offers' | 'special' | 'archived') => void;
   selectedIds: string[];
   onSelectedIdsChange: (value: string[]) => void;
   onClearSelection: () => void;
   onBulkDelete: () => void;
+  onToggleArchiveProduct?: (product: Product) => void;
   visibleProducts: Product[];
   selectedProduct: Product | null;
   onSelectProduct: (product: Product | null) => void;
@@ -370,6 +371,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
           <Button variant={props.viewFilter === 'out' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('out')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>نافدة</Button>
           <Button variant={props.viewFilter === 'offers' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('offers')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>بعروض</Button>
           <Button variant={props.viewFilter === 'special' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('special')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>أسعار خاصة</Button>
+          <Button variant={props.viewFilter === 'archived' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('archived')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>المؤرشفة</Button>
         </div>
       </div>
       {props.selectedIds.length ? (
@@ -470,7 +472,12 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                             </div>
                           ) : null}
                           <div>
-                            <strong>{product.name}</strong>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <strong>{product.name}</strong>
+                              {product.isActive === false ? (
+                                <span className="status-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontSize: '0.68rem', padding: '1px 5px' }}>مؤرشف</span>
+                              ) : null}
+                            </div>
                             <div className="muted small">{(product.units || []).map((unit) => `${unit.name} × ${unit.multiplier || 1}`).join(' / ') || 'قطعة'}</div>
                           </div>
                         </div>
@@ -533,7 +540,38 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           {props.mobileStoreEnabled && product.trackSerials && props.onOpenSerialsDialog ? (
                             <Button variant="secondary" type="button" onClick={() => props.onOpenSerialsDialog?.(product)}>سيريالات</Button>
                           ) : null}
-                          <Button variant="secondary" type="button" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete} style={{ color: '#dc2626' }}>حذف</Button>
+                          {product.isActive === false ? (
+                            <Button
+                              variant="secondary"
+                              type="button"
+                              onClick={() => props.onToggleArchiveProduct?.(product)}
+                              style={{ color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4', fontWeight: 700 }}
+                              title="تنشيط الصنف وإعادته للعمل"
+                            >
+                              تنشيط
+                            </Button>
+                          ) : product.canDelete ? (
+                            <Button
+                              variant="secondary"
+                              type="button"
+                              onClick={() => props.onDeleteProduct(product)}
+                              disabled={!props.canDelete}
+                              style={{ color: '#dc2626' }}
+                              title="حذف نهائي (صنف جديد لا يحتوي على رصيد أو حركات سابقة)"
+                            >
+                              حذف
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="secondary"
+                              type="button"
+                              onClick={() => props.onToggleArchiveProduct?.(product)}
+                              style={{ color: '#d97706', borderColor: '#fde68a', background: '#fffbeb', fontWeight: 600 }}
+                              title="أرشفة وتعطيل الصنف مع الحفاظ على الفواتير والتقارير التاريخية"
+                            >
+                              أرشفة
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -687,28 +725,82 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(group.representative)}>تعديل</Button>
                           <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(group.representative, 'scan')}>باركود</Button>
                           <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(group.representative)}>عروض</Button>
-                          <Button
-                            variant="secondary"
-                            type="button"
-                            onClick={async () => {
-                              const confirmed = await systemConfirm({
-                                title: 'تأكيد حذف الموديل',
-                                message: `هل أنت متأكد من حذف الموديل "${baseName}" وجميع أصنافه الفرعية بالكامل (${group.children.length} صنف فرعي)؟`,
-                                confirmText: 'حذف الكل',
-                                cancelText: 'إلغاء',
-                                variant: 'danger',
-                              });
-                              if (confirmed) {
-                                for (const child of group.children) {
-                                  props.onDeleteProduct(child);
+                          {group.children.every((c) => c.isActive === false) ? (
+                            <Button
+                              variant="secondary"
+                              type="button"
+                              onClick={async () => {
+                                const confirmed = await systemConfirm({
+                                  title: 'تأكيد تنشيط الموديل',
+                                  message: `هل أنت متأكد من تنشيط الموديل "${baseName}" وجميع أصنافه الفرعية (${group.children.length} صنف)؟`,
+                                  confirmText: 'تنشيط الكل',
+                                  cancelText: 'إلغاء',
+                                });
+                                if (confirmed) {
+                                  for (const child of group.children) {
+                                    if (child.isActive === false) {
+                                      await productsApi.toggleArchive(child.id);
+                                    }
+                                  }
+                                  await invalidateCatalogDomain(queryClient, { includeProducts: true });
                                 }
-                              }
-                            }}
-                            disabled={!props.canDelete}
-                            style={{ color: '#dc2626' }}
-                          >
-                            حذف
-                          </Button>
+                              }}
+                              style={{ color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4', fontWeight: 700 }}
+                              title="تنشيط الموديل وجميع أصنافه الفرعية"
+                            >
+                              تنشيط
+                            </Button>
+                          ) : group.children.every((c) => c.canDelete) ? (
+                            <Button
+                              variant="secondary"
+                              type="button"
+                              onClick={async () => {
+                                const confirmed = await systemConfirm({
+                                  title: 'تأكيد حذف الموديل',
+                                  message: `هل أنت متأكد من حذف الموديل "${baseName}" وجميع أصنافه الفرعية بالكامل (${group.children.length} صنف فرعي)؟`,
+                                  confirmText: 'حذف الكل',
+                                  cancelText: 'إلغاء',
+                                  variant: 'danger',
+                                });
+                                if (confirmed) {
+                                  for (const child of group.children) {
+                                    props.onDeleteProduct(child);
+                                  }
+                                }
+                              }}
+                              disabled={!props.canDelete}
+                              style={{ color: '#dc2626' }}
+                              title="حذف الموديل (لا توجد أي حركات أو أرصدة سابقة)"
+                            >
+                              حذف
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="secondary"
+                              type="button"
+                              onClick={async () => {
+                                const confirmed = await systemConfirm({
+                                  title: 'تأكيد أرشفة وتعطيل الموديل',
+                                  message: `الموديل "${baseName}" يحتوي على حركات سابقة أو أرصدة. هل تريد أرشفة وتعطيل جميع أصنافه (${group.children.length} صنف فرعي) لمنع التعامل عليها مع الحفاظ على سجل التقارير؟`,
+                                  confirmText: 'أرشفة الكل',
+                                  cancelText: 'إلغاء',
+                                  variant: 'warning',
+                                });
+                                if (confirmed) {
+                                  for (const child of group.children) {
+                                    if (child.isActive !== false) {
+                                      await productsApi.toggleArchive(child.id);
+                                    }
+                                  }
+                                  await invalidateCatalogDomain(queryClient, { includeProducts: true });
+                                }
+                              }}
+                              style={{ color: '#d97706', borderColor: '#fde68a', background: '#fffbeb', fontWeight: 600 }}
+                              title="أرشفة وتعطيل الموديل مع الحفاظ على الفواتير والتقارير التاريخية"
+                            >
+                              أرشفة
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -731,7 +823,12 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         </td>
                         <td>
                           <div style={{ paddingInlineStart: 18 }}>
-                            <strong>{variantLabel(product)}</strong>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <strong>{variantLabel(product)}</strong>
+                              {product.isActive === false ? (
+                                <span className="status-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontSize: '0.68rem', padding: '1px 5px' }}>مؤرشف</span>
+                              ) : null}
+                            </div>
                             <div className="muted small">{product.name}</div>
                           </div>
                         </td>
@@ -789,7 +886,38 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
                             <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
                             <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>باركود</Button>
-                            <Button variant="secondary" type="button" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete} style={{ color: '#dc2626' }}>حذف</Button>
+                            {product.isActive === false ? (
+                              <Button
+                                variant="secondary"
+                                type="button"
+                                onClick={() => props.onToggleArchiveProduct?.(product)}
+                                style={{ color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4', fontWeight: 700 }}
+                                title="تنشيط الصنف وإعادته للعمل"
+                              >
+                                تنشيط
+                              </Button>
+                            ) : product.canDelete ? (
+                              <Button
+                                variant="secondary"
+                                type="button"
+                                onClick={() => props.onDeleteProduct(product)}
+                                disabled={!props.canDelete}
+                                style={{ color: '#dc2626' }}
+                                title="حذف نهائي (صنف جديد لا يحتوي على رصيد أو حركات سابقة)"
+                              >
+                                حذف
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="secondary"
+                                type="button"
+                                onClick={() => props.onToggleArchiveProduct?.(product)}
+                                style={{ color: '#d97706', borderColor: '#fde68a', background: '#fffbeb', fontWeight: 600 }}
+                                title="أرشفة وتعطيل الصنف مع الحفاظ على الفواتير والتقارير التاريخية"
+                              >
+                                أرشفة
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>

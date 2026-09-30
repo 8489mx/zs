@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
-import { SlidersIcon, SmartphoneIcon } from '@/shared/components/icons/AppIcons';
+import { SlidersIcon, SmartphoneIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
@@ -26,6 +26,8 @@ import { useAppToolbar } from '@/stores/toolbar-store';
 
 import { queryKeys } from '@/app/query-keys';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
+import { toast } from '@/shared/components/system-alert';
+import { ProductArchiveConfirmDialog } from '@/features/products/components/ProductArchiveConfirmDialog';
 
 type ProductFormOutputWithoutStock = Omit<ProductFormOutput, 'stock' | 'variantStock' | 'fashionColors' | 'fashionSizes'> & {
   stock?: number;
@@ -78,6 +80,29 @@ export function EditProductForm({
     queryClient.invalidateQueries({ queryKey: queryKeys.products });
     queryClient.invalidateQueries({ queryKey: ['location-stocks'] });
     inventoryCatalog.locationStocksQuery.refetch();
+  };
+
+  const [isTogglingArchive, setIsTogglingArchive] = useState(false);
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+
+  const handleToggleArchive = () => {
+    setArchiveConfirmOpen(true);
+  };
+
+  const handleConfirmArchive = async () => {
+    if (!product) return;
+    try {
+      setIsTogglingArchive(true);
+      const res = await productsApi.toggleArchive(product.id);
+      await queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.products });
+      toast.success(res.message);
+      setArchiveConfirmOpen(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر تغيير حالة أرشفة الصنف');
+    } finally {
+      setIsTogglingArchive(false);
+    }
   };
 
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
@@ -290,21 +315,157 @@ export function EditProductForm({
     <div className={mode === 'modal' ? 'edit-product-modal-mode' : 'page-shell document-prototype-shell purchase-new-prototype'} dir="rtl">
       <div className={mode === 'modal' ? 'edit-product-modal-topbar-wrapper' : 'purchase-prototype-sticky-stack'}>
         <div className={mode === 'modal' ? 'edit-product-modal-topbar' : 'purchase-prototype-document-surface'}>
-          <div className="document-prototype-topbar" style={mode === 'modal' ? { padding: '10px 16px', margin: 0, alignItems: 'center' } : undefined}>
-            <div className="document-prototype-topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            className="document-prototype-topbar"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'nowrap',
+              padding: mode === 'modal' ? '8px 14px' : '8px 16px',
+              minHeight: '44px',
+              ...(mode === 'modal' ? { borderRadius: 0, border: 'none', background: '#ffffff' } : {}),
+            }}
+          >
+            <div
+              className="document-prototype-topbar-right"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                minWidth: 0,
+                flex: 1,
+                overflow: 'hidden',
+                flexWrap: 'nowrap',
+              }}
+            >
               {mode === 'page' && (
-                <button type="button" className="document-prototype-back-link" onClick={handleCancelClick} aria-label="الرجوع">←</button>
+                <button
+                  type="button"
+                  className="document-prototype-back-link"
+                  onClick={handleCancelClick}
+                  aria-label="الرجوع للأصناف"
+                  title="الرجوع لدليل الأصناف"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    color: '#334155',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    padding: 0,
+                  }}
+                >
+                  <ArrowRightIcon size={16} strokeWidth={2.4} />
+                </button>
               )}
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                تعديل صنف: <span style={{ color: '#2563eb' }}>{product.name}</span>
-              </h2>
+              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                تعديل صنف:
+              </span>
+              <span
+                title={product.name}
+                style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  color: '#1d4ed8',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  minWidth: 0,
+                }}
+              >
+                {product.name}
+              </span>
+              {product.isActive === false ? (
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    background: '#fee2e2',
+                    color: '#dc2626',
+                    border: '1px solid #fecaca',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  معطّل / مؤرشف
+                </span>
+              ) : (
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    border: '1px solid #a7f3d0',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  نشط
+                </span>
+              )}
             </div>
-            <div className="document-prototype-topbar-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <Button variant="secondary" onClick={handleCancelClick} disabled={isFormDisabled}>
+            <div
+              className="document-prototype-topbar-actions"
+              style={{
+                display: 'flex',
+                gap: '8px',
+                alignItems: 'center',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Button
+                variant="secondary"
+                type="button"
+                size="sm"
+                onClick={handleToggleArchive}
+                disabled={isFormDisabled || isTogglingArchive}
+                title={product.isActive === false ? 'تنشيط الصنف' : 'أرشفة الصنف'}
+                style={
+                  product.isActive === false
+                    ? { color: '#059669', borderColor: '#a7f3d0', background: '#ecfdf5', fontWeight: 700, height: '32px', minWidth: 'auto', padding: '0 12px', fontSize: '0.8rem' }
+                    : { color: '#d97706', borderColor: '#fde68a', background: '#fffbeb', fontWeight: 700, height: '32px', minWidth: 'auto', padding: '0 12px', fontSize: '0.8rem' }
+                }
+              >
+                {product.isActive === false ? 'تنشيط' : 'أرشفة'}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCancelClick}
+                disabled={isFormDisabled}
+                style={{ height: '32px', minWidth: 'auto', padding: '0 14px', fontSize: '0.8rem' }}
+              >
                 إلغاء
               </Button>
-              <Button variant="primary" onClick={onSubmit} disabled={isFormDisabled} style={{ fontWeight: 700 }}>
-                {isFormDisabled ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={onSubmit}
+                disabled={isFormDisabled}
+                style={{
+                  fontWeight: 700,
+                  height: '32px',
+                  minWidth: 'auto',
+                  padding: '0 16px',
+                  fontSize: '0.8rem',
+                  background: '#170e5e',
+                  borderColor: '#170e5e',
+                }}
+              >
+                {isFormDisabled ? 'جارٍ الحفظ...' : 'حفظ'}
               </Button>
             </div>
           </div>
@@ -686,6 +847,14 @@ export function EditProductForm({
           canManageInventory={true}
         />
       )}
+
+      <ProductArchiveConfirmDialog
+        open={archiveConfirmOpen}
+        product={product}
+        isBusy={isTogglingArchive}
+        onCancel={() => setArchiveConfirmOpen(false)}
+        onConfirm={handleConfirmArchive}
+      />
     </div>
   );
 }

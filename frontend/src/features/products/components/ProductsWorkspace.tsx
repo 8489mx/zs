@@ -1,6 +1,7 @@
 import { Suspense, lazy, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { ProductArchiveConfirmDialog } from '@/features/products/components/ProductArchiveConfirmDialog';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
@@ -136,6 +137,7 @@ export function ProductsWorkspace() {
           clothingEnabled={clothingEnabled}
           mobileStoreEnabled={settingsQuery.data?.enableMobileStoreFeatures === true}
           onOpenSerialsDialog={(product) => setSerialsProduct(product)}
+          onToggleArchiveProduct={controller.setProductToArchive}
         />
 
         <div ref={toolsRef}></div>
@@ -207,6 +209,17 @@ export function ProductsWorkspace() {
             if (!controller.productToDelete) return;
             await controller.deleteMutation.mutateAsync(controller.productToDelete.id);
             controller.setSelectedIds((current) => current.filter((id) => id !== String(controller.productToDelete?.id)));
+          }}
+        />
+
+        <ProductArchiveConfirmDialog
+          open={Boolean(controller.productToArchive)}
+          product={controller.productToArchive}
+          isBusy={controller.toggleArchiveMutation.isPending}
+          onCancel={() => controller.setProductToArchive(null)}
+          onConfirm={async () => {
+            if (!controller.productToArchive) return;
+            await controller.toggleArchiveMutation.mutateAsync(controller.productToArchive.id);
           }}
         />
 
