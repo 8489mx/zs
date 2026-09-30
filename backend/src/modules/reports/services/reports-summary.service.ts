@@ -191,6 +191,7 @@ export class ReportsSummaryService {
         sql<number>`COUNT(DISTINCT s.id)`.as('orders_count_30d'),
       ])
       .where('s.tenant_id', '=', tenantId)
+      .where('si.tenant_id', '=', tenantId)
       .where('s.status', '=', 'posted')
       .where('s.created_at', '>=', thirtyDaysAgo)
       .groupBy('si.product_id')

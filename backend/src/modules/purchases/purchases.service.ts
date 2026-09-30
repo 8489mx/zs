@@ -42,8 +42,8 @@ export class PurchasesService {
     return this.writeService.cancelPurchase(id, reason, auth);
   }
 
-  listSupplierPayments(auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.queryService.listSupplierPayments(auth);
+  listSupplierPayments(auth: AuthContext, query?: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return this.queryService.listSupplierPayments(auth, query);
   }
 
   createSupplierPayment(payload: CreateSupplierPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {

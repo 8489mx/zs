@@ -57,13 +57,33 @@ export class AgedDebtsService {
     // 1. Fetch active customers with positive balance
     const customers = await (this.db as any)
       .selectFrom('customers')
-      .selectAll()
+      .select(['id', 'name', 'phone', 'balance', 'credit_limit'])
       .where('tenant_id', '=', tenantId)
       .where('is_active', '=', true)
+      .where('balance', '>', 0.01)
       .orderBy('name', 'asc')
       .execute();
 
-    // 2. Fetch unpaid credit sales up to asOfDate
+    if (customers.length === 0) {
+      return {
+        asOfDate: asOfDate.toISOString().slice(0, 10),
+        totalPartnersCount: 0,
+        overduePartnersCount: 0,
+        totalBalance: 0,
+        totalCurrent: 0,
+        total1To30: 0,
+        total31To60: 0,
+        total61To90: 0,
+        total91Plus: 0,
+        partners: [],
+      };
+    }
+
+    const customerIds = customers.map((c: any) => Number(c.id));
+    const threeYearsAgo = new Date(asOfDate);
+    threeYearsAgo.setUTCFullYear(threeYearsAgo.getUTCFullYear() - 3);
+
+    // 2. Fetch unpaid credit sales up to asOfDate (bounded to active debtors and last 3 years)
     let salesQuery = (this.db as any)
       .selectFrom('sales')
       .select([
@@ -75,8 +95,10 @@ export class AgedDebtsService {
         'status',
       ])
       .where('tenant_id', '=', tenantId)
-      .where('customer_id', 'is not', null)
+      .where('customer_id', 'in', customerIds)
       .where('status', '!=', 'cancelled')
+      .where(sql<boolean>`(total - paid_amount) > 0.01`)
+      .where('created_at', '>=', threeYearsAgo)
       .where('created_at', '<=', asOfDate);
 
     if (params.branchId) {
@@ -241,13 +263,33 @@ export class AgedDebtsService {
     // 1. Fetch active suppliers with positive balance
     const suppliers = await (this.db as any)
       .selectFrom('suppliers')
-      .selectAll()
+      .select(['id', 'name', 'phone', 'balance'])
       .where('tenant_id', '=', tenantId)
       .where('is_active', '=', true)
+      .where('balance', '>', 0.01)
       .orderBy('name', 'asc')
       .execute();
 
-    // 2. Fetch purchases up to asOfDate
+    if (suppliers.length === 0) {
+      return {
+        asOfDate: asOfDate.toISOString().slice(0, 10),
+        totalPartnersCount: 0,
+        overduePartnersCount: 0,
+        totalBalance: 0,
+        totalCurrent: 0,
+        total1To30: 0,
+        total31To60: 0,
+        total61To90: 0,
+        total91Plus: 0,
+        partners: [],
+      };
+    }
+
+    const supplierIds = suppliers.map((s: any) => Number(s.id));
+    const threeYearsAgo = new Date(asOfDate);
+    threeYearsAgo.setUTCFullYear(threeYearsAgo.getUTCFullYear() - 3);
+
+    // 2. Fetch unpaid credit purchases up to asOfDate (bounded to active creditors and last 3 years)
     let purchasesQuery = (this.db as any)
       .selectFrom('purchases')
       .select([
@@ -260,8 +302,10 @@ export class AgedDebtsService {
         'status',
       ])
       .where('tenant_id', '=', tenantId)
-      .where('supplier_id', 'is not', null)
+      .where('supplier_id', 'in', supplierIds)
       .where('status', '!=', 'cancelled')
+      .where(sql<boolean>`(total - paid_amount) > 0.01`)
+      .where('created_at', '>=', threeYearsAgo)
       .where('created_at', '<=', asOfDate);
 
     if (params.branchId) {

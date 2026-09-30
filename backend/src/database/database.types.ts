@@ -4426,6 +4426,7 @@ export interface Database {
   recruitment_job_openings: RecruitmentJobOpeningsTable;
   recruitment_applicants: RecruitmentApplicantsTable;
   reordering_rules: ReorderingRulesTable;
+  daily_commercial_rollups: DailyCommercialRollupTable;
 }
 
 export interface CommercialSubscriptionTable {
@@ -4616,6 +4617,27 @@ export interface ReorderingRulesTable {
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
+
+export interface DailyCommercialRollupTable {
+  id: Generated<number>;
+  tenant_id: string;
+  rollup_date: ColumnType<Date, string | Date, string | Date>;
+  branch_id: number | null;
+  branch_key: number;
+  sales_count: number;
+  sales_total: number;
+  cash_sales_total: number;
+  credit_sales_total: number;
+  cogs_total: number;
+  gross_profit: number;
+  returns_count: number;
+  returns_total: number;
+  expenses_total: number;
+  net_profit: number;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 
 
 

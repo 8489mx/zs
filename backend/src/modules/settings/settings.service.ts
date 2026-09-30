@@ -11,6 +11,7 @@ import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
 import { invalidateTenantTimezoneCache, isValidTimezone } from '../../common/utils/tenant-timezone.util';
 import { getIndustryProfile, normalizeIndustryProfileKey, listSupportedIndustryProfiles, type IndustryProfile } from '../../core/tenant/industry-profiles';
 import { PLAN_MANAGED_MODULES_SETTING_KEY } from '../../common/constants/platform-settings-keys';
+import { SalesWriteService } from '../sales/services/sales-write.service';
 
 @Injectable()
 export class SettingsService {
@@ -59,6 +60,7 @@ export class SettingsService {
     } else {
       this._settingsCache.clear();
     }
+    SalesWriteService.invalidateSettingsCache(tenantId);
     // `settings.timezone` له كاش منفصل عمره 5 دقائق داخل `tenant-timezone.util`،
     // وهو مصدر `work_date` للحضور. بدون إبطاله هنا يظل تغيير المنطقة الزمنية بلا
     // أثر حتى تنتهي المهلة — وقرب منتصف الليل يُكتب الحضور بيوم خاطئ.

@@ -157,8 +157,8 @@ export class PurchasesController {
 
   @Get('supplier-payments')
   @RequirePermissions('accounts')
-  listSupplierPayments(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.purchasesService.listSupplierPayments(req.authContext!);
+  listSupplierPayments(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.purchasesService.listSupplierPayments(req.authContext!, query);
   }
 
   @Post('supplier-payments')

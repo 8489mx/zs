@@ -34,13 +34,14 @@ export class ManagerDashboardService {
     const now = new Date();
     const last30Start = new Date(now); last30Start.setUTCDate(last30Start.getUTCDate() - 30);
     const previous30Start = new Date(now); previous30Start.setUTCDate(previous30Start.getUTCDate() - 60);
+    const oneYearAgo = new Date(now); oneYearAgo.setUTCFullYear(oneYearAgo.getUTCFullYear() - 1);
     const [salesLast30, salesPrevious30, returnsLast30, expensesLast30, profitRows, products, customers, settingsRows] = await Promise.all([
       this.safeFirst(() => this.salesTotals(last30Start, now, tenantId)),
       this.safeFirst(() => this.salesTotals(previous30Start, last30Start, tenantId)),
-      this.safeRows(() => this.returnRows(last30Start, now, tenantId)),
+      this.safeRows(() => this.returnTotals(last30Start, now, tenantId)),
       this.safeFirst(() => this.expenseTotals(last30Start, now, tenantId)),
       this.safeRows(() => this.profitRows(last30Start, now, tenantId)),
-      this.safeRows(() => this.productStockRows(last30Start, tenantId)),
+      this.safeRows(() => this.productStockRows(last30Start, oneYearAgo, tenantId)),
       this.safeRows(() => this.customerDebtRows(tenantId)),
       this.safeRows(() => this.db.selectFrom('settings').select(['key', 'value']).where(this.tenantClause(tenantId)).execute()),
     ]);
@@ -52,7 +53,7 @@ export class ManagerDashboardService {
     const salesTotal = m(n(salesLast30?.total));
     const salesCount = n(salesLast30?.count);
     const previousTotal = m(n(salesPrevious30?.total));
-    const salesReturnsTotal = m(returnsLast30.filter((r) => r.return_type === 'sale').reduce((s, r) => s + n(r.total), 0));
+    const salesReturnsTotal = m(n(returnsLast30.find((r) => r.return_type === 'sale')?.total));
     const netSales = Math.max(0, m(salesTotal - salesReturnsTotal));
     const cogs = m(profitRows.reduce((s, r) => s + n(r.cost), 0));
     const grossProfit = m(netSales - cogs);
@@ -74,11 +75,11 @@ export class ManagerDashboardService {
   private tenantClause(tenantId: string, alias = '') { return alias ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}` : sql<boolean>`tenant_id = ${tenantId}`; }
 
   private salesTotals(from: Date, to: Date, tenantId: string): Promise<Row | undefined> { return this.db.selectFrom('sales').select([sql<number>`count(*)`.as('count'), sql<number>`coalesce(sum(total), 0)`.as('total')]).where('status', '=', 'posted').where('created_at', '>=', from).where('created_at', '<', to).where(this.tenantClause(tenantId)).executeTakeFirst(); }
-  private returnRows(from: Date, to: Date, tenantId: string): Promise<Row[]> { return this.db.selectFrom('return_documents').select(['return_type', 'total']).where('created_at', '>=', from).where('created_at', '<', to).where(this.tenantClause(tenantId)).execute(); }
+  private returnTotals(from: Date, to: Date, tenantId: string): Promise<Row[]> { return this.db.selectFrom('return_documents').select(['return_type', sql<number>`coalesce(sum(total), 0)`.as('total')]).where('created_at', '>=', from).where('created_at', '<', to).where(this.tenantClause(tenantId)).groupBy('return_type').execute(); }
   private expenseTotals(from: Date, to: Date, tenantId: string): Promise<Row | undefined> { return this.db.selectFrom('expenses').select(sql<number>`coalesce(sum(amount), 0)`.as('total')).where('expense_date', '>=', from).where('expense_date', '<', to).where(this.tenantClause(tenantId)).executeTakeFirst(); }
   private profitRows(from: Date, to: Date, tenantId: string): Promise<Row[]> { return this.db.selectFrom('sale_items as si').innerJoin('sales as s', 's.id', 'si.sale_id').leftJoin('products as p', 'p.id', 'si.product_id').leftJoin('product_categories as c', 'c.id', 'p.category_id').select(['si.product_id', 'si.product_name', 'p.category_id', 'c.name as category_name', sql<number>`coalesce(sum(si.qty * si.unit_multiplier), 0)`.as('qty'), sql<number>`coalesce(sum(si.line_total), 0)`.as('revenue'), sql<number>`coalesce(sum(si.cost_price * si.qty * si.unit_multiplier), 0)`.as('cost')]).where('s.status', '=', 'posted').where('s.created_at', '>=', from).where('s.created_at', '<', to).where(this.tenantClause(tenantId, 's')).where(this.tenantClause(tenantId, 'si')).groupBy(['si.product_id', 'si.product_name', 'p.category_id', 'c.name']).execute(); }
-  private productStockRows(last30Start: Date, tenantId: string): Promise<Row[]> { return this.db.selectFrom('products as p').leftJoin('product_categories as c', 'c.id', 'p.category_id').leftJoin((eb) => eb.selectFrom('sale_items as si').innerJoin('sales as s', 's.id', 'si.sale_id').select(['si.product_id', sql<Date>`max(s.created_at)`.as('last_sold_at'), sql<number>`coalesce(sum(case when s.created_at >= ${last30Start} then si.qty * si.unit_multiplier else 0 end), 0)`.as('sold_qty_30')]).where('s.status', '=', 'posted').where('si.product_id', 'is not', null).where(this.tenantClause(tenantId, 's')).where(this.tenantClause(tenantId, 'si')).groupBy('si.product_id').as('sales_activity'), (join) => join.onRef('sales_activity.product_id', '=', 'p.id')).select(['p.id', 'p.name', 'c.name as category_name', 'p.stock_qty', 'p.min_stock_qty', 'p.cost_price', 'p.retail_price', 'sales_activity.last_sold_at', 'sales_activity.sold_qty_30']).where('p.is_active', '=', true).where(this.tenantClause(tenantId, 'p')).execute(); }
-  private customerDebtRows(tenantId: string): Promise<Row[]> { return this.db.selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit']).where('is_active', '=', true).where(this.tenantClause(tenantId)).execute(); }
+  private productStockRows(last30Start: Date, oneYearAgo: Date, tenantId: string): Promise<Row[]> { return this.db.selectFrom('products as p').leftJoin('product_categories as c', 'c.id', 'p.category_id').leftJoin((eb) => eb.selectFrom('sale_items as si').innerJoin('sales as s', 's.id', 'si.sale_id').select(['si.product_id', sql<Date>`max(s.created_at)`.as('last_sold_at'), sql<number>`coalesce(sum(case when s.created_at >= ${last30Start} then si.qty * si.unit_multiplier else 0 end), 0)`.as('sold_qty_30')]).where('s.status', '=', 'posted').where('s.created_at', '>=', oneYearAgo).where('si.product_id', 'is not', null).where(this.tenantClause(tenantId, 's')).where(this.tenantClause(tenantId, 'si')).groupBy('si.product_id').as('sales_activity'), (join) => join.onRef('sales_activity.product_id', '=', 'p.id')).select(['p.id', 'p.name', 'c.name as category_name', 'p.stock_qty', 'p.min_stock_qty', 'p.cost_price', 'p.retail_price', 'sales_activity.last_sold_at', 'sales_activity.sold_qty_30']).where('p.is_active', '=', true).where(this.tenantClause(tenantId, 'p')).execute(); }
+  private customerDebtRows(tenantId: string): Promise<Row[]> { return this.db.selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit']).where('is_active', '=', true).where('balance', '>', 0).where(this.tenantClause(tenantId)).execute(); }
 
   private buildProductProfit(rows: Row[]) { return rows.map((r) => { const revenue = m(n(r.revenue)); const cost = m(n(r.cost)); const grossProfit = m(revenue - cost); return { productId: String(r.product_id || ''), name: r.product_name || 'صنف غير محدد', categoryName: r.category_name || '', qty: m(n(r.qty)), revenue, cost, grossProfit, marginPercent: revenue > 0 ? m((grossProfit / revenue) * 100) : 0 }; }).sort((a, b) => b.grossProfit - a.grossProfit); }
   private buildCategoryProfit(rows: Row[]) { const map = new Map<string, any>(); for (const r of rows) { const key = String(r.category_id || 'uncategorized'); const item = map.get(key) || { categoryId: key, name: r.category_name || 'بدون قسم', revenue: 0, cost: 0 }; item.revenue += n(r.revenue); item.cost += n(r.cost); map.set(key, item); } return [...map.values()].map((r) => ({ ...r, revenue: m(r.revenue), cost: m(r.cost), grossProfit: m(r.revenue - r.cost), marginPercent: r.revenue > 0 ? m(((r.revenue - r.cost) / r.revenue) * 100) : 0 })).sort((a, b) => b.grossProfit - a.grossProfit); }

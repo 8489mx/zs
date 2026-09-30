@@ -61,11 +61,12 @@ export function buildTreasuryPayload(args: {
   pageSize: number;
   totalItems: number;
   summaryRow?: TreasurySummaryRow | null;
+  nextCursor?: string | null;
 }) {
-  const { rows, page, pageSize, totalItems, summaryRow } = args;
+  const { rows, page, pageSize, totalItems, summaryRow, nextCursor } = args;
   return {
     treasury: mapTreasuryTransactions(rows),
-    pagination: buildPagination(page, pageSize, totalItems),
+    pagination: buildPagination(page, pageSize, totalItems, nextCursor),
     summary: buildTreasurySummary(summaryRow),
   };
 }

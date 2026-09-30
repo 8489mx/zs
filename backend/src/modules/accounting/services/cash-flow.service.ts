@@ -79,6 +79,7 @@ export class CashFlowService {
         sql<number>`COALESCE(SUM(jel.credit), 0)`.as('credit_sum'),
       ])
       .where('je.tenant_id', '=', tenantId)
+      .where('jel.tenant_id', '=', tenantId)
       .where('je.status', '=', 'posted')
       .where('je.entry_date', '<', fromDate);
 
@@ -102,6 +103,7 @@ export class CashFlowService {
         sql<number>`COALESCE(SUM(jel.credit), 0)`.as('credit_sum'),
       ])
       .where('je.tenant_id', '=', tenantId)
+      .where('jel.tenant_id', '=', tenantId)
       .where('je.status', '=', 'posted')
       .where('je.entry_date', '<=', toDate);
 
@@ -128,6 +130,7 @@ export class CashFlowService {
         sql<number>`COALESCE(SUM(jel.credit), 0)`.as('total_credit'),
       ])
       .where('je.tenant_id', '=', tenantId)
+      .where('jel.tenant_id', '=', tenantId)
       .where('je.status', '=', 'posted')
       .where('je.entry_date', '>=', fromDate)
       .where('je.entry_date', '<=', toDate)
@@ -174,6 +177,7 @@ export class CashFlowService {
         sql<number>`COALESCE(SUM(jel.credit), 0)`.as('period_credit'),
       ])
       .where('je.tenant_id', '=', tenantId)
+      .where('jel.tenant_id', '=', tenantId)
       .where('je.status', '=', 'posted')
       .where('je.entry_date', '>=', fromDate)
       .where('je.entry_date', '<=', toDate)
@@ -224,6 +228,7 @@ export class CashFlowService {
         sql<number>`COALESCE(SUM(jel.credit), 0)`.as('fa_credit'),
       ])
       .where('je.tenant_id', '=', tenantId)
+      .where('jel.tenant_id', '=', tenantId)
       .where('je.status', '=', 'posted')
       .where('je.entry_date', '>=', fromDate)
       .where('je.entry_date', '<=', toDate)
@@ -264,6 +269,7 @@ export class CashFlowService {
         sql<number>`COALESCE(SUM(jel.credit), 0)`.as('f_credit'),
       ])
       .where('je.tenant_id', '=', tenantId)
+      .where('jel.tenant_id', '=', tenantId)
       .where('je.status', '=', 'posted')
       .where('je.entry_date', '>=', fromDate)
       .where('je.entry_date', '<=', toDate)

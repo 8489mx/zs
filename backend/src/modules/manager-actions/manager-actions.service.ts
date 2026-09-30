@@ -99,6 +99,8 @@ export class ManagerActionsService {
   }
 
   private loadProductLastSales(tenantId: string): Promise<ManagerActionLastSaleRow[]> {
+    const oneYearAgo = new Date();
+    oneYearAgo.setUTCFullYear(oneYearAgo.getUTCFullYear() - 1);
     return this.db
       .selectFrom('sale_items as si')
       .innerJoin('sales as s', 's.id', 'si.sale_id')
@@ -107,6 +109,7 @@ export class ManagerActionsService {
         sql<Date>`max(s.created_at)`.as('last_sold_at'),
       ])
       .where('s.status', '=', 'posted')
+      .where('s.created_at', '>=', oneYearAgo)
       .where('si.product_id', 'is not', null)
       .where(sql<boolean>`s.tenant_id = ${tenantId}`)
       .where(sql<boolean>`si.tenant_id = ${tenantId}`)
@@ -150,6 +153,7 @@ export class ManagerActionsService {
       .selectFrom('customers')
       .select(['id', 'name', 'balance', 'credit_limit'])
       .where('is_active', '=', true)
+      .where('balance', '>', 0)
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .execute();
   }

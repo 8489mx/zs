@@ -31,6 +31,16 @@ export class JournalEntriesQueryDto {
   @Min(1)
   @Max(200)
   pageSize?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  lastSeenId?: number;
+
+  @IsOptional()
+  @IsString()
+  cursor?: string;
 }
 
 export class FinancialSummaryQueryDto {

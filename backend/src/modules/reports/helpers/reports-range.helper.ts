@@ -142,7 +142,18 @@ export function getPagination(query: ReportRangeQueryDto, defaultSize = 25): { p
   };
 }
 
-export function buildPagination(page: number, pageSize: number, totalItems: number): Record<string, number> {
+export interface ReportPagination {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  rangeStart: number;
+  rangeEnd: number;
+  nextCursor?: string | null;
+  [key: string]: unknown;
+}
+
+export function buildPagination(page: number, pageSize: number, totalItems: number, nextCursor?: string | null): ReportPagination {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(page, totalPages);
   const rangeStart = totalItems ? ((safePage - 1) * pageSize) + 1 : 0;
@@ -154,10 +165,11 @@ export function buildPagination(page: number, pageSize: number, totalItems: numb
     totalPages,
     rangeStart,
     rangeEnd,
+    ...(nextCursor !== undefined ? { nextCursor } : {}),
   };
 }
 
-export function paginate<T>(rows: T[], query: ReportRangeQueryDto, defaultSize = 25): { rows: T[]; pagination: Record<string, number> } {
+export function paginate<T>(rows: T[], query: ReportRangeQueryDto, defaultSize = 25): { rows: T[]; pagination: Record<string, any> } {
   const { page, pageSize } = getPagination(query, defaultSize);
   const totalItems = rows.length;
   const pagination = buildPagination(page, pageSize, totalItems);

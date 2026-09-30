@@ -1,6 +1,6 @@
 import { sumMoney, toMoney } from './reports-math.helper';
 
-type SummaryCounts = {
+export type SummaryCounts = {
   salesCount: number;
   servicesCount: number;
   purchasesCount: number;
@@ -10,7 +10,7 @@ type SummaryCounts = {
   purchaseReturnCount: number;
 };
 
-type SummaryTotals = {
+export type SummaryTotals = {
   salesTotal: number;
   servicesTotal: number;
   purchasesTotal: number;
@@ -159,60 +159,64 @@ export function splitReturnRowsByType(rows: SummaryReturnRow[]) {
 }
 
 export function buildReportSummaryPayload(args: {
-  salesRows: SummaryMoneyRow[];
+  salesRows?: SummaryMoneyRow[];
   servicesRows?: SummaryMoneyRow[];
-  purchasesRows: SummaryMoneyRow[];
-  expensesRows: SummaryExpenseRow[];
-  returnsRows: SummaryReturnRow[];
-  treasuryRows: SummaryTreasuryRow[];
+  purchasesRows?: SummaryMoneyRow[];
+  expensesRows?: SummaryExpenseRow[];
+  returnsRows?: SummaryReturnRow[];
+  treasuryRows?: SummaryTreasuryRow[];
   saleItemsRows?: SummarySaleItemRow[];
   returnedSaleItemsRows?: SummarySaleItemRow[];
   cogsOverride?: number;
   topProductsOverride?: Array<{ name: string; qty: number; revenue: number; total: number }>;
+  countsOverride?: Partial<SummaryCounts>;
+  totalsOverride?: Partial<SummaryTotals>;
   topProductsLimit?: number;
   deliveryFeeMode?: string;
   storeFleetCommissionRate?: number;
 }) {
   const {
-    salesRows,
+    salesRows = [],
     servicesRows = [],
-    purchasesRows,
-    expensesRows,
-    returnsRows,
-    treasuryRows,
+    purchasesRows = [],
+    expensesRows = [],
+    returnsRows = [],
+    treasuryRows = [],
     saleItemsRows = [],
     returnedSaleItemsRows = [],
     cogsOverride,
     topProductsOverride,
+    countsOverride,
+    totalsOverride,
     topProductsLimit = 10,
     deliveryFeeMode = 'freelance_courier',
     storeFleetCommissionRate = 0,
   } = args;
   const splitReturns = splitReturnRowsByType(returnsRows);
 
-  const salesTotal = sumMoney(salesRows, (row) => row.total);
-  const servicesTotal = sumMoney(servicesRows, (row) => row.total);
-  const purchasesTotal = sumMoney(purchasesRows, (row) => row.total);
-  const expensesTotal = sumMoney(expensesRows, (row) => row.amount);
-  const salesReturnsTotal = sumMoney(splitReturns.sales, (row) => row.total);
-  const purchaseReturnsTotal = sumMoney(splitReturns.purchases, (row) => row.total);
+  const salesTotal = totalsOverride?.salesTotal != null ? toMoney(totalsOverride.salesTotal) : sumMoney(salesRows, (row) => row.total);
+  const servicesTotal = totalsOverride?.servicesTotal != null ? toMoney(totalsOverride.servicesTotal) : sumMoney(servicesRows, (row) => row.total);
+  const purchasesTotal = totalsOverride?.purchasesTotal != null ? toMoney(totalsOverride.purchasesTotal) : sumMoney(purchasesRows, (row) => row.total);
+  const expensesTotal = totalsOverride?.expensesTotal != null ? toMoney(totalsOverride.expensesTotal) : sumMoney(expensesRows, (row) => row.amount);
+  const salesReturnsTotal = totalsOverride?.salesReturnsTotal != null ? toMoney(totalsOverride.salesReturnsTotal) : sumMoney(splitReturns.sales, (row) => row.total);
+  const purchaseReturnsTotal = totalsOverride?.purchaseReturnsTotal != null ? toMoney(totalsOverride.purchaseReturnsTotal) : sumMoney(splitReturns.purchases, (row) => row.total);
   
   const rawCogs = saleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0);
   const returnedCogs = returnedSaleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0);
-  const cogs = cogsOverride != null ? toMoney(cogsOverride) : toMoney(rawCogs - returnedCogs);
+  const cogs = cogsOverride != null ? toMoney(cogsOverride) : (totalsOverride?.cogs != null ? toMoney(totalsOverride.cogs) : toMoney(rawCogs - returnedCogs));
   
-  const cashIn = sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) > 0), (row) => row.amount);
-  const cashOut = Math.abs(sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) < 0), (row) => row.amount));
+  const cashIn = totalsOverride?.cashIn != null ? toMoney(totalsOverride.cashIn) : sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) > 0), (row) => row.amount);
+  const cashOut = totalsOverride?.cashOut != null ? toMoney(totalsOverride.cashOut) : Math.abs(sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) < 0), (row) => row.amount));
 
   const deliveryRows = (salesRows as any[]) || [];
   const freelanceRows = deliveryRows.filter((row) => Number(row.delivery_fee || 0) > 0 && (row.delivery_fee_mode === 'freelance_courier' || (!row.delivery_fee_mode && deliveryFeeMode === 'freelance_courier')));
   const storeFleetRows = deliveryRows.filter((row) => Number(row.delivery_fee || 0) > 0 && (row.delivery_fee_mode === 'store_fleet' || (!row.delivery_fee_mode && deliveryFeeMode === 'store_fleet')));
 
-  const freelanceTotal = toMoney(freelanceRows.reduce((sum, row) => sum + Number(row.delivery_fee || 0), 0));
-  const freelanceCount = freelanceRows.length;
+  const freelanceTotal = totalsOverride?.freelanceTotal != null ? toMoney(totalsOverride.freelanceTotal) : toMoney(freelanceRows.reduce((sum, row) => sum + Number(row.delivery_fee || 0), 0));
+  const freelanceCount = totalsOverride?.freelanceCount != null ? Number(totalsOverride.freelanceCount) : freelanceRows.length;
 
-  const storeFleetTotal = toMoney(storeFleetRows.reduce((sum, row) => sum + Number(row.delivery_fee || 0), 0));
-  const storeFleetCount = storeFleetRows.length;
+  const storeFleetTotal = totalsOverride?.storeFleetTotal != null ? toMoney(totalsOverride.storeFleetTotal) : toMoney(storeFleetRows.reduce((sum, row) => sum + Number(row.delivery_fee || 0), 0));
+  const storeFleetCount = totalsOverride?.storeFleetCount != null ? Number(totalsOverride.storeFleetCount) : storeFleetRows.length;
 
   const commissionRate = Math.max(0, Math.min(100, Number(storeFleetCommissionRate || 0)));
   const storeFleetCourierShare = toMoney(storeFleetTotal * (commissionRate / 100));
@@ -223,13 +227,13 @@ export function buildReportSummaryPayload(args: {
 
   return {
     ...buildCommercialSummary({
-      salesCount: salesRows.length,
-      servicesCount: servicesRows.length,
-      purchasesCount: purchasesRows.length,
-      expensesCount: expensesRows.length,
-      returnsCount: returnsRows.length,
-      salesReturnCount: splitReturns.sales.length,
-      purchaseReturnCount: splitReturns.purchases.length,
+      salesCount: countsOverride?.salesCount ?? salesRows.length,
+      servicesCount: countsOverride?.servicesCount ?? servicesRows.length,
+      purchasesCount: countsOverride?.purchasesCount ?? purchasesRows.length,
+      expensesCount: countsOverride?.expensesCount ?? expensesRows.length,
+      returnsCount: countsOverride?.returnsCount ?? returnsRows.length,
+      salesReturnCount: countsOverride?.salesReturnCount ?? splitReturns.sales.length,
+      purchaseReturnCount: countsOverride?.purchaseReturnCount ?? splitReturns.purchases.length,
     }, {
       salesTotal,
       servicesTotal,

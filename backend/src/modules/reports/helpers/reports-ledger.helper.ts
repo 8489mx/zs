@@ -98,11 +98,20 @@ export function mapLedgerEntries(rows: PartnerLedgerEntryRow[]) {
   }));
 }
 
-export function buildLedgerSummary(totalItems: number, totalsRow: LedgerSummaryRow | null | undefined) {
+export function buildLedgerSummary(
+  totalItems: number,
+  totalsRow: LedgerSummaryRow | null | undefined,
+  openingBalance?: number,
+) {
+  const totalDebits = toMoney(totalsRow?.debits_total ?? 0);
+  const totalCredits = Math.abs(toMoney(totalsRow?.credits_total ?? 0));
+  const openBal = toMoney(openingBalance ?? 0);
   return {
     totalEntries: totalItems,
-    totalDebits: toMoney(totalsRow?.debits_total ?? 0),
-    totalCredits: Math.abs(toMoney(totalsRow?.credits_total ?? 0)),
+    openingBalance: openBal,
+    totalDebits,
+    totalCredits,
+    closingBalance: toMoney(openBal + totalDebits - totalCredits),
   };
 }
 
@@ -113,8 +122,9 @@ export function buildCustomerLedgerPayload(args: {
   pageSize: number;
   totalItems: number;
   totalsRow?: LedgerSummaryRow | null;
+  openingBalance?: number;
 }) {
-  const { customer, rows, page, pageSize, totalItems, totalsRow } = args;
+  const { customer, rows, page, pageSize, totalItems, totalsRow, openingBalance } = args;
   return {
     customer: {
       id: String(customer.id),
@@ -125,7 +135,7 @@ export function buildCustomerLedgerPayload(args: {
     },
     entries: mapLedgerEntries(rows),
     pagination: buildPagination(page, pageSize, totalItems),
-    summary: buildLedgerSummary(totalItems, totalsRow),
+    summary: buildLedgerSummary(totalItems, totalsRow, openingBalance),
   };
 }
 
@@ -136,8 +146,9 @@ export function buildSupplierLedgerPayload(args: {
   pageSize: number;
   totalItems: number;
   totalsRow?: LedgerSummaryRow | null;
+  openingBalance?: number;
 }) {
-  const { supplier, rows, page, pageSize, totalItems, totalsRow } = args;
+  const { supplier, rows, page, pageSize, totalItems, totalsRow, openingBalance } = args;
   return {
     supplier: {
       id: String(supplier.id),
@@ -147,6 +158,6 @@ export function buildSupplierLedgerPayload(args: {
     },
     entries: mapLedgerEntries(rows),
     pagination: buildPagination(page, pageSize, totalItems),
-    summary: buildLedgerSummary(totalItems, totalsRow),
+    summary: buildLedgerSummary(totalItems, totalsRow, openingBalance),
   };
 }

@@ -22,7 +22,7 @@ export class SalesQueryService {
       : sql<boolean>`tenant_id = ${tenantId}`;
   }
 
-  private async fetchSaleBaseRows(auth: AuthContext, query?: Record<string, unknown>): Promise<{ rows: Array<Record<string, unknown>>, totalItems: number }> {
+  private async fetchSaleBaseRows(auth: AuthContext, query?: Record<string, unknown>): Promise<{ rows: Array<Record<string, unknown>>, totalItems: number, nextCursor: string | null }> {
     const search = typeof query?.search === 'string' ? query.search.trim() : (typeof query?.q === 'string' ? query.q.trim() : '');
     const numericId = Number(search);
     const hasNumericId = Number.isInteger(numericId) && numericId > 0;
@@ -33,6 +33,7 @@ export class SalesQueryService {
     
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(100, Math.max(1, Number(query?.pageSize || 30)));
+    const lastSeenId = Number(query?.lastSeenId || query?.lastId || query?.cursor || 0);
 
     let qb = this.db
       .selectFrom('sales as s')
@@ -96,14 +97,19 @@ export class SalesQueryService {
       ]));
     }
 
+    if (lastSeenId > 0) {
+      qb = qb.where('s.id', '<', lastSeenId);
+    }
+
     const rows = await qb
       .orderBy('s.id', 'desc')
       .limit(pageSize)
-      .offset((page - 1) * pageSize)
+      .offset(lastSeenId > 0 ? 0 : (page - 1) * pageSize)
       .execute() as unknown as Array<Record<string, unknown>>;
       
     const totalItems = rows.length > 0 ? Number(rows[0].total_count) : 0;
-    return { rows, totalItems };
+    const nextCursor = rows.length === pageSize ? String(rows[rows.length - 1].id) : null;
+    return { rows, totalItems, nextCursor };
   }
 
   private mapSaleShells(sales: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
@@ -185,7 +191,7 @@ export class SalesQueryService {
     const scope = requireTenantScope(auth);
     this.authz.assertCanViewSales(auth);
 
-    const { rows: baseSales, totalItems } = await this.fetchSaleBaseRows(auth, query);
+    const { rows: baseSales, totalItems, nextCursor } = await this.fetchSaleBaseRows(auth, query);
     const shells = this.mapSaleShells(baseSales);
     const firstRow = (baseSales[0] || {}) as Record<string, unknown>;
     const baseSummary = summarizeSales(shells);
@@ -210,7 +216,7 @@ export class SalesQueryService {
 
     return {
       sales: hydratedSales,
-      pagination: { page, pageSize, totalItems, totalPages, rangeStart, rangeEnd },
+      pagination: { page, pageSize, totalItems, totalPages, rangeStart, rangeEnd, nextCursor },
       summary,
       scope,
     };

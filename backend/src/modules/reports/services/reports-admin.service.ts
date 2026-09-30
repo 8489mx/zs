@@ -75,9 +75,20 @@ export class ReportsAdminService {
     rowsQuery = applyTreasurySearch(applySignedAmountFilter(rowsQuery, 't.amount', filter), searchPattern);
     summaryQuery = applyTreasurySearch(applySignedAmountFilter(summaryQuery, 't.amount', filter), searchPattern);
 
+    const lastSeenId = Math.max(0, Number((query as Record<string, unknown>).lastSeenId || (query as Record<string, unknown>).lastId || (query as Record<string, unknown>).cursor || 0));
+    if (lastSeenId > 0) {
+      rowsQuery = rowsQuery.where('t.id', '<', lastSeenId);
+    }
+
     const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
     const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
-    const rows = await rowsQuery.orderBy('t.id', 'desc').limit(pageSize).offset(offset).execute();
+    const rows = await rowsQuery
+      .orderBy('t.id', 'desc')
+      .limit(pageSize)
+      .offset(lastSeenId > 0 ? 0 : offset)
+      .execute();
+    const nextCursor = rows.length === pageSize ? String(rows[rows.length - 1].id) : null;
+
     const summaryRow = await summaryQuery
       .select([
         sql<number>`coalesce(sum(case when t.amount > 0 then t.amount else 0 end), 0)`.as('cash_in'),
@@ -87,7 +98,7 @@ export class ReportsAdminService {
       .executeTakeFirst();
 
     return {
-      ...buildTreasuryPayload({ rows: rows as TreasuryTransactionRow[], page, pageSize, totalItems, summaryRow: summaryRow as TreasurySummaryRow | null }),
+      ...buildTreasuryPayload({ rows: rows as TreasuryTransactionRow[], page, pageSize, totalItems, summaryRow: summaryRow as TreasurySummaryRow | null, nextCursor }),
       scope,
     };
   }

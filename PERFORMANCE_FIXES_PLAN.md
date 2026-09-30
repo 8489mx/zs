@@ -1,205 +1,350 @@
-# خطة إصلاح أداء النظام — Z-Systems Performance Fix Plan
+# خطة التنفيذ الهندسية — إصلاح أداء النظام
+# Performance Fix Execution Plan — Audited by Claude Opus
 
-> **تاريخ الإنشاء:** 2026-09-30
-> **المصدر:** فحص شامل للـ backend بعد إصلاح بطء الداشبورد
-> **الأداة:** فحص تلقائي لكل ملفات الـ service في `backend/src/modules/`
-
----
-
-## ✅ منجز (تم الإصلاح)
-
-### PERF-FIX-00 — Dashboard Trend Queries (2026-09-30)
-- **الملف:** `backend/src/modules/reports/reports.service.ts` — `dashboardOverview()`
-- **المشكلة:** بيجيب كل فواتير المبيعات والمشتريات (30 يوم) كـ raw rows في Node.js ويعمل grouping في JS
-- **الحل:** استبدل بـ SQL `GROUP BY` يوم → 30 row بدل N row
-- **الأثر:** تسريع ملحوظ في فتح الداشبورد
+> **تاريخ:** 2026-09-30
+> **المُعِدّ:** Claude Opus (مراجع ومدقق)
+> **المُنفِّذ:** Antigravity (Gemini Flash)
+> **التقييم النهائي:** Claude Opus بعد الانتهاء
 
 ---
 
-## 🔴 أولوية عالية — HIGH PRIORITY
+## القواعد الحاكمة للتنفيذ
 
-### PERF-FIX-01 — Manager Actions: Full Product Scan + Full Sale Items History
-- **الملفات:**
-  - `backend/src/modules/manager-actions/manager-actions.service.ts`
-    - `loadProducts()` — بيجيب كل المنتجات بدون LIMIT
-    - `loadProductLastSales()` — JOIN على كل تاريخ sale_items بلا حد زمني
-  - `backend/src/modules/manager-actions/manager-dashboard.service.ts`
-    - `productStockRows()` — نفس المشكلة مع subquery على كل المبيعات
-    - `customerDebtRows()` — كل العملاء بدون LIMIT
-- **التأثير:** الـ UI بيعرض 6-8 بنود بس — بيجيب آلاف المنتجات عشان يعرض 8
-- **الحل:**
-  - استبدل `loadProducts()` بـ SQL مباشر يرجع top-N حسب الأولوية (stock alert, stagnant) مع `ORDER BY ... LIMIT 50`
-  - `loadProductLastSales()` → استبدل بـ `MAX(s.created_at)` مع date lower bound (آخر سنة فقط)
-  - `customerDebtRows()` → أضف `WHERE balance > 0 LIMIT 100` بدل كل العملاء
-- **الخطوات:**
-  - [ ] عدّل `loadProducts()` — SQL aggregate with LIMIT
-  - [ ] عدّل `loadProductLastSales()` — date lower bound + aggregate
-  - [ ] عدّل `productStockRows()` في manager-dashboard
-  - [ ] عدّل `customerDebtRows()` في manager-dashboard
+1. **لا تعدّل `buildManagerActionInsights()` helper** — المنطق فيه صحيح، المشكلة في الـ queries اللي بتغذيه.
+2. **لا تلمس `reportSummary()`** في هذه المرحلة — حساس مالياً ويحتاج اختبارات.
+3. **كل query تُعدَّل يجب أن تُختبر يدوياً** بفتح الشاشة المتأثرة.
+4. **لا تستخدم `LIMIT` أعمى بدون `WHERE` ذكي أو `ORDER BY` على عمود حقيقي موجود في الـ DB.**
+5. **لا تشغّل `npm run build` أو `git push`** — المستخدم سيطلبهم صراحة.
 
 ---
 
-### PERF-FIX-02 — Aged Debts: Full History Scan Without Date Bound
-- **الملفات:**
-  - `backend/src/modules/accounting/services/aged-debts.service.ts`
-    - `getAgedReceivables()` — `.selectAll()` على كل العملاء + كل تاريخ المبيعات
-    - `getAgedPayables()` — نفس المشكلة على الموردين والمشتريات
-  - `backend/src/modules/reports/helpers/reports-summary.service.ts`
-    - `debtAgingReport()` — نفس الـ pattern بدون حد زمني
-- **التأثير:** متجر بـ 500 عميل و 50,000 فاتورة آجلة → بيجيب الـ 50,000 كلها في Node
-- **الحل:** استبدل الـ two-query + JS aging loop بـ SQL CTE واحد:
-  ```sql
-  SELECT customer_id,
-    SUM(CASE WHEN age <= 30 THEN remaining ELSE 0 END) as bucket_0_30,
-    SUM(CASE WHEN age BETWEEN 31 AND 60 THEN remaining ELSE 0 END) as bucket_31_60,
-    SUM(CASE WHEN age BETWEEN 61 AND 90 THEN remaining ELSE 0 END) as bucket_61_90,
-    SUM(CASE WHEN age > 90 THEN remaining ELSE 0 END) as bucket_over_90
-  FROM aged_invoices_cte
-  GROUP BY customer_id
-  ```
-- **الخطوات:**
-  - [ ] اكتب SQL CTE للـ aging في `aged-debts.service.ts`
-  - [ ] طبّق نفس الحل في `debtAgingReport()` في reports-summary
+## المرحلة 1 — Manager Actions Service (الأعلى تأثيراً)
+
+### ملف: `backend/src/modules/manager-actions/manager-actions.service.ts`
 
 ---
 
-### PERF-FIX-03 — Customer RFM Report: No Date Filter on Full Sales History
-- **الملف:** `backend/src/modules/reports/reports.service.ts` — `customerRfmReport()`
-- **المشكلة:** بيجيب كل المبيعات من الأزل (بدون date filter) ويعمل segments في JS
-- **التأثير:** متجر نشط لمدة 3 سنوات → ملايين السطور في Node
-- **الحل:**
-  - أضف date lower bound (آخر 24 شهر كحد أقصى للـ RFM)
-  - نقل segment counts لـ SQL: `COUNT(*) FILTER (WHERE recency_days <= 30)` etc.
-  - احتفظ بـ paginated item list فقط في JS
-- **الخطوات:**
-  - [ ] أضف `WHERE created_at >= NOW() - INTERVAL '24 months'`
-  - [ ] ادفع segment aggregations لـ SQL
-  - [ ] أضف pagination على النتيجة النهائية
+### إصلاح 1-A: `loadProductLastSales()` (السطر 101-114)
 
----
+**المشكلة:** يعمل `JOIN` على **كامل تاريخ** `sale_items × sales` للحصول على `MAX(created_at)` لكل صنف.
+مستأجر نشط لسنتين = ملايين السطور في الـ JOIN.
 
-### PERF-FIX-04 — reportSummary: 8 Unbounded Table Fetches
-- **الملف:** `backend/src/modules/reports/reports.service.ts` — `reportSummary()`
-- **المشكلة:** 8 queries متوازية تجيب كل الـ rows في نطاق التاريخ بدون LIMIT ثم تحسب في JS
-  - الأخطر: `saleItemsRows` — JOIN على sale_items × sales قد تكون 100,000+ row لشهر نشيط
-- **الحل:**
-  - `saleItemsRows` → استبدل بـ SQL `SUM(si.qty * si.cost_price)` مباشر (COGS)
-  - `salesRows` / `purchasesRows` → SQL `SUM(total)`, `COUNT(*)` مجمّعة
-  - `treasuryRows` → SQL `SUM(amount)` مجمّعة
-  - احتفظ بـ `topProductsLimit: 10` فقط كـ raw rows (already limited)
-- **ملاحظة:** هذه الأصعب لأن `buildReportSummaryPayload` معقد — يحتاج refactor تدريجي
-- **الخطوات:**
-  - [ ] ابدأ بـ `saleItemsRows` → COGS SQL aggregate (الأثقل)
-  - [ ] `treasuryRows` → SQL SUM بدل raw rows
-  - [ ] `returnsRows` → SQL SUM بدل raw rows
-  - [ ] تدريجياً `salesRows` / `purchasesRows` → SQL aggregates
+**الحل:** أضف date lower bound. أي صنف لم يُبَع خلال سنة كاملة هو بالتأكيد راكد — لا نحتاج سكان أبعد من ذلك.
 
----
-
-### PERF-FIX-05 — fetchMappedPurchases: Entire History Without Pagination
-- **الملف:** `backend/src/modules/purchases/services/purchases-query.service.ts` — `fetchMappedPurchases()`
-- **المشكلة:** بيجيب كل الفواتير من الأزل + كل بنودها (purchase_items) بدون pagination
-- **التأثير:** متجر بـ 10,000 فاتورة شراء → يجيب الـ 10,000 + كل البنود دفعة واحدة
-- **الحل:**
-  - إذا كانت مستخدمة للعرض: أضف LIMIT/OFFSET مثل `listPurchases()`
-  - إذا كانت للتصدير: أضف date range cap إلزامي + streaming بدل load كامل
-- **الخطوات:**
-  - [ ] افحص كل المستدعين لـ `fetchMappedPurchases()`
-  - [ ] أضف pagination أو date range cap حسب الاستخدام
-
----
-
-### PERF-FIX-06 — listSupplierPayments: All Records Without Pagination
-- **الملف:** `backend/src/modules/purchases/services/purchases-query.service.ts` — `listSupplierPayments()`
-- **المشكلة:** ترجع كل مدفوعات الموردين من الأزل بدون pagination
-- **الحل:** أضف LIMIT/OFFSET + total COUNT مثل نمط `listExpenses()`
-- **الخطوات:**
-  - [ ] أضف `page`, `pageSize` parameters
-  - [ ] أضف `COUNT(*) OVER()` window function للـ total
-  - [ ] عدّل الـ controller المستدعي
-
----
-
-## 🟡 أولوية متوسطة — MEDIUM PRIORITY
-
-### PERF-FIX-07 — demandForecastingReport: Full Product Scan Without Pagination
-- **الملف:** `backend/src/modules/reports/helpers/reports-summary.service.ts` — `demandForecastingReport()`
-- **المشكلة:** بيجيب كل المنتجات بدون LIMIT ويرجع كلها في الـ response
-- **الحل:** أضف pagination وإرجاع top-N فقط (مثلاً أعلى 100 بحسب الأولوية)
-- **الخطوات:**
-  - [ ] أضف `ORDER BY urgency_score DESC LIMIT 100`
-  - [ ] أضف pagination parameters للـ endpoint
-
----
-
-### PERF-FIX-08 — loadCustomers in Manager Actions: All Customers for Credit Check
-- **الملف:** `backend/src/modules/manager-actions/manager-actions.service.ts` — `loadCustomers()`
-- **المشكلة:** بيجيب كل العملاء عشان يعرض من تجاوز حد الائتمان فقط
-- **الحل:** استبدل بـ SQL مباشر يجيب العملاء المتجاوزين فقط:
-  ```sql
-  WHERE balance >= credit_limit * 0.8 AND credit_limit > 0
-  ORDER BY (balance / credit_limit) DESC LIMIT 20
-  ```
-- **الخطوات:**
-  - [ ] عدّل `loadCustomers()` بـ SQL مع WHERE للتجاوز فقط
-
----
-
-### PERF-FIX-09 — partnerBalances: All Partners Without Pagination
-- **الملف:** `backend/src/modules/reports/reports.service.ts` — `partnerBalances()`
-- **المشكلة:** بيجيب كل العملاء/الموردين بدون pagination — استعلام التقارير
-- **الحل:** أضف pagination أو على الأقل LIMIT ذكي (أعلى الأرصدة)
-- **الخطوات:**
-  - [ ] أضف `page`, `pageSize` أو `LIMIT 500`
-
----
-
-### PERF-FIX-10 — balance-sheet: selectAll + JS Classification Loop
-- **الملف:** `backend/src/modules/accounting/services/balance-sheet.service.ts` — `getBalanceSheet()`
-- **المشكلة:** `.selectAll()` غير ضروري + تصنيف الحسابات في JS loop
-- **الحل:** حدد الأعمدة المطلوبة فقط + ادفع التصنيف لـ SQL CASE WHEN
-- **الخطوات:**
-  - [ ] استبدل `.selectAll()` بـ `.select(['id', 'code', 'name', 'type', 'balance'])`
-  - [ ] ادرس إمكانية SQL CASE WHEN للتصنيف
-
----
-
-## 📋 ترتيب التنفيذ المقترح
-
+**الكود الحالي (سطر 101-114):**
+```typescript
+private loadProductLastSales(tenantId: string): Promise<ManagerActionLastSaleRow[]> {
+  return this.db
+    .selectFrom('sale_items as si')
+    .innerJoin('sales as s', 's.id', 'si.sale_id')
+    .select([
+      'si.product_id',
+      sql<Date>`max(s.created_at)`.as('last_sold_at'),
+    ])
+    .where('s.status', '=', 'posted')
+    .where('si.product_id', 'is not', null)
+    .where(sql<boolean>`s.tenant_id = ${tenantId}`)
+    .where(sql<boolean>`si.tenant_id = ${tenantId}`)
+    .groupBy('si.product_id')
+    .execute();
+}
 ```
-المرحلة 1 (الأسرع تأثيراً):
-  PERF-FIX-01 — Manager Actions (الصفحة بتفتح مع الداشبورد)
-  PERF-FIX-08 — loadCustomers fix (جزء من PERF-FIX-01)
 
-المرحلة 2 (تقارير الديون والعمر):
-  PERF-FIX-02 — Aged Debts (هيتقل جداً مع كبر البيانات)
+**الكود المطلوب:**
+```typescript
+private loadProductLastSales(tenantId: string): Promise<ManagerActionLastSaleRow[]> {
+  // PERF: limit scan to last 12 months — any product unsold for 12+ months
+  // is definitely stagnant and will be caught by the stagnant threshold check.
+  const oneYearAgo = new Date();
+  oneYearAgo.setUTCFullYear(oneYearAgo.getUTCFullYear() - 1);
+  return this.db
+    .selectFrom('sale_items as si')
+    .innerJoin('sales as s', 's.id', 'si.sale_id')
+    .select([
+      'si.product_id',
+      sql<Date>`max(s.created_at)`.as('last_sold_at'),
+    ])
+    .where('s.status', '=', 'posted')
+    .where('s.created_at', '>=', oneYearAgo)
+    .where('si.product_id', 'is not', null)
+    .where(sql<boolean>`s.tenant_id = ${tenantId}`)
+    .where(sql<boolean>`si.tenant_id = ${tenantId}`)
+    .groupBy('si.product_id')
+    .execute();
+}
+```
 
-المرحلة 3 (تقارير العملاء):
-  PERF-FIX-03 — RFM Report (full history issue)
+**لماذا هذا آمن:**
+- الـ helper يستخدم `lastSaleByProduct` Map لتحديد الأصناف الراكدة.
+- إذا لم يظهر صنف في النتيجة (لأنه لم يُبَع خلال سنة) → `lastSaleByProduct.get(id)` = `undefined` → `toDate(undefined)` = `null`.
+- في الـ helper سطر 262-280 (تقريباً)، الأصناف بدون `lastSale` أو بـ `lastSale = null` تُعامَل كراكدة. **فلن يُفقَد أي صنف راكد.**
 
-المرحلة 4 (المشتريات):
-  PERF-FIX-05 — fetchMappedPurchases
-  PERF-FIX-06 — listSupplierPayments
+---
 
-المرحلة 5 (الأصعب — refactor تدريجي):
-  PERF-FIX-04 — reportSummary (يحتاج تخطيط أعمق)
+### إصلاح 1-B: `loadCustomers()` (السطر 148-154)
 
-المرحلة 6 (متوسط):
-  PERF-FIX-07, 09, 10 (تحسينات إضافية)
+**المشكلة:** يجلب **كل** العملاء النشطين. الـ helper يستخدمهم فقط لفحص:
+- من لديه رصيد مدين (`balance > 0`)
+- من تجاوز حد الائتمان (`balance > credit_limit`)
+
+**الحل:** أضف `WHERE balance > 0` — العملاء بدون رصيد لن يولّدوا أي insight.
+
+**الكود الحالي (سطر 148-154):**
+```typescript
+private loadCustomers(tenantId: string): Promise<ManagerActionCustomerRow[]> {
+  return this.db
+    .selectFrom('customers')
+    .select(['id', 'name', 'balance', 'credit_limit'])
+    .where('is_active', '=', true)
+    .where(sql<boolean>`tenant_id = ${tenantId}`)
+    .execute();
+}
+```
+
+**الكود المطلوب:**
+```typescript
+private loadCustomers(tenantId: string): Promise<ManagerActionCustomerRow[]> {
+  // PERF: only fetch customers with positive balance — zero-balance customers
+  // never trigger credit-limit or debt-collection insights.
+  return this.db
+    .selectFrom('customers')
+    .select(['id', 'name', 'balance', 'credit_limit'])
+    .where('is_active', '=', true)
+    .where('balance', '>', 0)
+    .where(sql<boolean>`tenant_id = ${tenantId}`)
+    .execute();
+}
+```
+
+**لماذا هذا آمن:**
+- افتح `manager-actions.helper.ts` وابحث عن كيف يُستخدم `customers`:
+  - فحص تجاوز حد الائتمان → يشترط `balance > credit_limit` — إذاً `balance > 0` ضمنياً.
+  - فحص أكبر المديونيات → يرتب حسب `balance` تنازلياً — العملاء بصفر رصيد لا يظهرون.
+- **لن يُفقَد أي عميل مهم.**
+
+---
+
+## المرحلة 2 — Manager Dashboard Service
+
+### ملف: `backend/src/modules/manager-actions/manager-dashboard.service.ts`
+
+---
+
+### إصلاح 2-A: `productStockRows()` (السطر 80)
+
+**المشكلة:** الـ LEFT JOIN subquery يسكان **كامل تاريخ** `sale_items × sales` للحصول على `MAX(created_at)` و `sold_qty_30`.
+
+**الحل:** أضف date lower bound على الـ subquery — نفس منطق إصلاح 1-A.
+
+**التعديل المطلوب داخل الـ subquery في السطر 80:**
+أضف شرط `WHERE s.created_at >= oneYearAgo` داخل الـ subquery.
+يجب حساب `oneYearAgo` في بداية الـ `overview()` method (مثلاً سطر 34-35).
+
+**الكود المطلوب:** في بداية `overview()` بعد سطر 36:
+```typescript
+const oneYearAgo = new Date(now);
+oneYearAgo.setUTCFullYear(oneYearAgo.getUTCFullYear() - 1);
+```
+
+ثم في `productStockRows()` أضف parameter `oneYearAgo: Date` وأضف:
+```typescript
+.where('s.created_at', '>=', oneYearAgo)
+```
+داخل الـ subquery **قبل** `.groupBy('si.product_id')`.
+
+**تمرير الـ parameter:**
+غيّر استدعاء `productStockRows` في سطر 43:
+```typescript
+// من:
+this.safeRows(() => this.productStockRows(last30Start, tenantId)),
+// إلى:
+this.safeRows(() => this.productStockRows(last30Start, oneYearAgo, tenantId)),
+```
+
+وعدّل signature الميثود لتستقبل `oneYearAgo`:
+```typescript
+private productStockRows(last30Start: Date, oneYearAgo: Date, tenantId: string)
 ```
 
 ---
 
-## 📊 ملخص الأثر المتوقع
+### إصلاح 2-B: `customerDebtRows()` (السطر 81)
 
-| الإصلاح | قبل | بعد | الأثر |
-|---------|------|------|-------|
-| PERF-FIX-01 | N منتج كامل | 50 row | الأهم للـ UX اليومي |
-| PERF-FIX-02 | N فاتورة تاريخية | SQL CTE | يمنع timeout عند كبر البيانات |
-| PERF-FIX-03 | كل التاريخ | 24 شهر فقط | يمنع crash للمتاجر القديمة |
-| PERF-FIX-04 | N row في Node | SQL SUM | تسريع الداشبورد والتقارير |
-| PERF-FIX-05/06 | كل التاريخ | paginated | يمنع timeout |
+**المشكلة:** يجلب **كل** العملاء النشطين — نفس مشكلة 1-B.
+
+**الحل:** نفس إصلاح 1-B — `WHERE balance > 0`.
+
+**الكود الحالي (سطر 81):**
+```typescript
+private customerDebtRows(tenantId: string): Promise<Row[]> {
+  return this.db.selectFrom('customers')
+    .select(['id', 'name', 'balance', 'credit_limit'])
+    .where('is_active', '=', true)
+    .where(this.tenantClause(tenantId))
+    .execute();
+}
+```
+
+**أضف:**
+```typescript
+.where('balance', '>', 0)
+```
 
 ---
 
-> **ملاحظة للـ AI Agent:** اقرأ هذا الملف قبل أي إصلاح أداء. حدّث حالة الـ checkbox لكل مهمة بعد إتمامها. لا تعدّل إصلاحاً مكتملاً (✅) دون سبب وجيه.
+### إصلاح 2-C: `returnRows()` (السطر 77)
+
+**المشكلة:** يجلب **كل** `return_documents` في 30 يوم كـ raw rows ثم يعمل `.filter()` و `.reduce()` في JS.
+
+**الحل:** استبدل بـ SQL aggregate:
+
+**الكود الحالي (سطر 77):**
+```typescript
+private returnRows(from: Date, to: Date, tenantId: string): Promise<Row[]> {
+  return this.db.selectFrom('return_documents')
+    .select(['return_type', 'total'])
+    .where('created_at', '>=', from).where('created_at', '<', to)
+    .where(this.tenantClause(tenantId)).execute();
+}
+```
+
+**الكود المطلوب:**
+```typescript
+private returnTotals(from: Date, to: Date, tenantId: string): Promise<Row[]> {
+  return this.db.selectFrom('return_documents')
+    .select([
+      'return_type',
+      sql<number>`coalesce(sum(total), 0)`.as('total'),
+    ])
+    .where('created_at', '>=', from).where('created_at', '<', to)
+    .where(this.tenantClause(tenantId))
+    .groupBy('return_type')
+    .execute();
+}
+```
+
+**ثم عدّل الاستخدام في `overview()` سطر 55:**
+```typescript
+// الكود الحالي:
+const salesReturnsTotal = m(returnsLast30.filter((r) => r.return_type === 'sale').reduce((s, r) => s + n(r.total), 0));
+
+// يصبح (نفس المنطق لكن الجمع تم في SQL):
+const salesReturnsTotal = m(n(returnsLast30.find((r) => r.return_type === 'sale')?.total));
+```
+
+**ملاحظة:** غيّر اسم الميثود في الاستدعاء سطر 40 من `returnRows` إلى `returnTotals`.
+
+---
+
+## المرحلة 3 — Purchases Query Service
+
+### ملف: `backend/src/modules/purchases/services/purchases-query.service.ts`
+
+---
+
+### إصلاح 3-A: `listSupplierPayments()` (السطر 219-236)
+
+**المشكلة:** يرجع **كل** مدفوعات الموردين بدون pagination.
+
+**الحل:** أضف LIMIT/OFFSET + total count بنفس نمط `listPurchases()` الموجود في نفس الملف.
+
+**خطوات التنفيذ:**
+1. افتح `listPurchases()` (سطر 58+) وانسخ نمط الـ pagination (page, pageSize, offset, COUNT(*) OVER()).
+2. عدّل `listSupplierPayments()` لتقبل `query: Record<string, unknown>` مع `page` و `pageSize`.
+3. أضف `COUNT(*) OVER()` كـ window function و `.limit(pageSize).offset(offset)`.
+4. ارجع `{ items, total, page, pageSize }` بدل array مباشر.
+5. **عدّل الـ controller** المستدعي ليمرر الـ query params.
+6. **عدّل الـ frontend** ليتعامل مع الـ paginated response — ابحث عن مكان استدعاء هذا الـ endpoint.
+
+---
+
+### إصلاح 3-B: `fetchMappedPurchases()` (السطر 21-56)
+
+**المشكلة:** يجلب **كل** فواتير الشراء + كل بنودها + كل المرفقات بدون أي حد.
+
+**خطوات التنفيذ:**
+1. **أولاً:** ابحث عن كل الأماكن اللي بتستدعي `fetchMappedPurchases()` في الكود:
+   ```
+   Select-String -Path "d:/zn/backend/src/**/*.ts" -Pattern "fetchMappedPurchases" -Recurse
+   ```
+2. **إذا كانت مستخدمة للتصدير (export):** أضف date range إلزامي كـ parameter.
+3. **إذا كانت مستخدمة للعرض:** استبدل الاستدعاء بـ `listPurchases()` المحدود أصلاً.
+4. **في كل الحالات:** أضف `LIMIT 500` كشبكة أمان (safety net) حتى لو كان الاستخدام مؤقت.
+
+> ⚠️ **تحذير:** لا تحذف الميثود أو تعدّل الـ return type بدون فحص كل المستدعين أولاً.
+
+---
+
+## المرحلة 4 — Aged Debts (تقارير أعمار الديون)
+
+### ملف: `backend/src/modules/accounting/services/aged-debts.service.ts`
+
+---
+
+### إصلاح 4-A: `getAgedReceivables()`
+
+**المشكلة:**
+1. `.selectAll()` على كل العملاء (يجلب كل الأعمدة + كل الصفوف)
+2. يجلب **كل** الفواتير الآجلة تاريخياً بدون date lower bound
+3. JS loop لتوزيع الرصيد على الفواتير
+
+**الحل (تدريجي وآمن):**
+1. **استبدل `.selectAll()`** بـ `.select(['id', 'name', 'balance', 'credit_limit'])` — فقط الأعمدة المطلوبة.
+2. **أضف `WHERE balance > 0`** — عملاء بدون رصيد لا يظهرون في تقرير الأعمار.
+3. **أضف date lower bound** على الفواتير: `WHERE created_at >= NOW() - INTERVAL '3 years'` — فواتير أقدم من 3 سنوات تقع كلها في bucket الـ `+90 يوم` على أي حال.
+
+> ⚠️ **لا تحاول نقل منطق الـ FIFO aging إلى SQL** — هذا معقد ويتطلب window functions مع running sum. الـ JS loop مقبول إذا قللنا عدد الصفوف المدخلة.
+
+### إصلاح 4-B: `getAgedPayables()`
+**نفس الإصلاحات بالضبط** — suppliers بدل customers، purchases بدل sales.
+
+---
+
+## المرحلة 5 — Customer RFM Report
+
+### ملف: `backend/src/modules/reports/reports.service.ts` — `customerRfmReport()`
+
+---
+
+**المشكلة:** يجلب **كل** المبيعات من الأزل بدون date filter.
+
+**الحل:**
+1. أضف `WHERE s.created_at >= NOW() - INTERVAL '24 months'` — الـ RFM لا يحتاج أكثر من سنتين.
+2. أضف pagination على النتيجة النهائية (الكود الحالي يرجع كل العملاء في response واحد).
+
+**خطوات التنفيذ:**
+1. ابحث عن الـ query داخل `customerRfmReport()` وأضف `.where('s.created_at', '>=', twoYearsAgo)`.
+2. أضف `.limit(500)` على النتيجة أو pagination parameters.
+
+---
+
+## ❌ ما لا يُنفَّذ في هذه الخطة
+
+| الملف | الميثود | السبب |
+|-------|---------|-------|
+| `reports.service.ts` | `reportSummary()` | حساس مالياً — يحتاج unit tests قبل أي تعديل |
+| `reports-dashboard.helper.ts` | `buildSevenDayTrends()` | تم إصلاحه بالفعل (PERF-FIX-00) |
+| `balance-sheet.service.ts` | `getBalanceSheet()` | جدول الحسابات صغير (مئات) — أولوية منخفضة |
+
+---
+
+## ترتيب التنفيذ
+
+```
+1-A → 1-B → 2-A → 2-B → 2-C → اختبار يدوي للداشبورد
+3-A → 3-B → اختبار يدوي لشاشة المشتريات
+4-A → 4-B → اختبار يدوي لتقرير أعمار الديون
+5 → اختبار يدوي لتقرير RFM
+```
+
+---
+
+## معايير التقييم النهائي (Claude Opus)
+
+سأراجع كل إصلاح بناءً على:
+
+1. **هل الـ WHERE conditions آمنة؟** — لم تُفقَد بيانات مهمة؟
+2. **هل الـ return type لم يتغير؟** — الـ helper و الـ frontend يتوقعان نفس الشكل؟
+3. **هل كل المستدعين (callers) تم تحديثهم؟** — لا يوجد compile error أو runtime crash؟
+4. **هل الـ GROUP BY expressions صحيحة؟** — لا يوجد خطأ `must appear in GROUP BY` (مثل ما حصل في الداشبورد)?
+5. **هل الأداء تحسن فعلاً؟** — الحل لم يُضِف queries إضافية تبطئ أكثر؟

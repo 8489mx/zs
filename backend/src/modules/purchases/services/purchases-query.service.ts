@@ -32,6 +32,7 @@ export class PurchasesQueryService {
       ])
       .where(this.tenantPredicate(auth, 'p'))
       .orderBy('p.id', 'desc')
+      .limit(500)
       .execute();
 
     const purchaseIds = purchases.map((row) => Number(row.id || 0)).filter((id) => id > 0);
@@ -101,15 +102,21 @@ export class PurchasesQueryService {
       qb = qb.where('p.status', '=', 'cancelled');
     }
 
+    const lastSeenId = Math.max(0, Number(query.lastSeenId || query.lastId || query.cursor || 0));
+    if (lastSeenId > 0) {
+      qb = qb.where('p.id', '<', lastSeenId);
+    }
+
     const purchases = await qb
       .orderBy('p.id', 'desc')
       .limit(pageSize)
-      .offset(offset)
+      .offset(lastSeenId > 0 ? 0 : offset)
       .execute();
 
     const firstRow = (purchases[0] || {}) as Record<string, unknown>;
     const totalItems = purchases.length > 0 ? Number(firstRow.total_count || 0) : 0;
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    const nextCursor = purchases.length === pageSize ? String(purchases[purchases.length - 1].id) : null;
 
     const pagedIds = purchases.map((r) => Number(r.id || 0)).filter((id) => id > 0);
 
@@ -151,7 +158,7 @@ export class PurchasesQueryService {
 
     return {
       purchases: hydratedRows,
-      pagination: { page, pageSize, totalItems, totalPages },
+      pagination: { page, pageSize, totalItems, totalPages, nextCursor },
       summary,
       scope
     };
@@ -216,21 +223,53 @@ export class PurchasesQueryService {
     return { attachment: row };
   }
 
-  async listSupplierPayments(auth: AuthContext): Promise<Record<string, unknown>> {
+  async listSupplierPayments(auth: AuthContext, query?: Record<string, unknown>): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
+    const page = Math.max(1, Number(query?.page || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(query?.pageSize || query?.limit || 50)));
+    const offset = (page - 1) * pageSize;
     const rows = await this.db
       .selectFrom('supplier_payments as sp')
       .leftJoin('branches as b', 'b.id', 'sp.branch_id')
       .leftJoin('stock_locations as l', 'l.id', 'sp.location_id')
       .leftJoin('users as u', 'u.id', 'sp.created_by')
-      .select(['sp.id', 'sp.doc_no', 'sp.supplier_id', 'sp.amount', 'sp.note', 'sp.payment_date', 'sp.branch_id', 'sp.location_id', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name'])
+      .select([
+        'sp.id',
+        'sp.doc_no',
+        'sp.supplier_id',
+        'sp.amount',
+        'sp.note',
+        'sp.payment_date',
+        'sp.branch_id',
+        'sp.location_id',
+        'b.name as branch_name',
+        'l.name as location_name',
+        'u.username as created_by_name',
+        sql<number>`count(*) over()`.as('total_count'),
+      ])
       .where(this.tenantPredicate(auth, 'sp'))
       .orderBy('sp.id', 'desc')
+      .limit(pageSize)
+      .offset(offset)
       .execute();
+    const total = rows.length > 0 ? Number(rows[0].total_count || 0) : 0;
     return {
       supplierPayments: rows.map((row) => ({
-        id: String(row.id), docNo: row.doc_no || `ZPV-${row.id}`, supplierId: String(row.supplier_id), amount: Number(row.amount || 0), note: row.note || '', date: row.payment_date, createdBy: row.created_by_name || '', branchId: row.branch_id ? String(row.branch_id) : '', locationId: row.location_id ? String(row.location_id) : '', branchName: row.branch_name || '', locationName: row.location_name || '',
+        id: String(row.id),
+        docNo: row.doc_no || `ZPV-${row.id}`,
+        supplierId: String(row.supplier_id),
+        amount: Number(row.amount || 0),
+        note: row.note || '',
+        date: row.payment_date,
+        createdBy: row.created_by_name || '',
+        branchId: row.branch_id ? String(row.branch_id) : '',
+        locationId: row.location_id ? String(row.location_id) : '',
+        branchName: row.branch_name || '',
+        locationName: row.location_name || '',
       })),
+      total,
+      page,
+      pageSize,
       scope,
     };
   }

@@ -6,6 +6,7 @@ import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.in
 import { ReportRangeQueryDto } from './dto/report-query.dto';
 import { ReportsService } from './reports.service';
 import { DynamicPivotService } from './services/dynamic-pivot.service';
+import { DailyCommercialRollupService } from './services/daily-commercial-rollup.service';
 import { ExecuteDynamicPivotDto, SavePivotTemplateDto } from './dto/dynamic-pivot.dto';
 
 @Controller('api')
@@ -14,6 +15,7 @@ export class ReportsController {
   constructor(
     private readonly reportsService: ReportsService,
     private readonly pivotService: DynamicPivotService,
+    private readonly rollupService: DailyCommercialRollupService,
   ) {}
 
   @Get('dashboard/overview')
@@ -141,5 +143,32 @@ export class ReportsController {
     @Req() req: RequestWithAuth,
   ) {
     return this.pivotService.deleteTemplate(req.authContext!, id);
+  }
+
+  @Get('reports/rollups/multi-year-comparison')
+  @RequireAnyPermission('reports', 'dashboard')
+  multiYearRollupComparison(
+    @Query('years') yearsParam: string,
+    @Query('branchId') branchId: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    const years = (yearsParam || '')
+      .split(',')
+      .map((y) => parseInt(y.trim(), 10))
+      .filter((y) => !isNaN(y) && y >= 2020 && y <= 2040);
+    const targetYears = years.length > 0 ? years : [new Date().getFullYear() - 1, new Date().getFullYear()];
+    const branch = branchId ? parseInt(branchId, 10) : undefined;
+    return this.rollupService.getHistoricalMultiYearComparison(req.authContext!.tenantId!, targetYears, branch);
+  }
+
+  @Post('reports/rollups/compute-day')
+  @RequirePermissions('reports')
+  computeDayRollup(
+    @Body('date') date: string,
+    @Body('branchId') branchId: number,
+    @Req() req: RequestWithAuth,
+  ) {
+    const targetDate = (date || new Date().toISOString().slice(0, 10)).trim();
+    return this.rollupService.computeAndStoreDailyRollup(req.authContext!.tenantId!, targetDate, branchId);
   }
 }

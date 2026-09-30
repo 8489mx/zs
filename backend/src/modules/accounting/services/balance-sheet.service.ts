@@ -98,6 +98,7 @@ export class BalanceSheetService {
         sql<number>`COALESCE(SUM(jel.credit), 0)`.as('total_credit'),
       ])
       .where('je.tenant_id', '=', tenantId)
+      .where('jel.tenant_id', '=', tenantId)
       .where('je.status', '=', 'posted')
       .where('je.entry_date', '<=', targetDate)
       .groupBy('jel.account_id');
@@ -127,6 +128,7 @@ export class BalanceSheetService {
           sql<number>`COALESCE(SUM(jel.credit), 0)`.as('total_credit'),
         ])
         .where('je.tenant_id', '=', tenantId)
+        .where('jel.tenant_id', '=', tenantId)
         .where('je.status', '=', 'posted')
         .where('je.entry_date', '<=', compareDate)
         .groupBy('jel.account_id');

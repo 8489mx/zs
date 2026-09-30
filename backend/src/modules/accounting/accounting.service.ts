@@ -536,14 +536,20 @@ export class AccountingService {
       rowsQuery = rowsQuery.where('je.source_type', '=', filters.sourceType.trim());
     }
 
+    const lastSeenId = Math.max(0, Number(filters.lastSeenId || filters.cursor || 0));
+    if (lastSeenId > 0) {
+      rowsQuery = rowsQuery.where('je.id', '<', lastSeenId);
+    }
+
     const totalRow = await countQuery.select((eb) => eb.fn.countAll<number>().as('count')).executeTakeFirst();
     const totalItems = Number(totalRow?.count || 0);
     const rows = await rowsQuery
-      .orderBy('je.created_at', 'desc')
       .orderBy('je.id', 'desc')
       .limit(pageSize)
-      .offset(offset)
+      .offset(lastSeenId > 0 ? 0 : offset)
       .execute();
+
+    const nextCursor = rows.length === pageSize ? String(rows[rows.length - 1].id) : null;
 
     return {
       entries: rows.map((row) => ({
@@ -568,6 +574,7 @@ export class AccountingService {
         pageSize,
         totalItems,
         totalPages: Math.max(1, Math.ceil(totalItems / pageSize)),
+        nextCursor,
       },
     };
   }
@@ -1061,12 +1068,13 @@ export class AccountingService {
         'a.name_ar as account_name_ar',
         'a.account_type as account_type',
         'a.account_group as account_group',
-        'l.debit as debit',
-        'l.credit as credit',
         'je.source_type as source_type',
+        sql<number>`COALESCE(SUM(l.debit), 0)`.as('debit'),
+        sql<number>`COALESCE(SUM(l.credit), 0)`.as('credit'),
       ])
       .where('je.status', '=', 'posted')
-      .where(this.tenantPredicate(auth, 'je'));
+      .where(this.tenantPredicate(auth, 'je'))
+      .where(this.tenantPredicate(auth, 'l'));
 
     if (dateFrom) {
       query = query.where('je.entry_date', '>=', dateFrom);
@@ -1081,7 +1089,9 @@ export class AccountingService {
       query = query.where('je.location_id', '=', locationId);
     }
 
-    const rows = await query.execute();
+    const rows = await query
+      .groupBy(['a.code', 'a.name_ar', 'a.account_type', 'a.account_group', 'je.source_type'])
+      .execute();
 
     const REVENUE_CODES = ['4100', '4200'];
     const CONTRA_REVENUE_CODES = ['4300', '4400'];
@@ -1381,12 +1391,12 @@ export class AccountingService {
         'a.code as account_code',
         'a.name_ar as account_name_ar',
         'je.source_type as source_type',
-        'je.entry_date as entry_date',
-        'l.debit as debit',
-        'l.credit as credit',
+        sql<number>`COALESCE(SUM(l.debit), 0)`.as('debit'),
+        sql<number>`COALESCE(SUM(l.credit), 0)`.as('credit'),
       ])
       .where('je.status', '=', 'posted')
       .where(this.tenantPredicate(auth, 'je'))
+      .where(this.tenantPredicate(auth, 'l'))
       .where('a.code', 'in', ['1110', '1120']);
 
     if (dateFrom) query = query.where('je.entry_date', '>=', dateFrom);
@@ -1394,7 +1404,9 @@ export class AccountingService {
     if (branchId) query = query.where('je.branch_id', '=', branchId);
     if (locationId) query = query.where('je.location_id', '=', locationId);
 
-    const rows = await query.orderBy('je.entry_date', 'desc').execute();
+    const rows = await query
+      .groupBy(['a.code', 'a.name_ar', 'je.source_type'])
+      .execute();
 
     let totalDebit = 0;
     let totalCredit = 0;

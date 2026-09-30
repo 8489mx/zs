@@ -30,6 +30,9 @@ export class TreasuryService {
     const pageSize = Math.min(100, Math.max(1, Number(query.pageSize || 20)));
     const offset = (page - 1) * pageSize;
 
+    const lastSeenId = Math.max(0, Number(query.lastSeenId || query.lastId || query.cursor || 0));
+    const safeOffset = lastSeenId > 0 ? 0 : offset;
+
     const querySql = search 
       ? sql`
           WITH filtered_expenses AS (
@@ -41,6 +44,7 @@ export class TreasuryService {
             LEFT JOIN stock_locations l ON l.id = e.location_id AND l.tenant_id = ${scope.tenantId}
             LEFT JOIN users u ON u.id = e.created_by AND u.tenant_id = ${scope.tenantId}
             WHERE e.tenant_id = ${scope.tenantId}
+            ${lastSeenId > 0 ? sql`AND e.id < ${lastSeenId}` : sql``}
             AND (
               e.title ILIKE ${searchPattern} OR
               e.note ILIKE ${searchPattern} OR
@@ -52,7 +56,7 @@ export class TreasuryService {
           SELECT *, COUNT(*) OVER() as total_count, SUM(amount) OVER() as total_amount
           FROM filtered_expenses
           ORDER BY id DESC
-          LIMIT ${pageSize} OFFSET ${offset}
+          LIMIT ${pageSize} OFFSET ${safeOffset}
         `
       : sql`
           WITH filtered_expenses AS (
@@ -64,11 +68,12 @@ export class TreasuryService {
             LEFT JOIN stock_locations l ON l.id = e.location_id AND l.tenant_id = ${scope.tenantId}
             LEFT JOIN users u ON u.id = e.created_by AND u.tenant_id = ${scope.tenantId}
             WHERE e.tenant_id = ${scope.tenantId}
+            ${lastSeenId > 0 ? sql`AND e.id < ${lastSeenId}` : sql``}
           )
           SELECT *, COUNT(*) OVER() as total_count, SUM(amount) OVER() as total_amount
           FROM filtered_expenses
           ORDER BY id DESC
-          LIMIT ${pageSize} OFFSET ${offset}
+          LIMIT ${pageSize} OFFSET ${safeOffset}
         `;
 
     const result = await querySql.execute(this.db) as any;
@@ -89,10 +94,11 @@ export class TreasuryService {
     const totalItems = result.rows.length > 0 ? Number(result.rows[0].total_count) : 0;
     const totalAmount = result.rows.length > 0 ? Number(result.rows[0].total_amount) : 0;
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    const nextCursor = result.rows.length === pageSize ? String(result.rows[result.rows.length - 1].id) : null;
 
     return {
       expenses: rows,
-      pagination: { page, pageSize, totalItems, totalPages },
+      pagination: { page, pageSize, totalItems, totalPages, nextCursor },
       summary: {
         totalItems,
         totalAmount: Number(totalAmount.toFixed(2)),

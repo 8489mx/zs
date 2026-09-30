@@ -64,6 +64,50 @@ export class SalesWriteService {
     @Optional() private readonly fraudRadarService?: CashierFraudRadarService,
   ) {}
 
+  // ── High-speed In-Memory Settings Cache for Sales & POS Checkouts ──────────
+  // Key: tenantId -> { map: Map<string, any>, expiresAt: number }
+  // At 10,000 invoices/day, this eliminates up to 60,000 in-transaction settings queries/day.
+  private static readonly tenantSettingsMapCache = new Map<string, { map: Map<string, any>; expiresAt: number }>();
+  private static readonly SETTINGS_MAP_CACHE_TTL_MS = 60_000; // 60s TTL
+
+  public static invalidateSettingsCache(tenantId?: string): void {
+    if (tenantId) {
+      SalesWriteService.tenantSettingsMapCache.delete(tenantId);
+    } else {
+      SalesWriteService.tenantSettingsMapCache.clear();
+    }
+  }
+
+  private async getTenantSettingsMap(tenantId: string): Promise<Map<string, any>> {
+    const now = Date.now();
+    const cached = SalesWriteService.tenantSettingsMapCache.get(tenantId);
+    if (cached && cached.expiresAt > now) {
+      return cached.map;
+    }
+
+    const rows = await this.db
+      .selectFrom('settings')
+      .select(['key', 'value'])
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .execute();
+
+    const map = new Map<string, any>();
+    for (const row of rows) {
+      try {
+        map.set(row.key, JSON.parse(row.value));
+      } catch {
+        map.set(row.key, row.value);
+      }
+    }
+
+    SalesWriteService.tenantSettingsMapCache.set(tenantId, {
+      map,
+      expiresAt: now + SalesWriteService.SETTINGS_MAP_CACHE_TTL_MS,
+    });
+
+    return map;
+  }
+
   private shouldLogCheckoutTimings(): boolean {
     return String(process.env.CHECKOUT_TIMINGS || '').trim() === '1';
   }
@@ -81,21 +125,11 @@ export class SalesWriteService {
     let exceedsThreshold = false;
     try {
       const scope = requireTenantScope(auth);
-      const settingsRows = await trx
-        .selectFrom('settings')
-        .select(['key', 'value'])
-        .where('key', 'in', ['posMaxDiscountThresholdEnabled', 'posMaxDiscountThresholdType', 'posMaxDiscountThresholdValue'])
-        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-        .execute();
+      const settingsMap = await this.getTenantSettingsMap(scope.tenantId);
 
-      const settingsMap = settingsRows.reduce<Record<string, any>>((acc, row) => {
-        try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; }
-        return acc;
-      }, {});
-
-      const isThresholdEnabled = settingsMap.posMaxDiscountThresholdEnabled === true || settingsMap.posMaxDiscountThresholdEnabled === 'true';
-      const thresholdType = settingsMap.posMaxDiscountThresholdType || 'percentage';
-      const thresholdValue = Number(settingsMap.posMaxDiscountThresholdValue || 0);
+      const isThresholdEnabled = settingsMap.get('posMaxDiscountThresholdEnabled') === true || settingsMap.get('posMaxDiscountThresholdEnabled') === 'true';
+      const thresholdType = settingsMap.get('posMaxDiscountThresholdType') || 'percentage';
+      const thresholdValue = Number(settingsMap.get('posMaxDiscountThresholdValue') || 0);
 
       if (isThresholdEnabled && thresholdValue > 0) {
         if (thresholdType === 'percentage') {
@@ -155,21 +189,11 @@ export class SalesWriteService {
       .executeTakeFirst();
   }
 
-  private async getAllowNegativeStockSales(trx: Kysely<Database> | Transaction<Database>, tenantId: string): Promise<boolean> {
-    const rows = await trx
-      .selectFrom('settings')
-      .select(['key', 'value'])
-      .where('key', 'in', ['allowNegativeStockSales', 'allowSellingBelowStock'])
-      .where(sql<boolean>`tenant_id = ${tenantId}`)
-      .execute();
-
-    return rows.some((row) => {
-      try {
-        return JSON.parse(String(row.value ?? 'false')) === true;
-      } catch {
-        return String(row.value || '').trim().toLowerCase() === 'true';
-      }
-    });
+  private async getAllowNegativeStockSales(_trx: Kysely<Database> | Transaction<Database>, tenantId: string): Promise<boolean> {
+    const settingsMap = await this.getTenantSettingsMap(tenantId);
+    const allowNegative = settingsMap.get('allowNegativeStockSales');
+    const allowSellingBelow = settingsMap.get('allowSellingBelowStock');
+    return allowNegative === true || allowNegative === 'true' || allowSellingBelow === true || allowSellingBelow === 'true';
   }
 
   private async buildInsufficientStockError(
@@ -896,30 +920,15 @@ export class SalesWriteService {
         }
       }
 
-      // Fetch loyalty settings
-      const loyaltySettingRows = await trx
-        .selectFrom('settings')
-        .select(['key', 'value'])
-        .where('key', 'in', [
-          'loyaltyEnabled',
-          'loyaltyPointsPer100Egp',
-          'loyaltyPointRedeemValue',
-          'loyaltyMinRedeemPoints',
-          'loyaltyMaxDiscountPercentage',
-        ])
-        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-        .execute();
+      // Fetch loyalty and cashier settings from high-speed in-memory cache
+      const settingsMap = await this.getTenantSettingsMap(scope.tenantId);
 
-      const loyaltyConfig = loyaltySettingRows.reduce<Record<string, any>>((acc, row) => {
-        try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; }
-        return acc;
-      }, {});
-
-      const loyaltyEnabled = loyaltyConfig.loyaltyEnabled !== false;
-      const pointsPer100Egp = Number(loyaltyConfig.loyaltyPointsPer100Egp ?? 10);
-      const pointRedeemValue = Number(loyaltyConfig.loyaltyPointRedeemValue ?? 0.1);
-      const minRedeemPoints = Number(loyaltyConfig.loyaltyMinRedeemPoints ?? 0);
-      const maxDiscountPercentage = Number(loyaltyConfig.loyaltyMaxDiscountPercentage ?? 100);
+      const loyaltyEnabledVal = settingsMap.get('loyaltyEnabled');
+      const loyaltyEnabled = loyaltyEnabledVal !== false && loyaltyEnabledVal !== 'false';
+      const pointsPer100Egp = Number(settingsMap.get('loyaltyPointsPer100Egp') ?? 10);
+      const pointRedeemValue = Number(settingsMap.get('loyaltyPointRedeemValue') ?? 0.1);
+      const minRedeemPoints = Number(settingsMap.get('loyaltyMinRedeemPoints') ?? 0);
+      const maxDiscountPercentage = Number(settingsMap.get('loyaltyMaxDiscountPercentage') ?? 100);
 
       let effectiveDiscount = normalized.discount;
       let loyaltyDiscount = 0;
@@ -951,20 +960,8 @@ export class SalesWriteService {
 
       const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
       
-      const requireCashierShiftForSales = await trx
-        .selectFrom('settings')
-        .select('value')
-        .where('key', '=', 'requireCashierShiftForSales')
-        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-        .executeTakeFirst()
-        .then((row) => {
-          if (!row || !row.value) return true;
-          try {
-            return JSON.parse(row.value) !== false;
-          } catch {
-            return String(row.value).toLowerCase() !== 'false';
-          }
-        });
+      const requireCashierShiftVal = settingsMap.get('requireCashierShiftForSales');
+      const requireCashierShiftForSales = requireCashierShiftVal == null ? true : (requireCashierShiftVal !== false && requireCashierShiftVal !== 'false');
 
       if (normalized.source === 'pos' && requireCashierShiftForSales) {
         const hasOpenShift = await this.authz.hasOpenCashierShift(trx, auth);
@@ -1053,8 +1050,8 @@ export class SalesWriteService {
       const changeAmount = Number(Math.max(0, finalTenderedAmount - appliedCash).toFixed(2));
 
       if (!resolvedDeliveryFeeMode) {
-        const settingRow = await trx.selectFrom('settings').select(['value']).where('key', '=', 'deliveryFeeMode').where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
-        if (settingRow?.value && String(settingRow.value).includes('store_fleet')) {
+        const deliveryFeeModeVal = settingsMap.get('deliveryFeeMode');
+        if (deliveryFeeModeVal && String(deliveryFeeModeVal).includes('store_fleet')) {
           resolvedDeliveryFeeMode = 'store_fleet';
         } else {
           resolvedDeliveryFeeMode = 'freelance_courier';
@@ -2565,20 +2562,10 @@ export class SalesWriteService {
   }
 
   private async generateSaleDocNo(trx: Kysely<Database>, saleId: number, tenantId: string): Promise<string> {
-    const settingRow = await trx
-      .selectFrom('settings')
-      .select(['value'])
-      .where('key', '=', 'invoiceNumberingScheme')
-      .where(sql<boolean>`tenant_id = ${tenantId}`)
-      .executeTakeFirst();
-
-    let scheme = 'daily';
-    if (settingRow?.value) {
-      try {
-        scheme = JSON.parse(settingRow.value);
-      } catch {
-        scheme = String(settingRow.value);
-      }
+    const settingsMap = await this.getTenantSettingsMap(tenantId);
+    let scheme = settingsMap.get('invoiceNumberingScheme') || 'daily';
+    if (typeof scheme !== 'string') {
+      scheme = String(scheme || 'daily');
     }
 
     if (scheme === 'sequential') {
