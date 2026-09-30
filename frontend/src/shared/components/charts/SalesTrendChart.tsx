@@ -81,10 +81,10 @@ export function SalesTrendChart({ data, height = 300 }: SalesTrendChartProps) {
             strokeWidth={3}
             fillOpacity={1} 
             fill="url(#colorSales)" 
-            isAnimationActive={false}
-            animationDuration={1600}
+            isAnimationActive={true}
+            animationDuration={950}
             animationEasing="ease-out"
-            animationBegin={100}
+            animationBegin={0}
           />
           {data.some(d => d.purchases !== undefined) && (
             <Area 
@@ -95,10 +95,10 @@ export function SalesTrendChart({ data, height = 300 }: SalesTrendChartProps) {
               strokeWidth={3}
               fillOpacity={1} 
               fill="url(#colorPurchases)" 
-              isAnimationActive={false}
-              animationDuration={1600}
+              isAnimationActive={true}
+              animationDuration={950}
               animationEasing="ease-out"
-              animationBegin={200}
+              animationBegin={120}
             />
           )}
         </AreaChart>

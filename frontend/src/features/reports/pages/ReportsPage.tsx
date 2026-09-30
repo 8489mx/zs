@@ -4,8 +4,9 @@ import { isReportsSection } from '@/features/reports/pages/reports.page-config';
 
 export function ReportsPage() {
   const { section } = useParams<{ section?: string }>();
-  if (!isReportsSection(section)) {
+  const activeSection = section || 'overview';
+  if (!isReportsSection(activeSection)) {
     return <Navigate to="/reports/overview" replace />;
   }
-  return <ReportsWorkspace currentSection={section} />;
+  return <ReportsWorkspace currentSection={activeSection} />;
 }

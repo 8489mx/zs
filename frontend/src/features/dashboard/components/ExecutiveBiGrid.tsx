@@ -346,9 +346,9 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
                     paddingAngle={3}
                     startAngle={90}
                     endAngle={-270}
-                    isAnimationActive={false}
+                    isAnimationActive={true}
                     animationBegin={100}
-                    animationDuration={1300}
+                    animationDuration={900}
                     animationEasing="ease-out"
                   >
                     {paymentBreakdown.items.map((entry, index) => (

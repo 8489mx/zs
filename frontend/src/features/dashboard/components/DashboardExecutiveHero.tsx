@@ -741,8 +741,8 @@ export function DashboardExecutiveHero({
               strokeWidth={3}
               fillOpacity={1}
               fill="url(#chartSalesGrad)"
-              isAnimationActive={false}
-              animationDuration={1200}
+              isAnimationActive={true}
+              animationDuration={950}
               animationEasing="ease-out"
               dot={(props: any) => {
                 const { cx, cy, index, value } = props;
@@ -771,8 +771,8 @@ export function DashboardExecutiveHero({
                 strokeDasharray="4 4"
                 fillOpacity={1}
                 fill="url(#chartPurchasesGrad)"
-                isAnimationActive={false}
-                animationDuration={1200}
+                isAnimationActive={true}
+                animationDuration={950}
                 animationEasing="ease-out"
                 dot={(props: any) => {
                   const { cx, cy, index, value } = props;

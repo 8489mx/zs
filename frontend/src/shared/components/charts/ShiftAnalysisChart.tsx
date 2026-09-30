@@ -77,10 +77,10 @@ export function ShiftAnalysisChart({ data, height = 300 }: ShiftAnalysisChartPro
           <Bar 
             dataKey="sales" 
             radius={[6, 6, 0, 0]} 
-            isAnimationActive={false}
-            animationDuration={1500}
+            isAnimationActive={true}
+            animationDuration={850}
             animationEasing="ease-out"
-            animationBegin={150}
+            animationBegin={60}
           >
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
