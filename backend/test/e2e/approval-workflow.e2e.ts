@@ -1,20 +1,31 @@
 import assert from 'node:assert/strict';
 import { Kysely, PostgresDialect, sql } from 'kysely';
 import { Pool } from 'pg';
+import { PGlite } from '@electric-sql/pglite';
+import { PGliteDialect } from 'kysely-pglite-dialect';
 import { resolveDatabaseConfigFromEnv } from '../../src/database/migration-runner';
 import { resolvePgSslConfig } from '../../src/database/ssl.util';
 import type { Database } from '../../src/database/database.types';
 import type { AuthContext } from '../../src/core/auth/interfaces/auth-context.interface';
 import { ApprovalWorkflowService } from '../../src/modules/approvals/approval-workflow.service';
 import { PurchaseOrdersService } from '../../src/modules/purchases/services/purchase-orders.service';
+import { migration as purchaseOrderMigration } from '../../src/database/migrations/2040000000060_purchase_orders_and_unbuild';
+import { migration as approvalsMigration } from '../../src/database/migrations/2040000000071_multi_tier_approval_workflows';
 
 async function main(): Promise<void> {
-  const config = resolveDatabaseConfigFromEnv();
-  const pool = new Pool({ host: config.host, port: config.port, user: config.user,
-    password: config.password, database: config.name,
-    ssl: resolvePgSslConfig({ enabled: config.ssl, rejectUnauthorized: config.sslRejectUnauthorized, caCert: config.sslCaCert }),
-  });
-  const db = new Kysely<Database>({ dialect: new PostgresDialect({ pool }) });
+  const embedded = process.argv.includes('--embedded') || process.env.TEST_USE_PGLITE === '1';
+  const db = embedded ? new Kysely<Database>({ dialect: new PGliteDialect(new PGlite()) }) : (() => {
+    const config = resolveDatabaseConfigFromEnv();
+    const pool = new Pool({ host: config.host, port: config.port, user: config.user,
+      password: config.password, database: config.name,
+      ssl: resolvePgSslConfig({ enabled: config.ssl, rejectUnauthorized: config.sslRejectUnauthorized, caCert: config.sslCaCert }),
+    });
+    return new Kysely<Database>({ dialect: new PostgresDialect({ pool }) });
+  })();
+  if (embedded) {
+    await purchaseOrderMigration.up(db);
+    await approvalsMigration.up(db as unknown as Kysely<unknown>);
+  }
   const tenantId = '__approval_e2e_tmp__';
   const maker: AuthContext = { userId: -901, username: 'maker', role: 'cashier', permissions: [], sessionId: 'test', tenantId, accountId: tenantId };
   const approver: AuthContext = { ...maker, userId: -902, username: 'approver', role: 'admin' };

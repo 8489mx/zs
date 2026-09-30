@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { ZatcaOnboardingService } from '../../src/modules/tax-integration/services/zatca/zatca-onboarding.service';
 
 type EgsRow = {
@@ -48,8 +48,9 @@ async function main(): Promise<void> {
     } as any);
     await unitService.createEgsUnit('tenant-a', { deviceName: 'POS A', environment: 'production' });
     const csrPem = Buffer.from(String(inserted.csr_content), 'base64');
-    const verification = execFileSync('openssl', ['req', '-verify', '-noout', '-inform', 'PEM'], { input: csrPem, encoding: 'utf8' });
-    assert.match(verification, /verify OK/i);
+    const verification = spawnSync('openssl', ['req', '-verify', '-noout', '-inform', 'PEM'], { input: csrPem, encoding: 'utf8' });
+    assert.equal(verification.status, 0, `CSR signature verification failed: ${verification.stderr}`);
+    assert.match(`${verification.stdout}${verification.stderr}`, /verify OK/i);
 
     const productionEgs: EgsRow = {
       id: 1, tenant_id: 'tenant-a', device_uuid: 'egs-a', csr_content: 'csr',
