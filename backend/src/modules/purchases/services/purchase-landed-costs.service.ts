@@ -312,6 +312,9 @@ export class PurchaseLandedCostsService {
 
       // 5. Generate Accounting Journal Entry for Landed Cost (Dr. Inventory 1140 / Cr. AP 2110)
       if (totalLandedCost > 0) {
+        if (Number(totalLandedCost.toFixed(2)) <= 0) {
+          throw new BadRequestException('التكاليف الإضافية أقل من أصغر وحدة نقدية؛ تعذر إنشاء القيد المحاسبي.');
+        }
         const settings = await trx
           .selectFrom('accounting_settings')
           .selectAll()
@@ -398,17 +401,7 @@ export class PurchaseLandedCostsService {
               partner_id: null,
             });
           } else if (toCogs > 0.001) {
-            // No COGS account available: capitalise rather than unbalance the entry.
-            debitLines.push({
-              journal_entry_id: Number(entry.id),
-              tenant_id: scope.tenantId,
-              account_id: Number(invAccount),
-              description: `تحميل تكاليف إضافية (تعذر فصل نصيب المبيعات) - فاتورة ${purchase.doc_no || purchaseId}`,
-              debit: toCogs,
-              credit: 0,
-              partner_type: 'none',
-              partner_id: null,
-            });
+            throw new BadRequestException('تعذر إثبات نصيب الوحدات المباعة من التكاليف الإضافية: حساب تكلفة البضاعة المباعة غير موجود.');
           }
 
           await trx

@@ -77,6 +77,7 @@ const DEFAULT_SEED_ACCOUNTS: SeedAccount[] = [
   { code: '7000', nameAr: 'إيرادات ومصروفات أخرى', nameEn: 'Other Income and Expenses', accountType: 'revenue', normalBalance: 'credit', sortOrder: 7000, parentCode: null, accountGroup: 'income', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
   { code: '7100', nameAr: 'إيرادات أخرى', nameEn: 'Other Income', accountType: 'revenue', normalBalance: 'credit', sortOrder: 7100, parentCode: '7000', accountGroup: 'income', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
   { code: '7200', nameAr: 'خسائر أو فروق تسوية', nameEn: 'Adjustment Losses', accountType: 'expense', normalBalance: 'debit', sortOrder: 7200, parentCode: '7000', accountGroup: 'operating_expenses', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '7290', nameAr: 'فروق التقريب المحاسبي', nameEn: 'Rounding Differences', accountType: 'expense', normalBalance: 'debit', sortOrder: 7290, parentCode: '7000', accountGroup: 'operating_expenses', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
 ];
 
 @Injectable()
@@ -140,7 +141,10 @@ export class AccountingTenantFoundationService {
       }
     }
 
-    this.initializedTenants.add(target.tenantId);
+    // A transaction may roll back after seeding. Cache only changes already committed.
+    if (!(queryable as Transaction<Database>).isTransaction) {
+      this.initializedTenants.add(target.tenantId);
+    }
   }
 
   private async readFoundationState(queryable: DbOrTx, tenantId: string) {

@@ -145,6 +145,7 @@ export class TreasuryService {
       // Source-of-truth accounting post is the expense document itself.
       // Treasury transaction is an operational cash movement side-effect for the same expense.
       const accountingResult = await this.accountingPosting.postExpense(trx, expenseId, auth);
+      if (!accountingResult.journalEntryId) throw new Error(`Expense ${expenseId} has no journal entry`);
       if (accountingResult.posted) {
         this.logger.log(`Posted expense journal for expense ${expenseId} with entry ${accountingResult.journalEntryId}`);
       } else {

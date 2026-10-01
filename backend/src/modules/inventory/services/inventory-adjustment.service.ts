@@ -119,7 +119,10 @@ export class InventoryAdjustmentService {
          throw new AppError('Failed to capture stock movement ID for accounting', 'MOVEMENT_INSERT_FAILED', 500);
       }
 
-      await this.accountingPosting.postInventoryAdjustment(trx, insertedMovement.id, auth);
+      const posting = await this.accountingPosting.postInventoryAdjustment(trx, insertedMovement.id, auth);
+      if (Math.abs(stockChange.scopeAfter - stockChange.scopeBefore) >= 0.001 && !posting.journalEntryId) {
+        throw new AppError(`Inventory adjustment ${insertedMovement.id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
+      }
       result = { productId: payload.productId, locationId: payload.locationId, beforeQty: stockChange.scopeBefore, afterQty: stockChange.scopeAfter, scopeBefore: stockChange.scopeBefore, scopeAfter: stockChange.scopeAfter, globalBefore: stockChange.globalBefore, globalAfter: stockChange.globalAfter };
 
       await this.audit.logWithExecutor(trx, 'تعديل مخزون', `تم تعديل مخزون الصنف #${payload.productId} من ${result.beforeQty} إلى ${result.afterQty} بسبب ${payload.reason}`, auth);

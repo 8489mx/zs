@@ -5,6 +5,7 @@ import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
+import { AccountingPostingService } from '../accounting-posting.service';
 
 export interface ExecuteForexRevaluationDto {
   periodDate: string;
@@ -17,6 +18,7 @@ export interface ExecuteForexRevaluationDto {
 export class ForexRevaluationService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   async listRuns(auth: AuthContext) {
@@ -102,6 +104,7 @@ export class ForexRevaluationService {
         ])
         .where('l.tenant_id', '=', tenantId)
         .where('l.account_id', '=', acc.id)
+        .where('h.tenant_id', '=', tenantId)
         .where('h.status', '=', 'posted')
         .where('h.entry_date', '<=', dto.periodDate as any)
         .executeTakeFirst();
@@ -175,18 +178,27 @@ export class ForexRevaluationService {
         .executeTakeFirst();
     }
 
+    if (gainLossAccount && !gainLossAccount.is_active) {
+      throw new BadRequestException('حساب فروق العملة غير نشط.');
+    }
     const isGain = preview.netUnrealizedGainLoss >= 0;
     const absDiff = Math.abs(preview.netUnrealizedGainLoss);
+    const hasRevaluation = preview.lines.some((line) => Math.abs(line.unrealizedDifference) >= 0.01);
 
     // Build journal entry lines if difference != 0
     let createdEntryId: number | null = null;
     let entryNo: string | null = null;
 
-    if (absDiff > 0.01 && gainLossAccount) {
+    if (absDiff >= 0.01 && !gainLossAccount) {
+      throw new BadRequestException('حساب فروق العملة غير موجود؛ لا يمكن ترحيل إعادة التقييم.');
+    }
+
+    return this.db.transaction().execute(async (trx) => {
+    if (hasRevaluation) {
       const entryLines: any[] = [];
 
       for (const line of preview.lines) {
-        if (Math.abs(line.unrealizedDifference) > 0.01) {
+        if (Math.abs(line.unrealizedDifference) >= 0.01) {
           if (line.unrealizedDifference > 0) {
             // Asset increased in local currency value -> Debit Asset
             entryLines.push({
@@ -208,49 +220,37 @@ export class ForexRevaluationService {
       }
 
       // Offsetting Gain/Loss Line
-      if (isGain) {
+      if (absDiff >= 0.01 && isGain) {
         entryLines.push({
-          account_id: gainLossAccount.id,
+          account_id: gainLossAccount!.id,
           debit: 0,
           credit: absDiff,
           description: `إثبات أرباح فروق عملة غير محققة (${dto.currencyCode}) بنهاية فترة ${dto.periodDate}`,
         });
-      } else {
+      } else if (absDiff >= 0.01) {
         entryLines.push({
-          account_id: gainLossAccount.id,
+          account_id: gainLossAccount!.id,
           debit: absDiff,
           credit: 0,
           description: `إثبات خسائر فروق عملة غير محققة (${dto.currencyCode}) بنهاية فترة ${dto.periodDate}`,
         });
       }
 
-      // Post Journal Entry directly
-      const tempEntryNo = `FX-TEMP-${Date.now()}`;
       const description = `قيد تسوية فروق تقييم العملة الأجنبية (${dto.currencyCode}) بسعر ${dto.closingRate} ج.م وفق معيار IAS 21`;
-
-      const insertedEntry = await this.db
-        .insertInto('journal_entries')
-        .values({
-          entry_no: tempEntryNo,
-          tenant_id: tenantId,
-          account_id: auth.accountId || tenantId,
-          entry_date: new Date(dto.periodDate) as any,
-          description,
-          source_type: 'forex_revaluation',
-          source_id: 0,
-          status: 'posted',
-          created_by: auth.userId || 0,
-          posted_by: auth.userId || 0,
-          posted_at: sql`NOW()` as any,
-        } as any)
-        .returning('id')
-        .executeTakeFirstOrThrow();
-
-      const entryId = Number(insertedEntry.id);
+      const entryId = await this.accountingPosting.postDomainJournal(trx, {
+        sourceType: 'forex_revaluation', sourceId: 0, tenantId,
+        accountId: auth.accountId || tenantId, entryDate: new Date(dto.periodDate),
+        description, createdBy: auth.userId || null,
+        lines: entryLines.map((line) => ({
+          accountId: Number(line.account_id), description: line.description,
+          debit: Number(line.debit), credit: Number(line.credit),
+          partnerType: 'none' as const, partnerId: null, branchId: null, locationId: null,
+        })),
+      });
       createdEntryId = entryId;
       entryNo = formatDailyDocumentNumber(`FX-${dto.currencyCode}`, entryId, new Date(dto.periodDate));
 
-      await this.db
+      await trx
         .updateTable('journal_entries')
         .set({
           entry_no: entryNo,
@@ -260,27 +260,10 @@ export class ForexRevaluationService {
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      const linesToInsert = entryLines.map((l) => ({
-        journal_entry_id: entryId,
-        tenant_id: tenantId,
-        account_id: l.account_id,
-        cost_center_id: null,
-        description: l.description,
-        debit: l.debit,
-        credit: l.credit,
-        partner_type: 'none',
-        partner_id: null,
-        created_at: sql`NOW()` as any,
-      }));
-
-      await this.db
-        .insertInto('journal_entry_lines')
-        .values(linesToInsert as any)
-        .execute();
     }
 
     // Save run record
-    const runRow = await this.db
+    const runRow = await trx
       .insertInto('forex_revaluation_runs')
       .values({
         tenant_id: tenantId,
@@ -313,14 +296,14 @@ export class ForexRevaluationService {
     }));
 
     if (lineRows.length > 0) {
-      await this.db
+      await trx
         .insertInto('forex_revaluation_lines')
         .values(lineRows as any)
         .execute();
     }
 
     // Update the currency rate in currency_exchange_rates to the new closing rate
-    await this.db
+    await trx
       .updateTable('currency_exchange_rates')
       .set({
         exchange_rate: dto.closingRate,
@@ -338,5 +321,6 @@ export class ForexRevaluationService {
       totalForeignBalance: preview.totalForeignBalance,
       linesCount: preview.lines.length,
     };
+    });
   }
 }

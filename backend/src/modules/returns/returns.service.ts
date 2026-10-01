@@ -97,18 +97,7 @@ export class ReturnsService {
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const datePrefix = `${yy}${mm}${dd}`;
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-
-    const lastDoc = await trx
-      .selectFrom('return_documents')
-      .select(sql<number>`COALESCE(MAX(CASE WHEN doc_no ~ '^[A-Za-z0-9]+-[0-9]+-[0-9]+$' THEN CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER) ELSE 0 END), 0)`.as('last_seq'))
-      .where(this.tenantPredicate(auth))
-      .where('return_type', '=', returnType)
-      .where('created_at', '>=', startOfDay)
-      .executeTakeFirst();
-
-    const nextSeq = Number(lastDoc?.last_seq || 0) + 1;
-    const seq = String(nextSeq).padStart(4, '0');
+    const seq = String(returnDocId).padStart(4, '0');
     return `${prefix}-${datePrefix}-${seq}`;
   }
 
@@ -545,7 +534,8 @@ export class ReturnsService {
     }
 
     try {
-      await this.accountingPosting.postSalesReturn(trx, returnDocumentId, auth);
+      const posting = await this.accountingPosting.postSalesReturn(trx, returnDocumentId, auth);
+      if (!posting.journalEntryId) throw new Error(`Sales return ${returnDocumentId} has no journal entry`);
     } catch (error) {
       throw new AppError(
         error instanceof Error ? error.message : 'Failed to post accounting journal for sales return',
@@ -632,7 +622,8 @@ export class ReturnsService {
     else await this.addTreasuryTransaction(trx, 'purchase_return_refund', total, 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
 
     try {
-      await this.accountingPosting.postPurchaseReturn(trx, returnDocumentId, auth);
+      const posting = await this.accountingPosting.postPurchaseReturn(trx, returnDocumentId, auth);
+      if (!posting.journalEntryId) throw new Error(`Purchase return ${returnDocumentId} has no journal entry`);
     } catch (error) {
       throw new AppError(
         error instanceof Error ? error.message : 'Failed to post accounting journal for purchase return',

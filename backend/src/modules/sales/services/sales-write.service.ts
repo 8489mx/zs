@@ -471,7 +471,8 @@ export class SalesWriteService {
           .execute();
       }
 
-      await this.accountingPosting.postManufacturingWorkOrder(trx, woId, auth);
+      const posting = await this.accountingPosting.postManufacturingWorkOrder(trx, woId, auth);
+      if (!posting.journalEntryId) throw new AppError(`Manufacturing work order ${woId} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
     }
   }
 
@@ -1535,19 +1536,9 @@ export class SalesWriteService {
         }
       }
 
-      // القيد المحاسبي لا يوقف البيع — الكاشير لا يقف لأن وحدة المحاسبة مضبوطة خطأ، والقيد مشتقٌّ
-      // بالكامل من الفاتورة فتأجيله لا يضيّع شيئاً. الذي كان يضيّع كل شيء هو **الصمت**: الصيغة
-      // القديمة كانت `catch { this.logger.error(...) }` وحدها، فمرّت على الإنتاج 2,281 فاتورةٍ بلا
-      // قيد واحد ولم يلاحظ أحد. الفشل الآن يُكتب صفاً يُستعلَم عنه ويُعاد المحاولة عليه
-      // (`accounting_posting_failures`، الهجرة 147، والعامل في `accounting-recovery.service.ts`).
-      try {
-        await this.accountingPosting.postSale(trx, id, auth);
-        await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.logger.error(`Failed to post accounting journal for sale ${id}: ${message}`, error instanceof Error ? error.stack : String(error));
-        await this.accountingPosting.recordPostingFailure(trx, scope, 'sale', id, message);
-      }
+      // The sale and its journal must commit together or both roll back.
+      await this.accountingPosting.postSale(trx, id, auth);
+      await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
 
       // Commit idempotency record atomically inside the business transaction
       if (idemCtx?.idempotencyKey && idemCtx?.operationType) {
@@ -2586,17 +2577,7 @@ export class SalesWriteService {
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const datePrefix = `${yy}${mm}${dd}`;
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-
-    const lastDoc = await trx
-      .selectFrom('sales')
-      .select(sql<number>`COALESCE(MAX(CASE WHEN doc_no ~ '^[A-Za-z0-9]+-[0-9]+-[0-9]+$' THEN CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER) ELSE 0 END), 0)`.as('last_seq'))
-      .where(sql<boolean>`tenant_id = ${tenantId}`)
-      .where('created_at', '>=', startOfDay)
-      .executeTakeFirst();
-
-    const nextSeq = Number(lastDoc?.last_seq || 0) + 1;
-    const seq = String(nextSeq).padStart(4, '0');
+    const seq = String(saleId).padStart(4, '0');
     return `Z-${datePrefix}-${seq}`;
   }
 }

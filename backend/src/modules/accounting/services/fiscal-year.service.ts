@@ -5,6 +5,7 @@ import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { CloseFiscalPeriodDto, ReopenFiscalPeriodDto, FiscalPeriodResponse } from '../dto/fiscal-period.dto';
 import { buildMonthlyFiscalPeriods } from '../engines/fiscal-period-generation.engine';
+import { AccountingPostingService } from '../accounting-posting.service';
 
 export interface CreateFiscalYearDto {
   name: string;
@@ -63,7 +64,10 @@ export interface FiscalYearPreviewResult {
 
 @Injectable()
 export class FiscalYearService {
-  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
+  constructor(
+    @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly accountingPosting: AccountingPostingService,
+  ) {}
 
   private toMoney(value: unknown): number {
     const n = Number(value || 0);
@@ -590,35 +594,23 @@ export class FiscalYearService {
         totalDebit = this.toMoney(totalDebit);
         totalCredit = this.toMoney(totalCredit);
 
-        if (Math.abs(totalDebit - totalCredit) > 0.01) {
+        if (Math.abs(totalDebit - totalCredit) > 0.05) {
           throw new BadRequestException(
             `قيد الإقفال غير متزن: إجمالي المدين (${totalDebit}) لا يساوي إجمالي الدائن (${totalCredit}). الفارق: ${Math.abs(totalDebit - totalCredit).toFixed(2)}`,
           );
         }
 
-        // Insert closing journal entry
-        const tempEntryNo = `CLOSE-TEMP-${Date.now()}`;
         const description = `إقفال السنة المالية: ${fy.name} وترحيل صافي ${preview.isProfit ? 'الأرباح' : 'الخسائر'} (${Math.abs(preview.netProfitLoss).toFixed(2)}) إلى حساب [${retainedAccount.code} - ${retainedAccount.name_ar}]`;
-
-        const insertedEntry = await trx
-          .insertInto('journal_entries')
-          .values({
-            entry_no: tempEntryNo,
-            tenant_id: tenantId,
-            account_id: auth.accountId || tenantId,
-            entry_date: endDate as any,
-            description,
-            source_type: 'fiscal_year_closing',
-            source_id: fy.id,
-            status: 'posted',
-            created_by: userId,
-            posted_by: userId,
-            posted_at: sql`NOW()` as any,
-          } as any)
-          .returning('id')
-          .executeTakeFirstOrThrow();
-
-        const entryId = Number(insertedEntry.id);
+        const entryId = await this.accountingPosting.postDomainJournal(trx, {
+          sourceType: 'fiscal_year_closing', sourceId: fy.id, tenantId,
+          accountId: auth.accountId || tenantId, entryDate: new Date(endDate),
+          description, createdBy: userId,
+          lines: preview.proposedClosingLines.map((line) => ({
+            accountId: line.accountId, description: line.description,
+            debit: line.debit, credit: line.credit,
+            partnerType: 'none' as const, partnerId: null, branchId: null, locationId: null,
+          })),
+        });
         createdJournalEntryId = entryId;
 
         const officialEntryNo = `CLOSE-${fy.code || new Date(endDate).getFullYear()}-${String(entryId).padStart(6, '0')}`;
@@ -633,24 +625,6 @@ export class FiscalYearService {
           .where('tenant_id', '=', tenantId)
           .execute();
 
-        // Insert lines
-        const linesToInsert = preview.proposedClosingLines.map((l) => ({
-          journal_entry_id: entryId,
-          tenant_id: tenantId,
-          account_id: l.accountId,
-          cost_center_id: null,
-          description: l.description,
-          debit: l.debit,
-          credit: l.credit,
-          partner_type: 'none',
-          partner_id: null,
-          created_at: sql`NOW()` as any,
-        }));
-
-        await trx
-          .insertInto('journal_entry_lines')
-          .values(linesToInsert as any)
-          .execute();
       }
 
       // Update fiscal year

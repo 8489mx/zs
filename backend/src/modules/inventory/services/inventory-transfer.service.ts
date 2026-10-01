@@ -553,17 +553,7 @@ export class InventoryTransferService {
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const datePrefix = `${yy}${mm}${dd}`;
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-
-    const lastDoc = await trx
-      .selectFrom('stock_transfers')
-      .select(sql<number>`COALESCE(MAX(CASE WHEN doc_no ~ '^[A-Za-z0-9]+-[0-9]+-[0-9]+$' THEN CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER) ELSE 0 END), 0)`.as('last_seq'))
-      .where(this.tenantPredicate(auth))
-      .where('created_at', '>=', startOfDay)
-      .executeTakeFirst();
-
-    const nextSeq = Number(lastDoc?.last_seq || 0) + 1;
-    const seq = String(nextSeq).padStart(4, '0');
+    const seq = String(transferId).padStart(4, '0');
     return `ZTR-${datePrefix}-${seq}`;
   }
 }

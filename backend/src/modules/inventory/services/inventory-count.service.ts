@@ -206,7 +206,10 @@ export class InventoryCountService {
       }
       await trx.updateTable('stock_count_sessions').set({ status: 'posted', approved_by: auth.userId, posted_at: sql`NOW()`, updated_at: sql`NOW()` }).where('id', '=', sessionId).where(this.tenantPredicate(auth)).execute();
 
-      await this.accountingPosting.postStockCount(trx, sessionId, auth);
+      const posting = await this.accountingPosting.postStockCount(trx, sessionId, auth);
+      if (items.some((item) => Math.abs(Number(item.variance_qty || 0)) >= 0.001) && !posting.journalEntryId) {
+        throw new AppError(`Stock count ${sessionId} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
+      }
     });
     await this.audit.log('اعتماد جلسة جرد', JSON.stringify({ actorUserId: auth.userId, after: { sessionId, status: 'posted' } }), auth);
     const responsePayload = { ok: true, stockCountSessions: (await this.listStockCountSessions({}, auth)).stockCountSessions, products: (await this.db.selectFrom('products').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(auth)).execute()).map((p) => ({ id: String(p.id), name: p.name })), stockMovements: (await this.listStockMovements({}, auth)).stockMovements, damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords };
@@ -315,7 +318,8 @@ export class InventoryCountService {
          ...this.tenantFields(auth)
       }).execute();
 
-      await this.accountingPosting.postDamagedStock(trx, Number(insertedDamage.id), auth);
+      const posting = await this.accountingPosting.postDamagedStock(trx, Number(insertedDamage.id), auth);
+      if (!posting.journalEntryId) throw new AppError(`Damaged stock ${insertedDamage.id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
     });
     await this.audit.log('تسجيل تالف', JSON.stringify({ actorUserId: auth.userId, productId: payload.productId, qty: payload.qty }), auth);
     const responsePayload = { ok: true, products: (await this.db.selectFrom('products').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(auth)).execute()).map((p) => ({ id: String(p.id), name: p.name })), damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords, stockMovements: (await this.listStockMovements({}, auth)).stockMovements };
