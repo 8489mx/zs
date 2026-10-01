@@ -339,6 +339,9 @@ export class GoodsReceiptService {
         const accepted = Number(line.acceptedQty || 0);
         if (accepted > 0) {
           const lineUnitCost = Number(line.unitCost || 0);
+          if (!Number.isFinite(lineUnitCost) || lineUnitCost <= 0 || Number((accepted * lineUnitCost).toFixed(2)) <= 0) {
+            throw new BadRequestException(`لا يمكن ترحيل استلام الصنف ${line.productId} بدون تكلفة مالية صالحة.`);
+          }
           totalGrniAmount += accepted * lineUnitCost;
 
           // Route stock through the shared ledger helper instead of writing the two balance tables
@@ -411,6 +414,9 @@ export class GoodsReceiptService {
 
       // 3. Generate GRNI Journal Entry (Dr. Inventory Asset 1140 / Cr. GRNI 2125)
       let grniEntryId: number | null = null;
+      if (totalGrniAmount > 0 && Number(totalGrniAmount.toFixed(2)) <= 0) {
+        throw new BadRequestException('تكلفة البضاعة المستلمة أقل من أصغر وحدة نقدية؛ تعذر إنشاء قيد المخزون.');
+      }
       if (totalGrniAmount > 0) {
         const entryDate = grn.receivedAt ? new Date(grn.receivedAt) : new Date();
 

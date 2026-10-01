@@ -492,6 +492,7 @@ export class EndOfServiceService {
       );
 
       const entryId = postingRes.journalEntryId;
+      if (!entryId) throw new BadRequestException('تعذر ترحيل قيد مخالصة الموظف المحاسبي.');
 
       // Update employee loans in hr_employee_loans if loan deductions are present
       const loansDeduction = Number(settlement.unpaid_loans_deduction || 0);

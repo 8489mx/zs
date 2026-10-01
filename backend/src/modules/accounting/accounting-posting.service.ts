@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Kysely, Transaction, sql } from '../../database/kysely';
+import { Kysely, sql } from '../../database/kysely';
+import { Transaction } from 'kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
@@ -69,7 +70,7 @@ export class AccountingPostingService {
 
   private toMoney(value: unknown): number {
     const amount = Number(value || 0);
-    if (!Number.isFinite(amount)) return 0;
+    if (!Number.isFinite(amount)) throw new AppError('Journal amount must be finite', 'INVALID_JOURNAL_AMOUNT', 400);
     return Number(amount.toFixed(2));
   }
 
@@ -237,7 +238,7 @@ export class AccountingPostingService {
     const debit = this.toMoney(next.debit);
     const credit = this.toMoney(next.credit);
     if (debit <= 0 && credit <= 0) return;
-    if (debit > 0 && credit > 0) return;
+    if (debit > 0 && credit > 0) throw new AppError('Journal line cannot be both debit and credit', 'INVALID_JOURNAL_LINE', 400);
 
     const existing = lines.find(
       (line) => line.accountId === next.accountId
@@ -450,16 +451,45 @@ export class AccountingPostingService {
       lines: JournalLineDraft[];
     },
   ): Promise<number> {
-    if (!params.lines || params.lines.length === 0) {
-      this.logger.warn(`Skipping journal insertion for ${params.sourceType} ${params.sourceId}; no active journal lines.`);
-      return 0;
+    if (!(queryable instanceof Transaction)) {
+      return queryable.transaction().execute((trx) => this.insertPostedJournal(trx, params));
+    }
+    if (!params.lines?.length) throw new AppError(`No journal lines for ${params.sourceType} #${params.sourceId}`, 'EMPTY_JOURNAL', 400);
+
+    const lines = params.lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) }));
+    for (const line of lines) {
+      if (!(Number(line.accountId) > 0)) throw new AppError(`Missing account for ${params.sourceType} #${params.sourceId}`, 'ACCOUNT_NOT_FOUND', 400);
+      if (line.debit < 0 || line.credit < 0 || (line.debit > 0 && line.credit > 0) || (line.debit === 0 && line.credit === 0)) {
+        throw new AppError(`Invalid journal line for ${params.sourceType} #${params.sourceId}`, 'INVALID_JOURNAL_LINE', 400);
+      }
+    }
+    const accounts = await this.getActiveAccountMap(queryable, params.tenantId, lines.map((line) => Number(line.accountId)));
+    for (const line of lines) {
+      if (!accounts.get(Number(line.accountId))) throw new AppError(`Account ${line.accountId} is missing or inactive for ${params.sourceType} #${params.sourceId}`, 'ACCOUNT_NOT_FOUND', 400);
     }
 
-    const totalDebit = params.lines.reduce((s, l) => s + (l.debit || 0), 0);
-    const totalCredit = params.lines.reduce((s, l) => s + (l.credit || 0), 0);
-    if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      throw new Error(`Unbalanced journal entry for ${params.sourceType} #${params.sourceId}: debit=${totalDebit.toFixed(2)} credit=${totalCredit.toFixed(2)}`);
+    const totalDebit = this.toMoney(lines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = this.toMoney(lines.reduce((sum, line) => sum + line.credit, 0));
+    const difference = this.toMoney(totalDebit - totalCredit);
+    if (Math.abs(difference) >= 0.001) {
+      if (Math.abs(difference) > 0.05) {
+        throw new AppError(`Unbalanced journal for ${params.sourceType} #${params.sourceId}: debit=${totalDebit.toFixed(2)} credit=${totalCredit.toFixed(2)}`, 'UNBALANCED_JOURNAL', 400);
+      }
+      if (!params.accountId) throw new AppError(`Tenant account scope is required to post ${params.sourceType} #${params.sourceId}`, 'TENANT_SCOPE_REQUIRED', 403);
+      await this.accountingTenantFoundation.ensureForScope(queryable, { tenantId: params.tenantId, accountId: params.accountId });
+      const roundingAccount = await queryable.selectFrom('accounting_accounts').select(['id', 'is_active'])
+        .where('tenant_id', '=', params.tenantId).where('code', '=', '7290').executeTakeFirst();
+      if (!roundingAccount?.is_active) throw new AppError(`Rounding difference account 7290 is missing for tenant ${params.tenantId}`, 'ROUNDING_ACCOUNT_NOT_FOUND', 400);
+      lines.push({
+        accountId: Number(roundingAccount.id), description: `Rounding difference: ${params.sourceType} #${params.sourceId}`,
+        debit: difference < 0 ? Math.abs(difference) : 0,
+        credit: difference > 0 ? difference : 0,
+        partnerType: 'none', partnerId: null, branchId: params.branchId, locationId: params.locationId,
+      });
     }
+    const balancedDebit = this.toMoney(lines.reduce((sum, line) => sum + line.debit, 0));
+    const balancedCredit = this.toMoney(lines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(balancedDebit - balancedCredit) >= 0.001) throw new AppError(`Unbalanced journal for ${params.sourceType} #${params.sourceId}`, 'UNBALANCED_JOURNAL', 400);
 
     // Validate Period Lock Dates
     const settings = await queryable
@@ -547,11 +577,10 @@ export class AccountingPostingService {
       .where('tenant_id', '=', params.tenantId)
       .execute();
 
-    if (params.lines.length > 0) {
-      await queryable
+    await queryable
         .insertInto('journal_entry_lines')
         .values(
-          params.lines.map((line) => ({
+          lines.map((line) => ({
             journal_entry_id: entryId,
             tenant_id: params.tenantId,
             account_id: line.accountId,
@@ -566,7 +595,6 @@ export class AccountingPostingService {
           } as any))
         )
         .execute();
-    }
 
     return entryId;
   }
@@ -760,7 +788,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+    if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced sale journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -945,7 +973,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+    if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced edited sale journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1018,7 +1046,7 @@ export class AccountingPostingService {
 
     const totalDebit = this.toMoney(reversalLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(reversalLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+    if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced sale reversal journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1122,7 +1150,10 @@ export class AccountingPostingService {
       });
     }
 
-    if (taxAmount > 0 && Number(settings.sales_tax_account_id || 0) > 0) {
+    if (taxAmount > 0) {
+      if (!(Number(settings.sales_tax_account_id || 0) > 0)) {
+        throw new AppError(`Sales tax account missing for return ${returnId}`, 'ACCOUNT_NOT_FOUND', 400);
+      }
       this.addLine(lines, {
         accountId: Number(settings.sales_tax_account_id),
         description: `تخفيض ضريبة مبيعات من مرتجع فاتورة رقم ${invoiceNo}`,
@@ -1229,7 +1260,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+    if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced sales return journal for return ${returnId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1324,6 +1355,7 @@ export class AccountingPostingService {
       .where('is_active', '=', true)
       .executeTakeFirst();
 
+    if (linkedGrn && !grniAccount) throw new AppError(`GRNI account 2125 is missing for purchase ${purchaseId}`, 'ACCOUNT_NOT_FOUND', 400);
     if (linkedGrn && grniAccount) {
       // Goods already received via GRN! Clear GRNI (2125) and route price variance to PPV (5190)
       const grnLines = await (queryable as any)
@@ -1350,6 +1382,7 @@ export class AccountingPostingService {
         locationId,
       });
 
+      if (Math.abs(priceVariance) > 0.0001 && !ppvAccount) throw new AppError(`PPV account 5190 is missing for purchase ${purchaseId}`, 'ACCOUNT_NOT_FOUND', 400);
       if (Math.abs(priceVariance) > 0.0001 && ppvAccount) {
         if (priceVariance > 0) {
           // Unfavorable variance (invoice cost > GRN cost) -> Debit PPV (Expense)
@@ -1448,7 +1481,7 @@ export class AccountingPostingService {
 
     const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+    if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced purchase journal for purchase ${purchaseId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1578,7 +1611,10 @@ export class AccountingPostingService {
     }
 
     // Cr. Purchase Tax (1180) (Reversing Input VAT)
-    if (taxAmount > 0 && Number(settings.purchase_tax_account_id || 0) > 0) {
+    if (taxAmount > 0) {
+      if (!(Number(settings.purchase_tax_account_id || 0) > 0)) {
+        throw new AppError(`Purchase tax account missing for return ${returnId}`, 'ACCOUNT_NOT_FOUND', 400);
+      }
       this.addLine(lines, {
         accountId: Number(settings.purchase_tax_account_id),
         description: `عكس ضريبة مشتريات من مردودات فاتورة رقم ${invoiceNo}`,
@@ -1601,7 +1637,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+    if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced purchase return journal for return ${returnId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1674,7 +1710,7 @@ export class AccountingPostingService {
 
     const totalDebit = this.toMoney(reversalLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(reversalLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+    if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced purchase reversal journal for purchase ${purchaseId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1774,7 +1810,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+    if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced supplier payment journal for payment ${paymentId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1880,7 +1916,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+    if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced supplier payment schedule settlement journal for settlement ${settlementId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1977,7 +2013,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+    if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced customer payment journal for payment ${paymentId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -2081,7 +2117,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+    if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced expense journal for expense ${expenseId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -2188,8 +2224,7 @@ export class AccountingPostingService {
     const amount = this.toMoney(Math.abs(delta) * unitCost);
 
     if (amount <= 0) {
-      this.logger.warn(`Zero value accounting effect for movement ${movementId}`);
-      return { posted: false, journalEntryId: null };
+      throw new AppError(`Inventory movement ${movementId} has no valid cost for ledger posting`, 'INVENTORY_COST_MISSING', 400);
     }
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -2263,8 +2298,7 @@ export class AccountingPostingService {
     const amount = this.toMoney(qty * unitCost);
 
     if (amount <= 0) {
-      this.logger.warn(`Zero value accounting effect for damaged stock ${damageRecordId}`);
-      return { posted: false, journalEntryId: null };
+      throw new AppError(`Damaged stock ${damageRecordId} has no valid cost for ledger posting`, 'INVENTORY_COST_MISSING', 400);
     }
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -2353,6 +2387,9 @@ export class AccountingPostingService {
     }
 
     if (totalGain === 0 && totalLoss === 0 && totalDamageLoss === 0) {
+       if (items.some((item) => Math.abs(Number(item.variance_qty || 0)) >= 0.001)) {
+         throw new AppError(`Stock count ${sessionId} has a variance with no valid cost`, 'INVENTORY_COST_MISSING', 400);
+       }
        return { posted: false, journalEntryId: null };
     }
 
@@ -2978,7 +3015,7 @@ export class AccountingPostingService {
     const overheadCost = this.toMoney(Number(wo.overhead_cost || 0) * (Number(wo.quantity_to_produce || 0) / bomQty));
     const rmCost = this.toMoney(Math.max(0, fgCost - overheadCost));
 
-    if (fgCost <= 0) return { posted: false, journalEntryId: null };
+    if (fgCost <= 0) throw new AppError(`Manufacturing work order ${workOrderId} has no cost for ledger posting`, 'MANUFACTURING_COST_MISSING', 400);
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     let inventoryAccountId = Number(settings?.inventory_account_id || 0);

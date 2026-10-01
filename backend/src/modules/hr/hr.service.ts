@@ -298,16 +298,6 @@ export class HrService {
     return masked;
   }
 
-  private async generateNumber(db: Kysely<Database>, table: string, prefix: string, auth: AuthContext): Promise<string> {
-    const { tenantId } = this.scope(auth);
-    const result = await sql<{ next_no: string }>`
-      SELECT ${sql.lit(prefix)} || '-' || LPAD((COALESCE(MAX(id), 0) + 1)::TEXT, 4, '0') AS next_no
-      FROM ${sql.table(table)}
-      WHERE tenant_id = ${tenantId}
-    `.execute(db);
-    return result.rows[0]?.next_no || `${prefix}-0001`;
-  }
-
   private async nextAvailableEmployeeNo(db: Kysely<Database>, auth: AuthContext): Promise<string> {
     const { tenantId } = this.scope(auth);
     const result = await sql<{ employee_no: string }>`
@@ -1011,11 +1001,18 @@ export class HrService {
 
   async upsertContract(employeeId: number, id: number | null, payload: UpsertEmploymentContractDto, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.assertEmployeeBelongsToTenant(employeeId, auth);
-    const contractNo = clean(payload.contractNo) || (!id ? await this.generateNumber(this.db, 'hr_employment_contracts', 'CON', auth) : '');
     if (id) {
       await sql`UPDATE hr_employment_contracts SET contract_no = ${clean(payload.contractNo)}, contract_type = ${clean(payload.contractType) || 'standard'}, status = ${clean(payload.status) || 'draft'}, start_date = ${payload.startDate}, end_date = ${payload.endDate || null}, base_salary = ${Number(payload.baseSalary || 0)}, currency = ${clean(payload.currency) || 'EGP'}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     } else {
-      await sql`INSERT INTO hr_employment_contracts (tenant_id, account_id, employee_id, contract_no, contract_type, status, start_date, end_date, base_salary, currency, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${contractNo}, ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'}, ${payload.startDate}, ${payload.endDate || null}, ${Number(payload.baseSalary || 0)}, ${clean(payload.currency) || 'EGP'}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
+      await this.tx.runInTransaction(this.db, async (trx) => {
+        const requestedNo = clean(payload.contractNo);
+        const temporaryNo = requestedNo || `CON-TMP-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const inserted = await sql<{ id: number }>`INSERT INTO hr_employment_contracts (tenant_id, account_id, employee_id, contract_no, contract_type, status, start_date, end_date, base_salary, currency, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${temporaryNo}, ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'}, ${payload.startDate}, ${payload.endDate || null}, ${Number(payload.baseSalary || 0)}, ${clean(payload.currency) || 'EGP'}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId}) RETURNING id`.execute(trx);
+        if (!requestedNo) {
+          const contractId = Number(inserted.rows[0].id);
+          await sql`UPDATE hr_employment_contracts SET contract_no = ${`CON-${String(contractId).padStart(4, '0')}`} WHERE id = ${contractId} AND tenant_id = ${auth.tenantId}`.execute(trx);
+        }
+      });
     }
     await this.audit.log(`${id ? 'Update' : 'Create'} HR employment contract`, `Employee #${employeeId} contract saved by ${auth.username}`, auth);
     return this.listContracts(employeeId, auth);
@@ -1242,13 +1239,17 @@ export class HrService {
         .executeTakeFirst();
       if (!employee) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
       const plan = this.normalizeRepaymentPlan({ ...payload, employeeId, principalAmount: amount, issueDate, repaymentMode }, amount);
-      const loanNo = clean(payload.loanNo) || await this.generateNumber(trx, 'hr_employee_loans', 'LOAN', auth);
+      const requestedLoanNo = clean(payload.loanNo);
+      const loanNo = requestedLoanNo || `LOAN-TMP-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const insert = await sql<{ id: number }>`
         INSERT INTO hr_employee_loans (tenant_id, account_id, employee_id, loan_no, loan_type, principal_amount, paid_amount, remaining_amount, installment_count, installment_amount, repayment_mode, monthly_installment_amount, status, issue_date, first_due_date, salary_due_date, branch_id, location_id, notes, created_by, updated_by)
         VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${loanNo}, ${clean(payload.loanType) || 'advance'}, ${amount}, 0, ${amount}, ${plan.installmentCount}, ${plan.installmentAmount}, ${plan.repaymentMode}, ${plan.monthlyInstallmentAmount}, 'draft', ${issueDate}, ${plan.firstDueDate}, ${plan.salaryDueDate}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
         RETURNING id
       `.execute(trx);
       const loanId = Number(insert.rows[0]?.id || 0);
+      if (!requestedLoanNo) {
+        await sql`UPDATE hr_employee_loans SET loan_no = ${`LOAN-${String(loanId).padStart(4, '0')}`} WHERE id = ${loanId} AND tenant_id = ${auth.tenantId}`.execute(trx);
+      }
       for (let i = 1; i <= plan.installmentCount; i += 1) {
         const dueDate = plan.firstDueDate ? addMonths(plan.firstDueDate, i - 1) : null;
         const installmentValue = i === plan.installmentCount
@@ -4181,4 +4182,3 @@ export class HrService {
     return { success: true };
   }
 }
-

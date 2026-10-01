@@ -432,9 +432,8 @@ export class WithholdingTaxService {
           'bank',
           auth,
         );
-        if (postRes.posted && postRes.journalEntryId) {
-          paymentRef = paymentRef || `JE-${postRes.journalEntryId}`;
-        }
+        if (!postRes.journalEntryId) throw new BadRequestException('تعذر ترحيل قيد سداد ضريبة الاستقطاع.');
+        paymentRef = paymentRef || `JE-${postRes.journalEntryId}`;
       }
 
       const updated = await trx

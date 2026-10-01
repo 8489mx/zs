@@ -197,7 +197,8 @@ export class CustomerInstallmentsService {
         );
 
         // 3. General Ledger Double-Entry Posting
-        await this.accountingPosting.postCustomerPayment(trx, paymentId, auth);
+        const posting = await this.accountingPosting.postCustomerPayment(trx, paymentId, auth);
+        if (!posting.journalEntryId) throw new Error(`Customer payment ${paymentId} has no journal entry`);
       }
 
       // Return plan with generated installments
@@ -579,7 +580,8 @@ export class CustomerInstallmentsService {
       );
 
       // 7. General Ledger Double-Entry Posting
-      await this.accountingPosting.postCustomerPayment(trx, paymentId, auth);
+      const posting = await this.accountingPosting.postCustomerPayment(trx, paymentId, auth);
+      if (!posting.journalEntryId) throw new Error(`Customer payment ${paymentId} has no journal entry`);
 
       // 8. Check if all installments for this plan are completed
       const remainingUnpaid = await trx

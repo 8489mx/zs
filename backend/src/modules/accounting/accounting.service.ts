@@ -81,7 +81,7 @@ export class AccountingService {
 
   private toMoney(value: unknown): number {
     const amount = Number(value || 0);
-    if (!Number.isFinite(amount)) return 0;
+    if (!Number.isFinite(amount)) throw new BadRequestException('قيمة القيد يجب أن تكون رقمًا صالحًا.');
     return Number(amount.toFixed(2));
   }
 
@@ -795,7 +795,7 @@ export class AccountingService {
     totalDebit = this.toMoney(totalDebit);
     totalCredit = this.toMoney(totalCredit);
 
-    if (Math.abs(totalDebit - totalCredit) > 0.01) {
+    if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new BadRequestException(`القيد غير متزن: إجمالي المدين (${totalDebit}) لا يساوي إجمالي الدائن (${totalCredit}). الفارق: ${Math.abs(totalDebit - totalCredit).toFixed(2)}`);
     }
 
@@ -819,6 +819,20 @@ export class AccountingService {
         throw new BadRequestException(`الحساب [${acc.code} - ${acc.name_ar}] لا يسمح بإدخال قيود يدوية.`);
       }
     }
+
+    const difference = this.toMoney(totalDebit - totalCredit);
+    if (Math.abs(difference) >= 0.001) {
+      const roundingAccount = await this.db.selectFrom('accounting_accounts')
+        .select(['id', 'is_active']).where('tenant_id', '=', scope.tenantId)
+        .where('code', '=', '7290').executeTakeFirst();
+      if (!roundingAccount?.is_active) throw new BadRequestException('حساب فروق التقريب المحاسبي 7290 غير موجود أو غير نشط.');
+      const debit = difference < 0 ? Math.abs(difference) : 0;
+      const credit = difference > 0 ? difference : 0;
+      validatedLines.push({ accountId: Number(roundingAccount.id), costCenterId: null, description: 'فروق تقريب القيد', debit, credit, partnerType: 'none', partnerId: null });
+      totalDebit = this.toMoney(totalDebit + debit);
+      totalCredit = this.toMoney(totalCredit + credit);
+    }
+    if (Math.abs(totalDebit - totalCredit) >= 0.001) throw new BadRequestException('القيد غير متزن بعد التسوية.');
 
     const userId = Number(auth.userId) || null;
     const branchId = dto.branchId ? Number(dto.branchId) : null;
@@ -1667,19 +1681,16 @@ export class AccountingService {
 
   async createDraftJournalEntry(input: DraftJournalEntryInput, auth: AuthContext): Promise<number> {
     this.assertAccountingAccess(auth);
+    await this.accountingTenantFoundation.ensureForAuth(this.db, auth);
     const validation = await this.validateBalancedLines(input.lines, auth);
     if (!validation.ok) throw new ForbiddenException(validation.message);
 
     const scope = requireTenantScope(auth);
-    const sequenceRow = await this.db.selectFrom('journal_entries').select((eb) => eb.fn.countAll<number>().as('count')).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
-    const sequence = Number(sequenceRow?.count || 0) + 1;
-    const entryNo = `JE-${String(sequence).padStart(6, '0')}`;
-
     const inserted = await this.db.transaction().execute(async (trx) => {
       const entry = await trx
         .insertInto('journal_entries')
         .values({
-          entry_no: entryNo,
+          entry_no: `JE-DRAFT-TMP-${scope.tenantId}-${Date.now()}-${Math.random()}`,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
           entry_date: input.entryDate ?? new Date(),
@@ -1693,6 +1704,10 @@ export class AccountingService {
         } as any)
         .returning('id')
         .executeTakeFirstOrThrow();
+
+      await trx.updateTable('journal_entries')
+        .set({ entry_no: `JE-${String(entry.id).padStart(8, '0')}`, updated_at: sql`NOW()` } as any)
+        .where('id', '=', Number(entry.id)).where('tenant_id', '=', scope.tenantId).execute();
 
       for (const line of validation.lines) {
         await trx.insertInto('journal_entry_lines').values({
@@ -1763,8 +1778,23 @@ export class AccountingService {
 
     const totalDebit = this.toMoney(normalized.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(normalized.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+    const difference = this.toMoney(totalDebit - totalCredit);
+    if (Math.abs(difference) > 0.05) {
       return { ok: false, message: 'Total debit must equal total credit.' };
+    }
+
+    if (Math.abs(difference) >= 0.001) {
+      if (!auth) return { ok: false, message: 'Tenant scope is required to resolve the rounding account.' };
+      const scope = requireTenantScope(auth);
+      const roundingAccount = await this.db.selectFrom('accounting_accounts').select(['id', 'is_active'])
+        .where('tenant_id', '=', scope.tenantId).where('code', '=', '7290').executeTakeFirst();
+      if (!roundingAccount?.is_active) return { ok: false, message: 'Rounding difference account 7290 is missing or inactive.' };
+      normalized.push({
+        accountId: Number(roundingAccount.id), costCenterId: null as any,
+        description: 'Rounding difference', debit: difference < 0 ? Math.abs(difference) : 0,
+        credit: difference > 0 ? difference : 0, partnerType: 'none', partnerId: null,
+        branchId: null, locationId: null,
+      });
     }
 
     return { ok: true, lines: normalized };

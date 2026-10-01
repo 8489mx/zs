@@ -1059,7 +1059,8 @@ export class PurchasesWriteService {
       const paymentNote = normalizeOptionalNote(payload.note);
       await this.financeService.addSupplierLedgerEntry(trx, supplier.id, -amount, 'supplier_payment', `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
       await this.financeService.addTreasuryTransaction(trx, 'supplier_payment', -amount, `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
-      await this.accountingPosting.postSupplierPayment(trx, id, auth);
+      const posting = await this.accountingPosting.postSupplierPayment(trx, id, auth);
+      if (!posting.journalEntryId) throw new AppError(`Supplier payment ${id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
       return { id, docNo };
     });
 
@@ -1135,9 +1136,10 @@ export class PurchasesWriteService {
       const fullDesc = `${descPrefix}${paymentNote ? ` - ${paymentNote}` : ''}`;
       await this.financeService.addCustomerLedgerEntry(trx, customer.id, -amount, fullDesc, 'customer_payment', paymentId, auth, branchId, locationId);
       await this.financeService.addTreasuryTransaction(trx, 'customer_payment', amount, fullDesc, 'customer_payment', paymentId, auth, branchId, locationId);
-      await this.accountingPosting.postCustomerPayment(trx, paymentId, auth);
+      const posting = await this.accountingPosting.postCustomerPayment(trx, paymentId, auth);
+      if (!posting.journalEntryId) throw new AppError(`Customer payment ${paymentId} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
 
-      const docNo = await this.generateCustomerPaymentDocNo(trx, scope.tenantId);
+      const docNo = await this.generateCustomerPaymentDocNo(trx, scope.tenantId, paymentId);
 
       let allocatedJobNumber: string | null = null;
       if (targetJobId) {
@@ -1232,17 +1234,7 @@ export class PurchasesWriteService {
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const datePrefix = `${yy}${mm}${dd}`;
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-
-    const lastDoc = await trx
-      .selectFrom('purchases')
-      .select(sql<number>`COALESCE(MAX(CASE WHEN doc_no ~ '^[A-Za-z0-9]+-[0-9]+-[0-9]+$' THEN CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER) ELSE 0 END), 0)`.as('last_seq'))
-      .where(sql<boolean>`tenant_id = ${tenantId}`)
-      .where('created_at', '>=', startOfDay)
-      .executeTakeFirst();
-
-    const nextSeq = Number(lastDoc?.last_seq || 0) + 1;
-    const seq = String(nextSeq).padStart(4, '0');
+    const seq = String(purchaseId).padStart(6, '0');
     return `ZP-${datePrefix}-${seq}`;
   }
 
@@ -1273,37 +1265,17 @@ export class PurchasesWriteService {
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const datePrefix = `${yy}${mm}${dd}`;
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-
-    const lastDoc = await trx
-      .selectFrom('supplier_payments')
-      .select(sql<number>`COALESCE(MAX(CASE WHEN doc_no ~ '^[A-Za-z0-9]+-[0-9]+-[0-9]+$' THEN CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER) ELSE 0 END), 0)`.as('last_seq'))
-      .where(sql<boolean>`tenant_id = ${tenantId}`)
-      .where('payment_date', '>=', startOfDay)
-      .executeTakeFirst();
-
-    const nextSeq = Number(lastDoc?.last_seq || 0) + 1;
-    const seq = String(nextSeq).padStart(4, '0');
+    const seq = String(paymentId).padStart(6, '0');
     return `ZPV-${datePrefix}-${seq}`;
   }
 
-  private async generateCustomerPaymentDocNo(trx: Kysely<Database>, tenantId: string): Promise<string> {
+  private async generateCustomerPaymentDocNo(trx: Kysely<Database>, tenantId: string, paymentId: number): Promise<string> {
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const datePrefix = `${yy}${mm}${dd}`;
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-
-    const countToday = await trx
-      .selectFrom('customer_payments')
-      .select(sql<number>`COUNT(*)::int`.as('cnt'))
-      .where(sql<boolean>`tenant_id = ${tenantId}`)
-      .where('created_at', '>=', startOfDay)
-      .executeTakeFirst();
-
-    const nextSeq = Number(countToday?.cnt || 0) + 1;
-    const seq = String(nextSeq).padStart(4, '0');
+    const seq = String(paymentId).padStart(6, '0');
     return `REC-${datePrefix}-${seq}`;
   }
 
