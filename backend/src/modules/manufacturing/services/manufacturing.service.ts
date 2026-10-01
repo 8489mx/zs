@@ -4,7 +4,7 @@ import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
-import { applyStockDelta, previewAssignedLocationStockQty } from '../../../common/utils/location-stock-ledger';
+import { applyStockDelta, lockStockProducts, previewAssignedLocationStockQty } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { Database } from '../../../database/database.types';
@@ -342,12 +342,17 @@ export class ManufacturingService {
         .where('l.bom_id', '=', wo.bom_id)
         .execute();
 
+      await lockStockProducts(trx, {
+        ...scope,
+        productIds: [Number(wo.finished_product_id), ...lines.map((line) => Number(line.component_product_id)), ...(payload.byProducts || []).map((bp) => Number(bp.productId))],
+      });
+
       let totalCost = 0;
 
       const bomQuantity = Number(wo.bom_quantity || 1);
 
       // Deduct raw materials
-      for (const line of lines) {
+      for (const line of [...lines].sort((a, b) => Number(a.component_product_id) - Number(b.component_product_id))) {
         const wastePct = Math.max(0, Math.min(99.9, Number(line.waste_percentage || 0)));
         const wasteFactor = 1 / (1 - (wastePct / 100));
         const lineMultiplier = Number(line.unit_multiplier || 1);
@@ -453,7 +458,7 @@ export class ManufacturingService {
 
       // Add by-products if any
       if (payload.byProducts && payload.byProducts.length > 0) {
-        for (const bp of payload.byProducts) {
+        for (const bp of [...payload.byProducts].sort((a, b) => Number(a.productId) - Number(b.productId))) {
           const bpQty = Number(bp.quantity || 0);
           if (bpQty <= 0) continue;
           const bpLoc = bp.locationId || destinationLocation;
@@ -687,6 +692,11 @@ export class ManufacturingService {
         throw new AppError('شجرة المكونات لا تحتوي على بنود صالحة للتفكيك', 'EMPTY_BOM', 400);
       }
 
+      await lockStockProducts(trx, {
+        ...scope,
+        productIds: [Number(payload.productId), ...bomLines.map((line) => Number(line.component_product_id))],
+      });
+
       const locationId = payload.warehouseId || product.default_location_id || null;
       const qtyToUnbuild = Number(payload.quantity);
       const bomQty = Number(bom.quantity || 1);
@@ -740,7 +750,7 @@ export class ManufacturingService {
       }).execute();
 
       let totalRecoveredCost = 0;
-      for (const line of bomLines) {
+      for (const line of [...bomLines].sort((a, b) => Number(a.component_product_id) - Number(b.component_product_id))) {
         const lineMultiplier = Number(line.unit_multiplier || 1);
         const returnQty = Number((Number(line.quantity) * (qtyToUnbuild / bomQty) * lineMultiplier).toFixed(3));
         const lineCost = Number((returnQty * Number(line.expected_cost)).toFixed(3));

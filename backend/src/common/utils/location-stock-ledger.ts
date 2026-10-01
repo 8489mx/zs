@@ -133,6 +133,25 @@ function requireStockTenantScope(params: TenantStockScope): RequiredTenantStockS
   return { tenantId, accountId };
 }
 
+/** Acquire every product lock before any location balance lock, in one global order. */
+export async function lockStockProducts(
+  db: Kysely<Database>,
+  params: TenantStockScope & { productIds: number[] },
+): Promise<void> {
+  const scope = requireStockTenantScope(params);
+  const ids = [...new Set(params.productIds.map(Number))].filter((id) => Number.isInteger(id) && id > 0).sort((a, b) => a - b);
+  if (!ids.length) return;
+  const rows = await db.selectFrom('products')
+    .select('id')
+    .where('id', 'in', ids)
+    .where('tenant_id', '=', scope.tenantId)
+    .where('account_id', '=', scope.accountId)
+    .orderBy('id', 'asc')
+    .forUpdate()
+    .execute();
+  if (rows.length !== ids.length) throw new AppError('Product not found or access denied', 'PRODUCT_NOT_FOUND', 404);
+}
+
 async function loadLockedState(db: Kysely<Database>, params: TenantStockScope & { productId: number }): Promise<LockedState> {
   const scope = requireStockTenantScope(params);
   const product = await db
@@ -150,6 +169,7 @@ async function loadLockedState(db: Kysely<Database>, params: TenantStockScope & 
     .where('product_id', '=', product.id)
     .where('tenant_id', '=', scope.tenantId)
     .where('account_id', '=', scope.accountId)
+    .orderBy('id', 'asc')
     .forUpdate()
     .execute();
   return { 
@@ -332,16 +352,19 @@ export async function applyStockDelta(db: Kysely<Database>, params: StockDeltaPa
   const errorCode = params.errorCode || 'INSUFFICIENT_STOCK';
   const errorMessage = params.errorMessage || `Insufficient stock for ${state.product.name || `#${params.productId}`}`;
 
-  if (!params.allowNegative) ensureNonNegativeStock(globalAfter, errorCode, errorMessage);
+  if (delta < 0 && !params.allowNegative && !params.skipGlobalUpdate) {
+    ensureNonNegativeStock(roundStockQty(globalAfter - Number(state.product.reserved_qty || 0)), errorCode, errorMessage);
+  }
 
   if (!params.locationId) {
     const unassigned = await ensureUnassignedBalance(db, state);
     const scopeBefore = roundStockQty(unassigned.qty);
     const scopeAfter = roundStockQty(scopeBefore + delta);
-    if (!params.allowNegative) ensureNonNegativeStock(scopeAfter, errorCode, errorMessage);
+    if (delta < 0 && !params.allowNegative) ensureNonNegativeStock(roundStockQty(scopeAfter - Number(unassigned.reserved_qty || 0)), errorCode, errorMessage);
     
     const trueGlobalQty = roundStockQty(state.balances.reduce((sum, row) => sum + Number(row.qty), 0));
     const correctedGlobalAfter = roundStockQty(trueGlobalQty + delta);
+    if (delta < 0 && !params.allowNegative && !params.skipGlobalUpdate) ensureNonNegativeStock(roundStockQty(correctedGlobalAfter - Number(state.product.reserved_qty || 0)), errorCode, errorMessage);
     
     await updateBalanceQty(db, state.scope, unassigned, scopeAfter, null);
     if (!params.skipGlobalUpdate) await updateGlobalQty(db, state.scope, params.productId, correctedGlobalAfter);
@@ -361,10 +384,11 @@ export async function applyStockDelta(db: Kysely<Database>, params: StockDeltaPa
   }
 
   const scopeAfter = roundStockQty(locationBefore + delta);
-  if (!params.allowNegative) ensureNonNegativeStock(scopeAfter, errorCode, errorMessage);
+  if (delta < 0 && !params.allowNegative) ensureNonNegativeStock(roundStockQty(scopeAfter - Number(location.reserved_qty || 0)), errorCode, errorMessage);
   
   const trueGlobalQty = roundStockQty(state.balances.reduce((sum, row) => sum + Number(row.qty), 0));
   const correctedGlobalAfter = roundStockQty(trueGlobalQty + delta);
+  if (delta < 0 && !params.allowNegative && !params.skipGlobalUpdate) ensureNonNegativeStock(roundStockQty(correctedGlobalAfter - Number(state.product.reserved_qty || 0)), errorCode, errorMessage);
   
   await updateBalanceQty(db, state.scope, location, scopeAfter, params.branchId ?? null);
   if (!params.skipGlobalUpdate) await updateGlobalQty(db, state.scope, params.productId, correctedGlobalAfter);
@@ -388,11 +412,12 @@ export async function setScopedStockQty(db: Kysely<Database>, params: StockSetPa
     const globalBefore = state.globalQty;
     const globalAfter = roundStockQty(trueGlobalQty + delta);
 
+    ensureNonNegativeStock(roundStockQty(nextQty - Number(unassigned.reserved_qty || 0)), errorCode, errorMessage);
+    ensureNonNegativeStock(roundStockQty(globalAfter - Number(state.product.reserved_qty || 0)), errorCode, errorMessage);
+
     if (delta === 0 && globalBefore === globalAfter) {
       return { globalBefore, globalAfter, scopeBefore, scopeAfter: nextQty };
     }
-    
-    ensureNonNegativeStock(globalAfter, errorCode, errorMessage);
     
     if (delta !== 0) {
       await updateBalanceQty(db, state.scope, unassigned, nextQty, null);
@@ -421,12 +446,13 @@ export async function setScopedStockQty(db: Kysely<Database>, params: StockSetPa
   const globalBefore = state.globalQty;
   const globalAfter = roundStockQty(trueGlobalQty + delta);
 
+  ensureNonNegativeStock(roundStockQty(nextQty - Number(location.reserved_qty || 0)), errorCode, errorMessage);
+  ensureNonNegativeStock(roundStockQty(globalAfter - Number(state.product.reserved_qty || 0)), errorCode, errorMessage);
+
   if (delta === 0 && globalBefore === globalAfter) {
     return { globalBefore, globalAfter, scopeBefore, scopeAfter: nextQty };
   }
 
-  ensureNonNegativeStock(globalAfter, errorCode, errorMessage);
-  
   if (delta !== 0) {
     await updateBalanceQty(db, state.scope, location, nextQty, params.branchId ?? null);
   }

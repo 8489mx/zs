@@ -5,7 +5,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { paginateRows } from '../../../common/utils/pagination';
-import { applyStockDelta, previewAssignedLocationStockQty, previewConsumableStockQty, setScopedStockQty } from '../../../common/utils/location-stock-ledger';
+import { applyStockDelta, lockStockProducts, previewAssignedLocationStockQty, previewConsumableStockQty, setScopedStockQty } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { Database } from '../../../database/database.types';
@@ -134,7 +134,8 @@ export class InventoryCountService {
     const finalResponse = await this.tx.runInTransaction(this.db, async (trx) => {
       const result = await trx.insertInto('stock_count_sessions').values({ doc_no: buildStockCountSessionDocNo(), branch_id: location.branchId, location_id: location.id, status: 'draft', note: String(payload.note || '').trim(), counted_by: auth.userId, ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
       const id = Number(result.id);
-      for (const item of payload.items) {
+      await lockStockProducts(trx, { ...tenantScope, productIds: payload.items.map((item) => item.productId) });
+      for (const item of [...payload.items].sort((a, b) => a.productId - b.productId)) {
         const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError('Product not found in stock count session', 'PRODUCT_NOT_FOUND', 404);
         const expectedQty = await previewAssignedLocationStockQty(trx, { productId: item.productId, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
@@ -168,7 +169,8 @@ export class InventoryCountService {
       if ((session.status || 'draft') !== 'draft') throw new AppError('Stock count session already posted', 'SESSION_ALREADY_POSTED', 400);
       const items = await trx.selectFrom('stock_count_items').selectAll().where('session_id', '=', sessionId).where(this.tenantPredicate(auth)).orderBy('id', 'asc').execute();
       if (!items.length) throw new AppError('Stock count session has no items', 'SESSION_EMPTY', 400);
-      for (const item of items) {
+      await lockStockProducts(trx, { ...tenantScope, productIds: items.map((item) => Number(item.product_id)) });
+      for (const item of [...items].sort((a, b) => Number(a.product_id) - Number(b.product_id))) {
         const expectedQty = Number(item.expected_qty || 0);
         const currentQty = await previewAssignedLocationStockQty(trx, { productId: Number(item.product_id), branchId: session.branch_id, locationId: session.location_id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
         if (Math.abs(currentQty - expectedQty) >= 0.001) {

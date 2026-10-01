@@ -7,7 +7,7 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
 import { CreateGoodsReceiptDto, VerifyThreeWayMatchDto } from '../dto/goods-receipt.dto';
 import { computeThreeWayMatch, ThreeWayMatchInput } from '../three-way-match.engine';
-import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
+import { applyStockDelta, lockStockProducts } from '../../../common/utils/location-stock-ledger';
 
 @Injectable()
 export class GoodsReceiptService {
@@ -322,6 +322,7 @@ export class GoodsReceiptService {
       }
 
       const grn = await this.getGoodsReceipt(id, auth, trx);
+      await lockStockProducts(trx, { ...scope, productIds: grn.lines.map((line) => Number(line.productId)) });
       let totalGrniAmount = 0;
 
       // Stock movements must carry branch attribution like every other stock path does.
@@ -334,7 +335,7 @@ export class GoodsReceiptService {
       const grnBranchId = grnLocation?.branch_id != null ? Number(grnLocation.branch_id) : null;
 
       // 2. Update physical inventory for accepted quantities & write audit movements
-      for (const line of grn.lines) {
+      for (const line of [...grn.lines].sort((a, b) => Number(a.productId) - Number(b.productId))) {
         const accepted = Number(line.acceptedQty || 0);
         if (accepted > 0) {
           const lineUnitCost = Number(line.unitCost || 0);

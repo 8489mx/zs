@@ -3,6 +3,7 @@ import { Kysely, sql } from '../../../database/kysely';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
+import { applyStockDelta, lockStockProducts } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 
@@ -275,7 +276,6 @@ export class InventoryScopeService {
     return { locations: overview, totalGlobalValue };
   }
   async assignProductsToLocation(locationId: number, productIds: number[], auth: AuthContext): Promise<{ success: boolean }> {
-    const tenantId = this.tenantId(auth);
     if (!productIds || productIds.length === 0) return { success: true };
 
     await this.db.transaction().execute(async trx => {
@@ -283,60 +283,13 @@ export class InventoryScopeService {
       const location = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', locationId).where('tenant_id', '=', tenantId).where('account_id', '=', accountId).executeTakeFirst();
       if (!location) throw new AppError('Location not found', 'NOT_FOUND', 404);
 
-      // Find global stock
-      const productsInfo = await trx.selectFrom('products')
-        .select(['id', 'stock_qty'])
-        .where('id', 'in', productIds)
-        .where('tenant_id', '=', tenantId)
-        .where('account_id', '=', accountId)
-        .execute();
-
-      // Find all location stocks for these products
-      const allLocStocks = await trx.selectFrom('product_location_stock')
-        .select(['product_id', 'location_id', 'qty'])
-        .where('product_id', 'in', productIds)
-        .where('tenant_id', '=', tenantId)
-        .where('account_id', '=', accountId)
-        .execute();
-
-      const locQtyMap = new Map<number, number>();
-      for (const s of allLocStocks) {
-        locQtyMap.set(Number(s.product_id), (locQtyMap.get(Number(s.product_id)) || 0) + Number(s.qty));
-      }
-
-      for (const pid of productIds) {
-        const pInfo = productsInfo.find(p => Number(p.id) === Number(pid));
-        const globalStock = Number(pInfo?.stock_qty || 0);
-        const assignedStock = locQtyMap.get(Number(pid)) || 0;
-        const unassignedStock = Math.max(0, globalStock - assignedStock);
-
-        const existingRecord = allLocStocks.find(s => Number(s.product_id) === Number(pid) && Number(s.location_id) === Number(locationId));
-
-        if (existingRecord) {
-          // If already assigned but has unassigned stock elsewhere, and we are assigning,
-          // pull the unassigned stock into this location!
-          if (unassignedStock > 0) {
-             await trx.updateTable('product_location_stock')
-               .set({ qty: Number(existingRecord.qty) + unassignedStock })
-               .where('product_id', '=', Number(pid))
-               .where('location_id', '=', Number(locationId))
-               .where('tenant_id', '=', tenantId)
-               .where('account_id', '=', accountId)
-               .execute();
-          }
-        } else {
-          // Insert new record with unassigned stock
-          await trx.insertInto('product_location_stock')
-            .values({
-              product_id: Number(pid),
-              location_id: Number(locationId),
-              branch_id: location.branch_id || null,
-              qty: unassignedStock,
-              tenant_id: tenantId,
-              account_id: accountId,
-            } as any)
-            .execute();
-        }
+      await lockStockProducts(trx, { tenantId, accountId, productIds });
+      for (const pid of [...new Set(productIds.map(Number))].sort((a, b) => a - b)) {
+        // Zero delta provisions the location through the same locked ledger path.
+        await applyStockDelta(trx, {
+          tenantId, accountId, productId: pid, branchId: location.branch_id,
+          locationId, delta: 0, skipGlobalUpdate: true,
+        });
       }
     });
 
@@ -344,21 +297,21 @@ export class InventoryScopeService {
   }
 
   async removeProductFromLocation(locationId: number, productId: number, auth: AuthContext): Promise<{ success: boolean }> {
-    const tenantId = this.tenantId(auth);
-    
     await this.db.transaction().execute(async trx => {
       const { tenantId, accountId } = requireTenantScope(auth);
+      await lockStockProducts(trx, { tenantId, accountId, productIds: [productId] });
       // Find the stock
       const stock = await trx.selectFrom('product_location_stock')
-        .select('qty')
+        .select(['qty', 'reserved_qty'])
         .where('location_id', '=', locationId)
         .where('product_id', '=', productId)
         .where('tenant_id', '=', tenantId)
         .where('account_id', '=', accountId)
+        .forUpdate()
         .executeTakeFirst();
       
       if (!stock) throw new AppError('Stock not found in this location', 'NOT_FOUND', 404);
-      if (Number(stock.qty) > 0) throw new AppError('لا يمكن حذف المخزن طالما يوجد به رصيد. يجب تحويل الرصيد أولاً', 'BAD_REQUEST', 400);
+      if (Number(stock.qty) > 0 || Number(stock.reserved_qty || 0) > 0) throw new AppError('لا يمكن حذف المخزن طالما يوجد به رصيد. يجب تحويل الرصيد أولاً', 'BAD_REQUEST', 400);
 
       await trx.deleteFrom('product_location_stock')
         .where('location_id', '=', locationId)

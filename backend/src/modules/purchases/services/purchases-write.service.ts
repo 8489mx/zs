@@ -6,7 +6,7 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureNonNegativeStock, ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
-import { applyStockDelta, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
+import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
@@ -201,6 +201,7 @@ export class PurchasesWriteService {
       const items = payload.items || [];
       if (!items.length) throw new AppError('Purchase must include at least one item', 'PURCHASE_ITEMS_REQUIRED', 400);
       ensureUniqueFlowItems(items, 'PURCHASE_DUPLICATE_PRODUCT', 'Purchase must not contain duplicate product rows with the same unit');
+      await lockStockProducts(trx, { ...scope, productIds: items.map((item) => item.productId) });
 
       const normalizedItems = [];
       const repricingCandidates: PurchaseRepricingCandidate[] = [];
@@ -386,7 +387,7 @@ export class PurchasesWriteService {
       await trx.updateTable('purchases').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount);
-      for (const item of allocatedItems) {
+      for (const item of [...allocatedItems].sort((a, b) => a.productId - b.productId)) {
         const itemSerials = Array.isArray(item.serials) ? item.serials : [];
         const insertedItem = await trx.insertInto('purchase_items').values({
           purchase_id: id,
@@ -608,13 +609,15 @@ export class PurchasesWriteService {
     if (editReason.length < 5) throw new AppError('سبب التعديل مطلوب بشكل واضح.', 'PURCHASE_EDIT_REASON_REQUIRED', 400);
 
     const updated = await this.tx.runInTransaction(this.db, async (trx) => {
-      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be edited', 'PURCHASE_CANCELLED', 400);
 
       const oldItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       if (!(payload.items || []).length) throw new AppError('Purchase must include at least one item', 'PURCHASE_ITEMS_REQUIRED', 400);
       if (!(Number(payload.supplierId || 0) > 0)) throw new AppError('Supplier is required', 'SUPPLIER_REQUIRED', 400);
+      await lockStockProducts(trx, { ...scope, productIds: [...oldItems.map((item) => Number(item.product_id)), ...(payload.items || []).map((item) => item.productId)] });
+      oldItems.sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0));
       for (const item of oldItems) {
         if (!item.product_id) continue;
         const itemLocationId = item.location_id ?? purchase.location_id;
@@ -748,7 +751,7 @@ export class PurchasesWriteService {
       const paymentType = payload.paymentType === 'credit' ? 'credit' : 'cash';
 
       const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount);
-      for (const normalizedItem of allocatedItems) {
+      for (const normalizedItem of [...allocatedItems].sort((a, b) => a.productId - b.productId)) {
         const repricedCost = Number(normalizedItem.effectiveUnitCost || 0);
 
         await trx.insertInto('purchase_items').values({
@@ -925,12 +928,13 @@ export class PurchasesWriteService {
   async cancelPurchase(purchaseId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Purchase already cancelled', 'PURCHASE_ALREADY_CANCELLED', 400);
 
       const items = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      for (const item of items) {
+      await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });
+      for (const item of [...items].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
         if (!item.product_id) continue;
         const itemLocationId = item.location_id ?? purchase.location_id;
         const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId });
@@ -1339,7 +1343,12 @@ export class PurchasesWriteService {
         itemsMap.set(Number(it.id), it);
       }
 
-      for (const rec of receivedItems) {
+      await lockStockProducts(trx, {
+        ...scope,
+        productIds: receivedItems.map((rec) => Number(itemsMap.get(rec.itemId)?.product_id)),
+      });
+
+      for (const rec of [...receivedItems].sort((a, b) => Number(itemsMap.get(a.itemId)?.product_id || 0) - Number(itemsMap.get(b.itemId)?.product_id || 0))) {
         const item = itemsMap.get(rec.itemId);
         if (!item) {
           throw new AppError(`Purchase item ${rec.itemId} not found`, 'ITEM_NOT_FOUND', 404);

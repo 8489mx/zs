@@ -310,6 +310,9 @@ export class SettingsDemoDataService {
 
     let productsCount = 0;
     await this.db.transaction().execute(async (trx) => {
+      // This administrative reset deletes location balances; take the product locks first.
+      await trx.selectFrom('products').select('id')
+        .where('tenant_id', '=', tenantId).orderBy('id', 'asc').forUpdate().execute();
       // 1. Delete stock transactions, movements, transfers, sessions, damages, allocations
       await (trx as any).deleteFrom('customer_installments').where(sql<boolean>`tenant_id = ${tenantId}`).execute().catch(() => undefined);
       await (trx as any).deleteFrom('customer_installment_plans').where(sql<boolean>`tenant_id = ${tenantId}`).execute().catch(() => undefined);
@@ -357,6 +360,7 @@ export class SettingsDemoDataService {
       await trx.updateTable('products')
         .set({
           stock_qty: 0,
+          reserved_qty: 0,
           updated_at: sql`NOW()`,
         })
         .where(sql<boolean>`tenant_id = ${tenantId}`)
