@@ -18,7 +18,7 @@ describe('offline POS queue durability', () => {
 
   it('rejects the sale if browser storage cannot persist it', () => {
     const setItem = Storage.prototype.setItem;
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, value: string) {
       if (key === 'zsystems_pos_offline_sales_queue') throw new DOMException('Quota exceeded', 'QuotaExceededError');
       return setItem.call(this, key, value);
     });

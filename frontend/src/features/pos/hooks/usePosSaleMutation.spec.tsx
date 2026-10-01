@@ -128,7 +128,7 @@ describe('usePosSaleMutation', () => {
   it('does not acknowledge an offline sale when the queue cannot be saved', async () => {
     createSaleMock.mockRejectedValueOnce({ status: 0, code: 'network_error', message: 'Network unavailable' });
     const setItem = Storage.prototype.setItem;
-    const storageSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
+    const storageSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, value: string) {
       if (key === 'zsystems_pos_offline_sales_queue') throw new DOMException('Quota exceeded', 'QuotaExceededError');
       return setItem.call(this, key, value);
     });
