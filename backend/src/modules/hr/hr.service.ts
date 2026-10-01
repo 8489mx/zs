@@ -1077,7 +1077,7 @@ export class HrService {
   }
 
   async listLoans(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
-    requireTenantScope(auth);
+    const { tenantId } = requireTenantScope(auth);
     const employeeId = toId(query.employeeId);
     const periodMonth = normalizePayrollMonth(query.month || query.periodMonth);
     const result = await sql<Record<string, unknown>>`
@@ -1092,14 +1092,15 @@ export class HrService {
         to_char(l.disbursed_at, 'YYYY-MM-DD HH24:MI') AS disbursed_at_text,
         to_char(latest_paid.latest_paid_at, 'YYYY-MM-DD HH24:MI') AS paid_at_text
       FROM hr_employee_loans l
-      JOIN hr_employees e ON e.id = l.employee_id
+      JOIN hr_employees e ON e.id = l.employee_id AND e.tenant_id = l.tenant_id
       LEFT JOIN (
         SELECT loan_id, MAX(paid_at) AS latest_paid_at
         FROM hr_employee_loan_installments
-        WHERE paid_at IS NOT NULL
+        WHERE paid_at IS NOT NULL AND tenant_id = ${tenantId}
         GROUP BY loan_id
       ) latest_paid ON latest_paid.loan_id = l.id
-      WHERE (${employeeId}::BIGINT IS NULL OR l.employee_id = ${employeeId})
+      WHERE l.tenant_id = ${tenantId}
+        AND (${employeeId}::BIGINT IS NULL OR l.employee_id = ${employeeId})
       ORDER BY l.id DESC
     `.execute(this.db);
     const rows = result.rows.map((row) => ({
@@ -1146,6 +1147,7 @@ export class HrService {
           to_char(i.paid_at, 'YYYY-MM-DD HH24:MI') AS paid_at_text
         FROM hr_employee_loan_installments i
         WHERE i.loan_id IN (${sql.join(loanIds)})
+          AND i.tenant_id = ${tenantId}
         ORDER BY i.loan_id ASC, i.installment_no ASC
       `.execute(this.db);
 
@@ -1177,8 +1179,9 @@ export class HrService {
           COUNT(*) AS due_count,
           COALESCE(SUM(GREATEST(i.amount - COALESCE(i.paid_amount, 0), 0)), 0) AS due_amount
         FROM hr_employee_loan_installments i
-        JOIN hr_employee_loans l ON l.id = i.loan_id
+        JOIN hr_employee_loans l ON l.id = i.loan_id AND l.tenant_id = i.tenant_id
         WHERE i.loan_id IN (${sql.join(loanIds)})
+          AND i.tenant_id = ${tenantId}
           AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
           AND l.status IN ('paid', 'partially_repaid', 'disbursed')
           AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
@@ -1234,6 +1237,10 @@ export class HrService {
     }
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      const employee = await trx.selectFrom('hr_employees').select('id')
+        .where('id', '=', employeeId).where('tenant_id', '=', requireTenantScope(auth).tenantId)
+        .executeTakeFirst();
+      if (!employee) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
       const plan = this.normalizeRepaymentPlan({ ...payload, employeeId, principalAmount: amount, issueDate, repaymentMode }, amount);
       const loanNo = clean(payload.loanNo) || await this.generateNumber(trx, 'hr_employee_loans', 'LOAN', auth);
       const insert = await sql<{ id: number }>`
@@ -1265,6 +1272,11 @@ export class HrService {
     const plan = this.normalizeRepaymentPlan({ ...payload, issueDate }, amount);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      const employeeId = toId(payload.employeeId);
+      if (!employeeId || !(await trx.selectFrom('hr_employees').select('id')
+        .where('id', '=', employeeId).where('tenant_id', '=', requireTenantScope(auth).tenantId).executeTakeFirst())) {
+        throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
+      }
       await sql`
         UPDATE hr_employee_loans
         SET loan_no = ${clean(payload.loanNo)}, loan_type = ${clean(payload.loanType) || 'advance'}, principal_amount = ${amount},
@@ -1275,7 +1287,7 @@ export class HrService {
         WHERE id = ${id} AND tenant_id = ${auth.tenantId}
       `.execute(trx);
 
-      await sql`DELETE FROM hr_employee_loan_installments WHERE loan_id = ${id} AND (tenant_id = ${auth.tenantId} OR tenant_id = '')`.execute(trx);
+      await sql`DELETE FROM hr_employee_loan_installments WHERE loan_id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
       for (let i = 1; i <= plan.installmentCount; i += 1) {
         const installmentValue = i === plan.installmentCount
           ? Math.max(0, Number((amount - plan.installmentAmount * (plan.installmentCount - 1)).toFixed(2)))
@@ -1346,7 +1358,7 @@ export class HrService {
       const installments = await sql<Record<string, unknown>>`
         SELECT id, amount, paid_amount
         FROM hr_employee_loan_installments
-        WHERE loan_id = ${id} AND status <> 'paid'
+        WHERE loan_id = ${id} AND tenant_id = ${auth.tenantId} AND status <> 'paid'
         ORDER BY installment_no ASC
       `.execute(trx);
       for (const installment of installments.rows) {
@@ -1362,7 +1374,7 @@ export class HrService {
         await sql`
           UPDATE hr_employee_loan_installments
           SET paid_amount = ${newPaid}, status = ${status}, paid_at = CASE WHEN ${status} = 'paid' THEN NOW() ELSE paid_at END, updated_at = NOW()
-          WHERE id = ${installmentId}
+          WHERE id = ${installmentId} AND tenant_id = ${auth.tenantId}
         `.execute(trx);
         remainingRepayment = Number((remainingRepayment - applied).toFixed(2));
       }
@@ -1482,7 +1494,7 @@ export class HrService {
     return { runId: Number(row.run_id), runStatus: clean(row.run_status), itemStatus: clean(row.item_status) };
   }
 
-  private async calculateLoanDeduction(db: Kysely<Database>, employeeId: number, periodMonth: string): Promise<{ amount: number; notes: string[] }> {
+  private async calculateLoanDeduction(db: Kysely<Database>, employeeId: number, periodMonth: string, tenantId: string): Promise<{ amount: number; notes: string[] }> {
     const normalizedMonth = normalizePayrollMonth(periodMonth);
     if (!normalizedMonth) return { amount: 0, notes: ['Payroll month is invalid for loan deduction'] };
     const range = monthRange(normalizedMonth);
@@ -1495,8 +1507,8 @@ export class HrService {
         i.status,
         to_char(COALESCE(i.due_date, l.first_due_date, l.salary_due_date), 'YYYY-MM-DD') AS due_date_text
       FROM hr_employee_loan_installments i
-      JOIN hr_employee_loans l ON l.id = i.loan_id
-      WHERE l.employee_id = ${employeeId}
+      JOIN hr_employee_loans l ON l.id = i.loan_id AND l.tenant_id = i.tenant_id
+      WHERE l.employee_id = ${employeeId} AND l.tenant_id = ${tenantId}
         AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
         AND l.status IN ('paid', 'partially_repaid', 'disbursed')
         AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
@@ -1518,13 +1530,13 @@ export class HrService {
     return { amount: total, notes };
   }
 
-  private async adjustmentTotals(db: Kysely<Database>, itemId: number): Promise<{ allowance: number; deduction: number }> {
+  private async adjustmentTotals(db: Kysely<Database>, itemId: number, tenantId: string): Promise<{ allowance: number; deduction: number }> {
     const result = await sql<{ allowance: string; deduction: string }>`
       SELECT
         COALESCE(SUM(CASE WHEN adjustment_type = 'allowance' THEN amount ELSE 0 END), 0) AS allowance,
         COALESCE(SUM(CASE WHEN adjustment_type = 'deduction' THEN amount ELSE 0 END), 0) AS deduction
       FROM hr_payroll_item_adjustments
-      WHERE payroll_item_id = ${itemId}
+      WHERE payroll_item_id = ${itemId} AND tenant_id = ${tenantId}
     `.execute(db);
     return {
       allowance: money(result.rows[0]?.allowance),
@@ -1532,24 +1544,24 @@ export class HrService {
     };
   }
 
-  private async recalculatePayrollItemTotals(db: Kysely<Database>, itemId: number): Promise<void> {
+  private async recalculatePayrollItemTotals(db: Kysely<Database>, itemId: number, tenantId: string): Promise<void> {
     const result = await sql<Record<string, unknown>>`
       SELECT i.*, c.allowance_amount AS compensation_allowance, c.deduction_amount AS compensation_deduction
       FROM hr_payroll_run_items i
       LEFT JOIN LATERAL (
         SELECT cp.allowance_amount, cp.deduction_amount
         FROM hr_compensation_packages cp
-        WHERE cp.employee_id = i.employee_id
+        WHERE cp.employee_id = i.employee_id AND cp.tenant_id = i.tenant_id
           AND (i.contract_id IS NULL OR cp.contract_id IS NULL OR cp.contract_id = i.contract_id)
         ORDER BY cp.effective_from DESC NULLS LAST, cp.id DESC
         LIMIT 1
       ) c ON TRUE
-      WHERE i.id = ${itemId}
+      WHERE i.id = ${itemId} AND i.tenant_id = ${tenantId}
       LIMIT 1
     `.execute(db);
     const item = result.rows[0];
     if (!item) throw new AppError('Payroll item not found', 'HR_PAYROLL_ITEM_NOT_FOUND', 404);
-    const adjustments = await this.adjustmentTotals(db, itemId);
+    const adjustments = await this.adjustmentTotals(db, itemId, tenantId);
     const baseSalary = money(item.base_salary);
     const allowanceAmount = Number((money(item.compensation_allowance) + adjustments.allowance).toFixed(2));
     const deductionAmount = Number((money(item.compensation_deduction) + adjustments.deduction).toFixed(2));
@@ -1577,7 +1589,7 @@ export class HrService {
       SET allowance_amount = ${allowanceAmount}, deduction_amount = ${deductionAmount}, gross_pay = ${grossPay},
           loan_deduction_amount = ${loanDeductionAmount},
           net_pay = ${netPay}, notes = ${notes}, updated_at = NOW()
-      WHERE id = ${itemId}
+      WHERE id = ${itemId} AND tenant_id = ${tenantId}
     `.execute(db);
   }
 
@@ -1622,7 +1634,7 @@ export class HrService {
       LEFT JOIN LATERAL (
         SELECT *
         FROM hr_employment_contracts c
-        WHERE c.employee_id = e.id
+        WHERE c.employee_id = e.id AND c.tenant_id = e.tenant_id
           AND c.status <> 'cancelled'
         ORDER BY CASE WHEN c.status = 'active' THEN 0 WHEN c.status = 'draft' THEN 1 ELSE 2 END,
                  c.start_date DESC NULLS LAST,
@@ -1632,7 +1644,7 @@ export class HrService {
       LEFT JOIN LATERAL (
         SELECT *
         FROM hr_compensation_packages cp
-        WHERE cp.employee_id = e.id
+        WHERE cp.employee_id = e.id AND cp.tenant_id = e.tenant_id
           AND (cp.effective_from IS NULL OR cp.effective_from <= ${range.to})
           AND (cp.effective_to IS NULL OR cp.effective_to >= ${range.from})
         ORDER BY cp.effective_from DESC NULLS LAST, cp.id DESC
@@ -1651,7 +1663,7 @@ export class HrService {
       }
       baseSalMap.set(Number(e.employee_id), bs);
     }
-    const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap);
+    const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId);
 
     for (const employee of employees.rows) {
       const employeeId = Number(employee.employee_id || 0);
@@ -1659,13 +1671,13 @@ export class HrService {
       const existing = await sql<Record<string, unknown>>`
         SELECT id, status, notes
         FROM hr_payroll_run_items
-        WHERE run_id = ${runId} AND employee_id = ${employeeId}
+        WHERE run_id = ${runId} AND employee_id = ${employeeId} AND tenant_id = ${tenantId}
         LIMIT 1
       `.execute(db);
       const existingItem = existing.rows[0];
       if (clean(existingItem?.status) === 'excluded' || clean(existingItem?.status) === 'approved') continue;
       const itemId = Number(existingItem?.id || 0);
-      const adjustments = itemId > 0 ? await this.adjustmentTotals(db, itemId) : { allowance: 0, deduction: 0 };
+      const adjustments = itemId > 0 ? await this.adjustmentTotals(db, itemId, tenantId) : { allowance: 0, deduction: 0 };
       const isHourly = clean(employee.compensation_type) === 'hourly';
       let baseSalary = money(employee.base_salary);
       
@@ -1679,12 +1691,12 @@ export class HrService {
       
       const compensationAllowance = money(employee.allowance_amount);
       const compensationDeduction = money(employee.deduction_amount);
-      const loanDeduction = await this.calculateLoanDeduction(db, employeeId, periodMonth);
+      const loanDeduction = await this.calculateLoanDeduction(db, employeeId, periodMonth, tenantId);
 
       const empAdjustmentsResult = await sql<Record<string, unknown>>`
         SELECT id, adjustment_type, amount_type, amount, accounting_category
         FROM hr_employee_adjustments
-        WHERE employee_id = ${employeeId} AND status = 'pending' AND date <= ${range.to}
+        WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId} AND status = 'pending' AND date <= ${range.to}
       `.execute(db);
 
       let empAdjAllowance = 0;
@@ -1789,6 +1801,7 @@ export class HrService {
     range: { from: string; to: string },
     employeeIds: number[],
     baseSalaryByEmployeeId: Map<number, number>,
+    tenantId: string,
   ): Promise<Map<number, any>> {
     const reviewByEmployeeId = new Map<number, any>();
     if (!employeeIds.length) return reviewByEmployeeId;
@@ -1796,8 +1809,8 @@ export class HrService {
     const empResult = await sql<Record<string, unknown>>`
       SELECT e.id, e.tenant_id, e.user_id, e.compensation_type, e.hourly_rate, e.expected_daily_hours, e.commission_type, e.commission_value, e.commission_target, e.delay_policy, e.has_social_insurance, e.insurance_salary, e.has_income_tax, c.base_salary
       FROM hr_employees e
-      LEFT JOIN hr_employment_contracts c ON c.employee_id = e.id AND c.status = 'active'
-      WHERE e.id IN (${sql.join(employeeIds)})
+      LEFT JOIN hr_employment_contracts c ON c.employee_id = e.id AND c.tenant_id = e.tenant_id AND c.status = 'active'
+      WHERE e.id IN (${sql.join(employeeIds)}) AND e.tenant_id = ${tenantId}
     `.execute(db);
     const empDetails = new Map<number, any>();
     for (const row of empResult.rows) empDetails.set(Number(row.id), row);
@@ -1808,7 +1821,7 @@ export class HrService {
         to_char(work_date, 'YYYY-MM-DD') AS work_date_text,
         status
       FROM hr_attendance_records
-      WHERE employee_id IN (${sql.join(employeeIds)})
+      WHERE employee_id IN (${sql.join(employeeIds)}) AND tenant_id = ${tenantId}
         AND work_date >= ${range.from}::date
         AND work_date <= ${range.to}::date
     `.execute(db);
@@ -1823,7 +1836,7 @@ export class HrService {
         COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS early_leave_incidents_count,
         COALESCE(SUM(CASE WHEN status = 'needs_review' THEN 1 ELSE 0 END), 0) AS unresolved_exceptions_count
       FROM hr_attendance_exceptions
-      WHERE employee_id IN (${sql.join(employeeIds)})
+      WHERE employee_id IN (${sql.join(employeeIds)}) AND tenant_id = ${tenantId}
         AND work_date >= ${range.from}::date
         AND work_date <= ${range.to}::date
       GROUP BY employee_id
@@ -1836,7 +1849,7 @@ export class HrService {
         COALESCE(SUM(CASE WHEN COALESCE(lt.is_paid, TRUE) = FALSE OR LOWER(COALESCE(lt.code, '')) = 'unpaid' OR LOWER(COALESCE(lr.leave_type, '')) = 'unpaid' THEN lr.days_count ELSE 0 END), 0) AS unpaid_leave_days
       FROM hr_leave_requests lr
       LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id AND lt.tenant_id = lr.tenant_id
-      WHERE lr.employee_id IN (${sql.join(employeeIds)})
+      WHERE lr.employee_id IN (${sql.join(employeeIds)}) AND lr.tenant_id = ${tenantId}
         AND lr.status = 'approved'
         AND lr.start_date <= ${range.to}::date
         AND lr.end_date >= ${range.from}::date
@@ -1861,7 +1874,6 @@ export class HrService {
     for (const row of leaveResult.rows) leaveByEmployee.set(Number(row.employee_id || 0), row);
 
     // Fetch global settings for HR
-    const tenantId = String(empResult.rows[0]?.tenant_id || '');
     let hrDelayPolicyEnabled = false;
     let hrDelayPolicyFirstTime = 0;
     let hrDelayPolicySecondTime = 0;
@@ -2102,7 +2114,7 @@ export class HrService {
         COALESCE(SUM(i.gross_pay), 0) AS total_gross_pay,
         COALESCE(SUM(i.net_pay), 0) AS total_net_pay
       FROM hr_payroll_runs r
-      LEFT JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.status <> 'excluded'
+      LEFT JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id AND i.status <> 'excluded'
       WHERE r.tenant_id = ${auth.tenantId} AND (${month} = '' OR r.period_month = ${month})
       GROUP BY r.id
       ORDER BY r.period_month DESC, r.id DESC
@@ -2113,7 +2125,7 @@ export class HrService {
   }
 
   async getPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    requireTenantScope(auth);
+    const { tenantId } = requireTenantScope(auth);
     const runResult = await sql<Record<string, unknown>>`
       SELECT
         r.*,
@@ -2132,8 +2144,8 @@ export class HrService {
         COALESCE(SUM(i.gross_pay), 0) AS total_gross_pay,
         COALESCE(SUM(i.net_pay), 0) AS total_net_pay
       FROM hr_payroll_runs r
-      LEFT JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.status <> 'excluded'
-      WHERE r.id = ${id}
+      LEFT JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id AND i.status <> 'excluded'
+      WHERE r.id = ${id} AND r.tenant_id = ${tenantId}
       GROUP BY r.id
       LIMIT 1
     `.execute(this.db);
@@ -2150,8 +2162,8 @@ export class HrService {
         to_char(i.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text,
         to_char(i.updated_at, 'YYYY-MM-DD HH24:MI') AS updated_at_text
       FROM hr_payroll_run_items i
-      JOIN hr_employees e ON e.id = i.employee_id
-      WHERE i.run_id = ${id}
+      JOIN hr_employees e ON e.id = i.employee_id AND e.tenant_id = i.tenant_id
+      WHERE i.run_id = ${id} AND i.tenant_id = ${tenantId}
       ORDER BY e.display_name ASC, i.id ASC
     `.execute(this.db);
     const periodMonth = clean(run.period_month);
@@ -2165,13 +2177,13 @@ export class HrService {
     const fromDate = String(run.start_date_text || `${periodMonth}-01`);
     const toDate = String(run.end_date_text || new Date(Number(periodMonth.split('-')[0]), Number(periodMonth.split('-')[1]), 0).toISOString().slice(0, 10));
     const range = { from: fromDate, to: toDate };
-    const reviewByEmployeeId = await this.calculatePayrollOperationalReview(this.db, range, employeeIds, baseSalaryByEmployeeId);
+    const reviewByEmployeeId = await this.calculatePayrollOperationalReview(this.db, range, employeeIds, baseSalaryByEmployeeId, tenantId);
     const itemIds = itemResult.rows.map((row) => Number(row.id || 0)).filter((itemId) => itemId > 0);
     const adjustmentResult = itemIds.length
       ? await sql<Record<string, unknown>>`
           SELECT a.*, to_char(a.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text
           FROM hr_payroll_item_adjustments a
-          WHERE a.payroll_item_id IN (${sql.join(itemIds)})
+          WHERE a.payroll_item_id IN (${sql.join(itemIds)}) AND a.tenant_id = ${tenantId}
           ORDER BY a.id ASC
         `.execute(this.db)
       : { rows: [] };
@@ -2270,12 +2282,12 @@ export class HrService {
       const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
       if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can apply attendance deductions', 'HR_PAYROLL_APPLY_DEDUCTIONS_LOCKED', 400);
 
-      const runResult = await sql<{ period_month: string, start_date_text: string, end_date_text: string }>`SELECT period_month, to_char(start_date, 'YYYY-MM-DD') AS start_date_text, to_char(end_date, 'YYYY-MM-DD') AS end_date_text FROM hr_payroll_runs WHERE id = ${id} LIMIT 1`.execute(trx);
+      const runResult = await sql<{ period_month: string, start_date_text: string, end_date_text: string }>`SELECT period_month, to_char(start_date, 'YYYY-MM-DD') AS start_date_text, to_char(end_date, 'YYYY-MM-DD') AS end_date_text FROM hr_payroll_runs WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(trx);
       const periodMonth = runResult.rows[0]?.period_month;
       if (!periodMonth) throw new AppError('Payroll run not found or invalid', 'HR_PAYROLL_RUN_INVALID', 400);
 
       const items = await sql<{ employee_id: number; base_salary: number }>`
-        SELECT employee_id, base_salary FROM hr_payroll_run_items WHERE run_id = ${id}
+        SELECT employee_id, base_salary FROM hr_payroll_run_items WHERE run_id = ${id} AND tenant_id = ${auth.tenantId}
       `.execute(trx);
 
       if (items.rows.length === 0) return;
@@ -2289,7 +2301,7 @@ export class HrService {
       const fromDate = String(runResult.rows[0]?.start_date_text || `${periodMonth}-01`);
       const toDate = String(runResult.rows[0]?.end_date_text || new Date(Number(periodMonth.split('-')[0]), Number(periodMonth.split('-')[1]), 0).toISOString().slice(0, 10));
       const range = { from: fromDate, to: toDate };
-      const reviews = await this.calculatePayrollOperationalReview(trx, range, employeeIds, baseSalaryByEmployeeId);
+      const reviews = await this.calculatePayrollOperationalReview(trx, range, employeeIds, baseSalaryByEmployeeId, requireTenantScope(auth).tenantId);
 
       const toInsert: { employee_id: number; adjustment_type: string; amount_type: string; amount: number; reason: string; date: string; status: string; applied_in_run_id?: number }[] = [];
       const adjustmentDate = `${periodMonth}-28`;
@@ -2388,6 +2400,7 @@ export class HrService {
   }
 
   private async settlePayrollLoanDeductions(trx: Kysely<Database>, runId: number, auth: AuthContext): Promise<void> {
+    const { tenantId } = requireTenantScope(auth);
     const items = await trx
       .selectFrom('hr_payroll_run_items')
       .select(['id', 'employee_id', 'loan_deduction_amount'])
@@ -2409,8 +2422,9 @@ export class HrService {
           i.paid_amount,
           l.remaining_amount AS loan_remaining
         FROM hr_employee_loan_installments i
-        JOIN hr_employee_loans l ON l.id = i.loan_id
+        JOIN hr_employee_loans l ON l.id = i.loan_id AND l.tenant_id = i.tenant_id
         WHERE l.employee_id = ${item.employee_id}
+          AND l.tenant_id = ${tenantId}
           AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
           AND l.status IN ('paid', 'partially_repaid', 'disbursed')
           AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
@@ -2427,7 +2441,7 @@ export class HrService {
         // فيختل تصالح المسدَّد مع المتبقي ويظل القرض مديناً بعد سداده كاملاً،
         // ويفقد سقف `min(..., loanRemaining)` معناه فيسمح بخصم زائد.
         const loanStateRaw = await sql<Record<string, unknown>>`
-          SELECT paid_amount, remaining_amount FROM hr_employee_loans WHERE id = ${row.loan_id}
+          SELECT paid_amount, remaining_amount FROM hr_employee_loans WHERE id = ${row.loan_id} AND tenant_id = ${tenantId}
         `.execute(trx);
         const loanState = loanStateRaw.rows[0];
 
@@ -2453,13 +2467,13 @@ export class HrService {
         await sql`
           UPDATE hr_employee_loans
           SET paid_amount = ${newLoanPaid}, remaining_amount = ${newLoanRemaining}, status = ${newLoanStatus}, updated_at = NOW()
-          WHERE id = ${row.loan_id}
+          WHERE id = ${row.loan_id} AND tenant_id = ${tenantId}
         `.execute(trx);
 
         await sql`
           UPDATE hr_employee_loan_installments
           SET paid_amount = ${newInstallmentPaid}, status = ${newInstallmentStatus}, updated_at = NOW()
-          WHERE id = ${row.installment_id}
+          WHERE id = ${row.installment_id} AND tenant_id = ${tenantId}
         `.execute(trx);
 
         const allocRes = await sql<Record<string, unknown>>`
@@ -2707,7 +2721,7 @@ export class HrService {
         INSERT INTO hr_payroll_item_adjustments (tenant_id, account_id, payroll_item_id, adjustment_type, label, amount, notes)
         VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, ${clean(payload.adjustmentType)}, ${clean(payload.label)}, ${money(payload.amount)}, ${clean(payload.notes)})
       `.execute(trx);
-      await this.recalculatePayrollItemTotals(trx, id);
+      await this.recalculatePayrollItemTotals(trx, id, requireTenantScope(auth).tenantId);
       await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${item.runId} AND tenant_id = ${auth.tenantId}`.execute(trx);
     });
     await this.audit.log('Create HR payroll adjustment', `Payroll item #${id} adjustment added by ${auth.username}`, auth);
@@ -2731,8 +2745,8 @@ export class HrService {
       if (clean(row.run_status) !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
       runId = Number(row.run_id || 0);
       itemId = Number(row.payroll_item_id || 0);
-      await sql`DELETE FROM hr_payroll_item_adjustments WHERE id = ${id} AND (tenant_id = ${auth.tenantId} OR tenant_id = '')`.execute(trx);
-      await this.recalculatePayrollItemTotals(trx, itemId);
+      await sql`DELETE FROM hr_payroll_item_adjustments WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
+      await this.recalculatePayrollItemTotals(trx, itemId, requireTenantScope(auth).tenantId);
       await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${runId} AND tenant_id = ${auth.tenantId}`.execute(trx);
     });
     await this.audit.log('Delete HR payroll adjustment', `Payroll adjustment #${id} deleted by ${auth.username}`, auth);
@@ -3612,7 +3626,7 @@ export class HrService {
   }
 
   async listEmployeeAssets(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
-    requireTenantScope(auth);
+    const { tenantId } = requireTenantScope(auth);
     const search = clean(query.search).toLowerCase();
     const employeeId = toId(query.employeeId);
     const status = clean(query.status).toLowerCase();
@@ -3627,9 +3641,10 @@ export class HrService {
         to_char(a.returned_at, 'YYYY-MM-DD') AS returned_at_text,
         to_char(a.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text
       FROM hr_employee_assets a
-      JOIN hr_employees e ON e.id = a.employee_id
-      LEFT JOIN hr_departments d ON d.id = e.department_id
-      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
+      JOIN hr_employees e ON e.id = a.employee_id AND e.tenant_id = a.tenant_id
+      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = a.tenant_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = a.tenant_id
+      WHERE a.tenant_id = ${tenantId}
       ORDER BY a.created_at DESC, a.id DESC
     `.execute(this.db);
 
@@ -3756,7 +3771,7 @@ export class HrService {
   }
 
   async withdrawals(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
-    requireTenantScope(auth);
+    const { tenantId } = requireTenantScope(auth);
     const employeeId = toId(query.employeeId);
     if (!employeeId) throw new AppError('Employee is required', 'HR_WITHDRAWALS_EMPLOYEE_REQUIRED', 400);
 
@@ -3768,7 +3783,7 @@ export class HrService {
     const employeeResult = await sql<{ hire_date_text: string | null; display_name: string }>`
       SELECT to_char(hire_date, 'YYYY-MM-DD') AS hire_date_text, display_name
       FROM hr_employees
-      WHERE id = ${employeeId}
+      WHERE id = ${employeeId} AND tenant_id = ${tenantId}
       LIMIT 1
     `.execute(this.db);
     const employee = employeeResult.rows[0];
@@ -3808,14 +3823,14 @@ export class HrService {
         to_char(l.disbursed_at, 'YYYY-MM-DD HH24:MI') AS disbursed_at_text,
         to_char(latest_paid.latest_paid_at, 'YYYY-MM-DD HH24:MI') AS paid_at_text
       FROM hr_employee_loans l
-      JOIN hr_employees e ON e.id = l.employee_id
+      JOIN hr_employees e ON e.id = l.employee_id AND e.tenant_id = l.tenant_id
       LEFT JOIN (
         SELECT loan_id, MAX(paid_at) AS latest_paid_at
         FROM hr_employee_loan_installments
-        WHERE paid_at IS NOT NULL
+        WHERE paid_at IS NOT NULL AND tenant_id = ${tenantId}
         GROUP BY loan_id
       ) latest_paid ON latest_paid.loan_id = l.id
-      WHERE l.employee_id = ${employeeId}
+      WHERE l.employee_id = ${employeeId} AND l.tenant_id = ${tenantId}
       ORDER BY l.id DESC
     `.execute(this.db);
 
@@ -3825,8 +3840,8 @@ export class HrService {
         e.display_name AS employee_name,
         to_char(le.created_at, 'YYYY-MM-DD HH24:MI') AS movement_at_text
       FROM hr_employee_ledger le
-      JOIN hr_employees e ON e.id = le.employee_id
-      WHERE le.employee_id = ${employeeId}
+      JOIN hr_employees e ON e.id = le.employee_id AND e.tenant_id = le.tenant_id
+      WHERE le.employee_id = ${employeeId} AND le.tenant_id = ${tenantId}
         AND le.entry_type = 'loan_repayment'
       ORDER BY le.id DESC
     `.execute(this.db);
@@ -4166,7 +4181,4 @@ export class HrService {
     return { success: true };
   }
 }
-
-
-
 

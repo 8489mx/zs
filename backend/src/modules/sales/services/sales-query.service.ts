@@ -37,11 +37,11 @@ export class SalesQueryService {
 
     let qb = this.db
       .selectFrom('sales as s')
-      .leftJoin('customers as c', 'c.id', 's.customer_id')
-      .leftJoin('branches as b', 'b.id', 's.branch_id')
-      .leftJoin('stock_locations as l', 'l.id', 's.location_id')
-      .leftJoin('users as u', 'u.id', 's.created_by')
-      .leftJoin('delivery_representatives as dr', 'dr.id', 's.delivery_rep_id')
+      .leftJoin('customers as c', (j) => j.onRef('c.id', '=', 's.customer_id').onRef('c.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('branches as b', (j) => j.onRef('b.id', '=', 's.branch_id').onRef('b.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('stock_locations as l', (j) => j.onRef('l.id', '=', 's.location_id').onRef('l.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('users as u', (j) => j.onRef('u.id', '=', 's.created_by').onRef('u.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('delivery_representatives as dr', (j) => j.onRef('dr.id', '=', 's.delivery_rep_id').onRef('dr.tenant_id', '=', 's.tenant_id'))
       .select([
         's.id', 's.doc_no', 's.customer_id', 'c.name as customer_name_ref', 'c.phone as customer_phone_ref', 'c.address as customer_address_ref', 's.customer_name', 's.customer_phone', 's.customer_address', 's.payment_type', 's.payment_channel',
         's.subtotal', 's.discount', 's.tax_rate', 's.tax_amount', 's.prices_include_tax', 's.total', 's.paid_amount', 's.tendered_amount', 's.change_amount', 's.store_credit_used', 's.delivery_fee',
@@ -228,11 +228,11 @@ export class SalesQueryService {
 
     const sale = await this.db
       .selectFrom('sales as s')
-      .leftJoin('customers as c', 'c.id', 's.customer_id')
-      .leftJoin('branches as b', 'b.id', 's.branch_id')
-      .leftJoin('stock_locations as l', 'l.id', 's.location_id')
-      .leftJoin('users as u', 'u.id', 's.created_by')
-      .leftJoin('delivery_representatives as dr', 'dr.id', 's.delivery_rep_id')
+      .leftJoin('customers as c', (j) => j.onRef('c.id', '=', 's.customer_id').onRef('c.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('branches as b', (j) => j.onRef('b.id', '=', 's.branch_id').onRef('b.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('stock_locations as l', (j) => j.onRef('l.id', '=', 's.location_id').onRef('l.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('users as u', (j) => j.onRef('u.id', '=', 's.created_by').onRef('u.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('delivery_representatives as dr', (j) => j.onRef('dr.id', '=', 's.delivery_rep_id').onRef('dr.tenant_id', '=', 's.tenant_id'))
       .select([
         's.id', 's.doc_no', 's.customer_id', 'c.name as customer_name_ref', 'c.phone as customer_phone_ref', 'c.address as customer_address_ref', 's.customer_name', 's.customer_phone', 's.customer_address', 's.payment_type', 's.payment_channel',
         's.subtotal', 's.discount', 's.tax_rate', 's.tax_amount', 's.prices_include_tax', 's.total', 's.paid_amount', 's.tendered_amount', 's.change_amount', 's.store_credit_used', 's.delivery_fee',

@@ -50,4 +50,56 @@ function testPayrollRunScopeComesFromTheCaller(): void {
 
 testVanSalesReadsStayInTenant();
 testPayrollRunScopeComesFromTheCaller();
+
+function testAuditIsolationRemediations(): void {
+  const hr = read('modules/hr/hr.service.ts');
+  const section = (source: string, start: string, end: string) => {
+    const from = source.indexOf(start);
+    const to = source.indexOf(end, from + start.length);
+    assert.ok(from >= 0 && to > from, `missing audit section: ${start}`);
+    return source.slice(from, to);
+  };
+  const expect = (source: string, pattern: RegExp, id: string) => {
+    assert.match(source, pattern, `${id}: tenant boundary must remain explicit`);
+  };
+
+  // Directly reachable HR reads and money-moving loan updates (MT-01..04, 08, 12).
+  expect(section(hr, 'async listLoans(', 'async createLoan('), /WHERE l\.tenant_id = \$\{tenantId\}/, 'MT-01');
+  expect(section(hr, 'async getPayrollRun(', 'async createPayrollRun('), /WHERE r\.id = \$\{id\} AND r\.tenant_id = \$\{tenantId\}/, 'MT-02');
+  expect(section(hr, 'async listEmployeeAssets(', 'async upsertEmployeeAsset('), /WHERE a\.tenant_id = \$\{tenantId\}/, 'MT-03');
+  expect(section(hr, 'async withdrawals(', 'async summary('), /WHERE id = \$\{employeeId\} AND tenant_id = \$\{tenantId\}/, 'MT-04');
+  expect(section(hr, 'async createLoan(', 'async updateLoan('), /\.where\('tenant_id', '=', requireTenantScope\(auth\)\.tenantId\)/, 'MT-08');
+  expect(section(hr, 'private async settlePayrollLoanDeductions(', 'async approvePayrollRun('), /WHERE id = \$\{row\.installment_id\} AND tenant_id = \$\{tenantId\}/, 'MT-12');
+
+  const maritime = read('modules/maritime-freight/maritime-freight.service.ts');
+  const tracking = section(maritime, 'async getPublicTrackingByToken(', 'private assertValidPublicQuoteToken');
+  const trackingLookup = tracking.slice(0, tracking.indexOf('if (!job)'));
+  expect(trackingLookup, /\.where\('tracking_token', '=', cleanToken\)/, 'MT-05');
+  assert.doesNotMatch(trackingLookup, /eb\('(?:job_number|mbl_number|hbl_number|booking_number)'/, 'MT-05: public lookup accepts only random tokens');
+  assert.doesNotMatch(tracking, /shipment: job\b/, 'MT-05: never return the full private job row');
+  expect(section(maritime, 'async getPublicRfqForQuote(', 'async '), /\.where\('tenant_id', '=', rfq\.tenant_id\)/, 'MT-10');
+
+  const support = read('modules/settings/services/settings-support.service.ts');
+  const tenantBundle = section(support, 'async generateSupportBundle(', 'async generateSupportBundleInternal(');
+  expect(tenantBundle, /\.where\('tenant_id', '=', tenantId\)/, 'MT-20');
+  assert.doesNotMatch(tenantBundle, /generateSupportBundleInternal\(/, 'MT-20: tenant download cannot include shared process logs');
+  const webhook = read('modules/settings/services/whatsapp-gateway.service.ts');
+  expect(webhook, /timingSafeEqual\(expected, Buffer\.from\(supplied, 'hex'\)\)/, 'MT-21');
+  assert.doesNotMatch(webhook, /firstActive/, 'MT-21: no first-tenant fallback');
+  const webhookController = read('modules/settings/controllers/whatsapp-gateway.controller.ts');
+  expect(webhookController, /handleVerifiedInboundWebhook\(body, tenantId, req\.headers\['x-zs-webhook-signature'\], req\.rawBody\)/, 'MT-21');
+
+  const manufacturing = read('modules/manufacturing/services/manufacturing.service.ts');
+  expect(manufacturing, /assertBomProductsOwned\(trx, payload, scope\.tenantId\)/, 'MT-07');
+  expect(manufacturing, /\.deleteFrom\('manufacturing_bom_lines'\)[\s\S]{0,170}\.selectFrom\('manufacturing_boms'\)/, 'MT-15');
+  const purchases = read('modules/purchases/services/purchases-query.service.ts');
+  expect(purchases, /\.where\('pa\.tenant_id', '=', scope\.tenantId\)/, 'MT-13');
+  const accounting = read('modules/accounting/accounting.service.ts');
+  expect(accounting, /\.where\('l\.tenant_id', '=', tenantId\)/, 'MT-14');
+  expect(accounting, /onRef\('pls\.tenant_id', '=', 'p\.tenant_id'\)/, 'MT-16');
+  const mobile = read('modules/hr/mobile-attendance.service.ts');
+  expect(mobile, /contactsQuery = contactsQuery\.where\('tenant_id', '=', resolvedTenantId\)/, 'MT-19');
+}
+
+testAuditIsolationRemediations();
 console.log('tenant-scoped-reads.spec: all checks passed');

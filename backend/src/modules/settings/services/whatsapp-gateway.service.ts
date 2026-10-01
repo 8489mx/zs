@@ -1,4 +1,5 @@
-import { Inject, Injectable, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Kysely, sql } from '../../../database/kysely';
 import { Database } from '../../../database/database.types';
@@ -12,6 +13,7 @@ export interface WhatsAppConfig {
   apiUrl?: string;
   instanceId?: string;
   token?: string;
+  webhookSecret?: string;
   autoSendInvoice: boolean;
   autoSendOnlineOrder: boolean;
   invoiceTemplate?: string;
@@ -52,6 +54,7 @@ export class WhatsAppGatewayService {
       apiUrl: map.get('whatsapp_gateway_api_url') || '',
       instanceId: map.get('whatsapp_gateway_instance_id') || '',
       token: map.get('whatsapp_gateway_token') ? '••••••••' : '',
+      webhookSecret: map.get('whatsapp_gateway_webhook_secret') ? '••••••••' : '',
       autoSendInvoice: map.get('whatsapp_gateway_auto_invoice') === true,
       autoSendOnlineOrder: map.get('whatsapp_gateway_auto_order') === true,
       invoiceTemplate: map.get('whatsapp_gateway_invoice_template') ||
@@ -73,6 +76,10 @@ export class WhatsAppGatewayService {
     if (payload.instanceId !== undefined) updates.push({ key: 'whatsapp_gateway_instance_id', val: payload.instanceId });
     if (payload.token && payload.token !== '••••••••') {
       updates.push({ key: 'whatsapp_gateway_token', val: payload.token });
+    }
+    if (payload.webhookSecret && payload.webhookSecret !== '••••••••') {
+      if (payload.webhookSecret.length < 32) throw new BadRequestException('Webhook secret must be at least 32 characters');
+      updates.push({ key: 'whatsapp_gateway_webhook_secret', val: payload.webhookSecret });
     }
     if (payload.autoSendInvoice !== undefined) updates.push({ key: 'whatsapp_gateway_auto_invoice', val: payload.autoSendInvoice });
     if (payload.autoSendOnlineOrder !== undefined) updates.push({ key: 'whatsapp_gateway_auto_order', val: payload.autoSendOnlineOrder });
@@ -387,7 +394,25 @@ export class WhatsAppGatewayService {
     return { success: true };
   }
 
-  async handleInboundWebhook(payload: any, queryTenantId?: string): Promise<{
+  async handleVerifiedInboundWebhook(payload: any, tenantId: string | undefined, signature: string | undefined, rawBody: Buffer | undefined) {
+    if (!tenantId || !signature || !rawBody) throw new ForbiddenException('Webhook authentication required');
+    const setting = await this.db.selectFrom('settings').select('value')
+      .where('tenant_id', '=', tenantId).where('key', '=', 'whatsapp_gateway_webhook_secret')
+      .executeTakeFirst();
+    if (!setting) throw new ForbiddenException('Webhook authentication required');
+    let secret: string;
+    try { secret = JSON.parse(setting.value); } catch { secret = setting.value; }
+    if (typeof secret !== 'string' || secret.length < 32) throw new ForbiddenException('Webhook authentication required');
+    const supplied = signature.replace(/^sha256=/i, '');
+    if (!/^[a-f0-9]{64}$/i.test(supplied)) throw new ForbiddenException('Invalid webhook signature');
+    const expected = crypto.createHmac('sha256', secret).update(rawBody).digest();
+    if (!crypto.timingSafeEqual(expected, Buffer.from(supplied, 'hex'))) {
+      throw new ForbiddenException('Invalid webhook signature');
+    }
+    return this.handleInboundWebhook(payload, tenantId);
+  }
+
+  async handleInboundWebhook(payload: any, trustedTenantId?: string): Promise<{
     handled: boolean;
     reply?: string;
     to?: string;
@@ -396,20 +421,17 @@ export class WhatsAppGatewayService {
   }> {
     let fromPhone = '';
     let messageText = '';
-    let instanceId = '';
 
     // 1. Detect provider payload structure
     // UltraMsg format
     if (payload?.event_type === 'message_received' && payload?.data) {
       fromPhone = String(payload.data.from || '');
       messageText = String(payload.data.body || '');
-      instanceId = String(payload.instanceId || '');
     }
     // GreenAPI format
     else if (payload?.typeWebhook === 'incomingMessageReceived') {
       messageText = String(payload?.messageData?.textMessageData?.textMessage || payload?.messageData?.extendedTextMessageData?.text || '');
       fromPhone = String(payload?.senderData?.sender || '');
-      instanceId = String(payload?.instanceData?.idInstance || '');
     }
     // Meta Cloud API format
     else if (payload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {
@@ -430,29 +452,7 @@ export class WhatsAppGatewayService {
     fromPhone = fromPhone.replace('@c.us', '').replace('@s.whatsapp.net', '').replace(/[^0-9]/g, '');
 
     // 2. Resolve Tenant
-    let resolvedTenantId = queryTenantId;
-    if (!resolvedTenantId && instanceId) {
-      const setting = await this.db
-        .selectFrom('settings')
-        .select('tenant_id')
-        .where('key', '=', 'whatsapp_gateway_instance_id')
-        .where(sql`value::text`, 'like', `%${instanceId}%`)
-        .executeTakeFirst();
-      if (setting?.tenant_id) {
-        resolvedTenantId = setting.tenant_id;
-      }
-    }
-
-    if (!resolvedTenantId) {
-      const firstActive = await this.db
-        .selectFrom('tenants')
-        .select('id')
-        .where('status', '=', 'active')
-        .limit(1)
-        .executeTakeFirst();
-      resolvedTenantId = firstActive?.id;
-    }
-
+    const resolvedTenantId = trustedTenantId;
     if (!resolvedTenantId) {
       return { handled: false, message: 'تعذر تحديد حساب المنشأة' };
     }

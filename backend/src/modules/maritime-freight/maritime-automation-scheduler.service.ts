@@ -203,6 +203,7 @@ export class MaritimeAutomationSchedulerService implements OnApplicationBootstra
                 .selectFrom('maritime_jobs')
                 .select(['job_number', 'customer_name', 'customer_id', 'pod_name'])
                 .where('id', '=', c.job_id as any)
+                .where('tenant_id', '=', c.tenant_id)
                 .executeTakeFirst();
 
               if (job && job.customer_id) {
@@ -210,6 +211,7 @@ export class MaritimeAutomationSchedulerService implements OnApplicationBootstra
                   .selectFrom('customers')
                   .select(['phone'])
                   .where('id', '=', job.customer_id as any)
+                  .where('tenant_id', '=', c.tenant_id)
                   .executeTakeFirst();
 
                 if (customer?.phone) {

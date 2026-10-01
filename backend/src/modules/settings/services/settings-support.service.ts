@@ -28,7 +28,18 @@ export class SettingsSupportService {
 
   async generateSupportBundle(actor: AuthContext): Promise<Buffer> {
     this.assertAdmin(actor);
-    const buffer = await this.generateSupportBundleInternal();
+    const { tenantId } = requireTenantScope(actor);
+    const zip = new AdmZip();
+    const auditRows = await this.db.selectFrom('audit_logs')
+      .select(['id', 'action', 'event_code', 'details', 'created_at'])
+      .where('tenant_id', '=', tenantId)
+      .orderBy('id', 'desc').limit(250).execute();
+    zip.addFile('tenant-audit.json', Buffer.from(JSON.stringify({
+      tenantId,
+      generatedAt: new Date().toISOString(),
+      auditLogs: auditRows,
+    }, null, 2), 'utf8'));
+    const buffer = zip.toBuffer();
     await this.audit.log('استخراج حزمة الدعم', `تم إنشاء حزمة الدعم الفني بواسطة ${actor.username}`, actor).catch(() => undefined);
     return buffer;
   }
@@ -115,22 +126,24 @@ export class SettingsSupportService {
     return zip.toBuffer();
   }
 
-  async resolveClientMeta(): Promise<{ clientName: string; clientIdentifier: string; appVersion: string }> {
-    let clientName = process.env.STORE_NAME || '';
-    let clientIdentifier = process.env.TENANT_ID || 'desktop-local';
+  async resolveClientMeta(tenantId?: string): Promise<{ clientName: string; clientIdentifier: string; appVersion: string }> {
+    let clientName = tenantId ? '' : 'Platform diagnostics';
+    let clientIdentifier = tenantId || 'platform';
     const appVersion = process.env.npm_package_version || '1.1.30';
 
     try {
-      const tenant = await this.db.selectFrom('tenants').selectAll().executeTakeFirst();
+      const tenant = tenantId ? await this.db.selectFrom('tenants').selectAll()
+        .where('id', '=', tenantId).executeTakeFirst() : null;
       if (tenant?.business_name) {
         clientName = tenant.business_name;
         if (tenant.id) clientIdentifier = String(tenant.id);
       }
 
-      if (!clientName) {
+      if (!clientName && tenantId) {
         const storeSetting = await this.db
           .selectFrom('settings')
           .select(['value'])
+          .where('tenant_id', '=', tenantId)
           .where('key', 'in', ['storeName', 'companyName'])
           .executeTakeFirst();
         if (storeSetting?.value) {
@@ -145,7 +158,7 @@ export class SettingsSupportService {
       // Fallback
     }
 
-    if (!clientName) clientName = 'مستخدم النسخة المكتبية';
+    if (!clientName) clientName = tenantId || 'Platform diagnostics';
     return { clientName, clientIdentifier, appVersion };
   }
 
@@ -154,8 +167,10 @@ export class SettingsSupportService {
       this.assertAdmin(actor);
     }
 
-    const bundleBuffer = existingBuffer || (await this.generateSupportBundleInternal());
-    const { clientName, clientIdentifier, appVersion } = await this.resolveClientMeta();
+    const bundleBuffer = existingBuffer || (actor
+      ? await this.generateSupportBundle(actor)
+      : await this.generateSupportBundleInternal());
+    const { clientName, clientIdentifier, appVersion } = await this.resolveClientMeta(actor ? requireTenantScope(actor).tenantId : undefined);
 
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');

@@ -38,12 +38,12 @@ export class DynamicPivotService {
         // Query at sale item level
         let query = (this.db as any)
           .selectFrom('sale_items as si')
-          .innerJoin('sales as s', 's.id', 'si.sale_id')
-          .leftJoin('products as p', 'p.id', 'si.product_id')
-          .leftJoin('categories as cat', 'cat.id', 'p.category_id')
-          .leftJoin('branches as b', 'b.id', 's.branch_id')
-          .leftJoin('customers as c', 'c.id', 's.customer_id')
-          .leftJoin('users as u', 'u.id', 's.user_id')
+          .innerJoin('sales as s', (j: any) => j.onRef('s.id', '=', 'si.sale_id').onRef('s.tenant_id', '=', 'si.tenant_id'))
+          .leftJoin('products as p', (j: any) => j.onRef('p.id', '=', 'si.product_id').onRef('p.tenant_id', '=', 'si.tenant_id'))
+          .leftJoin('categories as cat', (j: any) => j.onRef('cat.id', '=', 'p.category_id').onRef('cat.tenant_id', '=', 'p.tenant_id'))
+          .leftJoin('branches as b', (j: any) => j.onRef('b.id', '=', 's.branch_id').onRef('b.tenant_id', '=', 's.tenant_id'))
+          .leftJoin('customers as c', (j: any) => j.onRef('c.id', '=', 's.customer_id').onRef('c.tenant_id', '=', 's.tenant_id'))
+          .leftJoin('users as u', (j: any) => j.onRef('u.id', '=', 's.user_id').onRef('u.tenant_id', '=', 's.tenant_id'))
           .select([
             sql`to_char(s.created_at, 'YYYY-MM')`.as('date_month'),
             sql`to_char(s.created_at, 'YYYY-MM-DD')`.as('date_day'),
@@ -58,6 +58,7 @@ export class DynamicPivotService {
             sql<number>`si.quantity`.as('quantity'),
           ])
           .where('s.tenant_id', '=', tenantId)
+          .where('si.tenant_id', '=', tenantId)
           .where('s.status', '!=', 'cancelled');
 
         if (dto.dateFrom) query = query.where('s.created_at', '>=', new Date(dto.dateFrom));
@@ -73,9 +74,9 @@ export class DynamicPivotService {
         // Query at sale header level
         let query = (this.db as any)
           .selectFrom('sales as s')
-          .leftJoin('branches as b', 'b.id', 's.branch_id')
-          .leftJoin('customers as c', 'c.id', 's.customer_id')
-          .leftJoin('users as u', 'u.id', 's.user_id')
+          .leftJoin('branches as b', (j: any) => j.onRef('b.id', '=', 's.branch_id').onRef('b.tenant_id', '=', 's.tenant_id'))
+          .leftJoin('customers as c', (j: any) => j.onRef('c.id', '=', 's.customer_id').onRef('c.tenant_id', '=', 's.tenant_id'))
+          .leftJoin('users as u', (j: any) => j.onRef('u.id', '=', 's.user_id').onRef('u.tenant_id', '=', 's.tenant_id'))
           .select([
             sql`to_char(s.created_at, 'YYYY-MM')`.as('date_month'),
             sql`to_char(s.created_at, 'YYYY-MM-DD')`.as('date_day'),
@@ -106,8 +107,8 @@ export class DynamicPivotService {
     } else if (dto.dataset === 'purchases') {
       let query = (this.db as any)
         .selectFrom('purchases as p')
-        .leftJoin('suppliers as sup', 'sup.id', 'p.supplier_id')
-        .leftJoin('branches as b', 'b.id', 'p.branch_id')
+        .leftJoin('suppliers as sup', (j: any) => j.onRef('sup.id', '=', 'p.supplier_id').onRef('sup.tenant_id', '=', 'p.tenant_id'))
+        .leftJoin('branches as b', (j: any) => j.onRef('b.id', '=', 'p.branch_id').onRef('b.tenant_id', '=', 'p.tenant_id'))
         .select([
           sql`to_char(p.created_at, 'YYYY-MM')`.as('date_month'),
           sql`to_char(p.created_at, 'YYYY-MM-DD')`.as('date_day'),
@@ -131,9 +132,9 @@ export class DynamicPivotService {
     } else if (dto.dataset === 'inventory') {
       let query = (this.db as any)
         .selectFrom('product_location_stock as pls')
-        .innerJoin('products as p', 'p.id', 'pls.product_id')
-        .leftJoin('categories as cat', 'cat.id', 'p.category_id')
-        .leftJoin('locations as loc', 'loc.id', 'pls.location_id')
+        .innerJoin('products as p', (j: any) => j.onRef('p.id', '=', 'pls.product_id').onRef('p.tenant_id', '=', 'pls.tenant_id'))
+        .leftJoin('categories as cat', (j: any) => j.onRef('cat.id', '=', 'p.category_id').onRef('cat.tenant_id', '=', 'p.tenant_id'))
+        .leftJoin('locations as loc', (j: any) => j.onRef('loc.id', '=', 'pls.location_id').onRef('loc.tenant_id', '=', 'pls.tenant_id'))
         .select([
           'loc.name as branch',
           'cat.name as category',

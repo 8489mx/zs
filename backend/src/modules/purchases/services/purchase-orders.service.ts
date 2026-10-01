@@ -97,7 +97,7 @@ export class PurchaseOrdersService {
 
     const items = await this.db
       .selectFrom('purchase_order_items as poi')
-      .leftJoin('products as p', 'p.id', 'poi.product_id')
+      .leftJoin('products as p', (j) => j.onRef('p.id', '=', 'poi.product_id').onRef('p.tenant_id', '=', 'poi.tenant_id'))
       .select([
         'poi.id',
         'poi.purchase_order_id',
@@ -114,6 +114,7 @@ export class PurchaseOrdersService {
         'p.stock_qty as current_stock',
       ])
       .where('poi.purchase_order_id', '=', id)
+      .where('poi.tenant_id', '=', scope.tenantId)
       .execute();
 
     return {

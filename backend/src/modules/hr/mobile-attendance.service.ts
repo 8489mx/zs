@@ -110,11 +110,14 @@ export class MobileAttendanceService {
       : cleanDigits.startsWith('0')
       ? cleanDigits.slice(1)
       : cleanDigits;
+    if (cleanNoCountry.length < 8) {
+      throw new AppError('بيانات الدخول غير صحيحة', 'UNAUTHORIZED_EMPLOYEE', 401);
+    }
 
     // Search active employees with matching contact phone
     let employeesQuery = this.anyDb
       .selectFrom('hr_employees as e')
-      .leftJoin('branches as b', 'b.id', 'e.branch_id')
+      .leftJoin('branches as b', (join: any) => join.onRef('b.id', '=', 'e.branch_id').onRef('b.tenant_id', '=', 'e.tenant_id'))
       .select([
         'e.id as employee_id',
         'e.employee_no',
@@ -154,14 +157,19 @@ export class MobileAttendanceService {
       employeesQuery = employeesQuery.where('e.tenant_id', '=', resolvedTenantId);
     }
 
-    const employees = await employeesQuery.execute();
-
-    // Fetch phone contacts
-    const contacts = await this.anyDb
+    // Login discovery reads only contacts matching the submitted phone. A company
+    // hint adds the tenant boundary before any employee or contact row is loaded.
+    let contactsQuery = this.anyDb
       .selectFrom('hr_employee_contacts')
       .select(['employee_id', 'value'])
       .where('contact_type', '=', 'phone')
-      .execute();
+      .where(sql<boolean>`RIGHT(REGEXP_REPLACE(value, '[^0-9]', '', 'g'), ${cleanNoCountry.length}) = ${cleanNoCountry}`);
+    if (resolvedTenantId) contactsQuery = contactsQuery.where('tenant_id', '=', resolvedTenantId);
+    const contacts = await contactsQuery.execute();
+    const candidateEmployeeIds = [...new Set(contacts.map((contact: any) => Number(contact.employee_id)).filter((id: number) => id > 0))];
+    if (!candidateEmployeeIds.length) throw new AppError('بيانات الدخول غير صحيحة أو رمز الـ PIN غير مطابق', 'UNAUTHORIZED_EMPLOYEE', 401);
+    employeesQuery = employeesQuery.where('e.id', 'in', candidateEmployeeIds);
+    const employees = await employeesQuery.execute();
 
     const empPhonesMap = new Map<number, string[]>();
     for (const c of contacts) {
