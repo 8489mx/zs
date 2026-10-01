@@ -81,7 +81,16 @@ export function generateOfflineDocNo(): string {
 }
 
 export function enqueueOfflineSale(payload: CreatePosSaleInput, existingIdempotencyKey?: string): OfflinePosSale {
-  const queue = getOfflineSalesQueue();
+  let queue: OfflinePosSale[];
+  try {
+    const stored = localStorage.getItem(OFFLINE_QUEUE_KEY);
+    const parsed: unknown = stored === null ? [] : JSON.parse(stored);
+    if (!Array.isArray(parsed)) throw new Error('Invalid offline sales queue');
+    queue = parsed as OfflinePosSale[];
+  } catch (error) {
+    console.error('Failed to read offline sales queue:', error);
+    throw new Error('تعذر قراءة الفواتير المحفوظة على هذا الجهاز. تحقق من الفواتير قبل إعادة المحاولة.');
+  }
   const docNo = (payload as any).docNo || (payload as any).offlineDocNo || generateOfflineDocNo();
   const draftId = existingIdempotencyKey || docNo;
 
@@ -110,6 +119,9 @@ export function enqueueOfflineSale(payload: CreatePosSaleInput, existingIdempote
     localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
   } catch (e) {
     console.error('Failed to save offline queue — storage may be full:', e);
+    // The cashier must never see a successful offline sale unless its payload is durable.
+    // Keep the cart intact so the sale can be retried after storage is available.
+    throw new Error('تعذر حفظ الفاتورة على هذا الجهاز. تحقق من مساحة التخزين وحالة الفاتورة قبل إعادة المحاولة.');
   }
 
   // Dispatch custom event to notify UI

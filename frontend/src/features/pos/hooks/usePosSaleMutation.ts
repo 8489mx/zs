@@ -82,7 +82,7 @@ export function usePosSaleMutation() {
         isInFlightRef.current = false;
       }
     },
-    onSuccess: async (result) => {
+    onSuccess: (result) => {
       const isOffline = Boolean(result && typeof result === 'object' && (result as any).offline);
       if (isOffline) {
         return;
@@ -92,7 +92,11 @@ export function usePosSaleMutation() {
         ? String((result as { id?: string | number }).id || '')
         : '';
 
-      await invalidateSalesDomain(queryClient, { saleId, includeDashboard: true });
+      // The invoice is already committed. Refetching active screens must not delay the
+      // cashier's success feedback or block the next sale.
+      void invalidateSalesDomain(queryClient, { saleId, includeDashboard: true }).catch((error) => {
+        console.error('Failed to refresh sales data after POS checkout:', error);
+      });
     }
   });
 }

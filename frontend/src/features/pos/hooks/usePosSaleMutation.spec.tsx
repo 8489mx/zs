@@ -84,6 +84,25 @@ describe('usePosSaleMutation', () => {
     });
   });
 
+  it('confirms a committed sale without waiting for active query refetches', async () => {
+    createSaleMock.mockResolvedValueOnce({ id: 'sale-43' });
+    let finishRefresh: (() => void) | undefined;
+    invalidateSalesDomainMock.mockReturnValueOnce(new Promise<void>((resolve) => {
+      finishRefresh = resolve;
+    }));
+
+    const { Wrapper } = createWrapper();
+    const { result } = renderHook(() => usePosSaleMutation(), { wrapper: Wrapper });
+    try {
+      await act(async () => {
+        await expect(result.current.mutateAsync(createSaleInput())).resolves.toEqual({ id: 'sale-43' });
+      });
+      expect(invalidateSalesDomainMock).toHaveBeenCalledOnce();
+    } finally {
+      finishRefresh?.();
+    }
+  });
+
   it('safely catches ApiError network failures, enqueues offline sale without throwing, and skips active domain invalidation', async () => {
     createSaleMock.mockRejectedValueOnce({
       name: 'ApiError',
@@ -104,5 +123,25 @@ describe('usePosSaleMutation', () => {
     expect(saleResult.offline).toBe(true);
     expect(saleResult.docNo).toMatch(/^INV-/);
     expect(invalidateSalesDomainMock).not.toHaveBeenCalled();
+  });
+
+  it('does not acknowledge an offline sale when the queue cannot be saved', async () => {
+    createSaleMock.mockRejectedValueOnce({ status: 0, code: 'network_error', message: 'Network unavailable' });
+    const setItem = Storage.prototype.setItem;
+    const storageSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
+      if (key === 'zsystems_pos_offline_sales_queue') throw new DOMException('Quota exceeded', 'QuotaExceededError');
+      return setItem.call(this, key, value);
+    });
+
+    try {
+      const { Wrapper } = createWrapper();
+      const { result } = renderHook(() => usePosSaleMutation(), { wrapper: Wrapper });
+      await act(async () => {
+        await expect(result.current.mutateAsync(createSaleInput())).rejects.toThrow('تعذر حفظ الفاتورة');
+      });
+      expect(invalidateSalesDomainMock).not.toHaveBeenCalled();
+    } finally {
+      storageSpy.mockRestore();
+    }
   });
 });
