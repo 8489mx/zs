@@ -877,20 +877,20 @@ export class MaritimeFreightService {
       return { sentCount: 0, message: 'No target shipping lines selected' };
     }
 
-    if (Array.isArray(customLineIds) && customLineIds.length > 0) {
-      await this.db
-        .updateTable('maritime_rfqs')
-        .set({ target_line_ids: JSON.stringify(customLineIds) })
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', rfqId as any)
-        .execute();
-    }
-
     const carriers = await this.db
       .selectFrom('shipping_lines')
       .selectAll()
+      .where('tenant_id', '=', tenantId)
       .where('id', 'in', lineIds.map(String) as any)
       .execute();
+    if (new Set(carriers.map((carrier) => String(carrier.id))).size !== new Set(lineIds.map(String)).size) {
+      throw new BadRequestException('One or more shipping lines do not belong to this tenant');
+    }
+    if (Array.isArray(customLineIds) && customLineIds.length > 0) {
+      await this.db.updateTable('maritime_rfqs')
+        .set({ target_line_ids: JSON.stringify(customLineIds) })
+        .where('tenant_id', '=', tenantId).where('id', '=', rfqId as any).execute();
+    }
 
     let sentCount = 0;
     // Fetch custom mail configuration configured by user in maritime settings
@@ -1995,6 +1995,7 @@ export class MaritimeFreightService {
         const cust = await this.db
           .selectFrom('customers')
           .select(['phone'])
+          .where('tenant_id', '=', tenantId)
           .where('id', '=', updatedJob.customer_id as any)
           .executeTakeFirst();
         customerPhone = cust?.phone || null;
@@ -2036,6 +2037,7 @@ export class MaritimeFreightService {
         const cust = await this.db
           .selectFrom('customers')
           .select(['phone'])
+          .where('tenant_id', '=', tenantId)
           .where('id', '=', job.customer_id as any)
           .executeTakeFirst();
         phone = cust?.phone || null;
@@ -2300,16 +2302,12 @@ export class MaritimeFreightService {
 
     const cleanToken = token.trim();
 
+    // The random tracking token is the capability credential. Business references
+    // are guessable and must never be accepted on this public route.
     const job = await this.db
       .selectFrom('maritime_jobs')
       .selectAll()
-      .where((eb) => eb.or([
-        eb('tracking_token', '=', cleanToken),
-        eb('job_number', '=', cleanToken),
-        eb('mbl_number', '=', cleanToken),
-        eb('hbl_number', '=', cleanToken),
-        eb('booking_number', '=', cleanToken),
-      ]))
+      .where('tracking_token', '=', cleanToken)
       .executeTakeFirst();
 
     if (!job) {
@@ -2321,6 +2319,7 @@ export class MaritimeFreightService {
     const milestones = await this.db
       .selectFrom('maritime_job_milestones')
       .selectAll()
+      .where('tenant_id', '=', tenantId)
       .where('job_id', '=', String(job.id))
       .orderBy('occurred_at', 'asc')
       .execute();
@@ -2328,6 +2327,7 @@ export class MaritimeFreightService {
     const containers = await this.db
       .selectFrom('maritime_containers')
       .selectAll()
+      .where('tenant_id', '=', tenantId)
       .where('job_id', '=', String(job.id))
       .execute();
 
@@ -2344,9 +2344,7 @@ export class MaritimeFreightService {
       return acc;
     }, {});
 
-    return {
-      shipment: job,
-      job: {
+    const publicJob = {
         id: job.id,
         jobNumber: job.job_number,
         bookingNumber: job.booking_number,
@@ -2369,7 +2367,10 @@ export class MaritimeFreightService {
         deliveryOrderReleasedAt: job.delivery_order_released_at,
         customerName: job.customer_name,
         status: job.status,
-      },
+    };
+    return {
+      shipment: publicJob,
+      job: publicJob,
       milestones: milestones.map((m) => ({
         id: m.id,
         key: m.milestone_key,
@@ -2433,6 +2434,7 @@ export class MaritimeFreightService {
       carrier = await this.db
         .selectFrom('shipping_lines')
         .selectAll()
+        .where('tenant_id', '=', rfq.tenant_id)
         .where('code', '=', carrierCode)
         .executeTakeFirst();
     }

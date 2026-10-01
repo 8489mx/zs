@@ -21,10 +21,10 @@ export class PurchasesQueryService {
   async fetchMappedPurchases(auth?: AuthContext): Promise<Array<Record<string, unknown>>> {
     const purchases = await this.db
       .selectFrom('purchases as p')
-      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
-      .leftJoin('branches as b', 'b.id', 'p.branch_id')
-      .leftJoin('stock_locations as l', 'l.id', 'p.location_id')
-      .leftJoin('users as u', 'u.id', 'p.created_by')
+      .leftJoin('suppliers as s', (j) => j.onRef('s.id', '=', 'p.supplier_id').onRef('s.tenant_id', '=', 'p.tenant_id'))
+      .leftJoin('branches as b', (j) => j.onRef('b.id', '=', 'p.branch_id').onRef('b.tenant_id', '=', 'p.tenant_id'))
+      .leftJoin('stock_locations as l', (j) => j.onRef('l.id', '=', 'p.location_id').onRef('l.tenant_id', '=', 'p.tenant_id'))
+      .leftJoin('users as u', (j) => j.onRef('u.id', '=', 'p.created_by').onRef('u.tenant_id', '=', 'p.tenant_id'))
       .select([
         'p.id', 'p.doc_no', 'p.supplier_id', 's.name as supplier_name', 'p.payment_type', 'p.subtotal', 'p.discount', 'p.tax_rate', 'p.tax_amount',
         'p.prices_include_tax', 'p.total', 'p.note', 'p.status', 'p.branch_id', 'p.location_id', 'p.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name',
@@ -49,6 +49,7 @@ export class PurchasesQueryService {
       .selectFrom('purchase_attachments')
       .select(['id', 'purchase_id', 'file_name', 'file_url', 'file_type', 'file_size'])
       .where('purchase_id', 'in', purchaseIds)
+      .where(this.tenantPredicate(auth))
       .orderBy('purchase_id', 'asc')
       .orderBy('id', 'asc')
       .execute() : [];
@@ -66,10 +67,10 @@ export class PurchasesQueryService {
 
     let qb = this.db
       .selectFrom('purchases as p')
-      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
-      .leftJoin('branches as b', 'b.id', 'p.branch_id')
-      .leftJoin('stock_locations as l', 'l.id', 'p.location_id')
-      .leftJoin('users as u', 'u.id', 'p.created_by')
+      .leftJoin('suppliers as s', (j) => j.onRef('s.id', '=', 'p.supplier_id').onRef('s.tenant_id', '=', 'p.tenant_id'))
+      .leftJoin('branches as b', (j) => j.onRef('b.id', '=', 'p.branch_id').onRef('b.tenant_id', '=', 'p.tenant_id'))
+      .leftJoin('stock_locations as l', (j) => j.onRef('l.id', '=', 'p.location_id').onRef('l.tenant_id', '=', 'p.tenant_id'))
+      .leftJoin('users as u', (j) => j.onRef('u.id', '=', 'p.created_by').onRef('u.tenant_id', '=', 'p.tenant_id'))
       .select([
         'p.id', 'p.doc_no', 'p.supplier_id', 's.name as supplier_name', 'p.payment_type', 'p.subtotal', 'p.discount', 'p.tax_rate', 'p.tax_amount',
         'p.prices_include_tax', 'p.total', 'p.note', 'p.status', 'p.branch_id', 'p.location_id', 'p.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name',
@@ -134,6 +135,7 @@ export class PurchasesQueryService {
             .selectFrom('purchase_attachments')
             .select(['id', 'purchase_id', 'file_name', 'file_url', 'file_type', 'file_size'])
             .where('purchase_id', 'in', pagedIds)
+            .where('tenant_id', '=', scope.tenantId)
             .orderBy('purchase_id', 'asc')
             .orderBy('id', 'asc')
             .execute(),
@@ -168,10 +170,10 @@ export class PurchasesQueryService {
     const scope = requireTenantScope(auth);
     const purchaseRow = await this.db
       .selectFrom('purchases as p')
-      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
-      .leftJoin('branches as b', 'b.id', 'p.branch_id')
-      .leftJoin('stock_locations as l', 'l.id', 'p.location_id')
-      .leftJoin('users as u', 'u.id', 'p.created_by')
+      .leftJoin('suppliers as s', (j) => j.onRef('s.id', '=', 'p.supplier_id').onRef('s.tenant_id', '=', 'p.tenant_id'))
+      .leftJoin('branches as b', (j) => j.onRef('b.id', '=', 'p.branch_id').onRef('b.tenant_id', '=', 'p.tenant_id'))
+      .leftJoin('stock_locations as l', (j) => j.onRef('l.id', '=', 'p.location_id').onRef('l.tenant_id', '=', 'p.tenant_id'))
+      .leftJoin('users as u', (j) => j.onRef('u.id', '=', 'p.created_by').onRef('u.tenant_id', '=', 'p.tenant_id'))
       .select([
         'p.id', 'p.doc_no', 'p.supplier_id', 's.name as supplier_name', 'p.payment_type', 'p.subtotal', 'p.discount', 'p.tax_rate', 'p.tax_amount',
         'p.prices_include_tax', 'p.total', 'p.note', 'p.status', 'p.branch_id', 'p.location_id', 'p.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name',
@@ -195,6 +197,7 @@ export class PurchasesQueryService {
         .selectFrom('purchase_attachments')
         .select(['id', 'purchase_id', 'file_name', 'file_url', 'file_type', 'file_size'])
         .where('purchase_id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
         .orderBy('id', 'asc')
         .execute(),
     ]);
@@ -212,10 +215,11 @@ export class PurchasesQueryService {
     const scope = requireTenantScope(auth);
     const row = await this.db
       .selectFrom('purchase_attachments as pa')
-      .innerJoin('purchases as p', 'p.id', 'pa.purchase_id')
+      .innerJoin('purchases as p', (j) => j.onRef('p.id', '=', 'pa.purchase_id').onRef('p.tenant_id', '=', 'pa.tenant_id'))
       .select(['pa.id', 'pa.purchase_id', 'pa.file_name', 'pa.file_url', 'pa.file_type', 'pa.file_size', 'pa.created_at', 'pa.updated_at'])
       .where('pa.id', '=', attachmentId)
       .where('pa.purchase_id', '=', purchaseId)
+      .where('pa.tenant_id', '=', scope.tenantId)
       .where(sql<boolean>`p.tenant_id = ${scope.tenantId}`)
       .executeTakeFirst();
       

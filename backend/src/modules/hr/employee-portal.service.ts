@@ -163,12 +163,23 @@ export class EmployeePortalService {
       }
     }
 
-    // Search active employees
+    let contacts: Array<{ employee_id: number; value: string; contact_type: string }> = [];
+    if (cleanNoCountry.length >= 8) {
+      let contactQuery = this.anyDb.selectFrom('hr_employee_contacts')
+        .select(['employee_id', 'value', 'contact_type'])
+        .where('contact_type', '=', 'phone')
+        .where(sql<boolean>`RIGHT(REGEXP_REPLACE(value, '[^0-9]', '', 'g'), ${cleanNoCountry.length}) = ${cleanNoCountry}`);
+      if (resolvedTenantId) contactQuery = contactQuery.where('tenant_id', '=', resolvedTenantId);
+      contacts = await contactQuery.execute();
+    }
+    const contactEmployeeIds = [...new Set(contacts.map((contact) => Number(contact.employee_id)).filter((id) => id > 0))];
+
+    // Search only employees identified by the supplied number or phone contact.
     let employeesQuery = this.anyDb
       .selectFrom('hr_employees as e')
-      .leftJoin('branches as b', 'b.id', 'e.branch_id')
-      .leftJoin('hr_departments as d', 'd.id', 'e.department_id')
-      .leftJoin('hr_positions as pos', 'pos.id', 'e.position_id')
+      .leftJoin('branches as b', (join: any) => join.onRef('b.id', '=', 'e.branch_id').onRef('b.tenant_id', '=', 'e.tenant_id'))
+      .leftJoin('hr_departments as d', (join: any) => join.onRef('d.id', '=', 'e.department_id').onRef('d.tenant_id', '=', 'e.tenant_id'))
+      .leftJoin('hr_positions as pos', (join: any) => join.onRef('pos.id', '=', 'e.position_id').onRef('pos.tenant_id', '=', 'e.tenant_id'))
       .select([
         'e.id as employee_id',
         'e.employee_no',
@@ -188,6 +199,10 @@ export class EmployeePortalService {
       ])
       .where('e.status', '=', 'active');
 
+    employeesQuery = contactEmployeeIds.length
+      ? employeesQuery.where((eb: any) => eb.or([eb('e.employee_no', 'ilike', rawIdentifier), eb('e.id', 'in', contactEmployeeIds)]))
+      : employeesQuery.where('e.employee_no', 'ilike', rawIdentifier);
+
     if (resolvedTenantId) {
       employeesQuery = employeesQuery.where('e.tenant_id', '=', resolvedTenantId);
     }
@@ -197,14 +212,6 @@ export class EmployeePortalService {
     if (!employees || employees.length === 0) {
       throw new AppError('لم يتم العثور على أي موظف نشط في النظام', 'NO_ACTIVE_EMPLOYEES', 404);
     }
-
-    // Fetch phone contacts
-    const employeeIds = employees.map((e: any) => e.employee_id);
-    const contacts = await this.anyDb
-      .selectFrom('hr_employee_contacts')
-      .select(['employee_id', 'value', 'contact_type'])
-      .where('employee_id', 'in', employeeIds)
-      .execute();
 
     // Match employee
     const matchedEmployees = employees.filter((e: any) => {

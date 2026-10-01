@@ -2462,7 +2462,8 @@ export class AccountingPostingService {
     const original = await queryable.selectFrom('journal_entries').selectAll().where('source_type', '=', 'service').where('source_id', '=', sourceIdComposite).where('tenant_id', '=', scope.tenantId).where('status', '=', 'posted').executeTakeFirst();
     if (!original) return; // Nothing to reverse
 
-    const originalLines = await queryable.selectFrom('journal_entry_lines').selectAll().where('journal_entry_id', '=', original.id).execute();
+    const originalLines = await queryable.selectFrom('journal_entry_lines').selectAll()
+      .where('journal_entry_id', '=', original.id).where('tenant_id', '=', scope.tenantId).execute();
 
     const lines: JournalLineDraft[] = originalLines.map(l => ({
       accountId: Number(l.account_id),
@@ -3047,7 +3048,8 @@ export class AccountingPostingService {
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting delivery settlement for sale ${saleId}`);
 
-    const sale = await queryable.selectFrom('sales').select(['customer_id', 'doc_no']).where('id', '=', saleId).executeTakeFirstOrThrow();
+    const sale = await queryable.selectFrom('sales').select(['customer_id', 'doc_no'])
+      .where('id', '=', saleId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
 
     const lines: JournalLineDraft[] = [];
     this.addLine(lines, {

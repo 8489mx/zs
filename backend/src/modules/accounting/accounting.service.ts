@@ -581,6 +581,7 @@ export class AccountingService {
 
   async getJournalEntry(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertAccountingAccess(auth);
+    const { tenantId } = requireTenantScope(auth);
     const entry = await this.db
       .selectFrom('journal_entries')
       .selectAll()
@@ -591,8 +592,8 @@ export class AccountingService {
 
     const lines = await (this.db as any)
       .selectFrom('journal_entry_lines as l')
-      .innerJoin('accounting_accounts as a', 'a.id', 'l.account_id')
-      .leftJoin('cost_centers as cc', 'cc.id', 'l.cost_center_id')
+      .innerJoin('accounting_accounts as a', (j: any) => j.onRef('a.id', '=', 'l.account_id').onRef('a.tenant_id', '=', 'l.tenant_id'))
+      .leftJoin('cost_centers as cc', (j: any) => j.onRef('cc.id', '=', 'l.cost_center_id').onRef('cc.tenant_id', '=', 'l.tenant_id'))
       .select([
         'l.id',
         'l.journal_entry_id',
@@ -612,6 +613,7 @@ export class AccountingService {
         'a.name_en as account_name_en',
       ])
       .where('l.journal_entry_id', '=', id)
+      .where('l.tenant_id', '=', tenantId)
       .orderBy('l.id', 'asc')
       .execute();
 
@@ -1460,10 +1462,10 @@ export class AccountingService {
 
     let query = this.db
       .selectFrom('products as p')
-      .leftJoin('product_categories as c', 'c.id', 'p.category_id')
-      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .leftJoin('product_categories as c', (j) => j.onRef('c.id', '=', 'p.category_id').onRef('c.tenant_id', '=', 'p.tenant_id'))
+      .leftJoin('suppliers as s', (j) => j.onRef('s.id', '=', 'p.supplier_id').onRef('s.tenant_id', '=', 'p.tenant_id'))
       .leftJoin('product_location_stock as pls', (join) => {
-        const j = join.onRef('pls.product_id', '=', 'p.id');
+        const j = join.onRef('pls.product_id', '=', 'p.id').onRef('pls.tenant_id', '=', 'p.tenant_id');
         return locationId ? j.on('pls.location_id', '=', locationId) : j.on(sql<boolean>`false`);
       })
       .select([
@@ -3264,6 +3266,7 @@ export class AccountingService {
       .selectFrom('journal_entry_lines')
       .select(['id'])
       .where('journal_entry_id', '=', entryId)
+      .where('tenant_id', '=', requireTenantScope(auth).tenantId)
       .where('account_id', '=', Number(sLine.account_id))
       .executeTakeFirst();
 
@@ -3281,4 +3284,3 @@ export class AccountingService {
     };
   }
 }
-

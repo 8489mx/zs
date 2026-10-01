@@ -4675,9 +4675,10 @@ export class ContractingService {
       .selectFrom('contracting_master_boq_library')
       .selectAll()
       .where('id', 'in', dto.itemIds as any)
+      .where((eb: any) => eb.or([eb('tenant_id', '=', tenantId), eb('tenant_id', '=', '')]))
       .execute();
 
-    if (!masterItems || masterItems.length === 0) {
+    if (!masterItems || new Set(masterItems.map((item: any) => String(item.id))).size !== new Set(dto.itemIds.map(String)).size) {
       throw new NotFoundException('لم يتم العثور على البنود المحددة في بنك البنود المرجعي');
     }
 
@@ -8344,7 +8345,6 @@ export class ContractingService {
     return this.mapActionItemRow(updated);
   }
 }
-
 
 
 

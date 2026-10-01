@@ -1,6 +1,6 @@
 # Multi-tenant isolation audit — 1 October 2026
 
-Branch: `audit/multi-tenant-isolation` · Scope: `backend/src/` only · Status: findings and proposed fixes; no production change applied.
+Branch: `audit/multi-tenant-isolation` · Scope: backend only · Status: MT-01 through MT-21 remediated on this branch; production deployment is separate.
 
 ## Method and limits
 
@@ -41,4 +41,13 @@ Severity: **P0** = direct cross-tenant read/write through a reachable request; *
 3. Add tenant equality to child queries and joins, starting with the examples in MT-13 through MT-16. Backfill tenant-less children and use composite tenant FKs where possible.
 4. Add integration checks with two tenants using different IDs and intentionally mismatched references. Confirm that foreign IDs return 404/no rows and that no notification or financial mutation occurs.
 
-This audit report does not include a database migration, application code change, frontend change, or test.
+## Remediation notes
+
+- MT-01 through MT-04 and MT-08/12: HR employee, loan, payroll, installment, adjustment, asset, and withdrawal reads and updates now use the caller's tenant. Payroll calculation helpers receive that tenant explicitly.
+- MT-05 and MT-09 through MT-11/17: public maritime tracking accepts only the 128-bit random token and returns an allowlisted shipment shape. Carrier, customer, job, milestone, and container queries use the same tenant as their parent. Invalid cross-tenant carrier selections fail before RFQ targets are saved or mail is sent.
+- MT-06/07/15: BOQ imports admit only tenant-owned or global library rows; BOM product IDs are checked before writing; tenant-less BOM lines are reached through a tenant-scoped BOM subquery. A separate schema migration can add tenant IDs and composite foreign keys to those lines later.
+- MT-13/14/16/19: purchase attachments, journal lines, sale and product joins, pivot joins, and employee login contact discovery have explicit tenant boundaries where a tenant has been resolved.
+- MT-18/20: tenant support bundles contain tenant-scoped audit records. Shared process logs remain available only to the internal scheduler path, and support upload metadata is resolved from the requesting tenant.
+- MT-21: public WhatsApp POSTs now require `x-zs-webhook-signature: sha256=<hex HMAC-SHA256 of raw request body>` using the tenant's `whatsapp_gateway_webhook_secret` setting (minimum 32 characters). The tenant ID in the URL/query selects a key for verification and is not trusted until that verification succeeds. The old first-tenant fallback is removed. Configure the secret and sender signature before enabling inbound webhooks.
+
+These changes do not alter frontend files. The public tracking search box still mentions business references, but the backend now requires the private tracking token for security.

@@ -62,13 +62,12 @@ export class WhatsAppPublicWebhookController {
   }
 
   @Post('webhook')
-  handleWebhook(@Body() body: any, @Query('tenantId') tenantId?: string) {
-    return this.whatsappService.handleInboundWebhook(body, tenantId);
+  handleWebhook(@Body() body: any, @Req() req: any, @Query('tenantId') tenantId?: string) {
+    return this.whatsappService.handleVerifiedInboundWebhook(body, tenantId, req.headers['x-zs-webhook-signature'], req.rawBody);
   }
 
   @Post('webhook/:tenantId')
-  handleTenantWebhook(@Param('tenantId') tenantId: string, @Body() body: any) {
-    return this.whatsappService.handleInboundWebhook(body, tenantId);
+  handleTenantWebhook(@Param('tenantId') tenantId: string, @Body() body: any, @Req() req: any) {
+    return this.whatsappService.handleVerifiedInboundWebhook(body, tenantId, req.headers['x-zs-webhook-signature'], req.rawBody);
   }
 }
-

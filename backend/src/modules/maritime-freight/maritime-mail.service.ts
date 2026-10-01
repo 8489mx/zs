@@ -766,6 +766,7 @@ export class MaritimeMailService {
         const carrierRow = await this.db
           .selectFrom('shipping_lines')
           .select(['id', 'code', 'name_en', 'name_ar'])
+          .where('tenant_id', '=', tenantId)
           .where((eb) => eb.or([
             eb('email', 'ilike', senderEmail),
             eb('rfq_email', 'ilike', senderEmail),

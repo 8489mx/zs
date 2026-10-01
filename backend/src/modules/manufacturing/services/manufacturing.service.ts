@@ -21,6 +21,18 @@ export class ManufacturingService {
     private readonly accountingPosting: AccountingPostingService,
   ) {}
 
+  private async assertBomProductsOwned(trx: Kysely<Database> | Transaction<Database>, payload: CreateBomDto, tenantId: string): Promise<void> {
+    const requested = [...new Set([Number(payload.productId), ...payload.lines.map((line) => Number(line.componentProductId))])];
+    if (requested.some((id) => !Number.isSafeInteger(id) || id <= 0)) {
+      throw new AppError('Invalid BOM product', 'BOM_PRODUCT_NOT_FOUND', 404);
+    }
+    const owned = await trx.selectFrom('products').select('id')
+      .where('id', 'in', requested).where('tenant_id', '=', tenantId).execute();
+    if (owned.length !== requested.length) {
+      throw new AppError('BOM product not found in tenant', 'BOM_PRODUCT_NOT_FOUND', 404);
+    }
+  }
+
   private async assertNoCircularDependency(
     trx: Kysely<Database> | Transaction<Database>,
     targetProductId: number,
@@ -52,7 +64,8 @@ export class ManufacturingService {
         const subLines = await trx
           .selectFrom('manufacturing_bom_lines')
           .select(['component_product_id'])
-          .where('bom_id', '=', Number(subBom.id))
+          .where('bom_id', 'in', (eb) => eb.selectFrom('manufacturing_boms')
+            .select('id').where('id', '=', Number(subBom.id)).where('tenant_id', '=', tenantId))
           .execute();
 
         const subCompIds = subLines.map((l: any) => Number(l.component_product_id)).filter(Boolean);
@@ -74,6 +87,7 @@ export class ManufacturingService {
     let bomId = 0;
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await this.assertBomProductsOwned(trx, payload, scope.tenantId);
       await this.assertNoCircularDependency(trx, Number(payload.productId), componentIds, scope.tenantId);
 
       const overheadCost = payload.overheadCost || 0;
@@ -115,7 +129,7 @@ export class ManufacturingService {
     const scope = requireTenantScope(auth);
     const boms = await this.db
       .selectFrom('manufacturing_boms as b')
-      .innerJoin('products as p', 'p.id', 'b.product_id')
+      .innerJoin('products as p', (join) => join.onRef('p.id', '=', 'b.product_id').onRef('p.tenant_id', '=', 'b.tenant_id'))
       .select(['b.id', 'b.product_id', 'p.name as product_name', 'b.quantity', 'b.expected_cost', 'b.overhead_cost', 'b.is_active', 'b.created_at'])
       .where('b.is_active', '=', true)
       .where(sql<boolean>`b.tenant_id = ${scope.tenantId}`)
@@ -127,6 +141,8 @@ export class ManufacturingService {
       ? await this.db.selectFrom('manufacturing_bom_lines')
           .selectAll()
           .where('bom_id', 'in', bomIds)
+          .where('bom_id', 'in', (eb) => eb.selectFrom('manufacturing_boms')
+            .select('id').where('tenant_id', '=', scope.tenantId))
           .execute()
       : [];
 
@@ -158,6 +174,7 @@ export class ManufacturingService {
     }
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await this.assertBomProductsOwned(trx, payload, scope.tenantId);
       await this.assertNoCircularDependency(trx, Number(payload.productId), componentIds, scope.tenantId);
 
       const existingBom = await trx.selectFrom('manufacturing_boms')
@@ -184,7 +201,8 @@ export class ManufacturingService {
         .execute();
 
       await trx.deleteFrom('manufacturing_bom_lines')
-        .where('bom_id', '=', id)
+        .where('bom_id', 'in', (eb) => eb.selectFrom('manufacturing_boms')
+          .select('id').where('id', '=', id).where('tenant_id', '=', scope.tenantId))
         .execute();
 
       const lines = payload.lines.map((line) => ({
@@ -231,7 +249,8 @@ export class ManufacturingService {
           .execute();
       } else {
         await trx.deleteFrom('manufacturing_bom_lines')
-          .where('bom_id', '=', id)
+          .where('bom_id', 'in', (eb) => eb.selectFrom('manufacturing_boms')
+            .select('id').where('id', '=', id).where('tenant_id', '=', scope.tenantId))
           .execute();
 
         await trx.deleteFrom('manufacturing_boms')
