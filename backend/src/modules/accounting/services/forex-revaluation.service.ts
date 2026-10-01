@@ -87,26 +87,27 @@ export class ForexRevaluationService {
       .where('revaluation_currency', '=', currencyCode)
       .execute();
 
+    const accountIds = accounts.map((account) => Number(account.id));
+    const balances = accountIds.length ? await this.db
+      .selectFrom('journal_entry_lines as l')
+      .innerJoin('journal_entries as h', (join) => join
+        .onRef('h.id', '=', 'l.journal_entry_id')
+        .onRef('h.tenant_id', '=', 'l.tenant_id'))
+      .select(['l.account_id', sql<number>`COALESCE(SUM(l.debit - l.credit), 0)`.as('balance')])
+      .where('l.tenant_id', '=', tenantId)
+      .where('l.account_id', 'in', accountIds)
+      .where('h.status', '=', 'posted')
+      .where('h.entry_date', '<=', dto.periodDate as any)
+      .groupBy('l.account_id')
+      .execute() : [];
+    const balanceByAccount = new Map(balances.map((row) => [Number(row.account_id), Number(row.balance || 0)]));
+
     const lines: any[] = [];
     let totalForeign = 0;
     let totalUnrealizedGainLoss = 0;
 
-    // Process accounts
     for (const acc of accounts) {
-      // Calculate foreign balance from account entries or balance
-      const balanceRes = await this.db
-        .selectFrom('journal_entry_lines as l')
-        .innerJoin('journal_entries as h', 'h.id', 'l.journal_entry_id')
-        .select([
-          sql<number>`COALESCE(SUM(l.debit - l.credit), 0)`.as('balance'),
-        ])
-        .where('l.tenant_id', '=', tenantId)
-        .where('l.account_id', '=', acc.id)
-        .where('h.status', '=', 'posted')
-        .where('h.entry_date', '<=', dto.periodDate as any)
-        .executeTakeFirst();
-
-      const localBalance = Number(balanceRes?.balance || 0);
+      const localBalance = balanceByAccount.get(Number(acc.id)) || 0;
       if (Math.abs(localBalance) > 0.01) {
         // Approximate foreign balance based on bookRate
         const foreignBalance = Math.round((localBalance / bookRate) * 100) / 100;

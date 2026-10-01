@@ -12,14 +12,11 @@ import { buildCustomerRfmPayload } from '../helpers/reports-summary.helper';
 import { buildReportListState } from '../helpers/reports-query.helper';
 import { applyPartnerLedgerSearch, applySignedAmountFilter } from '../helpers/reports-query-pipeline.helper';
 import {
-  buildCustomerBalancesPayload,
   buildCustomerLedgerPayload,
-  buildSupplierBalancesPayload,
   buildSupplierLedgerPayload,
   LedgerSummaryRow,
   PartnerLedgerEntryRow,
 } from '../helpers/reports-ledger.helper';
-import { buildCustomerLedgerTotals, buildSupplierLedgerTotals } from '../helpers/reports-partner-ledger.helper';
 import { AppError } from '../../../common/errors/app-error';
 
 @Injectable()
@@ -73,10 +70,17 @@ export class ReportsSummaryService {
         .orderBy('created_at', 'desc')
         .execute()) as any[];
     }
+    const salesByCustomer = new Map<number, typeof customerSales>();
+    for (const sale of customerSales) {
+      const id = Number(sale.customer_id);
+      const sales = salesByCustomer.get(id) || [];
+      sales.push(sale);
+      salesByCustomer.set(id, sales);
+    }
 
     const receivables = customerRows.map((cust) => {
       const balance = Number(cust.balance || 0);
-      const sales = customerSales.filter((s) => Number(s.customer_id) === Number(cust.id));
+      const sales = salesByCustomer.get(Number(cust.id)) || [];
 
       let current = 0;
       let days31To60 = 0;
@@ -135,10 +139,17 @@ export class ReportsSummaryService {
         .orderBy('created_at', 'desc')
         .execute()) as any[];
     }
+    const purchasesBySupplier = new Map<number, typeof supplierPurchases>();
+    for (const purchase of supplierPurchases) {
+      const id = Number(purchase.supplier_id);
+      const purchases = purchasesBySupplier.get(id) || [];
+      purchases.push(purchase);
+      purchasesBySupplier.set(id, purchases);
+    }
 
     const payables = supplierRows.map((sup) => {
       const balance = Number(sup.balance || 0);
-      const purchases = supplierPurchases.filter((p) => Number(p.supplier_id) === Number(sup.id));
+      const purchases = purchasesBySupplier.get(Number(sup.id)) || [];
 
       let current = 0;
       let days31To60 = 0;
@@ -459,31 +470,58 @@ export class ReportsSummaryService {
     const table = isCust ? 'customers' : 'suppliers';
     const ledgerTable = isCust ? 'customer_ledger' : 'supplier_ledger';
     const partnerIdCol = isCust ? 'customer_id' : 'supplier_id';
-
-    const partners = await (this.db as any)
-      .selectFrom(table)
-      .select(isCust ? ['id', 'name', 'phone', 'balance', 'credit_limit'] : ['id', 'name', 'phone', 'balance'])
-      .where('is_active', '=', true)
-      .where(this.tenantPredicate(auth))
-      .orderBy('name', 'asc')
-      .execute();
-
-    const ledgerRows = await (this.db as any)
-      .selectFrom(ledgerTable)
-      .select([partnerIdCol, sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
-      .where(this.tenantPredicate(auth))
-      .groupBy(partnerIdCol)
-      .execute();
-
-    const totals = isCust
-      ? buildCustomerLedgerTotals(ledgerRows as Array<{ customer_id?: number | string | null; balance_total?: number | string | null }>)
-      : buildSupplierLedgerTotals(ledgerRows as Array<{ supplier_id?: number | string | null; balance_total?: number | string | null }>);
-
-    const payload = isCust
-      ? buildCustomerBalancesPayload(partners, totals, query as Record<string, unknown>)
-      : buildSupplierBalancesPayload(partners, totals, query as Record<string, unknown>);
-
-    return this.withScope(payload, auth);
+    const tenantId = this.tenantId(auth);
+    const { page, pageSize } = buildReportListState(query, 20, { includeRange: false });
+    const search = String(query.search || '').trim();
+    const filter = String(query.filter || 'all').toLowerCase();
+    const creditLimit = isCust ? sql`coalesce(p.credit_limit, 0)` : sql`0::numeric`;
+    const balances = sql`
+      select p.id, p.name, p.phone, ${creditLimit} as credit_limit,
+             coalesce(l.balance_total, p.balance, 0) as balance
+      from ${sql.table(table)} p
+      left join (
+        select ${sql.ref(partnerIdCol)} as partner_id, sum(amount) as balance_total
+        from ${sql.table(ledgerTable)} where tenant_id = ${tenantId}
+        group by ${sql.ref(partnerIdCol)}
+      ) l on l.partner_id = p.id
+      where p.tenant_id = ${tenantId} and p.is_active = true
+    `;
+    const searchClause = search ? sql`and (b.name ilike ${`%${search}%`} or b.phone ilike ${`%${search}%`})` : sql``;
+    const filterClause = filter === 'high-balance'
+      ? sql`and b.balance >= 1000`
+      : isCust && filter === 'over-limit'
+        ? sql`and b.credit_limit > 0 and b.balance > b.credit_limit`
+        : sql``;
+    const filtered = sql`select * from (${balances}) b where b.balance > 0 ${searchClause} ${filterClause}`;
+    const summaryResult = await sql<{ total_items: number; total_balance: number; over_limit: number }>`
+      select count(*)::int as total_items, coalesce(sum(balance), 0) as total_balance,
+             count(*) filter (where credit_limit > 0 and balance > credit_limit)::int as over_limit
+      from (${filtered}) f
+    `.execute(this.db);
+    const summaryRow = summaryResult.rows[0];
+    const totalItems = Number(summaryRow?.total_items || 0);
+    const pagination = buildPagination(page, pageSize, totalItems);
+    const offset = (pagination.page - 1) * pageSize;
+    const pageResult = await sql<{ id: number; name: string | null; phone: string | null; balance: number; credit_limit: number }>`
+      select id, name, phone, balance, credit_limit from (${filtered}) f
+      order by name asc, id asc limit ${pageSize} offset ${offset}
+    `.execute(this.db);
+    const rows = pageResult.rows.map((row) => {
+      const balance = Number(row.balance || 0);
+      const base = { id: String(row.id), name: row.name || '', phone: row.phone || '', balance };
+      return isCust
+        ? { ...base, creditLimit: Number(row.credit_limit || 0), availableCredit: toMoney(Number(row.credit_limit || 0) - balance) }
+        : base;
+    });
+    return this.withScope({
+      [isCust ? 'customers' : 'suppliers']: rows,
+      pagination,
+      summary: {
+        totalItems,
+        totalBalance: toMoney(summaryRow?.total_balance || 0),
+        ...(isCust ? { overLimit: Number(summaryRow?.over_limit || 0) } : {}),
+      },
+    }, auth);
   }
 
   private async partnerLedger(type: 'customer' | 'supplier', partnerId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {

@@ -239,24 +239,34 @@ export class InventoryScopeService {
         sql<number>`sum(pls.qty * p.cost_price)`.as('inventoryValue')
       ])
       .where('pls.qty', '>', 0)
+      .where('pls.tenant_id', '=', tenantId)
       .where('p.tenant_id', '=', tenantId)
       .where('p.account_id', '=', accountId)
       .groupBy(['pls.location_id', 'p.category_id'])
       .execute();
-      
+
+    const categoryNameById = new Map(categories.map((category) => [Number(category.id), category.name]));
+    const stockByLocation = new Map<number, typeof stockCounts>();
+    for (const stock of stockCounts) {
+      const locationId = Number(stock.location_id);
+      const rows = stockByLocation.get(locationId) || [];
+      rows.push(stock);
+      stockByLocation.set(locationId, rows);
+    }
+
     let totalGlobalValue = 0;
 
     const overview = locations.map(loc => {
-      const locStocks = stockCounts.filter(s => s.location_id === loc.id);
+      const locStocks = stockByLocation.get(Number(loc.id)) || [];
       let locationTotalValue = 0;
       
       const locCategories = locStocks.map(s => {
-        const cat = categories.find(c => c.id === s.category_id);
+        const categoryName = categoryNameById.get(Number(s.category_id));
         const value = Number(s.inventoryValue) || 0;
         locationTotalValue += value;
         return {
           id: String(s.category_id),
-          name: cat ? cat.name : 'بدون قسم',
+          name: categoryName || 'بدون قسم',
           productCount: Number(s.productCount) || 0,
           inventoryValue: value
         };

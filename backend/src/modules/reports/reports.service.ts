@@ -12,7 +12,7 @@ import { buildCustomerRfmPayload, buildReportSummaryPayload } from './helpers/re
 import { buildDashboardComputedState, buildDashboardOverviewPayload, buildDashboardScope, buildInventorySnapshot, buildPartnerExposureSnapshot } from './helpers/reports-dashboard.helper';
 import { buildCustomerBalancesPayload, buildCustomerLedgerPayload, buildSupplierBalancesPayload, buildSupplierLedgerPayload, LedgerSummaryRow, PartnerLedgerEntryRow } from './helpers/reports-ledger.helper';
 import { buildCustomerLedgerTotals, buildSupplierLedgerTotals } from './helpers/reports-partner-ledger.helper';
-import { buildInventoryLocationHighlights, buildInventoryReportItems, buildInventorySummary, InventoryLocationBreakdownRow, InventoryLocationHighlightRow, InventoryReportProductRow } from './helpers/reports-inventory.helper';
+import { buildInventoryReportItems, buildInventorySummary, InventoryLocationBreakdownRow, InventoryReportProductRow } from './helpers/reports-inventory.helper';
 import { applyReportScopeFilter, buildReportListState } from './helpers/reports-query.helper';
 import { applyPartnerLedgerSearch, applySignedAmountFilter } from './helpers/reports-query-pipeline.helper';
 import { ReportsAdminService } from './services/reports-admin.service';
@@ -631,27 +631,27 @@ export class ReportsService {
   }
 
   async inventoryReport(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const { search, searchPattern, filter, page, pageSize, offset } = buildReportListState(query, 20, { includeRange: false });
+    const { search, searchPattern, filter, page, pageSize } = buildReportListState(query, 20, { includeRange: false });
 
     let countQuery: any = this.db
       .selectFrom('products as p')
-      .leftJoin('product_categories as c', 'c.id', 'p.category_id')
-      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .leftJoin('product_categories as c', (join) => join.onRef('c.id', '=', 'p.category_id').onRef('c.tenant_id', '=', 'p.tenant_id'))
+      .leftJoin('suppliers as s', (join) => join.onRef('s.id', '=', 'p.supplier_id').onRef('s.tenant_id', '=', 'p.tenant_id'))
       .where('p.is_active', '=', true)
       .where(this.tenantPredicate(auth, 'p'));
 
     let rowsQuery: any = this.db
       .selectFrom('products as p')
-      .leftJoin('product_categories as c', 'c.id', 'p.category_id')
-      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .leftJoin('product_categories as c', (join) => join.onRef('c.id', '=', 'p.category_id').onRef('c.tenant_id', '=', 'p.tenant_id'))
+      .leftJoin('suppliers as s', (join) => join.onRef('s.id', '=', 'p.supplier_id').onRef('s.tenant_id', '=', 'p.tenant_id'))
       .select(['p.id', 'p.name', query.locationId ? sql<number>`coalesce(pls.qty, 0)`.as('stock_qty') : 'p.stock_qty', 'p.min_stock_qty', 'p.retail_price', 'p.cost_price', 'c.name as category_name', 's.name as supplier_name'])
       .where('p.is_active', '=', true)
       .where(this.tenantPredicate(auth, 'p'));
 
     if (query.locationId) {
-      countQuery = countQuery.leftJoin('product_location_stock as pls', 'pls.product_id', 'p.id')
+      countQuery = countQuery.leftJoin('product_location_stock as pls', (join: any) => join.onRef('pls.product_id', '=', 'p.id').onRef('pls.tenant_id', '=', 'p.tenant_id'))
         .where('pls.location_id', '=', query.locationId);
-      rowsQuery = rowsQuery.leftJoin('product_location_stock as pls', 'pls.product_id', 'p.id')
+      rowsQuery = rowsQuery.leftJoin('product_location_stock as pls', (join: any) => join.onRef('pls.product_id', '=', 'p.id').onRef('pls.tenant_id', '=', 'p.tenant_id'))
         .where('pls.location_id', '=', query.locationId);
     }
 
@@ -723,7 +723,7 @@ export class ReportsService {
       .orderBy(query.locationId ? 'pls.qty' : 'p.stock_qty', 'asc')
       .orderBy('p.id', 'asc')
       .limit(pageSize)
-      .offset(offset)
+      .offset((pagination.page - 1) * pageSize)
       .execute();
 
     const productIds = rows.map((row: any) => Number(row.id || 0)).filter((value: number) => value > 0);
@@ -731,8 +731,8 @@ export class ReportsService {
     const locationBreakdownRows = productIds.length
       ? await this.db
           .selectFrom('product_location_stock as pls')
-          .leftJoin('stock_locations as l', 'l.id', 'pls.location_id')
-          .leftJoin('branches', 'branches.id', 'pls.branch_id')
+          .leftJoin('stock_locations as l', (join) => join.onRef('l.id', '=', 'pls.location_id').onRef('l.tenant_id', '=', 'pls.tenant_id'))
+          .leftJoin('branches', (join) => join.onRef('branches.id', '=', 'pls.branch_id').onRef('branches.tenant_id', '=', 'pls.tenant_id'))
           .select(['pls.product_id', 'pls.location_id', 'pls.branch_id', 'pls.qty', 'l.name as location_name', 'branches.name as branch_name'])
           .where('pls.product_id', 'in', productIds)
           .where(this.tenantPredicate(auth, 'pls'))
@@ -741,17 +741,27 @@ export class ReportsService {
           .execute()
       : [];
 
-    const locationHighlightsRows = await this.db
-      .selectFrom('product_location_stock as pls')
-      .innerJoin('products as p', 'p.id', 'pls.product_id')
-      .leftJoin('stock_locations as l', 'l.id', 'pls.location_id')
-      .leftJoin('branches', 'branches.id', 'pls.branch_id')
-      .select(['pls.product_id', 'pls.location_id', 'pls.branch_id', 'pls.qty', 'p.min_stock_qty', 'l.name as location_name', 'branches.name as branch_name'])
-      .where('p.is_active', '=', true)
-      .where('pls.location_id', 'is not', null)
-      .where(this.tenantPredicate(auth, 'p'))
-      .where(this.tenantPredicate(auth, 'pls'))
-      .execute();
+    const tenantId = this.scope(auth).tenantId;
+    const locationHighlightsResult = await sql<{
+      location_id: number; location_name: string | null; branch_id: number | null; branch_name: string | null;
+      total_qty: number; tracked_products: number; attention_items: number;
+      low_stock_items: number; out_of_stock_items: number; tracked_locations: number;
+    }>`
+      select pls.location_id, l.name as location_name, pls.branch_id, b.name as branch_name,
+             sum(pls.qty) as total_qty, count(*)::int as tracked_products,
+             count(*) filter (where pls.qty <= p.min_stock_qty)::int as attention_items,
+             count(*) filter (where pls.qty > 0 and pls.qty <= p.min_stock_qty)::int as low_stock_items,
+             count(*) filter (where pls.qty <= 0)::int as out_of_stock_items,
+             count(*) over()::int as tracked_locations
+      from product_location_stock pls
+      join products p on p.id = pls.product_id and p.tenant_id = pls.tenant_id
+      left join stock_locations l on l.id = pls.location_id and l.tenant_id = pls.tenant_id
+      left join branches b on b.id = pls.branch_id and b.tenant_id = pls.tenant_id
+      where pls.tenant_id = ${tenantId} and pls.location_id is not null and p.is_active = true
+      group by pls.location_id, l.name, pls.branch_id, b.name
+      order by attention_items desc, total_qty desc, location_name asc
+      limit 5
+    `.execute(this.db);
 
     const items = buildInventoryReportItems(rows as InventoryReportProductRow[], locationBreakdownRows as InventoryLocationBreakdownRow[]);
 
@@ -762,7 +772,7 @@ export class ReportsService {
       .where(this.tenantPredicate(auth, 'p'));
 
     if (query.locationId) {
-      outOfStockQuery = outOfStockQuery.leftJoin('product_location_stock as pls', 'pls.product_id', 'p.id')
+      outOfStockQuery = outOfStockQuery.leftJoin('product_location_stock as pls', (join: any) => join.onRef('pls.product_id', '=', 'p.id').onRef('pls.tenant_id', '=', 'p.tenant_id'))
         .where('pls.location_id', '=', query.locationId)
         .where((eb: any) => eb.or([eb('pls.qty', '<=', 0), eb('pls.qty', 'is', null)]));
     } else {
@@ -777,7 +787,7 @@ export class ReportsService {
       .where(this.tenantPredicate(auth, 'p'));
 
     if (query.locationId) {
-      lowStockQuery = lowStockQuery.innerJoin('product_location_stock as pls', 'pls.product_id', 'p.id')
+      lowStockQuery = lowStockQuery.innerJoin('product_location_stock as pls', (join: any) => join.onRef('pls.product_id', '=', 'p.id').onRef('pls.tenant_id', '=', 'p.tenant_id'))
         .where('pls.location_id', '=', query.locationId)
         .where('pls.qty', '>', 0)
         .whereRef('pls.qty', '<=', 'p.min_stock_qty');
@@ -793,7 +803,14 @@ export class ReportsService {
       .where(this.tenantPredicate(auth, 'p'))
       .executeTakeFirst();
 
-    const { trackedLocations, highlights: locationHighlights } = buildInventoryLocationHighlights(locationHighlightsRows as InventoryLocationHighlightRow[]);
+    const trackedLocations = Number(locationHighlightsResult.rows[0]?.tracked_locations || 0);
+    const locationHighlights = locationHighlightsResult.rows.map((row) => ({
+      locationId: String(row.location_id), locationName: row.location_name || `الموقع #${row.location_id}`,
+      branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '',
+      totalQty: Number(row.total_qty || 0), trackedProducts: Number(row.tracked_products || 0),
+      attentionItems: Number(row.attention_items || 0), lowStockItems: Number(row.low_stock_items || 0),
+      outOfStockItems: Number(row.out_of_stock_items || 0),
+    }));
 
     const outOfStock = Number((outOfStockRow as { count?: number | string | null } | undefined)?.count || 0);
     const lowStock = Number((lowStockRow as { count?: number | string | null } | undefined)?.count || 0);
