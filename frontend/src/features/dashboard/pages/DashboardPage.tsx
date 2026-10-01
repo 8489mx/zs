@@ -145,8 +145,10 @@ export function DashboardPage() {
   }
 
   const overview = useDashboardOverview();
-  const managerActions = useManagerActions(30);
-  const managerOverview = useDashboardManagerOverview();
+  // Let the first dashboard response render before running secondary report queries.
+  const showSecondaryReports = Boolean(overview.data);
+  const managerActions = useManagerActions(30, showSecondaryReports);
+  const managerOverview = useDashboardManagerOverview(showSecondaryReports);
 
   if (overview.isLoading && !overview.data) {
     return <DashboardSkeleton />;

@@ -34,7 +34,6 @@ import { GlobalSearchModal } from '@/shared/components/GlobalSearchModal';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { SearchIcon, CheckCircleIcon , XIcon } from '@/shared/components/icons/AppIcons';
 import { getMaintenanceProfile } from '@/features/maintenance/constants/maintenance-profiles';
-import { prefetchAllRouteModules } from '@/app/router/lazy-route';
 import { prefetchRouteData } from '@/app/router/route-prefetch';
 import { resolveAutoBreadcrumbs } from '@/shared/layout/breadcrumbs.helper';
 
@@ -1812,7 +1811,6 @@ export function AppShell({ children }: PropsWithChildren) {
       const currentVer = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.21';
       localStorage.setItem('zs.app_display_version', currentVer);
     } catch {}
-    prefetchAllRouteModules();
   }, []);
 
   useEffect(() => {

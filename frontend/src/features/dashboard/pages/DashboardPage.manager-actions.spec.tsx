@@ -123,6 +123,21 @@ vi.mock('@/shared/system/SmartDemoOnboardingBanner', () => ({
 }));
 
 describe('Dashboard daily home layout', () => {
+  it('waits for the primary overview before starting secondary report queries', () => {
+    useDashboardOverviewMock.mockReturnValue({ data: undefined, isLoading: true, isError: false, error: null });
+    useManagerActionsMock.mockReturnValue({ data: undefined, isLoading: false, isError: false, error: null });
+    useDashboardManagerOverviewMock.mockReturnValue({ data: undefined, isLoading: false, isError: false, error: null });
+
+    render(
+      <QueryClientProvider client={createTestQueryClient()}>
+        <MemoryRouter><DashboardPage /></MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(useManagerActionsMock).toHaveBeenCalledWith(30, false);
+    expect(useDashboardManagerOverviewMock).toHaveBeenCalledWith(false);
+  });
+
   it('renders the current focused daily dashboard with decision and summary cards', () => {
     useDashboardOverviewMock.mockReturnValue({
       data: dashboardOverview,
@@ -151,6 +166,8 @@ describe('Dashboard daily home layout', () => {
       </QueryClientProvider>,
     );
 
+    expect(useManagerActionsMock).toHaveBeenCalledWith(30, true);
+    expect(useDashboardManagerOverviewMock).toHaveBeenCalledWith(true);
     expect(screen.getAllByText('ملخص اليوم').length).toBeGreaterThan(0);
     expect(screen.getByText('مبيعات اليوم')).toBeInTheDocument();
     expect(screen.getByText('صافي الخزينة')).toBeInTheDocument();

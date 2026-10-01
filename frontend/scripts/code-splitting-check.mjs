@@ -20,7 +20,7 @@ let failed = false;
 for (const rel of routeFiles) {
   const full = path.join(projectRoot, rel);
   const source = fs.readFileSync(full, 'utf8');
-  if (!source.includes('createLazyRoute(() => import(')) {
+  if (!/createLazyRoute\(\(\)\s*=>\s*import\(/.test(source)) {
     console.error(`[FAIL] ${rel} is not lazy-loaded.`);
     failed = true;
   }

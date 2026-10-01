@@ -16,6 +16,12 @@ export function prefetchRouteData(to: string) {
 
   try {
     switch (path) {
+      case 'pos':
+        void import('@/features/pos/pages/PosPage');
+        break;
+      case 'settings':
+        void import('@/features/settings/pages/SettingsPage');
+        break;
       case 'sales': {
         const salesParams = { page: 1, pageSize: 30, search: '', filter: 'all' as const, cashier: 'all' };
         void queryClient.prefetchQuery({

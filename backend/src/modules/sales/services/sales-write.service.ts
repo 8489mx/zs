@@ -64,9 +64,16 @@ export class SalesWriteService {
     @Optional() private readonly fraudRadarService?: CashierFraudRadarService,
   ) {}
 
-  // ── High-speed In-Memory Settings Cache for Sales & POS Checkouts ──────────
-  // Key: tenantId -> { map: Map<string, any>, expiresAt: number }
-  // At 10,000 invoices/day, this eliminates up to 60,000 in-transaction settings queries/day.
+  // Keep only settings needed by checkout; other settings can contain large JSON payloads.
+  // On a cache miss the caller's transaction connection must be reused: opening a second
+  // pool connection while every cashier holds a transaction can exhaust the whole pool.
+  private static readonly SALE_SETTING_KEYS = [
+    'posMaxDiscountThresholdEnabled', 'posMaxDiscountThresholdType', 'posMaxDiscountThresholdValue',
+    'allowNegativeStockSales', 'allowSellingBelowStock', 'loyaltyEnabled',
+    'loyaltyPointsPer100Egp', 'loyaltyPointRedeemValue', 'loyaltyMinRedeemPoints',
+    'loyaltyMaxDiscountPercentage', 'requireCashierShiftForSales', 'deliveryFeeMode',
+    'invoiceNumberingScheme',
+  ];
   private static readonly tenantSettingsMapCache = new Map<string, { map: Map<string, any>; expiresAt: number }>();
   private static readonly SETTINGS_MAP_CACHE_TTL_MS = 60_000; // 60s TTL
 
@@ -78,16 +85,17 @@ export class SalesWriteService {
     }
   }
 
-  private async getTenantSettingsMap(tenantId: string): Promise<Map<string, any>> {
+  private async getTenantSettingsMap(trx: Kysely<Database> | Transaction<Database>, tenantId: string): Promise<Map<string, any>> {
     const now = Date.now();
     const cached = SalesWriteService.tenantSettingsMapCache.get(tenantId);
     if (cached && cached.expiresAt > now) {
       return cached.map;
     }
 
-    const rows = await this.db
+    const rows = await trx
       .selectFrom('settings')
       .select(['key', 'value'])
+      .where('key', 'in', SalesWriteService.SALE_SETTING_KEYS)
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .execute();
 
@@ -125,7 +133,7 @@ export class SalesWriteService {
     let exceedsThreshold = false;
     try {
       const scope = requireTenantScope(auth);
-      const settingsMap = await this.getTenantSettingsMap(scope.tenantId);
+      const settingsMap = await this.getTenantSettingsMap(trx, scope.tenantId);
 
       const isThresholdEnabled = settingsMap.get('posMaxDiscountThresholdEnabled') === true || settingsMap.get('posMaxDiscountThresholdEnabled') === 'true';
       const thresholdType = settingsMap.get('posMaxDiscountThresholdType') || 'percentage';
@@ -189,8 +197,8 @@ export class SalesWriteService {
       .executeTakeFirst();
   }
 
-  private async getAllowNegativeStockSales(_trx: Kysely<Database> | Transaction<Database>, tenantId: string): Promise<boolean> {
-    const settingsMap = await this.getTenantSettingsMap(tenantId);
+  private async getAllowNegativeStockSales(trx: Kysely<Database> | Transaction<Database>, tenantId: string): Promise<boolean> {
+    const settingsMap = await this.getTenantSettingsMap(trx, tenantId);
     const allowNegative = settingsMap.get('allowNegativeStockSales');
     const allowSellingBelow = settingsMap.get('allowSellingBelowStock');
     return allowNegative === true || allowNegative === 'true' || allowSellingBelow === true || allowSellingBelow === 'true';
@@ -921,7 +929,7 @@ export class SalesWriteService {
       }
 
       // Fetch loyalty and cashier settings from high-speed in-memory cache
-      const settingsMap = await this.getTenantSettingsMap(scope.tenantId);
+      const settingsMap = await this.getTenantSettingsMap(trx, scope.tenantId);
 
       const loyaltyEnabledVal = settingsMap.get('loyaltyEnabled');
       const loyaltyEnabled = loyaltyEnabledVal !== false && loyaltyEnabledVal !== 'false';
@@ -2562,7 +2570,7 @@ export class SalesWriteService {
   }
 
   private async generateSaleDocNo(trx: Kysely<Database>, saleId: number, tenantId: string): Promise<string> {
-    const settingsMap = await this.getTenantSettingsMap(tenantId);
+    const settingsMap = await this.getTenantSettingsMap(trx, tenantId);
     let scheme = settingsMap.get('invoiceNumberingScheme') || 'daily';
     if (typeof scheme !== 'string') {
       scheme = String(scheme || 'daily');

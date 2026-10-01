@@ -19,10 +19,10 @@
 
 | الأمر | ماذا يحرس | في `npm run guards` (الـCI)؟ |
 |---|---|---|
-| `npm --prefix backend run test:critical` → `performance-hot-paths.spec.ts` | PERF-1 … PERF-4 وPERF-9 (الباك إند) | ✅ |
+| `npm --prefix backend run test:critical` → `performance-hot-paths.spec.ts` | PERF-1 … PERF-4 وPERF-9 وPERF-15 (الباك إند) | ✅ |
 | `npm --prefix backend run test:e2e` → `test/e2e/dashboard-overview-aggregates.e2e.ts` | PERF-12 (تطابق حساب SQL الجديد مع القديم على حالات حديّة، داخل معاملة حقيقية تُلغى) | ✅ **26 سبتمبر 2026** — يعمل بعد الهجرات (`test:e2e` يشغَّل بعد `migration:run` في CI) |
 | `npm --prefix frontend run test:run` → `pos-catalog-sync-policy.spec.ts` | PERF-9 (متى يعيد الكاشير تحميل الكتالوج) | ✅ |
-| `npm --prefix frontend run qa:perf` | PERF-5 … PERF-8 وPERF-11 (الواجهة، بلا بيلد) | ✅ |
+| `npm --prefix frontend run qa:perf` | PERF-5 … PERF-8 وPERF-11 وPERF-13 وPERF-14 (الواجهة، بلا بيلد) | ✅ |
 | `npm --prefix frontend run qa:perf:dist` | ناتج البيلد الفعلي: لا تحميل مسبق لمكتبة ثقيلة + ميزانية حجم ملف الدخول (650KB) | ✅ **من 23 سبتمبر 2026 في `ci.yml`** بعد خطوة البناء مباشرة (البناء يحدث هناك أصلاً). قبلها كان يعتمد على تشغيل يدوي بعد بيلد يطلبه المالك، أي عملياً لم يكن يعمل مع الرفعات |
 
 `qa:perf` يتتبع **شجرة الاستيراد الثابت الكاملة** من `src/main.tsx` ويفشل لو وصل لأي مكتبة ثقيلة،
@@ -50,7 +50,7 @@
 
 ---
 
-## 2. الثوابت (PERF-1 … PERF-12)
+## 2. الثوابت (PERF-1 … PERF-16)
 
 | # | الثابت | الموضع | لماذا (القياس) |
 |---|---|---|---|
@@ -65,6 +65,10 @@
 | **PERF-9** | **كتالوج الكاشير المحلي (للبيع بدون إنترنت) لا يُعاد تحميله إلا لو الكتالوج تغيّر فعلاً أو مرّت ساعة.** رقم النسخة يُبنى من `products.catalog_updated_at` (يحدّثه **trigger** في قاعدة البيانات عند أي تغيير في الصنف **ما عدا** `stock_qty`/`reserved_qty`/`cost_price`) + `MAX(updated_at)` للوحدات والعروض + أعداد الأصناف والوحدات والعروض النشطة. **ممنوع** الرجوع لـ`products.updated_at` في النسخة، و**ممنوع** حذف/تصغير نسخة IndexedDB أو مسارات الرجوع لها في `usePosCatalog`/`PosWorkspace` | `catalog-product.service.ts:getPosCatalogVersion` · `catalog/engines/pos-catalog-version.engine.ts` · هجرة 137 · `frontend/src/features/pos/lib/pos-catalog-sync-policy.ts` | `applyStockDelta` يحدّث `products.updated_at` مع كل بيعة، فكان أي بيع في أي فرع يغيّر النسخة ⇒ **كل كاشير يعيد تحميل حتى 25 ألف صنف كل 5 دقائق طول اليوم**. الـtrigger بدل تحديث العمود من الكود لأن الأسعار تُكتب من أماكن كثيرة (شاشة الصنف، مركز التسعير، حماية الهامش، الاستيراد، الاستعادة) — عمود يعتمد على تذكّر كل كاتب هو بالضبط نمط «المنطق الصحيح غير الموصول». أي عمود يُضاف مستقبلاً للأصناف يُعتبر تغييراً في الكتالوج افتراضياً (الفشل الآمن = تحميل زائد لا سعر قديم) |
 | **PERF-11** | حاوية الواجهة في الإنتاج (Docker، `docker-compose.saas.yml`/`.prod.yml`/`.yml`) تخدم `dist` عبر nginx بترويسة `gzip on` وترويسات `Cache-Control` صحيحة (`no-cache` لـ`index.html`، `public, immutable` لـ`/assets/`) — مطابقة لـ`deploy/nginx/oracle-site.conf` | `frontend/nginx.conf` · `frontend/Dockerfile` | إعداد nginx القديم كان مولَّداً بسطر `printf` واحد **بلا `gzip` وبلا أي `Cache-Control`**، فكل حِزَم JS/CSS (تشمل حزمة تشغيل الصفحة الرئيسية) كانت تُنزَّل كاملة بلا ضغط في كل زيارة أولى، ولا يُخزَّن أي أصل مؤقتاً في المتصفح حتى للزيارات المتكررة على نفس النسخة |
 | **PERF-12** | لوحة التحكم الرئيسية (`ReportsService.dashboardOverview`) تحسب `productsCount`/`lowStockCount`/`outOfStockCount`/`inventoryCost`/`inventorySaleValue`/`customersCount`/`suppliersCount`/`customerDebt`/`supplierDebt`/`nearCreditLimit`/`aboveCreditLimit`/`highSupplierBalances`/أعلى 5 عملاء/أعلى 5 موردين **بالكامل في SQL** (`COUNT`/`SUM`، بعضها بـ`FILTER`، وبعضها بـJOIN على جدول فرعي مجمَّع لكل شريك) — لا يوجد أي استعلام يسحب كل صف نشط من `products`/`customers`/`suppliers` بعد الآن | `reports.service.ts:dashboardOverview` · `reports-dashboard.helper.ts` (`buildInventorySnapshot`, `buildPartnerExposureSnapshot` — بقيتا لتشكيل الناتج فقط، لا لحساب المجاميع) | كانت (PO-2 سابقاً) تسحب كل صنف/عميل/مورد نشط للمنشأة كصفوف كاملة وتُجمِّع/تُصفِّي في Node — خطي بحجم الكتالوج على كل تحميل للصفحة الرئيسية. **جُرِّبت المعادلة الجديدة مقابل القديمة** بحالات حديّة (صنف بحد أدنى = صفر لا يُحسب "منخفض المخزون"، شريك معطَّل يُستبعد من العدّ لكن رصيده في الليدجر يبقى داخل الإجمالي العام كالقديم تماماً، شريك عند حافة حد الائتمان بالضبط، شريك بلا أي حركة ليدجر) داخل معاملة حقيقية على Postgres تُلغى (`ROLLBACK`) دائماً — طابقت النتيجتان في كل حالة. الحارس الدائم: `test/e2e/dashboard-overview-aggregates.e2e.ts` (`npm run test:e2e:reports`، داخل `test:e2e`) |
+| **PERF-13** | لا تحميل شامل لوحدات جميع الصفحات بعد فتح التطبيق؛ التحميل المسبق يحدث للوجهة التي يشير إليها المستخدم فقط | `app-shell.tsx` · `lazy-route.tsx` · `route-prefetch.ts` | التحميل الشامل كان يحمّل وحدات نحو 153 مساراً بالتتابع ويستهلك الشبكة والمعالج أثناء عمل الكاشير. الحارس: `qa:perf` |
+| **PERF-14** | قراءة مسودة نقطة البيع من `localStorage` مرة واحدة عند تركيب الشاشة، لا مع كل إعادة رسم أو ضغطة مفتاح | `usePosWorkspaceState.ts` | `localStorage` و`JSON.parse` يحجبان خيط الواجهة، والمسودة كانت تُقرأ مجدداً أثناء الكتابة وتغيير السلة. الحارس: `qa:perf` |
+| **PERF-15** | قراءة إعدادات البيع عند غياب الكاش تتم على اتصال المعاملة الحالية، وتقتصر على مفاتيح البيع | `sales-write.service.ts:getTenantSettingsMap` | القراءة السابقة عبر `this.db` كانت تطلب اتصالاً ثانياً بينما معاملة البيع تحجز اتصالها. مع عدد معاملات يساوي حجم المسبح، تنتظر كلها الاتصال الإضافي حتى المهلة. الحارس: `performance-hot-paths.spec.ts` |
+| **PERF-16** | استعلامات تقارير المدير والتنبيهات في الرئيسية تبدأ بعد وصول الملخص الأساسي، حتى لا تتزاحم معه على اتصالات قاعدة البيانات عند الفتح الأول | `DashboardPage.tsx` · `useDashboardManagerOverview.ts` · `useManagerActions.ts` | الرئيسية تطلق ملخصاً يحسب عدة تجميعات SQL؛ إضافة تقارير المدير بالتوازي تؤخر ظهورها. الحارس: `DashboardPage.manager-actions.spec.tsx` |
 
 ---
 

@@ -3,7 +3,7 @@ import { queryKeys } from '@/app/query-keys';
 import { dashboardApi } from '@/features/dashboard/api/dashboard.api';
 import { useAuthStore, type AuthState } from '@/stores/auth-store';
 
-export function useManagerActions(limit = 8) {
+export function useManagerActions(limit = 8, enabled = true) {
   const user = useAuthStore((s: AuthState) => s.user);
   const isAuthenticated = Boolean(user);
 
@@ -13,6 +13,6 @@ export function useManagerActions(limit = 8) {
     staleTime: 25_000,
     refetchInterval: 30_000,
     refetchOnMount: true,
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && enabled,
   });
 }

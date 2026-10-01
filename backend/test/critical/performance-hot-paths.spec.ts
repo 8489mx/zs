@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { AuthContext } from '../../src/core/auth/interfaces/auth-context.interface';
 import { CatalogProductService } from '../../src/modules/catalog/services/catalog-product.service';
 import { StorefrontService } from '../../src/modules/storefront/storefront.service';
+import { SalesWriteService } from '../../src/modules/sales/services/sales-write.service';
 import { buildPosCatalogVersion } from '../../src/modules/catalog/engines/pos-catalog-version.engine';
 
 // Guard for the performance invariants PERF-1 … PERF-4 (ARCHITECTURE_INVARIANTS.md §2.6).
@@ -116,6 +117,32 @@ function testNoGlobalClassSerializer(): void {
   assert.ok(!/new\s+ClassSerializerInterceptor/.test(main), 'ClassSerializerInterceptor must not be registered globally');
 }
 
+// A cold checkout must not need a second pool connection while it holds a transaction.
+// With N concurrent cashiers and a pool of N, the old this.db read made every sale wait
+// for another sale to release a connection (until the pool timeout).
+async function testCheckoutSettingsUseTransactionConnection(): Promise<void> {
+  const service: any = Object.create(SalesWriteService.prototype);
+  service.db = { selectFrom: () => { throw new Error('opened a second pool connection'); } };
+  const whereCalls: unknown[][] = [];
+  const query: any = {
+    select: () => query,
+    where: (...args: unknown[]) => { whereCalls.push(args); return query; },
+    execute: async () => [{ key: 'requireCashierShiftForSales', value: 'false' }],
+  };
+  const trx = { selectFrom: (table: string) => {
+    assert.equal(table, 'settings');
+    return query;
+  } };
+  const settings = await service.getTenantSettingsMap(trx, 'perf-checkout-cold-cache');
+  assert.equal(settings.get('requireCashierShiftForSales'), false);
+  assert.ok(whereCalls.some(([column, operator, keys]) => column === 'key' && operator === 'in' && Array.isArray(keys) && keys.includes('invoiceNumberingScheme')),
+    'checkout must read only its needed settings');
+
+  const source = read('modules/sales/services/sales-write.service.ts');
+  assert.ok(!/this\.getTenantSettingsMap\(scope\.tenantId\)|this\.getTenantSettingsMap\(tenantId\)/.test(source),
+    'every checkout settings call must pass its current transaction/query executor');
+}
+
 // PERF-3 — the hot-path index migration (136) exists and keeps its contract.
 function testHotPathIndexMigration(): void {
   const file = join(SRC, 'database', 'migrations', '2040000000136_performance_hot_path_indexes.ts');
@@ -198,6 +225,7 @@ async function run(): Promise<void> {
   await testScopedStockIsLinear();
   testWholeCatalogIdListsUseArrayParameter();
   testNoGlobalClassSerializer();
+  await testCheckoutSettingsUseTransactionConnection();
   testHotPathIndexMigration();
   await testStorefrontStaleWhileRevalidate();
   // eslint-disable-next-line no-console
@@ -205,7 +233,7 @@ async function run(): Promise<void> {
   testLoadSuiteIsUsable();
 
   // eslint-disable-next-line no-console
-  console.log('performance-hot-paths.spec: all performance invariants hold (PERF-1..PERF-4, PERF-9, PERF-10) and the load suite is wired');
+  console.log('performance-hot-paths.spec: all performance invariants hold (PERF-1..PERF-4, PERF-9, PERF-10, PERF-15) and the load suite is wired');
 }
 
 /**

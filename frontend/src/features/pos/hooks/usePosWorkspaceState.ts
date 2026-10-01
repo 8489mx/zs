@@ -5,7 +5,9 @@ import type { Sale } from '@/types/domain';
 import type { PaymentChannel, PaymentType, PosProductFilter } from '@/features/pos/hooks/usePosWorkspace';
 
 export function usePosWorkspaceState() {
-  const persistedState = loadPosWorkspaceStorage();
+  // Reading and parsing the draft is synchronous. Do it once on mount, not on every
+  // keystroke or cart update that re-renders the cashier workspace.
+  const [persistedState] = useState(() => loadPosWorkspaceStorage());
   const storedDraft = persistedState.draft;
 
   const [search, setSearch] = useState(storedDraft?.search || '');

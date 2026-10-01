@@ -192,6 +192,19 @@ if (!existsSync(nginxConfPath)) {
   }
 }
 
+// Rule 6 — keep route loading and cashier draft reads off the hot interaction path.
+// Loading every feature module in the background competes with the current page for
+// bandwidth and CPU for minutes; parsing the draft on every render delays each keypress.
+const appShell = readFileSync(path.join(srcDir, 'shared/layout/app-shell.tsx'), 'utf8');
+const lazyRoute = readFileSync(path.join(srcDir, 'app/router/lazy-route.tsx'), 'utf8');
+const posState = readFileSync(path.join(srcDir, 'features/pos/hooks/usePosWorkspaceState.ts'), 'utf8');
+if (/prefetchAllRouteModules\s*\(/.test(appShell) || /registeredLoaders/.test(lazyRoute)) {
+  fail('[app shell] bulk route prefetch loads every feature while the cashier is working; prefetch only the route the user points to.');
+}
+if (!/useState\(\(\)\s*=>\s*loadPosWorkspaceStorage\(\)\)/.test(posState)) {
+  fail('[POS] read the saved draft once on mount; synchronous localStorage parsing on every render slows typing.');
+}
+
 if (failures.length) {
   console.error(`perf-budget-check: ${failures.length} violation(s)\n`);
   for (const message of failures) console.error(`  - ${message}\n`);

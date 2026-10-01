@@ -174,7 +174,7 @@ const payload = verifyPortalToken<T>(authHeader, PORTAL_TOKEN_ERRORS);
 الموظف/المندوب ما زال `active` **داخل نفس المستأجر المذكور في الرمز**، ويشتق `tenantId`/`branchId`
 من صف قاعدة البيانات لا من حمولة الرمز.
 
-### 2.6 الأداء → `PERFORMANCE_CONSTITUTION.md` (PERF-1 … PERF-12)
+### 2.6 الأداء → `PERFORMANCE_CONSTITUTION.md` (PERF-1 … PERF-16)
 
 **الملف الحاكم:** `PERFORMANCE_CONSTITUTION.md` في جذر المستودع — ملف حماية كامل بالثوابت والأنماط
 المحظورة P1..P10 والقياسات قبل/بعد والبنود المؤجلة PO-1..PO-4. هنا الملخص فقط:
@@ -192,6 +192,10 @@ const payload = verifyPortalToken<T>(authHeader, PORTAL_TOKEN_ERRORS);
 | PERF-9 | نسخة كتالوج الكاشير المحلي تتجاهل المخزون: `products.catalog_updated_at` بـtrigger (هجرة 137) + أعداد الوحدات والعروض؛ تحميل كامل احتياطي كل ساعة. نسخة IndexedDB للبيع بدون إنترنت **باقية كما هي** | `getPosCatalogVersion` · `pos-catalog-version.engine.ts` · `pos-catalog-sync-policy.ts` |
 | PERF-11 | حاوية الواجهة في الإنتاج (`docker-compose.saas.yml`/`.prod.yml`/`.yml`، جميعها تبني من `./frontend`) تخدم كل ملفات الـdist عبر nginx **بلا ضغط `gzip` وبلا `Cache-Control`** — كان الإعداد مولَّداً بسطر `printf` واحد داخل الـDockerfile نفسه بلا `gzip on` وبلا `expires`، بعكس كل إعدادات nginx الأخرى في `deploy/nginx/*.conf` اللي فيها `gzip` وترويسات كاش. **ممنوع** توليد إعداد nginx للحاوية بـ`printf`/`RUN echo` بدل ملف `.conf` حقيقي؛ **ممنوع** إعداد نسخة جديدة من حاوية الواجهة بلا `gzip on` وبلا `Cache-Control: public, immutable` على `/assets/` | `frontend/nginx.conf` (جديد) · `frontend/Dockerfile` |
 | PERF-12 | لوحة التحكم الرئيسية (`dashboardOverview`) تحسب كل أرقام الأصناف/العملاء/الموردين (العدّ، منخفض/نافد المخزون، قيمة المخزون، الديون، حدّ الائتمان، أعلى 5 عملاء/موردين) **بـSQL فقط** — **ممنوع** الرجوع لجلب كل صف نشط من `products`/`customers`/`suppliers` كقائمة كاملة والتصفية/التجميع عليها في Node | `reports.service.ts:dashboardOverview` · `reports-dashboard.helper.ts` |
+| PERF-13 | لا تحميل مسبق شامل لكل وحدات الصفحات؛ التحميل المسبق لوحدة الوجهة عند الإشارة إليها فقط | `app-shell.tsx` · `lazy-route.tsx` · `route-prefetch.ts` |
+| PERF-14 | مسودة نقطة البيع تُقرأ من `localStorage` مرة عند تركيب الشاشة، لا مع كل إعادة رسم | `usePosWorkspaceState.ts` |
+| PERF-15 | إعدادات البيع عند غياب الكاش تُقرأ عبر اتصال معاملة البيع نفسه، بمفاتيح البيع فقط | `sales-write.service.ts:getTenantSettingsMap` |
+| PERF-16 | استعلامات المدير الثانوية تنتظر وصول ملخص الرئيسية الأساسي قبل البدء | `DashboardPage.tsx` |
 
 **الحُرّاس:** `backend/test/critical/performance-hot-paths.spec.ts` (PERF-1..4) و`frontend/scripts/perf-budget-check.mjs`
 (`qa:perf`، يتتبع شجرة الاستيراد الثابت من `main.tsx` بالكامل — PERF-5..8) — كلاهما داخل `npm run guards`.

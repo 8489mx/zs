@@ -43,8 +43,6 @@ function RouteLoadingFallback() {
 
 export type LazyLoader = () => Promise<{ default: ComponentType<any> }>;
 
-const registeredLoaders = new Set<LazyLoader>();
-
 function RouteLoadErrorFallback() {
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
@@ -172,7 +170,6 @@ function RouteLoadErrorFallback() {
 }
 
 function lazyWithRetry(loader: LazyLoader) {
-  registeredLoaders.add(loader);
   return lazy(() =>
     loader().catch((_err) => {
       const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
@@ -209,40 +206,4 @@ export function prefetchRoute(loader: LazyLoader) {
   try {
     void loader();
   } catch {}
-}
-
-export function prefetchAllRouteModules() {
-  if (typeof window === 'undefined') return;
-
-  // Staggered progressive loader that waits for initial rendering and queries to complete
-  const scheduleStaggeredLoad = () => {
-    const loaders = Array.from(registeredLoaders);
-    let index = 0;
-
-    const loadNext = () => {
-      if (index >= loaders.length) return;
-      try {
-        void loaders[index]();
-      } catch {}
-      index++;
-
-      // Stagger subsequent loads by 1200ms using idle callback to avoid starving user interactions
-      setTimeout(() => {
-        if ('requestIdleCallback' in window) {
-          (window as any).requestIdleCallback(loadNext, { timeout: 3000 });
-        } else {
-          loadNext();
-        }
-      }, 1200);
-    };
-
-    if ('requestIdleCallback' in window) {
-      (window as any).requestIdleCallback(loadNext, { timeout: 6000 });
-    } else {
-      setTimeout(loadNext, 2500);
-    }
-  };
-
-  // Delay kickoff so critical page bootstrap, auth, and queries execute without contention
-  setTimeout(scheduleStaggeredLoad, 3000);
 }
