@@ -12,14 +12,11 @@ import { buildCustomerRfmPayload } from '../helpers/reports-summary.helper';
 import { buildReportListState } from '../helpers/reports-query.helper';
 import { applyPartnerLedgerSearch, applySignedAmountFilter } from '../helpers/reports-query-pipeline.helper';
 import {
-  buildCustomerBalancesPayload,
   buildCustomerLedgerPayload,
-  buildSupplierBalancesPayload,
   buildSupplierLedgerPayload,
   LedgerSummaryRow,
   PartnerLedgerEntryRow,
 } from '../helpers/reports-ledger.helper';
-import { buildCustomerLedgerTotals, buildSupplierLedgerTotals } from '../helpers/reports-partner-ledger.helper';
 import { AppError } from '../../../common/errors/app-error';
 
 @Injectable()
@@ -60,47 +57,41 @@ export class ReportsSummaryService {
       .orderBy('balance', 'desc')
       .execute();
 
-    const customerIds = customerRows.map((c) => Number(c.id));
-    let customerSales: { customer_id: number; total: number; created_at: Date }[] = [];
-    if (customerIds.length > 0) {
-      customerSales = (await this.db
-        .selectFrom('sales')
-        .select(['customer_id', 'total', 'created_at'])
-        .where('tenant_id', '=', tenantId)
-        .where('customer_id', 'in', customerIds)
-        .where('payment_type', '=', 'credit')
-        .where('status', '=', 'posted')
-        .orderBy('created_at', 'desc')
-        .execute()) as any[];
-    }
+    const cutoff31 = new Date(now.getTime() - 31 * 24 * 60 * 60 * 1000);
+    const cutoff61 = new Date(now.getTime() - 61 * 24 * 60 * 60 * 1000);
+    const cutoff91 = new Date(now.getTime() - 91 * 24 * 60 * 60 * 1000);
+    const customerAging = customerRows.length ? await sql<{
+      partner_id: number; current_amount: number; days_31_to_60: number; days_61_to_90: number;
+    }>`
+      with ordered as (
+        select s.customer_id as partner_id, s.total, s.created_at, c.balance,
+               coalesce(sum(s.total) over (
+                 partition by s.customer_id order by s.created_at desc, s.id desc
+                 rows between unbounded preceding and 1 preceding
+               ), 0) as prior_total
+        from sales s
+        join customers c on c.id = s.customer_id and c.tenant_id = s.tenant_id
+        where s.tenant_id = ${tenantId} and c.balance > 0
+          and s.payment_type = 'credit' and s.status = 'posted'
+      ), allocated as (
+        select partner_id, created_at, greatest(0, least(total, balance - prior_total)) as amount
+        from ordered
+      )
+      select partner_id,
+             coalesce(sum(amount) filter (where created_at > ${cutoff31}), 0) as current_amount,
+             coalesce(sum(amount) filter (where created_at <= ${cutoff31} and created_at > ${cutoff61}), 0) as days_31_to_60,
+             coalesce(sum(amount) filter (where created_at <= ${cutoff61} and created_at > ${cutoff91}), 0) as days_61_to_90
+      from allocated group by partner_id
+    `.execute(this.db) : { rows: [] };
+    const agingByCustomer = new Map(customerAging.rows.map((row) => [Number(row.partner_id), row]));
 
     const receivables = customerRows.map((cust) => {
       const balance = Number(cust.balance || 0);
-      const sales = customerSales.filter((s) => Number(s.customer_id) === Number(cust.id));
-
-      let current = 0;
-      let days31To60 = 0;
-      let days61To90 = 0;
-      let over90 = 0;
-
-      let remainingBalance = balance;
-      for (const sale of sales) {
-        if (remainingBalance <= 0) break;
-        const saleTotal = Number(sale.total || 0);
-        const allocated = Math.min(remainingBalance, saleTotal);
-        const ageDays = Math.max(0, Math.floor((now.getTime() - new Date(sale.created_at).getTime()) / (1000 * 60 * 60 * 24)));
-
-        if (ageDays <= 30) current += allocated;
-        else if (ageDays <= 60) days31To60 += allocated;
-        else if (ageDays <= 90) days61To90 += allocated;
-        else over90 += allocated;
-
-        remainingBalance -= allocated;
-      }
-
-      if (remainingBalance > 0) {
-        over90 += remainingBalance;
-      }
+      const aging = agingByCustomer.get(Number(cust.id));
+      const current = Number(aging?.current_amount || 0);
+      const days31To60 = Number(aging?.days_31_to_60 || 0);
+      const days61To90 = Number(aging?.days_61_to_90 || 0);
+      const over90 = Math.max(0, balance - current - days31To60 - days61To90);
 
       return {
         id: String(cust.id),
@@ -122,47 +113,38 @@ export class ReportsSummaryService {
       .orderBy('balance', 'desc')
       .execute();
 
-    const supplierIds = supplierRows.map((s) => Number(s.id));
-    let supplierPurchases: { supplier_id: number; total: number; created_at: Date }[] = [];
-    if (supplierIds.length > 0) {
-      supplierPurchases = (await this.db
-        .selectFrom('purchases')
-        .select(['supplier_id', 'total', 'created_at'])
-        .where('tenant_id', '=', tenantId)
-        .where('supplier_id', 'in', supplierIds)
-        .where('payment_type', '=', 'credit')
-        .where('status', '=', 'posted')
-        .orderBy('created_at', 'desc')
-        .execute()) as any[];
-    }
+    const supplierAging = supplierRows.length ? await sql<{
+      partner_id: number; current_amount: number; days_31_to_60: number; days_61_to_90: number;
+    }>`
+      with ordered as (
+        select p.supplier_id as partner_id, p.total, p.created_at, s.balance,
+               coalesce(sum(p.total) over (
+                 partition by p.supplier_id order by p.created_at desc, p.id desc
+                 rows between unbounded preceding and 1 preceding
+               ), 0) as prior_total
+        from purchases p
+        join suppliers s on s.id = p.supplier_id and s.tenant_id = p.tenant_id
+        where p.tenant_id = ${tenantId} and s.balance > 0
+          and p.payment_type = 'credit' and p.status = 'posted'
+      ), allocated as (
+        select partner_id, created_at, greatest(0, least(total, balance - prior_total)) as amount
+        from ordered
+      )
+      select partner_id,
+             coalesce(sum(amount) filter (where created_at > ${cutoff31}), 0) as current_amount,
+             coalesce(sum(amount) filter (where created_at <= ${cutoff31} and created_at > ${cutoff61}), 0) as days_31_to_60,
+             coalesce(sum(amount) filter (where created_at <= ${cutoff61} and created_at > ${cutoff91}), 0) as days_61_to_90
+      from allocated group by partner_id
+    `.execute(this.db) : { rows: [] };
+    const agingBySupplier = new Map(supplierAging.rows.map((row) => [Number(row.partner_id), row]));
 
     const payables = supplierRows.map((sup) => {
       const balance = Number(sup.balance || 0);
-      const purchases = supplierPurchases.filter((p) => Number(p.supplier_id) === Number(sup.id));
-
-      let current = 0;
-      let days31To60 = 0;
-      let days61To90 = 0;
-      let over90 = 0;
-
-      let remainingBalance = balance;
-      for (const pur of purchases) {
-        if (remainingBalance <= 0) break;
-        const purTotal = Number(pur.total || 0);
-        const allocated = Math.min(remainingBalance, purTotal);
-        const ageDays = Math.max(0, Math.floor((now.getTime() - new Date(pur.created_at).getTime()) / (1000 * 60 * 60 * 24)));
-
-        if (ageDays <= 30) current += allocated;
-        else if (ageDays <= 60) days31To60 += allocated;
-        else if (ageDays <= 90) days61To90 += allocated;
-        else over90 += allocated;
-
-        remainingBalance -= allocated;
-      }
-
-      if (remainingBalance > 0) {
-        over90 += remainingBalance;
-      }
+      const aging = agingBySupplier.get(Number(sup.id));
+      const current = Number(aging?.current_amount || 0);
+      const days31To60 = Number(aging?.days_31_to_60 || 0);
+      const days61To90 = Number(aging?.days_61_to_90 || 0);
+      const over90 = Math.max(0, balance - current - days31To60 - days61To90);
 
       return {
         id: String(sup.id),
@@ -459,31 +441,58 @@ export class ReportsSummaryService {
     const table = isCust ? 'customers' : 'suppliers';
     const ledgerTable = isCust ? 'customer_ledger' : 'supplier_ledger';
     const partnerIdCol = isCust ? 'customer_id' : 'supplier_id';
-
-    const partners = await (this.db as any)
-      .selectFrom(table)
-      .select(isCust ? ['id', 'name', 'phone', 'balance', 'credit_limit'] : ['id', 'name', 'phone', 'balance'])
-      .where('is_active', '=', true)
-      .where(this.tenantPredicate(auth))
-      .orderBy('name', 'asc')
-      .execute();
-
-    const ledgerRows = await (this.db as any)
-      .selectFrom(ledgerTable)
-      .select([partnerIdCol, sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
-      .where(this.tenantPredicate(auth))
-      .groupBy(partnerIdCol)
-      .execute();
-
-    const totals = isCust
-      ? buildCustomerLedgerTotals(ledgerRows as Array<{ customer_id?: number | string | null; balance_total?: number | string | null }>)
-      : buildSupplierLedgerTotals(ledgerRows as Array<{ supplier_id?: number | string | null; balance_total?: number | string | null }>);
-
-    const payload = isCust
-      ? buildCustomerBalancesPayload(partners, totals, query as Record<string, unknown>)
-      : buildSupplierBalancesPayload(partners, totals, query as Record<string, unknown>);
-
-    return this.withScope(payload, auth);
+    const tenantId = this.tenantId(auth);
+    const { page, pageSize } = buildReportListState(query, 20, { includeRange: false });
+    const search = String(query.search || '').trim();
+    const filter = String(query.filter || 'all').toLowerCase();
+    const creditLimit = isCust ? sql`coalesce(p.credit_limit, 0)` : sql`0::numeric`;
+    const balances = sql`
+      select p.id, p.name, p.phone, ${creditLimit} as credit_limit,
+             coalesce(l.balance_total, p.balance, 0) as balance
+      from ${sql.table(table)} p
+      left join (
+        select ${sql.ref(partnerIdCol)} as partner_id, sum(amount) as balance_total
+        from ${sql.table(ledgerTable)} where tenant_id = ${tenantId}
+        group by ${sql.ref(partnerIdCol)}
+      ) l on l.partner_id = p.id
+      where p.tenant_id = ${tenantId} and p.is_active = true
+    `;
+    const searchClause = search ? sql`and (b.name ilike ${`%${search}%`} or b.phone ilike ${`%${search}%`})` : sql``;
+    const filterClause = filter === 'high-balance'
+      ? sql`and b.balance >= 1000`
+      : isCust && filter === 'over-limit'
+        ? sql`and b.credit_limit > 0 and b.balance > b.credit_limit`
+        : sql``;
+    const filtered = sql`select * from (${balances}) b where b.balance > 0 ${searchClause} ${filterClause}`;
+    const summaryResult = await sql<{ total_items: number; total_balance: number; over_limit: number }>`
+      select count(*)::int as total_items, coalesce(sum(balance), 0) as total_balance,
+             count(*) filter (where credit_limit > 0 and balance > credit_limit)::int as over_limit
+      from (${filtered}) f
+    `.execute(this.db);
+    const summaryRow = summaryResult.rows[0];
+    const totalItems = Number(summaryRow?.total_items || 0);
+    const pagination = buildPagination(page, pageSize, totalItems);
+    const offset = (pagination.page - 1) * pageSize;
+    const pageResult = await sql<{ id: number; name: string | null; phone: string | null; balance: number; credit_limit: number }>`
+      select id, name, phone, balance, credit_limit from (${filtered}) f
+      order by name asc, id asc limit ${pageSize} offset ${offset}
+    `.execute(this.db);
+    const rows = pageResult.rows.map((row) => {
+      const balance = Number(row.balance || 0);
+      const base = { id: String(row.id), name: row.name || '', phone: row.phone || '', balance };
+      return isCust
+        ? { ...base, creditLimit: Number(row.credit_limit || 0), availableCredit: toMoney(Number(row.credit_limit || 0) - balance) }
+        : base;
+    });
+    return this.withScope({
+      [isCust ? 'customers' : 'suppliers']: rows,
+      pagination,
+      summary: {
+        totalItems,
+        totalBalance: toMoney(summaryRow?.total_balance || 0),
+        ...(isCust ? { overLimit: Number(summaryRow?.over_limit || 0) } : {}),
+      },
+    }, auth);
   }
 
   private async partnerLedger(type: 'customer' | 'supplier', partnerId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {

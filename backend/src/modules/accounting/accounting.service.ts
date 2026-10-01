@@ -1473,6 +1473,7 @@ export class AccountingService {
     const lowStockOnly = String(filters.low_stock_only || '').trim().toLowerCase() === 'true';
     const zeroStockOnly = String(filters.zero_stock_only || '').trim().toLowerCase() === 'true';
     const locationId = Number(filters.location_id || 0) > 0 ? Number(filters.location_id) : null;
+    const stockQty = locationId ? sql<number>`COALESCE(pls.qty, 0)` : sql<number>`p.stock_qty`;
 
     let query = this.db
       .selectFrom('products as p')
@@ -1486,7 +1487,7 @@ export class AccountingService {
         'p.id',
         'p.name',
         'p.barcode',
-        locationId ? sql<number>`COALESCE(pls.qty, 0)`.as('stock_qty') : 'p.stock_qty',
+        stockQty.as('stock_qty'),
         'p.min_stock_qty',
         'p.cost_price',
         'p.retail_price',
@@ -1512,6 +1513,18 @@ export class AccountingService {
         ]),
       );
     }
+
+    if (zeroStockOnly) query = query.where(sql<boolean>`ROUND(${stockQty}, 2) = 0`);
+    if (lowStockOnly) query = query.where(sql<boolean>`ROUND(${stockQty}, 2) > 0 AND ROUND(${stockQty}, 2) <= ROUND(p.min_stock_qty, 2)`);
+
+    const totalsRow = await query.clearSelect().select([
+      sql<number>`COALESCE(SUM(ROUND(ROUND(${stockQty}, 2) * ROUND(COALESCE(p.cost_price, 0), 2), 2)), 0)`.as('total_inventory_value'),
+      sql<number>`COALESCE(SUM(ROUND(ROUND(${stockQty}, 2) * ROUND(COALESCE(p.retail_price, 0), 2), 2)), 0)`.as('total_retail_value'),
+      sql<number>`COUNT(*)::int`.as('item_count'),
+      sql<number>`COUNT(*) FILTER (WHERE ROUND(${stockQty}, 2) > 0 AND ROUND(${stockQty}, 2) <= ROUND(p.min_stock_qty, 2))::int`.as('low_stock_count'),
+      sql<number>`COUNT(*) FILTER (WHERE ROUND(${stockQty}, 2) = 0)::int`.as('zero_stock_count'),
+      sql<number>`COUNT(*) FILTER (WHERE ROUND(${stockQty}, 2) < 0)::int`.as('negative_stock_count'),
+    ]).executeTakeFirst();
 
     const rows = await query.orderBy('p.name', 'asc').execute();
     const items = rows
@@ -1546,18 +1559,16 @@ export class AccountingService {
           potentialGrossMargin,
           status,
         };
-      })
-      .filter((item) => (zeroStockOnly ? item.quantityOnHand === 0 : true))
-      .filter((item) => (lowStockOnly ? item.status === 'low_stock' : true));
+      }));
 
     const totals = {
-      totalInventoryValue: this.toMoney(items.reduce((sum, item) => sum + item.inventoryValue, 0)),
-      totalRetailPotentialValue: this.toMoney(items.reduce((sum, item) => sum + item.retailPotentialValue, 0)),
-      totalPotentialGrossMargin: this.toMoney(items.reduce((sum, item) => sum + item.potentialGrossMargin, 0)),
-      itemCount: items.length,
-      lowStockCount: items.filter((item) => item.status === 'low_stock').length,
-      zeroStockCount: items.filter((item) => item.status === 'out_of_stock').length,
-      negativeStockCount: items.filter((item) => item.status === 'negative_stock').length,
+      totalInventoryValue: this.toMoney(totalsRow?.total_inventory_value),
+      totalRetailPotentialValue: this.toMoney(totalsRow?.total_retail_value),
+      totalPotentialGrossMargin: this.toMoney(Number(totalsRow?.total_retail_value || 0) - Number(totalsRow?.total_inventory_value || 0)),
+      itemCount: Number(totalsRow?.item_count || 0),
+      lowStockCount: Number(totalsRow?.low_stock_count || 0),
+      zeroStockCount: Number(totalsRow?.zero_stock_count || 0),
+      negativeStockCount: Number(totalsRow?.negative_stock_count || 0),
     };
 
     return { totals, items };
