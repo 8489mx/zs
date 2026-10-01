@@ -7,7 +7,7 @@ import {
 } from '../../../common/engines/branch-sellable-locations.engine';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
-import { applyStockDelta, previewConsumableStockQty, previewAssignedLocationStockQty, releaseLocationStock } from '../../../common/utils/location-stock-ledger';
+import { applyStockDelta, lockStockProducts, previewConsumableStockQty, previewAssignedLocationStockQty, releaseLocationStock } from '../../../common/utils/location-stock-ledger';
 import { AuditService, AUDIT_EVENT_CODES } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
@@ -193,8 +193,45 @@ export class SalesWriteService {
       .select('id')
       .where('id', '=', Number(productId))
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .where('account_id', '=', scope.accountId)
       .forUpdate()
       .executeTakeFirst();
+  }
+
+  private async lockSaleStockRows(
+    trx: Kysely<Database> | Transaction<Database>,
+    scope: { tenantId: string; accountId: string },
+    items: any[],
+  ): Promise<void> {
+    const productIds = new Set<number>();
+    for (const item of items) {
+      const id = Number(item.productId ?? item.product_id);
+      if (id > 0) productIds.add(id);
+      for (const modifier of Array.isArray(item.modifiers) ? item.modifiers : []) {
+        const modifierId = Number(modifier.productId);
+        if (modifierId > 0) productIds.add(modifierId);
+      }
+    }
+
+    // Auto-production can consume nested BOM components during the same checkout.
+    // Discover the graph before taking the first product/location lock.
+    let frontier = [...productIds];
+    const visited = new Set<number>();
+    while (frontier.length) {
+      const unseen = frontier.filter((id) => !visited.has(id));
+      if (!unseen.length) break;
+      unseen.forEach((id) => visited.add(id));
+      const boms = await trx.selectFrom('manufacturing_boms')
+        .select('id').where('product_id', 'in', unseen)
+        .where('tenant_id', '=', scope.tenantId).where('is_active', '=', true).execute();
+      if (!boms.length) break;
+      const lines = await trx.selectFrom('manufacturing_bom_lines')
+        .select('component_product_id').where('bom_id', 'in', boms.map((bom) => Number(bom.id)))
+        .execute();
+      frontier = lines.map((line) => Number(line.component_product_id)).filter((id) => id > 0);
+      frontier.forEach((id) => productIds.add(id));
+    }
+    await lockStockProducts(trx, { ...scope, productIds: [...productIds] });
   }
 
   private async getAllowNegativeStockSales(trx: Kysely<Database> | Transaction<Database>, tenantId: string): Promise<boolean> {
@@ -316,7 +353,7 @@ export class SalesWriteService {
       return;
     }
 
-    for (const item of items) {
+    for (const item of [...items].sort((a, b) => a.productId - b.productId)) {
       if (!item.hasBOM || !item.bomId) continue;
       if (visitedProductIds.has(item.productId)) {
         throw new AppError(`اكتشاف حلقة تكرار دائرية في تركيبة التصنيع للمنتج #${item.productId}`, 'CIRCULAR_BOM_DETECTED', 400);
@@ -361,7 +398,7 @@ export class SalesWriteService {
         .where('l.bom_id', '=', item.bomId)
         .execute();
 
-      for (const line of bomLines) {
+      for (const line of [...bomLines].sort((a, b) => Number(a.component_product_id) - Number(b.component_product_id))) {
         const wasteFactor = 1 / (1 - (Number(line.waste_percentage || 0) / 100));
         const lineMultiplier = Number(line.unit_multiplier || 1);
         const quantityConsumedInSelectedUnit = Number(line.quantity) * wasteFactor * (qtyToProduce / bomQuantity);
@@ -412,7 +449,7 @@ export class SalesWriteService {
           branchId,
           locationId,
           delta: -requiredMaterialQty,
-          allowNegative: true,
+          allowNegative: false,
         });
 
         await trx.insertInto('stock_movements').values({
@@ -686,6 +723,7 @@ export class SalesWriteService {
             orderItems = (typeof raw === 'string' ? JSON.parse(raw) : raw) || [];
           } catch {}
           if (orderItems.length > 0) {
+            await this.lockSaleStockRows(trx, scope, [...normalized.items, ...orderItems]);
             await releaseLocationStock(trx, {
               branchId: onlineOrderToRelease.reserved_branch_id ?? onlineOrderToRelease.branch_id,
               locationId: onlineOrderToRelease.reserved_location_id,
@@ -698,6 +736,10 @@ export class SalesWriteService {
             });
           }
         }
+      }
+
+      if (!onlineOrderToRelease?.stock_reserved) {
+        await this.lockSaleStockRows(trx, scope, normalized.items);
       }
 
       if (normalized.discount < 0) throw new AppError('Discount cannot be negative', 'INVALID_DISCOUNT', 400);
@@ -1127,6 +1169,7 @@ export class SalesWriteService {
         ).execute();
       }
 
+      await this.lockSaleStockRows(trx, scope, preparedItems);
       await this.autoProduceShortfall(trx, autoProduceItems, id, normalized.branchId, normalized.locationId, scope, auth);
 
       // Deadlock prevention: stock rows (products + product_location_stock) must always be
@@ -1763,7 +1806,8 @@ export class SalesWriteService {
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .execute();
 
-      for (const item of currentItems) {
+      await this.lockSaleStockRows(trx, scope, [...currentItems, ...(payload.items || [])]);
+      for (const item of [...currentItems].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
         if (!item.product_id) continue;
         const restoreQty = Number((Number(item.qty || 0) * Number(item.unit_multiplier || 1)).toFixed(3));
 
@@ -2004,6 +2048,7 @@ export class SalesWriteService {
         await trx.insertInto('sale_payments').values({ sale_id: saleId, payment_channel: payment.paymentChannel, amount: payment.amount, tenant_id: scope.tenantId, account_id: scope.accountId }).execute();
       }
 
+      await this.lockSaleStockRows(trx, scope, preparedItems);
       await this.autoProduceShortfall(trx, autoProduceItems, saleId, normalized.branchId, normalized.locationId, scope, auth);
 
       // Deadlock prevention: identical canonical lock ordering as createSale (see note there).
@@ -2277,7 +2322,8 @@ export class SalesWriteService {
       if (sale.status === 'cancelled') throw new AppError('Sale already cancelled', 'SALE_ALREADY_CANCELLED', 400);
 
       const items = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      for (const item of items) {
+      await this.lockSaleStockRows(trx, scope, items);
+      for (const item of [...items].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
         if (!item.product_id) continue;
         const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
         if (!product) continue;

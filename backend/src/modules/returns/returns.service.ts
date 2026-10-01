@@ -6,7 +6,7 @@ import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
 import { ensureReturnQtyWithinLimit } from '../../common/utils/financial-integrity';
-import { applyStockDelta, previewConsumableStockQty } from '../../common/utils/location-stock-ledger';
+import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../common/utils/location-stock-ledger';
 import { normalizeReturnItems } from './helpers/return-payload.helper';
 import { filterReturnRows, mapReturnRows, summarizeReturnRows } from './helpers/returns-listing.helper';
 import { buildPurchaseReturnLine, buildSaleReturnLine, calculateNextLedgerBalance, calculateReturnDocumentTotal } from './helpers/returns-write.helper';
@@ -311,6 +311,7 @@ export class ReturnsService {
     const scope = this.scope(auth);
     const sale = await trx.selectFrom('sales').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
     if (!sale) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
+    await lockStockProducts(trx, { ...scope, productIds: items.map((item) => item.productId) });
     const saleItems = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).execute();
     const settlementMode = payload.settlementMode === 'store_credit' ? 'store_credit' : 'refund';
     const refundMethod = payload.refundMethod === 'card' ? 'card' : 'cash';
@@ -344,7 +345,7 @@ export class ReturnsService {
       returnedQtyByProduct.set(pId, (returnedQtyByProduct.get(pId) || 0) + q);
     }
 
-    for (const requestItem of items) {
+    for (const requestItem of [...items].sort((a, b) => a.productId - b.productId)) {
       if (!requestItem.saleItemId) {
         const matchingCosts = saleItems
           .filter((entry) => Number(entry.product_id) === requestItem.productId)
@@ -560,6 +561,7 @@ export class ReturnsService {
     const scope = this.scope(auth);
     const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
     if (!purchase) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
+    await lockStockProducts(trx, { ...scope, productIds: items.map((item) => item.productId) });
     const purchaseItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).execute();
     const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }> = [];
 
@@ -591,7 +593,7 @@ export class ReturnsService {
       returnedQtyByProduct.set(pId, (returnedQtyByProduct.get(pId) || 0) + q);
     }
 
-    for (const requestItem of items) {
+    for (const requestItem of [...items].sort((a, b) => a.productId - b.productId)) {
       const purchaseItem = requestItem.purchaseItemId
         ? purchaseItems.find((entry) => Number(entry.id) === requestItem.purchaseItemId)
         : purchaseItems.find((entry) => Number(entry.product_id || 0) === Number(requestItem.productId));

@@ -3,6 +3,7 @@ import { Kysely, sql } from 'kysely';
 import { Inject } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
 import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto, RecordForeignTransferDto } from './dto/import-sales.dto';
+import { applyStockDelta, lockStockProducts } from '../../common/utils/location-stock-ledger';
 
 @Injectable()
 export class ImportSalesService {
@@ -254,78 +255,70 @@ export class ImportSalesService {
   }
 
   private async postShipmentToInventory(tenantId: string, shipmentId: string) {
-    const items = await this.db
-      .selectFrom('import_shipment_items')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .where('shipment_id', '=', shipmentId)
-      .execute();
+    await this.db.transaction().execute(async (trx) => {
+      await trx.selectFrom('import_shipments').select('id')
+        .where('id', '=', shipmentId).where('tenant_id', '=', tenantId)
+        .forUpdate().executeTakeFirstOrThrow();
+      const posted = await trx.selectFrom('stock_movements').select('id')
+        .where('tenant_id', '=', tenantId).where('reference_type', '=', 'import_shipment')
+        .where('note', 'like', `شحنة استيراد #${shipmentId} -%`).executeTakeFirst();
+      if (posted) return;
 
-    for (const item of items) {
-      const finalQty = item.received_quantity !== null && item.received_quantity !== undefined 
-        ? Number(item.received_quantity) 
-        : Number(item.quantity);
-
-      const prod = await this.db
-        .selectFrom('products')
-        .select(['stock_qty', 'cost_price'])
+      const items = await trx.selectFrom('import_shipment_items').selectAll()
+        .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipmentId)
+        .orderBy('product_id', 'asc').execute();
+      const products = await trx.selectFrom('products').select(['id', 'account_id'])
         .where('tenant_id', '=', tenantId)
-        .where('id', '=', Number(item.product_id))
-        .executeTakeFirst();
-
-      const beforeQty = Number(prod?.stock_qty || 0);
-      const afterQty = beforeQty + finalQty;
-      const landedCost = Number(item.landed_cost_egp) || 0;
-
-      // Update product stock and weighted cost_price
-      await this.db
-        .updateTable('products')
-        .set({
-          stock_qty: afterQty,
-          cost_price: landedCost,
-          updated_at: sql`NOW()`
-        })
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', Number(item.product_id))
+        .where('id', 'in', items.map((item) => Number(item.product_id)))
         .execute();
-
-      try {
-        await this.db
-          .insertInto('stock_movements')
-          .values({
-            product_id: Number(item.product_id),
-            movement_type: 'import_receipt',
-            qty: finalQty,
-            before_qty: beforeQty,
-            after_qty: afterQty,
-            reason: 'استلام شحنة استيراد',
-            note: `شحنة استيراد #${shipmentId} - تكلفة محملة للقطعة: ${landedCost} ج.م`,
-            reference_type: 'import_shipment',
-            reference_id: null,
-            tenant_id: tenantId,
-          } as any)
-          .execute();
-      } catch (err) {
-        console.warn('Failed to record stock movement for import receipt:', err);
+      const accountByProduct = new Map<number, string>(products.map((product) => [Number(product.id), String(product.account_id)]));
+      for (const product of products.sort((a, b) => Number(a.id) - Number(b.id))) {
+        await lockStockProducts(trx as any, { tenantId, accountId: String(product.account_id), productIds: [Number(product.id)] });
       }
-        
-      const qty = Number(item.quantity);
-      if (item.shortage_handling_method === 'expense' && finalQty < qty) {
-        const missingQty = qty - finalQty;
-        const lossAmount = missingQty * landedCost;
-        
-        await this.db
-          .insertInto('expenses')
-          .values({
+
+      for (const item of items) {
+        const finalQty = item.received_quantity !== null && item.received_quantity !== undefined
+          ? Number(item.received_quantity)
+          : Number(item.quantity);
+        if (!Number.isFinite(finalQty) || finalQty < 0) throw new BadRequestException('Invalid received quantity');
+        const accountId = accountByProduct.get(Number(item.product_id));
+        if (!accountId) throw new NotFoundException(`Product #${item.product_id} not found`);
+        const landedCost = Number(item.landed_cost_egp) || 0;
+        const stockChange = await applyStockDelta(trx as any, {
+          tenantId, accountId, productId: Number(item.product_id), delta: finalQty,
+        });
+        await trx.updateTable('products').set({ cost_price: landedCost, updated_at: sql`NOW()` })
+          .where('tenant_id', '=', tenantId).where('account_id', '=', accountId)
+          .where('id', '=', Number(item.product_id)).execute();
+        await trx.insertInto('stock_movements').values({
+          product_id: Number(item.product_id),
+          movement_type: 'import_receipt',
+          qty: finalQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
+          reason: 'استلام شحنة استيراد',
+          note: `شحنة استيراد #${shipmentId} - تكلفة محملة للقطعة: ${landedCost} ج.م`,
+          reference_type: 'import_shipment',
+          reference_id: null,
+          tenant_id: tenantId,
+          account_id: accountId,
+        } as any).execute();
+
+        const qty = Number(item.quantity);
+        if (item.shortage_handling_method === 'expense' && finalQty < qty) {
+          const missingQty = qty - finalQty;
+          const lossAmount = missingQty * landedCost;
+
+          await trx.insertInto('expenses').values({
             tenant_id: tenantId,
             title: `خسائر نواقص حاوية (تسوية عجز) - صنف ${item.product_id}`,
             amount: lossAmount,
             expense_date: new Date(),
             note: `نقص عدد ${missingQty} قطعة من البوليصة. تم معالجتها كخسارة.`
-          })
-          .execute();
+          }).execute();
+        }
       }
-    }
+    });
   }
 
   async calculateLandedCost(tenantId: string, shipmentId: string) {
@@ -743,4 +736,3 @@ export class ImportSalesService {
     });
   }
 }
-

@@ -6,7 +6,7 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { paginateRows } from '../../../common/utils/pagination';
 import { ensureNonNegativeStock, ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
-import { applyStockDelta, previewAssignedLocationStockQty } from '../../../common/utils/location-stock-ledger';
+import { applyStockDelta, lockStockProducts, previewAssignedLocationStockQty } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { Database } from '../../../database/database.types';
@@ -120,7 +120,8 @@ export class InventoryTransferService {
         inTransitLocationId = await this.getOrCreateInTransitLocation(trx, scope);
       }
 
-      for (const item of payload.items) {
+      await lockStockProducts(trx, { ...scope, productIds: payload.items.map((item) => item.productId) });
+      for (const item of [...payload.items].sort((a, b) => Number(a.productId) - Number(b.productId))) {
         const product = await trx.selectFrom('products').select(['id', 'name']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: from.branchId, locationId: from.id };
@@ -169,7 +170,8 @@ export class InventoryTransferService {
       const transfer = await trx.selectFrom('stock_transfers').selectAll().where('id', '=', transferId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!transfer) throw new AppError('Transfer not found', 'TRANSFER_NOT_FOUND', 404);
       if ((transfer.status || 'sent') !== 'sent') throw new AppError('Only sent transfers can be received', 'TRANSFER_STATUS_INVALID', 400);
-      const items = await trx.selectFrom('stock_transfer_items').select(['id', 'product_id', 'qty', 'dispatched_qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+      const items = await trx.selectFrom('stock_transfer_items').select(['id', 'product_id', 'qty', 'dispatched_qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).orderBy('product_id', 'asc').execute();
+      await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });
 
       // Transit loss: the destination may receive less than was dispatched. Anything short is
       // written off from the in-transit location instead of being stranded there forever, which is
@@ -268,7 +270,8 @@ export class InventoryTransferService {
       const transfer = await trx.selectFrom('stock_transfers').selectAll().where('id', '=', transferId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!transfer) throw new AppError('Transfer not found', 'TRANSFER_NOT_FOUND', 404);
       if (!['sent'].includes(transfer.status || 'sent')) throw new AppError('Only sent transfers can be cancelled', 'TRANSFER_STATUS_INVALID', 400);
-      const items = await trx.selectFrom('stock_transfer_items').select(['product_id', 'qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+      const items = await trx.selectFrom('stock_transfer_items').select(['product_id', 'qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).orderBy('product_id', 'asc').execute();
+      await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });
 
       let inTransitLocationId: number | null = null;
       if (transfer.status === 'sent') {
@@ -327,6 +330,9 @@ export class InventoryTransferService {
       if (stocks.length === 0) {
         throw new AppError('No stock found for this category in the source location', 'NO_STOCK', 400);
       }
+
+      await lockStockProducts(trx, { ...scope, productIds: stocks.map((stock) => Number(stock.product_id)) });
+      stocks.sort((a, b) => Number(a.product_id) - Number(b.product_id));
 
       // Create a transfer document
       const result = await trx.insertInto('stock_transfers').values({
@@ -399,7 +405,8 @@ export class InventoryTransferService {
         await trx.updateTable('stock_transfers').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
       }
 
-      for (const item of payload.items) {
+      await lockStockProducts(trx, { ...scope, productIds: payload.items.map((item) => item.productId) });
+      for (const item of [...payload.items].sort((a, b) => Number(a.productId) - Number(b.productId))) {
         const product = await trx.selectFrom('products').select(['id', 'name']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         const qty = Number(item.qty || 0);
@@ -474,6 +481,9 @@ export class InventoryTransferService {
       if (stocks.length === 0) {
         throw new AppError('No stock found for this category in the source location', 'NO_STOCK', 400);
       }
+
+      await lockStockProducts(trx, { ...scope, productIds: stocks.map((stock) => Number(stock.product_id)) });
+      stocks.sort((a, b) => Number(a.product_id) - Number(b.product_id));
 
       const transferRecord = await trx.insertInto('stock_transfers').values({
         status: 'received',
