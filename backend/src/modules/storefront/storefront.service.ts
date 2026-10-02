@@ -536,7 +536,8 @@ export class StorefrontService {
   ) {
     const cleanSlug = String(slug || '').trim().toLowerCase();
     const tenant = await this.getTenantBySlug(cleanSlug);
-    const pageSize = Math.min(200, Math.max(1, Math.trunc(Number(query.pageSize ?? query.limit) || 50)));
+    if (query.pageSize == null && query.limit != null) query.pageSize = query.limit;
+    const pageSize = Math.min(200, Math.max(1, Number(query.pageSize) || 50));
     const page = Math.min(10_000, Math.max(1, Math.trunc(Number(query.page) || 1)));
     const categoryId = Number(query.categoryId || 0);
     const search = String(query.q || '').trim().slice(0, 100);
