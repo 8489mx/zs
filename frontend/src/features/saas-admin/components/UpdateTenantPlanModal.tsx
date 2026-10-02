@@ -153,9 +153,9 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
     || [];
 
   return (
-    <DialogShell open={true} onClose={onClose} width="min(940px, 95vw)" ariaLabel="تحديث الباقة والمود القطاعي">
-      <div className="dialog-card" dir="rtl" style={{ maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexShrink: 0 }}>
+    <DialogShell open={true} onClose={onClose} width="min(1060px, 96vw)" ariaLabel="تحديث الباقة والمود القطاعي">
+      <div className="dialog-card" dir="rtl" style={{ maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexShrink: 0 }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#170c5c' }}>
               تحديث نمط المنشأة وباقة النسخة
@@ -172,7 +172,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
           ><XIcon size={15} /></button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto', flex: 1, paddingInlineEnd: '4px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', flex: 1, paddingInlineEnd: '4px' }}>
           {error && <div className="warning-box">{error}</div>}
 
           {/* تنبيه إرشادي يوضح خصائص النمط النشط وعزله الصارم */}
@@ -182,13 +182,13 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
               border: '1px solid #e2e8f0',
               borderInlineStart: '4px solid #170e5e',
               borderRadius: '8px',
-              padding: '10px 14px',
+              padding: '8px 12px',
               fontSize: '12px',
-              lineHeight: 1.6,
+              lineHeight: 1.5,
               color: '#334155',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#170e5e', marginBottom: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#170e5e', marginBottom: '3px' }}>
               <ShieldCheckIcon size={15} color="#170e5e" />
               <span>دستور العزل والأنماط المؤسسية المعتمد ({currentVertical.groupLabel})</span>
             </div>
@@ -205,46 +205,48 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
             </div>
           </div>
 
-          {/* 1. نمط المنشأة والمود القطاعي */}
-          <Field label="نمط المنشأة والمود القطاعي (Vertical Mode) *">
-            <CustomSelect
-              value={activityType}
-              onChange={(val) => handleVerticalChange(val)}
-              options={VERTICAL_MODE_OPTIONS}
-              style={{ height: '38px', fontWeight: 700, color: '#170e5e' }}
-            />
-          </Field>
+          {/* 1 & 2. نمط المنشأة والباقة في صف ثنائي متوازن */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Field label="نمط المنشأة والمود القطاعي (Vertical Mode) *">
+              <CustomSelect
+                value={activityType}
+                onChange={(val) => handleVerticalChange(val)}
+                options={VERTICAL_MODE_OPTIONS}
+                style={{ height: '38px', fontWeight: 700, color: '#170e5e' }}
+              />
+            </Field>
 
-          {/* 2. باقة الاشتراك */}
-          <Field label="باقة الاشتراك والترخيص المتوافقة مع النمط (Feature Plan) *">
-            <CustomSelect
-              value={planId}
-              onChange={(val) => {
-                setPlanId(val);
-                setExtraFeatures([]);
-              }}
-              options={planOptions}
-              style={{ height: '38px', fontWeight: 700, color: '#170e5e' }}
-            />
-          </Field>
+            <Field label="باقة الاشتراك والترخيص المتوافقة مع النمط (Feature Plan) *">
+              <CustomSelect
+                value={planId}
+                onChange={(val) => {
+                  setPlanId(val);
+                  setExtraFeatures([]);
+                }}
+                options={planOptions}
+                style={{ height: '38px', fontWeight: 700, color: '#170e5e' }}
+              />
+            </Field>
+          </div>
 
           {/* 3. الميزات الإضافية */}
-          <div style={{ marginTop: '6px' }}>
-            <h4 style={{ margin: '0 0 4px 0', fontSize: '13.5px', fontWeight: 800, color: '#1e293b' }}>
-              الميزات الإضافية والمستثناة:
-            </h4>
-            <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#64748b' }}>
-              يمكنك تفعيل ميزات إضافية يدوياً، أو استثناء ميزات متوفرة في الباقة المختارة.
-            </p>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
+                  الميزات الإضافية والمستثناة:
+                </h4>
+                <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: '#64748b' }}>
+                  يمكنك تفعيل ميزات إضافية يدوياً، أو استثناء ميزات متوفرة في الباقة المختارة.
+                </p>
+              </div>
+            </div>
             
             <div 
-              className="thin-scrollbar"
               style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', 
                 gap: '8px',
-                maxHeight: '260px',
-                overflowY: 'auto',
                 padding: '6px',
                 background: '#f8fafc',
                 borderRadius: '8px',

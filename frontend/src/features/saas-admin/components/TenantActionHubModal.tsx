@@ -56,10 +56,10 @@ export function TenantActionHubModal({
     <DialogShell
       open={true}
       onClose={onClose}
-      width="680px"
+      width="min(880px, 95vw)"
       ariaLabel="مركز إجراءات المشترك"
     >
-      <div className="dialog-card" dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '85vh', overflowY: 'auto' }}>
+      <div className="dialog-card" dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '88vh', overflowY: 'auto' }}>
         {/* Header */}
         <div style={{
           display: 'flex',
@@ -119,7 +119,7 @@ export function TenantActionHubModal({
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: '1fr 1fr',
             gap: '10px',
           }}>
             {/* تجديد الاشتراك */}
@@ -167,7 +167,7 @@ export function TenantActionHubModal({
             >
               <div className="saas-action-card-icon" style={{ background: '#fffbeb', color: '#d97706' }}>
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                 </svg>
               </div>
               <div className="saas-action-card-info">
@@ -257,7 +257,7 @@ export function TenantActionHubModal({
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: '1fr 1fr',
             gap: '10px',
           }}>
             {/* سجل النشاط والتفاصيل */}
@@ -416,7 +416,7 @@ export function TenantActionHubModal({
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: '1fr 1fr',
             gap: '10px',
           }}>
             {/* سكب بيانات تجريبية */}

@@ -193,8 +193,10 @@ export class SettingsService {
       settings.posModuleEnabled = false;
       settings.requireCashierShiftForSales = false;
     } else {
+      settings.contractingModuleEnabled = false;
+      settings.maritimeFreightModuleEnabled = false;
+      settings.posModuleEnabled = settings.posModuleEnabled !== false;
       if (settings.inventoryModuleEnabled === undefined) settings.inventoryModuleEnabled = true;
-      if (settings.posModuleEnabled === undefined) settings.posModuleEnabled = true;
       if (settings.purchasesModuleEnabled === undefined) settings.purchasesModuleEnabled = true;
       if (settings.crmModuleEnabled === undefined) settings.crmModuleEnabled = true;
       if (settings.restaurantModuleEnabled === undefined) {

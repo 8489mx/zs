@@ -1044,83 +1044,41 @@ export function AppShell({ children }: PropsWithChildren) {
     const hasReports = isPlatformAdminUser || Boolean(tenant?.features?.includes('reports'));
     const dashKeys = hasReports ? ['dashboard'] : [];
 
-    const activityCandidates = [
-      settings?.businessIndustry,
-      tenant?.activityType,
-      settings?.activityType,
-      tenant?.pillar,
-      tenant?.businessName,
-      settings?.storeName,
-      settings?.brandName,
-      (settings as any)?.companyName,
-    ].map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
-    const rawActivity = activityCandidates.find(
-      (a) => a !== 'retail_general' && a !== 'general' && a !== 'retail'
-    ) || activityCandidates[0] || 'retail_general';
+    const currentVertical = resolveCurrentVertical(tenant, settings);
 
-    const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || settings?.contractingModuleEnabled === true;
-    const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
-    const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
-    const isImportVertical = rawActivity === 'import_export' || rawActivity === 'import';
-    const isServicesVertical = rawActivity === 'services';
-    const isEcommerceVertical = rawActivity === 'ecommerce';
-    const isWholesaleVanVertical =
-      rawActivity === 'wholesale_van' ||
-      rawActivity === 'wholesale' ||
-      rawActivity === 'distribution' ||
-      rawActivity === 'توزيع' ||
-      rawActivity === 'فان' ||
-      rawActivity === 'مناديب' ||
-      rawActivity === 'جملة' ||
-      rawActivity === 'جملة_وتوزيع' ||
-      rawActivity.includes('توزيع') ||
-      rawActivity.includes('فان') ||
-      rawActivity.includes('مناديب') ||
-      rawActivity.includes('جمل') ||
-      rawActivity.includes('موزع') ||
-      rawActivity.includes('wholesale') ||
-      rawActivity.includes('distribution');
-
-    if (isContractingVertical) {
+    if (currentVertical === 'contracting') {
       return [...dashKeys, 'contracting-projects', 'contracting-boq'];
     }
 
-    if (isMaritimeVertical) {
+    if (currentVertical === 'maritime') {
       return [...dashKeys, 'maritime-jobs', 'maritime-containers', 'maritime-quotations'];
     }
 
-    if (isManufacturingVertical) {
+    if (currentVertical === 'manufacturing') {
       return [...dashKeys, 'manufacturing-work-orders', 'manufacturing-boms'];
     }
 
-    if (isImportVertical && !isContractingVertical && !isMaritimeVertical) {
+    if (settings?.importModuleEnabled && currentVertical !== 'contracting' && currentVertical !== 'maritime') {
       return [...dashKeys, 'import-shipments', 'purchases', 'inventory-warehouses'];
     }
 
-    if (isWholesaleVanVertical) {
+    if (currentVertical === 'wholesale_van') {
       return [...dashKeys, 'van-sales-admin', 'delivery-reps', 'customers', 'sales'];
     }
 
-    if (isServicesVertical && !isContractingVertical && !isMaritimeVertical) {
+    if (currentVertical === 'services') {
       return [...dashKeys, 'services', 'sales', 'customers'];
-    }
-
-    if (isEcommerceVertical) {
-      return [...dashKeys, 'online-orders', 'sales', 'delivery-reps'];
     }
 
     if (settings?.posModuleEnabled === false) {
       return [
         ...dashKeys,
-        ...(settings?.maritimeFreightModuleEnabled ? ['maritime-jobs'] : []),
-        ...(settings?.contractingModuleEnabled ? ['contracting-projects'] : []),
-        ...(settings?.importModuleEnabled && isImportVertical ? ['import-shipments'] : []),
         ...(storefrontActive ? ['online-orders'] : []),
         ...(settings?.purchasesModuleEnabled ? ['purchases'] : []),
       ];
     }
     return [...dashKeys, 'pos', ...(storefrontActive ? ['online-orders'] : []), 'cash-drawer'];
-  }, [settings?.businessIndustry, settings?.activityType, settings?.contractingModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.importModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, settings?.storefrontModuleEnabled, tenant?.features, tenant?.activityType, tenant?.pillar, user]);
+  }, [settings?.businessIndustry, settings?.activityType, settings?.contractingModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.importModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, settings?.storefrontModuleEnabled, tenant?.features, tenant?.activityType, tenant?.pillar, tenant?.businessName, user]);
 
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => {
     const isPlatformAdminUser = isPlatformAdmin(user);
@@ -1456,7 +1414,7 @@ export function AppShell({ children }: PropsWithChildren) {
         itemKeys: isWholesaleVanVertical
           ? ['van-sales-admin', 'delivery-reps', 'customers', 'sales', 'returns', 'sales-orders', 'quotations', 'price-lists']
           : isEnterpriseCommerceActive
-          ? ['crm', 'quotations', 'sales-orders', 'price-lists', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher']
+          ? ['pos', 'crm', 'quotations', 'sales-orders', 'price-lists', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher'].filter(k => k !== 'pos' || settings?.posModuleEnabled !== false)
           : ['pos', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher'].filter(k => k !== 'pos' || settings?.posModuleEnabled !== false),
         iconKey: 'sales',
       }] : []),

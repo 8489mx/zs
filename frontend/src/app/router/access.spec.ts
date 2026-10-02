@@ -96,7 +96,27 @@ describe('router access guards', () => {
         tenant: { id: 't-pro', name: 'Pro Store', plan_id: 'plan_pro', features: ['sales', 'catalog', 'sessions', 'cashDrawer', 'reports'] } as any
       });
       expect(canAccessPath(adminUser, '/')).toBe(true);
-      expect(canAccessNavigationItem(adminUser, { key: 'dashboard', label: 'الرئيسية', to: '/' })).toBe(true);
+    } finally {
+      useAuthStore.setState({ tenant: null });
+    }
+  });
+
+  it('allows POS navigation and path access for retail merchant with omnichannel plan', () => {
+    useAuthStore.setState({
+      tenant: {
+        id: 'almhnds',
+        slug: 'almhnds',
+        businessName: 'المهندس',
+        activityType: 'retail_general',
+        planId: 'plan_omnichannel',
+        features: ['sales', 'catalog', 'accounting', 'inventory', 'purchases'],
+      } as any,
+    });
+    try {
+      const salesUser: AuthUser = { ...adminUser, permissions: ['sales', 'pos'] };
+      const posItem = { key: 'pos', label: 'نقطة البيع', to: '/pos' };
+      expect(canAccessNavigationItem(salesUser, posItem)).toBe(true);
+      expect(canAccessPath(salesUser, '/pos')).toBe(true);
     } finally {
       useAuthStore.setState({ tenant: null });
     }

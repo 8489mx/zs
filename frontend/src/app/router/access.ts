@@ -640,14 +640,13 @@ export function hasRequiredFeature(target: string, user?: AuthUser | null): bool
   
   if (!tenant) return true;
 
-  const rawActivity = String(tenant?.activityType || tenant?.pillar || tenant?.businessName || (tenant as any)?.name || '').trim().toLowerCase();
-  const isContracting = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
-  const isMaritime = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
-  const isManufacturing = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
-  const isWholesaleVan = rawActivity === 'wholesale_van' || rawActivity === 'wholesale' || rawActivity === 'distribution' || rawActivity.includes('توزيع') || rawActivity.includes('فان') || rawActivity.includes('مناديب') || rawActivity.includes('جمل');
+  const isContracting = vertical === 'contracting';
+  const isMaritime = vertical === 'maritime';
+  const isManufacturing = vertical === 'manufacturing';
+  const isWholesaleVan = vertical === 'wholesale_van';
   const isCommerce = !isContracting && !isMaritime && !isManufacturing;
 
-  if (isWholesaleVan && ['deliveryReps', 'catalog', 'products', 'sales', 'purchases', 'inventory', 'accounting', 'hr', 'crm', 'pricing', 'suppliers', 'customers'].includes(requiredFeature)) {
+  if (isWholesaleVan && ['deliveryReps', 'catalog', 'products', 'sales', 'pos', 'purchases', 'inventory', 'accounting', 'hr', 'crm', 'pricing', 'suppliers', 'customers'].includes(requiredFeature)) {
     return true;
   }
   if (isContracting && ['contracting', 'purchases', 'inventory', 'catalog', 'products', 'suppliers', 'customers', 'crm', 'accounting', 'hr'].includes(requiredFeature)) {
@@ -659,7 +658,7 @@ export function hasRequiredFeature(target: string, user?: AuthUser | null): bool
   if (isManufacturing && ['manufacturing', 'purchases', 'inventory', 'catalog', 'products', 'suppliers', 'customers', 'crm', 'sales', 'pricing', 'accounting', 'hr'].includes(requiredFeature)) {
     return true;
   }
-  if (isCommerce && ['catalog', 'products', 'sales', 'purchases', 'inventory', 'accounting', 'hr', 'crm', 'pricing', 'suppliers', 'customers'].includes(requiredFeature)) {
+  if (isCommerce && ['pos', 'catalog', 'products', 'sales', 'purchases', 'inventory', 'accounting', 'hr', 'crm', 'pricing', 'suppliers', 'customers'].includes(requiredFeature)) {
     return true;
   }
 

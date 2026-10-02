@@ -909,7 +909,7 @@ export class SaasAdminService {
     this.assertPlatformAccess(auth);
     this.assertNotPlatformTenantTarget(id);
 
-    const tenant = await this.db.selectFrom('tenants').select(['id', 'slug']).where('id', '=', id).executeTakeFirst();
+    const tenant = await this.db.selectFrom('tenants').select(['id', 'slug', 'plan_id', 'extra_features']).where('id', '=', id).executeTakeFirst();
     if (!tenant) throw new NotFoundException('Tenant not found');
 
     const updateData: any = {};
@@ -929,7 +929,7 @@ export class SaasAdminService {
       for (const [k, v] of Object.entries(patch)) {
         await sql`
           INSERT INTO settings (tenant_id, account_id, key, value)
-          VALUES (${id}, ${accountId}, ${k}, ${JSON.stringify(v)}::jsonb)
+          VALUES (${id}, ${accountId}, ${k}, ${JSON.stringify(v)})
           ON CONFLICT (tenant_id, key)
           DO UPDATE SET value = EXCLUDED.value, account_id = EXCLUDED.account_id;
         `.execute(this.db);

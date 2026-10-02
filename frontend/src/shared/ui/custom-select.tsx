@@ -18,6 +18,7 @@ export interface CustomSelectProps {
   style?: React.CSSProperties;
   className?: string;
   dropdownAlign?: 'right' | 'left';
+  openOnFocus?: boolean;
 }
 
 export function CustomSelect({
@@ -29,6 +30,7 @@ export function CustomSelect({
   style,
   className = '',
   dropdownAlign = 'right',
+  openOnFocus = false,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -232,8 +234,10 @@ export function CustomSelect({
           }}
           onFocus={() => {
             if (disabled) return;
-            setIsOpen(true);
-            inputRef.current?.select();
+            if (openOnFocus) {
+              setIsOpen(true);
+              inputRef.current?.select();
+            }
           }}
           onClick={() => {
             if (disabled) return;
