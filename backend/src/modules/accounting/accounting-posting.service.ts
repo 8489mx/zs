@@ -436,7 +436,7 @@ export class AccountingPostingService {
   }
 
   private async insertPostedJournal(
-    queryable: DbOrTx,
+    queryable: any,
     params: {
       sourceType: string;
       sourceId: number;
@@ -451,8 +451,8 @@ export class AccountingPostingService {
       lines: JournalLineDraft[];
     },
   ): Promise<number> {
-    if (!(queryable instanceof Transaction)) {
-      return queryable.transaction().execute((trx) => this.insertPostedJournal(trx, params));
+    if (queryable && typeof queryable.transaction === 'function') {
+      return queryable.transaction().execute((trx: any) => this.insertPostedJournal(trx, params));
     }
     if (!params.lines?.length) throw new AppError(`No journal lines for ${params.sourceType} #${params.sourceId}`, 'EMPTY_JOURNAL', 400);
 

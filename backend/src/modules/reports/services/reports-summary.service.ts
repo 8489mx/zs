@@ -12,11 +12,14 @@ import { buildCustomerRfmPayload } from '../helpers/reports-summary.helper';
 import { buildReportListState } from '../helpers/reports-query.helper';
 import { applyPartnerLedgerSearch, applySignedAmountFilter } from '../helpers/reports-query-pipeline.helper';
 import {
+  buildCustomerBalancesPayload,
   buildCustomerLedgerPayload,
+  buildSupplierBalancesPayload,
   buildSupplierLedgerPayload,
   LedgerSummaryRow,
   PartnerLedgerEntryRow,
 } from '../helpers/reports-ledger.helper';
+import { buildCustomerLedgerTotals, buildSupplierLedgerTotals } from '../helpers/reports-partner-ledger.helper';
 import { AppError } from '../../../common/errors/app-error';
 
 @Injectable()
@@ -442,6 +445,34 @@ export class ReportsSummaryService {
     const ledgerTable = isCust ? 'customer_ledger' : 'supplier_ledger';
     const partnerIdCol = isCust ? 'customer_id' : 'supplier_id';
     const tenantId = this.tenantId(auth);
+
+    if (typeof (this.db as any).getExecutor !== 'function') {
+      const partners = await (this.db as any)
+        .selectFrom(table)
+        .select(isCust ? ['id', 'name', 'phone', 'balance', 'credit_limit'] : ['id', 'name', 'phone', 'balance'])
+        .where('is_active', '=', true)
+        .where(this.tenantPredicate(auth))
+        .orderBy('name', 'asc')
+        .execute();
+
+      const ledgerRows = await (this.db as any)
+        .selectFrom(ledgerTable)
+        .select([partnerIdCol, sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
+        .where(this.tenantPredicate(auth))
+        .groupBy(partnerIdCol)
+        .execute();
+
+      const totals = isCust
+        ? buildCustomerLedgerTotals(ledgerRows as Array<{ customer_id?: number | string | null; balance_total?: number | string | null }>)
+        : buildSupplierLedgerTotals(ledgerRows as Array<{ supplier_id?: number | string | null; balance_total?: number | string | null }>);
+
+      const payload = isCust
+        ? buildCustomerBalancesPayload(partners, totals, query as Record<string, unknown>)
+        : buildSupplierBalancesPayload(partners, totals, query as Record<string, unknown>);
+
+      return this.withScope(payload, auth);
+    }
+
     const { page, pageSize } = buildReportListState(query, 20, { includeRange: false });
     const search = String(query.search || '').trim();
     const filter = String(query.filter || 'all').toLowerCase();
