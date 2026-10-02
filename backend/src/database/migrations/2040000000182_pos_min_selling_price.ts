@@ -7,10 +7,10 @@ export const migration = {
     // Auto-close duplicate open shifts for the same cashier, keeping only the most recent one open
     await sql`
       UPDATE cashier_shifts
-      SET status = 'closed', closed_at = NOW(), close_notes = 'Auto-closed duplicate shift prior to unique index enforcement'
+      SET status = 'closed', closed_at = NOW(), close_note = 'Auto-closed duplicate shift prior to unique index enforcement'
       WHERE id IN (
         SELECT id FROM (
-          SELECT id, ROW_NUMBER() OVER (PARTITION BY tenant_id, opened_by ORDER BY opened_at DESC, id DESC) as rn
+          SELECT id, ROW_NUMBER() OVER (PARTITION BY tenant_id, opened_by ORDER BY created_at DESC, id DESC) as rn
           FROM cashier_shifts
           WHERE status = 'open'
         ) sub WHERE rn > 1
