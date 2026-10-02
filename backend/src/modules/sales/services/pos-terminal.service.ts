@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger, BadRequestException, Optional } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Kysely } from '../../../database/kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
@@ -21,6 +22,7 @@ export interface TerminalPaymentRequest {
 }
 
 export interface TerminalPaymentSession {
+  tenantId: string;
   transactionId: string;
   terminalId: string;
   terminalName: string;
@@ -39,6 +41,14 @@ export interface TerminalPaymentSession {
 export class PosTerminalService {
   private readonly logger = new Logger(PosTerminalService.name);
   private activeSessions = new Map<string, TerminalPaymentSession>();
+  private readonly sessionTtlMs = 15 * 60 * 1000;
+
+  private pruneExpiredSessions(): void {
+    const cutoff = Date.now() - this.sessionTtlMs;
+    for (const [id, session] of this.activeSessions) {
+      if (session.createdAt < cutoff) this.activeSessions.delete(id);
+    }
+  }
 
   constructor(@Optional() @Inject(KYSELY_DB) private readonly db?: Kysely<Database>) {}
 
@@ -52,7 +62,7 @@ export class PosTerminalService {
           id: 'term-main-01',
           name: 'جهاز شبكة الكاشير الرئيسي (EDC - Mada/Visa)',
           type: 'edc_standalone',
-          status: 'online',
+          status: process.env.APP_MODE === 'CLOUD_SAAS' ? 'offline' : 'online',
           provider: 'Geidea / Paymob POS',
           ipAddress: '192.168.1.150:8080',
         },
@@ -97,7 +107,7 @@ export class PosTerminalService {
           id: 'term-main-01',
           name: `${name} - ${providerDisplayNames[provider] || provider}`,
           type: 'edc_standalone',
-          status: 'online',
+          status: process.env.APP_MODE === 'CLOUD_SAAS' ? 'offline' : 'online',
           provider: providerDisplayNames[provider] || provider,
           ipAddress: `${ipAddress}:${port}`,
         },
@@ -109,7 +119,7 @@ export class PosTerminalService {
           id: 'term-main-01',
           name: 'جهاز شبكة الكاشير الرئيسي (EDC - Mada/Visa)',
           type: 'edc_standalone',
-          status: 'online',
+          status: process.env.APP_MODE === 'CLOUD_SAAS' ? 'offline' : 'online',
           provider: 'Geidea / Network International',
           ipAddress: '192.168.1.150:8080',
         },
@@ -121,7 +131,10 @@ export class PosTerminalService {
    * Initiate payment request to the EDC card terminal
    */
   async initiatePayment(tenantId: string, request: TerminalPaymentRequest): Promise<TerminalPaymentSession> {
-    if (!request.amount || request.amount <= 0) {
+    if (process.env.APP_MODE === 'CLOUD_SAAS') {
+      throw new BadRequestException('تكامل جهاز الدفع غير مفعّل؛ لا يمكن إصدار موافقة دفع تجريبية في النظام السحابي');
+    }
+    if (!Number.isFinite(request.amount) || request.amount <= 0) {
       throw new BadRequestException('المبلغ المطلوب للجهاز يجب أن يكون أكبر من صفر');
     }
 
@@ -131,9 +144,11 @@ export class PosTerminalService {
     }
 
     const selectedTerminal = terminals.find(t => t.id === request.terminalId) || terminals[0];
-    const transactionId = `EDC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    this.pruneExpiredSessions();
+    const transactionId = `EDC-${randomUUID()}`;
 
     const session: TerminalPaymentSession = {
+      tenantId,
       transactionId,
       terminalId: selectedTerminal.id,
       terminalName: selectedTerminal.name,
@@ -154,9 +169,10 @@ export class PosTerminalService {
   /**
    * Check status of terminal payment (cashier polling or device webhook)
    */
-  async getPaymentStatus(transactionId: string): Promise<TerminalPaymentSession> {
+  async getPaymentStatus(tenantId: string, transactionId: string): Promise<TerminalPaymentSession> {
+    this.pruneExpiredSessions();
     const session = this.activeSessions.get(transactionId);
-    if (!session) {
+    if (!session || session.tenantId !== tenantId) {
       throw new BadRequestException('معاملة الدفع غير موجودة أو منتهية الصلاحية');
     }
 
@@ -185,9 +201,10 @@ export class PosTerminalService {
   /**
    * Cancel an ongoing terminal transaction
    */
-  async cancelPayment(transactionId: string): Promise<TerminalPaymentSession> {
+  async cancelPayment(tenantId: string, transactionId: string): Promise<TerminalPaymentSession> {
+    this.pruneExpiredSessions();
     const session = this.activeSessions.get(transactionId);
-    if (!session) {
+    if (!session || session.tenantId !== tenantId) {
       throw new BadRequestException('معاملة الدفع غير موجودة');
     }
 

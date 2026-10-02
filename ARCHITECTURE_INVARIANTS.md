@@ -1590,3 +1590,11 @@ node scripts/<check>.mjs --update-baseline   # لا يُستخدم إلا لاس
 - **Demo accounts:** generated accounts receive random temporary passwords and `must_change_password=true`; known passwords are never displayed or stored.
 - **Deployment schema safety:** the deployment takes an encrypted hourly database backup immediately before migrations. A migration or health failure therefore leaves a restorable pre-migration copy.
 - **Shipping labels:** AWB requests are tenant-scoped. Production labels redirect only to an allow-listed Bosta URL; sandbox pages identify themselves as simulation and contain no inline script.
+
+## POS, cashier shift, and returns hardening (2 October 2026)
+
+- A cashier may have one open shift per tenant. Opening locks the cashier's user row, checks the branch and location in the same tenant, then inserts the shift and its number in one transaction. Migration `2040000000182` adds a partial unique index to enforce the rule across application instances. Existing duplicate open shifts must be resolved before that migration can succeed.
+- POS sales requiring a shift lock an open shift for the cashier and sale branch. The sale, stock deduction, payments, drawer movement, and journal posting must commit together; a failed journal aborts the sale. Customer credit exposure is checked against a locked customer row, including partial payment balances.
+- A sale below unit cost or a configured `products.min_selling_price`, after invoice discount allocation, requires a validated manager credential. The sale note records the approving identity and affected product IDs. The migration adds the optional minimum selling price column.
+- Sales and purchase returns lock original invoice lines and check both cumulative line and product quantities, including earlier returns without line IDs. A cash sales refund requires the cashier's open shift on the original branch and updates its expected cash in the same transaction. Shift close stores the signed counted-minus-expected difference in the existing `variance` column.
+- POS terminal sessions are tenant-bound. The in-memory simulator cannot issue an apparent card approval in `CLOUD_SAAS`; a real payment provider integration is required before terminal charging can be enabled there.

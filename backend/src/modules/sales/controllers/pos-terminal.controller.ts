@@ -32,8 +32,8 @@ export class PosTerminalController {
 
   @Get('status/:transactionId')
   @RequirePermissions('sales')
-  async checkStatus(@Param('transactionId') transactionId: string) {
-    const session = await this.terminalService.getPaymentStatus(transactionId);
+  async checkStatus(@Param('transactionId') transactionId: string, @Req() req: RequestWithAuth) {
+    const session = await this.terminalService.getPaymentStatus(String(req.authContext!.tenantId), transactionId);
     return {
       success: true,
       data: session
@@ -42,8 +42,8 @@ export class PosTerminalController {
 
   @Post('cancel/:transactionId')
   @RequirePermissions('sales')
-  async cancelCharge(@Param('transactionId') transactionId: string) {
-    const session = await this.terminalService.cancelPayment(transactionId);
+  async cancelCharge(@Param('transactionId') transactionId: string, @Req() req: RequestWithAuth) {
+    const session = await this.terminalService.cancelPayment(String(req.authContext!.tenantId), transactionId);
     return {
       success: true,
       data: session

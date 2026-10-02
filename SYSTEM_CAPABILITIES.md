@@ -5900,3 +5900,9 @@
   - `frontend/src/app/router/access.ts`
   - `frontend/src/shared/components/GlobalSearchModal.tsx`
   - `frontend/src/shared/layout/app-shell.tsx`
+
+## POS and cashier integrity (2 October 2026)
+
+- Cashier shift opening is serialized per cashier and tenant, validates branch and location ownership, and has a database uniqueness guard for open shifts. Closing recalculates expected cash inside the transaction and stores the signed variance.
+- POS checkout checks the active shift on the sale branch, posts its journal in the sale transaction, serializes customer credit balance checks, and requires recorded manager approval for sales below cost or the product's optional minimum selling price.
+- Returns enforce remaining invoice quantity by product and original line. Cash refunds draw from an open shift on the invoice branch. Terminal payment simulation is unavailable in Cloud SaaS until a real provider is connected.

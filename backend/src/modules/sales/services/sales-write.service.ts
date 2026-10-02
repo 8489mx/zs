@@ -227,6 +227,7 @@ export class SalesWriteService {
       if (!boms.length) break;
       const lines = await trx.selectFrom('manufacturing_bom_lines')
         .select('component_product_id').where('bom_id', 'in', boms.map((bom) => Number(bom.id)))
+        .where('tenant_id', '=', scope.tenantId)
         .execute();
       frontier = lines.map((line) => Number(line.component_product_id)).filter((id) => id > 0);
       frontier.forEach((id) => productIds.add(id));
@@ -747,7 +748,7 @@ export class SalesWriteService {
       if (normalized.storeCreditUsed < 0) throw new AppError('Store credit cannot be negative', 'INVALID_STORE_CREDIT', 400);
 
       const customer = normalized.customerId
-        ? await (trx as any).selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit', 'store_credit_balance', 'loyalty_points', 'is_credit_blocked', 'credit_block_reason']).where('id', '=', normalized.customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst()
+        ? await trx.selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit', 'store_credit_balance', 'loyalty_points', 'is_credit_blocked', 'credit_block_reason']).where('id', '=', normalized.customerId).where('tenant_id', '=', scope.tenantId).where('is_active', '=', true).forUpdate().executeTakeFirst()
         : null;
       if (normalized.customerId && !customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
       if (normalized.paymentType === 'credit' && !customer) throw new AppError('Credit sale requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
@@ -821,8 +822,8 @@ export class SalesWriteService {
       const productIds = Array.from(new Set(normalized.items.map((it) => it.productId)));
       const productRows = productIds.length > 0
         ? await trx.selectFrom('products as p')
-            .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
-            .select(['p.id', 'p.name', 'p.stock_qty', 'p.reserved_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'p.item_type', 'b.id as bom_id'])
+            .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').onRef('b.tenant_id', '=', 'p.tenant_id').on('b.is_active', '=', true))
+            .select(['p.id', 'p.name', 'p.stock_qty', 'p.reserved_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'p.min_selling_price', 'p.item_type', 'b.id as bom_id'])
             .where('p.id', 'in', productIds)
             .where(sql<boolean>`p.tenant_id = ${scope.tenantId}`)
             .where('p.is_active', '=', true)
@@ -850,9 +851,10 @@ export class SalesWriteService {
       const bomIds = productRows.map((p) => (p.bom_id ? Number(p.bom_id) : 0)).filter((id) => id > 0);
       const allBomLines = bomIds.length > 0
         ? await trx.selectFrom('manufacturing_bom_lines as l')
-            .innerJoin('products as p', 'p.id', 'l.component_product_id')
+            .innerJoin('products as p', (join) => join.onRef('p.id', '=', 'l.component_product_id').onRef('p.tenant_id', '=', 'l.tenant_id'))
             .select(['l.bom_id', 'p.name as component_name'])
             .where('l.bom_id', 'in', bomIds)
+            .where('l.tenant_id', '=', scope.tenantId)
             .execute()
         : [];
       const bomNamesByBomId = new Map<number, string[]>();
@@ -1009,24 +1011,42 @@ export class SalesWriteService {
       const { taxAmount, total } = computeInvoiceTotals(subtotal, effectiveDiscount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
 
+      // Distribute the invoice discount across lines before checking the real selling floor.
+      const belowFloorItems = preparedItems.filter((item) => {
+        if (item.isService) return false;
+        const product = productMap.get(item.productId);
+        const minUnitPrice = Number(product?.min_selling_price || 0) * Number(item.unitMultiplier || 1);
+        const floor = Math.max(Number(item.costPrice || 0), minUnitPrice) * Number(item.qty || 0);
+        const discountedLine = item.lineTotal * (subtotal > 0 ? (subtotal - effectiveDiscount) / subtotal : 0);
+        const netLine = normalized.pricesIncludeTax
+          ? discountedLine / (1 + Math.max(0, normalized.taxRate) / 100)
+          : discountedLine;
+        return netLine + 0.001 < floor;
+      });
+      const floorApproval = belowFloorItems.length
+        ? await this.authz.authorizeDiscountOverride(normalized.managerPin, auth, trx)
+        : null;
+
       const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
       
       const requireCashierShiftVal = settingsMap.get('requireCashierShiftForSales');
       const requireCashierShiftForSales = requireCashierShiftVal == null ? true : (requireCashierShiftVal !== false && requireCashierShiftVal !== 'false');
 
       if (normalized.source === 'pos' && requireCashierShiftForSales) {
-        const hasOpenShift = await this.authz.hasOpenCashierShift(trx, auth);
+        const hasOpenShift = await this.authz.hasOpenCashierShift(trx, auth, normalized.branchId);
         if (!hasOpenShift) throw new AppError('Open cashier shift is required before posting a POS sale', 'OPEN_SHIFT_REQUIRED', 400);
       } else if (normalized.paymentType !== 'credit' && !['admin', 'super_admin'].includes(auth.role) && (normalized.payments.some((entry) => entry.paymentChannel === 'cash') || normalized.paymentChannel === 'cash')) {
-        const hasOpenShift = await this.authz.hasOpenCashierShift(trx, auth);
+        const hasOpenShift = await this.authz.hasOpenCashierShift(trx, auth, normalized.branchId);
         if (!hasOpenShift) throw new AppError('Open cashier shift is required before posting a cash sale', 'OPEN_SHIFT_REQUIRED', 400);
       }
 
       const payments = resolveSalePayments(normalized.paymentType, normalized.payments, collectibleTotal, normalized.paymentChannel);
       const paidAmount = calculatePaidAmount(payments);
       const remainingDebt = Number(Math.max(0, collectibleTotal - paidAmount).toFixed(2));
+      const isDelivery = String(normalized.orderType || '').trim() === 'delivery';
 
-      if (normalized.paymentType === 'credit' && customer) {
+      if (remainingDebt > 0 && (customer || !isDelivery)) {
+        if (!customer) throw new AppError('الدين المتبقي يتطلب عميلاً مسجلاً', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
         if (customer.is_credit_blocked) {
           throw new AppError(
             `تم تعليق البيع الآجل لهذا العميل بقرار تحصيل: ${customer.credit_block_reason || 'متأخرات غير مسددة'}`,
@@ -1035,7 +1055,7 @@ export class SalesWriteService {
           );
         }
         const nextBalance = Number(customer.balance || 0) + remainingDebt;
-        if (Number(customer.credit_limit || 0) > 0 && nextBalance > Number(customer.credit_limit || 0)) {
+        if (Number(customer.credit_limit || 0) > 0 && nextBalance > Number(customer.credit_limit || 0) + 0.001) {
           throw new AppError('Customer credit limit exceeded', 'CUSTOMER_CREDIT_LIMIT', 400);
         }
       }
@@ -1046,7 +1066,6 @@ export class SalesWriteService {
           throw new AppError('Store credit exceeds available balance', 'STORE_CREDIT_EXCEEDED', 400);
         }
       }
-      const isDelivery = String(normalized.orderType || '').trim() === 'delivery';
       let deliveryRepId: number | null = null;
       let deliveryStatus: string | null = null;
       let collectionStatus: string | null = null;
@@ -1114,6 +1133,9 @@ export class SalesWriteService {
       if (offlineDocNo && !saleNote.includes(offlineDocNo)) {
         const offlineTag = `[إيصال أوفلاين: ${offlineDocNo}]`;
         saleNote = saleNote ? `${saleNote} | ${offlineTag}` : offlineTag;
+      }
+      if (floorApproval) {
+        saleNote = `${saleNote ? `${saleNote} | ` : ''}[اعتماد بيع تحت الحد: ${floorApproval.authorizedByName}; أصناف ${belowFloorItems.map((item) => item.productId).join(',')}]`;
       }
 
       const saleInsert = await trx
@@ -1579,14 +1601,9 @@ export class SalesWriteService {
         }
       }
 
-      try {
-        await this.accountingPosting.postSale(trx, id, auth);
-        await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.logger.error(`Failed to post accounting journal for sale ${id}: ${message}`, error instanceof Error ? error.stack : String(error));
-        await this.accountingPosting.recordPostingFailure(trx, scope, 'sale', id, message);
-      }
+      const posting = await this.accountingPosting.postSale(trx, id, auth);
+      if (!posting.journalEntryId) throw new AppError('Sale journal was not created', 'SALE_ACCOUNTING_POST_FAILED', 500);
+      await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
 
       // Commit idempotency record atomically inside the business transaction
       if (idemCtx?.idempotencyKey && idemCtx?.operationType) {

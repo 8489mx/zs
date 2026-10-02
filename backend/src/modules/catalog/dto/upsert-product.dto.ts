@@ -221,6 +221,12 @@ export class UpsertProductDto {
   @Min(0)
   wholesalePrice!: number;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minSellingPrice?: number | null;
+
   @Type(() => Number)
   @IsNumber()
   @Min(0)
@@ -349,6 +355,7 @@ export type NormalizedUpsertProduct = {
   costPrice: number;
   retailPrice: number;
   wholesalePrice: number;
+  minSellingPrice?: number | null;
   minStock: number;
   notes: string;
   units: NormalizedProductUnit[];
