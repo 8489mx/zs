@@ -1,10 +1,8 @@
-import { Inject, Injectable, PayloadTooLargeException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
-
-const MAX_AGING_ROWS = 5_000;
 
 export interface AgedPartnerRow {
   partnerId: number;
@@ -12,11 +10,11 @@ export interface AgedPartnerRow {
   phone?: string;
   creditLimit?: number;
   totalBalance: number;
-  currentAmount: number;     // Not due / 0 days
-  days1To30: number;         // 1 - 30 days
-  days31To60: number;        // 31 - 60 days
-  days61To90: number;        // 61 - 90 days
-  days91Plus: number;        // +91 days
+  currentAmount: number;
+  days1To30: number;
+  days31To60: number;
+  days61To90: number;
+  days91Plus: number;
   oldestInvoiceDate?: string;
   oldestInvoiceDays?: number;
   riskLevel: 'current' | 'low' | 'medium' | 'high' | 'critical';
@@ -25,7 +23,10 @@ export interface AgedPartnerRow {
 
 export interface AgedDebtsSummary {
   asOfDate: string;
+  page: number;
+  pageSize: number;
   totalPartnersCount: number;
+  filteredPartnersCount: number;
   overduePartnersCount: number;
   totalBalance: number;
   totalCurrent: number;
@@ -36,408 +37,189 @@ export interface AgedDebtsSummary {
   partners: AgedPartnerRow[];
 }
 
+interface AgingSqlRow {
+  total_partners_count: number | string;
+  filtered_partners_count: number | string;
+  overdue_partners_count: number | string;
+  total_balance: number | string;
+  total_current: number | string;
+  total_1_to_30: number | string;
+  total_31_to_60: number | string;
+  total_61_to_90: number | string;
+  total_91_plus: number | string;
+  partners: Array<{
+    partner_id: number;
+    partner_name: string;
+    phone: string | null;
+    credit_limit: number | string | null;
+    total_balance: number | string;
+    current_amount: number | string;
+    days_1_to_30: number | string;
+    days_31_to_60: number | string;
+    days_61_to_90: number | string;
+    days_91_plus: number | string;
+    oldest_invoice_date: string | null;
+    oldest_invoice_days: number | null;
+    risk_weight: number;
+  }>;
+}
+
 @Injectable()
 export class AgedDebtsService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
-  private toMoney(value: unknown): number {
-    const n = Number(value || 0);
+  private money(value: unknown): number {
+    const n = Number(value ?? 0);
     return Number.isFinite(n) ? Number(n.toFixed(2)) : 0;
   }
 
-  /**
-   * Aged Receivables (أعمار ديون العملاء)
-   */
-  async getAgedReceivables(
-    auth: AuthContext,
-    params: { asOfDate?: string; branchId?: number },
-  ): Promise<AgedDebtsSummary> {
-    const tenantId = auth.tenantId;
-    const asOfDate = params.asOfDate ? new Date(params.asOfDate) : new Date();
-    asOfDate.setHours(23, 59, 59, 999);
-
-    // 1. Fetch active customers with positive balance
-    const customers = await (this.db as any)
-      .selectFrom('customers')
-      .select(['id', 'name', 'phone', 'balance', 'credit_limit'])
-      .where('tenant_id', '=', tenantId)
-      .where('is_active', '=', true)
-      .where('balance', '>', 0.01)
-      .orderBy('name', 'asc')
-      .limit(MAX_AGING_ROWS + 1)
-      .execute();
-    if (customers.length > MAX_AGING_ROWS) throw new PayloadTooLargeException('Aged receivables exceeds the safe partner limit; use a narrower scope');
-
-    if (customers.length === 0) {
-      return {
-        asOfDate: asOfDate.toISOString().slice(0, 10),
-        totalPartnersCount: 0,
-        overduePartnersCount: 0,
-        totalBalance: 0,
-        totalCurrent: 0,
-        total1To30: 0,
-        total31To60: 0,
-        total61To90: 0,
-        total91Plus: 0,
-        partners: [],
-      };
-    }
-
-    const customerIds = customers.map((c: any) => Number(c.id));
-    const threeYearsAgo = new Date(asOfDate);
-    threeYearsAgo.setUTCFullYear(threeYearsAgo.getUTCFullYear() - 3);
-
-    // 2. Fetch unpaid credit sales up to asOfDate (bounded to active debtors and last 3 years)
-    let salesQuery = (this.db as any)
-      .selectFrom('sales')
-      .select([
-        'id',
-        'customer_id',
-        'created_at',
-        'total',
-        'paid_amount',
-        'status',
-      ])
-      .where('tenant_id', '=', tenantId)
-      .where('customer_id', 'in', customerIds)
-      .where('status', '!=', 'cancelled')
-      .where(sql<boolean>`(total - paid_amount) > 0.01`)
-      .where('created_at', '>=', threeYearsAgo)
-      .where('created_at', '<=', asOfDate);
-
-    if (params.branchId) {
-      salesQuery = salesQuery.where('branch_id', '=', params.branchId);
-    }
-
-    const sales = await salesQuery.limit(MAX_AGING_ROWS + 1).execute();
-    if (sales.length > MAX_AGING_ROWS) throw new PayloadTooLargeException('Aged receivables exceeds the safe invoice limit; use a narrower date or branch scope');
-
-    // Group sales by customer
-    const salesByCustomer = new Map<number, any[]>();
-    for (const s of sales) {
-      const cId = Number(s.customer_id);
-      if (!salesByCustomer.has(cId)) salesByCustomer.set(cId, []);
-      salesByCustomer.get(cId)!.push(s);
-    }
-
-    const rows: AgedPartnerRow[] = [];
-    let totalCurrent = 0;
-    let total1To30 = 0;
-    let total31To60 = 0;
-    let total61To90 = 0;
-    let total91Plus = 0;
-
-    for (const c of customers) {
-      const cId = Number(c.id);
-      const balance = this.toMoney(c.balance);
-      if (balance <= 0.01) continue; // Only process customers with outstanding balances
-
-      const cSales = (salesByCustomer.get(cId) || []).sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
-
-      let currentAmount = 0;
-      let days1To30 = 0;
-      let days31To60 = 0;
-      let days61To90 = 0;
-      let days91Plus = 0;
-      let oldestDate: Date | null = null;
-      let oldestDays = 0;
-
-      // Distribute balance across invoices starting from newest to oldest, or apply FIFO
-      let remainingToAllocate = balance;
-
-      for (const s of cSales) {
-        if (remainingToAllocate <= 0) break;
-
-        const unpaidOnSale = Math.max(0, Number(s.total || 0) - Number(s.paid_amount || 0));
-        const allocated = Math.min(remainingToAllocate, unpaidOnSale > 0 ? unpaidOnSale : remainingToAllocate);
-        if (allocated <= 0) continue;
-
-        const invoiceDate = new Date(s.created_at);
-        const daysOld = Math.floor((asOfDate.getTime() - invoiceDate.getTime()) / (1000 * 60 * 60 * 24));
-
-        if (!oldestDate || invoiceDate < oldestDate) {
-          oldestDate = invoiceDate;
-          oldestDays = daysOld;
-        }
-
-        if (daysOld <= 0) {
-          currentAmount += allocated;
-        } else if (daysOld <= 30) {
-          days1To30 += allocated;
-        } else if (daysOld <= 60) {
-          days31To60 += allocated;
-        } else if (daysOld <= 90) {
-          days61To90 += allocated;
-        } else {
-          days91Plus += allocated;
-        }
-
-        remainingToAllocate -= allocated;
-      }
-
-      // If there's still unallocated balance (e.g. from opening balance), put in oldest bucket
-      if (remainingToAllocate > 0) {
-        days91Plus += remainingToAllocate;
-      }
-
-      currentAmount = this.toMoney(currentAmount);
-      days1To30 = this.toMoney(days1To30);
-      days31To60 = this.toMoney(days31To60);
-      days61To90 = this.toMoney(days61To90);
-      days91Plus = this.toMoney(days91Plus);
-
-      let riskLevel: AgedPartnerRow['riskLevel'] = 'current';
-      if (days91Plus > 0) riskLevel = 'critical';
-      else if (days61To90 > 0) riskLevel = 'high';
-      else if (days31To60 > 0) riskLevel = 'medium';
-      else if (days1To30 > 0) riskLevel = 'low';
-
-      // WhatsApp URL for quick collection reminder
-      let whatsAppUrl: string | undefined;
-      const cleanPhone = String(c.phone || '').replace(/[^\d+]/g, '');
-      if (cleanPhone.length >= 8) {
-        const overdueTotal = this.toMoney(days1To30 + days31To60 + days61To90 + days91Plus);
-        const msg = encodeURIComponent(
-          `مرحباً ${c.name}، نود تذكيركم بوجود رصيد مستحق بقيمة ${balance.toLocaleString('ar-EG')} ج.م (منها ${overdueTotal.toLocaleString('ar-EG')} ج.م متأخرة). يرجى التكرم بالسداد في أقرب وقت. شاكرين حسن تعاونكم.`,
-        );
-        whatsAppUrl = `https://wa.me/${cleanPhone.startsWith('+') ? cleanPhone.slice(1) : cleanPhone}?text=${msg}`;
-      }
-
-      rows.push({
-        partnerId: cId,
-        partnerName: c.name,
-        phone: c.phone || undefined,
-        creditLimit: c.credit_limit ? this.toMoney(c.credit_limit) : undefined,
-        totalBalance: balance,
-        currentAmount,
-        days1To30,
-        days31To60,
-        days61To90,
-        days91Plus,
-        oldestInvoiceDate: oldestDate ? oldestDate.toISOString().slice(0, 10) : undefined,
-        oldestInvoiceDays: oldestDays,
-        riskLevel,
-        whatsAppUrl,
-      });
-
-      totalCurrent += currentAmount;
-      total1To30 += days1To30;
-      total31To60 += days31To60;
-      total61To90 += days61To90;
-      total91Plus += days91Plus;
-    }
-
-    // Sort by risk (critical first) then highest balance
-    rows.sort((a, b) => {
-      const riskWeight = { critical: 4, high: 3, medium: 2, low: 1, current: 0 };
-      if (riskWeight[b.riskLevel] !== riskWeight[a.riskLevel]) {
-        return riskWeight[b.riskLevel] - riskWeight[a.riskLevel];
-      }
-      return b.totalBalance - a.totalBalance;
-    });
-
-    const totalBalance = this.toMoney(rows.reduce((s, r) => s + r.totalBalance, 0));
-
-    return {
-      asOfDate: asOfDate.toISOString().slice(0, 10),
-      totalPartnersCount: rows.length,
-      overduePartnersCount: rows.filter((r) => r.riskLevel !== 'current').length,
-      totalBalance,
-      totalCurrent: this.toMoney(totalCurrent),
-      total1To30: this.toMoney(total1To30),
-      total31To60: this.toMoney(total31To60),
-      total61To90: this.toMoney(total61To90),
-      total91Plus: this.toMoney(total91Plus),
-      partners: rows,
-    };
+  getAgedReceivables(auth: AuthContext, params: { asOfDate?: string; branchId?: number; page?: number; pageSize?: number; search?: string; risk?: string }) {
+    return this.report(auth, params, 'receivables');
   }
 
-  /**
-   * Aged Payables (أعمار ديون الموردين)
-   */
-  async getAgedPayables(
+  getAgedPayables(auth: AuthContext, params: { asOfDate?: string; branchId?: number; page?: number; pageSize?: number; search?: string; risk?: string }) {
+    return this.report(auth, params, 'payables');
+  }
+
+  private async report(
     auth: AuthContext,
-    params: { asOfDate?: string; branchId?: number },
+    params: { asOfDate?: string; branchId?: number; page?: number; pageSize?: number; search?: string; risk?: string },
+    kind: 'receivables' | 'payables',
   ): Promise<AgedDebtsSummary> {
-    const tenantId = auth.tenantId;
     const asOfDate = params.asOfDate ? new Date(params.asOfDate) : new Date();
+    if (!Number.isFinite(asOfDate.getTime())) throw new BadRequestException('Invalid asOfDate');
     asOfDate.setHours(23, 59, 59, 999);
-
-    // 1. Fetch active suppliers with positive balance
-    const suppliers = await (this.db as any)
-      .selectFrom('suppliers')
-      .select(['id', 'name', 'phone', 'balance'])
-      .where('tenant_id', '=', tenantId)
-      .where('is_active', '=', true)
-      .where('balance', '>', 0.01)
-      .orderBy('name', 'asc')
-      .limit(MAX_AGING_ROWS + 1)
-      .execute();
-    if (suppliers.length > MAX_AGING_ROWS) throw new PayloadTooLargeException('Aged payables exceeds the safe partner limit; use a narrower scope');
-
-    if (suppliers.length === 0) {
-      return {
-        asOfDate: asOfDate.toISOString().slice(0, 10),
-        totalPartnersCount: 0,
-        overduePartnersCount: 0,
-        totalBalance: 0,
-        totalCurrent: 0,
-        total1To30: 0,
-        total31To60: 0,
-        total61To90: 0,
-        total91Plus: 0,
-        partners: [],
-      };
-    }
-
-    const supplierIds = suppliers.map((s: any) => Number(s.id));
+    const page = Math.min(10_000, Math.max(1, Math.trunc(Number(params.page) || 1)));
+    const pageSize = Math.min(200, Math.max(1, Math.trunc(Number(params.pageSize) || 50)));
+    const offset = (page - 1) * pageSize;
     const threeYearsAgo = new Date(asOfDate);
     threeYearsAgo.setUTCFullYear(threeYearsAgo.getUTCFullYear() - 3);
 
-    // 2. Fetch unpaid credit purchases up to asOfDate (bounded to active creditors and last 3 years)
-    let purchasesQuery = (this.db as any)
-      .selectFrom('purchases')
-      .select([
-        'id',
-        'supplier_id',
-        'created_at',
-        'date',
-        'total',
-        'paid_amount',
-        'status',
-      ])
-      .where('tenant_id', '=', tenantId)
-      .where('supplier_id', 'in', supplierIds)
-      .where('status', '!=', 'cancelled')
-      .where(sql<boolean>`(total - paid_amount) > 0.01`)
-      .where('created_at', '>=', threeYearsAgo)
-      .where('created_at', '<=', asOfDate);
+    // Identifiers are selected only from fixed, internal literals. All values remain bound.
+    const partnerTable = sql.ref(kind === 'receivables' ? 'customers' : 'suppliers');
+    const invoiceTable = sql.ref(kind === 'receivables' ? 'sales' : 'purchases');
+    const partnerFk = sql.ref(kind === 'receivables' ? 'i.customer_id' : 'i.supplier_id');
+    const invoiceDate = kind === 'receivables'
+      ? sql`i.created_at`
+      : sql`coalesce(i.date::timestamptz, i.created_at)`;
+    const creditLimit = kind === 'receivables' ? sql`p.credit_limit` : sql`null::numeric`;
+    const branchFilter = params.branchId ? sql`and i.branch_id = ${params.branchId}` : sql``;
+    const order = kind === 'receivables'
+      ? sql`risk_weight desc, total_balance desc, partner_id asc`
+      : sql`total_balance desc, partner_id asc`;
+    const search = String(params.search || '').trim().slice(0, 100);
+    const riskWeights: Record<string, number> = { current: 0, low: 1, medium: 2, high: 3, critical: 4 };
+    const riskWeight = params.risk && Object.prototype.hasOwnProperty.call(riskWeights, params.risk)
+      ? riskWeights[params.risk] : null;
+    const searchFilter = search ? sql`and (partner_name ilike ${`%${search}%`} or phone ilike ${`%${search}%`})` : sql``;
+    const riskFilter = riskWeight === null ? sql`` : sql`and risk_weight = ${riskWeight}`;
 
-    if (params.branchId) {
-      purchasesQuery = purchasesQuery.where('branch_id', '=', params.branchId);
-    }
-
-    const purchases = await purchasesQuery.limit(MAX_AGING_ROWS + 1).execute();
-    if (purchases.length > MAX_AGING_ROWS) throw new PayloadTooLargeException('Aged payables exceeds the safe invoice limit; use a narrower date or branch scope');
-
-    // Group purchases by supplier
-    const purchasesBySupplier = new Map<number, any[]>();
-    for (const p of purchases) {
-      const sId = Number(p.supplier_id);
-      if (!purchasesBySupplier.has(sId)) purchasesBySupplier.set(sId, []);
-      purchasesBySupplier.get(sId)!.push(p);
-    }
-
-    const rows: AgedPartnerRow[] = [];
-    let totalCurrent = 0;
-    let total1To30 = 0;
-    let total31To60 = 0;
-    let total61To90 = 0;
-    let total91Plus = 0;
-
-    for (const s of suppliers) {
-      const sId = Number(s.id);
-      const balance = this.toMoney(s.balance);
-      if (balance <= 0.01) continue;
-
-      const sPurchases = (purchasesBySupplier.get(sId) || []).sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
-
-      let currentAmount = 0;
-      let days1To30 = 0;
-      let days31To60 = 0;
-      let days61To90 = 0;
-      let days91Plus = 0;
-      let oldestDate: Date | null = null;
-      let oldestDays = 0;
-
-      let remainingToAllocate = balance;
-
-      for (const p of sPurchases) {
-        if (remainingToAllocate <= 0) break;
-
-        const unpaid = Math.max(0, Number(p.total || 0) - Number(p.paid_amount || 0));
-        const allocated = Math.min(remainingToAllocate, unpaid > 0 ? unpaid : remainingToAllocate);
-        if (allocated <= 0) continue;
-
-        const billDate = new Date(p.date || p.created_at);
-        const daysOld = Math.floor((asOfDate.getTime() - billDate.getTime()) / (1000 * 60 * 60 * 24));
-
-        if (!oldestDate || billDate < oldestDate) {
-          oldestDate = billDate;
-          oldestDays = daysOld;
-        }
-
-        if (daysOld <= 0) {
-          currentAmount += allocated;
-        } else if (daysOld <= 30) {
-          days1To30 += allocated;
-        } else if (daysOld <= 60) {
-          days31To60 += allocated;
-        } else if (daysOld <= 90) {
-          days61To90 += allocated;
-        } else {
-          days91Plus += allocated;
-        }
-
-        remainingToAllocate -= allocated;
-      }
-
-      if (remainingToAllocate > 0) {
-        days91Plus += remainingToAllocate;
-      }
-
-      currentAmount = this.toMoney(currentAmount);
-      days1To30 = this.toMoney(days1To30);
-      days31To60 = this.toMoney(days31To60);
-      days61To90 = this.toMoney(days61To90);
-      days91Plus = this.toMoney(days91Plus);
-
-      let riskLevel: AgedPartnerRow['riskLevel'] = 'current';
-      if (days91Plus > 0) riskLevel = 'critical';
-      else if (days61To90 > 0) riskLevel = 'high';
-      else if (days31To60 > 0) riskLevel = 'medium';
-      else if (days1To30 > 0) riskLevel = 'low';
-
-      rows.push({
-        partnerId: sId,
-        partnerName: s.name,
-        phone: s.phone || undefined,
-        totalBalance: balance,
-        currentAmount,
-        days1To30,
-        days31To60,
-        days61To90,
-        days91Plus,
-        oldestInvoiceDate: oldestDate ? oldestDate.toISOString().slice(0, 10) : undefined,
-        oldestInvoiceDays: oldestDays,
+    // Window allocation preserves the existing newest-invoice-first reconciliation against
+    // the partner balance. The older, unmatched opening balance goes to the 91+ bucket.
+    const result = await sql<AgingSqlRow>`
+      with partners as (
+        select p.id, p.name, p.phone, p.balance::numeric as balance,
+               ${creditLimit} as credit_limit
+        from ${partnerTable} p
+        where p.tenant_id = ${auth.tenantId} and p.is_active = true and p.balance > 0.01
+      ), invoices as (
+        select ${partnerFk} as partner_id, ${invoiceDate} as invoice_date,
+               greatest(0, i.total - coalesce(i.paid_amount, 0))::numeric as unpaid,
+               coalesce(sum(greatest(0, i.total - coalesce(i.paid_amount, 0)))
+                 over (partition by ${partnerFk} order by i.created_at desc, i.id desc
+                       rows between unbounded preceding and 1 preceding), 0) as prior_unpaid
+        from ${invoiceTable} i
+        join partners p on p.id = ${partnerFk}
+        where i.tenant_id = ${auth.tenantId} and i.status <> 'cancelled'
+          and i.total - coalesce(i.paid_amount, 0) > 0.01
+          and i.created_at between ${threeYearsAgo} and ${asOfDate}
+          ${branchFilter}
+      ), allocated as (
+        select i.partner_id, i.invoice_date,
+               greatest(0, least(i.unpaid, p.balance - i.prior_unpaid)) as amount,
+               floor(extract(epoch from (${asOfDate}::timestamptz - i.invoice_date)) / 86400)::int as days_old
+        from invoices i join partners p on p.id = i.partner_id
+      ), buckets as (
+        select partner_id,
+          coalesce(sum(amount), 0) as allocated_amount,
+          coalesce(sum(amount) filter (where days_old <= 0), 0) as current_amount,
+          coalesce(sum(amount) filter (where days_old between 1 and 30), 0) as days_1_to_30,
+          coalesce(sum(amount) filter (where days_old between 31 and 60), 0) as days_31_to_60,
+          coalesce(sum(amount) filter (where days_old between 61 and 90), 0) as days_61_to_90,
+          coalesce(sum(amount) filter (where days_old > 90), 0) as days_91_plus,
+          min(invoice_date) filter (where amount > 0) as oldest_invoice_date
+        from allocated group by partner_id
+      ), partner_rows as materialized (
+        select p.id as partner_id, p.name as partner_name, p.phone, p.credit_limit,
+               round(p.balance, 2) as total_balance,
+               round(coalesce(b.current_amount, 0), 2) as current_amount,
+               round(coalesce(b.days_1_to_30, 0), 2) as days_1_to_30,
+               round(coalesce(b.days_31_to_60, 0), 2) as days_31_to_60,
+               round(coalesce(b.days_61_to_90, 0), 2) as days_61_to_90,
+               round(coalesce(b.days_91_plus, 0) + greatest(0, p.balance - coalesce(b.allocated_amount, 0)), 2) as days_91_plus,
+               b.oldest_invoice_date,
+               case when b.oldest_invoice_date is null then 0
+                    else floor(extract(epoch from (${asOfDate}::timestamptz - b.oldest_invoice_date)) / 86400)::int end as oldest_invoice_days,
+               case when coalesce(b.days_91_plus, 0) + greatest(0, p.balance - coalesce(b.allocated_amount, 0)) > 0 then 4
+                    when coalesce(b.days_61_to_90, 0) > 0 then 3
+                    when coalesce(b.days_31_to_60, 0) > 0 then 2
+                    when coalesce(b.days_1_to_30, 0) > 0 then 1 else 0 end as risk_weight
+        from partners p left join buckets b on b.partner_id = p.id
+      ), filtered_rows as materialized (
+        select * from partner_rows where true ${searchFilter} ${riskFilter}
+      ), stats as (
+        select count(*)::int as total_partners_count,
+               (select count(*)::int from filtered_rows) as filtered_partners_count,
+               count(*) filter (where risk_weight > 0)::int as overdue_partners_count,
+               coalesce(sum(total_balance), 0) as total_balance,
+               coalesce(sum(current_amount), 0) as total_current,
+               coalesce(sum(days_1_to_30), 0) as total_1_to_30,
+               coalesce(sum(days_31_to_60), 0) as total_31_to_60,
+               coalesce(sum(days_61_to_90), 0) as total_61_to_90,
+               coalesce(sum(days_91_plus), 0) as total_91_plus
+        from partner_rows
+      ), page_rows as (
+        select * from filtered_rows order by ${order} limit ${pageSize} offset ${offset}
+      )
+      select stats.*,
+             coalesce((select jsonb_agg(to_jsonb(page_rows) order by ${order}) from page_rows), '[]'::jsonb) as partners
+      from stats
+    `.execute(this.db);
+    const row = result.rows[0];
+    const partners: AgedPartnerRow[] = (row?.partners || []).map((p) => {
+      const days1To30 = this.money(p.days_1_to_30);
+      const days31To60 = this.money(p.days_31_to_60);
+      const days61To90 = this.money(p.days_61_to_90);
+      const days91Plus = this.money(p.days_91_plus);
+      const balance = this.money(p.total_balance);
+      const riskLevel: AgedPartnerRow['riskLevel'] = p.risk_weight === 4 ? 'critical'
+        : p.risk_weight === 3 ? 'high' : p.risk_weight === 2 ? 'medium'
+          : p.risk_weight === 1 ? 'low' : 'current';
+      const cleanPhone = String(p.phone || '').replace(/[^\d+]/g, '');
+      const overdue = this.money(days1To30 + days31To60 + days61To90 + days91Plus);
+      const message = encodeURIComponent(`مرحباً ${p.partner_name}، نود تذكيركم بوجود رصيد مستحق بقيمة ${balance.toLocaleString('ar-EG')} ج.م (منها ${overdue.toLocaleString('ar-EG')} ج.م متأخرة). يرجى التكرم بالسداد في أقرب وقت. شاكرين حسن تعاونكم.`);
+      return {
+        partnerId: Number(p.partner_id), partnerName: p.partner_name,
+        phone: p.phone || undefined,
+        creditLimit: p.credit_limit == null ? undefined : this.money(p.credit_limit),
+        totalBalance: balance, currentAmount: this.money(p.current_amount),
+        days1To30, days31To60, days61To90, days91Plus,
+        oldestInvoiceDate: p.oldest_invoice_date ? new Date(p.oldest_invoice_date).toISOString().slice(0, 10) : undefined,
+        oldestInvoiceDays: Number(p.oldest_invoice_days || 0),
         riskLevel,
-      });
-
-      totalCurrent += currentAmount;
-      total1To30 += days1To30;
-      total31To60 += days31To60;
-      total61To90 += days61To90;
-      total91Plus += days91Plus;
-    }
-
-    rows.sort((a, b) => b.totalBalance - a.totalBalance);
-    const totalBalance = this.toMoney(rows.reduce((s, r) => s + r.totalBalance, 0));
-
+        whatsAppUrl: kind === 'receivables' && cleanPhone.length >= 8
+          ? `https://wa.me/${cleanPhone.startsWith('+') ? cleanPhone.slice(1) : cleanPhone}?text=${message}` : undefined,
+      };
+    });
     return {
-      asOfDate: asOfDate.toISOString().slice(0, 10),
-      totalPartnersCount: rows.length,
-      overduePartnersCount: rows.filter((r) => r.riskLevel !== 'current').length,
-      totalBalance,
-      totalCurrent: this.toMoney(totalCurrent),
-      total1To30: this.toMoney(total1To30),
-      total31To60: this.toMoney(total31To60),
-      total61To90: this.toMoney(total61To90),
-      total91Plus: this.toMoney(total91Plus),
-      partners: rows,
+      asOfDate: asOfDate.toISOString().slice(0, 10), page, pageSize,
+      totalPartnersCount: Number(row?.total_partners_count || 0),
+      filteredPartnersCount: Number(row?.filtered_partners_count || 0),
+      overduePartnersCount: Number(row?.overdue_partners_count || 0),
+      totalBalance: this.money(row?.total_balance), totalCurrent: this.money(row?.total_current),
+      total1To30: this.money(row?.total_1_to_30), total31To60: this.money(row?.total_31_to_60),
+      total61To90: this.money(row?.total_61_to_90), total91Plus: this.money(row?.total_91_plus),
+      partners,
     };
   }
 }

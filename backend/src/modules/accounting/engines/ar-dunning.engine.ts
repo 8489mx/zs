@@ -51,6 +51,8 @@ export interface CustomerDunningInput {
   isCreditBlocked?: boolean;
   creditTermsDays?: number; // e.g. 0 (due immediately), 30, 60 days
   invoices: InputInvoice[];
+  /** Pre-aggregated FIFO exposure from the database for bulk collection sync. */
+  overdueSummary?: { totalOverdue: number; oldestOverdueDays: number };
   asOfDate?: string | Date;
   currentCase?: {
     status: string; // 'open' | 'promised_to_pay' | 'escalated' | 'settled' | 'disputed'
@@ -265,12 +267,9 @@ export function evaluateCustomerDunning(
   }
 
   // 1. Allocate overdue amounts via FIFO
-  const { overdueInvoices, totalOverdue, oldestOverdueDays } = allocateCustomerOverdueFifo(
-    totalBalance,
-    input.invoices,
-    asOfDate,
-    input.creditTermsDays ?? 0,
-  );
+  const { overdueInvoices, totalOverdue, oldestOverdueDays } = input.overdueSummary
+    ? { overdueInvoices: [], ...input.overdueSummary }
+    : allocateCustomerOverdueFifo(totalBalance, input.invoices, asOfDate, input.creditTermsDays ?? 0);
 
   // 2. Identify active dunning level
   const activeLevel = determineDunningLevel(oldestOverdueDays, levels);

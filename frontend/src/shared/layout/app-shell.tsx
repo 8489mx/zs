@@ -1852,6 +1852,7 @@ export function AppShell({ children }: PropsWithChildren) {
           return { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
         }} 
         onMouseEnter={() => prefetchRouteData(item.to)}
+        onFocus={() => prefetchRouteData(item.to)}
         onTouchStart={() => prefetchRouteData(item.to)}
         onAuxClick={(e) => {
           if (e.button === 1) e.preventDefault();

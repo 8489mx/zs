@@ -66,7 +66,7 @@ export class StorefrontPublicController {
     @Param('slug') slug: string,
     @Query() query: Record<string, unknown>,
   ): Promise<string> {
-    const wantsPage = ['page', 'pageSize', 'categoryId', 'q']
+    const wantsPage = ['page', 'pageSize', 'limit', 'categoryId', 'q']
       .some((key) => query?.[key] !== undefined && String(query[key]).trim() !== '');
     if (wantsPage) {
       return JSON.stringify(await this.service.getStorefrontCatalogPage(slug, query));
@@ -288,5 +288,4 @@ export class StorefrontPublicController {
     return this.paymentService.processStripeWebhook(headers, body, (req as any)?.rawBody);
   }
 }
-
 

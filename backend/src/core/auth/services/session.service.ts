@@ -310,7 +310,8 @@ export class SessionService {
     };
 
     // Cache the resolved auth context!
-    this.authCache.setSession(sessionId, auth);
+    // A cached authorization must never outlive the underlying session row.
+    this.authCache.setSession(sessionId, auth, Math.min(60, (row.expires_at.getTime() - Date.now()) / 1000));
     return auth;
 
   }

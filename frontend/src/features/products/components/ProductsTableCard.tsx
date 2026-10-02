@@ -110,9 +110,10 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
   }, [props.visibleProducts, selectedCategoryId]);
 
   const groupedRows = useMemo(() => groupProducts(filteredProducts), [filteredProducts]);
-  const visibleLeafIds = groupedRows.flatMap((group) => group.children.map((product) => String(product.id)));
-  const allVisibleSelected = Boolean(visibleLeafIds.length && visibleLeafIds.every((id) => props.selectedIds.includes(id)));
-  const someVisibleSelected = Boolean(!allVisibleSelected && visibleLeafIds.some((id) => props.selectedIds.includes(id)));
+  const visibleLeafIds = useMemo(() => groupedRows.flatMap((group) => group.children.map((product) => String(product.id))), [groupedRows]);
+  const selectedIdSet = useMemo(() => new Set(props.selectedIds), [props.selectedIds]);
+  const allVisibleSelected = Boolean(visibleLeafIds.length && visibleLeafIds.every((id) => selectedIdSet.has(id)));
+  const someVisibleSelected = Boolean(!allVisibleSelected && visibleLeafIds.some((id) => selectedIdSet.has(id)));
   const totalPages = Math.max(1, Math.ceil((props.totalItems || 0) / props.pageSize));
   const rangeStart = props.totalItems ? ((props.page - 1) * props.pageSize) + 1 : 0;
   const rangeEnd = Math.min(props.page * props.pageSize, props.totalItems || 0);

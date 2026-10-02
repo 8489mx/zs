@@ -312,11 +312,13 @@ export class StorefrontService {
   private async loadStorefrontAvailability(
     tenantId: string,
     locationIds: number[],
+    productIds?: number[],
   ): Promise<Map<number, number>> {
     const rows = await this.db
       .selectFrom('product_location_stock')
       .select(['product_id', 'location_id', 'qty', 'reserved_qty'])
       .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .$if(Boolean(productIds), (qb) => qb.where('product_id', 'in', productIds || []))
       .where((eb) => eb.or([
         eb('location_id', 'is', null),
         ...(locationIds.length > 0 ? [eb('location_id', 'in', locationIds)] : []),
@@ -339,8 +341,8 @@ export class StorefrontService {
     }
 
     const available = new Map<number, number>();
-    const productIds = new Set<number>([...assigned.keys(), ...unassigned.keys()]);
-    for (const productId of productIds) {
+    const stockProductIds = new Set<number>([...assigned.keys(), ...unassigned.keys()]);
+    for (const productId of stockProductIds) {
       available.set(
         productId,
         availableAcrossLocations(assigned.get(productId) || [], unassigned.get(productId) || { qty: 0, reserved: 0 }),
@@ -530,31 +532,103 @@ export class StorefrontService {
    */
   async getStorefrontCatalogPage(
     slug: string,
-    query: { page?: unknown; pageSize?: unknown; categoryId?: unknown; q?: unknown },
+    query: { page?: unknown; pageSize?: unknown; limit?: unknown; categoryId?: unknown; q?: unknown },
   ) {
-    const catalog: any = await this.getStorefrontCatalog(slug);
-    const all: any[] = Array.isArray(catalog?.products) ? catalog.products : [];
-
-    const search = String(query.q ?? '').trim().toLowerCase();
-    const categoryId = Number(query.categoryId ?? 0);
-    const filtered = all.filter((product) => {
-      if (categoryId > 0 && Number(product.categoryId ?? 0) !== categoryId) return false;
-      if (!search) return true;
-      return String(product.name || '').toLowerCase().includes(search)
-        || String(product.barcode || '').toLowerCase().includes(search);
-    });
-
-    const pageSize = Math.min(200, Math.max(1, Number(query.pageSize) || 50));
-    const page = Math.max(1, Number(query.page) || 1);
-    const start = (page - 1) * pageSize;
-
+    const cleanSlug = String(slug || '').trim().toLowerCase();
+    const tenant = await this.getTenantBySlug(cleanSlug);
+    const pageSize = Math.min(200, Math.max(1, Math.trunc(Number(query.pageSize ?? query.limit) || 50)));
+    const page = Math.min(10_000, Math.max(1, Math.trunc(Number(query.page) || 1)));
+    const categoryId = Number(query.categoryId || 0);
+    const search = String(query.q || '').trim().slice(0, 100);
+    const base = this.db.selectFrom('products')
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('is_active', '=', true)
+      .where((eb) => eb.or([eb('item_type', '=', 'product'), eb('item_type', 'is', null)]))
+      .$if(Number.isSafeInteger(categoryId) && categoryId > 0, (qb) => qb.where('category_id', '=', categoryId))
+      .$if(Boolean(search), (qb) => qb.where((eb) => eb.or([
+        eb('name', 'ilike', `%${search}%`), eb('barcode', 'ilike', `%${search}%`),
+      ])));
+    const [categories, catImagesRow, countRow, products, settings] = await Promise.all([
+      this.db.selectFrom('product_categories').select(['id', 'name'])
+        .where(sql<boolean>`tenant_id = ${tenant.id}`).orderBy('name', 'asc').execute(),
+      this.db.selectFrom('settings').select('value')
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .where('key', '=', 'storefront_category_images').executeTakeFirst(),
+      base.select(sql<number>`count(*)::int`.as('count')).executeTakeFirst(),
+      base.select(['id', 'name', 'barcode', 'retail_price', 'stock_qty', 'reserved_qty',
+        'category_id', 'notes', 'metadata', 'item_type'])
+        .orderBy('name', 'asc').orderBy('id', 'asc')
+        .limit(pageSize).offset((page - 1) * pageSize).execute(),
+      this.getTenantSettingsMap(tenant.id),
+    ]);
+    const productIds = products.map((p) => Number(p.id));
+    const [reviews, stockScope] = await Promise.all([
+      productIds.length
+        ? this.db.selectFrom('product_reviews')
+          .select(['product_id', sql<number>`round(avg(rating)::numeric, 1)`.as('avg_rating'),
+            sql<number>`count(*)::int`.as('review_count')])
+          .where(sql<boolean>`tenant_id = ${tenant.id}`)
+          .where('is_approved', '=', true).where('product_id', 'in', productIds)
+          .groupBy('product_id').execute()
+        : Promise.resolve([]),
+      this.resolveStorefrontStockScope(tenant.id, settings),
+    ]);
+    const availability = productIds.length
+      ? await this.loadStorefrontAvailability(
+        tenant.id, stockScope.locations.map((location) => location.id), productIds,
+      )
+      : new Map<number, number>();
+    const ratings = new Map(reviews.map((r) => [
+      Number(r.product_id), { rating: Number(r.avg_rating || 0), reviewCount: Number(r.review_count || 0) },
+    ]));
+    const categoryNames = new Map(categories.map((c) => [Number(c.id), c.name]));
+    let categoryImages: Record<string, string> = {};
+    if (catImagesRow?.value) {
+      try {
+        const parsed = JSON.parse(catImagesRow.value);
+        const value = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+        if (value && typeof value === 'object' && !Array.isArray(value)) categoryImages = value;
+      } catch {}
+    }
+    const allowOutOfStock = isOutOfStockOrderingAllowed(settings, cleanSlug, tenant.activity_type);
     return {
-      categories: catalog?.categories ?? [],
-      products: filtered.slice(start, start + pageSize),
-      page,
-      pageSize,
-      totalCount: filtered.length,
-      hasMore: start + pageSize < filtered.length,
+      categories: categories.map((c) => ({
+        id: c.id, name: c.name, imageUrl: catalogImageRef(categoryImages[String(c.id)]),
+      })),
+      products: products.map((p) => {
+        let meta: Record<string, unknown> = {};
+        if (p.metadata) {
+          try {
+            const parsed = typeof p.metadata === 'string' ? JSON.parse(p.metadata) : p.metadata;
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) meta = parsed as Record<string, unknown>;
+          } catch {}
+        }
+        const productId = Number(p.id);
+        const rawStock = availability.get(productId) ?? 0;
+        const mainImg = catalogImageRef(meta.imageUrl || meta.image);
+        const gallery = Array.isArray(meta.gallery)
+          ? meta.gallery.map(catalogImageRef).filter(Boolean)
+          : [mainImg].filter(Boolean);
+        const available = allowOutOfStock || rawStock > 0;
+        return {
+          id: productId, name: p.name, barcode: p.barcode || '',
+          price: Number(p.retail_price || 0),
+          categoryId: p.category_id ? Number(p.category_id) : null,
+          categoryName: p.category_id ? categoryNames.get(Number(p.category_id)) || 'عام' : 'عام',
+          stockQty: allowOutOfStock ? (rawStock > 0 ? rawStock : 999) : rawStock,
+          inStock: available, isLowStock: !allowOutOfStock && rawStock > 0 && rawStock <= 5,
+          icon: typeof meta.icon === 'string' ? meta.icon : '',
+          imageUrl: mainImg, gallery: gallery.length ? gallery : (mainImg ? [mainImg] : []),
+          variants: Array.isArray(meta.variants) ? meta.variants : [],
+          addOns: Array.isArray(meta.addOns) ? meta.addOns : (Array.isArray(meta.add_ons) ? meta.add_ons : []),
+          description: p.notes || (typeof meta.description === 'string' ? meta.description : ''),
+          rating: ratings.get(productId)?.rating || 0,
+          reviewCount: ratings.get(productId)?.reviewCount || 0,
+        };
+      }),
+      page, pageSize,
+      totalCount: Number(countRow?.count || 0),
+      hasMore: page * pageSize < Number(countRow?.count || 0),
     };
   }
 

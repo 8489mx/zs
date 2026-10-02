@@ -4,7 +4,6 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-  PayloadTooLargeException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Kysely, sql } from 'kysely';
@@ -159,15 +158,13 @@ export class ArCollectionsService {
       );
     }
 
-    const countRes = await (this.db as any)
-      .selectFrom('ar_collection_cases as c')
-      .innerJoin('customers as cust', 'cust.id', 'c.customer_id')
-      .where('c.tenant_id', '=', tenantId)
+    const countRes = await baseQuery
+      .clearSelect()
       .select(sql<number>`COUNT(*)`.as('total'))
       .executeTakeFirst();
 
-    const limit = query.limit || 50;
-    const offset = query.offset || 0;
+    const limit = Math.min(200, Math.max(1, Math.trunc(Number(query.limit) || 50)));
+    const offset = Math.max(0, Math.trunc(Number(query.offset) || 0));
 
     const rawCases = await baseQuery
       .orderBy('c.total_overdue', 'desc')
@@ -403,192 +400,199 @@ export class ArCollectionsService {
       levels = defaultLevels;
     }
 
-    // 2. Fetch all customers with positive balance
-    const customers = await (this.db as any)
-      .selectFrom('customers')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .where('is_active', '=', true)
-      .limit(5_001)
-      .execute();
-    if (customers.length > 5_000) throw new PayloadTooLargeException('AR synchronization exceeds the safe customer limit; batched synchronization is required');
-
-    // 3. Fetch existing collection cases for tenant
-    const existingCases = await (this.db as any)
-      .selectFrom('ar_collection_cases')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .limit(5_001)
-      .execute();
-    if (existingCases.length > 5_000) throw new PayloadTooLargeException('AR synchronization exceeds the safe case limit; batched synchronization is required');
-
-    const caseByCustomer = new Map<number, any>();
-    for (const ec of existingCases) {
-      caseByCustomer.set(Number(ec.customer_id), ec);
-    }
-
-    // 4. Fetch open unpaid sales
-    const unpaidSales = await (this.db as any)
-      .selectFrom('sales')
-      .select(['id', 'customer_id', 'total', 'paid_amount', 'created_at', 'status'])
-      .where('tenant_id', '=', tenantId)
-      .where('customer_id', 'is not', null)
-      .where('status', '!=', 'cancelled')
-      .where(sql<boolean>`total > COALESCE(paid_amount, 0)`)
-      .orderBy('created_at', 'asc')
-      .limit(5_001)
-      .execute();
-    if (unpaidSales.length > 5_000) throw new PayloadTooLargeException('AR synchronization exceeds the safe invoice limit; batched synchronization is required');
-
-    const salesByCustomer = new Map<number, any[]>();
-    for (const s of unpaidSales) {
-      const cId = Number(s.customer_id);
-      if (!salesByCustomer.has(cId)) salesByCustomer.set(cId, []);
-      salesByCustomer.get(cId)!.push(s);
-    }
-
+    // Keyset pages bound both memory and the duration of each write transaction.
+    // SQL computes FIFO allocation once per page; no invoice rows enter Node memory.
+    let scannedCustomers = 0;
     let activeCasesCount = 0;
     let creditBlockedCount = 0;
     let settledCasesCount = 0;
-    const activeCases: Array<Record<string, unknown>> = [];
-    const blockedCustomers: Array<{ id: number; reason: string | null }> = [];
-    const settledCaseIds: string[] = [];
-    const unblockedCustomerIds: number[] = [];
-    const logs: Array<Record<string, unknown>> = [];
+    let afterId = 0;
+    for (;;) {
+      const customers = await this.db.selectFrom('customers')
+        .select(['id', 'name', 'phone', 'balance', 'credit_limit', 'is_credit_blocked'])
+        .where('tenant_id', '=', tenantId)
+        .where('is_active', '=', true)
+        .where('id', '>', afterId)
+        .orderBy('id', 'asc')
+        .limit(200)
+        .execute();
+      if (!customers.length) break;
+      scannedCustomers += customers.length;
+      afterId = Number(customers[customers.length - 1].id);
+      const customerIds = customers.map((customer) => customer.id);
+      const existingCases = await this.db.selectFrom('ar_collection_cases')
+        .select(['id', 'customer_id', 'status', 'promised_payment_date', 'promised_amount'])
+        .where('tenant_id', '=', tenantId)
+        .where('customer_id', 'in', customerIds)
+        .execute();
+      const caseByCustomer = new Map(existingCases.map((row) => [Number(row.customer_id), row]));
 
-    for (const cust of customers) {
-      const cId = Number(cust.id);
-      const balance = Number(cust.balance || 0);
-      const currentCase = caseByCustomer.get(cId);
-      const custInvoices = salesByCustomer.get(cId) || [];
+      const summaries = await sql<{
+        customer_id: number; total_overdue: number | string; oldest_overdue_days: number;
+      }>`
+        with invoices as (
+          select s.customer_id, s.created_at,
+                 greatest(0, s.total - coalesce(s.paid_amount, 0))::numeric as unpaid,
+                 coalesce(sum(greatest(0, s.total - coalesce(s.paid_amount, 0)))
+                   over (partition by s.customer_id order by s.created_at asc, s.id asc
+                         rows between unbounded preceding and 1 preceding), 0) as prior_unpaid
+          from sales s
+          where s.tenant_id = ${tenantId} and s.customer_id = any(${customerIds}::bigint[])
+            and s.status <> 'cancelled'
+            and s.total > coalesce(s.paid_amount, 0)
+        ), allocated as (
+          select i.customer_id,
+                 greatest(0, least(i.unpaid, c.balance - i.prior_unpaid)) as amount,
+                 greatest(0, floor(extract(epoch from (now() - i.created_at)) / 86400))::int as days_overdue
+          from invoices i join customers c on c.id = i.customer_id and c.tenant_id = ${tenantId}
+        )
+        select a.customer_id,
+               (coalesce(sum(a.amount) filter (where a.days_overdue > 0), 0)
+                 + case when max(a.days_overdue) filter (where a.amount > 0) > 0
+                        then greatest(0, c.balance - sum(a.amount)) else 0 end)::numeric as total_overdue,
+               coalesce(max(a.days_overdue) filter (where a.amount > 0), 0)::int as oldest_overdue_days
+        from allocated a join customers c on c.id = a.customer_id and c.tenant_id = ${tenantId}
+        group by a.customer_id, c.balance
+      `.execute(this.db);
+      const overdueByCustomer = new Map(summaries.rows.map((row) => [
+        Number(row.customer_id),
+        { totalOverdue: this.toMoney(row.total_overdue), oldestOverdueDays: Number(row.oldest_overdue_days) },
+      ]));
 
-      const evalInput: CustomerDunningInput = {
-        customerId: cId,
-        customerName: cust.name,
-        phone: cust.phone,
-        balance,
-        creditLimit: cust.credit_limit,
-        isCreditBlocked: Boolean(cust.is_credit_blocked),
-        invoices: custInvoices.map((inv: any) => ({
-          id: inv.id,
-          createdAt: inv.created_at,
-          total: Number(inv.total),
-          paidAmount: Number(inv.paid_amount || 0),
-        })),
-        currentCase: currentCase
-          ? {
-              status: currentCase.status,
-              promisedPaymentDate: currentCase.promised_payment_date,
-              promisedAmount: currentCase.promised_amount ? Number(currentCase.promised_amount) : null,
-            }
-          : null,
-      };
+      const activeCases: Array<Record<string, unknown>> = [];
+      const blockedCustomers: Array<{ id: number; reason: string | null }> = [];
+      const settledCaseIds: string[] = [];
+      const unblockedCustomerIds: number[] = [];
+      const logs: Array<Record<string, unknown>> = [];
 
-      const evalResult = evaluateCustomerDunning(evalInput, levels as DunningLevel[]);
+      for (const cust of customers) {
+        const cId = Number(cust.id);
+        const balance = Number(cust.balance || 0);
+        const currentCase = caseByCustomer.get(cId);
 
-      if (evalResult.totalOverdue > 0) {
-        activeCasesCount++;
-        const caseId = currentCase?.id || `case_${randomUUID()}`;
+        const evalInput: CustomerDunningInput = {
+          customerId: cId,
+          customerName: cust.name,
+          phone: cust.phone,
+          balance,
+          creditLimit: Number(cust.credit_limit || 0),
+          isCreditBlocked: Boolean(cust.is_credit_blocked),
+          invoices: [],
+          overdueSummary: overdueByCustomer.get(cId) || { totalOverdue: 0, oldestOverdueDays: 0 },
+          currentCase: currentCase
+            ? {
+                status: currentCase.status,
+                promisedPaymentDate: currentCase.promised_payment_date ? new Date(currentCase.promised_payment_date).toISOString() : null,
+                promisedAmount: currentCase.promised_amount ? Number(currentCase.promised_amount) : null,
+              }
+            : null,
+        };
 
-        activeCases.push({
-            id: caseId,
-            tenant_id: tenantId,
-            customer_id: cId,
-            current_level_id: evalResult.activeDunningLevel?.id || null,
-            total_overdue: evalResult.totalOverdue,
-            oldest_overdue_days: evalResult.oldestOverdueDays,
-            status: evalResult.recommendedStatus,
-            updated_at: new Date(),
-        });
+        const evalResult = evaluateCustomerDunning(evalInput, levels as DunningLevel[]);
 
-        // Enforce automated credit block if qualified and not already blocked
-        if (evalResult.shouldBlockCredit && !cust.is_credit_blocked) {
-          creditBlockedCount++;
-          blockedCustomers.push({ id: cId, reason: evalResult.creditBlockReason });
+        if (evalResult.totalOverdue > 0) {
+          activeCasesCount++;
+          const caseId = currentCase?.id || `case_${randomUUID()}`;
 
-          logs.push({
-              id: `log_${randomUUID()}`,
+          activeCases.push({
+              id: caseId,
               tenant_id: tenantId,
-              case_id: caseId,
-              interaction_type: 'level_escalation',
-              result_status: 'credit_blocked',
-              details: evalResult.creditBlockReason,
-              created_by: null,
-              created_at: new Date(),
+              customer_id: cId,
+              current_level_id: evalResult.activeDunningLevel?.id || null,
+              total_overdue: evalResult.totalOverdue,
+              oldest_overdue_days: evalResult.oldestOverdueDays,
+              status: evalResult.recommendedStatus,
+              updated_at: new Date(),
           });
-        }
-      } else if (currentCase && currentCase.status !== 'settled') {
-        // Customer paid their balance -> Settle case
-        settledCasesCount++;
-        settledCaseIds.push(String(currentCase.id));
 
-        // If customer was credit-blocked, automatically unblock them
-        if (cust.is_credit_blocked) {
-          unblockedCustomerIds.push(cId);
+          // Enforce automated credit block if qualified and not already blocked
+          if (evalResult.shouldBlockCredit && !cust.is_credit_blocked) {
+            creditBlockedCount++;
+            blockedCustomers.push({ id: cId, reason: evalResult.creditBlockReason });
 
-          logs.push({
-              id: `log_${randomUUID()}`,
-              tenant_id: tenantId,
-              case_id: currentCase.id,
-              interaction_type: 'unblock_credit',
-              result_status: 'settled',
-              details: 'تم سداد كامل المديونية المتأخرة وإلغاء حظر البيع الآجل تلقائياً',
-              created_by: null,
-              created_at: new Date(),
-          });
+            logs.push({
+                id: `log_${randomUUID()}`,
+                tenant_id: tenantId,
+                case_id: caseId,
+                interaction_type: 'level_escalation',
+                result_status: 'credit_blocked',
+                details: evalResult.creditBlockReason,
+                created_by: null,
+                created_at: new Date(),
+            });
+          }
+        } else if (currentCase && currentCase.status !== 'settled') {
+          // Customer paid their balance -> Settle case
+          settledCasesCount++;
+          settledCaseIds.push(String(currentCase.id));
+
+          // If customer was credit-blocked, automatically unblock them
+          if (cust.is_credit_blocked) {
+            unblockedCustomerIds.push(cId);
+
+            logs.push({
+                id: `log_${randomUUID()}`,
+                tenant_id: tenantId,
+                case_id: currentCase.id,
+                interaction_type: 'unblock_credit',
+                result_status: 'settled',
+                details: 'تم سداد كامل المديونية المتأخرة وإلغاء حظر البيع الآجل تلقائياً',
+                created_by: null,
+                created_at: new Date(),
+            });
+          }
         }
       }
+
+      await this.db.transaction().execute(async (trx) => {
+        if (activeCases.length) {
+          await sql`
+            insert into ar_collection_cases
+              (id, tenant_id, customer_id, current_level_id, total_overdue, oldest_overdue_days, status, updated_at)
+            select id, tenant_id, customer_id, current_level_id, total_overdue, oldest_overdue_days, status, updated_at
+            from jsonb_to_recordset(${JSON.stringify(activeCases)}::jsonb) as x(
+              id text, tenant_id text, customer_id bigint, current_level_id text,
+              total_overdue numeric, oldest_overdue_days int, status text, updated_at timestamptz)
+            on conflict (tenant_id, customer_id) do update set
+              current_level_id = excluded.current_level_id,
+              total_overdue = excluded.total_overdue,
+              oldest_overdue_days = excluded.oldest_overdue_days,
+              status = excluded.status,
+              updated_at = excluded.updated_at
+          `.execute(trx);
+        }
+        if (settledCaseIds.length) {
+          await trx.updateTable('ar_collection_cases').set({
+            status: 'settled', total_overdue: 0, oldest_overdue_days: 0, updated_at: new Date(),
+          }).where('tenant_id', '=', tenantId).where('id', 'in', settledCaseIds).execute();
+        }
+        if (blockedCustomers.length) {
+          await sql`
+            update customers c set is_credit_blocked = true,
+              credit_block_reason = x.reason, credit_blocked_at = now()
+            from jsonb_to_recordset(${JSON.stringify(blockedCustomers)}::jsonb) as x(id bigint, reason text)
+            where c.id = x.id and c.tenant_id = ${tenantId}
+          `.execute(trx);
+        }
+        if (unblockedCustomerIds.length) {
+          await trx.updateTable('customers').set({
+            is_credit_blocked: false, credit_block_reason: null, credit_blocked_at: null,
+          }).where('tenant_id', '=', tenantId).where('id', 'in', unblockedCustomerIds).execute();
+        }
+        if (logs.length) {
+          await sql`
+            insert into ar_collection_logs
+              (id, tenant_id, case_id, interaction_type, result_status, details, created_by, created_at)
+            select id, tenant_id, case_id, interaction_type, result_status, details, created_by, created_at
+            from jsonb_to_recordset(${JSON.stringify(logs)}::jsonb) as x(
+              id text, tenant_id text, case_id text, interaction_type text,
+              result_status text, details text, created_by bigint, created_at timestamptz)
+          `.execute(trx);
+        }
+      });
     }
-
-    await this.db.transaction().execute(async (trx) => {
-      if (activeCases.length) {
-        await sql`
-          insert into ar_collection_cases
-            (id, tenant_id, customer_id, current_level_id, total_overdue, oldest_overdue_days, status, updated_at)
-          select id, tenant_id, customer_id, current_level_id, total_overdue, oldest_overdue_days, status, updated_at
-          from jsonb_to_recordset(${JSON.stringify(activeCases)}::jsonb) as x(
-            id text, tenant_id text, customer_id bigint, current_level_id text,
-            total_overdue numeric, oldest_overdue_days int, status text, updated_at timestamptz)
-          on conflict (tenant_id, customer_id) do update set
-            current_level_id = excluded.current_level_id,
-            total_overdue = excluded.total_overdue,
-            oldest_overdue_days = excluded.oldest_overdue_days,
-            status = excluded.status,
-            updated_at = excluded.updated_at
-        `.execute(trx);
-      }
-      if (settledCaseIds.length) {
-        await trx.updateTable('ar_collection_cases').set({
-          status: 'settled', total_overdue: 0, oldest_overdue_days: 0, updated_at: new Date(),
-        }).where('tenant_id', '=', tenantId).where('id', 'in', settledCaseIds).execute();
-      }
-      if (blockedCustomers.length) {
-        await sql`
-          update customers c set is_credit_blocked = true,
-            credit_block_reason = x.reason, credit_blocked_at = now()
-          from jsonb_to_recordset(${JSON.stringify(blockedCustomers)}::jsonb) as x(id bigint, reason text)
-          where c.id = x.id and c.tenant_id = ${tenantId}
-        `.execute(trx);
-      }
-      if (unblockedCustomerIds.length) {
-        await trx.updateTable('customers').set({
-          is_credit_blocked: false, credit_block_reason: null, credit_blocked_at: null,
-        }).where('tenant_id', '=', tenantId).where('id', 'in', unblockedCustomerIds).execute();
-      }
-      if (logs.length) {
-        await sql`
-          insert into ar_collection_logs
-            (id, tenant_id, case_id, interaction_type, result_status, details, created_by, created_at)
-          select id, tenant_id, case_id, interaction_type, result_status, details, created_by, created_at
-          from jsonb_to_recordset(${JSON.stringify(logs)}::jsonb) as x(
-            id text, tenant_id text, case_id text, interaction_type text,
-            result_status text, details text, created_by bigint, created_at timestamptz)
-        `.execute(trx);
-      }
-    });
-
     return {
-      scannedCustomers: customers.length,
+      scannedCustomers,
       activeCases: activeCasesCount,
       creditBlockedCount,
       settledCasesCount,

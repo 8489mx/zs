@@ -10,7 +10,7 @@ try {
 }
 
 import * as Sentry from '@sentry/node';
-import { json, urlencoded } from 'express';
+import { json, urlencoded, type Request, type Response, type NextFunction } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -100,6 +100,23 @@ async function bootstrap(): Promise<void> {
 
   const configService = app.get(ConfigService);
 
+  // Express computes weak ETags for JSON responses and responds 304 to If-None-Match.
+  // Authenticated master data must never enter a shared proxy cache.
+  app.set('etag', 'weak');
+  const revalidatedMasters = new Set([
+    '/api/categories', '/api/units', '/api/payment-methods',
+    '/api/settings', '/api/settings/locations', '/api/branches',
+  ]);
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.method === 'GET' && revalidatedMasters.has(req.path)) {
+      res.setHeader('Cache-Control', 'private, no-cache, must-revalidate');
+      res.vary('Cookie');
+      res.vary('Authorization');
+      res.vary('X-Session-ID');
+    }
+    next();
+  });
+
   app.use(json({
     limit: '2mb',
     verify: (req: any, _res, buf) => {
@@ -107,13 +124,12 @@ async function bootstrap(): Promise<void> {
     },
   }));
   app.use(urlencoded({ extended: true, limit: '256kb' }));
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const compression = require('compression');
-    if (typeof compression === 'function') {
-      app.use(compression({ threshold: 1024 }));
-    }
-  } catch {}
+  // compression@1.8.1 negotiates Brotli/gzip/deflate on Node 22; its default
+  // Brotli quality is 4. Fail startup if the dependency is unavailable rather than
+  // silently serving every large JSON payload uncompressed.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const compression = require('compression') as typeof import('compression');
+  app.use(compression({ threshold: 1024 }));
 
   app.useGlobalPipes(requestValidationPipe);
   app.useGlobalFilters(new GlobalExceptionFilter(logger));

@@ -39,7 +39,7 @@
 - `getStorefrontCatalogJson()` تُرجِع النصّ المخزَّن، والمسار العام يردّ به مع
   `@Header('Content-Type', 'application/json; charset=utf-8')` — **بدونها يرسل Express النصّ
   كـ`text/html`.** (تُحقِّق منه تجربةٌ مباشرة: الردّ مطابق بايتاً ببايت لما كان `res.json` يرسله.)
-- `?page&pageSize&categoryId&q` تعيد صفحة مُصفّاة على السيرفر بحدّ أقصى **200** صنف، مع
+- `?page&pageSize&categoryId&q` تعيد صفحة مُصفّاة داخل SQL بحدّ أقصى **200** صنف، مع
   `totalCount` و`hasMore`.
 - **الطلب بلا معاملات يظل يعيد الكتالوج كاملاً.** الواجهة الحالية تبحث وتفرز وتعدّ التصنيفات في
   المتصفح على المصفوفة كاملة، فتغيير الافتراضي يكسر صفحة المتجر. نقل البحث والفرز إلى السيرفر هو
@@ -127,4 +127,13 @@
 
 ## Shared database limits (2 October 2026)
 
-Representative, van-trip, AR-case and maritime ledger lists now cap pages at 200 rows. KDS has a fixed read cap; cashier fraud counts aggregate in SQL, while its monetary estimate uses at most 2,000 detailed rows and signals `sampled` when incomplete. Aging and AR sync reject overlarge financial scopes instead of returning partial figures. Migration `2040000000185` indexes only existing representative, cost-center and cashier-audit filters. The storefront keeps its full-response legacy contract for now, but its in-memory catalog cache is limited to 16 tenant slugs. No performance guards or migration checks were run here because the owner delegated verification to the local pair.
+Representative, van-trip, AR-case and maritime ledger lists now cap pages at 200 rows. KDS has a fixed read cap; cashier fraud counts aggregate in SQL, while its monetary estimate uses at most 2,000 detailed rows and signals `sampled` when incomplete. Aging and AR sync initially rejected overlarge financial scopes; the Rocket-Speed sprint below replaces that temporary guard with SQL aggregation and bounded pages. Migration `2040000000185` indexes only existing representative, cost-center and cashier-audit filters. The storefront keeps its full-response legacy contract for now, but its in-memory catalog cache is limited to 16 tenant slugs. No performance guards or migration checks were run here because the owner delegated verification to the local pair.
+
+## Rocket-Speed sprint (2 October 2026)
+
+- API JSON larger than 1 KB uses `compression@1.8.1`, whose source negotiates Brotli, gzip and deflate on Node 22 (Brotli quality 4). Express weak ETags and `private, no-cache, must-revalidate` allow conditional revalidation of authenticated master data without shared proxy caching. Actual Brotli delivery and sub-100 ms latency must still be measured through the deployed reverse proxy.
+- Session authorization and tenant feature payloads use a 60-second, 20,000-entry in-process LRU. Settings, branches, locations and plan features use 60-second, tenant-keyed caches with 2,000-entry limits. Existing explicit invalidation remains mandatory on writes and logout.
+- Aging reports allocate balances with SQL window functions and filtered sums; global totals and a maximum 200-partner page are computed in PostgreSQL. AR collection synchronization reads 200 customers at a time and calculates FIFO overdue exposure in SQL, with bounded write transactions. Do not restore invoice-row hydration or a 5,000-row rejection cap.
+- `GET /api/storefront/:slug/catalog?page=1&limit=50` reads only the requested product page, its stock and reviews, and returns `totalCount`/`hasMore`. The no-parameter legacy route still returns the full catalog for the current storefront UI, whose local search, facets and ordering require all products. Moving those features to SQL is the remaining prerequisite to making pagination the default.
+- Sidebar hover/focus prefetch runs in an idle callback for the hovered destination only; product table columns and row ID derivation are memoized. POS already memoizes its product panel and search derivations; preserve those guards.
+- No build, typecheck, automated tests, or latency benchmarks were run in this cloud workspace at the owner's request. The local pair must verify correctness and production p50/p95 latency before the <100 ms goal can be stated as achieved.
