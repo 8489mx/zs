@@ -1559,7 +1559,7 @@ export class AccountingService {
           potentialGrossMargin,
           status,
         };
-      }));
+      });
 
     const totals = {
       totalInventoryValue: this.toMoney(totalsRow?.total_inventory_value),

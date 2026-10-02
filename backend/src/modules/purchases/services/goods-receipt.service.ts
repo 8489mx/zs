@@ -322,7 +322,7 @@ export class GoodsReceiptService {
       }
 
       const grn = await this.getGoodsReceipt(id, auth, trx);
-      await lockStockProducts(trx, { ...scope, productIds: grn.lines.map((line) => Number(line.productId)) });
+      await lockStockProducts(trx, { ...scope, productIds: grn.lines.map((line: any) => Number(line.productId)) });
       let totalGrniAmount = 0;
 
       // Stock movements must carry branch attribution like every other stock path does.
