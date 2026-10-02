@@ -4,6 +4,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
+import { AppError } from '../../../common/errors/app-error';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 
@@ -33,13 +34,31 @@ export class SalesFinanceService {
     referenceId: number,
     auth: AuthContext,
   ): Promise<void> {
+    if (!Number.isFinite(amount)) throw new AppError('Invalid customer ledger amount', 'INVALID_AMOUNT', 400);
+    const customer = await queryable.selectFrom('customers')
+      .select(['id', 'balance', 'credit_limit', 'is_credit_blocked'])
+      .where('id', '=', customerId)
+      .where(this.tenantPredicate(auth))
+      .forUpdate()
+      .executeTakeFirst();
+    if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
+    if (amount > 0) {
+      if (customer.is_credit_blocked) throw new AppError('Customer credit is blocked', 'CUSTOMER_CREDIT_BLOCKED', 400);
+      if (Number(customer.credit_limit || 0) > 0
+        && Number(customer.balance || 0) + amount > Number(customer.credit_limit) + 0.001) {
+        throw new AppError('Customer credit limit exceeded', 'CUSTOMER_CREDIT_LIMIT', 400);
+      }
+    }
     const updatedCustomer = await queryable
       .updateTable('customers')
       .set({ balance: sql`COALESCE(balance, 0) + ${amount}`, updated_at: sql`NOW()` })
       .where('id', '=', customerId)
       .where(this.tenantPredicate(auth))
+      .where(sql<boolean>`${amount} <= 0 OR (NOT COALESCE(is_credit_blocked, FALSE)
+        AND (COALESCE(credit_limit, 0) <= 0 OR COALESCE(balance, 0) + ${amount} <= credit_limit + 0.001))`)
       .returning(['balance'])
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
+    if (!updatedCustomer) throw new AppError('Customer credit limit exceeded', 'CUSTOMER_CREDIT_LIMIT', 400);
     const nextBalance = Number(updatedCustomer.balance).toFixed(2);
     await queryable
       .insertInto('customer_ledger')
@@ -146,4 +165,3 @@ export class SalesFinanceService {
       .execute();
   }
 }
-

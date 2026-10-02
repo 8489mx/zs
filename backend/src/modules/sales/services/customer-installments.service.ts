@@ -68,8 +68,15 @@ export class CustomerInstallmentsService {
     const interestRatePercent = Number(dto.interestRatePercent || 0);
     const interestAmount = this.roundCurrency((financedAmount * interestRatePercent) / 100);
     const totalWithInterest = this.roundCurrency(financedAmount + interestAmount);
-    const installmentCount = Math.max(1, Math.floor(Number(dto.installmentCount) || 1));
-    const monthlyAmount = this.roundCurrency(totalWithInterest / installmentCount);
+    const installmentCount = Number(dto.installmentCount);
+    const totalCents = Math.round(totalWithInterest * 100);
+    if (!Number.isSafeInteger(installmentCount) || installmentCount < 1 || installmentCount > 600
+      || installmentCount > totalCents) {
+      throw new AppError('Installment count must be a positive integer with at least one cent per installment', 'INVALID_INSTALLMENT_COUNT', 400);
+    }
+    const baseCents = Math.floor(totalCents / installmentCount);
+    const extraCents = totalCents % installmentCount;
+    const monthlyAmount = baseCents / 100;
 
     const startDate = dto.startDate ? new Date(dto.startDate) : new Date();
 
@@ -115,19 +122,12 @@ export class CustomerInstallmentsService {
 
       // Generate installments schedule
       const installmentsToInsert = [];
-      let accumulated = 0;
-
       for (let i = 1; i <= installmentCount; i++) {
         const dueDate = new Date(startDate);
         dueDate.setMonth(dueDate.getMonth() + i);
 
-        // Adjust last installment for rounding
-        let currentAmount = monthlyAmount;
-        if (i === installmentCount) {
-          currentAmount = this.roundCurrency(totalWithInterest - accumulated);
-        } else {
-          accumulated = this.roundCurrency(accumulated + currentAmount);
-        }
+        // Distribute each remainder cent once; the schedule sums exactly to the principal plus interest.
+        const currentAmount = (baseCents + (i <= extraCents ? 1 : 0)) / 100;
 
         installmentsToInsert.push({
           tenant_id: scope.tenantId,
@@ -499,6 +499,10 @@ export class CustomerInstallmentsService {
         .where(this.tenantPredicate(auth))
         .forUpdate()
         .executeTakeFirst();
+      if (!plan || Number(plan.customer_id) !== Number(installment.customer_id)
+        || plan.status !== 'active') {
+        throw new AppError('Installment plan is not active', 'INSTALLMENT_PLAN_NOT_ACTIVE', 400);
+      }
 
       const currentPaid = Number(installment.paid_amount || 0);
       const totalRequired = Number(installment.amount || 0);
@@ -606,6 +610,7 @@ export class CustomerInstallmentsService {
         .selectFrom('customers')
         .select(['id', 'name', 'phone'])
         .where('id', '=', Number(installment.customer_id))
+        .where(this.tenantPredicate(auth))
         .executeTakeFirst();
 
       return {

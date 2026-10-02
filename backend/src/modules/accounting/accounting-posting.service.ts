@@ -467,7 +467,6 @@ export class AccountingPostingService {
     for (const line of lines) {
       if (!accounts.get(Number(line.accountId))) throw new AppError(`Account ${line.accountId} is missing or inactive for ${params.sourceType} #${params.sourceId}`, 'ACCOUNT_NOT_FOUND', 400);
     }
-
     const totalDebit = this.toMoney(lines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(lines.reduce((sum, line) => sum + line.credit, 0));
     const difference = this.toMoney(totalDebit - totalCredit);
@@ -490,6 +489,23 @@ export class AccountingPostingService {
     const balancedDebit = this.toMoney(lines.reduce((sum, line) => sum + line.debit, 0));
     const balancedCredit = this.toMoney(lines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(balancedDebit - balancedCredit) >= 0.001) throw new AppError(`Unbalanced journal for ${params.sourceType} #${params.sourceId}`, 'UNBALANCED_JOURNAL', 400);
+
+    // Serialize all postings touching the same ledger accounts. Every caller uses
+    // the same ascending order, so concurrent cash transfers cannot deadlock and
+    // a balance read made by a transfer cannot race a journal insert.
+    const accountIds = Array.from(new Set(lines.map((line) => Number(line.accountId)))).sort((a, b) => a - b);
+    const lockedAccounts = await queryable
+      .selectFrom('accounting_accounts')
+      .select('id')
+      .where('tenant_id', '=', params.tenantId)
+      .where('id', 'in', accountIds)
+      .where('is_active', '=', true)
+      .forUpdate()
+      .orderBy('id', 'asc')
+      .execute();
+    if (lockedAccounts.length !== accountIds.length) {
+      throw new AppError(`One or more accounts became inactive while posting ${params.sourceType} #${params.sourceId}`, 'ACCOUNT_NOT_FOUND', 400);
+    }
 
     // Validate Period Lock Dates
     const settings = await queryable

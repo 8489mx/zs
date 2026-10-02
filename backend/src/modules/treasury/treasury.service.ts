@@ -8,6 +8,8 @@ import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
+import { CreateTreasuryTransferDto } from './dto/create-treasury-transfer.dto';
+import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
 
 @Injectable()
@@ -155,5 +157,137 @@ export class TreasuryService {
 
     await this.audit.log('تسجيل مصروف', 'تم تسجيل مصروف بواسطة ' + auth.username, auth);
     return { ok: true, ...(await this.listExpenses({}, auth)) };
+  }
+
+  async createTransfer(payload: CreateTreasuryTransferDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
+    const fromAccountId = Number(payload.fromAccountId);
+    const toAccountId = Number(payload.toAccountId);
+    const amount = Number(Number(payload.amount).toFixed(2));
+    const requestKey = String(payload.requestKey || '').trim();
+    if (!Number.isInteger(fromAccountId) || !Number.isInteger(toAccountId) || fromAccountId === toAccountId) {
+      throw new AppError('Source and destination accounts must be different valid accounts', 'INVALID_TRANSFER_ACCOUNTS', 400);
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new AppError('Transfer amount must be greater than zero', 'INVALID_TRANSFER_AMOUNT', 400);
+    }
+    if (requestKey.length < 8 || requestKey.length > 160) {
+      throw new AppError('A stable transfer request key is required', 'TRANSFER_REQUEST_KEY_REQUIRED', 400);
+    }
+
+    const result = await this.tx.runInTransaction(this.db, async (trx) => {
+      // Idempotency is checked under a row lock. A retry after a committed request
+      // returns the original transfer instead of creating a second ledger movement.
+      const existing = await sql<{
+        id: number;
+        from_account_id: number;
+        to_account_id: number;
+        amount: number;
+        journal_entry_id: number | null;
+      }>`
+        SELECT id, from_account_id, to_account_id, amount, journal_entry_id
+        FROM treasury_transfers
+        WHERE tenant_id = ${scope.tenantId} AND request_key = ${requestKey}
+        FOR UPDATE
+      `.execute(trx);
+      const prior = existing.rows[0];
+      if (prior) {
+        if (Number(prior.from_account_id) !== fromAccountId
+          || Number(prior.to_account_id) !== toAccountId
+          || Number(prior.amount) !== amount) {
+          throw new AppError('Transfer request key was already used with different data', 'TRANSFER_IDEMPOTENCY_CONFLICT', 409);
+        }
+        return { transferId: Number(prior.id), journalEntryId: Number(prior.journal_entry_id || 0), idempotent: true };
+      }
+
+      // Lock both accounts in one canonical order. This is the only lock order
+      // used for treasury transfers, so A->B and B->A cannot deadlock.
+      const orderedAccountIds = [fromAccountId, toAccountId].sort((a, b) => a - b);
+      const accounts = await trx
+        .selectFrom('accounting_accounts')
+        .select(['id', 'name_ar'])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', 'in', orderedAccountIds)
+        .where('account_type', '=', 'asset')
+        .where('normal_balance', '=', 'debit')
+        .where('is_cash_bank', '=', true)
+        .where('is_active', '=', true)
+        .forUpdate()
+        .orderBy('id', 'asc')
+        .execute();
+      if (accounts.length !== 2) {
+        throw new AppError('Both accounts must be active cash or bank accounts in this tenant', 'TREASURY_ACCOUNT_NOT_FOUND', 400);
+      }
+
+      const balanceResult = await sql<{ balance: string }>`
+        SELECT COALESCE(SUM(jel.debit - jel.credit), 0)::numeric AS balance
+        FROM journal_entry_lines jel
+        INNER JOIN journal_entries je
+          ON je.id = jel.journal_entry_id AND je.tenant_id = ${scope.tenantId}
+        WHERE jel.tenant_id = ${scope.tenantId}
+          AND jel.account_id = ${fromAccountId}
+          AND je.status = 'posted'
+      `.execute(trx);
+      const available = Number(balanceResult.rows[0]?.balance || 0);
+      if (available + 0.001 < amount) {
+        throw new AppError(`Insufficient balance in source treasury (available ${available.toFixed(2)})`, 'INSUFFICIENT_TREASURY_BALANCE', 400);
+      }
+
+      const inserted = await sql<{ id: number }>`
+        INSERT INTO treasury_transfers
+          (tenant_id, account_id, from_account_id, to_account_id, amount, note, request_key, created_by)
+        VALUES
+          (${scope.tenantId}, ${scope.accountId}, ${fromAccountId}, ${toAccountId}, ${amount},
+           ${String(payload.note || '').trim()}, ${requestKey}, ${auth.userId})
+        RETURNING id
+      `.execute(trx);
+      const transferId = Number(inserted.rows[0]?.id || 0);
+      if (!transferId) throw new AppError('Treasury transfer could not be created', 'TRANSFER_CREATE_FAILED', 500);
+
+      const journalEntryId = await this.accountingPosting.postDomainJournal(trx, {
+        sourceType: 'treasury_transfer',
+        sourceId: transferId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: String(payload.note || `تحويل خزينة إلى الحساب ${toAccountId}`).trim(),
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines: [
+          { accountId: toAccountId, description: 'استلام تحويل خزينة', debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null },
+          { accountId: fromAccountId, description: 'إرسال تحويل خزينة', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId: null, locationId: null },
+        ],
+      });
+
+      await sql`
+        UPDATE treasury_transfers
+        SET journal_entry_id = ${journalEntryId}
+        WHERE id = ${transferId} AND tenant_id = ${scope.tenantId}
+      `.execute(trx);
+
+      await trx.insertInto('treasury_transactions').values([
+        {
+          txn_type: 'transfer_out', amount: -amount, note: String(payload.note || '').trim(),
+          reference_type: 'treasury_transfer', reference_id: transferId, return_document_id: null,
+          branch_id: null, location_id: null, created_by: auth.userId,
+          tenant_id: scope.tenantId, account_id: scope.accountId,
+        },
+        {
+          txn_type: 'transfer_in', amount, note: String(payload.note || '').trim(),
+          reference_type: 'treasury_transfer', reference_id: transferId, return_document_id: null,
+          branch_id: null, location_id: null, created_by: auth.userId,
+          tenant_id: scope.tenantId, account_id: scope.accountId,
+        },
+      ]).execute();
+
+      return { transferId, journalEntryId, idempotent: false };
+    });
+
+    if (!result.idempotent) {
+      await this.audit.log('تحويل خزينة', `تم تحويل مبلغ ${amount.toFixed(2)} بين حسابين`, auth);
+    }
+    return { ok: true, ...result };
   }
 }

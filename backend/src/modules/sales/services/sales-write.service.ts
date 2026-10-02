@@ -1707,6 +1707,7 @@ export class SalesWriteService {
         .selectAll()
         .where('id', '=', saleId)
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .forUpdate()
         .executeTakeFirst();
       if (!sale) throw new AppError('الفاتورة غير موجودة.', 'SALE_NOT_FOUND', 404);
       if (sale.status === 'cancelled') throw new AppError('لا يمكن تعديل الفاتورة بعد إلغائها أو وجود عمليات مرتبطة تمنع التعديل.', 'SALE_EDIT_CANCELLED_FORBIDDEN', 400);
@@ -1828,6 +1829,14 @@ export class SalesWriteService {
         .execute();
 
       await this.lockSaleStockRows(trx, scope, [...currentItems, ...(payload.items || [])]);
+      // The old and replacement customers may differ. Lock both in ascending ID order
+      // after product locks, before reversing the old receivable or testing the new limit.
+      for (const customerId of [...new Set([Number(sale.customer_id || 0), Number(normalized.customerId || 0)])]
+        .filter((id) => id > 0).sort((a, b) => a - b)) {
+        await trx.selectFrom('customers').select('id')
+          .where('id', '=', customerId).where('tenant_id', '=', scope.tenantId)
+          .forUpdate().executeTakeFirst();
+      }
       for (const item of [...currentItems].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
         if (!item.product_id) continue;
         const restoreQty = Number((Number(item.qty || 0) * Number(item.unit_multiplier || 1)).toFixed(3));
@@ -1936,7 +1945,7 @@ export class SalesWriteService {
       await trx.deleteFrom('sale_items').where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       const customer = normalized.customerId
-        ? await trx.selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit', 'store_credit_balance']).where('id', '=', normalized.customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst()
+        ? await trx.selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit', 'store_credit_balance', 'is_credit_blocked']).where('id', '=', normalized.customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).forUpdate().executeTakeFirst()
         : null;
       if (normalized.customerId && !customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
       if (normalized.paymentType === 'credit' && !customer) throw new AppError('Credit sale requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
@@ -2028,10 +2037,6 @@ export class SalesWriteService {
       const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
       const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
-      if (normalized.paymentType === 'credit' && customer) {
-        const nextBalance = Number(customer.balance || 0) + collectibleTotal;
-        if (Number(customer.credit_limit || 0) > 0 && nextBalance > Number(customer.credit_limit || 0)) throw new AppError('Customer credit limit exceeded', 'CUSTOMER_CREDIT_LIMIT', 400);
-      }
       if (normalized.storeCreditUsed > 0) {
         if (!customer) throw new AppError('Store credit requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
         if (normalized.storeCreditUsed > Number(customer.store_credit_balance || 0) + 0.0001) throw new AppError('Store credit exceeds available balance', 'STORE_CREDIT_EXCEEDED', 400);
@@ -2042,6 +2047,15 @@ export class SalesWriteService {
       const isPartialCredit = Boolean(normalized.customerId) && paidAmount + 0.0001 < collectibleTotal;
       const effectivePaymentType = (isPartialCredit || normalized.paymentType === 'credit') ? 'credit' : 'cash';
       if (effectivePaymentType !== 'credit' && paidAmount + 0.0001 < collectibleTotal) throw new AppError('Paid amount cannot be less than invoice total', 'INVALID_PAID_AMOUNT', 400);
+      const newDebt = Number(Math.max(0, collectibleTotal - paidAmount).toFixed(2));
+      if (newDebt > 0) {
+        if (!customer) throw new AppError('Credit sale requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
+        if (Number(customer.balance || 0) + newDebt > Number(customer.credit_limit || 0) + 0.001
+          && Number(customer.credit_limit || 0) > 0) {
+          throw new AppError('Customer credit limit exceeded', 'CUSTOMER_CREDIT_LIMIT', 400);
+        }
+        if (customer.is_credit_blocked) throw new AppError('Customer credit is blocked', 'CUSTOMER_CREDIT_BLOCKED', 400);
+      }
 
       await trx.updateTable('sales').set({
         customer_id: normalized.customerId,

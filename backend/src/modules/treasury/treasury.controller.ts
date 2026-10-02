@@ -4,6 +4,7 @@ import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { CreateExpenseDto } from './dto/create-expense.dto';
+import { CreateTreasuryTransferDto } from './dto/create-treasury-transfer.dto';
 import { TreasuryService } from './treasury.service';
 
 @Controller('api')
@@ -21,5 +22,11 @@ export class TreasuryController {
   @RequirePermissions('treasury')
   createExpense(@Body() payload: CreateExpenseDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.treasuryService.createExpense(payload, req.authContext!);
+  }
+
+  @Post('treasury/transfers')
+  @RequirePermissions('treasury')
+  createTransfer(@Body() payload: CreateTreasuryTransferDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.treasuryService.createTransfer(payload, req.authContext!);
   }
 }
