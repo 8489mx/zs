@@ -89,9 +89,10 @@ export function prefetchRouteData(to: string) {
       }
     } catch {}
   };
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(run, { timeout: 250 });
+  const win = typeof window !== 'undefined' ? (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void }) : null;
+  if (win && typeof win.requestIdleCallback === 'function') {
+    win.requestIdleCallback(run, { timeout: 250 });
   } else {
-    window.setTimeout(run, 0);
+    setTimeout(run, 0);
   }
 }
