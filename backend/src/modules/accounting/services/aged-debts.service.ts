@@ -1,8 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, PayloadTooLargeException } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+
+const MAX_AGING_ROWS = 5_000;
 
 export interface AgedPartnerRow {
   partnerId: number;
@@ -62,7 +64,9 @@ export class AgedDebtsService {
       .where('is_active', '=', true)
       .where('balance', '>', 0.01)
       .orderBy('name', 'asc')
+      .limit(MAX_AGING_ROWS + 1)
       .execute();
+    if (customers.length > MAX_AGING_ROWS) throw new PayloadTooLargeException('Aged receivables exceeds the safe partner limit; use a narrower scope');
 
     if (customers.length === 0) {
       return {
@@ -105,7 +109,8 @@ export class AgedDebtsService {
       salesQuery = salesQuery.where('branch_id', '=', params.branchId);
     }
 
-    const sales = await salesQuery.execute();
+    const sales = await salesQuery.limit(MAX_AGING_ROWS + 1).execute();
+    if (sales.length > MAX_AGING_ROWS) throw new PayloadTooLargeException('Aged receivables exceeds the safe invoice limit; use a narrower date or branch scope');
 
     // Group sales by customer
     const salesByCustomer = new Map<number, any[]>();
@@ -268,7 +273,9 @@ export class AgedDebtsService {
       .where('is_active', '=', true)
       .where('balance', '>', 0.01)
       .orderBy('name', 'asc')
+      .limit(MAX_AGING_ROWS + 1)
       .execute();
+    if (suppliers.length > MAX_AGING_ROWS) throw new PayloadTooLargeException('Aged payables exceeds the safe partner limit; use a narrower scope');
 
     if (suppliers.length === 0) {
       return {
@@ -312,7 +319,8 @@ export class AgedDebtsService {
       purchasesQuery = purchasesQuery.where('branch_id', '=', params.branchId);
     }
 
-    const purchases = await purchasesQuery.execute();
+    const purchases = await purchasesQuery.limit(MAX_AGING_ROWS + 1).execute();
+    if (purchases.length > MAX_AGING_ROWS) throw new PayloadTooLargeException('Aged payables exceeds the safe invoice limit; use a narrower date or branch scope');
 
     // Group purchases by supplier
     const purchasesBySupplier = new Map<number, any[]>();

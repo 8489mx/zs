@@ -620,12 +620,16 @@ export class ReportsService {
       activeOffers,
     }), auth);
 
-    if (this.overviewCache.size > 200) {
-      for (const [k, v] of this.overviewCache.entries()) {
-        if (nowMs >= v.expiresAt) this.overviewCache.delete(k);
-      }
-    }
+    this.overviewCache.delete(cacheKey);
     this.overviewCache.set(cacheKey, { expiresAt: nowMs + this.OVERVIEW_CACHE_TTL_MS, data: result });
+    for (const [key, value] of this.overviewCache) {
+      if (value.expiresAt <= nowMs) this.overviewCache.delete(key);
+    }
+    while (this.overviewCache.size > 256) {
+      const oldest = this.overviewCache.keys().next().value;
+      if (oldest === undefined) break;
+      this.overviewCache.delete(oldest);
+    }
 
     return result;
   }

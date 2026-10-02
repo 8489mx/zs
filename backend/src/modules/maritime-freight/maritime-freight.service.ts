@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { boundedPage } from '../../common/utils/bounded-page';
 import { CreateMaritimeInquiryDto } from './dto/create-inquiry.dto';
 import { CreateMaritimeRfqDto } from './dto/create-rfq.dto';
 import { SubmitMaritimeBidDto } from './dto/submit-bid.dto';
@@ -2900,7 +2901,7 @@ export class MaritimeFreightService {
     };
   }
 
-  async getJobFinancialLedger(auth: AuthContext, jobId: string) {
+  async getJobFinancialLedger(auth: AuthContext, jobId: string, pagination?: { page?: number; pageSize?: number }) {
     const { tenantId } = requireTenantScope(auth);
     const job = await this.getJobById(auth, jobId);
 
@@ -2908,8 +2909,8 @@ export class MaritimeFreightService {
 
     let query = this.db
       .selectFrom('journal_entries as je')
-      .innerJoin('journal_entry_lines as jel', 'jel.journal_entry_id', 'je.id')
-      .innerJoin('accounting_accounts as acc', 'acc.id', 'jel.account_id')
+      .innerJoin('journal_entry_lines as jel', (join) => join.onRef('jel.journal_entry_id', '=', 'je.id').onRef('jel.tenant_id', '=', 'je.tenant_id'))
+      .innerJoin('accounting_accounts as acc', (join) => join.onRef('acc.id', '=', 'jel.account_id').onRef('acc.tenant_id', '=', 'je.tenant_id'))
       .select([
         'je.id as entry_id',
         'je.entry_no',
@@ -2942,13 +2943,16 @@ export class MaritimeFreightService {
         .where('je.source_id', '=', Number(jobId));
     }
 
-    const lines = await query.orderBy('je.id', 'desc').execute();
+    const { page, pageSize, offset } = boundedPage(pagination?.page, pagination?.pageSize);
+    const pageRows = await query.orderBy('je.id', 'desc').orderBy('jel.id', 'desc')
+      .limit(pageSize + 1).offset(offset).execute();
 
     return {
       jobId: job.id,
       jobNumber: job.job_number,
       costCenterId: job.cost_center_id,
-      entries: lines,
+      entries: pageRows.slice(0, pageSize),
+      pagination: { page, pageSize, hasMore: pageRows.length > pageSize },
     };
   }
 

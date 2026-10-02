@@ -83,7 +83,15 @@ export class KdsService {
         .executeTakeFirst();
 
       if (record?.value) {
-        return JSON.parse(record.value) as StoredKdsState;
+        const state = JSON.parse(record.value) as StoredKdsState;
+        state.tickets ||= {};
+        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+        for (const [id, ticket] of Object.entries(state.tickets || {})) {
+          const updatedAt = new Date(ticket.updatedAt).getTime();
+          if (!Number.isFinite(updatedAt) || updatedAt < cutoff) delete state.tickets[id];
+        }
+        if (state.lastServedId && !state.tickets[String(state.lastServedId)]) state.lastServedId = undefined;
+        return state;
       }
     } catch (e: any) {
       this.logger.warn(`Failed reading kds runtime state: ${e.message}`);
@@ -165,17 +173,20 @@ export class KdsService {
   async getActiveTickets(
     auth: AuthContext,
     filters?: { station?: KdsStation; orderType?: string; status?: KdsTicketStatus }
-  ): Promise<{ tickets: KdsTicket[]; stats: KdsSummaryStats; lastServedId?: number }> {
+  ): Promise<{ tickets: KdsTicket[]; stats: KdsSummaryStats; lastServedId?: number; truncated: boolean }> {
     const { tenantId } = requireTenantScope(auth);
     const runtimeState = await this.getKdsStoreState(tenantId);
 
     // Fetch sales from the past 14 hours
     const fourteenHoursAgo = new Date(Date.now() - 14 * 60 * 60 * 1000);
+    const servedIds = Object.entries(runtimeState.tickets)
+      .filter(([, state]) => state.status === 'served')
+      .map(([id]) => Number(id)).filter((id) => Number.isSafeInteger(id) && id > 0);
 
-    const salesRows = await this.db
+    let salesQuery = this.db
       .selectFrom('sales as s')
-      .leftJoin('users as u', 'u.id', 's.created_by')
-      .leftJoin('customers as c', 'c.id', 's.customer_id')
+      .leftJoin('users as u', (join) => join.onRef('u.id', '=', 's.created_by').onRef('u.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('customers as c', (join) => join.onRef('c.id', '=', 's.customer_id').onRef('c.tenant_id', '=', 's.tenant_id'))
       .select([
         's.id',
         's.doc_no',
@@ -190,15 +201,19 @@ export class KdsService {
       ])
       .where(this.tenantPredicate(auth, 's'))
       .where('s.created_at', '>=', fourteenHoursAgo)
-      .where('s.status', '!=', 'cancelled')
-      .orderBy('s.created_at', 'asc')
-      .execute();
+      .where('s.status', '!=', 'cancelled');
+    if (servedIds.length) salesQuery = salesQuery.where(sql<boolean>`s.id <> ALL(${servedIds}::bigint[])`);
+    // Oldest outstanding tickets retain priority when the bounded kitchen queue overflows.
+    const candidateRows = await salesQuery.orderBy('s.created_at', 'asc').orderBy('s.id', 'asc').limit(201).execute();
+    const salesRows = candidateRows.slice(0, 200);
+    const truncated = candidateRows.length > 200;
 
     if (!salesRows.length) {
       return {
         tickets: [],
         stats: { pendingCount: 0, cookingCount: 0, readyCount: 0, criticalCount: 0, avgPrepMinutes: 0 },
         lastServedId: runtimeState.lastServedId,
+        truncated,
       };
     }
 
@@ -340,6 +355,7 @@ export class KdsService {
       tickets,
       stats,
       lastServedId: runtimeState.lastServedId,
+      truncated,
     };
   }
 

@@ -124,3 +124,7 @@
 4. [ ] أي فهرس جديد في هجرة مرقمة وجُرِّب `up/up/down` (P9).
 5. [ ] بعد أي بيلد يطلبه المالك: `npm --prefix frontend run qa:perf:dist` أخضر.
 6. [ ] حدّثت هذا الملف و`ARCHITECTURE_INVARIANTS.md` §2.6 لو أضفت ثابتاً أو كسرت واحداً بقرار.
+
+## Shared database limits (2 October 2026)
+
+Representative, van-trip, AR-case and maritime ledger lists now cap pages at 200 rows. KDS has a fixed read cap; cashier fraud counts aggregate in SQL, while its monetary estimate uses at most 2,000 detailed rows and signals `sampled` when incomplete. Aging and AR sync reject overlarge financial scopes instead of returning partial figures. Migration `2040000000185` indexes only existing representative, cost-center and cashier-audit filters. The storefront keeps its full-response legacy contract for now, but its in-memory catalog cache is limited to 16 tenant slugs. No performance guards or migration checks were run here because the owner delegated verification to the local pair.

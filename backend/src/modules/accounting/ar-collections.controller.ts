@@ -48,8 +48,10 @@ export class ArCollectionsController {
   async getCaseDetails(
     @Req() req: RequestWithAuth,
     @Param('id') id: string,
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
   ) {
-    return this.collectionsService.getCaseDetails(req.authContext!, id);
+    return this.collectionsService.getCaseDetails(req.authContext!, id, { page: Number(page), pageSize: Number(pageSize) });
   }
 
   @Post('sync')

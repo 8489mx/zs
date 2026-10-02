@@ -378,6 +378,9 @@ export class StorefrontService {
    * والتسلسل هو المعالج. الآن يُسلسَل مرة واحدة لكل بناء.
    */
   private readonly catalogCache = new Map<string, { data: any; json: string; expiresAt: number; staleUntil: number }>();
+  // Each entry keeps both a catalog object and its serialized JSON; 1,000 tenant entries can
+  // consume gigabytes even though the entries have a short TTL.
+  private readonly MAX_CACHED_CATALOGS = 16;
   private readonly inFlightCatalogPromises = new Map<string, Promise<any>>();
 
   public invalidateCatalogCache(slug?: string) {
@@ -507,6 +510,8 @@ export class StorefrontService {
     const cleanSlug = String(slug || '').trim().toLowerCase();
     const cached = this.catalogCache.get(cleanSlug);
     if (cached && cached.json && cached.expiresAt > Date.now()) {
+      this.catalogCache.delete(cleanSlug);
+      this.catalogCache.set(cleanSlug, cached);
       return cached.json;
     }
     const data = await this.getStorefrontCatalog(slug);
@@ -560,6 +565,8 @@ export class StorefrontService {
 
     // 1. Fresh cache hit: Return immediately from memory (< 1ms)
     if (cached && cached.expiresAt > now) {
+      this.catalogCache.delete(cleanSlug);
+      this.catalogCache.set(cleanSlug, cached);
       return cached.data;
     }
 
@@ -730,12 +737,18 @@ export class StorefrontService {
         };
 
         // Cache in-memory: 60s fresh, 5 mins stale-while-revalidate
+        this.catalogCache.delete(cleanSlug);
         this.catalogCache.set(cleanSlug, {
           data: result,
           json: JSON.stringify(result),
           expiresAt: Date.now() + 60_000,
           staleUntil: Date.now() + 300_000,
         });
+        while (this.catalogCache.size > this.MAX_CACHED_CATALOGS) {
+          const oldest = this.catalogCache.keys().next().value;
+          if (oldest === undefined) break;
+          this.catalogCache.delete(oldest);
+        }
 
         return result;
       } finally {
@@ -3430,4 +3443,3 @@ export class StorefrontService {
     };
   }
 }
-

@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Kysely, sql } from 'kysely';
@@ -11,6 +12,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
+import { boundedPage } from '../../../common/utils/bounded-page';
 import {
   ArCollectionsQueryDto,
   CreateCollectionLogDto,
@@ -208,7 +210,8 @@ export class ArCollectionsService {
   /**
    * Retrieves single case details including unpaid invoices and full interaction history
    */
-  async getCaseDetails(auth: AuthContext, caseId: string): Promise<any> {
+  async getCaseDetails(auth: AuthContext, caseId: string, pagination?: { page?: number; pageSize?: number }): Promise<any> {
+    const { page, pageSize, offset } = boundedPage(pagination?.page, pagination?.pageSize);
     this.assertCollectionsAccess(auth);
     const scope = requireTenantScope(auth);
     const tenantId = scope.tenantId;
@@ -265,6 +268,7 @@ export class ArCollectionsService {
       .where('status', '!=', 'cancelled')
       .where(sql<boolean>`total > COALESCE(paid_amount, 0)`)
       .orderBy('created_at', 'asc')
+      .limit(pageSize + 1).offset(offset)
       .execute();
 
     // Fetch interaction logs
@@ -284,6 +288,7 @@ export class ArCollectionsService {
       .where('l.case_id', '=', caseId)
       .where('l.tenant_id', '=', tenantId)
       .orderBy('l.created_at', 'desc')
+      .limit(pageSize + 1).offset(offset)
       .execute();
 
     let reminderMessage: string | undefined;
@@ -308,13 +313,14 @@ export class ArCollectionsService {
         reminderMessage,
         whatsAppUrl,
       },
-      invoices: sales.map((s: any) => ({
+      pagination: { page, pageSize, invoicesHasMore: sales.length > pageSize, logsHasMore: logs.length > pageSize },
+      invoices: sales.slice(0, pageSize).map((s: any) => ({
         ...s,
         total: this.toMoney(s.total),
         paid_amount: this.toMoney(s.paid_amount),
         unpaid_amount: this.toMoney(Math.max(0, Number(s.total || 0) - Number(s.paid_amount || 0))),
       })),
-      logs: logs.map((l: any) => ({
+      logs: logs.slice(0, pageSize).map((l: any) => ({
         ...l,
         promised_amount: l.promised_amount ? this.toMoney(l.promised_amount) : null,
       })),
@@ -403,14 +409,18 @@ export class ArCollectionsService {
       .selectAll()
       .where('tenant_id', '=', tenantId)
       .where('is_active', '=', true)
+      .limit(5_001)
       .execute();
+    if (customers.length > 5_000) throw new PayloadTooLargeException('AR synchronization exceeds the safe customer limit; batched synchronization is required');
 
     // 3. Fetch existing collection cases for tenant
     const existingCases = await (this.db as any)
       .selectFrom('ar_collection_cases')
       .selectAll()
       .where('tenant_id', '=', tenantId)
+      .limit(5_001)
       .execute();
+    if (existingCases.length > 5_000) throw new PayloadTooLargeException('AR synchronization exceeds the safe case limit; batched synchronization is required');
 
     const caseByCustomer = new Map<number, any>();
     for (const ec of existingCases) {
@@ -426,7 +436,9 @@ export class ArCollectionsService {
       .where('status', '!=', 'cancelled')
       .where(sql<boolean>`total > COALESCE(paid_amount, 0)`)
       .orderBy('created_at', 'asc')
+      .limit(5_001)
       .execute();
+    if (unpaidSales.length > 5_000) throw new PayloadTooLargeException('AR synchronization exceeds the safe invoice limit; batched synchronization is required');
 
     const salesByCustomer = new Map<number, any[]>();
     for (const s of unpaidSales) {
