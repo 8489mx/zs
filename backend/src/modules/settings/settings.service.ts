@@ -207,9 +207,40 @@ export class SettingsService {
     } else {
       settings.contractingModuleEnabled = false;
       settings.maritimeFreightModuleEnabled = false;
-      settings.posModuleEnabled = settings.posModuleEnabled !== false;
-      if (settings.inventoryModuleEnabled === undefined) settings.inventoryModuleEnabled = true;
-      if (settings.purchasesModuleEnabled === undefined) settings.purchasesModuleEnabled = true;
+
+      // Determine which core modules this vertical's industry profile mandates.
+      // The industry profile's defaultFeatures are the authoritative source of truth for
+      // "what must always be enabled for this activity type", regardless of what the DB says.
+      // This self-heals corrupted settings left behind by the old syncTenantModuleSettingsForPlan
+      // bug that would revoke ALL module settings for Level 1 tier plans.
+      const profileKey = (settings.industryProfile as any)?.key;
+      const profileDefaults: string[] = (settings.industryProfile as any)?.defaultFeatures || [];
+      const isWholesaleVan = profileKey === 'wholesale_van';
+      const isServiceVertical = profileKey === 'services';
+
+      // POS: enabled for all retail/hospitality/specialized verticals, disabled for wholesale_van and services
+      if (isWholesaleVan || isServiceVertical) {
+        settings.posModuleEnabled = false;
+        settings.requireCashierShiftForSales = false;
+      } else {
+        // If the profile has 'sales' in defaultFeatures, POS must be enabled (self-heal from corrupted false)
+        settings.posModuleEnabled = profileDefaults.includes('sales') ? true : (settings.posModuleEnabled !== false);
+      }
+
+      // Wholesale van: force delivery fleet and enterprise features
+      if (isWholesaleVan) {
+        settings.deliveryFleetModuleEnabled = true;
+        settings.enableEnterpriseFeatures = true;
+      }
+
+      // Inventory & Purchases: respect DB if explicitly set, but default to true for profiles that need them
+      if (settings.inventoryModuleEnabled === undefined || (settings.inventoryModuleEnabled === false && profileDefaults.includes('inventory'))) {
+        settings.inventoryModuleEnabled = profileDefaults.includes('inventory');
+      }
+      if (settings.purchasesModuleEnabled === undefined || (settings.purchasesModuleEnabled === false && profileDefaults.includes('purchases'))) {
+        settings.purchasesModuleEnabled = profileDefaults.includes('purchases');
+      }
+
       if (settings.crmModuleEnabled === undefined) settings.crmModuleEnabled = true;
       if (settings.restaurantModuleEnabled === undefined) {
         settings.restaurantModuleEnabled = (settings.industryProfile as any)?.subVertical === 'restaurant';
@@ -236,10 +267,14 @@ export class SettingsService {
       if (settings.clothingModuleEnabled === undefined) {
         settings.clothingModuleEnabled = (settings.industryProfile as any)?.subVertical === 'clothing';
       }
-      if (settings.activityType === 'wholesale_van' || (settings.industryProfile as any)?.key === 'wholesale_van') {
-        settings.posModuleEnabled = false;
-        settings.requireCashierShiftForSales = false;
+
+      // Delivery fleet: if the profile includes deliveryReps, ensure it's enabled (self-heal)
+      if (profileDefaults.includes('deliveryReps') && settings.deliveryFleetModuleEnabled !== true) {
         settings.deliveryFleetModuleEnabled = true;
+      }
+
+      // Enterprise features: if the profile includes accounting, ensure enterprise mode (self-heal)
+      if (profileDefaults.includes('accounting') && settings.enableEnterpriseFeatures !== true) {
         settings.enableEnterpriseFeatures = true;
       }
     }

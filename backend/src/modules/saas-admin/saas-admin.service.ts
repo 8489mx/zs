@@ -17,7 +17,7 @@ import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
 import { SettingsDemoDataService } from '../settings/services/settings-demo-data.service';
 import { SettingsService } from '../settings/settings.service';
 import { PLAN_MANAGED_MODULES_SETTING_KEY } from '../../common/constants/platform-settings-keys';
-import { normalizeIndustryProfileKey } from '../../core/tenant/industry-profiles';
+import { normalizeIndustryProfileKey, getIndustryProfile } from '../../core/tenant/industry-profiles';
 import { isPlatformTenantId } from '../../core/auth/utils/tenant-boundary';
 
 type TenantStatus = 'trial' | 'active' | 'expired' | 'suspended';
@@ -1200,6 +1200,25 @@ export class SaasAdminService {
           'manufacturing', 'import', 'pharmacy',
           'storefront',
         ],
+
+        // Tier band plans: Level 1 has zero rows in plan_features by design (core POS comes
+        // from industry profile defaultFeatures). Level 2 adds operations, Level 3 adds full ERP.
+        // These fallbacks ensure syncTenantModuleSettingsForPlan never thinks the plan is empty.
+        tier_band1_L1: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+        tier_band1_L2: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments'],
+        tier_band1_L3: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments', 'accounting', 'fixed_assets', 'hr', 'taxIntegration', 'vat_declaration'],
+
+        tier_band2_L1: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+        tier_band2_L2: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments'],
+        tier_band2_L3: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments', 'accounting', 'fixed_assets', 'hr', 'taxIntegration', 'vat_declaration'],
+
+        tier_band3_L1: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+        tier_band3_L2: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments'],
+        tier_band3_L3: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments', 'accounting', 'fixed_assets', 'hr', 'taxIntegration', 'vat_declaration'],
+
+        tier_band4_L1: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+        tier_band4_L2: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments'],
+        tier_band4_L3: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments', 'accounting', 'fixed_assets', 'hr', 'taxIntegration', 'vat_declaration'],
       };
 
       let baseFeatures: string[] = [];
@@ -1215,10 +1234,24 @@ export class SaasAdminService {
         }
       }
 
+      // Check tenant vertical to determine industry default features and module isolation
+      const tenantRow = await this.db
+        .selectFrom('tenants')
+        .select(['activity_type'])
+        .where('id', '=', tenantId)
+        .executeTakeFirst();
+      const verticalKey = normalizeIndustryProfileKey(tenantRow?.activity_type);
+      const industryProfile = getIndustryProfile(verticalKey);
+
       const extra = Array.isArray(extraFeatures) ? extraFeatures : [];
       const excluded = new Set(extra.filter(f => f.startsWith('-')).map(f => f.slice(1)));
       const added = extra.filter(f => !f.startsWith('-'));
+      // Always include the industry profile's defaultFeatures as a base — these are the
+      // sector-identity features that are always granted regardless of the plan level.
+      // Without this, Level 1 tier plans (which have zero plan_features rows by design)
+      // would cause the sync to revoke ALL module settings, hiding POS, delivery fleet, etc.
       const effectiveFeatures = new Set([
+        ...industryProfile.defaultFeatures.filter(f => !excluded.has(f)),
         ...baseFeatures.filter(f => !excluded.has(f)),
         ...added,
       ]);
@@ -1256,12 +1289,7 @@ export class SaasAdminService {
       }
 
       // Check tenant vertical to prevent retail POS or weighing scale leakage into contracting/maritime/services
-      const tenantRow = await this.db
-        .selectFrom('tenants')
-        .select(['activity_type'])
-        .where('id', '=', tenantId)
-        .executeTakeFirst();
-      const verticalKey = normalizeIndustryProfileKey(tenantRow?.activity_type);
+      // (tenantRow and verticalKey already fetched above when building effectiveFeatures)
       const isNonRetailVertical = ['maritime_freight', 'contracting', 'wholesale_van', 'services'].includes(verticalKey);
 
       // Strict vertical module isolation: do not let fallback plan features or previous settings leak across boundaries
