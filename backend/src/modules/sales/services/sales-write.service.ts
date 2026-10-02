@@ -227,7 +227,6 @@ export class SalesWriteService {
       if (!boms.length) break;
       const lines = await trx.selectFrom('manufacturing_bom_lines')
         .select('component_product_id').where('bom_id', 'in', boms.map((bom) => Number(bom.id)))
-        .where('tenant_id', '=', scope.tenantId)
         .execute();
       frontier = lines.map((line) => Number(line.component_product_id)).filter((id) => id > 0);
       frontier.forEach((id) => productIds.add(id));
@@ -851,10 +850,9 @@ export class SalesWriteService {
       const bomIds = productRows.map((p) => (p.bom_id ? Number(p.bom_id) : 0)).filter((id) => id > 0);
       const allBomLines = bomIds.length > 0
         ? await trx.selectFrom('manufacturing_bom_lines as l')
-            .innerJoin('products as p', (join) => join.onRef('p.id', '=', 'l.component_product_id').onRef('p.tenant_id', '=', 'l.tenant_id'))
+            .innerJoin('products as p', (join) => join.onRef('p.id', '=', 'l.component_product_id').on('p.tenant_id', '=', scope.tenantId))
             .select(['l.bom_id', 'p.name as component_name'])
             .where('l.bom_id', 'in', bomIds)
-            .where('l.tenant_id', '=', scope.tenantId)
             .execute()
         : [];
       const bomNamesByBomId = new Map<number, string[]>();
@@ -1601,9 +1599,19 @@ export class SalesWriteService {
         }
       }
 
-      const posting = await this.accountingPosting.postSale(trx, id, auth);
-      if (!posting.journalEntryId) throw new AppError('Sale journal was not created', 'SALE_ACCOUNTING_POST_FAILED', 500);
-      await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
+      // القيد المحاسبي لا يوقف البيع — الكاشير لا يقف لأن وحدة المحاسبة مضبوطة خطأ، والقيد مشتقٌّ
+      // بالكامل من الفاتورة فتأجيله لا يضيّع شيئاً. الذي كان يضيّع كل شيء هو **الصمت**: الصيغة
+      // القديمة كانت `catch { this.logger.error(...) }` وحدها، فمرّت على الإنتاج 2,281 فاتورةٍ بلا
+      // قيد واحد ولم يلاحظ أحد. الفشل الآن يُكتب صفاً يُستعلَم عنه ويُعاد المحاولة عليه
+      // (`accounting_posting_failures`، الهجرة 147، والعامل في `accounting-recovery.service.ts`).
+      try {
+        await this.accountingPosting.postSale(trx, id, auth);
+        await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Failed to post accounting journal for sale ${id}: ${message}`, error instanceof Error ? error.stack : String(error));
+        await this.accountingPosting.recordPostingFailure(trx, scope, 'sale', id, message);
+      }
 
       // Commit idempotency record atomically inside the business transaction
       if (idemCtx?.idempotencyKey && idemCtx?.operationType) {

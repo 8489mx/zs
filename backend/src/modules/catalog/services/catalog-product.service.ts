@@ -78,7 +78,7 @@ type ProductUnitReadRow = {
   is_purchase_unit_default: boolean;
 };
 
-type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id' | 'track_serials' | 'metadata'> & {
+type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'min_selling_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id' | 'track_serials' | 'metadata'> & {
   matched_unit_id?: number | null;
   matched_unit_name?: string | null;
   matched_unit_multiplier?: string | number | null;
@@ -519,6 +519,7 @@ export class CatalogProductService {
           'p.size',
           'p.retail_price',
           'p.wholesale_price',
+          'p.min_selling_price',
           'p.stock_qty',
           'p.min_stock_qty',
           'b.id as bom_id',
@@ -560,6 +561,7 @@ export class CatalogProductService {
         'p.size',
         'p.retail_price',
         'p.wholesale_price',
+        'p.min_selling_price',
         'p.stock_qty',
         'p.min_stock_qty',
         'b.id as bom_id',
@@ -603,6 +605,7 @@ export class CatalogProductService {
         'p.size',
         'p.retail_price',
         'p.wholesale_price',
+        'p.min_selling_price',
         'p.stock_qty',
         'p.min_stock_qty',
         'b.id as bom_id',

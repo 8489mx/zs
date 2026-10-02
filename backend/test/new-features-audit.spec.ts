@@ -128,11 +128,11 @@ async function runTests() {
   assert.equal(session.amount, 150.50, 'Amount must match');
 
   // Check status after initiation
-  const statusAfter = await terminalService.getPaymentStatus(session.transactionId);
+  const statusAfter = await terminalService.getPaymentStatus('test-tenant', session.transactionId);
   assert.equal(statusAfter.transactionId, session.transactionId);
 
   // Cancellation test
-  const cancelResult = await terminalService.cancelPayment(session.transactionId);
+  const cancelResult = await terminalService.cancelPayment('test-tenant', session.transactionId);
   assert.equal(cancelResult.status, 'cancelled', 'Cancelled transaction must have status cancelled');
 
   console.log('✓ POS Terminal tests passed successfully');
