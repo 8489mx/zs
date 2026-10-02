@@ -17,6 +17,7 @@ class FakeSelectBuilder {
     if (typeof column === 'string') this.filters.set(column, value);
     return this;
   }
+  orderBy(_column?: unknown, _direction?: unknown): this { return this; }
   forUpdate(): this { return this; }
   async executeTakeFirst(): Promise<unknown> {
     const rows = await this.execute();

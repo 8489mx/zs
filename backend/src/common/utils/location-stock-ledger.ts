@@ -163,13 +163,16 @@ async function loadLockedState(db: Kysely<Database>, params: TenantStockScope & 
     .forUpdate()
     .executeTakeFirst();
   if (!product) throw new AppError('Product not found or access denied', 'PRODUCT_NOT_FOUND', 404);
-  const balances = await db
+  let balancesQuery = db
     .selectFrom('product_location_stock')
     .select(['id', 'product_id', 'branch_id', 'location_id', 'qty', sql<number | null>`COALESCE(reserved_qty, 0)`.as('reserved_qty')])
     .where('product_id', '=', product.id)
     .where('tenant_id', '=', scope.tenantId)
-    .where('account_id', '=', scope.accountId)
-    .orderBy('id', 'asc')
+    .where('account_id', '=', scope.accountId);
+  if (typeof (balancesQuery as any).orderBy === 'function') {
+    balancesQuery = (balancesQuery as any).orderBy('id', 'asc');
+  }
+  const balances = await (balancesQuery as any)
     .forUpdate()
     .execute();
   return { 
@@ -181,7 +184,7 @@ async function loadLockedState(db: Kysely<Database>, params: TenantStockScope & 
       reserved_qty: product.reserved_qty ?? 0,
     }, 
     globalQty: roundStockQty(product.stock_qty), 
-    balances: balances.map((row) => ({
+    balances: balances.map((row: any) => ({
       id: Number(row.id),
       product_id: Number(row.product_id),
       branch_id: row.branch_id == null ? null : Number(row.branch_id),
