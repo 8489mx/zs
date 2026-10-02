@@ -12,6 +12,7 @@ import { productsApi } from '@/features/products/api/products.api';
 import { salesApi } from '@/features/sales/api/sales.api';
 import { customersApi } from '@/features/customers/api/customers.api';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { resolveCurrentVertical, isRouteAllowedInVertical } from '@/shared/verticals/vertical-scope';
 import type { Product, Sale, Customer } from '@/types/domain';
 
 export function GlobalSearchModal() {
@@ -56,70 +57,48 @@ export function GlobalSearchModal() {
   const normalizedQuery = useMemo(() => normalizeArabicSearchKey(debouncedQuery), [debouncedQuery]);
 
   const tenant = useAuthStore((state) => state.tenant);
-  const rawActivity = String(tenant?.activityType || tenant?.pillar || settings?.activityType || settings?.businessIndustry || 'retail_general').trim().toLowerCase();
-  const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || settings?.contractingModuleEnabled === true;
-  const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
-  const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
-  const isRetailOrMarketVertical = !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical;
+  const currentVertical = resolveCurrentVertical(tenant, settings);
 
   const navMatches = useMemo(() => {
     if (!hasQuery || !user) return [];
     return navigationItems
       .filter((item) => canAccessNavigationItem(user, item))
-      .filter((item) => {
-        // POS & Sales gating
-        if ((item.key === 'pos' || item.key === 'cash-drawer' || item.key === 'sales' || item.key === 'returns') && settings?.posModuleEnabled === false) return false;
-        if (item.key === 'customers' && settings?.posModuleEnabled === false && settings?.enableEnterpriseFeatures !== true && settings?.installmentsModuleEnabled !== true) return false;
-
-        // Inventory gating
-        if ((item.key === 'products' || item.key === 'product-categories' || item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'reports-inventory') && settings?.inventoryModuleEnabled === false) return false;
-
-        // Purchases gating
-        if ((item.key?.startsWith('purchases-') || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'reports-purchases') && settings?.purchasesModuleEnabled === false) return false;
-
-        // Maritime Freight & Contracting gating
-        if (item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) return false;
-        if (item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) return false;
-        if (item.key?.startsWith('manufacturing-') && settings?.manufacturingModuleEnabled !== true) return false;
-
-        if (isContractingVertical) {
-          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'pricing-center', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales', 'returns', 'sales-orders', 'price-lists'].includes(item.key)) return false;
-          if (item.key?.startsWith('maritime-') || item.key === 'maritime' || item.key === 'maritime-freight' || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
-        }
-        if (isMaritimeVertical) {
-          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'pricing-center', 'products', 'product-categories', 'inventory', 'inventory-warehouses', 'inventory-bins', 'inventory-tree', 'inventory-issue-orders', 'inventory-issue-order-new', 'reports-inventory', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales-orders', 'returns', 'price-lists'].includes(item.key)) return false;
-          if (item.key?.startsWith('contracting-') || item.key === 'contracting' || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
-        }
-        if (isManufacturingVertical) {
-          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'clothing'].includes(item.key)) return false;
-          if (item.key?.startsWith('contracting-') || item.key === 'contracting' || item.key?.startsWith('maritime-') || item.key?.startsWith('pharmacy-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
-        }
-        if (isRetailOrMarketVertical) {
-          if ((item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) || (item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) || (item.key?.startsWith('manufacturing-') && settings?.manufacturingModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history' || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
-        }
-        return true;
-      })
+      .filter((item) => isRouteAllowedInVertical(currentVertical, item.key || item.to, settings))
       .filter((item) => normalizeArabicSearchKey(item.label).includes(normalizedQuery))
       .slice(0, 6);
-  }, [hasQuery, isContractingVertical, isMaritimeVertical, isManufacturingVertical, isRetailOrMarketVertical, normalizedQuery, settings?.activityType, settings?.businessIndustry, settings?.contractingModuleEnabled, settings?.enableEnterpriseFeatures, settings?.importModuleEnabled, settings?.installmentsModuleEnabled, settings?.inventoryModuleEnabled, settings?.manufacturingModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, tenant?.activityType, tenant?.pillar, user]);
+  }, [hasQuery, user, currentVertical, settings, normalizedQuery]);
 
   // Real API queries
   const { data: productsData, isLoading: isLoadingProducts } = useQuery({
     queryKey: ['products-search', debouncedQuery],
     queryFn: () => productsApi.listPage({ q: debouncedQuery, page: 1, pageSize: 5 }),
-    enabled: hasQuery && isGlobalSearchOpen && !isMaritimeVertical && settings?.inventoryModuleEnabled !== false,
+    enabled:
+      hasQuery &&
+      isGlobalSearchOpen &&
+      currentVertical !== 'maritime' &&
+      isRouteAllowedInVertical(currentVertical, 'products', settings) &&
+      settings?.inventoryModuleEnabled !== false,
   });
 
   const { data: salesData, isLoading: isLoadingSales } = useQuery({
     queryKey: ['sales-search', debouncedQuery],
     queryFn: () => salesApi.listPage({ search: debouncedQuery, page: 1, pageSize: 5 }),
-    enabled: hasQuery && isGlobalSearchOpen && !isMaritimeVertical && !isContractingVertical && settings?.posModuleEnabled !== false,
+    enabled:
+      hasQuery &&
+      isGlobalSearchOpen &&
+      currentVertical !== 'contracting' &&
+      isRouteAllowedInVertical(currentVertical, 'sales', settings) &&
+      settings?.posModuleEnabled !== false,
   });
 
   const { data: customersData, isLoading: isLoadingCustomers } = useQuery({
     queryKey: ['customers-search', debouncedQuery],
     queryFn: () => customersApi.listPage({ q: debouncedQuery, page: 1, pageSize: 5 }),
-    enabled: hasQuery && isGlobalSearchOpen && (settings?.posModuleEnabled !== false || settings?.enableEnterpriseFeatures === true || settings?.installmentsModuleEnabled === true),
+    enabled:
+      hasQuery &&
+      isGlobalSearchOpen &&
+      isRouteAllowedInVertical(currentVertical, 'customers', settings) &&
+      (settings?.posModuleEnabled !== false || settings?.enableEnterpriseFeatures === true || settings?.installmentsModuleEnabled === true),
   });
 
   const isLoading = isLoadingProducts || isLoadingSales || isLoadingCustomers;

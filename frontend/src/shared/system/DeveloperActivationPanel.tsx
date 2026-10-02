@@ -113,6 +113,26 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
     'manufacturing', 'import', 'pharmacy', 'maritime_freight',
     'storefront',
   ],
+
+  // --- Band 1: General Retail Tiers ---
+  tier_band1_L1: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+  tier_band1_L2: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments'],
+  tier_band1_L3: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments', 'accounting', 'fixed_assets', 'hr', 'taxIntegration', 'vat_declaration'],
+
+  // --- Band 2: Specialized Showrooms Tiers ---
+  tier_band2_L1: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+  tier_band2_L2: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments'],
+  tier_band2_L3: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments', 'accounting', 'fixed_assets', 'hr', 'taxIntegration', 'vat_declaration'],
+
+  // --- Band 3: Hospitality & Restaurant Tiers ---
+  tier_band3_L1: ['sales', 'catalog', 'sessions', 'cashDrawer', 'restaurant'],
+  tier_band3_L2: ['sales', 'catalog', 'sessions', 'cashDrawer', 'restaurant', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments'],
+  tier_band3_L3: ['sales', 'catalog', 'sessions', 'cashDrawer', 'restaurant', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments', 'accounting', 'fixed_assets', 'hr', 'taxIntegration', 'vat_declaration'],
+
+  // --- Band 4: Corporate, Wholesale & Manufacturing Tiers ---
+  tier_band4_L1: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+  tier_band4_L2: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments'],
+  tier_band4_L3: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments', 'accounting', 'fixed_assets', 'hr', 'taxIntegration', 'vat_declaration'],
 };
 
 export function DeveloperActivationPanel() {

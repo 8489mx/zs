@@ -34,6 +34,12 @@
 - **الإلكترون:** نافذة تحميل فورية، الإظهار عند `ready-to-show`، وتخطي الهجرات حين لم تتغير النسخة (مفحوص، بلا تعديل).
 - **الحُرّاس:** `performance-hot-paths.spec.ts` + `qa:perf` في `npm run guards`؛ `qa:perf:dist` بعد كل بيلد.
 
+### قدرة: دستور الفصل والعزل التام بين الأنماط المؤسسية (Universal Vertical Isolation) — ✅ مفعّلة ومحروسة (أكتوبر 2026)
+- **المصدر الموحد للحقيقة:** محرك مركزي موحد `frontend/src/shared/verticals/vertical-scope.ts` يستنتج نمط عمل المنشأة بدقة (`maritime`, `contracting`, `wholesale_van`, `manufacturing`, `retail_general`, إلخ).
+- **التطابق الشامل (Omnichannel Parity):** عزل تام للموديولات بين سطح المكتب والموبايل. منشأة الشحن واللوجستيات لا يظهر فيها أي أثر لكاشير نقطة البيع أو جرد التجزئة أو المقاولات أو المطاعم.
+- **تخصيص الموبايل اللحظي:** شريط التنقل السفلي في الموبايل (`MobileBottomNav.tsx`) ونافذة الإجراءات السريعة (`MobileQuickActionSheet.tsx`) تتكيف فورياً لعرض الأدوات الميدانية الخاصة بالنشاط (مثل تتبع الحاويات وأوامر تشغيل الشحنات واستفسارات الشحن للشحن؛ والمشاريع والمستخلصات ويوميات الموقع للمقاولات؛ وأذونات تحميل سيارات الفان لتوزيع الجملة).
+- **حماية المسارات والبحث:** البحث الشامل (`GlobalSearchModal.tsx`) وحارس المسارات المباشرة (`hasRequiredFeature` في `access.ts`) يحجبان أي موديول غير مخصص لنمط المنشأة حتى عند كتابة الرابط يدوياً في المتصفح.
+
 ---
 
 ## بيئة التشغيل والاستضافة السحابية المعتمدة (Cloud Hosting & Infrastructure)
@@ -5841,3 +5847,46 @@
 - Demo data deletion fails closed if its automatic backup cannot be written.
 - Production startup validation requires SMTP host and sender configuration for SaaS mail flows.
 - Deployment creates an encrypted pre-migration backup, and shipping tracking/labels distinguish sandbox simulation from a real carrier shipment.
+
+---
+
+## 190. دستور عزل الأنماط المؤسسية والباقات التابعة والتطابق متعدد القنوات (Universal Omnichannel Vertical Isolation, Dependent Plans Constitution & Real Functional Wiring)
+* **الحالة / الإنجاز:** 🟢 مكتمل 100% ومتحقق على مستوى كامل المنظومة (2 أكتوبر 2026).
+* **المرجعية المعمارية:** `PRICING_AND_PACKAGING.md`, `ARCHITECTURE_INVARIANTS.md` §2.10 (ISO-VERT-1..8).
+* **المشكلة التي تم استئصالها:**
+  1. عند اختيار نمط الشحن اللوجستي أو المقاولات، كان الكمبيوتر معزولاً بنجاح بينما واجهة الموبايل تسرب أزرار التجزئة (نقطة البيع POS في الشريط السفلي، وأزرار قارئ الباركود وإضافة منتج وفاتورة شراء في نافذة `+`).
+  2. في نافذة تعديل باقة المنشأة ولوحة الساس، عند اختيار نمط الشحن أو المقاولات كانت القائمة المنسدلة للباقات تعرض مسميات تجزئة غير متوافقة ("تجزئة عامة — محل"، "معارض ومحلات").
+  3. محرك مزامنة الإعدادات بالباك إند (`syncTenantModuleSettingsForPlan`) كان يفرض تفعيل `posModuleEnabled = true` و `weightedBarcodeEnabled = true` عند وجود ميزة `sales` دون التحقق من هوية ونشاط المنشأة.
+* **الحلول والترقيات الهندسية المنفذة:**
+  1. **المصدر الموحد لاستنتاج النمط وعزله (`vertical-scope.ts`):**
+     - دالة `resolveCurrentVertical(tenant, settings)` لاستنتاج النمط المعتمد (`maritime`, `contracting`, `wholesale_van`, `manufacturing`, `restaurant`, `pharmacy`, `maintenance`, `services`, `retail_general`).
+     - مصفوفة الحظر والسماح الصارم للمسارات والموديولات `isRouteAllowedInVertical` لحجب أي صفحة غير متوافقة حتى مع التصفح بالرابط المباشر.
+  2. **التطابق الشامل للموبايل (Omnichannel Mobile Parity):**
+     - شريط تنقل سفلي ديناميكي (`MobileBottomNav`): للشحن (أوامر التشغيل)، للمقاولات (المشاريع والمستخلصات)، للجملة (المناديب وفواتير الجملة)، للتصنيع (أوامر الإنتاج)، وللتجزئة فقط (نقطة البيع).
+     - نافذة إجراءات سريعة ميدانية مخصصة (`MobileQuickActionSheet`): 6 إجراءات متخصصة لكل نمط (تتبع الحاويات وبوالص الشحن في اللوجستيات؛ مستخلصات ويوميات الموقع في المقاولات).
+  3. **دستورية مصفوفة الأنماط والباقات التابعة (`vertical-catalog.ts`):**
+     - اعتماد الأنماط الستة عشر الرسمية المطابقة لدستور التسعير والتحزيم:
+       - النطاق 5: الشحن اللوجستي والموانئ، المقاولات والمشاريع الهندسية.
+       - النطاق 4: تجارة وتوزيع الجملة والفان، التصنيع والإنتاج، الاستيراد والتصدير، الشركات الخدمية الاستشارية، المتاجر الرقمية.
+       - النطاق 3: المطاعم والكافيهات والضيافة.
+       - النطاق 2: الصيدليات، الإلكترونيات والصيانة، معارض التقسيط.
+       - النطاق 1: السوبرماركت، الملابس، العطارة والمحامص، العطور، والتجزئة العامة.
+     - تصفية الباقات ديناميكياً (`getPlansForVertical`): عند اختيار الشحن أو المقاولات تُحجب كافة باقات التجزئة والمحلات تلقائياً وتقتصر الخيارات حصرياً على باقات المؤسسات الكبرى.
+  4. **الربط الفعلي والتنفيذي بقاعدة البيانات (Real Functional DB Wiring):**
+     - تحديث `updateTenantPlan` في `saas-admin.service.ts` لحفظ `activity_type` وتطبيق `getIndustrySettingsPatch` ومزامنة مفاتيح الموديولات وإبطال الكاشات تلقائياً.
+     - تحصين `syncTenantModuleSettingsForPlan`: منع تفعيل `posModuleEnabled` أو `weightedBarcodeEnabled` قطعياً للمنشآت غير التجزئة (الشحن، المقاولات، الجملة، الخدمات) واعتبار `sales` في هذه القطاعات ترخيصاً لمستخلصات وفواتير المطالبات وعقود النولون.
+     - دعم كامل لكافة الأنماط الـ 16 في `industry-profiles.ts` و `trial-tenant-provisioning.service.ts`.
+* **الملفات المتصلة:**
+  - `frontend/src/shared/verticals/vertical-scope.ts`
+  - `frontend/src/shared/verticals/vertical-catalog.ts`
+  - `frontend/src/shared/layout/MobileBottomNav.tsx`
+  - `frontend/src/shared/layout/MobileQuickActionSheet.tsx`
+  - `frontend/src/features/saas-admin/components/UpdateTenantPlanModal.tsx`
+  - `frontend/src/features/saas-admin/components/CreateTrialTenantModal.tsx`
+  - `backend/src/modules/saas-admin/saas-admin.service.ts`
+  - `backend/src/modules/saas-admin/trial-tenant-provisioning.service.ts`
+  - `backend/src/core/tenant/industry-profiles.ts`
+  - `frontend/src/shared/system/DeveloperActivationPanel.tsx`
+  - `frontend/src/app/router/access.ts`
+  - `frontend/src/shared/components/GlobalSearchModal.tsx`
+  - `frontend/src/shared/layout/app-shell.tsx`

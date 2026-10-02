@@ -8,24 +8,24 @@ import { saasAdminApi, SaasTenantRow } from '../api/saas-admin.api';
 import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 import { STANDARD_TIER_FEATURES } from '@/shared/system/DeveloperActivationPanel';
 
+import {
+  SYSTEM_VERTICAL_OPTIONS,
+  normalizeVerticalKey,
+  getPlansForVertical,
+  getSystemVertical,
+} from '@/shared/verticals/vertical-catalog';
+
 interface UpdateTenantPlanModalProps {
   tenant: SaasTenantRow | null;
   onClose: () => void;
   onSuccess: (msg: string) => void;
 }
 
-const VERTICAL_MODE_OPTIONS = [
-  { value: 'wholesale', label: 'تجارة الجملة والوكلاء والتوزيع المؤسسي — [سيارات الفان والمناديب]', hint: 'إخفاء الكاشير وتفعيل أسطول الفان والمناديب' },
-  { value: 'retail', label: 'التجزئة والمحلات والمتاجر العامة — [كاشير ونقاط بيع]', hint: 'نقاط البيع السريعة والباركود' },
-  { value: 'contracting', label: 'المقاولات العامة والتطوير العقاري — [مشاريع ومستخلصات]', hint: 'المستخلصات وبنود المقايسة' },
-  { value: 'maritime', label: 'الشحن والخدمات اللوجستية والموانئ — [حاويات وخطوط]', hint: 'تتبع الحاويات وأوامر الشحن' },
-  { value: 'restaurant', label: 'المطاعم والكافيهات والأغذية — [طاولات ومطبخ KDS]', hint: 'شاشات المطبخ والطاولات' },
-  { value: 'supermarket', label: 'السوبرماركت والبقالة — [ميزان وباركود وزني]', hint: 'ميزان إلكتروني وباركود' },
-  { value: 'manufacturing', label: 'التصنيع الخفيف والورش — [أوامر تشغيل و BOM]', hint: 'قوائم المكونات وتكاليف الإنتاج' },
-  { value: 'import_export', label: 'الاستيراد والتصدير — [شحنات وتكاليف جمركية]', hint: 'تكاليف الشحنات والجمارك' },
-  { value: 'pharmacy', label: 'الصيدليات والمستلزمات الطبية — [تشغيلات FEFO]', hint: 'تواريخ الصلاحية والروشتات' },
-  { value: 'services', label: 'الشركات الخدمية والاستشارية — [خدمات بلا مخزون]', hint: 'عقود خدمات ومتابعة عملاء' },
-];
+const VERTICAL_MODE_OPTIONS = SYSTEM_VERTICAL_OPTIONS.map((v) => ({
+  value: v.key,
+  label: `${v.label} — [${v.badge}]`,
+  hint: v.description,
+}));
 
 const AVAILABLE_FEATURES = [
   { id: 'catalog', name: 'المنتجات والأصناف' },
@@ -55,7 +55,7 @@ const AVAILABLE_FEATURES = [
 export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTenantPlanModalProps) {
   const queryClient = useQueryClient();
   const [planId, setPlanId] = useState<string>('');
-  const [activityType, setActivityType] = useState<string>('wholesale');
+  const [activityType, setActivityType] = useState<string>('retail');
   const [extraFeatures, setExtraFeatures] = useState<string[]>([]);
   const [error, setError] = useState('');
 
@@ -70,27 +70,8 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
     if (tenant) {
       setPlanId(tenant.planId || '');
       const raw = String(tenant.activityType || '').toLowerCase();
-      if (raw.includes('wholesale') || raw.includes('توزيع') || raw.includes('فان') || raw.includes('جمل')) {
-        setActivityType('wholesale');
-      } else if (raw.includes('contracting') || raw.includes('مقاولات')) {
-        setActivityType('contracting');
-      } else if (raw.includes('maritime') || raw.includes('شحن')) {
-        setActivityType('maritime');
-      } else if (raw.includes('restaurant') || raw.includes('مطعم')) {
-        setActivityType('restaurant');
-      } else if (raw.includes('supermarket') || raw.includes('سوبر')) {
-        setActivityType('supermarket');
-      } else if (raw.includes('manufacturing') || raw.includes('تصنيع')) {
-        setActivityType('manufacturing');
-      } else if (raw.includes('import')) {
-        setActivityType('import_export');
-      } else if (raw.includes('pharmacy') || raw.includes('صيدل')) {
-        setActivityType('pharmacy');
-      } else if (raw.includes('service') || raw.includes('خدم')) {
-        setActivityType('services');
-      } else {
-        setActivityType('retail');
-      }
+      const norm = normalizeVerticalKey(raw);
+      setActivityType(norm);
       setExtraFeatures(tenant.extraFeatures || []);
       setError('');
     }
@@ -112,6 +93,39 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
   });
 
   if (!tenant) return null;
+
+  const currentVertical = getSystemVertical(activityType);
+  const authorizedPlans = getPlansForVertical(activityType, featurePlans);
+
+  const planOptions = [
+    { value: '', label: '-- بدون باقة --' },
+    ...authorizedPlans.map((p) => ({
+      value: p.value,
+      label: `${p.label} ${p.badge ? `— [${p.badge}]` : ''}`,
+    })),
+  ];
+
+  // Preserve legacy plan if tenant had one previously not matching current band
+  if (planId && !planOptions.some((o) => o.value === planId)) {
+    const legacyPlan = featurePlans.find((p: any) => String(p.id) === planId);
+    planOptions.push({
+      value: planId,
+      label: legacyPlan ? `${legacyPlan.name} (باقة مسجلة حالياً)` : `${planId} (باقة مسجلة حالياً)`,
+    });
+  }
+
+  const handleVerticalChange = (newVerticalKey: string) => {
+    setActivityType(newVerticalKey);
+    const validPlans = getPlansForVertical(newVerticalKey, featurePlans);
+    const isValid = validPlans.some((p) => p.value === planId);
+    if (!isValid) {
+      const rec = validPlans.find((p) => p.isRecommended) || validPlans[1] || validPlans[0];
+      if (rec) {
+        setPlanId(rec.value);
+        setExtraFeatures([]);
+      }
+    }
+  };
 
   const toggleFeature = (featId: string) => {
     setExtraFeatures(prev => {
@@ -137,20 +151,8 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
     || featurePlans.find(p => String(p.id) === planId)?.features 
     || [];
 
-  const planOptions = [
-    { value: '', label: '-- بدون باقة --' },
-    ...(featurePlans.length > 0
-      ? featurePlans.map((p: any) => ({ value: String(p.id), label: p.name }))
-      : [
-          { value: 'plan_basic', label: 'الأساسية' },
-          { value: 'plan_pro', label: 'الاحترافية' },
-          { value: 'plan_ultimate', label: 'المتكاملة (موصى بها للتوزيع والمقاولات)' },
-          { value: 'plan_omnichannel', label: 'باقة التجارة الشاملة (Omnichannel Enterprise)' },
-        ]),
-  ];
-
   return (
-    <DialogShell open={true} onClose={onClose} width="720px" ariaLabel="تحديث الباقة والمود القطاعي">
+    <DialogShell open={true} onClose={onClose} width="740px" ariaLabel="تحديث الباقة والمود القطاعي">
       <div className="dialog-card" dir="rtl">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
           <div>
@@ -172,7 +174,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {error && <div className="warning-box">{error}</div>}
 
-          {/* تنبيه إرشادي يوضح الفرق بين الباقة والمود القطاعي */}
+          {/* تنبيه إرشادي يوضح خصائص النمط النشط وعزله الصارم */}
           <div
             style={{
               background: '#f8fafc',
@@ -185,13 +187,20 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
               color: '#334155',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#170e5e', marginBottom: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#170e5e', marginBottom: '4px' }}>
               <ShieldCheckIcon size={15} color="#170e5e" />
-              <span>توجيه إداري: الفرق بين نمط النشاط (المود القطاعي) والباقة</span>
+              <span>دستور العزل والأنماط المؤسسية المعتمد ({currentVertical.groupLabel})</span>
             </div>
             <div>
-              <strong>المود القطاعي:</strong> يحدد واجهة النظام والأقسام المتاحة (مثال: اختيار <em>تجارة الجملة والتوزيع</em> يُخفي الكاشير ويفعّل أسطول سيارات الفان وإدارة المناديب تلقائياً).<br />
-              <strong>الباقة:</strong> رخصة سعة الحساب (الباقة الموصى بها للتوزيع هي <strong>المتكاملة</strong> أو <strong>التجارة الشاملة</strong>).
+              <strong>النمط المختار:</strong> {currentVertical.label} — <em>[{currentVertical.badge}]</em><br />
+              <strong>الأقسام والصلاحيات:</strong> {currentVertical.description}<br />
+              <span style={{ color: '#059669', fontWeight: 600 }}>
+                {currentVertical.band === 5
+                  ? 'يتم عزل هذا القطاع عزلاً تاماً (حجب نقاط بيع التجزئة، موازين الباركود، والمتجر السحابي على الكمبيوتر والموبايل).'
+                  : currentVertical.key === 'wholesale'
+                  ? 'يتم حجب كاشير التجزئة السريع وتفعيل أسطول التوزيع الفان والمبيعات الآجلة.'
+                  : 'تقتصر خيارات الباقات تلقائياً على باقات ومستويات هذا النمط التشغيلي.'}
+              </span>
             </div>
           </div>
 
@@ -199,14 +208,14 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
           <Field label="نمط المنشأة والمود القطاعي (Vertical Mode) *">
             <CustomSelect
               value={activityType}
-              onChange={(val) => setActivityType(val)}
+              onChange={(val) => handleVerticalChange(val)}
               options={VERTICAL_MODE_OPTIONS}
               style={{ height: '38px', fontWeight: 700, color: '#170e5e' }}
             />
           </Field>
 
           {/* 2. باقة الاشتراك */}
-          <Field label="باقة الاشتراك والترخيص (Feature Plan) *">
+          <Field label="باقة الاشتراك والترخيص المتوافقة مع النمط (Feature Plan) *">
             <CustomSelect
               value={planId}
               onChange={(val) => {

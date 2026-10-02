@@ -29,6 +29,7 @@ import {
 import { QuickAttendanceShortcut } from '@/shared/layout/quick-attendance-shortcut';
 import { GlobalAppToolbar } from '@/shared/layout/GlobalAppToolbar';
 import { MobileBottomNav } from '@/shared/layout/MobileBottomNav';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { GlobalSearchModal } from '@/shared/components/GlobalSearchModal';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -336,54 +337,17 @@ export function AppShell({ children }: PropsWithChildren) {
   };
 
   const visibleNavigationItems = useMemo(() => {
-    const activityCandidates = [
-      settings?.businessIndustry,
-      tenant?.activityType,
-      settings?.activityType,
-      tenant?.pillar,
-      tenant?.businessName,
-      settings?.storeName,
-      settings?.brandName,
-      (settings as any)?.companyName,
-    ].map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
-    const rawActivity = activityCandidates.find(
-      (a) => a !== 'retail_general' && a !== 'general' && a !== 'retail'
-    ) || activityCandidates[0] || 'retail_general';
-
-    const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || settings?.contractingModuleEnabled === true;
-    const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
-    const isRestaurantVertical = rawActivity === 'restaurant' || rawActivity === 'cafe' || rawActivity === 'مطعم' || rawActivity === 'كافيه';
-    const isPharmacyVertical = rawActivity === 'pharmacy' || rawActivity === 'صيدلية' || rawActivity === 'صيدليات';
-    const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
-    const isElectronicsVertical = rawActivity === 'electronics' || rawActivity === 'maintenance' || rawActivity === 'repair' || rawActivity === 'صيانة';
-    const isImportVertical = rawActivity === 'import_export' || rawActivity === 'import';
-    const isServicesVertical = rawActivity === 'services';
-    const isWholesaleVanVertical =
-      rawActivity === 'wholesale_van' ||
-      rawActivity === 'wholesale' ||
-      rawActivity === 'distribution' ||
-      rawActivity === 'توزيع' ||
-      rawActivity === 'فان' ||
-      rawActivity === 'مناديب' ||
-      rawActivity === 'جملة' ||
-      rawActivity === 'جملة_وتوزيع' ||
-      rawActivity.includes('توزيع') ||
-      rawActivity.includes('فان') ||
-      rawActivity.includes('مناديب') ||
-      rawActivity.includes('جمل') ||
-      rawActivity.includes('موزع') ||
-      rawActivity.includes('wholesale') ||
-      rawActivity.includes('distribution');
-    const isRetailOrMarketVertical =
-      !isContractingVertical &&
-      !isMaritimeVertical &&
-      !isRestaurantVertical &&
-      !isPharmacyVertical &&
-      !isManufacturingVertical &&
-      !isElectronicsVertical &&
-      !isImportVertical &&
-      !isServicesVertical &&
-      !isWholesaleVanVertical;
+    const currentVertical = resolveCurrentVertical(tenant, settings);
+    const isContractingVertical = currentVertical === 'contracting';
+    const isMaritimeVertical = currentVertical === 'maritime';
+    const isRestaurantVertical = currentVertical === 'restaurant';
+    const isPharmacyVertical = currentVertical === 'pharmacy';
+    const isManufacturingVertical = currentVertical === 'manufacturing';
+    const isElectronicsVertical = currentVertical === 'maintenance';
+    const isServicesVertical = currentVertical === 'services';
+    const isWholesaleVanVertical = currentVertical === 'wholesale_van';
+    const isImportVertical = settings?.importModuleEnabled === true;
+    const isRetailOrMarketVertical = currentVertical === 'retail_general';
 
     const wholesaleVanOrder = [
       'dashboard',

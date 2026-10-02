@@ -113,6 +113,7 @@ export class TrialTenantProvisioningService {
       case 'maritime':
         base.maritimeFreightModuleEnabled = true;
         base.posModuleEnabled = false;
+        base.inventoryModuleEnabled = false;
         base.requireCashierShiftForSales = false;
         base.hrModuleEnabled = true;
         base.enableEnterpriseFeatures = true;
@@ -150,6 +151,11 @@ export class TrialTenantProvisioningService {
         base.installmentsModuleEnabled = true;
         break;
 
+      case 'appliances_installments':
+        base.installmentsModuleEnabled = true;
+        base.enableEnterpriseFeatures = true;
+        break;
+
       case 'restaurant':
       case 'cafe':
         base.restaurantModuleEnabled = true;
@@ -163,6 +169,7 @@ export class TrialTenantProvisioningService {
         base.servicesModuleEnabled = true;
         base.inventoryModuleEnabled = false;
         base.installmentsModuleEnabled = true;
+        base.enableEnterpriseFeatures = true;
         break;
 
       case 'wholesale_van':
@@ -182,10 +189,14 @@ export class TrialTenantProvisioningService {
         break;
 
       case 'clothing':
+      case 'fashion':
         base.clothingModuleEnabled = true;
         base.defaultProductKind = 'fashion';
         break;
 
+      case 'spices':
+      case 'perfumes':
+      case 'retail':
       case 'retail_general':
       default:
         base.defaultPosMode = 'scanner';

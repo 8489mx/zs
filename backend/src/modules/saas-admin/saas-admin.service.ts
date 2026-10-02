@@ -931,7 +931,14 @@ export class SaasAdminService {
 
     if (Object.keys(updateData).length > 0) {
       await this.db.updateTable('tenants').set(updateData).where('id', '=', id).execute();
+      
+      const effectivePlanId = dto.planId !== undefined ? dto.planId : (tenant as any).plan_id;
+      const effectiveExtra = dto.extraFeatures !== undefined ? dto.extraFeatures : (tenant as any).extra_features;
+      await this.syncTenantModuleSettingsForPlan(id, effectivePlanId, effectiveExtra);
+
       this.authCache.invalidateTenant(id);
+      this.settingsService.invalidateSettingsCache(id);
+      this.settingsService.invalidatePlanFeaturesCache(id);
       await this.audit.log('تحديث الباقة والنشاط', `تم تحديث باقة ونشاط النسخة ${tenant.slug}`, auth, {
         targetTenantId: tenant.id,
         eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_PLAN_UPDATED,
@@ -1241,6 +1248,15 @@ export class SaasAdminService {
         }
       }
 
+      // Check tenant vertical to prevent retail POS or weighing scale leakage into contracting/maritime/services
+      const tenantRow = await this.db
+        .selectFrom('tenants')
+        .select(['activity_type'])
+        .where('id', '=', tenantId)
+        .executeTakeFirst();
+      const verticalKey = normalizeIndustryProfileKey(tenantRow?.activity_type);
+      const isNonRetailVertical = ['maritime_freight', 'contracting', 'wholesale_van', 'services'].includes(verticalKey);
+
       // Ensure foundational operational defaults
       if (effectiveFeatures.has('purchases')) {
         modulesToSet['purchasesModuleEnabled'] = true;
@@ -1248,11 +1264,19 @@ export class SaasAdminService {
         modulesToSet['servicesModuleEnabled'] = true;
       }
       if (effectiveFeatures.has('inventory')) {
-        modulesToSet['inventoryModuleEnabled'] = true;
+        // In maritime freight and pure consulting services, physical inventory is disabled
+        modulesToSet['inventoryModuleEnabled'] = !['maritime_freight', 'services'].includes(verticalKey);
       }
       if (effectiveFeatures.has('sales')) {
-        modulesToSet['posModuleEnabled'] = true;
-        modulesToSet['weightedBarcodeEnabled'] = true;
+        if (!isNonRetailVertical) {
+          modulesToSet['posModuleEnabled'] = true;
+          modulesToSet['weightedBarcodeEnabled'] = (verticalKey === 'supermarket');
+        } else {
+          // For non-retail verticals (maritime, contracting, wholesale van, services),
+          // 'sales' represents client invoicing / contracts / IPCs, NEVER retail POS or barcode scales!
+          modulesToSet['posModuleEnabled'] = false;
+          modulesToSet['weightedBarcodeEnabled'] = false;
+        }
       }
 
       // --- Revoke what this sync itself granted, and nothing else.

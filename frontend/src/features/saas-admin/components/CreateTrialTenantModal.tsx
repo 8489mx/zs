@@ -7,6 +7,12 @@ import { XIcon } from '@/shared/components/icons/AppIcons';
 import { formatDate } from '@/lib/format';
 import { saasAdminApi, SaasTenantRow } from '../api/saas-admin.api';
 
+import {
+  SYSTEM_VERTICAL_OPTIONS,
+  getPlansForVertical,
+  getSystemVertical,
+} from '@/shared/verticals/vertical-catalog';
+
 export interface CreateTrialTenantModalProps {
   open: boolean;
   onClose: () => void;
@@ -15,24 +21,11 @@ export interface CreateTrialTenantModalProps {
   onSuccessFeedback?: (message: string) => void;
 }
 
-const INDUSTRY_MODE_OPTIONS = [
-  { value: 'contracting', label: 'المقاولات والمشاريع الهندسية (ERP)', badge: 'مود المقاولات' },
-  { value: 'maritime', label: 'الشحن والخدمات اللوجستية والموانئ (ERP)', badge: 'مود الشحن' },
-  { value: 'ecommerce', label: 'المتاجر الرقمية والتجارة الإلكترونية', badge: 'متجر أونلاين وبوابات دفع' },
-  { value: 'import_export', label: 'الاستيراد والتصدير والتجارة الدولية', badge: 'حاويات وتكاليف جمركية' },
-  { value: 'supermarket', label: 'السوبرماركت والبقالة والمواد الغذائية', badge: 'كاشير وميزان' },
-  { value: 'spices', label: 'العطارة والمحامص والمطاحن والبهارات', badge: 'خلطات وميزان' },
-  { value: 'retail', label: 'التجزئة والمحلات والمتاجر العامة', badge: 'تجزئة سريعة' },
-  { value: 'appliances_installments', label: 'الأجهزة الكهربائية والمنزلية والأثاث', badge: 'مبيعات وتقسيط' },
-  { value: 'fashion', label: 'الملابس والأزياء والأحذية والشنط', badge: 'مقاسات وألوان' },
-  { value: 'perfumes', label: 'العطور ومستحضرات التجميل والتركيبات', badge: 'تركيبات وتصنيع وأحجام' },
-  { value: 'pharmacy', label: 'الصيدليات والمستلزمات الطبية والعلاجية', badge: 'تشغيلات FEFO' },
-  { value: 'electronics', label: 'الموبايل والإلكترونيات ومراكز الصيانة', badge: 'صيانة وسيريال' },
-  { value: 'restaurant', label: 'المطاعم والكافيهات والأغذية المجهزة', badge: 'طاولات ومطبخ KDS' },
-  { value: 'services', label: 'الشركات والمكاتب الخدمية والاستشارية', badge: 'خدمات بلا مخزون' },
-  { value: 'wholesale', label: 'تجارة الجملة والوكلاء والتوزيع المؤسسي', badge: 'موزعون وآجل' },
-  { value: 'manufacturing', label: 'التصنيع الخفيف والمعامل والورش', badge: 'تكاليف و BOM' },
-];
+const INDUSTRY_MODE_OPTIONS = SYSTEM_VERTICAL_OPTIONS.map((v) => ({
+  value: v.key,
+  label: v.label,
+  badge: v.badge,
+}));
 
 const initialForm = {
   slug: '',
@@ -302,10 +295,14 @@ export function CreateTrialTenantModal({
                     value={createForm.businessIndustry}
                     onChange={(val) => {
                       const found = INDUSTRY_MODE_OPTIONS.find((opt) => opt.value === val);
+                      const validPlans = getPlansForVertical(val, featurePlans);
+                      const isValid = validPlans.some((p) => p.value === createForm.featurePlanId);
+                      const recPlan = validPlans.find((p) => p.isRecommended) || validPlans[1] || validPlans[0];
                       setCreateForm((s) => ({
                         ...s,
                         businessIndustry: val,
                         activityType: found ? found.label : s.activityType,
+                        featurePlanId: isValid ? s.featurePlanId : (recPlan ? recPlan.value : 'plan_ultimate'),
                       }));
                     }}
                     options={INDUSTRY_MODE_OPTIONS.map((opt) => ({
@@ -409,18 +406,10 @@ export function CreateTrialTenantModal({
                   <CustomSelect
                     value={createForm.featurePlanId}
                     onChange={(val) => setCreateForm((s) => ({ ...s, featurePlanId: val }))}
-                    options={[
-                      { value: 'plan_omnichannel', label: 'باقة التجارة الشاملة — [كافة الميزات + المتجر السحابي والربط]' },
-                      { value: 'plan_ultimate', label: 'المتكاملة — [الباقة الشاملة - كافة الميزات]' },
-                      { value: 'plan_pro', label: 'الاحترافية — [المبيعات والمخازن والحسابات]' },
-                      { value: 'plan_basic', label: 'الأساسية — [نقطة البيع والكاشير والمخزون]' },
-                      ...(featurePlans || [])
-                        .filter((p: any) => !['plan_omnichannel', 'plan_ultimate', 'plan_pro', 'plan_basic'].includes(p.id))
-                        .map((p: any) => ({
-                          value: p.id,
-                          label: `${p.name} — [${p.code}]`,
-                        })),
-                    ]}
+                    options={getPlansForVertical(createForm.businessIndustry, featurePlans).map((p) => ({
+                      value: p.value,
+                      label: `${p.label} ${p.badge ? `— [${p.badge}]` : ''}`,
+                    }))}
                     style={{
                       height: '38px',
                       fontWeight: 700,

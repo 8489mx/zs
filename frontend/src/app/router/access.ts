@@ -3,6 +3,7 @@ import type { NavigationItemDefinition } from '@/app/router/types';
 import type { AuthUser } from '@/types/auth';
 
 import { useAuthStore } from '@/stores/auth-store';
+import { resolveCurrentVertical, isRouteAllowedInVertical } from '@/shared/verticals/vertical-scope';
 
 type RoutePermissionRequirement = string | string[] | null;
 
@@ -628,10 +629,15 @@ export function getRouteFeatureRequirement(target: string) {
 export function hasRequiredFeature(target: string, user?: AuthUser | null): boolean {
   if (isPlatformAdmin(user)) return true;
 
+  const tenant = useAuthStore.getState().tenant;
+  const vertical = resolveCurrentVertical(tenant);
+  if (!isRouteAllowedInVertical(vertical, target)) {
+    return false;
+  }
+
   const requiredFeature = getRouteFeatureRequirement(target);
   if (!requiredFeature) return true;
   
-  const tenant = useAuthStore.getState().tenant;
   if (!tenant) return true;
 
   const rawActivity = String(tenant?.activityType || tenant?.pillar || tenant?.businessName || (tenant as any)?.name || '').trim().toLowerCase();

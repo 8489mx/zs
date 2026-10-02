@@ -9,7 +9,13 @@ export type CommerceSubVertical =
   | 'auto_parts'
   | 'clothing'
   | 'manufacturing'
-  | 'wholesale_van';
+  | 'wholesale_van'
+  | 'services'
+  | 'ecommerce'
+  | 'supermarket'
+  | 'appliances_installments'
+  | 'spices'
+  | 'perfumes';
 
 export type IndustryProfileKey =
   | 'contracting'
@@ -231,6 +237,84 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
     allowedExtraFeatures: ['storefront', 'installments', 'crm'],
     pricingBand: 3,
   },
+
+  services: {
+    key: 'services',
+    pillar: 'commerce',
+    subVertical: 'services',
+    labelAr: 'الشركات والمكاتب الخدمية والاستشارية',
+    labelEn: 'Professional Services & Consulting',
+    descriptionAr: 'إدارة عقود الخدمات والاستشارات، مطالبات العملاء، المشاريع والمهام والتحصيلات بدون مخزون سلعي.',
+    defaultRoute: '/dashboard',
+    defaultFeatures: ['catalog', 'sales', 'customers', 'treasury', 'accounting', 'reports'],
+    allowedExtraFeatures: ['crm', 'installments'],
+    pricingBand: 4,
+  },
+
+  ecommerce: {
+    key: 'ecommerce',
+    pillar: 'commerce',
+    subVertical: 'ecommerce',
+    labelAr: 'المتاجر الرقمية والتجارة الإلكترونية',
+    labelEn: 'E-Commerce & Digital Stores',
+    descriptionAr: 'المتجر الإلكتروني، بوابات الدفع، شحن الطلبات، كاشير الكتروني وتتبع المبيعات أونلاين.',
+    defaultRoute: '/storefront',
+    defaultFeatures: ['catalog', 'products', 'sales', 'storefront', 'inventory', 'deliveryReps'],
+    allowedExtraFeatures: [],
+    pricingBand: 4,
+  },
+
+  supermarket: {
+    key: 'supermarket',
+    pillar: 'commerce',
+    subVertical: 'supermarket',
+    labelAr: 'السوبرماركت والبقالة والمواد الغذائية',
+    labelEn: 'Supermarket & Grocery',
+    descriptionAr: 'الباركود الوزني وموازين الباركود، الكاشير السريع، المخزون، ونواقص الرفوف.',
+    defaultRoute: '/dashboard',
+    defaultFeatures: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer', 'inventory'],
+    allowedExtraFeatures: ['storefront'],
+    pricingBand: 1,
+  },
+
+  appliances_installments: {
+    key: 'appliances_installments',
+    pillar: 'commerce',
+    subVertical: 'appliances_installments',
+    labelAr: 'الأجهزة الكهربائية والمنزلية ومعارض التقسيط',
+    labelEn: 'Appliances & Installment Showrooms',
+    descriptionAr: 'جدولة أقساط العملاء، غرامات التأخير، إيصالات وشيكات الأمانة، وإدارة معارض الأجهزة.',
+    defaultRoute: '/dashboard',
+    defaultFeatures: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer', 'installments'],
+    allowedExtraFeatures: ['storefront'],
+    pricingBand: 2,
+  },
+
+  spices: {
+    key: 'spices',
+    pillar: 'commerce',
+    subVertical: 'spices',
+    labelAr: 'العطارة والمحامص والمطاحن والبهارات',
+    labelEn: 'Spices & Roasteries',
+    descriptionAr: 'خلطات التعبئة والميزان، التجزئة بالأوزان والأحجام، وكاشير سريع للمحامص والمطاحن.',
+    defaultRoute: '/dashboard',
+    defaultFeatures: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer'],
+    allowedExtraFeatures: ['storefront'],
+    pricingBand: 1,
+  },
+
+  perfumes: {
+    key: 'perfumes',
+    pillar: 'commerce',
+    subVertical: 'perfumes',
+    labelAr: 'العطور ومستحضرات التجميل والتركيبات',
+    labelEn: 'Perfumes & Cosmetics',
+    descriptionAr: 'تركيبات العطور والزيوت الخام، أحجام الزجاجات والعبوات، والبيع السريع بالباركود.',
+    defaultRoute: '/dashboard',
+    defaultFeatures: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer'],
+    allowedExtraFeatures: ['storefront'],
+    pricingBand: 1,
+  },
 };
 
 /**
@@ -373,6 +457,73 @@ export function normalizeIndustryProfileKey(raw?: string | null): IndustryProfil
     return 'clothing';
   }
 
+  if (
+    trimmed === 'services' ||
+    trimmed === 'خدمات' ||
+    trimmed === 'استشارات' ||
+    trimmed === 'استشارية' ||
+    trimmed.includes('خدمات') ||
+    trimmed.includes('خدمية') ||
+    trimmed.includes('استشار')
+  ) {
+    return 'services';
+  }
+
+  if (
+    trimmed === 'ecommerce' ||
+    trimmed === 'storefront' ||
+    trimmed === 'متجر' ||
+    trimmed === 'أونلاين' ||
+    trimmed.includes('أونلاين') ||
+    trimmed.includes('إلكترون') ||
+    trimmed.includes('ecommerce')
+  ) {
+    return 'ecommerce';
+  }
+
+  if (
+    trimmed === 'supermarket' ||
+    trimmed === 'grocery' ||
+    trimmed === 'بقالة' ||
+    trimmed === 'سوبرماركت' ||
+    trimmed.includes('سوبر') ||
+    trimmed.includes('بقالة')
+  ) {
+    return 'supermarket';
+  }
+
+  if (
+    trimmed === 'appliances_installments' ||
+    trimmed === 'installments' ||
+    trimmed === 'تقسيط' ||
+    trimmed.includes('تقسيط') ||
+    trimmed.includes('أجهزة كهربائية') ||
+    trimmed.includes('أثاث')
+  ) {
+    return 'appliances_installments';
+  }
+
+  if (
+    trimmed === 'spices' ||
+    trimmed === 'عطارة' ||
+    trimmed.includes('عطارة') ||
+    trimmed.includes('محامص') ||
+    trimmed.includes('مطاحن') ||
+    trimmed.includes('بهارات')
+  ) {
+    return 'spices';
+  }
+
+  if (
+    trimmed === 'perfumes' ||
+    trimmed === 'عطور' ||
+    trimmed.includes('عطور') ||
+    trimmed.includes('تجميل') ||
+    trimmed.includes('تركيبات')
+  ) {
+    return 'perfumes';
+  }
+
   return 'retail_general';
 }
 
@@ -464,6 +615,9 @@ export function resolvePillarScopedFeatures(
     }
     if (profile.subVertical !== 'clothing' && !explicitPlus.includes('clothing')) {
       candidates.delete('clothing');
+    }
+    if (profile.subVertical === 'services' && !explicitPlus.includes('pos')) {
+      candidates.delete('pos');
     }
   }
 
