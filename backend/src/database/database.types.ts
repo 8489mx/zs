@@ -1028,6 +1028,20 @@ export interface TreasuryTransactionTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface TreasuryTransferTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  from_account_id: number;
+  to_account_id: number;
+  amount: number;
+  note: string;
+  request_key: string;
+  journal_entry_id: number | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface CashierShiftTable {
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
@@ -2004,6 +2018,7 @@ export interface Database {
   return_documents: ReturnDocumentTable;
   return_items: ReturnItemTable;
   treasury_transactions: TreasuryTransactionTable;
+  treasury_transfers: TreasuryTransferTable;
   cashier_shifts: CashierShiftTable;
   purchases: PurchaseTable;
   purchase_items: PurchaseItemTable;
@@ -2273,6 +2288,7 @@ export interface Database {
   return_documents: ReturnDocumentTable;
   return_items: ReturnItemTable;
   treasury_transactions: TreasuryTransactionTable;
+  treasury_transfers: TreasuryTransferTable;
   cashier_shifts: CashierShiftTable;
   purchases: PurchaseTable;
   purchase_items: PurchaseItemTable;
