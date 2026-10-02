@@ -1,10 +1,11 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Kysely, sql } from '../../../database/kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
-import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
+import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 import { CreateGoodsReceiptDto, VerifyThreeWayMatchDto } from '../dto/goods-receipt.dto';
 import { computeThreeWayMatch, ThreeWayMatchInput } from '../three-way-match.engine';
 import { applyStockDelta, lockStockProducts } from '../../../common/utils/location-stock-ledger';
@@ -83,16 +84,42 @@ export class GoodsReceiptService {
       throw new NotFoundException('المورد المحدد غير موجود.');
     }
 
-    // Generate Universal Document Number: GRN-YYMMDD-XXXX
-    const prefix = getDailyDocumentPrefix('GRN');
-    const countRow = await (this.db as any)
-      .selectFrom('goods_receipt_notes')
-      .select(sql<number>`count(*)::int`.as('count'))
-      .where('tenant_id', '=', scope.tenantId)
-      .where('doc_no', 'like', `${prefix}%`)
-      .executeTakeFirst();
-    const seq = Number(countRow?.count || 0) + 1;
-    const docNo = formatDailyDocumentNumber('GRN', seq);
+    const location = await this.db.selectFrom('stock_locations').select('id')
+      .where('id', '=', dto.locationId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+    if (!location) throw new NotFoundException('مكان الاستلام غير موجود في المنشأة.');
+    const productIds = [...new Set(dto.lines.map((line) => Number(line.productId)))];
+    if (productIds.some((id) => !Number.isInteger(id) || id <= 0)) {
+      throw new BadRequestException('أحد أصناف إذن الاستلام غير صالح.');
+    }
+    const products = await this.db.selectFrom('products').select('id')
+      .where('id', 'in', productIds).where('tenant_id', '=', scope.tenantId).execute();
+    if (products.length !== productIds.length) throw new NotFoundException('أحد أصناف إذن الاستلام لا يتبع المنشأة.');
+    if (!dto.purchaseOrderId && dto.lines.some((line) => line.purchaseOrderItemId)) {
+      throw new BadRequestException('يلزم تحديد أمر الشراء عند ربط أحد بنوده بإذن الاستلام.');
+    }
+    const quarantineIds = [...new Set(dto.lines.map((line) => Number(line.quarantineLocationId || 0)).filter((id) => id > 0))];
+    if (quarantineIds.length) {
+      const quarantineLocations = await this.db.selectFrom('stock_locations').select('id')
+        .where('id', 'in', quarantineIds).where('tenant_id', '=', scope.tenantId).execute();
+      if (quarantineLocations.length !== quarantineIds.length) throw new NotFoundException('مكان الحجر لا يتبع المنشأة.');
+    }
+    if (dto.purchaseOrderId) {
+      const order = await this.db.selectFrom('purchase_orders').select(['id', 'supplier_id'])
+        .where('id', '=', dto.purchaseOrderId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+      if (!order || Number(order.supplier_id) !== Number(dto.supplierId)) {
+        throw new BadRequestException('أمر الشراء لا يتبع المورد المحدد في المنشأة.');
+      }
+      const orderItemIds = [...new Set(dto.lines.map((line) => Number(line.purchaseOrderItemId || 0)).filter((id) => id > 0))];
+      if (orderItemIds.length) {
+        const orderItems = await this.db.selectFrom('purchase_order_items').select(['id', 'product_id'])
+          .where('id', 'in', orderItemIds).where('purchase_order_id', '=', order.id)
+          .where('tenant_id', '=', scope.tenantId).execute();
+        const byId = new Map(orderItems.map((item) => [Number(item.id), Number(item.product_id)]));
+        if (dto.lines.some((line) => line.purchaseOrderItemId && byId.get(Number(line.purchaseOrderItemId)) !== Number(line.productId))) {
+          throw new BadRequestException('بند أمر الشراء لا يطابق الصنف المستلم.');
+        }
+      }
+    }
 
     return await this.db.transaction().execute(async (trx: any) => {
       const [grn] = await trx
@@ -100,7 +127,7 @@ export class GoodsReceiptService {
         .values({
           tenant_id: scope.tenantId,
           account_id: scope.accountId || scope.tenantId,
-          doc_no: docNo,
+          doc_no: `GRN-TMP-${randomUUID()}`,
           purchase_order_id: dto.purchaseOrderId || null,
           supplier_id: dto.supplierId,
           location_id: dto.locationId,
@@ -113,6 +140,13 @@ export class GoodsReceiptService {
           updated_at: new Date(),
         })
         .returningAll()
+        .execute();
+
+      // The generated row id is unique across concurrent receipts; COUNT(*) + 1 is not.
+      await trx.updateTable('goods_receipt_notes')
+        .set({ doc_no: formatDailyDocumentNumber('GRN', Number(grn.id)) })
+        .where('id', '=', Number(grn.id))
+        .where('tenant_id', '=', scope.tenantId)
         .execute();
 
       const lineValues = dto.lines.map((l) => {
@@ -154,8 +188,8 @@ export class GoodsReceiptService {
   async listGoodsReceipts(filter: { supplierId?: number; status?: string; search?: string }, auth: AuthContext): Promise<any> {
     let query = (this.db as any)
       .selectFrom('goods_receipt_notes as g')
-      .leftJoin('suppliers as s', 's.id', 'g.supplier_id')
-      .leftJoin('purchase_orders as po', 'po.id', 'g.purchase_order_id')
+      .leftJoin('suppliers as s', (join: any) => join.onRef('s.id', '=', 'g.supplier_id').onRef('s.tenant_id', '=', 'g.tenant_id'))
+      .leftJoin('purchase_orders as po', (join: any) => join.onRef('po.id', '=', 'g.purchase_order_id').onRef('po.tenant_id', '=', 'g.tenant_id'))
       .where(this.tenantPredicate(auth, 'g'))
       .select([
         'g.id',
@@ -212,8 +246,8 @@ export class GoodsReceiptService {
 
     const grn = await q
       .selectFrom('goods_receipt_notes as g')
-      .leftJoin('suppliers as s', 's.id', 'g.supplier_id')
-      .leftJoin('purchase_orders as po', 'po.id', 'g.purchase_order_id')
+      .leftJoin('suppliers as s', (join: any) => join.onRef('s.id', '=', 'g.supplier_id').onRef('s.tenant_id', '=', 'g.tenant_id'))
+      .leftJoin('purchase_orders as po', (join: any) => join.onRef('po.id', '=', 'g.purchase_order_id').onRef('po.tenant_id', '=', 'g.tenant_id'))
       .where('g.id', '=', id)
       .where(this.tenantPredicate(auth, 'g'))
       .select([
@@ -239,7 +273,7 @@ export class GoodsReceiptService {
 
     const lines = await q
       .selectFrom('goods_receipt_lines as gl')
-      .leftJoin('products as p', 'p.id', 'gl.product_id')
+      .leftJoin('products as p', (join: any) => join.onRef('p.id', '=', 'gl.product_id').onRef('p.tenant_id', '=', 'gl.tenant_id'))
       .where('gl.grn_id', '=', id)
       .where(this.tenantPredicate(auth, 'gl'))
       .select([
@@ -598,7 +632,7 @@ export class GoodsReceiptService {
     if (linkedPoId || purchase.grn_id) {
       let histQuery = (this.db as any)
         .selectFrom('purchase_items as pi')
-        .innerJoin('purchases as p', 'p.id', 'pi.purchase_id')
+        .innerJoin('purchases as p', (join: any) => join.onRef('p.id', '=', 'pi.purchase_id').onRef('p.tenant_id', '=', 'pi.tenant_id'))
         .select(['pi.po_item_id', 'pi.product_id', 'pi.qty'])
         .where('p.tenant_id', '=', scope.tenantId)
         .where('p.id', '!=', purchaseId)

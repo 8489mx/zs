@@ -5905,3 +5905,22 @@
   - `frontend/src/app/router/access.ts`
   - `frontend/src/shared/components/GlobalSearchModal.tsx`
   - `frontend/src/shared/layout/app-shell.tsx`
+
+## POS and cashier integrity (2 October 2026)
+
+- Cashier shift opening is serialized per cashier and tenant, validates branch and location ownership, and has a database uniqueness guard for open shifts. Closing recalculates expected cash inside the transaction and stores the signed variance.
+- POS checkout checks the active shift on the sale branch, posts its journal in the sale transaction, serializes customer credit balance checks, and requires recorded manager approval for sales below cost or the product's optional minimum selling price.
+- Returns enforce remaining invoice quantity by product and original line. Cash refunds draw from an open shift on the invoice branch. Terminal payment simulation is unavailable in Cloud SaaS until a real provider is connected.
+
+## Purchases and inventory integrity (2 October 2026)
+
+- Active supplier invoice references are protected by a tenant/supplier database unique index; supplier payments lock balances before checking availability. GRN document numbers use the inserted row ID instead of a concurrent `COUNT(*) + 1` calculation.
+- Goods receipts validate tenant ownership of supplier, location, purchase order, order lines, and products. In-transit transfers require a valid destination and reject invalid or duplicate receipt quantities.
+- Stock-count posting runs in resumable 64-product transactions. Each committed chunk has its own balanced variance journal. Stale pending items require an audited recount before processing can continue.
+
+## Shared database scale controls (2 October 2026)
+
+- Representative order and settlement history, van-trip sales/collections/returns detail, and maritime job financial ledger lines now return bounded pages with pagination metadata. Delivery representative KPIs use SQL aggregates. Kitchen tickets and cashier fraud detail reads have explicit row caps; the fraud response flags sampled monetary estimates.
+- A capped PostgreSQL pool, statement deadline, idle transaction deadline, and idle-client error handler limit resource exhaustion. Large in-process storefront and dashboard caches have fixed entry ceilings. Migration `2040000000185` adds indexes for the measured tenant-scoped lookup patterns.
+- An opt-in staging stress probe simulates 1,000 read and lock operations across ten tenants. Run it only against a migrated staging database with ten tenants that each have sales; it was not executed in this cloud task.
+- Aging and AR collection synchronization fail explicitly when their current in-memory financial computation would exceed 5,000 partners or open invoices. AR case detail lists use bounded pages. Larger tenants need a windowed SQL rewrite before these reports can be considered complete at scale.

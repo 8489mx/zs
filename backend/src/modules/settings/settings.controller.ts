@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Header, Param, ParseIntPipe, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { SettingsService } from './settings.service';
@@ -24,6 +24,7 @@ export class SettingsController {
   }
 
   @Get('settings')
+  @Header('Cache-Control', 'private, no-cache, must-revalidate')
   async getSettings(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     await this.backupService.runAutoBackupIfDue(req.authContext).catch(() => undefined);
     return this.settingsService.getSettings(req.authContext!);
@@ -39,6 +40,7 @@ export class SettingsController {
   }
 
   @Get('branches')
+  @Header('Cache-Control', 'private, no-cache, must-revalidate')
   listBranches(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.settingsService.listBranches(req.authContext!);
   }
@@ -62,6 +64,7 @@ export class SettingsController {
   }
 
   @Get('settings/locations')
+  @Header('Cache-Control', 'private, no-cache, must-revalidate')
   listLocations(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.settingsService.listLocations(req.authContext!);
   }

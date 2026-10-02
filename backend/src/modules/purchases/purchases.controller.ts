@@ -124,8 +124,8 @@ export class PurchasesController {
 
   @Post('supplier-payment-schedules/:id/settle')
   @RequirePermissions('accounts')
-  settleSupplierSchedule(@Param('id', ParseIntPipe) id: number, @Body() payload: PaySupplierScheduleInstallmentDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.scheduleService.payInstallment(id, payload, req.authContext!);
+  settleSupplierSchedule(@Param('id', ParseIntPipe) id: number, @Body() payload: PaySupplierScheduleInstallmentDto, @Req() req: RequestWithAuth, @Headers('x-idempotency-key') idempotencyKey?: string): Promise<Record<string, unknown>> {
+    return this.scheduleService.payInstallment(id, payload, req.authContext!, idempotencyKey);
   }
 
   @Get('purchases/:id/margin-analysis')
@@ -163,8 +163,8 @@ export class PurchasesController {
 
   @Post('supplier-payments')
   @RequirePermissions('accounts')
-  createSupplierPayment(@Body() payload: CreateSupplierPaymentDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.purchasesService.createSupplierPayment(payload, req.authContext!);
+  createSupplierPayment(@Body() payload: CreateSupplierPaymentDto, @Req() req: RequestWithAuth, @Headers('x-idempotency-key') idempotencyKey?: string): Promise<Record<string, unknown>> {
+    return this.purchasesService.createSupplierPayment(payload, req.authContext!, idempotencyKey);
   }
 
   @Post('customer-payments')
@@ -255,4 +255,3 @@ export class PurchasesController {
     return this.landedCostsService.applyPurchaseLandedCosts(id, payload, req.authContext!);
   }
 }
-

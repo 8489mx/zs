@@ -21,18 +21,23 @@ export class SettingsService {
     private readonly authCache: AuthCacheService,
   ) {}
 
-  // ── Plan features TTL cache (5 min) ─────────────────────────────────────
+  // ── Plan features TTL cache (60 seconds) ────────────────────────────────
   private readonly _planFeaturesCache = new Map<string, { features: string[]; expiresAt: number }>();
-  private readonly PLAN_FEATURES_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly PLAN_FEATURES_TTL_MS = 60 * 1000;
 
   private async getPlanFeatures(tenantId: string, planId: string | null | undefined): Promise<string[]> {
     if (!planId) return [];
     const cacheKey = `${tenantId}:${planId}`;
     const cached = this._planFeaturesCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) return cached.features;
+    if (cached && cached.expiresAt > Date.now()) {
+      this._planFeaturesCache.delete(cacheKey);
+      this._planFeaturesCache.set(cacheKey, cached);
+      return cached.features;
+    }
     const rows = await this.db.selectFrom('plan_features').select('feature_code').where('plan_id', '=', planId as any).execute();
     const features = rows.map(f => f.feature_code as string);
     this._planFeaturesCache.set(cacheKey, { features, expiresAt: Date.now() + this.PLAN_FEATURES_TTL_MS });
+    if (this._planFeaturesCache.size > 2_000) this._planFeaturesCache.delete(this._planFeaturesCache.keys().next().value!);
     return features;
   }
 
@@ -46,11 +51,16 @@ export class SettingsService {
     }
   }
 
-  // ── High-Speed In-Memory Caching for Settings, Branches & Locations (3 min) ─
+  // Tenant and permission-aware caches; each entry lives at most 60 seconds.
   private readonly _settingsCache = new Map<string, { data: Record<string, unknown>; expiresAt: number }>();
   private readonly _branchesCache = new Map<string, { data: Record<string, unknown>; expiresAt: number }>();
   private readonly _locationsCache = new Map<string, { data: Record<string, unknown>; expiresAt: number }>();
-  private readonly CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+  private readonly CACHE_TTL_MS = 60 * 1000;
+  private remember<T>(cache: Map<string, { data: T; expiresAt: number }>, key: string, data: T): void {
+    cache.delete(key);
+    cache.set(key, { data, expiresAt: Date.now() + this.CACHE_TTL_MS });
+    if (cache.size > 2_000) cache.delete(cache.keys().next().value!);
+  }
 
   invalidateSettingsCache(tenantId?: string) {
     if (tenantId) {
@@ -117,6 +127,8 @@ export class SettingsService {
     const cacheKey = `${scope.tenantId}:${Boolean(canManageSettings)}`;
     const cached = this._settingsCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
+      this._settingsCache.delete(cacheKey);
+      this._settingsCache.set(cacheKey, cached);
       return { ...cached.data, scope };
     }
 
@@ -232,7 +244,7 @@ export class SettingsService {
       }
     }
 
-    this._settingsCache.set(cacheKey, { data: settings, expiresAt: Date.now() + this.CACHE_TTL_MS });
+    this.remember(this._settingsCache, cacheKey, settings);
     return { ...settings, scope };
   }
 
@@ -240,11 +252,13 @@ export class SettingsService {
     const scope = this.scope(actor);
     const cached = this._branchesCache.get(scope.tenantId);
     if (cached && cached.expiresAt > Date.now()) {
+      this._branchesCache.delete(scope.tenantId);
+      this._branchesCache.set(scope.tenantId, cached);
       return { ...cached.data, scope };
     }
     const rows = await this.db.selectFrom('branches').select(['id', 'name', 'code', 'default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock']).where('is_active', '=', true).where(this.tenantPredicate(actor)).orderBy('id', 'asc').execute();
     const result = { branches: rows.map((row) => ({ id: String(row.id), name: row.name || '', code: row.code || '', defaultStockLocationId: row.default_stock_location_id ? String(row.default_stock_location_id) : null, salesStockMode: row.sales_stock_mode, allowExternalSalesStock: row.allow_external_sales_stock })) };
-    this._branchesCache.set(scope.tenantId, { data: result, expiresAt: Date.now() + this.CACHE_TTL_MS });
+    this.remember(this._branchesCache, scope.tenantId, result);
     return { ...result, scope };
   }
 
@@ -254,6 +268,8 @@ export class SettingsService {
     const cacheKey = `${scope.tenantId}:${Boolean(isStorekeeperRestricted)}`;
     const cached = this._locationsCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
+      this._locationsCache.delete(cacheKey);
+      this._locationsCache.set(cacheKey, cached);
       return { ...cached.data, scope };
     }
 
@@ -271,7 +287,7 @@ export class SettingsService {
 
     const rows = await query.execute();
     const result = { locations: rows.map((row) => ({ id: String(row.id), name: row.name + (!row.is_active ? ' (محذوف)' : ''), code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '', isActive: row.is_active, locationType: row.location_type })) };
-    this._locationsCache.set(cacheKey, { data: result, expiresAt: Date.now() + this.CACHE_TTL_MS });
+    this.remember(this._locationsCache, cacheKey, result);
     return { ...result, scope };
   }
 

@@ -10,12 +10,13 @@ interface CacheEntry<T> {
 export class AuthCacheService implements OnModuleDestroy {
   // Primary in-memory store: sub-millisecond, zero-dependency, zero network overhead
   private readonly store = new Map<string, CacheEntry<unknown>>();
+  private readonly maxEntries = 20_000;
   private sweepTimer: NodeJS.Timeout | null = null;
 
   // Default TTLs in seconds
   private readonly defaultSessionTtl = 60; // 60 seconds for active session context
   private readonly defaultTenantStatusTtl = 60; // 60 seconds for subscription / status check
-  private readonly defaultTenantPayloadTtl = 120; // 2 minutes for tenant info & features payload
+  private readonly defaultTenantPayloadTtl = 60;
 
   constructor() {
     // Periodic sweep every 60s to prune expired entries and maintain lean memory footprint
@@ -52,12 +53,24 @@ export class AuthCacheService implements OnModuleDestroy {
       this.store.delete(key);
       return null;
     }
+    // Map insertion order is the LRU queue; reads move live entries to its tail.
+    this.store.delete(key);
+    this.store.set(key, entry);
     return entry.value as T;
   }
 
   private set<T>(key: string, value: T, ttlSeconds: number): void {
-    const expiresAt = Date.now() + Math.max(1, ttlSeconds) * 1000;
+    const expiresAt = Date.now() + Math.max(0, ttlSeconds) * 1000;
+    this.store.delete(key);
     this.store.set(key, { value, expiresAt });
+    if (this.store.size > this.maxEntries) {
+      this.sweepExpired();
+      while (this.store.size > this.maxEntries) {
+        const oldest = this.store.keys().next().value;
+        if (oldest === undefined) break;
+        this.store.delete(oldest);
+      }
+    }
   }
 
   private delete(key: string): void {

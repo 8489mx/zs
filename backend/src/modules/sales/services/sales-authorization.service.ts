@@ -49,16 +49,16 @@ export class SalesAuthorizationService {
     throw new ForbiddenException('Missing required permissions');
   }
 
-  async hasOpenCashierShift(queryable: DbOrTx, auth: AuthContext): Promise<boolean> {
+  async hasOpenCashierShift(queryable: DbOrTx, auth: AuthContext, branchId?: number | null): Promise<boolean> {
     const { tenantId } = requireTenantScope(auth);
-    const row = await queryable
+    let query = queryable
       .selectFrom('cashier_shifts')
       .select('id')
       .where('opened_by', '=', auth.userId)
       .where('status', '=', 'open')
-      .where(sql<boolean>`tenant_id = ${tenantId}`)
-      .orderBy('id', 'desc')
-      .executeTakeFirst();
+      .where(sql<boolean>`tenant_id = ${tenantId}`);
+    query = branchId == null ? query.where('branch_id', 'is', null) : query.where('branch_id', '=', branchId);
+    const row = await query.orderBy('id', 'desc').forUpdate().executeTakeFirst();
     return Boolean(row?.id);
   }
 

@@ -573,7 +573,10 @@ export interface AgedPartnerRow {
 
 export interface AgedDebtsSummary {
   asOfDate: string;
+  page: number;
+  pageSize: number;
   totalPartnersCount: number;
+  filteredPartnersCount: number;
   overduePartnersCount: number;
   totalBalance: number;
   totalCurrent: number;
@@ -603,18 +606,26 @@ export const financialReportsApi = {
     return http<CashFlowReportData>(`/api/accounting/reports/cash-flow${qs}`);
   },
 
-  agedReceivables: (params?: { asOfDate?: string; branchId?: number }) => {
+  agedReceivables: (params?: { asOfDate?: string; branchId?: number; page?: number; pageSize?: number; search?: string; risk?: string }) => {
     const sp = new URLSearchParams();
     if (params?.asOfDate) sp.set('asOfDate', params.asOfDate);
     if (params?.branchId) sp.set('branchId', String(params.branchId));
+    if (params?.page) sp.set('page', String(params.page));
+    if (params?.pageSize) sp.set('pageSize', String(params.pageSize));
+    if (params?.search) sp.set('search', params.search);
+    if (params?.risk && params.risk !== 'all') sp.set('risk', params.risk);
     const qs = sp.toString() ? `?${sp.toString()}` : '';
     return http<AgedDebtsSummary>(`/api/accounting/reports/aged-receivables${qs}`);
   },
 
-  agedPayables: (params?: { asOfDate?: string; branchId?: number }) => {
+  agedPayables: (params?: { asOfDate?: string; branchId?: number; page?: number; pageSize?: number; search?: string; risk?: string }) => {
     const sp = new URLSearchParams();
     if (params?.asOfDate) sp.set('asOfDate', params.asOfDate);
     if (params?.branchId) sp.set('branchId', String(params.branchId));
+    if (params?.page) sp.set('page', String(params.page));
+    if (params?.pageSize) sp.set('pageSize', String(params.pageSize));
+    if (params?.search) sp.set('search', params.search);
+    if (params?.risk && params.risk !== 'all') sp.set('risk', params.risk);
     const qs = sp.toString() ? `?${sp.toString()}` : '';
     return http<AgedDebtsSummary>(`/api/accounting/reports/aged-payables${qs}`);
   },
@@ -937,6 +948,4 @@ export const paymentAllocationApi = {
   getInvoiceAllocations: (invoiceType: 'sale' | 'purchase', invoiceId: number) =>
     http<any[]>(`/api/accounting/payment-allocations/invoice?invoiceType=${invoiceType}&invoiceId=${invoiceId}`),
 };
-
-
 

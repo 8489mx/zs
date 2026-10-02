@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsNumber, IsOptional, IsString, Min, MinLength, ValidateNested } from 'class-validator';
 
 class StockCountItemDto {
   @Type(() => Number)
@@ -45,3 +45,14 @@ export class CreateStockCountSessionDto {
 }
 
 export class PostStockCountSessionDto {}
+
+export class RecountStockCountItemDto {
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  countedQty!: number;
+
+  @IsString()
+  @MinLength(8)
+  reason!: string;
+}

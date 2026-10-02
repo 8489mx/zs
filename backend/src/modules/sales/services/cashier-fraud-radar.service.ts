@@ -56,6 +56,7 @@ export interface CashierRiskProfile {
 
 export interface FraudRadarSummaryResponse {
   timeframe: 'today' | '7days' | '30days';
+  sampled: boolean;
   totalSuspiciousEvents: number;
   highRiskCashiersCount: number;
   mediumRiskCashiersCount: number;
@@ -99,6 +100,7 @@ export class CashierFraudRadarService {
   async getSummary(timeframe: 'today' | '7days' | '30days' = 'today', auth: AuthContext): Promise<FraudRadarSummaryResponse> {
     const scope = requireTenantScope(auth);
     const timeSql = this.getTimeFilter(timeframe);
+    const maxDetailedEvents = 2_000;
 
     // 1. Fetch active users / cashiers for this tenant
     const cashiers = await this.db
@@ -108,10 +110,9 @@ export class CashierFraudRadarService {
       .where('is_active', '=', true)
       .execute();
 
-    // 2. Fetch security audit logs for the period
-    const auditRows = await this.db
+    // Keep exact per-cashier counts in PostgreSQL; only detailed monetary parsing is sampled.
+    const auditBase = this.db
       .selectFrom('audit_logs')
-      .select(['id', 'action', 'event_code', 'details', 'created_by', 'created_at'])
       .where('tenant_id', '=', scope.tenantId)
       .where(sql<boolean>`created_at >= ${sql.raw(timeSql)}`)
       .where((eb) =>
@@ -128,17 +129,44 @@ export class CashierFraudRadarService {
             ]),
           ]),
         ]),
-      )
-      .execute();
+      );
+    const eventKind = sql<string>`case
+      when event_code = ${AUDIT_EVENT_CODES.POS_CART_ITEM_REMOVED} then 'cart_remove'
+      when event_code = ${AUDIT_EVENT_CODES.POS_DRAFT_SALE_CANCELLED} then 'draft_cancel'
+      when event_code = ${AUDIT_EVENT_CODES.POS_DISCOUNT_OVERRIDE} then 'discount_override'
+      when event_code is null and action like '%حذف عنصر من السلة%' then 'cart_remove'
+      when event_code is null and action like '%إلغاء/حذف فاتورة%' then 'draft_cancel'
+      when event_code is null and action like '%خصم%' then 'discount_override'
+      else 'sale_return' end`;
+    const [auditRows, auditStats] = await Promise.all([
+      auditBase.select(['id', 'action', 'event_code', 'details', 'created_by', 'created_at'])
+      .orderBy('id', 'desc')
+      .limit(maxDetailedEvents + 1)
+      .execute(),
+      auditBase.select([
+        'created_by',
+        sql<number>`count(*)::int`.as('event_count'),
+        sql<number>`count(*) filter (where ${eventKind} = 'cart_remove')::int`.as('cart_voids'),
+        sql<number>`count(*) filter (where ${eventKind} = 'draft_cancel')::int`.as('draft_cancels'),
+        sql<number>`count(*) filter (where ${eventKind} = 'discount_override')::int`.as('discount_overrides'),
+        sql<Date | null>`max(created_at) filter (where ${eventKind} in ('cart_remove', 'draft_cancel', 'discount_override'))`.as('last_suspicious_at'),
+      ]).groupBy('created_by').execute(),
+    ]);
 
-    // 3. Fetch cancelled sales for the period
     const cancelledSales = await this.db
       .selectFrom('sales')
-      .select(['id', 'created_by', 'total', 'created_at'])
+      .select([
+        'created_by',
+        sql<number>`count(*)::int`.as('cancelled_count'),
+        sql<number>`coalesce(sum(total), 0)`.as('cancelled_total'),
+        sql<Date | null>`max(created_at)`.as('latest_cancelled_at'),
+      ])
       .where('tenant_id', '=', scope.tenantId)
       .where('status', '=', 'cancelled')
       .where(sql<boolean>`created_at >= ${sql.raw(timeSql)}`)
+      .groupBy('created_by')
       .execute();
+    const sampled = auditRows.length > maxDetailedEvents;
 
     // 4. Fetch total completed sales by cashier to calculate normal baseline
     const completedSales = await this.db
@@ -179,29 +207,20 @@ export class CashierFraudRadarService {
     let totalSuspiciousEvents = 0;
     let estimatedProtectedLoss = 0;
 
-    for (const log of auditRows) {
-      const uid = Number(log.created_by || 0);
+    for (const row of auditStats) {
+      const uid = Number(row.created_by || 0);
       let stats = cashierStatsMap.get(uid);
       if (!stats) {
         stats = { cartVoids: 0, draftCancels: 0, discountOverrides: 0, cancelledSales: 0 };
         cashierStatsMap.set(uid, stats);
       }
-
-      totalSuspiciousEvents++;
-      const createdStr = log.created_at ? new Date(log.created_at).toISOString() : undefined;
-
-      const kind = classifyRadarEvent(log);
-      if (kind === 'cart_remove') {
-        stats.cartVoids++;
-        stats.lastSuspiciousAt = createdStr;
-      } else if (kind === 'draft_cancel') {
-        stats.draftCancels++;
-        stats.lastSuspiciousAt = createdStr;
-      } else if (kind === 'discount_override') {
-        stats.discountOverrides++;
-        stats.lastSuspiciousAt = createdStr;
-      }
-
+      stats.cartVoids = Number(row.cart_voids);
+      stats.draftCancels = Number(row.draft_cancels);
+      stats.discountOverrides = Number(row.discount_overrides);
+      stats.lastSuspiciousAt = row.last_suspicious_at ? new Date(row.last_suspicious_at).toISOString() : undefined;
+      totalSuspiciousEvents += Number(row.event_count);
+    }
+    for (const log of auditRows.slice(0, maxDetailedEvents)) {
       // Extract amount if present in details
       const match = String(log.details || '').match(/(?:الإجمالي|المبلغ|القيمة):\s*([\d.]+)/);
       if (match && match[1]) {
@@ -216,10 +235,11 @@ export class CashierFraudRadarService {
         stats = { cartVoids: 0, draftCancels: 0, discountOverrides: 0, cancelledSales: 0 };
         cashierStatsMap.set(uid, stats);
       }
-      stats.cancelledSales++;
-      totalSuspiciousEvents++;
-      estimatedProtectedLoss += Number(cs.total || 0);
-      stats.lastSuspiciousAt = cs.created_at ? new Date(cs.created_at).toISOString() : stats.lastSuspiciousAt;
+      stats.cancelledSales = Number(cs.cancelled_count);
+      totalSuspiciousEvents += Number(cs.cancelled_count);
+      estimatedProtectedLoss += Number(cs.cancelled_total || 0);
+      const cancelledAt = cs.latest_cancelled_at ? new Date(cs.latest_cancelled_at).toISOString() : undefined;
+      if (cancelledAt && (!stats.lastSuspiciousAt || cancelledAt > stats.lastSuspiciousAt)) stats.lastSuspiciousAt = cancelledAt;
     }
 
     const profiles: CashierRiskProfile[] = [];
@@ -268,6 +288,7 @@ export class CashierFraudRadarService {
 
     return {
       timeframe,
+      sampled,
       totalSuspiciousEvents,
       highRiskCashiersCount: highRiskCount,
       mediumRiskCashiersCount: mediumRiskCount,
@@ -372,6 +393,16 @@ export class CashierFraudRadarService {
         const debounceKey = `${tenantId}:${cashierId}`;
         const lastAlert = recentAlertTimestamps.get(debounceKey) || 0;
         const now = Date.now();
+        if (recentAlertTimestamps.size > 2_000) {
+          for (const [key, timestamp] of recentAlertTimestamps) {
+            if (now - timestamp > 60 * 60 * 1000) recentAlertTimestamps.delete(key);
+          }
+          while (recentAlertTimestamps.size > 2_000) {
+            const oldest = recentAlertTimestamps.keys().next().value;
+            if (oldest === undefined) break;
+            recentAlertTimestamps.delete(oldest);
+          }
+        }
 
         // Limit alert to once every 60 minutes per cashier
         if (now - lastAlert > 60 * 60 * 1000) {

@@ -38,14 +38,23 @@ export class ReturnsService {
   private tenantPredicate(auth: AuthContext, alias?: string) { const tenantId = this.scope(auth).tenantId; return alias ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}` : sql<boolean>`tenant_id = ${tenantId}`; }
   private tenantFields(auth: AuthContext) { const scope = this.scope(auth); return { tenant_id: scope.tenantId, account_id: scope.accountId }; }
 
-  private async findOwnOpenShift(trx: Kysely<Database>, auth: AuthContext): Promise<{ id: number; docNo: string } | null> {
-    const shift = await trx.selectFrom('cashier_shifts').select(['id']).where('opened_by', '=', auth.userId).where('status', '=', 'open').where(this.tenantPredicate(auth)).orderBy('id', 'desc').executeTakeFirst();
-    return shift?.id ? { id: Number(shift.id), docNo: `SHIFT-${shift.id}` } : null;
+  private async findOwnOpenShift(trx: Kysely<Database>, auth: AuthContext, branchId: number | null): Promise<{ id: number; docNo: string } | null> {
+    let query = trx.selectFrom('cashier_shifts').select(['id', 'doc_no'])
+      .where('opened_by', '=', auth.userId).where('status', '=', 'open').where(this.tenantPredicate(auth));
+    query = branchId == null ? query.where('branch_id', 'is', null) : query.where('branch_id', '=', branchId);
+    const shift = await query.orderBy('id', 'desc').forUpdate().executeTakeFirst();
+    return shift?.id ? { id: Number(shift.id), docNo: shift.doc_no || `SHIFT-${shift.id}` } : null;
   }
 
-  private async addTreasuryTransaction(trx: Kysely<Database>, txnType: string, amount: number, note: string, returnDocumentId: number, auth: AuthContext, branchId: number | null, locationId: number | null): Promise<void> {
-    const currentShift = amount < 0 ? await this.findOwnOpenShift(trx, auth) : null;
+  private async addTreasuryTransaction(trx: Kysely<Database>, txnType: string, amount: number, note: string, returnDocumentId: number, auth: AuthContext, branchId: number | null, locationId: number | null, cashRefund = false): Promise<void> {
+    const currentShift = cashRefund ? await this.findOwnOpenShift(trx, auth, branchId) : null;
+    const isPrivileged = ['admin', 'super_admin'].includes(auth.role);
+    if (cashRefund && !currentShift && !isPrivileged) throw new AppError('يجب فتح وردية على فرع الفاتورة قبل صرف مرتجع نقدي', 'OPEN_SHIFT_REQUIRED', 400);
     await trx.insertInto('treasury_transactions').values({ txn_type: txnType, amount, note: currentShift ? `${note} - ${currentShift.docNo}` : note, reference_type: currentShift ? 'cashier_shift' : 'return_document', reference_id: currentShift ? currentShift.id : returnDocumentId, return_document_id: returnDocumentId, branch_id: branchId, location_id: locationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+    if (currentShift) {
+      await sql`update cashier_shifts set expected_cash = coalesce(expected_cash, 0) + ${amount}, updated_at = now()
+        where id = ${currentShift.id} and tenant_id = ${this.scope(auth).tenantId} and status = 'open'`.execute(trx);
+    }
   }
 
   private async addCustomerLedgerEntry(trx: Kysely<Database>, customerId: number, amount: number, entryType: string, note: string, returnDocumentId: number, auth: AuthContext, branchId: number | null, locationId: number | null): Promise<void> {
@@ -128,7 +137,7 @@ export class ReturnsService {
   }
 
   private async getReturnedQty(trx: Kysely<Database>, returnType: 'sale' | 'purchase', invoiceId: number, productId: number, auth: AuthContext, lineItemId?: number): Promise<number> {
-    let query = trx.selectFrom('return_items as ri').innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id').select((eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.qty'), sql<number>`0`).as('total_qty')).where('rd.return_type', '=', returnType).where('rd.invoice_id', '=', invoiceId).where(this.tenantPredicate(auth, 'rd')).where(this.tenantPredicate(auth, 'ri'));
+    let query = trx.selectFrom('return_items as ri').innerJoin('return_documents as rd', (join) => join.onRef('rd.id', '=', 'ri.return_document_id').onRef('rd.tenant_id', '=', 'ri.tenant_id')).select((eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.qty'), sql<number>`0`).as('total_qty')).where('rd.return_type', '=', returnType).where('rd.invoice_id', '=', invoiceId).where(this.tenantPredicate(auth, 'rd')).where(this.tenantPredicate(auth, 'ri'));
     
     if (lineItemId) {
       query = returnType === 'sale' 
@@ -144,12 +153,12 @@ export class ReturnsService {
 
   async listReturns(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     const rows = await this.db.selectFrom('return_items as ri')
-      .innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id')
-      .leftJoin('users as u', 'u.id', 'rd.created_by')
-      .leftJoin('sales as s', (join) => join.on('rd.return_type', '=', 'sale').onRef('s.id', '=', 'rd.invoice_id'))
-      .leftJoin('customers as c', 'c.id', 's.customer_id')
-      .leftJoin('purchases as p', (join) => join.on('rd.return_type', '=', 'purchase').onRef('p.id', '=', 'rd.invoice_id'))
-      .leftJoin('suppliers as sup', 'sup.id', 'p.supplier_id')
+      .innerJoin('return_documents as rd', (join) => join.onRef('rd.id', '=', 'ri.return_document_id').onRef('rd.tenant_id', '=', 'ri.tenant_id'))
+      .leftJoin('users as u', (join) => join.onRef('u.id', '=', 'rd.created_by').onRef('u.tenant_id', '=', 'rd.tenant_id'))
+      .leftJoin('sales as s', (join) => join.on('rd.return_type', '=', 'sale').onRef('s.id', '=', 'rd.invoice_id').onRef('s.tenant_id', '=', 'rd.tenant_id'))
+      .leftJoin('customers as c', (join) => join.onRef('c.id', '=', 's.customer_id').onRef('c.tenant_id', '=', 'rd.tenant_id'))
+      .leftJoin('purchases as p', (join) => join.on('rd.return_type', '=', 'purchase').onRef('p.id', '=', 'rd.invoice_id').onRef('p.tenant_id', '=', 'rd.tenant_id'))
+      .leftJoin('suppliers as sup', (join) => join.onRef('sup.id', '=', 'p.supplier_id').onRef('sup.tenant_id', '=', 'rd.tenant_id'))
       .select([
         'ri.id',
         'rd.id as return_document_id',
@@ -301,16 +310,17 @@ export class ReturnsService {
     const sale = await trx.selectFrom('sales').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
     if (!sale) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
     await lockStockProducts(trx, { ...scope, productIds: items.map((item) => item.productId) });
-    const saleItems = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).execute();
+    const saleItems = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).orderBy('id', 'asc').forUpdate().execute();
     const settlementMode = payload.settlementMode === 'store_credit' ? 'store_credit' : 'refund';
     const refundMethod = payload.refundMethod === 'card' ? 'card' : 'cash';
     const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }> = [];
 
-    const inMemoryReturnedQtyForProduct = new Map<string, number>();
+    const pendingQtyByProduct = new Map<number, number>();
+    const pendingQtyByLine = new Map<number, number>();
 
     const returnedRows = await trx
       .selectFrom('return_items as ri')
-      .innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id')
+      .innerJoin('return_documents as rd', (join) => join.onRef('rd.id', '=', 'ri.return_document_id').onRef('rd.tenant_id', '=', 'ri.tenant_id'))
       .select([
         'ri.product_id',
         'ri.sale_item_id',
@@ -335,64 +345,42 @@ export class ReturnsService {
     }
 
     for (const requestItem of [...items].sort((a, b) => a.productId - b.productId)) {
-      if (!requestItem.saleItemId) {
-        const matchingCosts = saleItems
-          .filter((entry) => Number(entry.product_id) === requestItem.productId)
-          .map((entry) => Number(entry.cost_price));
-        if (new Set(matchingCosts).size > 1) {
-          throw new AppError('حدد سطر الفاتورة الأصلي للصنف ذي التكاليف المختلفة', 'SALE_ITEM_ID_REQUIRED', 400);
-        }
+      const matchingLines = saleItems.filter((entry) => Number(entry.product_id) === requestItem.productId);
+      if (!requestItem.saleItemId && matchingLines.length > 1) {
+        throw new AppError('حدد سطر الفاتورة الأصلي للصنف المتكرر', 'SALE_ITEM_ID_REQUIRED', 400);
       }
-      // If saleItemId is provided, validate it belongs to this invoice AND this product
-      if (requestItem.saleItemId) {
-        const matchedItem = saleItems.find(
-          (entry) => Number(entry.id) === requestItem.saleItemId && Number(entry.product_id) === requestItem.productId
-        );
-        if (!matchedItem) {
-          throw new AppError(
-            `saleItemId ${requestItem.saleItemId} does not belong to invoice ${payload.invoiceId} or product ${requestItem.productId}`,
-            'INVALID_SALE_ITEM_ID',
-            400
-          );
-        }
-      }
-
       const saleItem = requestItem.saleItemId
-        ? saleItems.find((entry) => Number(entry.id) === requestItem.saleItemId)
-        : saleItems.find((entry) => Number(entry.product_id || 0) === Number(requestItem.productId));
+        ? matchingLines.find((entry) => Number(entry.id) === requestItem.saleItemId)
+        : matchingLines[0];
       if (!saleItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
-      
-      const alreadyReturnedQty = requestItem.saleItemId
-        ? (returnedQtyByLine.get(requestItem.saleItemId) || 0)
-        : (returnedQtyByProduct.get(requestItem.productId) || 0);
-      const limitKey = requestItem.saleItemId ? `line_${requestItem.saleItemId}` : `prod_${requestItem.productId}`;
-      const currentInMemory = inMemoryReturnedQtyForProduct.get(limitKey) || 0;
-      
-      let invoiceMaxLimit = 0;
-      if (requestItem.saleItemId) {
-        invoiceMaxLimit = Number(saleItem.qty || 0);
-      } else {
-        invoiceMaxLimit = saleItems
-          .filter((entry) => Number(entry.product_id) === requestItem.productId)
-          .reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
-      }
-        
-      ensureReturnQtyWithinLimit(requestItem.qty + currentInMemory, alreadyReturnedQty, invoiceMaxLimit);
-      inMemoryReturnedQtyForProduct.set(limitKey, currentInMemory + requestItem.qty);
+      const saleLineId = Number(saleItem.id);
+      const soldForProduct = matchingLines.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+      ensureReturnQtyWithinLimit(
+        requestItem.qty + (pendingQtyByProduct.get(requestItem.productId) || 0),
+        returnedQtyByProduct.get(requestItem.productId) || 0,
+        soldForProduct,
+      );
+      ensureReturnQtyWithinLimit(
+        requestItem.qty + (pendingQtyByLine.get(saleLineId) || 0),
+        returnedQtyByLine.get(saleLineId) || 0,
+        Number(saleItem.qty || 0),
+      );
+      pendingQtyByProduct.set(requestItem.productId, (pendingQtyByProduct.get(requestItem.productId) || 0) + requestItem.qty);
+      pendingQtyByLine.set(saleLineId, (pendingQtyByLine.get(saleLineId) || 0) + requestItem.qty);
 
       const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
       const preparedLine = buildSaleReturnLine(saleItem, product, requestItem);
 
-      const allocations = requestItem.saleItemId ? await trx.selectFrom('sale_line_stock_allocations')
+      const allocations = await trx.selectFrom('sale_line_stock_allocations')
          .selectAll()
-         .where('sale_line_id', '=', requestItem.saleItemId)
+         .where('sale_line_id', '=', saleLineId)
          .where(this.tenantPredicate(auth))
          .orderBy('allocation_order', 'desc')
-         .execute() : [];
+         .execute();
 
       if (allocations.length > 0) {
-         let remainingToSkip = Number((alreadyReturnedQty * Number(saleItem.unit_multiplier || 1)).toFixed(3));
+         let remainingToSkip = Number((((returnedQtyByLine.get(saleLineId) || 0) + (pendingQtyByLine.get(saleLineId) || 0) - requestItem.qty) * Number(saleItem.unit_multiplier || 1)).toFixed(3));
          let remainingToReturn = preparedLine.stockDelta;
 
          for (const alloc of allocations) {
@@ -433,7 +421,7 @@ export class ReturnsService {
          await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
       }
 
-      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, saleItemId: requestItem.saleItemId });
+      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, saleItemId: saleLineId });
     }
 
     const total = calculateReturnDocumentTotal(normalizedLines);
@@ -443,7 +431,7 @@ export class ReturnsService {
     const customerId = sale.customer_id ? Number(sale.customer_id) : null;
     if (settlementMode === 'store_credit' && customerId) await this.addStoreCredit(trx, customerId, total, auth);
     else if (sale.payment_type === 'credit' && customerId) await this.addCustomerLedgerEntry(trx, customerId, -total, 'sale_return', 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
-    else if (refundMethod === 'cash') await this.addTreasuryTransaction(trx, 'sale_return_refund', -total, 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
+    else if (refundMethod === 'cash') await this.addTreasuryTransaction(trx, 'sale_return_refund', -total, 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id, true);
     else if (refundMethod === 'card') await this.addTreasuryTransaction(trx, 'sale_return_refund', -total, 'sale return (card) ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
 
     // Reconcile Customer Loyalty Points on Return
@@ -552,14 +540,15 @@ export class ReturnsService {
     const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
     if (!purchase) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
     await lockStockProducts(trx, { ...scope, productIds: items.map((item) => item.productId) });
-    const purchaseItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).execute();
+    const purchaseItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).orderBy('id', 'asc').forUpdate().execute();
     const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }> = [];
 
-    const inMemoryReturnedQtyForProduct = new Map<string, number>();
+    const pendingQtyByProduct = new Map<number, number>();
+    const pendingQtyByLine = new Map<number, number>();
 
     const returnedRows = await trx
       .selectFrom('return_items as ri')
-      .innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id')
+      .innerJoin('return_documents as rd', (join) => join.onRef('rd.id', '=', 'ri.return_document_id').onRef('rd.tenant_id', '=', 'ri.tenant_id'))
       .select([
         'ri.product_id',
         'ri.purchase_item_id',
@@ -584,28 +573,28 @@ export class ReturnsService {
     }
 
     for (const requestItem of [...items].sort((a, b) => a.productId - b.productId)) {
-      const purchaseItem = requestItem.purchaseItemId
-        ? purchaseItems.find((entry) => Number(entry.id) === requestItem.purchaseItemId)
-        : purchaseItems.find((entry) => Number(entry.product_id || 0) === Number(requestItem.productId));
-      if (!purchaseItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
-      
-      const alreadyReturnedQty = requestItem.purchaseItemId
-        ? (returnedQtyByLine.get(requestItem.purchaseItemId) || 0)
-        : (returnedQtyByProduct.get(requestItem.productId) || 0);
-      const limitKey = requestItem.purchaseItemId ? `line_${requestItem.purchaseItemId}` : `prod_${requestItem.productId}`;
-      const currentInMemory = inMemoryReturnedQtyForProduct.get(limitKey) || 0;
-      
-      let invoiceMaxLimit = 0;
-      if (requestItem.purchaseItemId) {
-        invoiceMaxLimit = Number(purchaseItem.qty || 0);
-      } else {
-        invoiceMaxLimit = purchaseItems
-          .filter((entry) => Number(entry.product_id) === requestItem.productId)
-          .reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+      const matchingLines = purchaseItems.filter((entry) => Number(entry.product_id) === requestItem.productId);
+      if (!requestItem.purchaseItemId && matchingLines.length > 1) {
+        throw new AppError('حدد سطر فاتورة الشراء الأصلي للصنف المتكرر', 'PURCHASE_ITEM_ID_REQUIRED', 400);
       }
-        
-      ensureReturnQtyWithinLimit(requestItem.qty + currentInMemory, alreadyReturnedQty, invoiceMaxLimit);
-      inMemoryReturnedQtyForProduct.set(limitKey, currentInMemory + requestItem.qty);
+      const purchaseItem = requestItem.purchaseItemId
+        ? matchingLines.find((entry) => Number(entry.id) === requestItem.purchaseItemId)
+        : matchingLines[0];
+      if (!purchaseItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
+      const purchaseLineId = Number(purchaseItem.id);
+      const purchasedForProduct = matchingLines.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+      ensureReturnQtyWithinLimit(
+        requestItem.qty + (pendingQtyByProduct.get(requestItem.productId) || 0),
+        returnedQtyByProduct.get(requestItem.productId) || 0,
+        purchasedForProduct,
+      );
+      ensureReturnQtyWithinLimit(
+        requestItem.qty + (pendingQtyByLine.get(purchaseLineId) || 0),
+        returnedQtyByLine.get(purchaseLineId) || 0,
+        Number(purchaseItem.qty || 0),
+      );
+      pendingQtyByProduct.set(requestItem.productId, (pendingQtyByProduct.get(requestItem.productId) || 0) + requestItem.qty);
+      pendingQtyByLine.set(purchaseLineId, (pendingQtyByLine.get(purchaseLineId) || 0) + requestItem.qty);
 
       const availableQty = await previewConsumableStockQty(trx, { productId: requestItem.productId, branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
       const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
@@ -613,7 +602,7 @@ export class ReturnsService {
       const preparedLine = buildPurchaseReturnLine(purchaseItem, { ...product, stock_qty: availableQty }, requestItem);
       const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: -preparedLine.stockDelta, branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId, errorCode: 'PURCHASE_RETURN_STOCK_INVALID', errorMessage: 'Invalid stock for purchase return' });
       await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: purchase.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
-      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, purchaseItemId: requestItem.purchaseItemId });
+      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, purchaseItemId: purchaseLineId });
     }
 
     const total = calculateReturnDocumentTotal(normalizedLines);

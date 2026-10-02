@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Card } from '@/shared/ui/card';
@@ -14,36 +14,31 @@ import {
 export function AgedDebtsPage() {
   const [activeTab, setActiveTab] = useState<'receivables' | 'payables'>('receivables');
   const [asOfDate, setAsOfDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low' | 'current'>('all');
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   const receivablesQuery = useQuery({
-    queryKey: ['aged-receivables', asOfDate],
-    queryFn: () => financialReportsApi.agedReceivables({ asOfDate }),
+    queryKey: ['aged-receivables', asOfDate, page, debouncedSearch, riskFilter],
+    queryFn: () => financialReportsApi.agedReceivables({ asOfDate, page, search: debouncedSearch, risk: riskFilter }),
     enabled: activeTab === 'receivables',
   });
 
   const payablesQuery = useQuery({
-    queryKey: ['aged-payables', asOfDate],
-    queryFn: () => financialReportsApi.agedPayables({ asOfDate }),
+    queryKey: ['aged-payables', asOfDate, page, debouncedSearch, riskFilter],
+    queryFn: () => financialReportsApi.agedPayables({ asOfDate, page, search: debouncedSearch, risk: riskFilter }),
     enabled: activeTab === 'payables',
   });
 
   const activeQuery = activeTab === 'receivables' ? receivablesQuery : payablesQuery;
   const data: AgedDebtsSummary | undefined = activeQuery.data;
 
-  const filteredPartners = (data?.partners || []).filter((p) => {
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      const matchName = p.partnerName.toLowerCase().includes(q);
-      const matchPhone = p.phone ? p.phone.includes(q) : false;
-      if (!matchName && !matchPhone) return false;
-    }
-    if (riskFilter !== 'all' && p.riskLevel !== riskFilter) {
-      return false;
-    }
-    return true;
-  });
+  const filteredPartners = data?.partners || [];
 
   const handleExportCsv = () => {
     if (!data) return;
@@ -115,11 +110,11 @@ export function AgedDebtsPage() {
                 <ClockIcon size={14} color="#ffffff" />
                 <span>مركز تصعيد التحصيلات (Dunning Hub)</span>
               </a>
-              <Button type="button" variant="secondary" onClick={handleExportCsv} disabled={!data}>
+              <Button type="button" variant="secondary" onClick={handleExportCsv} disabled={!data || data.filteredPartnersCount > data.partners.length}>
                 <DownloadIcon size={14} style={{ marginInlineEnd: '6px' }} />
                 تصدير CSV
               </Button>
-              <Button type="button" variant="secondary" onClick={() => window.print()} disabled={!data}>
+              <Button type="button" variant="secondary" onClick={() => window.print()} disabled={!data || data.filteredPartnersCount > data.partners.length}>
                 <PrinterIcon size={14} style={{ marginInlineEnd: '6px' }} />
                 طباعة
               </Button>
@@ -132,7 +127,7 @@ export function AgedDebtsPage() {
           <Button
             type="button"
             variant={activeTab === 'receivables' ? 'primary' : 'secondary'}
-            onClick={() => setActiveTab('receivables')}
+            onClick={() => { setPage(1); setActiveTab('receivables'); }}
           >
             أعمار ديون العملاء (المدينون - Receivables)
           </Button>
@@ -140,7 +135,7 @@ export function AgedDebtsPage() {
           <Button
             type="button"
             variant={activeTab === 'payables' ? 'primary' : 'secondary'}
-            onClick={() => setActiveTab('payables')}
+            onClick={() => { setPage(1); setActiveTab('payables'); }}
           >
             أعمار ديون الموردين (الدائنون - Payables)
           </Button>
@@ -156,7 +151,7 @@ export function AgedDebtsPage() {
             <input
               type="date"
               value={asOfDate}
-              onChange={(e) => setAsOfDate(e.target.value)}
+              onChange={(e) => { setPage(1); setAsOfDate(e.target.value); }}
               style={{ width: '100%', height: '36px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', fontSize: '0.875rem' }}
             />
           </div>
@@ -170,7 +165,7 @@ export function AgedDebtsPage() {
                 type="text"
                 placeholder="ابحث..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setPage(1); setSearch(e.target.value); }}
                 style={{ width: '100%', height: '36px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 32px 0 10px', fontSize: '0.875rem' }}
               />
               <span style={{ position: 'absolute', right: '10px', top: '10px', color: '#94a3b8' }}>
@@ -185,7 +180,7 @@ export function AgedDebtsPage() {
             </label>
             <select
               value={riskFilter}
-              onChange={(e) => setRiskFilter(e.target.value as any)}
+              onChange={(e) => { setPage(1); setRiskFilter(e.target.value as typeof riskFilter); }}
               style={{ width: '100%', height: '36px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', fontSize: '0.875rem' }}
             >
               <option value="all">كافة الشرائح</option>
@@ -380,6 +375,13 @@ export function AgedDebtsPage() {
               </table>
             )}
           </Card>
+          {data && data.filteredPartnersCount > data.pageSize && (
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center', marginTop: 16 }}>
+              <Button type="button" variant="secondary" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>السابق</Button>
+              <span>صفحة {page} من {Math.ceil(data.filteredPartnersCount / data.pageSize)}</span>
+              <Button type="button" variant="secondary" disabled={page * data.pageSize >= data.filteredPartnersCount} onClick={() => setPage((current) => current + 1)}>التالي</Button>
+            </div>
+          )}
         </>
       )}
       </main>

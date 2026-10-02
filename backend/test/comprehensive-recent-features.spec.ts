@@ -33,11 +33,11 @@ async function runComprehensiveBackendAudit() {
     console.log(`  • Payment initiated: Transaction ID ${session.transactionId} for ${amount} EGP`);
 
     // Poll status
-    const polledStatus = await terminalService.getPaymentStatus(session.transactionId);
+    const polledStatus = await terminalService.getPaymentStatus('audit-tenant', session.transactionId);
     assert.equal(polledStatus.transactionId, session.transactionId, 'Status query must return corresponding transaction');
 
     // Simulate cashier cancellation if customer changes mind
-    const cancelRes = await terminalService.cancelPayment(session.transactionId);
+    const cancelRes = await terminalService.cancelPayment('audit-tenant', session.transactionId);
     assert.equal(cancelRes.status, 'cancelled', 'Transaction cancellation must transition status to cancelled');
     console.log('  ✓ POS Smart Card Terminal lifecycle verified successfully.\n');
   }

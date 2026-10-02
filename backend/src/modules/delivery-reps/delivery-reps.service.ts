@@ -3,6 +3,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { boundedPage } from '../../common/utils/bounded-page';
 import {
   PORTAL_TOKEN_TTL_MS,
   signPortalToken,
@@ -227,13 +228,14 @@ export class DeliveryRepsService {
     return this.list(actor);
   }
 
-  async listOrders(repId: number, actor: AuthContext, filters?: { dateFrom?: string; dateTo?: string; status?: string }): Promise<Record<string, unknown>> {
+  async listOrders(repId: number, actor: AuthContext, filters?: { dateFrom?: string; dateTo?: string; status?: string; page?: number; pageSize?: number }): Promise<Record<string, unknown>> {
     const { tenantId } = requireTenantScope(actor);
+    const { page, pageSize, offset } = boundedPage(filters?.page, filters?.pageSize);
     let query = this.db
       .selectFrom('sales')
-      .leftJoin('customers', 'customers.id', 'sales.customer_id')
-      .leftJoin('users as settled_user', 'settled_user.id', 'sales.settled_by')
-      .leftJoin('users as created_user', 'created_user.id', 'sales.created_by')
+      .leftJoin('customers', (join) => join.onRef('customers.id', '=', 'sales.customer_id').onRef('customers.tenant_id', '=', 'sales.tenant_id'))
+      .leftJoin('users as settled_user', (join) => join.onRef('settled_user.id', '=', 'sales.settled_by').onRef('settled_user.tenant_id', '=', 'sales.tenant_id'))
+      .leftJoin('users as created_user', (join) => join.onRef('created_user.id', '=', 'sales.created_by').onRef('created_user.tenant_id', '=', 'sales.tenant_id'))
       .select([
         'sales.id',
         'sales.doc_no as docNo',
@@ -280,16 +282,17 @@ export class DeliveryRepsService {
       query = query.where('sales.created_at', '<=', dateTo);
     }
 
-    const orders = await query.orderBy('sales.created_at', 'desc').execute();
-    return { ok: true, orders };
+    const orders = await query.orderBy('sales.created_at', 'desc').orderBy('sales.id', 'desc').limit(pageSize + 1).offset(offset).execute();
+    return { ok: true, orders: orders.slice(0, pageSize), pagination: { page, pageSize, hasMore: orders.length > pageSize } };
   }
 
-  async listSettlements(repId: number, actor: AuthContext, filters?: { dateFrom?: string; dateTo?: string }): Promise<Record<string, unknown>> {
+  async listSettlements(repId: number, actor: AuthContext, filters?: { dateFrom?: string; dateTo?: string; page?: number; pageSize?: number }): Promise<Record<string, unknown>> {
     const { tenantId } = requireTenantScope(actor);
+    const { page, pageSize, offset } = boundedPage(filters?.page, filters?.pageSize);
     let query = this.db
       .selectFrom('sales as s')
-      .leftJoin('users as u', 'u.id', 's.settled_by')
-      .leftJoin('users as cu', 'cu.id', 's.created_by')
+      .leftJoin('users as u', (join) => join.onRef('u.id', '=', 's.settled_by').onRef('u.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('users as cu', (join) => join.onRef('cu.id', '=', 's.created_by').onRef('cu.tenant_id', '=', 's.tenant_id'))
       .select([
         's.id',
         's.doc_no as docNo',
@@ -315,43 +318,32 @@ export class DeliveryRepsService {
       query = query.where('s.settled_at', '<=', dateTo);
     }
 
-    const settlements = await query.orderBy('s.settled_at', 'desc').execute();
-    return { ok: true, settlements };
+    const settlements = await query.orderBy('s.settled_at', 'desc').orderBy('s.id', 'desc').limit(pageSize + 1).offset(offset).execute();
+    return { ok: true, settlements: settlements.slice(0, pageSize), pagination: { page, pageSize, hasMore: settlements.length > pageSize } };
   }
 
   async getRepKPIs(repId: number, actor: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId } = requireTenantScope(actor);
     
-    const orders = await this.db
+    const totals = await this.db
       .selectFrom('sales')
-      .select(['id', 'delivery_status', 'status', 'created_at as createdAt', 'settled_at as settledAt'])
+      .select([
+        sql<number>`count(*)::int`.as('total_orders'),
+        sql<number>`count(*) filter (where status = 'returned')::int`.as('returned_orders'),
+        sql<number>`count(*) filter (where status is distinct from 'returned' and delivery_status = 'settled')::int`.as('successful_orders'),
+        sql<number>`coalesce(avg(extract(epoch from (settled_at - created_at)) * 1000)
+          filter (where status is distinct from 'returned' and delivery_status = 'settled' and settled_at > created_at), 0)`.as('average_delay_ms'),
+      ])
       .where('delivery_rep_id', '=', repId)
       .where('tenant_id', '=', tenantId)
-      .execute();
+      .executeTakeFirstOrThrow();
 
-    const totalOrders = orders.length;
-    let successfulOrders = 0;
-    let returnedOrders = 0;
-    let totalDelayMs = 0;
-    let delayCount = 0;
-
-    for (const order of orders) {
-      if (order.status === 'returned') {
-        returnedOrders++;
-      } else if (order.delivery_status === 'settled') {
-        successfulOrders++;
-        if (order.createdAt && order.settledAt) {
-          const delay = new Date(order.settledAt).getTime() - new Date(order.createdAt).getTime();
-          if (delay > 0) {
-            totalDelayMs += delay;
-            delayCount++;
-          }
-        }
-      }
-    }
-
-    const averageDelayHours = delayCount > 0 ? (totalDelayMs / delayCount) / (1000 * 60 * 60) : 0;
-    const averageDelayMins = delayCount > 0 ? Math.round(totalDelayMs / delayCount / 60000) : 0;
+    const totalOrders = Number(totals.total_orders);
+    const returnedOrders = Number(totals.returned_orders);
+    const successfulOrders = Number(totals.successful_orders);
+    const averageDelayMs = Number(totals.average_delay_ms);
+    const averageDelayHours = averageDelayMs / 3_600_000;
+    const averageDelayMins = Math.round(averageDelayMs / 60_000);
     const successRate = totalOrders > 0 ? (successfulOrders / totalOrders) * 100 : 0;
     
     // Rating logic (Starts at 5, deducts based on issues)
@@ -508,8 +500,14 @@ export class DeliveryRepsService {
           eb('delivery_status', 'is', null)
         ]))
         .where(this.tenantPredicate(actor))
+        .orderBy('id', 'asc')
+        .limit(201)
         .forUpdate()
         .execute();
+
+      if (unsettledOrders.length > 200) {
+        throw new AppError('Too many unsettled orders for one settlement; settle a smaller batch', 'SETTLEMENT_BATCH_TOO_LARGE', 409);
+      }
 
       if (unsettledOrders.length === 0) {
         throw new AppError('No unsettled orders found for this representative', 'NO_ORDERS', 400);
@@ -762,10 +760,11 @@ export class DeliveryRepsService {
     };
   }
 
-  async driverListOrders(repId: number, tenantId: string, filters?: { dateFrom?: string; dateTo?: string; status?: string }): Promise<Record<string, unknown>> {
+  async driverListOrders(repId: number, tenantId: string, filters?: { dateFrom?: string; dateTo?: string; status?: string; page?: number; pageSize?: number }): Promise<Record<string, unknown>> {
+    const { page, pageSize, offset } = boundedPage(filters?.page, filters?.pageSize);
     let query = this.db
       .selectFrom('sales')
-      .leftJoin('customers', 'customers.id', 'sales.customer_id')
+      .leftJoin('customers', (join) => join.onRef('customers.id', '=', 'sales.customer_id').onRef('customers.tenant_id', '=', 'sales.tenant_id'))
       .select([
         'sales.id',
         'sales.doc_no as docNo',
@@ -800,8 +799,8 @@ export class DeliveryRepsService {
       }
     }
 
-    const orders = await query.orderBy('sales.created_at', 'desc').execute();
-    return { ok: true, orders };
+    const orders = await query.orderBy('sales.created_at', 'desc').orderBy('sales.id', 'desc').limit(pageSize + 1).offset(offset).execute();
+    return { ok: true, orders: orders.slice(0, pageSize), pagination: { page, pageSize, hasMore: orders.length > pageSize } };
   }
 
   async driverSettleOrder(

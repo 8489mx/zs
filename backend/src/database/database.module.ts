@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { Global, Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kysely, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
@@ -18,6 +18,10 @@ import { resolvePgSslConfig } from './ssl.util';
         const sslRejectUnauthorized = configService.get<boolean>('database.sslRejectUnauthorized', true);
         const sslCaCert = configService.get<string>('database.sslCaCert', '');
 
+        const positiveBounded = (value: unknown, fallback: number, max: number): number => {
+          const parsed = Number(value);
+          return Number.isSafeInteger(parsed) && parsed > 0 ? Math.min(parsed, max) : fallback;
+        };
         const pool = new Pool({
           host: configService.getOrThrow<string>('database.host'),
           port: configService.getOrThrow<number>('database.port'),
@@ -30,13 +34,17 @@ import { resolvePgSslConfig } from './ssl.util';
             caCert: sslCaCert,
           }),
           application_name: 'backend-new',
-          max: Number(process.env.DATABASE_POOL_MAX || configService.get<number>('database.poolMax', 25)),
-          idleTimeoutMillis: Number(process.env.DATABASE_POOL_IDLE_MS || configService.get<number>('database.poolIdleTimeoutMs', 30000)),
-          connectionTimeoutMillis: Number(process.env.DATABASE_POOL_TIMEOUT_MS || configService.get<number>('database.poolConnectionTimeoutMs', 10000)),
-          statement_timeout: Number(process.env.DATABASE_STATEMENT_TIMEOUT_MS || 15000),
+          max: positiveBounded(process.env.DATABASE_POOL_MAX || configService.get<number>('database.poolMax', 25), 25, 40),
+          idleTimeoutMillis: positiveBounded(process.env.DATABASE_POOL_IDLE_MS || configService.get<number>('database.poolIdleTimeoutMs', 30000), 30000, 120000),
+          connectionTimeoutMillis: positiveBounded(process.env.DATABASE_POOL_TIMEOUT_MS || configService.get<number>('database.poolConnectionTimeoutMs', 10000), 10000, 30000),
+          statement_timeout: positiveBounded(process.env.DATABASE_STATEMENT_TIMEOUT_MS || 15000, 15000, 30000),
+          options: '-c idle_in_transaction_session_timeout=60000',
           keepAlive: true,
           keepAliveInitialDelayMillis: 10000,
         });
+        // pg emits idle-client errors on the pool. Without a listener Node treats them as an
+        // unhandled EventEmitter error and terminates the process during a database failover.
+        pool.on('error', (error: Error) => Logger.error('Idle PostgreSQL connection failed', error.stack, 'DatabasePool'));
 
         return new Kysely<Database>({
           dialect: new PostgresDialect({ pool }),

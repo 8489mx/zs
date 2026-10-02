@@ -48,9 +48,11 @@ export class DeliveryRepsController {
     @Query('dateFrom') dateFrom: string,
     @Query('dateTo') dateTo: string,
     @Query('status') status: string,
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
-    return this.service.listOrders(id, req.authContext!, { dateFrom, dateTo, status });
+    return this.service.listOrders(id, req.authContext!, { dateFrom, dateTo, status, page: Number(page), pageSize: Number(pageSize) });
   }
 
   @Get(':id/settlements')
@@ -59,9 +61,11 @@ export class DeliveryRepsController {
     @Param('id', ParseIntPipe) id: number,
     @Query('dateFrom') dateFrom: string,
     @Query('dateTo') dateTo: string,
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
-    return this.service.listSettlements(id, req.authContext!, { dateFrom, dateTo });
+    return this.service.listSettlements(id, req.authContext!, { dateFrom, dateTo, page: Number(page), pageSize: Number(pageSize) });
   }
 
   @Get(':id/kpi')

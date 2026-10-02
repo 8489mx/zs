@@ -329,9 +329,11 @@ export class VanSalesAdminController {
   async getTripDetails(
     @Req() req: RequestWithAuth,
     @Param('id', ParseIntPipe) id: number,
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
   ) {
     const { tenantId } = requireTenantScope(req.authContext!);
-    const details = await this.vanSalesService.getTripDetailsForAdmin(tenantId, id);
+    const details = await this.vanSalesService.getTripDetailsForAdmin(tenantId, id, { page: Number(page), pageSize: Number(pageSize) });
     return { ok: true, ...details };
   }
 

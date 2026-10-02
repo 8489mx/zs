@@ -257,9 +257,11 @@ export class MaritimeFreightController {
   @Get('jobs/:id/financial-ledger')
   async getJobFinancialLedger(
     @Param('id') id: string,
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
     @Req() req: RequestWithAuth,
   ) {
-    return this.freightService.getJobFinancialLedger(req.authContext!, id);
+    return this.freightService.getJobFinancialLedger(req.authContext!, id, { page: Number(page), pageSize: Number(pageSize) });
   }
 
   @Post('jobs/:id/settle-from-balance')

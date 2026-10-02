@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AppError } from '../../common/errors/app-error';
+import { boundedPage } from '../../common/utils/bounded-page';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { DeliveryRepsService } from './delivery-reps.service';
@@ -1710,7 +1711,8 @@ export class VanSalesService {
   /**
    * Admin detailed audit of a single van trip, including all sales (with GPS), collections (with GPS), and returns.
    */
-  async getTripDetailsForAdmin(tenantId: string, tripId: number) {
+  async getTripDetailsForAdmin(tenantId: string, tripId: number, pagination?: { page?: number; pageSize?: number }) {
+    const { page, pageSize, offset } = boundedPage(pagination?.page, pagination?.pageSize);
     const trip = await this.anyDb
       .selectFrom('van_sales_trips as vt')
       .leftJoin('stock_locations as src', 'src.id', 'vt.source_warehouse_id')
@@ -1755,7 +1757,7 @@ export class VanSalesService {
     // Sales executed in this trip
     const sales = await this.anyDb
       .selectFrom('sales as s')
-      .leftJoin('customers as c', 'c.id', 's.customer_id')
+      .leftJoin('customers as c', (join: any) => join.onRef('c.id', '=', 's.customer_id').onRef('c.tenant_id', '=', 's.tenant_id'))
       .select([
         's.id',
         's.doc_no as docNo',
@@ -1770,12 +1772,13 @@ export class VanSalesService {
       .where('s.tenant_id', '=', tenantId)
       .where(sql<boolean>`s.van_trip_id = ${tripId}`)
       .orderBy('s.id', 'desc')
+      .limit(pageSize + 1).offset(offset)
       .execute();
 
     // Collections recorded in this trip
     const collections = await this.anyDb
       .selectFrom('customer_ledger as cl')
-      .leftJoin('customers as c', 'c.id', 'cl.customer_id')
+      .leftJoin('customers as c', (join: any) => join.onRef('c.id', '=', 'cl.customer_id').onRef('c.tenant_id', '=', 'cl.tenant_id'))
       .select([
         'cl.id',
         sql<number>`cast(abs(coalesce(cl.amount, 0)) as numeric)`.as('amount'),
@@ -1789,12 +1792,13 @@ export class VanSalesService {
       .where(sql<boolean>`cl.van_trip_id = ${tripId}`)
       .where('cl.entry_type', '=', 'payment')
       .orderBy('cl.id', 'desc')
+      .limit(pageSize + 1).offset(offset)
       .execute();
 
     // Field returns recorded in this trip
     const returns = await this.anyDb
       .selectFrom('van_field_returns as vfr')
-      .leftJoin('customers as c', 'c.id', 'vfr.customer_id')
+      .leftJoin('customers as c', (join: any) => join.onRef('c.id', '=', 'vfr.customer_id').onRef('c.tenant_id', '=', 'vfr.tenant_id'))
       .select([
         'vfr.id',
         'vfr.doc_no as docNo',
@@ -1808,6 +1812,7 @@ export class VanSalesService {
       .where('vfr.tenant_id', '=', tenantId)
       .where('vfr.trip_id', '=', tripId)
       .orderBy('vfr.id', 'desc')
+      .limit(pageSize + 1).offset(offset)
       .execute();
 
     // Inventory currently on van location
@@ -1842,21 +1847,22 @@ export class VanSalesService {
         cashRefunds: Number((trip as any).cashRefunds || 0),
         variance: Number(trip.variance || 0),
       },
-      sales: sales.map((s: any) => ({
+      pagination: { page, pageSize, salesHasMore: sales.length > pageSize, collectionsHasMore: collections.length > pageSize, returnsHasMore: returns.length > pageSize },
+      sales: sales.slice(0, pageSize).map((s: any) => ({
         ...s,
         id: Number(s.id),
         total: Number(s.total || 0),
         deliveryGpsLat: s.deliveryGpsLat != null ? Number(s.deliveryGpsLat) : undefined,
         deliveryGpsLng: s.deliveryGpsLng != null ? Number(s.deliveryGpsLng) : undefined,
       })),
-      collections: collections.map((c: any) => ({
+      collections: collections.slice(0, pageSize).map((c: any) => ({
         ...c,
         id: Number(c.id),
         amount: Number(c.amount || 0),
         gpsLat: c.gpsLat != null ? Number(c.gpsLat) : undefined,
         gpsLng: c.gpsLng != null ? Number(c.gpsLng) : undefined,
       })),
-      returns: returns.map((r: any) => ({
+      returns: returns.slice(0, pageSize).map((r: any) => ({
         ...r,
         id: Number(r.id),
         totalAmount: Number(r.totalAmount || 0),
@@ -5299,4 +5305,3 @@ export class VanSalesService {
     return formatDailyDocumentNumber(prefix, nextSeq, date);
   }
 }
-

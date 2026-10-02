@@ -177,11 +177,19 @@ export class AccountingController {
   getAgedReceivables(
     @Query('asOfDate') asOfDate: string,
     @Query('branchId') branchId: string,
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
+    @Query('search') search: string,
+    @Query('risk') risk: string,
     @Req() req: RequestWithAuth,
   ): Promise<any> {
     return this.agedDebtsService.getAgedReceivables(req.authContext!, {
       asOfDate: asOfDate || undefined,
       branchId: branchId ? Number(branchId) : undefined,
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+      search: search || undefined,
+      risk: risk || undefined,
     });
   }
 
@@ -189,11 +197,19 @@ export class AccountingController {
   getAgedPayables(
     @Query('asOfDate') asOfDate: string,
     @Query('branchId') branchId: string,
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
+    @Query('search') search: string,
+    @Query('risk') risk: string,
     @Req() req: RequestWithAuth,
   ): Promise<any> {
     return this.agedDebtsService.getAgedPayables(req.authContext!, {
       asOfDate: asOfDate || undefined,
       branchId: branchId ? Number(branchId) : undefined,
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+      search: search || undefined,
+      risk: risk || undefined,
     });
   }
 
@@ -620,5 +636,3 @@ export class AccountingController {
     return this.fiscalYearService.reopenFiscalPeriod(req.authContext!, periodId, dto);
   }
 }
-
-

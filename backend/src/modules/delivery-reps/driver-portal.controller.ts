@@ -22,9 +22,11 @@ export class DriverPortalController {
     @Query('status') status?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
     const driver = await this.service.verifyDriverToken(authHeader);
-    return this.service.driverListOrders(driver.repId, driver.tenantId, { status, dateFrom, dateTo });
+    return this.service.driverListOrders(driver.repId, driver.tenantId, { status, dateFrom, dateTo, page: Number(page), pageSize: Number(pageSize) });
   }
 
   @Post('orders/:saleId/settle')

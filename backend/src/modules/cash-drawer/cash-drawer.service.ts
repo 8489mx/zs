@@ -563,7 +563,7 @@ export class CashDrawerService {
 
   private async rawList(auth: AuthContext, filterStatus?: string): Promise<Array<Record<string, unknown>>> {
     const scope = this.scope(auth);
-    let query = sql<ShiftRow>`select s.id, s.doc_no, s.branch_id, s.location_id, s.opened_by, s.opening_cash, s.opening_note, s.status, s.expected_cash, s.counted_cash, s.variance, s.close_note, s.closed_by, s.closed_at, s.created_at, coalesce(b.name, '') as branch_name, coalesce(l.name, '') as location_name, coalesce(ou.username, '') as opened_by_name, coalesce(cu.username, '') as closed_by_name from cashier_shifts s left join branches b on b.id = s.branch_id left join stock_locations l on l.id = s.location_id left join users ou on ou.id = s.opened_by left join users cu on cu.id = s.closed_by where s.tenant_id = ${scope.tenantId}`;
+    let query = sql<ShiftRow>`select s.id, s.doc_no, s.branch_id, s.location_id, s.opened_by, s.opening_cash, s.opening_note, s.status, s.expected_cash, s.counted_cash, s.variance, s.close_note, s.closed_by, s.closed_at, s.created_at, coalesce(b.name, '') as branch_name, coalesce(l.name, '') as location_name, coalesce(ou.username, '') as opened_by_name, coalesce(cu.username, '') as closed_by_name from cashier_shifts s left join branches b on b.id = s.branch_id and b.tenant_id = s.tenant_id left join stock_locations l on l.id = s.location_id and l.tenant_id = s.tenant_id left join users ou on ou.id = s.opened_by and ou.tenant_id = s.tenant_id left join users cu on cu.id = s.closed_by and cu.tenant_id = s.tenant_id where s.tenant_id = ${scope.tenantId}`;
     if (filterStatus === 'open') {
       query = sql<ShiftRow>`${query} and s.status = 'open'`;
     } else if (filterStatus === 'closed') {
@@ -633,13 +633,34 @@ export class CashDrawerService {
 
   async openCashierShift(payload: { openingCash?: number; note?: string; branchId?: number | string | null; locationId?: number | string | null }, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = this.scope(auth);
-    const active = await sql<{ count?: number }>`select count(*)::int as count from cashier_shifts where tenant_id = ${scope.tenantId} and opened_by = ${auth.userId} and status = 'open'`.execute(this.db);
-    if (Number(active.rows?.[0]?.count || 0) > 0) throw new AppError('يوجد وردية مفتوحة بالفعل لهذا المستخدم', 'SHIFT_ALREADY_OPEN', 400);
     const { openingCash, note, branchId, locationId } = normalizeShiftOpenPayload(payload);
-    const inserted = await sql<{ id?: number }>`insert into cashier_shifts (doc_no, branch_id, location_id, opened_by, opening_cash, opening_note, status, expected_cash, tenant_id, account_id) values (null, ${branchId}, ${locationId}, ${auth.userId}, ${openingCash}, ${note}, 'open', ${openingCash}, ${scope.tenantId}, ${scope.accountId}) returning id`.execute(this.db);
-    const shiftId = Number(inserted.rows?.[0]?.id || 0);
-    if (!shiftId) throw new AppError('Could not open cashier shift', 'SHIFT_OPEN_FAILED', 400);
-    await sql`update cashier_shifts set doc_no = ${buildCashDrawerShiftDocNo(shiftId)} where tenant_id = ${scope.tenantId} and id = ${shiftId}`.execute(this.db);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      // Serialize opens for the same cashier before checking for an existing shift.
+      const user = await trx.selectFrom('users').select('id')
+        .where('id', '=', auth.userId).where('tenant_id', '=', scope.tenantId)
+        .forUpdate().executeTakeFirst();
+      if (!user) throw new AppError('المستخدم غير موجود في المنشأة', 'CASHIER_NOT_FOUND', 404);
+      if (branchId != null) {
+        const branch = await trx.selectFrom('branches').select('id')
+          .where('id', '=', branchId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        if (!branch) throw new AppError('الفرع غير موجود في المنشأة', 'BRANCH_NOT_FOUND', 404);
+      }
+      if (locationId != null) {
+        const location = await trx.selectFrom('stock_locations').select(['id', 'branch_id'])
+          .where('id', '=', locationId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        if (!location || (branchId != null && Number(location.branch_id) !== Number(branchId))) {
+          throw new AppError('المخزن لا يتبع الفرع المحدد', 'SHIFT_LOCATION_MISMATCH', 400);
+        }
+      }
+      const active = await trx.selectFrom('cashier_shifts').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('opened_by', '=', auth.userId)
+        .where('status', '=', 'open').executeTakeFirst();
+      if (active) throw new AppError('يوجد وردية مفتوحة بالفعل لهذا المستخدم', 'SHIFT_ALREADY_OPEN', 400);
+      const inserted = await sql<{ id?: number }>`insert into cashier_shifts (doc_no, branch_id, location_id, opened_by, opening_cash, opening_note, status, expected_cash, tenant_id, account_id) values (null, ${branchId}, ${locationId}, ${auth.userId}, ${openingCash}, ${note}, 'open', ${openingCash}, ${scope.tenantId}, ${scope.accountId}) returning id`.execute(trx);
+      const shiftId = Number(inserted.rows?.[0]?.id || 0);
+      if (!shiftId) throw new AppError('Could not open cashier shift', 'SHIFT_OPEN_FAILED', 400);
+      await sql`update cashier_shifts set doc_no = ${buildCashDrawerShiftDocNo(shiftId)} where tenant_id = ${scope.tenantId} and id = ${shiftId}`.execute(trx);
+    });
     const listing = await this.listCashierShifts({}, auth);
     return { ok: true, cashierShifts: listing.cashierShifts, pagination: listing.pagination, summary: listing.summary };
   }
@@ -655,6 +676,7 @@ export class CashDrawerService {
     const amount = Number(payload.amount || 0);
     const note = String(payload.note || '').trim();
     assertCashDrawerAmount(amount); assertCashDrawerNote(note);
+    await this.assertCashDrawerApproval(movementType, String(payload.managerPin || '').trim(), auth);
     const signedAmount = toSignedCashDrawerAmount(movementType, amount);
 
     // The drawer movement and the expected_cash recomputation must be atomic and serialized on the
