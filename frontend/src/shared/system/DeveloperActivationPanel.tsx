@@ -86,7 +86,7 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-    'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+    'manufacturing', 'import', 'pharmacy',
     'storefront',
   ],
   omnichannel: [
@@ -94,7 +94,7 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-    'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+    'manufacturing', 'import', 'pharmacy',
     'storefront',
   ],
   OMNICHANNEL: [
@@ -102,7 +102,7 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-    'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+    'manufacturing', 'import', 'pharmacy',
     'storefront',
   ],
   '4': [
@@ -110,7 +110,7 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-    'manufacturing', 'import', 'pharmacy', 'maritime_freight',
+    'manufacturing', 'import', 'pharmacy',
     'storefront',
   ],
 

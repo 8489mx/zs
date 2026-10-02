@@ -919,12 +919,19 @@ export class SaasAdminService {
       const normalized = normalizeIndustryProfileKey(dto.activityType);
       updateData.activity_type = normalized;
       const patch = this.provisioning.getIndustrySettingsPatch(normalized);
+      const userRow = await this.db
+        .selectFrom('users')
+        .select('account_id')
+        .where('tenant_id', '=', id)
+        .executeTakeFirst();
+      const accountId = userRow?.account_id ?? 1;
+
       for (const [k, v] of Object.entries(patch)) {
         await sql`
           INSERT INTO settings (tenant_id, account_id, key, value)
-          VALUES (${id}, ${id || 'main'}, ${k}, ${JSON.stringify(v)}::jsonb)
+          VALUES (${id}, ${accountId}, ${k}, ${JSON.stringify(v)}::jsonb)
           ON CONFLICT (tenant_id, key)
-          DO UPDATE SET value = EXCLUDED.value;
+          DO UPDATE SET value = EXCLUDED.value, account_id = EXCLUDED.account_id;
         `.execute(this.db);
       }
     }
@@ -1166,7 +1173,7 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
+          'manufacturing', 'import', 'pharmacy',
           'storefront',
         ],
         omnichannel: [
@@ -1174,7 +1181,7 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
+          'manufacturing', 'import', 'pharmacy',
           'storefront',
         ],
         OMNICHANNEL: [
@@ -1182,7 +1189,7 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
+          'manufacturing', 'import', 'pharmacy',
           'storefront',
         ],
         '4': [
@@ -1190,7 +1197,7 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy', 'maritime_freight', 'contracting',
+          'manufacturing', 'import', 'pharmacy',
           'storefront',
         ],
       };
@@ -1256,6 +1263,14 @@ export class SaasAdminService {
         .executeTakeFirst();
       const verticalKey = normalizeIndustryProfileKey(tenantRow?.activity_type);
       const isNonRetailVertical = ['maritime_freight', 'contracting', 'wholesale_van', 'services'].includes(verticalKey);
+
+      // Strict vertical module isolation: do not let fallback plan features or previous settings leak across boundaries
+      if (verticalKey !== 'maritime_freight') {
+        modulesToSet['maritimeFreightModuleEnabled'] = false;
+      }
+      if (verticalKey !== 'contracting') {
+        modulesToSet['contractingModuleEnabled'] = false;
+      }
 
       // Ensure foundational operational defaults
       if (effectiveFeatures.has('purchases')) {

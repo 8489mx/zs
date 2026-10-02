@@ -142,28 +142,16 @@ export class SettingsService {
       if (!settings.ownerName && tenant.owner_name) settings.ownerName = tenant.owner_name;
       if (!settings.email && tenant.owner_email) settings.email = tenant.owner_email;
 
-      const candidates = [
-        settings.businessIndustry as string,
-        settings.activityType as string,
-        tenant.activity_type,
-      ].map(v => String(v || '').trim().toLowerCase()).filter(Boolean);
-      const specificCandidate = candidates.find(
-        c => c !== 'retail_general' && c !== 'general' && c !== 'retail'
-      ) || candidates[0] || 'retail_general';
-      const effectiveType = normalizeIndustryProfileKey(specificCandidate);
+      const primaryActivity = tenant.activity_type || settings.businessIndustry || settings.activityType || 'retail_general';
+      const effectiveType = normalizeIndustryProfileKey(primaryActivity as string);
       const profile = getIndustryProfile(effectiveType);
       settings.activityType = profile.key;
       settings.pillar = profile.pillar;
       settings.industryProfile = profile;
     } else {
-      const candidates = [
-        settings.businessIndustry as string,
-        settings.activityType as string,
-      ].map(v => String(v || '').trim().toLowerCase()).filter(Boolean);
-      const specificCandidate = candidates.find(
-        c => c !== 'retail_general' && c !== 'general' && c !== 'retail'
-      ) || candidates[0] || 'retail_general';
-      const profile = getIndustryProfile(normalizeIndustryProfileKey(specificCandidate));
+      const primaryActivity = settings.businessIndustry || settings.activityType || 'retail_general';
+      const effectiveType = normalizeIndustryProfileKey(primaryActivity as string);
+      const profile = getIndustryProfile(effectiveType);
       settings.activityType = profile.key;
       settings.pillar = profile.pillar;
       settings.industryProfile = profile;

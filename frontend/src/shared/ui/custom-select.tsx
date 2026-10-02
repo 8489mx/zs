@@ -346,7 +346,7 @@ export function CustomSelect({
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt.label}</span>
                   </div>
                   {opt.hint && (
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', flexShrink: 0 }}>{opt.hint}</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt.hint}</span>
                   )}
                 </div>
               );

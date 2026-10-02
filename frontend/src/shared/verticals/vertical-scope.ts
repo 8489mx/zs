@@ -59,109 +59,138 @@ export interface MobileQuickActionItem {
  * Single source of truth to resolve the tenant's primary business vertical.
  */
 export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVertical {
-  const candidates = [
-    settings?.businessIndustry,
-    tenant?.activityType,
-    settings?.activityType,
-    tenant?.pillar,
-    tenant?.businessName,
-    settings?.storeName,
-    settings?.brandName,
-    (settings as any)?.companyName,
-  ]
-    .map((v) => String(v || '').trim().toLowerCase())
-    .filter(Boolean);
+  // 1. Explicit configured vertical indicator (highest authority)
+  const explicit = String(
+    tenant?.activityType ||
+    settings?.businessIndustry ||
+    settings?.activityType ||
+    tenant?.pillar ||
+    ''
+  ).trim().toLowerCase();
 
-  const raw = candidates.find((a) => a !== 'retail_general' && a !== 'general' && a !== 'retail') || candidates[0] || 'retail_general';
+  if (explicit) {
+    if (
+      explicit === 'maritime_freight' ||
+      explicit === 'maritime' ||
+      explicit === 'freight' ||
+      explicit === 'shipping' ||
+      explicit.includes('شحن') ||
+      explicit.includes('maritime') ||
+      explicit.includes('ملاحة') ||
+      explicit.includes('لوجست')
+    ) {
+      return 'maritime';
+    }
 
-  if (
-    raw === 'maritime_freight' ||
-    raw === 'maritime' ||
-    raw === 'freight' ||
-    raw === 'shipping' ||
-    raw === 'شحن' ||
-    raw.includes('شحن') ||
-    raw.includes('maritime') ||
-    raw.includes('freight') ||
-    settings?.maritimeFreightModuleEnabled === true
-  ) {
-    return 'maritime';
+    if (
+      explicit === 'contracting' ||
+      explicit === 'construction' ||
+      explicit.includes('مقاول') ||
+      explicit.includes('تشييد') ||
+      explicit.includes('إنشاء')
+    ) {
+      return 'contracting';
+    }
+
+    if (
+      explicit === 'wholesale_van' ||
+      explicit === 'wholesale' ||
+      explicit === 'distribution' ||
+      explicit.includes('توزيع') ||
+      explicit.includes('فان') ||
+      explicit.includes('مناديب') ||
+      explicit.includes('جمل')
+    ) {
+      return 'wholesale_van';
+    }
+
+    if (
+      explicit === 'manufacturing' ||
+      explicit === 'production' ||
+      explicit.includes('تصنيع') ||
+      explicit.includes('مصنع') ||
+      explicit.includes('إنتاج')
+    ) {
+      return 'manufacturing';
+    }
+
+    if (
+      explicit === 'restaurant' ||
+      explicit === 'cafe' ||
+      explicit.includes('مطعم') ||
+      explicit.includes('كافيه')
+    ) {
+      return 'restaurant';
+    }
+
+    if (
+      explicit === 'pharmacy' ||
+      explicit.includes('صيدل') ||
+      explicit.includes('أدوية')
+    ) {
+      return 'pharmacy';
+    }
+
+    if (
+      explicit === 'electronics' ||
+      explicit === 'maintenance' ||
+      explicit === 'repair' ||
+      explicit.includes('صيانة') ||
+      explicit.includes('إلكترونيات')
+    ) {
+      return 'maintenance';
+    }
+
+    if (
+      explicit === 'services' ||
+      explicit.includes('خدمات') ||
+      explicit.includes('استشار')
+    ) {
+      return 'services';
+    }
+
+    if (
+      explicit === 'retail' ||
+      explicit === 'retail_general' ||
+      explicit === 'general' ||
+      explicit === 'store' ||
+      explicit === 'supermarket' ||
+      explicit === 'fashion' ||
+      explicit === 'spices' ||
+      explicit === 'perfumes' ||
+      explicit.includes('تجزئة') ||
+      explicit.includes('متاجر') ||
+      explicit.includes('سوبرماركت')
+    ) {
+      return 'retail_general';
+    }
   }
 
-  if (
-    raw === 'contracting' ||
-    raw === 'construction' ||
-    raw === 'مقاولات' ||
-    raw.includes('مقاول') ||
-    raw.includes('تشييد') ||
-    settings?.contractingModuleEnabled === true
-  ) {
-    return 'contracting';
-  }
+  // 2. Active modules fallbacks (only if no explicit activity is specified)
+  if (settings?.maritimeFreightModuleEnabled === true) return 'maritime';
+  if (settings?.contractingModuleEnabled === true) return 'contracting';
+  if (settings?.manufacturingModuleEnabled === true) return 'manufacturing';
+  if (settings?.restaurantModuleEnabled === true) return 'restaurant';
+  if (settings?.enablePharmacyModule === true) return 'pharmacy';
+  if (settings?.enableMobileStoreFeatures === true) return 'maintenance';
 
-  if (
-    raw === 'wholesale_van' ||
-    raw === 'wholesale' ||
-    raw === 'distribution' ||
-    raw === 'توزيع' ||
-    raw === 'فان' ||
-    raw === 'مناديب' ||
-    raw === 'جملة' ||
-    raw === 'جملة_وتوزيع' ||
-    raw.includes('توزيع') ||
-    raw.includes('فان') ||
-    raw.includes('مناديب') ||
-    raw.includes('جمل') ||
-    raw.includes('موزع')
-  ) {
-    return 'wholesale_van';
-  }
+  // 3. Store name / Business name heuristic fallback
+  const nameFallback = String(
+    tenant?.businessName ||
+    settings?.storeName ||
+    settings?.brandName ||
+    (settings as any)?.companyName ||
+    ''
+  ).trim().toLowerCase();
 
-  if (
-    raw === 'manufacturing' ||
-    raw === 'production' ||
-    raw === 'تصنيع' ||
-    raw === 'مصنع' ||
-    raw.includes('تصنيع') ||
-    raw.includes('إنتاج') ||
-    settings?.manufacturingModuleEnabled === true
-  ) {
-    return 'manufacturing';
-  }
-
-  if (
-    raw === 'restaurant' ||
-    raw === 'cafe' ||
-    raw === 'مطعم' ||
-    raw === 'كافيه' ||
-    raw.includes('مطعم') ||
-    settings?.restaurantModuleEnabled === true
-  ) {
-    return 'restaurant';
-  }
-
-  if (
-    raw === 'pharmacy' ||
-    raw === 'صيدلية' ||
-    raw === 'صيدليات' ||
-    raw.includes('صيدل') ||
-    settings?.pharmacyModuleEnabled === true
-  ) {
-    return 'pharmacy';
-  }
-
-  if (
-    raw === 'electronics' ||
-    raw === 'maintenance' ||
-    raw === 'repair' ||
-    raw === 'صيانة' ||
-    raw.includes('صيانة')
-  ) {
-    return 'maintenance';
-  }
-
-  if (raw === 'services' || raw.includes('خدمات')) {
-    return 'services';
+  if (nameFallback) {
+    if (nameFallback.includes('شحن') || nameFallback.includes('ملاحة')) return 'maritime';
+    if (nameFallback.includes('مقاول') || nameFallback.includes('تشييد')) return 'contracting';
+    if (nameFallback.includes('توزيع') || nameFallback.includes('فان') || nameFallback.includes('مناديب')) return 'wholesale_van';
+    if (nameFallback.includes('تصنيع') || nameFallback.includes('مصنع')) return 'manufacturing';
+    if (nameFallback.includes('مطعم') || nameFallback.includes('كافيه')) return 'restaurant';
+    if (nameFallback.includes('صيدل')) return 'pharmacy';
+    if (nameFallback.includes('صيانة')) return 'maintenance';
   }
 
   return 'retail_general';

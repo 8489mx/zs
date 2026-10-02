@@ -1126,54 +1126,17 @@ export function AppShell({ children }: PropsWithChildren) {
     const isPlatformAdminUser = isPlatformAdmin(user);
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
 
-    const activityCandidates = [
-      settings?.businessIndustry,
-      tenant?.activityType,
-      settings?.activityType,
-      tenant?.pillar,
-      tenant?.businessName,
-      settings?.storeName,
-      settings?.brandName,
-      (settings as any)?.companyName,
-    ].map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
-    const rawActivity = activityCandidates.find(
-      (a) => a !== 'retail_general' && a !== 'general' && a !== 'retail'
-    ) || activityCandidates[0] || 'retail_general';
-
-    const isDedicatedContractingOnly = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || settings?.contractingModuleEnabled === true;
-    const isDedicatedMaritimeOnly = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
-    const isDedicatedManufacturingOnly = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
-    const isDedicatedImportOnly = rawActivity === 'import_export' || rawActivity === 'import';
-    const isDedicatedServicesOnly = rawActivity === 'services';
-    const isWholesaleVanVertical =
-      rawActivity === 'wholesale_van' ||
-      rawActivity === 'wholesale' ||
-      rawActivity === 'distribution' ||
-      rawActivity === 'توزيع' ||
-      rawActivity === 'فان' ||
-      rawActivity === 'مناديب' ||
-      rawActivity === 'جملة' ||
-      rawActivity === 'جملة_وتوزيع' ||
-      rawActivity.includes('توزيع') ||
-      rawActivity.includes('فان') ||
-      rawActivity.includes('مناديب') ||
-      rawActivity.includes('جمل') ||
-      rawActivity.includes('موزع') ||
-      rawActivity.includes('wholesale') ||
-      rawActivity.includes('distribution');
-    const isRestaurantVertical = rawActivity === 'restaurant' || rawActivity === 'cafe' || rawActivity === 'مطعم' || rawActivity === 'كافيه';
-    const isPharmacyVertical = rawActivity === 'pharmacy' || rawActivity === 'صيدلية' || rawActivity === 'صيدليات';
-    const isElectronicsVertical = rawActivity === 'electronics' || rawActivity === 'maintenance' || rawActivity === 'repair' || rawActivity === 'صيانة';
-    const isRetailOrMarketVertical =
-      !isDedicatedContractingOnly &&
-      !isDedicatedMaritimeOnly &&
-      !isDedicatedManufacturingOnly &&
-      !isRestaurantVertical &&
-      !isPharmacyVertical &&
-      !isElectronicsVertical &&
-      !isDedicatedImportOnly &&
-      !isDedicatedServicesOnly &&
-      !isWholesaleVanVertical;
+    const currentVertical = resolveCurrentVertical(tenant, settings);
+    const isDedicatedContractingOnly = currentVertical === 'contracting';
+    const isDedicatedMaritimeOnly = currentVertical === 'maritime';
+    const isDedicatedManufacturingOnly = currentVertical === 'manufacturing';
+    const isDedicatedImportOnly = settings?.importModuleEnabled === true;
+    const isDedicatedServicesOnly = currentVertical === 'services';
+    const isWholesaleVanVertical = currentVertical === 'wholesale_van';
+    const isRestaurantVertical = currentVertical === 'restaurant';
+    const isPharmacyVertical = currentVertical === 'pharmacy';
+    const isElectronicsVertical = currentVertical === 'maintenance';
+    const isRetailOrMarketVertical = currentVertical === 'retail_general';
     const isEnterpriseCommerceActive = isDedicatedContractingOnly || isDedicatedMaritimeOnly || isDedicatedManufacturingOnly || settings?.enableEnterpriseFeatures === true;
     const hasAccounting = isPlatformAdminUser || isDedicatedContractingOnly || isDedicatedMaritimeOnly || isDedicatedManufacturingOnly || (isEnterpriseCommerceActive && Boolean(tenant?.features?.includes('accounting')));
     const hasRestaurant = isPlatformAdminUser || Boolean(tenant?.features?.includes('restaurant'));

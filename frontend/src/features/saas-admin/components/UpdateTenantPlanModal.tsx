@@ -23,8 +23,8 @@ interface UpdateTenantPlanModalProps {
 
 const VERTICAL_MODE_OPTIONS = SYSTEM_VERTICAL_OPTIONS.map((v) => ({
   value: v.key,
-  label: `${v.label} — [${v.badge}]`,
-  hint: v.description,
+  label: v.label,
+  hint: `[${v.badge}]`,
 }));
 
 const AVAILABLE_FEATURES = [
@@ -101,7 +101,8 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
     { value: '', label: '-- بدون باقة --' },
     ...authorizedPlans.map((p) => ({
       value: p.value,
-      label: `${p.label} ${p.badge ? `— [${p.badge}]` : ''}`,
+      label: p.label,
+      hint: p.badge ? `[${p.badge}]` : undefined,
     })),
   ];
 
@@ -152,9 +153,9 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
     || [];
 
   return (
-    <DialogShell open={true} onClose={onClose} width="740px" ariaLabel="تحديث الباقة والمود القطاعي">
-      <div className="dialog-card" dir="rtl">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+    <DialogShell open={true} onClose={onClose} width="min(940px, 95vw)" ariaLabel="تحديث الباقة والمود القطاعي">
+      <div className="dialog-card" dir="rtl" style={{ maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexShrink: 0 }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#170c5c' }}>
               تحديث نمط المنشأة وباقة النسخة
@@ -171,7 +172,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
           ><XIcon size={15} /></button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto', flex: 1, paddingInlineEnd: '4px' }}>
           {error && <div className="warning-box">{error}</div>}
 
           {/* تنبيه إرشادي يوضح خصائص النمط النشط وعزله الصارم */}
@@ -181,7 +182,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
               border: '1px solid #e2e8f0',
               borderInlineStart: '4px solid #170e5e',
               borderRadius: '8px',
-              padding: '12px 14px',
+              padding: '10px 14px',
               fontSize: '12px',
               lineHeight: 1.6,
               color: '#334155',
@@ -199,7 +200,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
                   ? 'يتم عزل هذا القطاع عزلاً تاماً (حجب نقاط بيع التجزئة، موازين الباركود، والمتجر السحابي على الكمبيوتر والموبايل).'
                   : currentVertical.key === 'wholesale'
                   ? 'يتم حجب كاشير التجزئة السريع وتفعيل أسطول التوزيع الفان والمبيعات الآجلة.'
-                  : 'تقتصر خيارات الباقات تلقائياً على باقات ومستويات هذا النمط التشغيلي.'}
+                  : 'تقتصر خيارات الباقات تلقائياً على باقات ومستويات هذا النمط التشغيلي مع تفعيل نقطة البيع والكاشير السريع.'}
               </span>
             </div>
           </div>
@@ -228,15 +229,28 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
           </Field>
 
           {/* 3. الميزات الإضافية */}
-          <div style={{ marginTop: '10px' }}>
+          <div style={{ marginTop: '6px' }}>
             <h4 style={{ margin: '0 0 4px 0', fontSize: '13.5px', fontWeight: 800, color: '#1e293b' }}>
               الميزات الإضافية والمستثناة:
             </h4>
-            <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#64748b' }}>
+            <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#64748b' }}>
               يمكنك تفعيل ميزات إضافية يدوياً، أو استثناء ميزات متوفرة في الباقة المختارة.
             </p>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '8px' }}>
+            <div 
+              className="thin-scrollbar"
+              style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', 
+                gap: '8px',
+                maxHeight: '260px',
+                overflowY: 'auto',
+                padding: '6px',
+                background: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+              }}
+            >
               {AVAILABLE_FEATURES.map((feat) => {
                 const isBaseIncluded = selectedPlanFeatures.includes(feat.id);
                 const isExcluded = extraFeatures.includes(`-${feat.id}`);
@@ -253,7 +267,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
                       cursor: 'pointer', 
                       opacity: isExcluded ? 0.6 : 1, 
                       padding: '8px 10px', 
-                      background: isChecked ? '#f0fdf4' : '#f8fafc', 
+                      background: isChecked ? '#f0fdf4' : '#ffffff', 
                       borderRadius: '8px', 
                       border: `1px solid ${isChecked ? '#bbf7d0' : '#e2e8f0'}`,
                       transition: 'all 0.15s ease'
@@ -279,7 +293,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
           <button type="button" className="button button-secondary" onClick={onClose} disabled={updateMutation.isPending}>إلغاء</button>
           <button 
             type="button" 
