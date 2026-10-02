@@ -21,6 +21,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       table: typeof candidate.table === 'string' ? candidate.table : undefined,
       column: typeof candidate.column === 'string' ? candidate.column : undefined,
       stackFirstLine,
+      stack: stack || undefined,
     };
   }
 
