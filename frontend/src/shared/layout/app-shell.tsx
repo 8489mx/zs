@@ -1058,7 +1058,7 @@ export function AppShell({ children }: PropsWithChildren) {
       return [...dashKeys, 'manufacturing-work-orders', 'manufacturing-boms'];
     }
 
-    if (settings?.importModuleEnabled && currentVertical !== 'contracting' && currentVertical !== 'maritime') {
+    if (settings?.importModuleEnabled) {
       return [...dashKeys, 'import-shipments', 'purchases', 'inventory-warehouses'];
     }
 
