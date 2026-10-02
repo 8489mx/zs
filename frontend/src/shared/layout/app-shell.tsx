@@ -346,7 +346,7 @@ export function AppShell({ children }: PropsWithChildren) {
     const isElectronicsVertical = currentVertical === 'maintenance';
     const isServicesVertical = currentVertical === 'services';
     const isWholesaleVanVertical = currentVertical === 'wholesale_van';
-    const isImportVertical = settings?.importModuleEnabled === true;
+    const isImportVertical = currentVertical === 'import_export';
     const isRetailOrMarketVertical = currentVertical === 'retail_general';
 
     const wholesaleVanOrder = [
@@ -1058,7 +1058,7 @@ export function AppShell({ children }: PropsWithChildren) {
       return [...dashKeys, 'manufacturing-work-orders', 'manufacturing-boms'];
     }
 
-    if (settings?.importModuleEnabled) {
+    if (currentVertical === 'import_export') {
       return [...dashKeys, 'import-shipments', 'purchases', 'inventory-warehouses'];
     }
 
@@ -1088,7 +1088,7 @@ export function AppShell({ children }: PropsWithChildren) {
     const isDedicatedContractingOnly = currentVertical === 'contracting';
     const isDedicatedMaritimeOnly = currentVertical === 'maritime';
     const isDedicatedManufacturingOnly = currentVertical === 'manufacturing';
-    const isDedicatedImportOnly = settings?.importModuleEnabled === true;
+    const isDedicatedImportOnly = currentVertical === 'import_export';
     const isDedicatedServicesOnly = currentVertical === 'services';
     const isWholesaleVanVertical = currentVertical === 'wholesale_van';
     const isRestaurantVertical = currentVertical === 'restaurant';
@@ -1402,7 +1402,7 @@ export function AppShell({ children }: PropsWithChildren) {
         itemKeys: ['maritime-inquiries', 'maritime-rfqs', 'maritime-matrix', 'maritime-quotations', 'maritime-jobs', 'maritime-containers', 'maritime-lines', 'maritime-settings'],
         iconKey: 'ship',
       }] : []),
-      ...(settings?.importModuleEnabled && isDedicatedImportOnly && hasImport ? [{
+      ...(settings?.importModuleEnabled && !isDedicatedImportOnly && hasImport ? [{
         key: 'import-group',
         label: 'الاستيراد والشراكة',
         itemKeys: ['import-shipments', 'import-supplier-credit', 'import-profit-pool'],

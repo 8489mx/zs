@@ -1299,6 +1299,9 @@ export class SaasAdminService {
       if (verticalKey !== 'contracting') {
         modulesToSet['contractingModuleEnabled'] = false;
       }
+      if (verticalKey !== 'import_export') {
+        modulesToSet['importModuleEnabled'] = false;
+      }
 
       // Ensure foundational operational defaults
       if (effectiveFeatures.has('purchases')) {

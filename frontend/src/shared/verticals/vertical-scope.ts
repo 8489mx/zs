@@ -7,6 +7,7 @@ export type BusinessVertical =
   | 'pharmacy'
   | 'maintenance'
   | 'services'
+  | 'import_export'
   | 'retail_general';
 
 export interface MobileNavItemConfig {
@@ -150,6 +151,17 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
     }
 
     if (
+      explicit === 'import_export' ||
+      explicit === 'import' ||
+      explicit === 'export' ||
+      explicit.includes('استيراد') ||
+      explicit.includes('تصدير') ||
+      explicit.includes('جمارك')
+    ) {
+      return 'import_export';
+    }
+
+    if (
       explicit === 'retail' ||
       explicit === 'retail_general' ||
       explicit === 'general' ||
@@ -191,6 +203,7 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
     if (nameFallback.includes('مطعم') || nameFallback.includes('كافيه')) return 'restaurant';
     if (nameFallback.includes('صيدل')) return 'pharmacy';
     if (nameFallback.includes('صيانة')) return 'maintenance';
+    if (nameFallback.includes('استيراد') || nameFallback.includes('تصدير')) return 'import_export';
   }
 
   return 'retail_general';
@@ -377,6 +390,36 @@ export function isRouteAllowedInVertical(vertical: BusinessVertical, target: str
       return true;
     }
 
+    case 'import_export': {
+      const blockedKeys = [
+        'pos',
+        'cash-drawer',
+        'online-orders',
+        'kds',
+        'displays',
+        'signage',
+        'product-modifiers',
+        'delivery-reps',
+        'van-sales-admin',
+        'trade-in',
+        'imei-history',
+        'maintenance',
+        'clothing',
+        'maritime',
+        'contracting',
+        'pharmacy',
+      ];
+
+      if (blockedKeys.some((b) => key === b || key.startsWith(`${b}/`))) {
+        return false;
+      }
+      if (key.startsWith('maritime-') || key.startsWith('maritime/')) return false;
+      if (key.startsWith('contracting-') || key.startsWith('contracting/')) return false;
+      if (key.startsWith('pharmacy-') || key.startsWith('pharmacy/')) return false;
+
+      return true;
+    }
+
     case 'retail_general':
     default: {
       // General retail blocks deep vertical suites unless explicitly activated
@@ -493,6 +536,29 @@ export function getMobileBottomNavConfig(vertical: BusinessVertical, settings?: 
           label: 'الخامات والمخزون',
           iconType: 'inventory',
           activeMatchPrefixes: ['/inventory', '/products'],
+        },
+      };
+
+    case 'import_export':
+      return {
+        home: {
+          to: '/',
+          label: 'الرئيسية',
+          iconType: 'home',
+          activeMatchPrefixes: ['/'],
+        },
+        secondary: {
+          to: '/purchases',
+          label: 'المشتريات',
+          iconType: 'sales',
+          activeMatchPrefixes: ['/purchases'],
+        },
+        centerActionLabel: 'إجراء سريع',
+        primary: {
+          to: '/import/shipments',
+          label: 'الشحنات',
+          iconType: 'inventory',
+          activeMatchPrefixes: ['/import'],
         },
       };
 

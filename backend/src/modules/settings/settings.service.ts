@@ -258,8 +258,12 @@ export class SettingsService {
       if (settings.enableMobileStoreFeatures === undefined) {
         settings.enableMobileStoreFeatures = (settings.industryProfile as any)?.subVertical === 'maintenance';
       }
-      if (settings.importModuleEnabled === undefined) {
-        settings.importModuleEnabled = (settings.industryProfile as any)?.subVertical === 'import_export';
+      // Import module: only enabled if the tenant is dedicated import/export or explicitly has import in profile defaults
+      const isImportVertical = profileKey === 'import_export' || (settings.industryProfile as any)?.subVertical === 'import_export';
+      if (!isImportVertical && !profileDefaults.includes('import')) {
+        settings.importModuleEnabled = false;
+      } else if (settings.importModuleEnabled === undefined) {
+        settings.importModuleEnabled = isImportVertical;
       }
       if (settings.autoPartsModuleEnabled === undefined) {
         settings.autoPartsModuleEnabled = (settings.industryProfile as any)?.subVertical === 'auto_parts';
