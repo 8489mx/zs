@@ -10,7 +10,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { Database } from '../../../database/database.types';
 import { CreateDamagedStockDto } from '../dto/create-damaged-stock.dto';
-import { CreateStockCountSessionDto } from '../dto/create-stock-count-session.dto';
+import { CreateStockCountSessionDto, RecountStockCountItemDto } from '../dto/create-stock-count-session.dto';
 import { buildDamagedStockSummary, buildStockCountSummary, buildStockMovementSummary, groupStockCountItemsBySession, mapDamagedStockRow, mapStockCountSessionRow, mapStockMovementRow } from '../helpers/inventory-count-listing.helper';
 import { assertInventoryLocationBranchMatch, buildDamagedStockWriteModels, buildDamageRecordFromCount, buildStockCountItemValues, buildStockCountPostingMovement, buildStockCountSessionDocNo, shouldCreateDamageRecordFromCount } from '../helpers/inventory-count-write.helper';
 import { InventoryScopeService } from './inventory-scope.service';
@@ -44,11 +44,11 @@ export class InventoryCountService {
 
     let qb = this.db
       .selectFrom('stock_movements as m')
-      .leftJoin('products as p', 'p.id', 'm.product_id')
-      .leftJoin('branches as b', 'b.id', 'm.branch_id')
-      .leftJoin('stock_locations as l', 'l.id', 'm.location_id')
-      .leftJoin('users as u', 'u.id', 'm.created_by')
-      .leftJoin('stock_transfers as st', (join) => join.on('m.reference_type', '=', 'transfer').onRef('m.reference_id', '=', 'st.id'))
+      .leftJoin('products as p', (join) => join.onRef('p.id', '=', 'm.product_id').onRef('p.tenant_id', '=', 'm.tenant_id'))
+      .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 'm.branch_id').onRef('b.tenant_id', '=', 'm.tenant_id'))
+      .leftJoin('stock_locations as l', (join) => join.onRef('l.id', '=', 'm.location_id').onRef('l.tenant_id', '=', 'm.tenant_id'))
+      .leftJoin('users as u', (join) => join.onRef('u.id', '=', 'm.created_by').onRef('u.tenant_id', '=', 'm.tenant_id'))
+      .leftJoin('stock_transfers as st', (join) => join.on('m.reference_type', '=', 'transfer').onRef('m.reference_id', '=', 'st.id').onRef('m.tenant_id', '=', 'st.tenant_id'))
       .select([
         'm.id', 'm.product_id', 'm.movement_type', 'm.qty', 'm.before_qty', 'm.after_qty', 'm.reason', 'm.note', 'm.reference_type', 'm.reference_id', 'm.branch_id', 'm.location_id', 'm.created_at',
         'p.name as product_name', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name',
@@ -95,10 +95,10 @@ export class InventoryCountService {
   async listStockCountSessions(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     const sessions = await this.db
       .selectFrom('stock_count_sessions as s')
-      .leftJoin('branches as b', 'b.id', 's.branch_id')
-      .leftJoin('stock_locations as l', 'l.id', 's.location_id')
-      .leftJoin('users as cu', 'cu.id', 's.counted_by')
-      .leftJoin('users as au', 'au.id', 's.approved_by')
+      .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 's.branch_id').onRef('b.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('stock_locations as l', (join) => join.onRef('l.id', '=', 's.location_id').onRef('l.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('users as cu', (join) => join.onRef('cu.id', '=', 's.counted_by').onRef('cu.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('users as au', (join) => join.onRef('au.id', '=', 's.approved_by').onRef('au.tenant_id', '=', 's.tenant_id'))
       .select(['s.id', 's.doc_no', 's.branch_id', 's.location_id', 's.status', 's.note', 's.posted_at', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'cu.username as counted_by_name', 'au.username as approved_by_name'])
       .where(this.tenantPredicate(auth, 's'))
       .orderBy('s.id', 'desc')
@@ -155,6 +155,50 @@ export class InventoryCountService {
     return responsePayload;
   }
 
+  async recountPendingStockCountItem(sessionId: number, itemId: number, payload: RecountStockCountItemDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const tenantScope = this.tenantScope(auth);
+    const idemCtx = idempotencyStorage.getStore();
+    if (idemCtx?.idempotencyKey) {
+      const cached = await this.idempotency.check(idemCtx.idempotencyKey, tenantScope);
+      if (cached) return cached.response;
+    }
+    const reason = String(payload.reason || '').trim();
+    const countedQty = Number(payload.countedQty);
+    if (reason.length < 8 || !Number.isFinite(countedQty) || countedQty < 0) {
+      throw new AppError('A valid recount quantity and reason are required', 'INVALID_STOCK_RECOUNT', 400);
+    }
+    return this.tx.runInTransaction(this.db, async (trx) => {
+      const session = await trx.selectFrom('stock_count_sessions').selectAll()
+        .where('id', '=', sessionId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
+      if (!session || !['draft', 'posting'].includes(session.status)) {
+        throw new AppError('Stock count session cannot be recounted', 'SESSION_STATUS_INVALID', 409);
+      }
+      const item = await trx.selectFrom('stock_count_items').select(['id', 'product_id'])
+        .where('id', '=', itemId).where('session_id', '=', sessionId)
+        .where('posted_at', 'is', null).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
+      if (!item) throw new AppError('Pending stock count item not found', 'STOCK_COUNT_ITEM_NOT_FOUND', 404);
+      await lockStockProducts(trx, { ...tenantScope, productIds: [Number(item.product_id)] });
+      const expectedQty = await previewAssignedLocationStockQty(trx, {
+        productId: Number(item.product_id), branchId: session.branch_id, locationId: session.location_id,
+        tenantId: tenantScope.tenantId, accountId: tenantScope.accountId,
+      });
+      const varianceQty = Number((countedQty - expectedQty).toFixed(3));
+      await trx.updateTable('stock_count_items').set({
+        expected_qty: expectedQty, counted_qty: countedQty, variance_qty: varianceQty, reason,
+      }).where('id', '=', itemId).where('session_id', '=', sessionId)
+        .where('posted_at', 'is', null).where(this.tenantPredicate(auth)).execute();
+      await this.audit.logWithExecutor(trx, 'إعادة جرد بند', JSON.stringify({ sessionId, itemId, productId: item.product_id, expectedQty, countedQty, varianceQty, reason }), auth);
+      const response = { ok: true, sessionId, itemId, expectedQty, countedQty, varianceQty };
+      if (idemCtx?.idempotencyKey && idemCtx.operationType) {
+        await this.idempotency.commitOperation(trx, {
+          tenantId: tenantScope.tenantId, accountId: tenantScope.accountId,
+          idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType,
+        }, response);
+      }
+      return response;
+    });
+  }
+
   async postStockCountSession(sessionId: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantScope = this.tenantScope(auth);
     const idemCtx = idempotencyStorage.getStore();
@@ -163,56 +207,88 @@ export class InventoryCountService {
       if (cached) return cached.response;
     }
 
-    await this.tx.runInTransaction(this.db, async (trx) => {
-      const session = await trx.selectFrom('stock_count_sessions').selectAll().where('id', '=', sessionId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
-      if (!session) throw new AppError('Stock count session not found', 'SESSION_NOT_FOUND', 404);
-      if ((session.status || 'draft') !== 'draft') throw new AppError('Stock count session already posted', 'SESSION_ALREADY_POSTED', 400);
-      const items = await trx.selectFrom('stock_count_items').selectAll().where('session_id', '=', sessionId).where(this.tenantPredicate(auth)).orderBy('id', 'asc').execute();
-      if (!items.length) throw new AppError('Stock count session has no items', 'SESSION_EMPTY', 400);
-      await lockStockProducts(trx, { ...tenantScope, productIds: items.map((item) => Number(item.product_id)) });
-      for (const item of [...items].sort((a, b) => Number(a.product_id) - Number(b.product_id))) {
-        const expectedQty = Number(item.expected_qty || 0);
-        const currentQty = await previewAssignedLocationStockQty(trx, { productId: Number(item.product_id), branchId: session.branch_id, locationId: session.location_id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
-        if (Math.abs(currentQty - expectedQty) >= 0.001) {
-          throw new AppError('Stock count session is stale. Stock was updated after session creation.', 'STOCK_COUNT_STALE', 409);
+    const chunkSize = 64;
+    while (true) {
+      const hasMore = await this.tx.runInTransaction(this.db, async (trx) => {
+        // The session lock serializes concurrent posting and retries. Each committed chunk carries
+        // its own balanced journal, so no committed stock movement can be left without a ledger leg.
+        const session = await trx.selectFrom('stock_count_sessions').selectAll()
+          .where('id', '=', sessionId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
+        if (!session) throw new AppError('Stock count session not found', 'SESSION_NOT_FOUND', 404);
+        if (session.status === 'posted') return false;
+        if (session.status !== 'draft' && session.status !== 'posting') {
+          throw new AppError('Stock count session cannot be posted', 'SESSION_STATUS_INVALID', 409);
         }
-        const variance = Number(item.variance_qty || 0);
-        if (variance === 0) continue;
-
-        const product = await trx.selectFrom('products').select(['cost_price']).where('id', '=', item.product_id).where(this.tenantPredicate(auth)).executeTakeFirst();
-        const unitCost = Number(product?.cost_price || 0);
-        const totalCost = Math.abs(variance) * unitCost;
-
-        const counted = Number(item.counted_qty || 0);
-        const stockChange = await setScopedStockQty(trx, { productId: Number(item.product_id), nextQty: counted, branchId: session.branch_id, locationId: session.location_id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, errorCode: 'INSUFFICIENT_STOCK', errorMessage: 'Stock count posting cannot drive total stock below zero' });
-
-        await trx.insertInto('stock_movements').values({
-          ...buildStockCountPostingMovement(item, sessionId, auth.userId),
-          before_qty: stockChange.scopeBefore,
-          after_qty: stockChange.scopeAfter,
-          branch_id: session.branch_id,
-          location_id: session.location_id,
-          unit_cost: unitCost,
-          total_cost: totalCost,
-          ...this.tenantFields(auth)
-        }).execute();
-
-        if (shouldCreateDamageRecordFromCount(item)) {
-           await trx.insertInto('damaged_stock_records').values({
-              ...buildDamageRecordFromCount(item, session, auth.userId),
-              unit_cost: unitCost,
-              total_cost: totalCost,
-              ...this.tenantFields(auth)
-           }).execute();
+        const pending = await trx.selectFrom('stock_count_items').selectAll()
+          .where('session_id', '=', sessionId).where(this.tenantPredicate(auth))
+          .where('posted_at', 'is', null).orderBy('product_id', 'asc').orderBy('id', 'asc')
+          .limit(chunkSize + 1).execute();
+        if (!pending.length) {
+          if (session.status === 'draft') throw new AppError('Stock count session has no items', 'SESSION_EMPTY', 400);
+          await trx.updateTable('stock_count_sessions').set({ status: 'posted', posted_at: sql`NOW()`, updated_at: sql`NOW()` })
+            .where('id', '=', sessionId).where(this.tenantPredicate(auth)).execute();
+          return false;
         }
-      }
-      await trx.updateTable('stock_count_sessions').set({ status: 'posted', approved_by: auth.userId, posted_at: sql`NOW()`, updated_at: sql`NOW()` }).where('id', '=', sessionId).where(this.tenantPredicate(auth)).execute();
-
-      const posting = await this.accountingPosting.postStockCount(trx, sessionId, auth);
-      if (items.some((item) => Math.abs(Number(item.variance_qty || 0)) >= 0.001) && !posting.journalEntryId) {
-        throw new AppError(`Stock count ${sessionId} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
-      }
-    });
+        const items = pending.slice(0, chunkSize);
+        await lockStockProducts(trx, { ...tenantScope, productIds: items.map((item) => Number(item.product_id)) });
+        for (const item of items) {
+          const expectedQty = Number(item.expected_qty || 0);
+          const currentQty = await previewAssignedLocationStockQty(trx, {
+            productId: Number(item.product_id), branchId: session.branch_id, locationId: session.location_id,
+            tenantId: tenantScope.tenantId, accountId: tenantScope.accountId,
+          });
+          if (Math.abs(currentQty - expectedQty) >= 0.001) {
+            throw new AppError(`Stock count item ${item.id} is stale; reconcile this item before resuming`, 'STOCK_COUNT_STALE', 409);
+          }
+          const variance = Number(item.variance_qty || 0);
+          if (Math.abs(variance) >= 0.001) {
+            const product = await trx.selectFrom('products').select('cost_price')
+              .where('id', '=', item.product_id).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
+            const unitCost = Number(product.cost_price || 0);
+            const totalCost = Math.abs(variance) * unitCost;
+            if (!Number.isFinite(totalCost) || Number(totalCost.toFixed(2)) <= 0) {
+              throw new AppError(`Stock count item ${item.id} has no valid financial cost`, 'INVENTORY_COST_MISSING', 400);
+            }
+            const stockChange = await setScopedStockQty(trx, {
+              productId: Number(item.product_id), nextQty: Number(item.counted_qty || 0),
+              branchId: session.branch_id, locationId: session.location_id,
+              tenantId: tenantScope.tenantId, accountId: tenantScope.accountId,
+              errorCode: 'INSUFFICIENT_STOCK', errorMessage: 'Stock count posting cannot drive total stock below zero',
+            });
+            await trx.insertInto('stock_movements').values({
+              ...buildStockCountPostingMovement(item, sessionId, auth.userId),
+              before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter,
+              branch_id: session.branch_id, location_id: session.location_id,
+              unit_cost: unitCost, total_cost: totalCost, ...this.tenantFields(auth),
+            }).execute();
+            if (shouldCreateDamageRecordFromCount(item)) {
+              await trx.insertInto('damaged_stock_records').values({
+                ...buildDamageRecordFromCount(item, session, auth.userId),
+                unit_cost: unitCost, total_cost: totalCost, ...this.tenantFields(auth),
+              }).execute();
+            }
+          }
+        }
+        await trx.updateTable('stock_count_sessions').set({
+          status: pending.length > chunkSize ? 'posting' : 'posted',
+          approved_by: auth.userId,
+          ...(pending.length > chunkSize ? {} : { posted_at: sql`NOW()` }),
+          updated_at: sql`NOW()`,
+        }).where('id', '=', sessionId).where(this.tenantPredicate(auth)).execute();
+        const posting = await this.accountingPosting.postStockCount(trx, sessionId, auth, items.map((item) => Number(item.id)));
+        if (items.some((item) => Math.abs(Number(item.variance_qty || 0)) >= 0.001) && !posting.journalEntryId) {
+          throw new AppError(`Stock count ${sessionId} chunk has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
+        }
+        await trx.updateTable('stock_count_items').set({ posted_at: sql`NOW()` })
+          .where('id', 'in', items.map((item) => Number(item.id))).where(this.tenantPredicate(auth)).execute();
+        await this.audit.logWithExecutor(trx, 'ترحيل دفعة جرد', JSON.stringify({
+          sessionId, firstItemId: items[0].id, itemCount: items.length,
+          journalEntryId: posting.journalEntryId, remaining: pending.length > chunkSize,
+        }), auth);
+        return pending.length > chunkSize;
+      });
+      if (!hasMore) break;
+    }
     await this.audit.log('اعتماد جلسة جرد', JSON.stringify({ actorUserId: auth.userId, after: { sessionId, status: 'posted' } }), auth);
     const responsePayload = { ok: true, stockCountSessions: (await this.listStockCountSessions({}, auth)).stockCountSessions, products: (await this.db.selectFrom('products').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(auth)).execute()).map((p) => ({ id: String(p.id), name: p.name })), stockMovements: (await this.listStockMovements({}, auth)).stockMovements, damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords };
     if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
@@ -233,10 +309,10 @@ export class InventoryCountService {
 
     let baseQuery = this.db
       .selectFrom('damaged_stock_records as d')
-      .leftJoin('products as p', 'p.id', 'd.product_id')
-      .leftJoin('branches as b', 'b.id', 'd.branch_id')
-      .leftJoin('stock_locations as l', 'l.id', 'd.location_id')
-      .leftJoin('users as u', 'u.id', 'd.created_by')
+      .leftJoin('products as p', (join) => join.onRef('p.id', '=', 'd.product_id').onRef('p.tenant_id', '=', 'd.tenant_id'))
+      .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 'd.branch_id').onRef('b.tenant_id', '=', 'd.tenant_id'))
+      .leftJoin('stock_locations as l', (join) => join.onRef('l.id', '=', 'd.location_id').onRef('l.tenant_id', '=', 'd.tenant_id'))
+      .leftJoin('users as u', (join) => join.onRef('u.id', '=', 'd.created_by').onRef('u.tenant_id', '=', 'd.tenant_id'))
       .where(this.tenantPredicate(auth, 'd'));
 
     if (search) {

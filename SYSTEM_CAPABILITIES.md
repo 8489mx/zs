@@ -5906,3 +5906,9 @@
 - Cashier shift opening is serialized per cashier and tenant, validates branch and location ownership, and has a database uniqueness guard for open shifts. Closing recalculates expected cash inside the transaction and stores the signed variance.
 - POS checkout checks the active shift on the sale branch, posts its journal in the sale transaction, serializes customer credit balance checks, and requires recorded manager approval for sales below cost or the product's optional minimum selling price.
 - Returns enforce remaining invoice quantity by product and original line. Cash refunds draw from an open shift on the invoice branch. Terminal payment simulation is unavailable in Cloud SaaS until a real provider is connected.
+
+## Purchases and inventory integrity (2 October 2026)
+
+- Active supplier invoice references are protected by a tenant/supplier database unique index; supplier payments lock balances before checking availability. GRN document numbers use the inserted row ID instead of a concurrent `COUNT(*) + 1` calculation.
+- Goods receipts validate tenant ownership of supplier, location, purchase order, order lines, and products. In-transit transfers require a valid destination and reject invalid or duplicate receipt quantities.
+- Stock-count posting runs in resumable 64-product transactions. Each committed chunk has its own balanced variance journal. Stale pending items require an audited recount before processing can continue.

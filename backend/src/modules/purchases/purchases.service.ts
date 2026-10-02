@@ -46,8 +46,8 @@ export class PurchasesService {
     return this.queryService.listSupplierPayments(auth, query);
   }
 
-  createSupplierPayment(payload: CreateSupplierPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.writeService.createSupplierPayment(payload, auth);
+  createSupplierPayment(payload: CreateSupplierPaymentDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
+    return this.writeService.createSupplierPayment(payload, auth, idempotencyKey);
   }
 
   createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -70,4 +70,3 @@ export class PurchasesService {
     return this.reorderService.generateDraftPurchaseOrders(auth, payload);
   }
 }
-

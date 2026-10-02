@@ -31,6 +31,7 @@ export class InventoryTransferService {
   private tenantFields(auth: AuthContext) { const scope = this.tenantScope(auth); return { tenant_id: scope.tenantId, account_id: scope.accountId }; }
 
   private async getOrCreateInTransitLocation(trx: Kysely<Database>, scope: { tenantId: string; accountId: string }): Promise<number> {
+    await sql`select pg_advisory_xact_lock(731234, hashtext(${scope.tenantId}))`.execute(trx);
     const existing = await trx.selectFrom('stock_locations').select(['id']).where('location_type', '=', 'in_transit').where('tenant_id', '=', scope.tenantId).executeTakeFirst();
     if (existing) return existing.id;
     const inserted = await trx.insertInto('stock_locations').values({ name: 'بضاعة بالطريق', code: 'IN_TRANSIT', location_type: 'in_transit' as any, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId }).returning('id').executeTakeFirstOrThrow();
@@ -41,13 +42,13 @@ export class InventoryTransferService {
     if (!auth.permissions.includes('inventory') && !auth.permissions.includes('canAdjustInventory')) throw new ForbiddenException('Missing required permissions');
     let transfersQuery = this.db
       .selectFrom('stock_transfers as t')
-      .leftJoin('stock_locations as fl', 'fl.id', 't.from_location_id')
-      .leftJoin('stock_locations as tl', 'tl.id', 't.to_location_id')
-      .leftJoin('branches as fb', 'fb.id', 't.from_branch_id')
-      .leftJoin('branches as tb', 'tb.id', 't.to_branch_id')
-      .leftJoin('users as cu', 'cu.id', 't.created_by')
-      .leftJoin('users as ru', 'ru.id', 't.received_by')
-      .leftJoin('users as xu', 'xu.id', 't.cancelled_by')
+      .leftJoin('stock_locations as fl', (join) => join.onRef('fl.id', '=', 't.from_location_id').onRef('fl.tenant_id', '=', 't.tenant_id'))
+      .leftJoin('stock_locations as tl', (join) => join.onRef('tl.id', '=', 't.to_location_id').onRef('tl.tenant_id', '=', 't.tenant_id'))
+      .leftJoin('branches as fb', (join) => join.onRef('fb.id', '=', 't.from_branch_id').onRef('fb.tenant_id', '=', 't.tenant_id'))
+      .leftJoin('branches as tb', (join) => join.onRef('tb.id', '=', 't.to_branch_id').onRef('tb.tenant_id', '=', 't.tenant_id'))
+      .leftJoin('users as cu', (join) => join.onRef('cu.id', '=', 't.created_by').onRef('cu.tenant_id', '=', 't.tenant_id'))
+      .leftJoin('users as ru', (join) => join.onRef('ru.id', '=', 't.received_by').onRef('ru.tenant_id', '=', 't.tenant_id'))
+      .leftJoin('users as xu', (join) => join.onRef('xu.id', '=', 't.cancelled_by').onRef('xu.tenant_id', '=', 't.tenant_id'))
       .select(['t.id', 't.doc_no', 't.from_location_id', 't.to_location_id', 't.from_branch_id', 't.to_branch_id', 't.status', 't.note', 't.recipient_name', 't.received_at', 't.cancelled_at', 't.created_at', 'fl.name as from_location_name', 'tl.name as to_location_name', 'fb.name as from_branch_name', 'tb.name as to_branch_name', 'cu.username as created_by_name', 'ru.username as received_by_name', 'xu.username as cancelled_by_name'])
       .where(this.tenantPredicate(auth, 't'));
 
@@ -93,6 +94,14 @@ export class InventoryTransferService {
 
     if (!to && !payload.toBranchId) {
       throw new AppError('Destination location or branch is required', 'INVALID_TRANSFER', 400);
+    }
+    if (!to && payload.toBranchId) {
+      const branch = await this.db.selectFrom('branches').select('id')
+        .where('id', '=', payload.toBranchId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+      if (!branch) throw new AppError('Destination branch not found', 'DESTINATION_BRANCH_NOT_FOUND', 404);
+    }
+    if (!(payload.items || []).length || payload.items.some((item) => !Number.isFinite(Number(item.qty)) || Number(item.qty) <= 0)) {
+      throw new AppError('Transfer requires positive quantities', 'INVALID_TRANSFER_QUANTITY', 400);
     }
 
     const transferId = await this.tx.runInTransaction(this.db, async (trx) => {
@@ -177,13 +186,21 @@ export class InventoryTransferService {
       // written off from the in-transit location instead of being stranded there forever, which is
       // what happened when the item carried a single `qty` and receiving had to match it exactly.
       const receivedByItemId = new Map<number, number>();
+      const dispatchedByItemId = new Map(items.map((item) => [Number(item.id), Number(item.dispatched_qty ?? item.qty ?? 0)]));
       for (const r of receiptPayload?.items || []) {
-        if (r?.itemId != null) receivedByItemId.set(Number(r.itemId), Math.max(0, Number(r.receivedQty || 0)));
+        const itemId = Number(r?.itemId);
+        const receivedQty = Number(r?.receivedQty);
+        if (!dispatchedByItemId.has(itemId) || receivedByItemId.has(itemId) || !Number.isFinite(receivedQty)
+          || receivedQty < 0 || receivedQty > dispatchedByItemId.get(itemId)! + 0.0001) {
+          throw new AppError('كمية أو بند استلام التحويل غير صالح', 'TRANSFER_RECEIPT_INVALID', 400);
+        }
+        receivedByItemId.set(itemId, receivedQty);
       }
 
       let inTransitLocationId: number | null = null;
       const inTransitRow = await trx.selectFrom('stock_locations').select('id').where('location_type', '=', 'in_transit').where('tenant_id', '=', scope.tenantId).executeTakeFirst();
       if (inTransitRow) inTransitLocationId = inTransitRow.id;
+      if (items.length && !inTransitLocationId) throw new AppError('موقع البضاعة بالطريق غير موجود', 'TRANSIT_LOCATION_MISSING', 409);
 
       let effectiveToLocationId = transfer.to_location_id;
       if (!effectiveToLocationId && transfer.to_branch_id) {
@@ -198,7 +215,7 @@ export class InventoryTransferService {
         for (const item of items) {
           const dispatched = Number(item.dispatched_qty || item.qty || 0);
           const received = receivedByItemId.has(Number(item.id))
-            ? Math.min(receivedByItemId.get(Number(item.id))!, dispatched)
+            ? receivedByItemId.get(Number(item.id))!
             : dispatched;
           const shortfall = Number((dispatched - received).toFixed(3));
           if (shortfall > 0.0001) anyVariance = true;
@@ -277,6 +294,7 @@ export class InventoryTransferService {
       if (transfer.status === 'sent') {
         const inTransitRow = await trx.selectFrom('stock_locations').select('id').where('location_type', '=', 'in_transit').where('tenant_id', '=', scope.tenantId).executeTakeFirst();
         if (inTransitRow) inTransitLocationId = inTransitRow.id;
+        if (items.length && !inTransitLocationId) throw new AppError('موقع البضاعة بالطريق غير موجود', 'TRANSIT_LOCATION_MISSING', 409);
       }
 
       for (const item of items) {
@@ -319,7 +337,7 @@ export class InventoryTransferService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       // Find all products in this category that have stock > 0 in the fromLocation
       const stocks = await trx.selectFrom('product_location_stock as pls')
-        .innerJoin('products as p', 'p.id', 'pls.product_id')
+        .innerJoin('products as p', (join) => join.onRef('p.id', '=', 'pls.product_id').onRef('p.tenant_id', '=', 'pls.tenant_id'))
         .select(['pls.product_id', 'pls.qty', 'p.name'])
         .where('p.category_id', '=', payload.categoryId)
         .where('pls.location_id', '=', from.id)
@@ -470,7 +488,7 @@ export class InventoryTransferService {
     const result = await this.tx.runInTransaction(this.db, async (trx) => {
       // Find all products in this category that have stock > 0 in the fromLocation
       const stocks = await trx.selectFrom('product_location_stock as pls')
-        .innerJoin('products as p', 'p.id', 'pls.product_id')
+        .innerJoin('products as p', (join) => join.onRef('p.id', '=', 'pls.product_id').onRef('p.tenant_id', '=', 'pls.tenant_id'))
         .select(['pls.product_id', 'pls.qty', 'p.name'])
         .where('p.category_id', '=', payload.categoryId)
         .where('pls.location_id', '=', from.id)

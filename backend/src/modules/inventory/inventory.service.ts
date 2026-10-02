@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { CreateDamagedStockDto } from './dto/create-damaged-stock.dto';
-import { CreateStockCountSessionDto } from './dto/create-stock-count-session.dto';
+import { CreateStockCountSessionDto, RecountStockCountItemDto } from './dto/create-stock-count-session.dto';
 import { CreateStockTransferDto } from './dto/create-stock-transfer.dto';
 import { InventoryAdjustmentDto } from './dto/inventory-adjustment.dto';
 import { InventoryAdjustmentService } from './services/inventory-adjustment.service';
@@ -88,6 +88,10 @@ export class InventoryService {
 
   postStockCountSession(sessionId: number, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.countService.postStockCountSession(sessionId, auth);
+  }
+
+  recountPendingStockCountItem(sessionId: number, itemId: number, payload: RecountStockCountItemDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.countService.recountPendingStockCountItem(sessionId, itemId, payload, auth);
   }
 
   listDamagedStock(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {

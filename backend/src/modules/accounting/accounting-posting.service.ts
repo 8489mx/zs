@@ -2371,16 +2371,25 @@ export class AccountingPostingService {
     }
   }
 
-  async postStockCount(queryable: DbOrTx, sessionId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+  async postStockCount(queryable: DbOrTx, sessionId: number, auth: AuthContext, itemIds?: number[]): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
 
     const session = await queryable.selectFrom('stock_count_sessions').selectAll().where('id', '=', sessionId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
     if (!session) return { posted: false, journalEntryId: null };
 
-    const movements = await queryable.selectFrom('stock_movements').selectAll().where('reference_type', '=', 'stock_count_session').where('reference_id', '=', sessionId).where('tenant_id', '=', scope.tenantId).execute();
-
-    const items = await queryable.selectFrom('stock_count_items').selectAll().where('session_id', '=', sessionId).where('tenant_id', '=', scope.tenantId).execute();
+    let itemQuery = queryable.selectFrom('stock_count_items').selectAll()
+      .where('session_id', '=', sessionId).where('tenant_id', '=', scope.tenantId);
+    if (itemIds) {
+      if (!itemIds.length) return { posted: false, journalEntryId: null };
+      itemQuery = itemQuery.where('id', 'in', itemIds);
+    }
+    const items = await itemQuery.execute();
+    const productIds = items.map((item) => Number(item.product_id));
+    const movements = productIds.length ? await queryable.selectFrom('stock_movements').selectAll()
+      .where('reference_type', '=', 'stock_count_session').where('reference_id', '=', sessionId)
+      .where('tenant_id', '=', scope.tenantId).where('product_id', 'in', productIds).execute() : [];
+    const movementByProduct = new Map(movements.map((movement) => [Number(movement.product_id), movement]));
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     let inventoryAccountId = Number(settings?.inventory_account_id || 0);
@@ -2398,20 +2407,19 @@ export class AccountingPostingService {
        const variance = Number(item.variance_qty || 0);
        if (variance === 0) continue;
 
-       const mov = movements.find(m => Number(m.product_id) === Number(item.product_id) && m.movement_type !== 'damaged');
-       const damageMov = movements.find(m => Number(m.product_id) === Number(item.product_id) && m.movement_type === 'damaged');
+       const mov = movementByProduct.get(Number(item.product_id));
 
        const unitCost = Number(mov?.unit_cost || 0);
+       if (!Number.isFinite(unitCost) || Number((Math.abs(variance) * unitCost).toFixed(2)) <= 0) {
+         throw new AppError(`Stock count item ${item.id} has no valid cost`, 'INVENTORY_COST_MISSING', 400);
+       }
 
        if (variance > 0) {
           totalGain += variance * unitCost;
        } else if (variance < 0) {
           const absVariance = Math.abs(variance);
-          if (damageMov) {
-             const dQty = Math.abs(Number(damageMov.qty || 0));
-             totalDamageLoss += dQty * unitCost;
-             const remainingLoss = absVariance - dQty;
-             if (remainingLoss > 0) totalLoss += remainingLoss * unitCost;
+          if (String(item.reason || '').toLowerCase() === 'damage') {
+             totalDamageLoss += absVariance * unitCost;
           } else {
              totalLoss += absVariance * unitCost;
           }
@@ -2444,8 +2452,8 @@ export class AccountingPostingService {
 
     try {
       const entryId = await this.insertPostedJournal(queryable, {
-        sourceType: 'stock_count',
-        sourceId: sessionId,
+        sourceType: itemIds ? 'stock_count_chunk' : 'stock_count',
+        sourceId: itemIds ? itemIds[0] : sessionId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
         entryDate: session.posted_at ? new Date(session.posted_at) : new Date(),
@@ -2458,8 +2466,14 @@ export class AccountingPostingService {
       });
       return { posted: true, journalEntryId: entryId };
     } catch (e: any) {
-      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
-         const existing = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'stock_count').where('source_id', '=', sessionId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+      if (e.code === '23505' && (
+        e.constraint?.includes('idx_journal_entries_round1_uniq')
+        || e.constraint?.includes('idx_journal_entries_stock_count_chunk_uniq')
+      )) {
+         const existing = await queryable.selectFrom('journal_entries').select('id')
+           .where('source_type', '=', itemIds ? 'stock_count_chunk' : 'stock_count')
+           .where('source_id', '=', itemIds ? itemIds[0] : sessionId)
+           .where('tenant_id', '=', scope.tenantId).executeTakeFirst();
          return { posted: false, journalEntryId: Number(existing?.id || 0) };
       }
       throw e;

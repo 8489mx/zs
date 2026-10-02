@@ -671,7 +671,7 @@ export interface StockCountSessionTable {
   doc_no: string;
   branch_id: number | null;
   location_id: number | null;
-  status: 'draft' | 'posted';
+  status: 'draft' | 'posting' | 'posted';
   note: string;
   counted_by: number | null;
   approved_by: number | null;
@@ -692,6 +692,7 @@ export interface StockCountItemTable {
   variance_qty: number;
   reason: string;
   note: string;
+  posted_at?: Date | null;
 }
 
 export interface DamagedStockRecordTable {
@@ -4640,7 +4641,6 @@ export interface DailyCommercialRollupTable {
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
-
 
 
 

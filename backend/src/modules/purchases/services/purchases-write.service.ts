@@ -310,6 +310,11 @@ export class PurchasesWriteService {
         historical,
       );
 
+      const supplierInvoiceNo = normalizeBillNumber(payload.supplierInvoiceNo);
+      if (supplierInvoiceNo && historical.some((row) => normalizeBillNumber(row.supplierInvoiceNo) === supplierInvoiceNo)) {
+        throw new AppError('رقم فاتورة المورد مسجل بالفعل لهذا المورد', 'DUPLICATE_VENDOR_BILL', 409);
+      }
+
       if (duplicateCheck.hasBlockingDuplicates) {
         if (payload.allowDuplicateOverride === true) {
           if (auth.role !== 'admin' && auth.role !== 'super_admin') {
@@ -446,7 +451,9 @@ export class PurchasesWriteService {
           });
 
           const oldQty = Math.max(0, stockChange.globalBefore);
-          const oldCost = item.oldCostPrice;
+          const currentProduct = await trx.selectFrom('products').select('cost_price')
+            .where('id', '=', item.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
+          const oldCost = Number(currentProduct.cost_price || 0);
           const totalQty = oldQty + increasedQty;
           const newCost = (increasedQty > 0 && totalQty > 0.00001) 
             ? ((oldQty * oldCost) + (increasedQty * item.effectiveUnitCost)) / totalQty
@@ -781,7 +788,9 @@ export class PurchasesWriteService {
         });
 
         const oldQty = Math.max(0, stockChange.globalBefore);
-        const oldCost = normalizedItem.oldCostPrice;
+        const currentProduct = await trx.selectFrom('products').select('cost_price')
+          .where('id', '=', normalizedItem.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
+        const oldCost = Number(currentProduct.cost_price || 0);
         const totalQty = oldQty + increaseQty;
         const newCost = (increaseQty > 0 && totalQty > 0.00001) 
           ? ((oldQty * oldCost) + (increaseQty * repricedCost)) / totalQty
@@ -853,6 +862,11 @@ export class PurchasesWriteService {
         },
         historical,
       );
+
+      const supplierInvoiceNo = normalizeBillNumber(payload.supplierInvoiceNo);
+      if (supplierInvoiceNo && historical.some((row) => normalizeBillNumber(row.supplierInvoiceNo) === supplierInvoiceNo)) {
+        throw new AppError('رقم فاتورة المورد مسجل بالفعل لهذا المورد', 'DUPLICATE_VENDOR_BILL', 409);
+      }
 
       if (duplicateCheck.hasBlockingDuplicates) {
         if (payload.allowDuplicateOverride === true) {
@@ -1020,10 +1034,24 @@ export class PurchasesWriteService {
     }
   }
 
-  async createSupplierPayment(payload: CreateSupplierPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
+  async createSupplierPayment(payload: CreateSupplierPaymentDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
+    const operationType = 'supplier_payment_create';
+    if (idempotencyKey) {
+      const existing = await this.idempotency.reserveOperation({
+        tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType,
+        requestHash: this.idempotency.generateRequestHash(payload),
+      });
+      if (existing?.status === 'committed') {
+        return { ok: true, supplierPayments: (await this.queryService.listSupplierPayments(auth)).supplierPayments };
+      }
+      if (existing?.status === 'processing') throw new AppError('Payment is currently processing', 'PAYMENT_PROCESSING', 409);
+      if (existing?.status === 'failed') throw new AppError(existing.errorCode || 'Payment previously failed', 'PAYMENT_IDEMPOTENCY_FAILED', 400);
+      if (existing?.status === 'recovery_required') throw new AppError('Payment requires manual recovery', 'PAYMENT_RECOVERY_REQUIRED', 422);
+    }
+    try {
     const paymentResult = await this.tx.runInTransaction(this.db, async (trx) => {
-      const supplier = await trx.selectFrom('suppliers').select(['id', 'name', 'balance']).where('id', '=', payload.supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
+      const supplier = await trx.selectFrom('suppliers').select(['id', 'name', 'balance']).where('id', '=', payload.supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).forUpdate().executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       const amount = Number(payload.amount || 0);
       if (!(amount > 0)) throw new AppError('Amount must be greater than zero', 'INVALID_AMOUNT', 400);
@@ -1061,11 +1089,30 @@ export class PurchasesWriteService {
       await this.financeService.addTreasuryTransaction(trx, 'supplier_payment', -amount, `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
       const posting = await this.accountingPosting.postSupplierPayment(trx, id, auth);
       if (!posting.journalEntryId) throw new AppError(`Supplier payment ${id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
+      if (idempotencyKey) {
+        await this.idempotency.commitOperation(trx, {
+          tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType,
+        }, { id, docNo }, String(id));
+      }
       return { id, docNo };
     });
 
     await this.audit.log('دفع لمورد', `تم تسجيل دفع لمورد ${paymentResult.docNo} بواسطة ${auth.username}`, auth);
     return { ok: true, supplierPayments: (await this.queryService.listSupplierPayments(auth)).supplierPayments };
+    } catch (error) {
+      if (idempotencyKey) {
+        if (error instanceof AppError && error.statusCode < 500) {
+          await this.idempotency.recordFailure({ tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType }, error.code).catch(() => undefined);
+        } else {
+          await this.db.updateTable('operation_executions')
+            .set({ status: 'recovery_required', updated_at: sql`CURRENT_TIMESTAMP` })
+            .where('tenant_id', '=', scope.tenantId).where('account_id', '=', scope.accountId)
+            .where('idempotency_key', '=', idempotencyKey).where('operation_type', '=', operationType)
+            .where('status', '=', 'processing').where('document_id', 'is', null).execute().catch(() => undefined);
+        }
+      }
+      throw error;
+    }
   }
 
   async createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {

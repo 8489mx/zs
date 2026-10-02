@@ -10,6 +10,7 @@ import { CreateSupplierPaymentScheduleDto, PaySupplierScheduleInstallmentDto } f
 import { normalizeOptionalNote, normalizePurchaseScope } from '../helpers/purchases-write.helper';
 import { PurchasesFinanceService } from './purchases-finance.service';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 
 type ScheduleRow = {
   id: number;
@@ -48,6 +49,7 @@ export class SupplierPaymentSchedulesService {
     private readonly tx: TransactionHelper,
     private readonly financeService: PurchasesFinanceService,
     private readonly accountingPosting: AccountingPostingService,
+    private readonly idempotency: IdempotencyService,
   ) {}
 
   private scheduleDb(db: Kysely<Database>): Kysely<any> {
@@ -193,7 +195,7 @@ export class SupplierPaymentSchedulesService {
 
   async createForPurchase(purchaseId: number, payload: CreateSupplierPaymentScheduleDto, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be scheduled', 'PURCHASE_CANCELLED', 400);
       this.ensureCredit(purchase.payment_type);
@@ -214,7 +216,7 @@ export class SupplierPaymentSchedulesService {
 
   async createForSupplier(supplierId: number, payload: CreateSupplierPaymentScheduleDto, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const supplier = await trx.selectFrom('suppliers').select(['id', 'balance']).where('id', '=', supplierId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      const supplier = await trx.selectFrom('suppliers').select(['id', 'balance']).where('id', '=', supplierId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       const db = this.scheduleDb(trx);
       
@@ -243,26 +245,52 @@ export class SupplierPaymentSchedulesService {
     return this.listForSupplier(supplierId, auth);
   }
 
-  async payInstallment(installmentId: number, payload: PaySupplierScheduleInstallmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
+  async payInstallment(installmentId: number, payload: PaySupplierScheduleInstallmentDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
+    const tenantScope = this.tenantScope(auth);
+    const operationType = 'supplier_schedule_settlement';
+    if (idempotencyKey) {
+      const existing = await this.idempotency.reserveOperation({
+        tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, idempotencyKey, operationType,
+        requestHash: this.idempotency.generateRequestHash({ installmentId, payload }),
+      });
+      if (existing?.status === 'committed') {
+        const recorded = existing.responsePayload as { purchaseId?: number; supplierId?: number } | undefined;
+        if (recorded?.purchaseId) return this.listForPurchase(recorded.purchaseId, auth);
+        if (recorded?.supplierId) return this.listForSupplier(recorded.supplierId, auth);
+        throw new AppError('Settlement result requires reconciliation', 'PAYMENT_RECOVERY_REQUIRED', 422);
+      }
+      if (existing?.status === 'processing') throw new AppError('Payment is currently processing', 'PAYMENT_PROCESSING', 409);
+      if (existing?.status === 'failed') throw new AppError(existing.errorCode || 'Payment previously failed', 'PAYMENT_IDEMPOTENCY_FAILED', 400);
+      if (existing?.status === 'recovery_required') throw new AppError('Payment requires manual recovery', 'PAYMENT_RECOVERY_REQUIRED', 422);
+    }
     let purchaseId = 0;
     let supplierId = 0;
+    try {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const db = this.scheduleDb(trx);
-      const installment = await db.selectFrom('supplier_payment_schedules').selectAll().where('id', '=', installmentId).where(this.tenantPredicate(auth)).executeTakeFirst();
-      if (!installment) throw new AppError('Installment not found', 'INSTALLMENT_NOT_FOUND', 404);
+      const pendingInstallment = await db.selectFrom('supplier_payment_schedules').select('supplier_id').where('id', '=', installmentId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      if (!pendingInstallment) throw new AppError('Installment not found', 'INSTALLMENT_NOT_FOUND', 404);
+      // Lock the payable first so scheduled and direct payments share one balance order.
+      const supplier = await trx.selectFrom('suppliers').select(['id', 'name', 'balance'])
+        .where('id', '=', Number(pendingInstallment.supplier_id)).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
+      if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
+      const installment = await db.selectFrom('supplier_payment_schedules').selectAll()
+        .where('id', '=', installmentId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
+      if (!installment || Number(installment.supplier_id) !== Number(supplier.id)) {
+        throw new AppError('Installment changed during payment', 'INSTALLMENT_CHANGED', 409);
+      }
       if (installment.purchase_id) {
         const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(installment.purchase_id)).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
         this.ensureCredit(purchase.payment_type);
         purchaseId = Number(installment.purchase_id);
       }
-      const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', Number(installment.supplier_id)).where(this.tenantPredicate(auth)).executeTakeFirst();
-      if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       supplierId = Number(supplier.id);
       const remaining = this.roundCurrency(Number(installment.amount || 0) - Number(installment.paid_amount || 0));
       const amount = this.roundCurrency(Number(payload.amount || remaining));
       if (!(amount > 0)) throw new AppError('Payment amount must be greater than zero', 'INVALID_AMOUNT', 400);
       if (amount > remaining + 0.0001) throw new AppError('Payment exceeds installment remaining amount', 'INSTALLMENT_OVERPAYMENT', 400);
+      if (amount > Number(supplier.balance || 0) + 0.0001) throw new AppError('Payment exceeds supplier payable balance', 'SUPPLIER_OVERPAYMENT', 400);
       const paidAmount = this.roundCurrency(Number(installment.paid_amount || 0) + amount);
       const status = paidAmount >= Number(installment.amount || 0) - 0.0001 ? 'paid' : 'partial';
       const openShift = await db.selectFrom('cashier_shifts')
@@ -284,7 +312,26 @@ export class SupplierPaymentSchedulesService {
       await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `دفعة مورد مجدولة - ${note}${openShift?.id ? ` - مرتبطة بالوردية SHIFT-${openShift.id}` : ''}`, treasuryReferenceType, treasuryReferenceId, auth, branchId, locationId);
       const posting = await this.accountingPosting.postSupplierPaymentScheduleSettlement(trx, Number(insertedLog.id), auth);
       if (!posting.journalEntryId) throw new AppError(`Supplier schedule settlement ${insertedLog.id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
+      if (idempotencyKey) {
+        await this.idempotency.commitOperation(trx, {
+          tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, idempotencyKey, operationType,
+        }, { purchaseId, supplierId }, String(insertedLog.id));
+      }
     });
     return purchaseId ? this.listForPurchase(purchaseId, auth) : this.listForSupplier(supplierId, auth);
+    } catch (error) {
+      if (idempotencyKey) {
+        if (error instanceof AppError && error.statusCode < 500) {
+          await this.idempotency.recordFailure({ tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, idempotencyKey, operationType }, error.code).catch(() => undefined);
+        } else {
+          await this.db.updateTable('operation_executions')
+            .set({ status: 'recovery_required', updated_at: sql`CURRENT_TIMESTAMP` })
+            .where('tenant_id', '=', tenantScope.tenantId).where('account_id', '=', tenantScope.accountId)
+            .where('idempotency_key', '=', idempotencyKey).where('operation_type', '=', operationType)
+            .where('status', '=', 'processing').where('document_id', 'is', null).execute().catch(() => undefined);
+        }
+      }
+      throw error;
+    }
   }
 }

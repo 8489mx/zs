@@ -6,7 +6,7 @@ import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { UseInterceptors } from '@nestjs/common';
 import { IdempotencyInterceptor } from '../../core/idempotency/idempotency.interceptor';
 import { CreateDamagedStockDto } from './dto/create-damaged-stock.dto';
-import { CreateStockCountSessionDto, PostStockCountSessionDto } from './dto/create-stock-count-session.dto';
+import { CreateStockCountSessionDto, PostStockCountSessionDto, RecountStockCountItemDto } from './dto/create-stock-count-session.dto';
 import { CreateStockTransferDto } from './dto/create-stock-transfer.dto';
 import { InventoryAdjustmentDto } from './dto/inventory-adjustment.dto';
 import { InventoryService } from './inventory.service';
@@ -149,6 +149,17 @@ export class InventoryController {
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
     return this.inventoryService.postStockCountSession(id, req.authContext!);
+  }
+
+  @Post('stock-count-sessions/:id/items/:itemId/recount')
+  @RequirePermissions('canAdjustInventory')
+  recountStockCountItem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() payload: RecountStockCountItemDto,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.inventoryService.recountPendingStockCountItem(id, itemId, payload, req.authContext!);
   }
 
   @Get('damaged-stock')
