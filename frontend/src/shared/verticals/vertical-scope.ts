@@ -1,5 +1,3 @@
-import type { CSSProperties, ReactNode } from 'react';
-
 export type BusinessVertical =
   | 'maritime'
   | 'contracting'

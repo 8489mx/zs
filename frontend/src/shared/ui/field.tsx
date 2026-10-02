@@ -1,7 +1,7 @@
 import { Children, cloneElement, isValidElement, useId, type PropsWithChildren, type ReactElement, type ReactNode } from 'react';
 
 interface FieldProps {
-  label: string;
+  label: ReactNode;
   error?: string;
   hint?: string;
   className?: string;

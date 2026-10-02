@@ -101,6 +101,13 @@ const STATIC_ROUTE_RULES: RouteBreadcrumbRule[] = [
   { prefix: '/import-sales/profit-pool', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'الاستيراد والشحن', to: '/import-sales/shipments' }, { label: 'أرباح الشركاء' }] },
   { prefix: '/import-sales', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'الاستيراد والشحن', to: '/import-sales/shipments' }, { label: 'إدارة الشحن' }] },
 
+  // Maritime & Logistics
+  { prefix: '/maritime', exact: true, crumbs: [{ label: 'الشحن واللوجستيات' }] },
+  { prefix: '/maritime-freight', exact: true, crumbs: [{ label: 'الشحن واللوجستيات' }] },
+
+  // Contracting & Projects
+  { prefix: '/contracting', exact: true, crumbs: [{ label: 'المقاولات والمشاريع' }] },
+
   // Reports & Audit
   { prefix: '/reports', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'التقارير والمراجعة', to: '/reports' }, { label: 'مركز التقارير الشامل' }] },
   { prefix: '/audit', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'التقارير والمراجعة', to: '/reports' }, { label: 'سجل التدقيق والمراجعة' }] },
@@ -131,6 +138,9 @@ const MODULE_SECTION_NAMES: Record<string, { label: string; to: string }> = {
   pharmacy: { label: 'الصيدلية والرعاية الدوائية', to: '/pharmacy' },
   hr: { label: 'الموارد البشرية', to: '/hr/employees' },
   manufacturing: { label: 'التصنيع والإنتاج', to: '/manufacturing/components' },
+  maritime: { label: 'الشحن واللوجستيات', to: '/maritime' },
+  'maritime-freight': { label: 'الشحن واللوجستيات', to: '/maritime' },
+  contracting: { label: 'المقاولات والمشاريع', to: '/contracting' },
   'import-sales': { label: 'الاستيراد والشحن', to: '/import-sales/shipments' },
   reports: { label: 'التقارير والمراجعة', to: '/reports' },
   audit: { label: 'التقارير والمراجعة', to: '/reports' },
@@ -141,7 +151,7 @@ const MODULE_SECTION_NAMES: Record<string, { label: string; to: string }> = {
 export function resolveAutoBreadcrumbs(pathname: string, customCrumbs: BreadcrumbItem[]): BreadcrumbItem[] {
   // If custom breadcrumbs are explicitly provided and not empty, enrich them with Home if missing
   if (customCrumbs && customCrumbs.length > 0) {
-    if (customCrumbs[0].label !== 'الرئيسية' && pathname !== '/' && pathname !== '/dashboard') {
+    if (customCrumbs[0].label !== 'الرئيسية' && pathname !== '/' && pathname !== '/dashboard' && !pathname.startsWith('/maritime') && !pathname.startsWith('/contracting')) {
       return [{ label: 'الرئيسية', to: '/' }, ...customCrumbs];
     }
     return customCrumbs;

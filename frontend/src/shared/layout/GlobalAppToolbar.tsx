@@ -10,6 +10,40 @@ import { AiBusinessCopilotModal } from '@/features/ai-copilot/components/AiBusin
 import { AiRobotIcon } from '@/shared/ui/AiRobotIcon';
 import { ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 
+export function isRootLandingRoute(pathname: string): boolean {
+  const clean = pathname.replace(/\/+$/, '') || '/';
+  
+  // Exact universal module root matches
+  const rootRoutes = new Set([
+    '',
+    '/',
+    '/dashboard',
+    '/contracting',
+    '/pos',
+    '/van-sales',
+    '/inventory/van-sales',
+    '/manufacturing',
+    '/driver',
+    '/setup',
+    '/activate',
+    '/profile',
+  ]);
+  
+  if (rootRoutes.has(clean)) return true;
+
+  // Maritime workspace roots (all top-level maritime tabs belong to the main maritime workspace)
+  if (clean === '/maritime' || clean === '/maritime-freight' || /^\/(maritime|maritime-freight)\/(inquiries|rfqs|matrix|quotations|jobs|containers|lines|settings)$/.test(clean)) {
+    return true;
+  }
+
+  // Contracting workspace roots
+  if (clean === '/contracting' || /^\/contracting\/(projects|sov|subcontractors|claims|settings)$/.test(clean)) {
+    return true;
+  }
+
+  return false;
+}
+
 export function GlobalAppToolbar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -18,13 +52,13 @@ export function GlobalAppToolbar() {
   const { data: updateInfo } = useOfflineUpdateCheck('desktop');
 
   const activeBreadcrumbs = resolveAutoBreadcrumbs(location.pathname, breadcrumbs);
-  const isHome = location.pathname === '/' || location.pathname === '/dashboard';
+  const isRootPage = isRootLandingRoute(location.pathname);
+  const canGoBack = typeof window !== 'undefined' && window.history.length > 1 && (window.history.state?.idx ?? 0) > 0;
+  const showBackButton = !isRootPage && canGoBack;
 
   const handleGoBack = () => {
-    if (window.history.length > 1 && window.history.state?.idx > 0) {
+    if (canGoBack) {
       navigate(-1);
-    } else {
-      navigate('/dashboard');
     }
   };
 
@@ -44,7 +78,7 @@ export function GlobalAppToolbar() {
           </svg>
         </button>
 
-        {!isHome && (
+        {showBackButton && (
           <button
             type="button"
             onClick={handleGoBack}

@@ -12,6 +12,7 @@ interface StepItem {
   number: number;
   id: string;
   title: string;
+  mobileTitle?: string;
   subtitle: string;
   icon: React.ComponentType<{ size?: number | string; color?: string }>;
 }
@@ -21,6 +22,7 @@ const STEPS: StepItem[] = [
     number: 1,
     id: 'inquiry',
     title: 'طلب الشحن (Inquiry)',
+    mobileTitle: 'طلب الشحن',
     subtitle: 'استلام رغبة العميل وتفاصيل البضاعة',
     icon: FileTextIcon,
   },
@@ -28,6 +30,7 @@ const STEPS: StepItem[] = [
     number: 2,
     id: 'rfq',
     title: 'عروض تسعير الخطوط (RFQ)',
+    mobileTitle: 'تسعير الخطوط',
     subtitle: 'إرسال آلي وتلقي عروض الخطوط الملاحية',
     icon: SearchIcon,
   },
@@ -35,6 +38,7 @@ const STEPS: StepItem[] = [
     number: 3,
     id: 'quotation',
     title: 'عرض سعر العميل (Quote)',
+    mobileTitle: 'عرض السعر',
     subtitle: 'تطبيق هامش الربح وإرسال واتساب/إيميل',
     icon: ReceiptIcon,
   },
@@ -42,6 +46,7 @@ const STEPS: StepItem[] = [
     number: 4,
     id: 'job',
     title: 'أمر التشغيل (Job File)',
+    mobileTitle: 'أمر التشغيل',
     subtitle: 'فتح مركز التكلفة والربط المالي الآلي',
     icon: ShipIcon,
   },
@@ -49,6 +54,7 @@ const STEPS: StepItem[] = [
     number: 5,
     id: 'tracking',
     title: 'رحلة الشحن (DCSA)',
+    mobileTitle: 'رحلة الشحن',
     subtitle: 'شحن، تتبع بحري، وتخليص جمركي',
     icon: AppIcons.Clock,
   },
@@ -56,6 +62,7 @@ const STEPS: StepItem[] = [
     number: 6,
     id: 'delivery',
     title: 'التسليم والإغلاق (DLVR)',
+    mobileTitle: 'التسليم والإغلاق',
     subtitle: 'تسليم البضاعة للعميل وإرجاع الحاوية',
     icon: CheckCircleIcon,
   },
@@ -80,25 +87,42 @@ export function MaritimeWorkflowStepper({ currentStepId = 'inquiry', onStepClick
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#170e5e', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px' }}>
-            مسار العمل المؤتمت (Automated Pipeline)
+      <div className="maritime-stepper-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#170e5e', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+            <span className="desktop-only-inline">مسار العمل المؤتمت (Automated Pipeline)</span>
+            <span className="mobile-only-inline">مسار العمل المؤتمت</span>
           </span>
-          <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+          <span className="desktop-only-inline" style={{ fontSize: '0.78rem', color: '#64748b' }}>
             دورة الشحن المتكاملة من طلب العميل حتى التسليم النهائي بالمستودع واسترداد التأمين
+          </span>
+          <span className="mobile-only-inline" style={{ fontSize: '0.72rem', color: '#64748b' }}>
+            من طلب العميل وحتى التسليم النهائي والتخليص
           </span>
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: '8px',
-          alignItems: 'stretch',
-        }}
-      >
+      <style>{`
+        .maritime-stepper-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+          gap: 8px;
+          align-items: stretch;
+        }
+        @media (max-width: 768px) {
+          .maritime-stepper-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 6px !important;
+          }
+          .maritime-stepper-card {
+            padding: 8px 10px !important;
+          }
+          .maritime-stepper-subtitle {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <div className="maritime-stepper-grid">
         {STEPS.map((step, idx) => {
           const isPassed = currentStepIndex > idx;
           const isCurrent = currentStepIndex === idx;
@@ -127,6 +151,7 @@ export function MaritimeWorkflowStepper({ currentStepId = 'inquiry', onStepClick
           return (
             <div
               key={step.id}
+              className="maritime-stepper-card"
               onClick={() => onStepClick && onStepClick(step.id)}
               style={{
                 border: `1px solid ${borderColor}`,
@@ -163,10 +188,11 @@ export function MaritimeWorkflowStepper({ currentStepId = 'inquiry', onStepClick
               </div>
 
               <div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: titleColor, marginBottom: '2px' }}>
-                  {step.title}
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: titleColor, marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span className="desktop-only-inline">{step.title}</span>
+                  <span className="mobile-only-inline">{step.mobileTitle || step.title}</span>
                 </div>
-                <div style={{ fontSize: '0.6875rem', color: '#64748b', lineHeight: 1.3 }}>
+                <div className="maritime-stepper-subtitle" style={{ fontSize: '0.6875rem', color: '#64748b', lineHeight: 1.3 }}>
                   {step.subtitle}
                 </div>
               </div>

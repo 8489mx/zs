@@ -10,7 +10,6 @@ import { saasAdminApi, SaasTenantRow } from '../api/saas-admin.api';
 import {
   SYSTEM_VERTICAL_OPTIONS,
   getPlansForVertical,
-  getSystemVertical,
 } from '@/shared/verticals/vertical-catalog';
 
 export interface CreateTrialTenantModalProps {

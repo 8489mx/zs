@@ -205,8 +205,18 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="طلب شحن واستفسار عميل جديد (New Freight Inquiry)"
-      subtitle="نقطة الانطلاق لتسجيل طلب العميل وتمريره لاحقاً لطلب عروض تسعير الخطوط بنقرة واحدة"
+      title={(
+        <span>
+          طلب شحن واستفسار عميل جديد
+          <span className="desktop-only-inline"> (New Freight Inquiry)</span>
+        </span>
+      )}
+      subtitle={(
+        <span>
+          نقطة الانطلاق لتسجيل طلب العميل وتمريره لاحقاً
+          <span className="desktop-only-inline"> لطلب عروض تسعير الخطوط بنقرة واحدة</span>
+        </span>
+      )}
       width="min(980px, 96vw)"
       minHeight="auto"
       footerActions={(
@@ -245,6 +255,58 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
           font-size: 0.8125rem !important;
           border-radius: 6px !important;
         }
+
+        /* Desktop Grids (Default) */
+        .inquiry-grid-customer {
+          display: grid;
+          grid-template-columns: 1.4fr 1fr 1.2fr;
+          gap: 10px;
+        }
+        .inquiry-grid-route {
+          display: grid;
+          grid-template-columns: 1.1fr 1.1fr 1.6fr 1.6fr;
+          gap: 10px;
+        }
+        .inquiry-grid-air-specs {
+          display: grid;
+          grid-template-columns: 1.2fr 0.8fr 1fr 1fr 1.1fr 1.1fr;
+          gap: 10px;
+          margin-bottom: 8px;
+        }
+        .inquiry-grid-sea-cargo {
+          display: grid;
+          grid-template-columns: 1fr 1.3fr 0.8fr 0.9fr 1fr 0.9fr;
+          gap: 10px;
+          margin-bottom: 8px;
+        }
+
+        /* Mobile Grids (<= 768px): Balanced 2-Column Standard */
+        @media (max-width: 768px) {
+          .inquiry-compact-modal .field span {
+            font-size: 0.72rem !important;
+          }
+          .inquiry-grid-customer {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          .inquiry-grid-route {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          .inquiry-grid-air-specs {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+            margin-bottom: 8px !important;
+          }
+          .inquiry-grid-sea-cargo {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+            margin-bottom: 8px !important;
+          }
+          .inquiry-col-full-mobile {
+            grid-column: span 2 !important;
+          }
+        }
       `}</style>
       <div className="inquiry-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {errorMsg && (
@@ -277,7 +339,7 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                 }}
               >
                 <AppIcons.Ship size={15} />
-                <span>شحن بحري (Ocean Freight)</span>
+                <span>شحن بحري<span className="desktop-only-inline"> (Ocean Freight)</span></span>
               </button>
             )}
             {enableAirFreight && (
@@ -298,10 +360,11 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 <AppIcons.Plane size={15} />
-                <span>شحن جوي (Air Freight / AWB)</span>
+                <span>شحن جوي<span className="desktop-only-inline"> (Air Freight / AWB)</span></span>
               </button>
             )}
             {enableRoadFreight && (
@@ -322,10 +385,11 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 <AppIcons.Truck size={15} />
-                <span>شحن بري (Road Freight)</span>
+                <span>شحن بري<span className="desktop-only-inline"> (Road Freight)</span></span>
               </button>
             )}
           </div>
@@ -335,7 +399,10 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Users size={15} />
-            <span>1. بيانات العميل أو المستورد (Customer Profile)</span>
+            <span>
+              1. بيانات العميل أو المستورد
+              <span className="desktop-only-inline"> (Customer Profile)</span>
+            </span>
           </div>
 
           <div style={{ marginBottom: '8px' }}>
@@ -355,36 +422,42 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
             </Field>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1.2fr', gap: '10px' }}>
-            <Field label="اسم العميل أو الشركة *">
-              <input
-                type="text"
-                value={formData.customerName}
-                onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                placeholder="مثال: شركة الأفق للاستيراد والتصدير"
-                style={{ width: '100%', border: '1px solid #cbd5e1' }}
-              />
-            </Field>
+          <div className="inquiry-grid-customer">
+            <div className="inquiry-col-full-mobile">
+              <Field label="اسم العميل أو الشركة *">
+                <input
+                  type="text"
+                  value={formData.customerName}
+                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                  placeholder="مثال: شركة الأفق للاستيراد والتصدير"
+                  style={{ width: '100%', border: '1px solid #cbd5e1' }}
+                />
+              </Field>
+            </div>
 
-            <Field label="رقم الهاتف أو الواتساب">
-              <input
-                type="tel"
-                value={formData.customerPhone}
-                onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                placeholder="01012345678"
-                style={{ width: '100%', border: '1px solid #cbd5e1' }}
-              />
-            </Field>
+            <div>
+              <Field label="رقم الهاتف أو الواتساب">
+                <input
+                  type="tel"
+                  value={formData.customerPhone}
+                  onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                  placeholder="01012345678"
+                  style={{ width: '100%', border: '1px solid #cbd5e1' }}
+                />
+              </Field>
+            </div>
 
-            <Field label="البريد الإلكتروني للعميل">
-              <input
-                type="email"
-                value={formData.customerEmail}
-                onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
-                placeholder="client@alofok.com"
-                style={{ width: '100%', border: '1px solid #cbd5e1' }}
-              />
-            </Field>
+            <div>
+              <Field label="البريد الإلكتروني للعميل">
+                <input
+                  type="email"
+                  value={formData.customerEmail}
+                  onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                  placeholder="client@alofok.com"
+                  style={{ width: '100%', border: '1px solid #cbd5e1' }}
+                />
+              </Field>
+            </div>
           </div>
         </div>
 
@@ -393,11 +466,27 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             {formData.transportMode === 'air' ? <AppIcons.Plane size={15} /> : formData.transportMode === 'road' ? <AppIcons.Truck size={15} /> : <AppIcons.Ship size={15} />}
             <span>
-              2. {formData.transportMode === 'air' ? 'مسار الشحن الجوي والمطارات (Route & Airports)' : formData.transportMode === 'road' ? 'مسار النقل البري والمحطات (Route & Terminals)' : 'مسار الشحن والموانئ المستهدفة (Route & Ports)'}
+              2.{' '}
+              {formData.transportMode === 'air' ? (
+                <>
+                  مسار الشحن الجوي والمطارات
+                  <span className="desktop-only-inline"> (Route & Airports)</span>
+                </>
+              ) : formData.transportMode === 'road' ? (
+                <>
+                  مسار النقل البري والمحطات
+                  <span className="desktop-only-inline"> (Route & Terminals)</span>
+                </>
+              ) : (
+                <>
+                  مسار الشحن والموانئ المستهدفة
+                  <span className="desktop-only-inline"> (Route & Ports)</span>
+                </>
+              )}
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.1fr 1.6fr 1.6fr', gap: '10px' }}>
+          <div className="inquiry-grid-route">
             <Field label="اتجاه الشحنة *">
               <CustomSelect
                 value={formData.direction}
@@ -488,12 +577,28 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             {formData.transportMode === 'air' ? <AppIcons.Plane size={15} /> : <AppIcons.Container size={15} />}
             <span>
-              3. {formData.transportMode === 'air' ? 'مواصفات البضاعة والشحن الجوي IATA (Air Cargo Specs)' : formData.transportMode === 'road' ? 'مواصفات البضاعة وتجهيز الشاحنات (Road Specs)' : 'مواصفات البضاعة وتجهيز الحاويات (Cargo & Equipment)'}
+              3.{' '}
+              {formData.transportMode === 'air' ? (
+                <>
+                  مواصفات البضاعة والشحن الجوي
+                  <span className="desktop-only-inline"> IATA (Air Cargo Specs)</span>
+                </>
+              ) : formData.transportMode === 'road' ? (
+                <>
+                  مواصفات البضاعة وتجهيز الشاحنات
+                  <span className="desktop-only-inline"> (Road Specs)</span>
+                </>
+              ) : (
+                <>
+                  مواصفات البضاعة وتجهيز الحاويات
+                  <span className="desktop-only-inline"> (Cargo & Equipment)</span>
+                </>
+              )}
             </span>
           </div>
 
           {formData.transportMode === 'air' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 1fr 1fr 1.1fr 1.1fr', gap: '10px', marginBottom: '8px' }}>
+            <div className="inquiry-grid-air-specs">
               <Field label="نوع البضاعة الجوية *">
                 <CustomSelect
                   value={formData.airCargoType}
@@ -563,7 +668,7 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
               </Field>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 0.8fr 0.9fr 1fr 0.9fr', gap: '10px', marginBottom: '8px' }}>
+            <div className="inquiry-grid-sea-cargo">
               <Field label={formData.transportMode === 'road' ? 'نوع النقل *' : 'نمط الشحن *'}>
                 <CustomSelect
                   value={formData.cargoMode}

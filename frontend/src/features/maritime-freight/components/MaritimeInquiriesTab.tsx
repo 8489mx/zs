@@ -150,26 +150,74 @@ export function MaritimeInquiriesTab({
   return (
     <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
       {/* Header الكارت الموحد */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+      <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
         <div>
           <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-            استفسارات وطلبات شحن العملاء (Client Freight Inquiries)
+            <span className="desktop-only-inline">استفسارات وطلبات شحن العملاء (Client Freight Inquiries)</span>
+            <span className="mobile-only-inline">استفسارات وطلبات شحن العملاء</span>
           </h3>
-          <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+          <p className="desktop-only" style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
             نقطة انطلاق دورة الشحن متعدد الوسائط (بحري، جوي، بري) لتسجيل طلبات العملاء وتوليد طلبات تسعير الخطوط فورياً بنقرة زر واحدة
+          </p>
+          <p className="mobile-only" style={{ margin: '2px 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>
+            تسجيل طلبات الشحن وتوليد عروض التسعير فورياً
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0', padding: '3px 8px', borderRadius: '8px' }}>
             {filteredInquiries.length} طلب
           </span>
         </div>
       </div>
 
       {/* شريط البحث والفلترة */}
-      <div style={{ padding: '12px 20px', borderBottom: '1px solid #f1f5f9', background: '#ffffff', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: '400px' }}>
+      <style>{`
+        .inquiries-filter-bar {
+          padding: 12px 18px;
+          border-bottom: 1px solid #f1f5f9;
+          background: #ffffff;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: center;
+        }
+        .inquiries-search-input-wrap {
+          position: relative;
+          flex: 1 1 240px;
+          max-width: 400px;
+        }
+        .inquiries-dropdowns-group {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        @media (max-width: 768px) {
+          .inquiries-filter-bar {
+            padding: 10px 12px !important;
+            gap: 8px !important;
+          }
+          .inquiries-search-input-wrap {
+            flex: 1 1 100% !important;
+            max-width: 100% !important;
+          }
+          .inquiries-dropdowns-group {
+            width: 100% !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          .inquiries-dropdown-item {
+            width: 100% !important;
+          }
+          .inquiries-dropdown-item > div {
+            width: 100% !important;
+          }
+        }
+      `}</style>
+      <div className="inquiries-filter-bar">
+        <div className="inquiries-search-input-wrap">
           <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}>
             <SearchIcon size={15} />
           </span>
@@ -222,70 +270,74 @@ export function MaritimeInquiriesTab({
           )}
         </div>
 
-        {activeModesCount > 1 && (
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>الوسيلة:</span>
-            <div style={{ width: 140 }}>
+        <div className="inquiries-dropdowns-group">
+          {activeModesCount > 1 && (
+            <div className="inquiries-dropdown-item" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <span className="desktop-only-inline" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>الوسيلة:</span>
+              <div style={{ width: 140 }}>
+                <CustomSelect
+                  value={modeFilter}
+                  onChange={(val) => setModeFilter(val || 'all')}
+                  options={modeOptions}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="inquiries-dropdown-item" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span className="desktop-only-inline" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>الحالة:</span>
+            <div style={{ width: 170 }}>
               <CustomSelect
-                value={modeFilter}
-                onChange={(val) => setModeFilter(val || 'all')}
-                options={modeOptions}
+                value={statusFilter}
+                onChange={(val) => setStatusFilter(val || 'all')}
+                options={[
+                  { value: 'all', label: 'كافة الحالات' },
+                  { value: 'received', label: 'طلبات مستلمة جديدة' },
+                  { value: 'rfq_created', label: 'تم تحويلها لـ RFQ' },
+                  { value: 'quoted', label: 'تم تسعيرها للعميل' },
+                  { value: 'converted_to_job', label: 'تم التعميد (أمر تشغيل)' },
+                  { value: 'cancelled', label: 'ملغية' },
+                ]}
               />
             </div>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>الحالة:</span>
-          <div style={{ width: 170 }}>
-            <CustomSelect
-              value={statusFilter}
-              onChange={(val) => setStatusFilter(val || 'all')}
-              options={[
-                { value: 'all', label: 'كافة الحالات' },
-                { value: 'received', label: 'طلبات مستلمة جديدة' },
-                { value: 'rfq_created', label: 'تم تحويلها لـ RFQ' },
-                { value: 'quoted', label: 'تم تسعيرها للعميل' },
-                { value: 'converted_to_job', label: 'تم التعميد (أمر تشغيل)' },
-                { value: 'cancelled', label: 'ملغية' },
-              ]}
-            />
           </div>
         </div>
       </div>
 
-      {/* جدول الاستفسارات */}
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.825rem' }}>
-          <thead>
-            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-              <th style={{ padding: '12px 14px' }}>رقم الطلب والوسيلة</th>
-              <th style={{ padding: '12px 14px' }}>العميل وبيانات الاتصال</th>
-              <th style={{ padding: '12px 14px' }}>مسار الشحنة</th>
-              <th style={{ padding: '12px 14px' }}>الشحنة والمعدات / الأوزان</th>
-              <th style={{ padding: '12px 14px' }}>الشرط والسداد</th>
-              <th style={{ padding: '12px 14px' }}>جاهزية البضاعة</th>
-              <th style={{ padding: '12px 14px' }}>الحالة</th>
-              <th style={{ padding: '12px 14px', textAlign: 'center' }}>الإجراء المتسلسل</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  جاري تحميل طلبات واستفسارات الشحن...
-                </td>
+      {/* جدول الاستفسارات أو حالة التحميل أو الحالة الفارغة النظيفة */}
+      {loading ? (
+        <div style={{ padding: '48px 16px', textAlign: 'center', color: '#64748b' }}>
+          جاري تحميل طلبات واستفسارات الشحن...
+        </div>
+      ) : filteredInquiries.length === 0 ? (
+        <div style={{ padding: '36px 16px', textAlign: 'center', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', marginBottom: '10px' }}>
+            <FileTextIcon size={24} />
+          </div>
+          <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b' }}>
+            {inquiries.length === 0 ? 'لا توجد طلبات شحن مسجلة حتى الآن' : 'لا توجد نتائج مطابقة لبحثك الحالي'}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', maxWidth: '340px' }}>
+            {inquiries.length === 0 ? 'انقر على "طلب شحن عميل" في الأعلى لبدء دورة شحن جديدة.' : 'جرّب تعديل كلمة البحث أو فلترة الحالات.'}
+          </div>
+        </div>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.825rem' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
+                <th style={{ padding: '12px 14px' }}>رقم الطلب والوسيلة</th>
+                <th style={{ padding: '12px 14px' }}>العميل وبيانات الاتصال</th>
+                <th style={{ padding: '12px 14px' }}>مسار الشحنة</th>
+                <th style={{ padding: '12px 14px' }}>الشحنة والمعدات / الأوزان</th>
+                <th style={{ padding: '12px 14px' }}>الشرط والسداد</th>
+                <th style={{ padding: '12px 14px' }}>جاهزية البضاعة</th>
+                <th style={{ padding: '12px 14px' }}>الحالة</th>
+                <th style={{ padding: '12px 14px', textAlign: 'center' }}>الإجراء المتسلسل</th>
               </tr>
-            ) : filteredInquiries.length === 0 ? (
-              <tr>
-                <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  {inquiries.length === 0
-                    ? 'لا توجد طلبات شحن مسجلة حتى الآن. انقر على "طلب شحن عميل" في الأعلى لبدء دورة شحن جديدة.'
-                    : 'لا توجد نتائج مطابقة لبحثك الحالي.'}
-                </td>
-              </tr>
-            ) : (
-              filteredInquiries.map((inq) => (
+            </thead>
+            <tbody>
+              {filteredInquiries.map((inq) => (
                 <tr key={inq.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -411,11 +463,11 @@ export function MaritimeInquiriesTab({
                     )}
                   </td>
                 </tr>
-              ))
-            )}
+              ))}
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

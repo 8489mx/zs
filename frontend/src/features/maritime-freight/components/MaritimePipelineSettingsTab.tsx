@@ -116,20 +116,60 @@ export function MaritimePipelineSettingsTab() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="pipeline-settings-tab" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <style>{`
+        .pipeline-settings-tab input[type="number"]::-webkit-outer-spin-button,
+        .pipeline-settings-tab input[type="number"]::-webkit-inner-spin-button {
+          -webkit-appearance: none !important;
+          margin: 0 !important;
+        }
+        .pipeline-settings-tab input[type="number"] {
+          -moz-appearance: textfield !important;
+        }
+        @media (max-width: 768px) {
+          .pipeline-settings-card {
+            padding: 14px !important;
+            border-radius: 10px !important;
+          }
+          .pipeline-header-actions {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+            width: 100% !important;
+            margin-top: 10px !important;
+          }
+          .pipeline-header-actions button {
+            height: 36px !important;
+            padding: 0 8px !important;
+            font-size: 0.78rem !important;
+            justify-content: center !important;
+            white-space: nowrap !important;
+          }
+          .pipeline-checkpoint-label {
+            padding: 10px 12px !important;
+            gap: 10px !important;
+          }
+          .pipeline-channel-card {
+            padding: 12px !important;
+            gap: 10px !important;
+          }
+        }
+      `}</style>
+
       {/* هيدر البطاقة والأزرار الإجرائية */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+      <div className="pipeline-settings-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
           <div>
             <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#170e5e', margin: 0 }}>
-              إعدادات وسياسات تشغيل الشحن (Freight Settings & Policies)
+              إعدادات وسياسات تشغيل الشحن
+              <span className="desktop-only-inline"> (Freight Settings & Policies)</span>
             </h2>
             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
               تحديد وسائط الشحن المعتمدة للمنشأة، درجة الأتمتة، ضبط هوامش الربح الافتراضية، مؤقت مهل عروض الأسعار، وخوادم المراسلات.
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div className="pipeline-header-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button
               type="button"
               disabled={runningTrigger}
@@ -150,8 +190,17 @@ export function MaritimePipelineSettingsTab() {
               }}
               title="فحص فوري لجميع طلبات التسعير المفتوحة وترسية المكتمل منها حالاً"
             >
-              <RefreshCwIcon size={15} style={{ animation: runningTrigger ? 'spin 1s linear infinite' : 'none' }} />
-              <span>{runningTrigger ? 'جاري الفحص والترسية...' : 'تشغيل فحص الأتمتة الآن (Run Pipeline)'}</span>
+              <RefreshCwIcon size={15} style={{ animation: runningTrigger ? 'spin 1s linear infinite' : 'none', flexShrink: 0 }} />
+              <span>
+                {runningTrigger ? (
+                  'جاري الفحص...'
+                ) : (
+                  <>
+                    <span className="desktop-only-inline">تشغيل فحص الأتمتة الآن (Run Pipeline)</span>
+                    <span className="mobile-only-inline">فحص الأتمتة</span>
+                  </>
+                )}
+              </span>
             </button>
 
             <button
@@ -174,8 +223,17 @@ export function MaritimePipelineSettingsTab() {
                 boxShadow: '0 2px 4px rgba(23, 14, 94, 0.15)',
               }}
             >
-              <CheckIcon size={16} />
-              <span>{saving ? 'جاري الحفظ...' : 'حفظ إعدادات وسياسات الشحن'}</span>
+              <CheckIcon size={16} style={{ flexShrink: 0 }} />
+              <span>
+                {saving ? (
+                  'جاري الحفظ...'
+                ) : (
+                  <>
+                    <span className="desktop-only-inline">حفظ إعدادات وسياسات الشحن</span>
+                    <span className="mobile-only-inline">حفظ الإعدادات</span>
+                  </>
+                )}
+              </span>
             </button>
           </div>
         </div>
@@ -203,10 +261,13 @@ export function MaritimePipelineSettingsTab() {
       </div>
 
       {/* بطاقة 0: أنماط ووسائل الشحن المعتمدة للمنشأة */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+      <div className="pipeline-settings-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
           <AppIcons.Sliders size={18} />
-          <span>أنماط ووسائل الشحن المعتمدة للمنشأة (Active Transport Modes)</span>
+          <span>
+            أنماط ووسائل الشحن المعتمدة للمنشأة
+            <span className="desktop-only-inline"> (Active Transport Modes)</span>
+          </span>
         </div>
         <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 16px 0' }}>
           تحديد خدمات وأنماط الشحن التي تقدمها منشأتكم؛ إيقاف أي نمط يُخفيه تلقائياً من نماذج طلبات الشحن وعروض الأسعار والدليل القياسي لتفادي أي تشتيت لموظفيكم.
@@ -239,7 +300,8 @@ export function MaritimePipelineSettingsTab() {
                   <AppIcons.Ship size={16} />
                 </div>
                 <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>
-                  الشحن البحري (Ocean Freight)
+                  الشحن البحري
+                  <span className="desktop-only-inline"> (Ocean Freight)</span>
                 </div>
               </div>
               <input
@@ -280,7 +342,8 @@ export function MaritimePipelineSettingsTab() {
                   <AppIcons.Plane size={16} />
                 </div>
                 <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>
-                  الشحن الجوي (Air Freight)
+                  الشحن الجوي
+                  <span className="desktop-only-inline"> (Air Freight)</span>
                 </div>
               </div>
               <input
@@ -321,7 +384,8 @@ export function MaritimePipelineSettingsTab() {
                   <AppIcons.Truck size={16} />
                 </div>
                 <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>
-                  الشحن البري (Road Freight)
+                  الشحن البري
+                  <span className="desktop-only-inline"> (Road Freight)</span>
                 </div>
               </div>
               <input
@@ -339,17 +403,25 @@ export function MaritimePipelineSettingsTab() {
       </div>
 
       {/* بطاقة 1: النمط التشغيلي العام للمنظومة */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+      <div className="pipeline-settings-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
           <ShieldCheckIcon size={18} />
-          <span>1. النمط التشغيلي العام للمنشأة (Master Automation Mode)</span>
+          <span>
+            1. النمط التشغيلي العام للمنشأة
+            <span className="desktop-only-inline"> (Master Automation Mode)</span>
+          </span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
           {[
             {
               id: 'full_autonomous',
-              title: 'أتمتة كاملة ذاتية (Full Zero-Touch)',
+              title: (
+                <span>
+                  أتمتة كاملة ذاتية
+                  <span className="desktop-only-inline"> (Full Zero-Touch)</span>
+                </span>
+              ),
               desc: 'الدورة تدور ذاتياً بنسبة 100%: جمع العروض، فرز أفضل قيمة، تطبيق الهامش الافتراضي، وإصدار وإرسال العرض للعميل دون أي تدخل يدوي.',
               badge: 'أقصى سرعة',
               badgeBg: '#f1f5f9',
@@ -357,7 +429,12 @@ export function MaritimePipelineSettingsTab() {
             },
             {
               id: 'hybrid',
-              title: 'هجين ذكي (Smart Hybrid)',
+              title: (
+                <span>
+                  هجين ذكي
+                  <span className="desktop-only-inline"> (Smart Hybrid)</span>
+                </span>
+              ),
               desc: 'السستم يجمع العروض ويرتبها آلياً، لكنه يقف عند محطة اعتماد الهامش أو مراجعة العرض النهائي لإعطاء الموظف القرار الأخير.',
               badge: 'الموصى به',
               badgeBg: '#eff6ff',
@@ -365,7 +442,12 @@ export function MaritimePipelineSettingsTab() {
             },
             {
               id: 'manual',
-              title: 'تحكم يدوي كلاسيكي (Manual Control)',
+              title: (
+                <span>
+                  تحكم يدوي كلاسيكي
+                  <span className="desktop-only-inline"> (Manual Control)</span>
+                </span>
+              ),
               desc: 'إيقاف الأتمتة الذاتية بالكامل، وتتطلب كل خطوة ضغطات يدوية منفصلة من موظف العمليات والمبيعات.',
               badge: 'تقليدي',
               badgeBg: '#f1f5f9',
@@ -429,10 +511,13 @@ export function MaritimePipelineSettingsTab() {
       </div>
 
       {/* بطاقة 2: قواعد هامش الربح الآلي */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+      <div className="pipeline-settings-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
           <TrendingUpIcon size={18} />
-          <span>2. قواعد هامش الربح الآلي (Autonomous Margin & Markup Engine)</span>
+          <span>
+            2. قواعد هامش الربح الآلي
+            <span className="desktop-only-inline"> (Autonomous Margin & Markup Engine)</span>
+          </span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
@@ -457,7 +542,12 @@ export function MaritimePipelineSettingsTab() {
             />
           </Field>
 
-          <Field label="الحد الأدنى للأمان الربحي للحاوية ($ Margin Floor) *">
+          <Field label={(
+            <span>
+              الحد الأدنى للأمان الربحي للحاوية
+              <span className="desktop-only-inline"> ($ Margin Floor)</span> *
+            </span>
+          )}>
             <input
               type="number"
               min={0}
@@ -467,7 +557,12 @@ export function MaritimePipelineSettingsTab() {
             />
           </Field>
 
-          <Field label="سعر الصرف الافتراضي (USD / EGP) *">
+          <Field label={(
+            <span>
+              سعر الصرف الافتراضي
+              <span className="desktop-only-inline"> (USD / EGP)</span> *
+            </span>
+          )}>
             <input
               type="number"
               step="0.1"
@@ -485,10 +580,13 @@ export function MaritimePipelineSettingsTab() {
       </div>
 
       {/* بطاقة 3: مؤقت مهل عروض الأسعار والترسية المبكرة */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+      <div className="pipeline-settings-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
           <ClockIcon size={18} />
-          <span>3. مؤقت مهل عروض الأسعار وقواعد الترسية المبكرة (Cut-off & Early Awarding)</span>
+          <span>
+            3. مؤقت مهل عروض الأسعار وقواعد الترسية المبكرة
+            <span className="desktop-only-inline"> (Cut-off & Early Awarding)</span>
+          </span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
@@ -526,33 +624,39 @@ export function MaritimePipelineSettingsTab() {
           </Field>
         </div>
 
-        <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ marginTop: '14px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
           <input
             type="checkbox"
             id="earlyAwardingToggle"
             checked={config.earlyAwardingEnabled}
             onChange={(e) => setConfig({ ...config, earlyAwardingEnabled: e.target.checked })}
-            style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
+            style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: '2px', accentColor: '#170e5e', cursor: 'pointer' }}
           />
-          <label htmlFor="earlyAwardingToggle" style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-            تفعيل ميزة الترسية الفورية المبكرة (Early Awarding): في حال ورد عرض سعر من خط ملاحي يحقق سقف السعر المستهدف للعميل مع أيام سماح لا تقل عن {config.earlyAwardingMinFreeDays} يوماً، تتم الترسية فوراً دون انتظار انقضاء ساعات التايمر.
+          <label htmlFor="earlyAwardingToggle" style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer', flex: 1, minWidth: 0, lineHeight: 1.5 }}>
+            تفعيل ميزة الترسية الفورية المبكرة
+            <span className="desktop-only-inline"> (Early Awarding)</span>: في حال ورد عرض سعر من خط ملاحي يحقق سقف السعر المستهدف للعميل مع أيام سماح لا تقل عن {config.earlyAwardingMinFreeDays} يوماً، تتم الترسية فوراً دون انتظار انقضاء ساعات التايمر.
           </label>
         </div>
       </div>
 
       {/* بطاقة 4: محطات التوقف والمراجعة البشرية */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+      <div className="pipeline-settings-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
           <UsersIcon size={18} />
-          <span>4. محطات التوقف والمراجعة البشرية (Human-in-the-Loop Checkpoints)</span>
+          <span>
+            4. محطات التوقف والمراجعة البشرية
+            <span className="desktop-only-inline"> (Human-in-the-Loop Checkpoints)</span>
+          </span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <label
+            className="pipeline-checkpoint-label"
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              gap: '12px',
               padding: '12px 16px',
               borderRadius: '8px',
               border: config.requireManualRfqDispatch ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
@@ -560,11 +664,11 @@ export function MaritimePipelineSettingsTab() {
               cursor: 'pointer',
             }}
           >
-            <div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b' }}>
                 المحطة 1: مراجعة طلب الـ RFQ يدوياً قبل الإرسال للخطوط الملاحية
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', lineHeight: 1.45 }}>
                 عند التفعيل: يحفظ طلب التسعير كـ مسودة (Draft) ولا يرسل للخطوط الملاحية إلا بعد مراجعة الموظف والضغط على زر الإرسال.
               </div>
             </div>
@@ -572,15 +676,17 @@ export function MaritimePipelineSettingsTab() {
               type="checkbox"
               checked={config.requireManualRfqDispatch}
               onChange={(e) => setConfig({ ...config, requireManualRfqDispatch: e.target.checked })}
-              style={{ width: '18px', height: '18px', accentColor: '#170e5e' }}
+              style={{ width: '18px', height: '18px', flexShrink: 0, accentColor: '#170e5e', cursor: 'pointer' }}
             />
           </label>
 
           <label
+            className="pipeline-checkpoint-label"
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              gap: '12px',
               padding: '12px 16px',
               borderRadius: '8px',
               border: config.requireManualAwardAndMargin ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
@@ -588,11 +694,11 @@ export function MaritimePipelineSettingsTab() {
               cursor: 'pointer',
             }}
           >
-            <div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b' }}>
                 المحطة 2: التوقف لمراجعة أفضل عرض واعتماد الهامش يدوياً
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', lineHeight: 1.45 }}>
                 عند التفعيل: عند اكتمال العروض أو انتهاء المهلة، لا يتم إصدار العرض آلياً، بل يُرسل إشعار للموظف ليفتح تبويب المصفوفة ويضغط "اعتماد السعر وتحديد الهامش".
               </div>
             </div>
@@ -600,15 +706,17 @@ export function MaritimePipelineSettingsTab() {
               type="checkbox"
               checked={config.requireManualAwardAndMargin}
               onChange={(e) => setConfig({ ...config, requireManualAwardAndMargin: e.target.checked })}
-              style={{ width: '18px', height: '18px', accentColor: '#170e5e' }}
+              style={{ width: '18px', height: '18px', flexShrink: 0, accentColor: '#170e5e', cursor: 'pointer' }}
             />
           </label>
 
           <label
+            className="pipeline-checkpoint-label"
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              gap: '12px',
               padding: '12px 16px',
               borderRadius: '8px',
               border: config.requireManualQuoteDispatch ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
@@ -616,11 +724,11 @@ export function MaritimePipelineSettingsTab() {
               cursor: 'pointer',
             }}
           >
-            <div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b' }}>
                 المحطة 3: مراجعة عرض السعر النهائي قبل إرساله للعميل
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', lineHeight: 1.45 }}>
                 عند التفعيل: يصدر العرض بحالة "مسودة (Draft Quote)" ولا يتم إرساله لواتساب أو إيميل العميل إلا بعد موافقة مدير المبيعات.
               </div>
             </div>
@@ -628,21 +736,25 @@ export function MaritimePipelineSettingsTab() {
               type="checkbox"
               checked={config.requireManualQuoteDispatch}
               onChange={(e) => setConfig({ ...config, requireManualQuoteDispatch: e.target.checked })}
-              style={{ width: '18px', height: '18px', accentColor: '#170e5e' }}
+              style={{ width: '18px', height: '18px', flexShrink: 0, accentColor: '#170e5e', cursor: 'pointer' }}
             />
           </label>
         </div>
       </div>
 
       {/* بطاقة 5: قنوات الإرسال المباشر للعميل */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+      <div className="pipeline-settings-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
           <SendIcon size={18} />
-          <span>5. قنوات الإرسال التلقائي للعميل (Instant Client Quotation Dispatch)</span>
+          <span>
+            5. قنوات الإرسال التلقائي للعميل
+            <span className="desktop-only-inline"> (Instant Client Quotation Dispatch)</span>
+          </span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
           <label
+            className="pipeline-channel-card"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -658,20 +770,24 @@ export function MaritimePipelineSettingsTab() {
               type="checkbox"
               checked={config.autoSendWhatsAppQuote}
               onChange={(e) => setConfig({ ...config, autoSendWhatsAppQuote: e.target.checked })}
-              style={{ width: '18px', height: '18px', accentColor: '#170e5e' }}
+              style={{ width: '18px', height: '18px', flexShrink: 0, accentColor: '#170e5e', cursor: 'pointer' }}
             />
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MessageSquareIcon size={16} style={{ color: '#170e5e' }} />
-                <span>إرسال العرض فورياً بالواتساب (WhatsApp Gateway)</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <MessageSquareIcon size={16} style={{ color: '#170e5e', flexShrink: 0 }} />
+                <span>
+                  إرسال العرض فورياً بالواتساب
+                  <span className="desktop-only-inline"> (WhatsApp Gateway)</span>
+                </span>
               </div>
-              <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', lineHeight: 1.45 }}>
                 إرسال ملخص تفاصيل الشحنة والسعر الإجمالي وفترة السماح لرقم هاتف العميل فور توليد العرض.
               </div>
             </div>
           </label>
 
           <label
+            className="pipeline-channel-card"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -687,14 +803,17 @@ export function MaritimePipelineSettingsTab() {
               type="checkbox"
               checked={config.autoSendEmailQuote}
               onChange={(e) => setConfig({ ...config, autoSendEmailQuote: e.target.checked })}
-              style={{ width: '18px', height: '18px', accentColor: '#170e5e' }}
+              style={{ width: '18px', height: '18px', flexShrink: 0, accentColor: '#170e5e', cursor: 'pointer' }}
             />
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MailIcon size={16} style={{ color: '#170e5e' }} />
-                <span>إرسال العرض فورياً بالبريد الإلكتروني (Email Quote Dispatch)</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <MailIcon size={16} style={{ color: '#170e5e', flexShrink: 0 }} />
+                <span>
+                  إرسال العرض فورياً بالبريد الإلكتروني
+                  <span className="desktop-only-inline"> (Email Quote Dispatch)</span>
+                </span>
               </div>
-              <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', lineHeight: 1.45 }}>
                 إرسال ملف PDF رسمي لعرض السعر إلى إيميل العميل المسجل.
               </div>
             </div>

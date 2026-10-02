@@ -208,8 +208,18 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="طلب تسعير ملاحي جديد (New Ocean RFQ)"
-      subtitle="إرسال طلب تسعير فوري للخطوط الملاحية والوكلاء مع كود تتبع آلي [RFQ-YYMMDD-XXXX]"
+      title={(
+        <span>
+          طلب تسعير ملاحي جديد
+          <span className="desktop-only-inline"> (New Ocean RFQ)</span>
+        </span>
+      )}
+      subtitle={(
+        <span>
+          إرسال طلب تسعير فوري للخطوط الملاحية والوكلاء
+          <span className="desktop-only-inline"> مع كود تتبع آلي [RFQ-YYMMDD-XXXX]</span>
+        </span>
+      )}
       width="min(980px, 96vw)"
       minHeight="auto"
       footerActions={(
@@ -235,11 +245,19 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
           overflow: hidden !important;
           text-overflow: ellipsis !important;
         }
-        .rfq-compact-modal input {
+        .rfq-compact-modal input:not([role="searchbox"]) {
           height: 33px !important;
           font-size: 0.8125rem !important;
           border-radius: 6px !important;
           padding: 0 10px !important;
+        }
+        .rfq-compact-modal input[type="number"]::-webkit-outer-spin-button,
+        .rfq-compact-modal input[type="number"]::-webkit-inner-spin-button {
+          -webkit-appearance: none !important;
+          margin: 0 !important;
+        }
+        .rfq-compact-modal input[type="number"] {
+          -moz-appearance: textfield !important;
         }
         .rfq-compact-modal .custom-combobox,
         .rfq-compact-modal .custom-select-trigger {
@@ -247,6 +265,86 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
           height: 33px !important;
           font-size: 0.8125rem !important;
           border-radius: 6px !important;
+        }
+
+        /* Desktop Grids (Default) */
+        .rfq-grid-customer {
+          display: grid;
+          grid-template-columns: 1.4fr 1fr 1.2fr;
+          gap: 10px;
+        }
+        .rfq-grid-route {
+          display: grid;
+          grid-template-columns: 1.1fr 1.1fr 1.6fr 1.6fr;
+          gap: 10px;
+        }
+        .rfq-grid-sea-cargo {
+          display: grid;
+          grid-template-columns: 1.1fr 1.3fr 0.8fr 0.9fr 1.2fr 1fr;
+          gap: 8px;
+          margin-bottom: 6px;
+        }
+        .rfq-grid-air-specs {
+          display: grid;
+          grid-template-columns: 1.2fr 0.8fr 1fr 1fr 1.1fr 1.1fr;
+          gap: 8px;
+          margin-bottom: 6px;
+        }
+        .rfq-grid-air-details {
+          display: grid;
+          grid-template-columns: 1.2fr 1.2fr 1.2fr 1.2fr;
+          gap: 8px;
+          margin-bottom: 6px;
+        }
+        .rfq-grid-urgency {
+          display: grid;
+          grid-template-columns: 1.4fr 1fr 1.4fr;
+          gap: 10px;
+        }
+
+        /* Mobile Grids (<= 768px): Balanced 2-Column Standard */
+        @media (max-width: 768px) {
+          .rfq-compact-modal .field span {
+            font-size: 0.72rem !important;
+          }
+          .rfq-grid-customer {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          .rfq-grid-route {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          .rfq-grid-sea-cargo {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+            margin-bottom: 8px !important;
+          }
+          .rfq-grid-air-specs {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+            margin-bottom: 8px !important;
+          }
+          .rfq-grid-air-details {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+            margin-bottom: 8px !important;
+          }
+          .rfq-grid-urgency {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          .rfq-grid-customer > div,
+          .rfq-grid-route > div,
+          .rfq-grid-sea-cargo > div,
+          .rfq-grid-air-specs > div,
+          .rfq-grid-air-details > div,
+          .rfq-grid-urgency > div {
+            min-width: 0 !important;
+          }
+          .rfq-col-full-mobile {
+            grid-column: 1 / -1 !important;
+          }
         }
       `}</style>
       <div className="rfq-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -280,7 +378,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
                 }}
               >
                 <AppIcons.Ship size={15} />
-                <span>شحن بحري (Ocean Freight)</span>
+                <span>شحن بحري<span className="desktop-only-inline"> (Ocean Freight)</span></span>
               </button>
             )}
             {enableAirFreight && (
@@ -301,10 +399,11 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 <AppIcons.Plane size={15} />
-                <span>شحن جوي (Air Freight / AWB)</span>
+                <span>شحن جوي<span className="desktop-only-inline"> (Air Freight / AWB)</span></span>
               </button>
             )}
             {enableRoadFreight && (
@@ -325,10 +424,11 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 <AppIcons.Truck size={15} />
-                <span>نقل بري (Road Freight)</span>
+                <span>نقل بري<span className="desktop-only-inline"> (Road Freight)</span></span>
               </button>
             )}
           </div>
@@ -338,39 +438,49 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
         <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Users size={15} />
-            <span>بيانات العميل أو المستورد (Customer Information - اختياري)</span>
+            <span>
+              بيانات العميل أو المستورد
+              <span className="desktop-only-inline"> (Customer Information - اختياري)</span>
+              <span className="mobile-only-inline" style={{ fontSize: '0.72rem', color: '#64748b' }}> (اختياري)</span>
+            </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1.2fr', gap: '10px' }}>
-            <Field label="اسم العميل أو الشركة">
-              <input
-                type="text"
-                value={formData.customerName}
-                onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                placeholder="مثال: شركة النور للاستيراد"
-                style={{ width: '100%', border: '1px solid #cbd5e1' }}
-              />
-            </Field>
+          <div className="rfq-grid-customer">
+            <div className="rfq-col-full-mobile">
+              <Field label="اسم العميل أو الشركة">
+                <input
+                  type="text"
+                  value={formData.customerName}
+                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                  placeholder="مثال: شركة النور للاستيراد"
+                  style={{ width: '100%', border: '1px solid #cbd5e1' }}
+                />
+              </Field>
+            </div>
 
-            <Field label="رقم الهاتف أو الواتساب">
-              <input
-                type="tel"
-                value={formData.customerPhone}
-                onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                placeholder="01012345678"
-                style={{ width: '100%', border: '1px solid #cbd5e1' }}
-              />
-            </Field>
+            <div>
+              <Field label="رقم الهاتف أو الواتساب">
+                <input
+                  type="tel"
+                  value={formData.customerPhone}
+                  onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                  placeholder="01012345678"
+                  style={{ width: '100%', border: '1px solid #cbd5e1' }}
+                />
+              </Field>
+            </div>
 
-            <Field label="البريد الإلكتروني للعميل">
-              <input
-                type="email"
-                value={formData.customerEmail}
-                onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
-                placeholder="client@company.com"
-                style={{ width: '100%', border: '1px solid #cbd5e1' }}
-              />
-            </Field>
+            <div>
+              <Field label="البريد الإلكتروني للعميل">
+                <input
+                  type="email"
+                  value={formData.customerEmail}
+                  onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                  placeholder="client@company.com"
+                  style={{ width: '100%', border: '1px solid #cbd5e1' }}
+                />
+              </Field>
+            </div>
           </div>
         </div>
 
@@ -379,11 +489,21 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             {formData.transportMode === 'air' ? <AppIcons.Plane size={15} /> : <AppIcons.Ship size={15} />}
             <span>
-              {formData.transportMode === 'air' ? '1. مسار الرحلة الجوية والمطارات (Flight Route & Airports)' : '1. مسار الرحلة والاتجاه (Route & Direction)'}
+              {formData.transportMode === 'air' ? (
+                <>
+                  1. مسار الرحلة الجوية والمطارات
+                  <span className="desktop-only-inline"> (Flight Route & Airports)</span>
+                </>
+              ) : (
+                <>
+                  1. مسار الرحلة والاتجاه
+                  <span className="desktop-only-inline"> (Route & Direction)</span>
+                </>
+              )}
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.1fr 1.6fr 1.6fr', gap: '10px' }}>
+          <div className="rfq-grid-route">
             <Field label="اتجاه الشحنة *">
               <CustomSelect
                 value={formData.direction}
@@ -449,10 +569,13 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
           <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
               <AppIcons.Plane size={15} />
-              <span>2. مواصفات الشحنة الجوية والأوزان (Air Cargo Specs - IATA 1:6000 Standard)</span>
+              <span>
+                2. مواصفات الشحنة الجوية والأوزان
+                <span className="desktop-only-inline"> (Air Cargo Specs - IATA 1:6000 Standard)</span>
+              </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 1fr 1fr 1.1fr 1.1fr', gap: '8px', marginBottom: '6px' }}>
+            <div className="rfq-grid-air-specs">
               <Field label="تصنيف البضاعة الجوية *">
                 <CustomSelect
                   value={formData.airCargoType}
@@ -522,7 +645,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
               </Field>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1.2fr 1.2fr', gap: '8px', marginBottom: '6px' }}>
+            <div className="rfq-grid-air-details">
               <Field label="طريقة السداد *">
                 <CustomSelect
                   value={formData.paymentTerm}
@@ -579,10 +702,13 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
           <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
               <AppIcons.Container size={15} />
-              <span>2. البضاعة ومواصفات الحاويات (Cargo & Equipment)</span>
+              <span>
+                2. البضاعة ومواصفات الحاويات
+                <span className="desktop-only-inline"> (Cargo & Equipment)</span>
+              </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.3fr 0.8fr 0.9fr 1.2fr 1fr', gap: '8px', marginBottom: '6px' }}>
+            <div className="rfq-grid-sea-cargo">
               <Field label="نمط الشحن *">
                 <CustomSelect
                   value={formData.cargoMode}
@@ -671,49 +797,73 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
         <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Clock size={15} />
-            <span>3. أولوية التسعير ومؤقت مهلة استلام العروض (Pricing Urgency & Cut-off)</span>
+            <span>
+              3. أولوية التسعير ومؤقت المهلة
+              <span className="desktop-only-inline"> (Pricing Urgency & Cut-off)</span>
+            </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1.4fr', gap: '10px' }}>
-            <Field label="أولوية الطلب والمهلة الافتراضية *">
-              <CustomSelect
-                value={formData.urgencyLevel}
-                onChange={(val) => {
-                  const urg = (val || 'standard') as 'standard' | 'urgent';
-                  setFormData({
-                    ...formData,
-                    urgencyLevel: urg,
-                    cutOffHours: urg === 'urgent' ? 6 : 24,
-                  });
-                }}
-                options={[
-                  { value: 'standard', label: 'عادي (Standard) - مهلة 24 ساعة' },
-                  { value: 'urgent', label: 'عاجل فوري (Urgent Spot) - مهلة 6 ساعات' },
-                ]}
-              />
-            </Field>
+          <div className="rfq-grid-urgency">
+            <div>
+              <Field label={(
+                <span>
+                  أولوية الطلب
+                  <span className="desktop-only-inline"> والمهلة</span> *
+                </span>
+              )}>
+                <CustomSelect
+                  value={formData.urgencyLevel}
+                  onChange={(val) => {
+                    const urg = (val || 'standard') as 'standard' | 'urgent';
+                    setFormData({
+                      ...formData,
+                      urgencyLevel: urg,
+                      cutOffHours: urg === 'urgent' ? 6 : 24,
+                    });
+                  }}
+                  options={[
+                    { value: 'standard', label: 'عادي - 24 ساعة' },
+                    { value: 'urgent', label: 'عاجل فوري - 6 ساعات' },
+                  ]}
+                />
+              </Field>
+            </div>
 
-            <Field label="مهلة تلقي العروض (بالساعات) *">
-              <input
-                type="number"
-                min={1}
-                max={168}
-                value={formData.cutOffHours}
-                onChange={(e) => setFormData({ ...formData, cutOffHours: parseInt(e.target.value, 10) || 24 })}
-                style={{ width: '100%', border: '1px solid #cbd5e1' }}
-              />
-            </Field>
+            <div>
+              <Field label={(
+                <span>
+                  مهلة العروض
+                  <span className="desktop-only-inline"> (بالساعات)</span> *
+                </span>
+              )}>
+                <input
+                  type="number"
+                  min={1}
+                  max={168}
+                  value={formData.cutOffHours}
+                  onChange={(e) => setFormData({ ...formData, cutOffHours: parseInt(e.target.value, 10) || 24 })}
+                  style={{ width: '100%', border: '1px solid #cbd5e1' }}
+                />
+              </Field>
+            </div>
 
-            <Field label="سقف السعر للترسية المبكرة ($ USD) - اختياري">
-              <input
-                type="number"
-                min={0}
-                placeholder="مثال: 1900 (للترسية الفورية إن توفر)"
-                value={formData.targetRateMax}
-                onChange={(e) => setFormData({ ...formData, targetRateMax: e.target.value })}
-                style={{ width: '100%', border: '1px solid #cbd5e1' }}
-              />
-            </Field>
+            <div className="rfq-col-full-mobile">
+              <Field label={(
+                <span>
+                  سقف السعر للترسية
+                  <span className="desktop-only-inline"> المبكرة ($ USD)</span> - اختياري
+                </span>
+              )}>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="مثال: 1900 (للترسية الفورية إن توفر)"
+                  value={formData.targetRateMax}
+                  onChange={(e) => setFormData({ ...formData, targetRateMax: e.target.value })}
+                  style={{ width: '100%', border: '1px solid #cbd5e1' }}
+                />
+              </Field>
+            </div>
           </div>
         </div>
 
@@ -721,7 +871,10 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
         <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem', marginBottom: '8px' }}>
             <AppIcons.Users size={15} />
-            <span>4. الخطوط الملاحية والوكلاء المستهدفون للإرسال</span>
+            <span>
+              4. الخطوط الملاحية والوكلاء المستهدفون
+              <span className="desktop-only-inline"> للإرسال</span>
+            </span>
           </div>
 
           <CarrierSelectionGrid

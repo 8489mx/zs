@@ -24,14 +24,14 @@ import { MaritimeLinesPage } from './MaritimeLinesPage';
 import { MaritimeSettingsPage } from './MaritimeSettingsPage';
 
 const NAV_TABS = [
-  { path: 'inquiries', label: 'استفسارات شحن العملاء', countKey: 'inquiries' as const },
-  { path: 'rfqs', label: 'عروض تسعير الخطوط (RFQ)', countKey: 'rfqs' as const },
-  { path: 'matrix', label: 'مقارنة عروض الخطوط', countKey: 'matrixBids' as const },
-  { path: 'quotations', label: 'عروض أسعار العملاء', countKey: 'quotations' as const },
-  { path: 'jobs', label: 'أوامر تشغيل الشحنات', countKey: 'jobs' as const },
-  { path: 'containers', label: 'تتبع الحاويات وفترات السماح', countKey: 'containers' as const },
-  { path: 'lines', label: 'دليل النواقل والموانئ والمطارات', countKey: 'master' as const },
-  { path: 'settings', label: 'إعدادات وسياسات الشحن', countKey: 'settings' as const },
+  { path: 'inquiries', label: 'استفسارات شحن العملاء', mobileLabel: 'استفسارات الشحن', countKey: 'inquiries' as const },
+  { path: 'rfqs', label: 'عروض تسعير الخطوط (RFQ)', mobileLabel: 'تسعير الخطوط', countKey: 'rfqs' as const },
+  { path: 'matrix', label: 'مقارنة عروض الخطوط', mobileLabel: 'مقارنة العروض', countKey: 'matrixBids' as const },
+  { path: 'quotations', label: 'عروض أسعار العملاء', mobileLabel: 'عروض الأسعار', countKey: 'quotations' as const },
+  { path: 'jobs', label: 'أوامر تشغيل الشحنات', mobileLabel: 'أوامر التشغيل', countKey: 'jobs' as const },
+  { path: 'containers', label: 'تتبع الحاويات وفترات السماح', mobileLabel: 'تتبع الحاويات', countKey: 'containers' as const },
+  { path: 'lines', label: 'دليل النواقل والموانئ والمطارات', mobileLabel: 'دليل النواقل', countKey: 'master' as const },
+  { path: 'settings', label: 'إعدادات وسياسات الشحن', mobileLabel: 'إعدادات الشحن', countKey: 'settings' as const },
 ];
 
 function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
@@ -60,8 +60,7 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
   };
 
   useAppToolbar([
-    { label: 'الرئيسية', to: '/dashboard' },
-    { label: 'الشحن واللوجستيات', to: '/maritime' },
+    { label: 'الشحن واللوجستيات' },
   ]);
 
   // Backward compatibility & direct URL normalization: If accessed via `/maritime?tab=xxx`, redirect cleanly to `/maritime/xxx`
@@ -95,9 +94,10 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
           title="الشحن واللوجستيات"
           description="منظومة إدارة الشحن واللوجستيات متعدد الوسائط (بحري / جوي / بري)، دورة الشحن المؤتمتة من استفسار العميل وحتى التسليم والتخليص."
           actions={
-            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div className="actions compact-actions maritime-header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button
                 type="button"
+                className="maritime-action-primary-btn"
                 onClick={() => setIsCreateInquiryOpen(true)}
                 style={{
                   height: '38px',
@@ -116,10 +116,12 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
                 }}
               >
                 <PlusIcon size={16} />
-                <span>طلب شحن عميل</span>
+                <span className="desktop-only-inline">طلب شحن عميل</span>
+                <span className="mobile-only-inline">شحنة عميل</span>
               </button>
               <button
                 type="button"
+                className="maritime-action-secondary-btn"
                 onClick={() => setIsCreateRfqOpen(true)}
                 style={{
                   height: '38px',
@@ -137,10 +139,12 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
                 }}
               >
                 <PlusIcon size={16} />
-                <span>طلب تسعير خطوط (RFQ)</span>
+                <span className="desktop-only-inline">طلب تسعير خطوط (RFQ)</span>
+                <span className="mobile-only-inline">تسعير RFQ</span>
               </button>
               <button
                 type="button"
+                className="maritime-refresh-btn"
                 onClick={handleGlobalRefresh}
                 disabled={isRefreshing}
                 title="تحديث بيانات الشحن والمؤشرات"
@@ -167,58 +171,70 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
                     animation: isRefreshing ? 'spin 0.7s linear infinite' : 'none',
                   }}
                 />
-                <span>{isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}</span>
+                <span className="desktop-only-inline">{isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}</span>
               </button>
             </div>
           }
         />
 
         {/* بطاقات المؤشرات الرئيسية (KPIs) المتطابقة مع معيار المنظومة */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '14px' }}>
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        <div className="workspace-compact-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+          <div className="workspace-compact-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>طلبات واستفسارات الشحن</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+              <div className="kpi-card-title" style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
+                <span className="desktop-only-inline">طلبات واستفسارات الشحن</span>
+                <span className="mobile-only-inline">استفسارات الشحن</span>
+              </div>
+              <div className="kpi-card-value" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
                 {counts.inquiries} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>طلب</span>
               </div>
             </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
+            <div className="kpi-card-icon" style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
               <FileTextIcon size={20} />
             </div>
           </div>
 
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div className="workspace-compact-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>طلبات التسعير (RFQs)</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+              <div className="kpi-card-title" style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
+                <span className="desktop-only-inline">طلبات التسعير (RFQs)</span>
+                <span className="mobile-only-inline">عروض التسعير</span>
+              </div>
+              <div className="kpi-card-value" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
                 {counts.rfqs} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>طلب</span>
               </div>
             </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
+            <div className="kpi-card-icon" style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
               <MailIcon size={20} />
             </div>
           </div>
 
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div className="workspace-compact-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>عروض أسعار العملاء</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+              <div className="kpi-card-title" style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
+                <span className="desktop-only-inline">عروض أسعار العملاء</span>
+                <span className="mobile-only-inline">عروض الأسعار</span>
+              </div>
+              <div className="kpi-card-value" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
                 {counts.quotations} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>عرض</span>
               </div>
             </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fefce8', border: '1px solid #fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a16207' }}>
+            <div className="kpi-card-icon" style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fefce8', border: '1px solid #fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a16207' }}>
               <ReceiptIcon size={20} />
             </div>
           </div>
 
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div className="workspace-compact-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أوامر تشغيل الشحنات</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+              <div className="kpi-card-title" style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
+                <span className="desktop-only-inline">أوامر تشغيل الشحنات</span>
+                <span className="mobile-only-inline">أوامر التشغيل</span>
+              </div>
+              <div className="kpi-card-value" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
                 {counts.jobs} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أمر</span>
               </div>
             </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d' }}>
+            <div className="kpi-card-icon" style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d' }}>
               <ShipIcon size={20} />
             </div>
           </div>
@@ -236,9 +252,39 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
               grid-template-columns: repeat(2, 1fr);
             }
           }
-          @media (max-width: 580px) {
+          @media (max-width: 768px) {
+            .maritime-header-actions {
+              display: flex !important;
+              align-items: center !important;
+              gap: 6px !important;
+              flex-wrap: nowrap !important;
+            }
+            .maritime-action-primary-btn,
+            .maritime-action-secondary-btn {
+              height: 34px !important;
+              padding: 0 10px !important;
+              font-size: 0.76rem !important;
+              white-space: nowrap !important;
+            }
+            .maritime-refresh-btn {
+              width: 34px !important;
+              min-width: 34px !important;
+              height: 34px !important;
+              padding: 0 !important;
+              justify-content: center !important;
+              flex-shrink: 0 !important;
+            }
             .maritime-nav-tabs-grid {
-              grid-template-columns: 1fr;
+              grid-template-columns: repeat(2, 1fr) !important;
+              gap: 6px !important;
+              padding: 8px !important;
+              margin-bottom: 10px !important;
+            }
+            .maritime-nav-tab-btn {
+              height: 34px !important;
+              padding: 0 8px !important;
+              font-size: 0.76rem !important;
+              gap: 5px !important;
             }
           }
         `}</style>
@@ -261,6 +307,7 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
               <button
                 key={tab.path}
                 type="button"
+                className="maritime-nav-tab-btn"
                 onClick={() => handleNavigate(tab.path)}
                 style={{
                   display: 'inline-flex',
@@ -279,9 +326,11 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
                   transition: 'all 0.12s ease',
                   whiteSpace: 'nowrap',
                   width: '100%',
+                  direction: 'rtl',
                 }}
               >
-                <span>{tab.label}</span>
+                <span className="desktop-only-inline">{tab.label}</span>
+                <span className="mobile-only-inline">{tab.mobileLabel}</span>
                 {tab.path !== 'settings' && (
                   <span
                     style={{

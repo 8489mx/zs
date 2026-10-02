@@ -197,10 +197,60 @@ export function CarrierSelectionGrid({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} dir="rtl">
+      <style>{`
+        .carrier-search-input {
+          padding-right: 28px !important;
+        }
+        @media (max-width: 768px) {
+          .carrier-category-filters {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 4px !important;
+          }
+          .carrier-category-btn {
+            padding: 6px 3px !important;
+            gap: 3px !important;
+            justify-content: center !important;
+            border-radius: 6px !important;
+            min-width: 0 !important;
+          }
+          .carrier-category-btn .carrier-btn-label {
+            font-size: 0.70rem !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+          .carrier-category-btn .carrier-btn-badge {
+            font-size: 0.62rem !important;
+            padding: 1px 3px !important;
+          }
+          .carrier-category-btn input[type="checkbox"] {
+            width: 13px !important;
+            height: 13px !important;
+            flex-shrink: 0 !important;
+          }
+          .carrier-trade-lanes-bar {
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            padding: 6px 8px !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: none !important;
+          }
+          .carrier-trade-lanes-bar::-webkit-scrollbar {
+            display: none !important;
+          }
+          .carrier-trade-lane-chip {
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
+          }
+        }
+      `}</style>
+
       {/* 1. الشريط العلوي: الفلاتر الرئيسية الثلاثة مع شيك بوكس مستقل لكل فئة */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="carrier-category-filters" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
         {/* زر 1: وكلاء الشحن الدوليين */}
         <div
+          className="carrier-category-btn"
           onClick={() => {
             setCategoryFilter('overseas_agent');
             setTradeLaneFilter('all');
@@ -227,10 +277,12 @@ export function CarrierSelectionGrid({
             title="تحديد أو إلغاء تحديد كافة وكلاء الشحن الدوليين"
             style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#059669' }}
           />
-          <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>
-            وكلاء الشحن الدوليين بالخارج
+          <span className="carrier-btn-label" style={{ fontWeight: 700, fontSize: '0.82rem' }}>
+            <span className="desktop-only-inline">وكلاء الشحن الدوليين بالخارج</span>
+            <span className="mobile-only-inline">وكلاء دوليين</span>
           </span>
           <span
+            className="carrier-btn-badge"
             style={{
               fontSize: '0.72rem',
               fontWeight: 700,
@@ -246,6 +298,7 @@ export function CarrierSelectionGrid({
 
         {/* زر 2: الخطوط والتوكيلات الملاحية */}
         <div
+          className="carrier-category-btn"
           onClick={() => {
             setCategoryFilter('shipping_line');
             setTradeLaneFilter('all');
@@ -272,10 +325,12 @@ export function CarrierSelectionGrid({
             title="تحديد أو إلغاء تحديد كافة الخطوط الملاحية"
             style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#170e5e' }}
           />
-          <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>
-            الخطوط والتوكيلات الملاحية
+          <span className="carrier-btn-label" style={{ fontWeight: 700, fontSize: '0.82rem' }}>
+            <span className="desktop-only-inline">الخطوط والتوكيلات الملاحية</span>
+            <span className="mobile-only-inline">خطوط ملاحية</span>
           </span>
           <span
+            className="carrier-btn-badge"
             style={{
               fontSize: '0.72rem',
               fontWeight: 700,
@@ -291,6 +346,7 @@ export function CarrierSelectionGrid({
 
         {/* زر 3: الكل (الخطوط والوكلاء معاً) */}
         <div
+          className="carrier-category-btn"
           onClick={() => {
             setCategoryFilter('all');
             setTradeLaneFilter('all');
@@ -316,10 +372,12 @@ export function CarrierSelectionGrid({
             title="تحديد أو إلغاء تحديد كافة الجهات (خطوط ووكلاء)"
             style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#170e5e' }}
           />
-          <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>
-            الكل (خطوط ووكلاء)
+          <span className="carrier-btn-label" style={{ fontWeight: 700, fontSize: '0.82rem' }}>
+            <span className="desktop-only-inline">الكل (خطوط ووكلاء)</span>
+            <span className="mobile-only-inline">الكل</span>
           </span>
           <span
+            className="carrier-btn-badge"
             style={{
               fontSize: '0.72rem',
               fontWeight: 700,
@@ -336,6 +394,7 @@ export function CarrierSelectionGrid({
 
       {/* 2. الشريط الفرعي (المستوى الثاني): الفلاتر الإقليمية مع شيك بوكس لكل إقليم */}
       <div
+        className="carrier-trade-lanes-bar"
         style={{
           background: '#ffffff',
           border: '1px solid #e2e8f0',
@@ -347,9 +406,12 @@ export function CarrierSelectionGrid({
           alignItems: 'center',
         }}
       >
-        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginLeft: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginLeft: '6px', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
           <AppIcons.Globe size={14} />
-          <span>الأقاليم والممرات:</span>
+          <span>
+            <span className="desktop-only-inline">الأقاليم والممرات:</span>
+            <span className="mobile-only-inline">الأقاليم:</span>
+          </span>
         </div>
 
         {TRADE_LANES.map((lane) => {
@@ -364,6 +426,7 @@ export function CarrierSelectionGrid({
           return (
             <div
               key={lane.id}
+              className="carrier-trade-lane-chip"
               onClick={() => setTradeLaneFilter(lane.id)}
               style={{
                 display: 'inline-flex',
@@ -420,6 +483,7 @@ export function CarrierSelectionGrid({
           <input
             type="text"
             role="searchbox"
+            className="carrier-search-input"
             name="search_carrier_selection"
             autoComplete="off"
             autoCorrect="off"
@@ -588,8 +652,8 @@ export function CarrierSelectionGrid({
                 </div>
 
                 {/* الصف الثالث: الدولة والمدينة + الإيميل */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', color: '#64748b' }}>
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', color: '#64748b', gap: '6px' }}>
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0, maxWidth: '50%' }}>
                     {carrier.country_name || carrier.country_code || 'دولي'}
                     {carrier.city_name ? ` - ${carrier.city_name}` : ''}
                   </span>
@@ -603,7 +667,8 @@ export function CarrierSelectionGrid({
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      maxWidth: '130px',
+                      flex: 1,
+                      minWidth: 0,
                     }}
                     title={carrier.rfq_email || carrier.email || ''}
                   >

@@ -260,7 +260,7 @@ export interface PlanOptionItem {
  * Returns strictly the authorized and logically relevant plans for a selected vertical mode.
  * Completely hides irrelevant retail shop tiers when viewing Maritime or Contracting!
  */
-export function getPlansForVertical(verticalKey?: string | null, databasePlans: any[] = []): PlanOptionItem[] {
+export function getPlansForVertical(verticalKey?: string | null, _databasePlans: any[] = []): PlanOptionItem[] {
   const vertical = getSystemVertical(verticalKey);
   const band = vertical.band;
 
