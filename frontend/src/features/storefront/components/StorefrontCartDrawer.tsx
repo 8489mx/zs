@@ -4,6 +4,7 @@ import { XIcon } from '@/shared/components/icons/AppIcons';
 import { CartItem, StorefrontInfo } from '../types/storefront.types';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 import { StorefrontFreeShippingBar } from './StorefrontFreeShippingBar';
+import { calculateCartSubtotal, calculateCartLinePricing } from '../lib/storefront-cart-pricing';
 
 interface StorefrontCartDrawerProps {
   isOpen: boolean;
@@ -30,13 +31,9 @@ export function StorefrontCartDrawer({
 }: StorefrontCartDrawerProps) {
   if (!isOpen) return null;
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const totalSavings = cartItems.reduce((sum, item) => {
-    if (item.product.hasDiscount && item.product.originalPrice && item.product.originalPrice > item.product.price) {
-      return sum + (item.product.originalPrice - item.product.price) * item.quantity;
-    }
-    return sum;
-  }, 0);
+  const cartTotals = calculateCartSubtotal(cartItems);
+  const subtotal = cartTotals.subtotal;
+  const totalSavings = cartTotals.totalSavings;
   const deliveryFee = deliveryFeeProp ?? info?.deliveryFee ?? 0;
   const minOrder = minOrderProp ?? info?.minOrder ?? 0;
   const total = subtotal + deliveryFee;
@@ -241,14 +238,29 @@ export function StorefrontCartDrawer({
                   >
                     {item.product.name}
                   </h4>
-                  <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b' }}>
-                    <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                      {(item.product.price * item.quantity).toFixed(0)} ج
-                    </span>{' '}
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                      ({item.product.price.toFixed(0)} × {item.quantity})
-                    </span>
-                  </div>
+                  {(() => {
+                    const linePricing = calculateCartLinePricing(item.product, item.quantity);
+                    return (
+                      <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                        <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                          {linePricing.lineTotal.toFixed(0)} ج
+                        </span>
+                        {linePricing.savings > 0 && (
+                          <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '11px' }}>
+                            {linePricing.originalLineTotal.toFixed(0)} ج
+                          </span>
+                        )}
+                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                          ({linePricing.unitPrice.toFixed(0)} × {item.quantity})
+                        </span>
+                        {linePricing.isBogoApplied && (
+                          <span style={{ fontSize: '9.5px', background: '#dcfce7', color: '#166534', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                            {linePricing.offerBadge}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Stepper Controls */}
@@ -392,7 +404,7 @@ export function StorefrontCartDrawer({
                   padding: '12px 16px',
                   borderRadius: '10px',
                   background: isMinOrderMet ? 'var(--storefront-secondary-color, #d97706)' : '#94a3b8',
-                  color: '#ffffff',
+                  color: 'var(--storefront-secondary-contrast, #ffffff)',
                   fontSize: '14px',
                   fontWeight: 800,
                   border: 'none',

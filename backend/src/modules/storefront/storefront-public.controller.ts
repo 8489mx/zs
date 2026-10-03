@@ -157,6 +157,22 @@ export class StorefrontPublicController {
     return this.service.validateCoupon(slug, body.code, Number(body.subtotal || 0));
   }
 
+  @Post(':slug/cart/quote')
+  quoteCart(
+    @Param('slug') slug: string,
+    @Body() body: any,
+  ) {
+    return this.service.quoteOnlineOrder(slug, body);
+  }
+
+  @Post(':slug/quote')
+  quoteAlias(
+    @Param('slug') slug: string,
+    @Body() body: any,
+  ) {
+    return this.service.quoteOnlineOrder(slug, body);
+  }
+
   @Post(':slug/orders')
   createOrder(@Param('slug') slug: string, @Body() body: CreateOnlineOrderDto, @Req() req: RequestWithAuth) {
     // The origin the shopper is on, so the tracking link sent to them opens the same store.

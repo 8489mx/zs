@@ -1,12 +1,14 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState, useEffect, useRef } from 'react';
-import { CartItem, CreateOnlineOrderResponse, StorefrontInfo, ValidateCouponResponse, StorefrontPaymentSessionResponse } from '../types/storefront.types';
+import { CartItem, CreateOnlineOrderResponse, StorefrontInfo, ValidateCouponResponse, StorefrontPaymentSessionResponse, QuoteCartResponse } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
 import { StorefrontOnlinePaymentModal } from './StorefrontOnlinePaymentModal';
 import { UtensilsIcon, XIcon, CheckIcon, TagIcon, TruckIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
 import { trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import { getCustomerOrderToken, saveCustomerOrderRef } from '../lib/customer-order-refs';
+import { calculateCartSubtotal } from '../lib/storefront-cart-pricing';
+import { getContrastTextColor } from '../lib/storefront-theme-contrast';
 
 const STOREFRONT_SAVED_CUSTOMER_KEY = 'zsystems.storefront.saved_customer';
 
@@ -155,6 +157,10 @@ export function StorefrontCheckoutModal({
   const [expressMode, setExpressMode] = useState(false);
   const brandColor = info?.brandColor || 'var(--storefront-primary-color, #170e5e)';
   const brandSecondaryColor = info?.brandSecondaryColor || 'var(--storefront-secondary-color, #d97706)';
+  const brandColorContrast = getContrastTextColor(info?.brandColor);
+  const brandSecondaryContrast = getContrastTextColor(info?.brandSecondaryColor);
+  const [serverQuote, setServerQuote] = useState<QuoteCartResponse | null>(null);
+  const [isQuoting, setIsQuoting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [couponCodeInput, setCouponCodeInput] = useState('');
@@ -165,6 +171,44 @@ export function StorefrontCheckoutModal({
   const isSubmittingRef = useRef(false);
   const idempotencyKeyRef = useRef<string>('');
   const scrollBodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen || !tenantSlug || cartItems.length === 0) {
+      setServerQuote(null);
+      return;
+    }
+    let cancelled = false;
+    setIsQuoting(true);
+
+    const quotePayload = {
+      items: cartItems.map((item) => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+        variantName: item.product.variantName || undefined,
+      })),
+      couponCode: appliedCoupon?.ok ? appliedCoupon.code : undefined,
+      deliveryZoneId: selectedZoneId || undefined,
+      fulfillmentType,
+      orderType: isDineIn ? ('dine_in' as const) : ('delivery' as const),
+      tableNumber: tableNumber ? String(tableNumber) : undefined,
+    };
+
+    storefrontApi
+      .quoteCart(tenantSlug, quotePayload)
+      .then((res) => {
+        if (!cancelled && res?.ok) {
+          setServerQuote(res);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsQuoting(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, tenantSlug, cartItems, appliedCoupon, selectedZoneId, fulfillmentType, isDineIn, tableNumber]);
 
   // Trigger initiate checkout event for marketing pixels
   useEffect(() => {
@@ -336,9 +380,14 @@ export function StorefrontCheckoutModal({
 
   if (!isOpen) return null;
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const localTotals = calculateCartSubtotal(cartItems);
+  const subtotal = serverQuote ? serverQuote.subtotal : localTotals.subtotal;
+  const bogoSavings = serverQuote ? serverQuote.bogoSavings : localTotals.totalSavings;
+
   const selectedZone = activeDeliveryZones.find((z) => z.id === selectedZoneId) || (activeDeliveryZones.length > 0 ? activeDeliveryZones[0] : null);
-  const rawDeliveryFee = selectedZone ? selectedZone.deliveryFee : (deliveryFeeProp ?? info?.deliveryFee ?? 0);
+  const rawDeliveryFee = serverQuote
+    ? serverQuote.deliveryFee
+    : (selectedZone ? selectedZone.deliveryFee : (deliveryFeeProp ?? info?.deliveryFee ?? 0));
 
   // Automatic Free Shipping Rule
   const isAutoFreeShipping = Boolean(info?.freeShippingEnabled && subtotal >= (info?.freeShippingMinOrder || 500));
@@ -353,11 +402,15 @@ export function StorefrontCheckoutModal({
   const effectiveDeliveryFee = (isDineIn || isPickup || isAutoFreeShipping || isCouponFreeShipping) ? 0 : rawDeliveryFee;
 
   let discountAmount = 0;
-  if (appliedCoupon?.ok && appliedCoupon.discountAmount) {
+  if (serverQuote) {
+    discountAmount = serverQuote.discountAmount;
+  } else if (appliedCoupon?.ok && appliedCoupon.discountAmount) {
     discountAmount = Math.min(subtotal, appliedCoupon.discountAmount);
   }
 
-  const total = Math.max(0, subtotal - discountAmount) + effectiveDeliveryFee;
+  const total = serverQuote
+    ? serverQuote.totalAmount
+    : (Math.max(0, subtotal - discountAmount) + effectiveDeliveryFee);
 
   const phoneStatus = getDynamicPhoneValidation(customerPhone, selectedCountry);
   const nameStatus = getCustomerNameValidation(customerName);
@@ -1399,7 +1452,7 @@ export function StorefrontCheckoutModal({
                         padding: '6px 14px',
                         borderRadius: '6px',
                         background: brandColor,
-                        color: '#ffffff',
+                        color: brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)',
                         fontSize: '11.5px',
                         fontWeight: 700,
                         border: 'none',
@@ -1435,6 +1488,13 @@ export function StorefrontCheckoutModal({
                 <span>مجموع الأصناف:</span>
                 <span style={{ fontWeight: 600, color: '#334155' }}>{subtotal.toFixed(0)} ${getGlobalCurrencySymbol()}</span>
               </div>
+
+              {bogoSavings > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#059669', background: '#ecfdf5', padding: '4px 8px', borderRadius: '6px' }}>
+                  <span style={{ fontWeight: 700 }}>وفرت من عروض المتجر (BOGO):</span>
+                  <strong style={{ fontWeight: 800 }}>- {bogoSavings.toFixed(0)} <CurrencySymbol /></strong>
+                </div>
+              )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
                 <span>{isDineIn ? 'خدمة الصالة / الطاولة:' : `خدمة التوصيل ${selectedZone ? `(${selectedZone.name})` : ''}:`}</span>
@@ -1534,7 +1594,7 @@ export function StorefrontCheckoutModal({
               padding: '12px 20px',
               borderRadius: '10px',
               background: brandColor,
-              color: '#ffffff',
+              color: brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)',
               fontSize: '15px',
               fontWeight: 800,
               border: 'none',

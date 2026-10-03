@@ -11,6 +11,8 @@ import {
   CreateCouponPayload,
   UpdateCouponPayload,
   ValidateCouponResponse,
+  QuoteCartPayload,
+  QuoteCartResponse,
   StorefrontDeliveryZone,
   CreateDeliveryZonePayload,
   UpdateDeliveryZonePayload,
@@ -139,6 +141,12 @@ export const storefrontApi = {
     http<ValidateCouponResponse>(`/api/storefront/${encodeURIComponent(slug)}/coupons/validate`, {
       method: 'POST',
       body: JSON.stringify({ code, subtotal }),
+    }),
+
+  quoteCart: (slug: string, payload: QuoteCartPayload) =>
+    http<QuoteCartResponse>(`/api/storefront/${encodeURIComponent(slug)}/cart/quote`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
     }),
 
   lookupCustomerOrders: (slug: string, orders: CustomerOrderRef[]) =>

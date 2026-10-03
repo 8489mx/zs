@@ -5,6 +5,7 @@ import { CartItem, StorefrontInfo, StorefrontProduct } from '../types/storefront
 import { StorefrontLiveCartItem } from './StorefrontLiveCartItem';
 import { StorefrontLiveCartPill } from './StorefrontLiveCartPill';
 import { Trash2Icon, XIcon, AlertTriangleIcon, TruckIcon, PlusIcon } from '@/shared/components/icons/AppIcons';
+import { calculateCartSubtotal } from '../lib/storefront-cart-pricing';
 
 function formatArabicItems(count: number): string {
   if (count === 1) return 'صنف واحد';
@@ -48,7 +49,8 @@ export function StorefrontLiveCartDock({
   const prevTotalQuantity = useRef(0);
 
   const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const cartTotals = calculateCartSubtotal(cartItems);
+  const subtotal = cartTotals.subtotal;
   const deliveryFee = deliveryFeeProp ?? info?.deliveryFee ?? 0;
   const minOrder = minOrderProp ?? info?.minOrder ?? 0;
   const total = subtotal + deliveryFee;
@@ -537,7 +539,7 @@ export function StorefrontLiveCartDock({
               padding: '13px 18px',
               borderRadius: '12px',
               background: isMinOrderMet ? 'var(--storefront-secondary-color, #d97706)' : '#94a3b8',
-              color: '#ffffff',
+              color: 'var(--storefront-secondary-contrast, #ffffff)',
               border: 'none',
               fontSize: '14px',
               fontWeight: 800,

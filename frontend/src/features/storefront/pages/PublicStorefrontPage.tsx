@@ -19,6 +19,7 @@ import { UtensilsIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { saveCustomerOrderRef } from '../lib/customer-order-refs';
 import { getStoreHostSlug } from '@/lib/store-public-url';
+import { applyStorefrontThemeVariables } from '../lib/storefront-theme-contrast';
 
 export function PublicStorefrontPage() {
   const { slug, tableNo, productId, orderNumber: trackOrderNumber } = useParams<{ slug?: string; tableNo?: string; productId?: string; orderNumber?: string }>();
@@ -139,15 +140,7 @@ export function PublicStorefrontPage() {
       trackStorefrontEvent('ViewContent', {
         contentName: info.title || info.businessName || 'المتجر الإلكتروني',
       });
-      if (info.brandColor) {
-        document.documentElement.style.setProperty('--storefront-primary-color', info.brandColor);
-      }
-      if (info.brandSecondaryColor) {
-        document.documentElement.style.setProperty('--storefront-secondary-color', info.brandSecondaryColor);
-      }
-      if (info.brandSurfaceColor) {
-        document.documentElement.style.setProperty('--storefront-surface-color', info.brandSurfaceColor);
-      }
+      applyStorefrontThemeVariables(info);
     }
   }, [info]);
 

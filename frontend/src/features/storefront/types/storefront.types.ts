@@ -71,6 +71,10 @@ export interface StorefrontProduct {
   offerBadge?: string;
   offerType?: string;
   offerValue?: number;
+  bogoBuyQty?: number;
+  bogoGetQty?: number;
+  bogoDiscountPercent?: number;
+  minQty?: number;
   categoryId: number | null;
   categoryName: string;
   stockQty: number;
@@ -132,6 +136,50 @@ export interface CreateOnlineOrderPayload {
   countryCode?: string;
   pickupBranchId?: number;
   idempotencyKey?: string;
+}
+
+export interface QuoteCartPayload {
+  items: Array<{
+    productId: number | string;
+    quantity: number;
+    variantName?: string | null;
+  }>;
+  couponCode?: string;
+  deliveryZoneId?: number;
+  deliveryZoneName?: string;
+  fulfillmentType?: 'delivery' | 'pickup' | 'dine_in';
+  orderType?: 'delivery' | 'dine_in';
+  tableNumber?: string;
+}
+
+export interface QuoteCartItemResult {
+  productId: number | string;
+  name: string;
+  variantName?: string | null;
+  barcode?: string;
+  quantity: number;
+  baseUnitPrice: number;
+  unitPrice: number;
+  total: number;
+  originalTotal: number;
+  hasDiscount?: boolean;
+  discountPercent?: number;
+  offerBadge?: string;
+  offerType?: string;
+}
+
+export interface QuoteCartResponse {
+  ok: boolean;
+  subtotal: number;
+  originalSubtotal: number;
+  bogoSavings: number;
+  discountAmount: number;
+  deliveryFee: number;
+  deliveryZoneId?: number | null;
+  deliveryZoneName?: string | null;
+  appliedCouponCode?: string | null;
+  totalAmount: number;
+  items: QuoteCartItemResult[];
 }
 
 export interface CreateOnlineOrderResponse {

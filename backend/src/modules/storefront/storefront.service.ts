@@ -685,16 +685,22 @@ export class StorefrontService {
         const pOffers = offersMap.get(productId) || [];
         const bestOffer = resolveBestStorefrontOffer(retailPrice, pOffers, 1, undefined, new Date(), offerTimezone(settings));
         const finalPrice = bestOffer.hasDiscount ? bestOffer.price : retailPrice;
+        const bogoOffer = pOffers.find((o) => o.offer_type === 'bogo');
+        const bundleOffer = pOffers.find((o) => o.offer_type === 'bundle');
 
         return {
           id: productId, name: p.name, barcode: p.barcode || '',
           price: finalPrice,
-          originalPrice: bestOffer.hasDiscount ? retailPrice : undefined,
+          originalPrice: (bestOffer.hasDiscount || bestOffer.offerType === 'bogo') ? retailPrice : undefined,
           hasDiscount: bestOffer.hasDiscount,
           discountPercent: bestOffer.hasDiscount ? bestOffer.discountPercent : undefined,
           offerBadge: bestOffer.offerBadge,
           offerType: bestOffer.offerType,
           offerValue: bestOffer.hasDiscount ? bestOffer.offerValue : undefined,
+          bogoBuyQty: bogoOffer?.bogo_buy_qty ? Number(bogoOffer.bogo_buy_qty) : undefined,
+          bogoGetQty: bogoOffer?.bogo_get_qty ? Number(bogoOffer.bogo_get_qty) : undefined,
+          bogoDiscountPercent: bogoOffer?.bogo_discount_percent !== undefined ? Number(bogoOffer.bogo_discount_percent) : undefined,
+          minQty: bundleOffer?.min_qty ? Number(bundleOffer.min_qty) : undefined,
           categoryId: p.category_id ? Number(p.category_id) : null,
           categoryName: p.category_id ? categoryNames.get(Number(p.category_id)) || 'عام' : 'عام',
           stockQty: allowOutOfStock ? (rawStock > 0 ? rawStock : 999) : rawStock,
@@ -888,6 +894,8 @@ export class StorefrontService {
           const pOffers = offersByProductId.get(Number(p.id)) || [];
           const bestOffer = resolveBestStorefrontOffer(retailPrice, pOffers, 1, undefined, new Date(), offerTimezone(settings));
           const finalPrice = bestOffer.hasDiscount ? bestOffer.price : retailPrice;
+          const bogoOffer = pOffers.find((o) => o.offer_type === 'bogo');
+          const bundleOffer = pOffers.find((o) => o.offer_type === 'bundle');
 
           const reviewStats = ratingMap.get(Number(p.id)) || { avgRating: 0, reviewCount: 0 };
           // SF-9: the catalog never ships inline base64. Migration 135 moved existing images to
@@ -903,12 +911,16 @@ export class StorefrontService {
             name: p.name,
             barcode: p.barcode || '',
             price: finalPrice,
-            originalPrice: bestOffer.hasDiscount ? retailPrice : undefined,
+            originalPrice: (bestOffer.hasDiscount || bestOffer.offerType === 'bogo') ? retailPrice : undefined,
             hasDiscount: bestOffer.hasDiscount,
             discountPercent: bestOffer.hasDiscount ? bestOffer.discountPercent : undefined,
             offerBadge: bestOffer.offerBadge,
             offerType: bestOffer.offerType,
             offerValue: bestOffer.hasDiscount ? bestOffer.offerValue : undefined,
+            bogoBuyQty: bogoOffer?.bogo_buy_qty ? Number(bogoOffer.bogo_buy_qty) : undefined,
+            bogoGetQty: bogoOffer?.bogo_get_qty ? Number(bogoOffer.bogo_get_qty) : undefined,
+            bogoDiscountPercent: bogoOffer?.bogo_discount_percent !== undefined ? Number(bogoOffer.bogo_discount_percent) : undefined,
+            minQty: bundleOffer?.min_qty ? Number(bundleOffer.min_qty) : undefined,
             categoryId: p.category_id ? Number(p.category_id) : null,
             categoryName: (p.category_id && catMap.get(p.category_id)) || 'عام',
             stockQty,
@@ -1149,6 +1161,165 @@ export class StorefrontService {
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .where('code', '=', couponCode.toUpperCase())
       .execute();
+  }
+
+  /**
+   * Authoritative server-side pricing quote for cart & checkout preview.
+   * Calculates exact line totals, volume/BOGO discounts, coupons, and delivery fees without creating records.
+   */
+  async quoteOnlineOrder(slug: string, dto: {
+    items: Array<{ productId: number | string; quantity: number; variantName?: string | null }>;
+    couponCode?: string;
+    deliveryZoneId?: number;
+    deliveryZoneName?: string;
+    fulfillmentType?: 'delivery' | 'pickup';
+    orderType?: string;
+    tableNumber?: string;
+  }) {
+    const tenant = await this.getTenantBySlug(slug);
+    const settings = await this.getTenantSettingsMap(tenant.id);
+    const isDineIn = dto.orderType === 'dine_in' || Boolean(dto.tableNumber);
+    const isPickup = dto.fulfillmentType === 'pickup';
+
+    if (!dto.items || dto.items.length === 0) {
+      return {
+        ok: true,
+        subtotal: 0,
+        originalSubtotal: 0,
+        bogoSavings: 0,
+        discountAmount: 0,
+        deliveryFee: 0,
+        totalAmount: 0,
+        items: [],
+      };
+    }
+
+    const numericIds = dto.items.map((i) => Number(i.productId)).filter((id) => !isNaN(id) && id > 0);
+    const stringIds = dto.items.map((i) => String(i.productId).trim()).filter(Boolean);
+
+    const [dbProducts, activeOffers] = await Promise.all([
+      this.db
+        .selectFrom('products')
+        .select(['id', 'name', 'retail_price', 'barcode', 'stock_qty', 'reserved_qty', 'metadata'])
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .where('is_active', '=', true)
+        .where((eb) => eb.or([eb('item_type', '=', 'product'), eb('item_type', 'is', null)]))
+        .where((eb) => {
+          const conditions = [];
+          if (numericIds.length > 0) conditions.push(eb('id', 'in', numericIds));
+          if (stringIds.length > 0) conditions.push(eb(sql<string>`CAST(id AS TEXT)`, 'in', stringIds));
+          return conditions.length > 0 ? eb.or(conditions) : eb.val(false);
+        })
+        .execute(),
+      numericIds.length > 0
+        ? this.db
+            .selectFrom('product_offers')
+            .select([
+              'id',
+              'product_id',
+              'offer_type',
+              'value',
+              sql<string>`start_date::text`.as('start_date'),
+              sql<string>`end_date::text`.as('end_date'),
+              'min_qty',
+              'is_active',
+              'bogo_buy_qty',
+              'bogo_get_qty',
+              'bogo_discount_percent',
+              'happy_hour_start',
+              'happy_hour_end',
+              'days_of_week',
+            ])
+            .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            .where('product_id', 'in', numericIds)
+            .where('is_active', '=', true)
+            .execute()
+        : Promise.resolve([]),
+    ]);
+
+    const offersByProductId = new Map<number, RawStorefrontOffer[]>();
+    for (const off of (activeOffers as RawStorefrontOffer[])) {
+      const pid = Number(off.product_id);
+      if (!offersByProductId.has(pid)) offersByProductId.set(pid, []);
+      offersByProductId.get(pid)!.push(off);
+    }
+
+    const productMap = new Map<string | number, any>();
+    for (const p of dbProducts) {
+      productMap.set(p.id, p);
+      productMap.set(String(p.id), p);
+      const numId = Number(p.id);
+      if (!isNaN(numId)) productMap.set(numId, p);
+    }
+
+    let subtotal = 0;
+    let originalSubtotal = 0;
+    const validatedItems = [];
+
+    for (const item of dto.items) {
+      const prod = productMap.get(item.productId) ?? productMap.get(Number(item.productId)) ?? productMap.get(String(item.productId));
+      if (!prod) continue;
+
+      const priced = resolveOrderLinePrice(Number(prod.retail_price || 0), prod.metadata, item.variantName);
+      const baseUnitPrice = priced.ok ? priced.unitPrice : Number(prod.retail_price || 0);
+      const quantity = Math.max(1, Number(item.quantity || 1));
+      const pOffers = offersByProductId.get(Number(prod.id)) || [];
+      const bestOffer = resolveBestStorefrontOffer(baseUnitPrice, pOffers, quantity, undefined, new Date(), offerTimezone(settings));
+      const unitPrice = bestOffer.hasDiscount ? bestOffer.price : baseUnitPrice;
+      const lineTotal = Math.round(unitPrice * quantity * 100) / 100;
+      const originalLineTotal = Math.round(baseUnitPrice * quantity * 100) / 100;
+
+      subtotal += lineTotal;
+      originalSubtotal += originalLineTotal;
+
+      validatedItems.push({
+        productId: prod.id,
+        name: formatVariantLineName(prod.name, priced.variantName),
+        variantName: priced.variantName,
+        barcode: prod.barcode || '',
+        quantity,
+        baseUnitPrice,
+        unitPrice,
+        total: lineTotal,
+        originalTotal: originalLineTotal,
+        hasDiscount: bestOffer.hasDiscount,
+        discountPercent: bestOffer.discountPercent,
+        offerBadge: bestOffer.offerBadge,
+        offerType: bestOffer.offerType,
+      });
+    }
+
+    const {
+      deliveryFee,
+      deliveryZoneId,
+      deliveryZoneName,
+      discountAmount,
+      appliedCouponCode,
+    } = await this.resolveOrderCharges(tenant.id, settings, {
+      isDineIn,
+      isPickup,
+      deliveryZoneId: dto.deliveryZoneId,
+      deliveryZoneName: dto.deliveryZoneName,
+      subtotal,
+      couponCode: dto.couponCode,
+    });
+
+    const bogoSavings = Math.max(0, Math.round((originalSubtotal - subtotal) * 100) / 100);
+    const totalAmount = Math.max(0, subtotal - discountAmount) + deliveryFee;
+
+    return {
+      ok: true,
+      subtotal: Math.round(subtotal * 100) / 100,
+      originalSubtotal: Math.round(originalSubtotal * 100) / 100,
+      bogoSavings,
+      discountAmount: Math.round(discountAmount * 100) / 100,
+      deliveryFee: Math.round(deliveryFee * 100) / 100,
+      deliveryZoneId,
+      deliveryZoneName,
+      appliedCouponCode,
+      totalAmount: Math.round(totalAmount * 100) / 100,
+      items: validatedItems,
+    };
   }
 
   async createOnlineOrder(slug: string, dto: CreateOnlineOrderDto, publicOrigin?: string) {

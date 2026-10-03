@@ -10,8 +10,14 @@
   /* ارتفاع بار السلة السفلي — تقرؤه شبكة المنتجات لتترك مساحة أسفلها */
   --storefront-dock-height: 84px;
   --storefront-primary-color: #170e5e;
+  --storefront-primary-contrast: #ffffff;
+  --storefront-primary-subtle: rgba(23, 14, 94, 0.08);
   --storefront-secondary-color: #d97706;
+  --storefront-secondary-contrast: #ffffff;
+  --storefront-secondary-subtle: rgba(217, 119, 6, 0.12);
   --storefront-surface-color: #f8fafc;
+  --storefront-surface-contrast: #0f172a;
+  --storefront-surface-border: #e2e8f0;
 }
 
 .storefront-container {

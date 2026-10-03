@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { buildCartProduct } from '../lib/storefront-variant-pricing';
+import { calculateCartSubtotal } from '../lib/storefront-cart-pricing';
 import type {
   CartItem,
   CreateOnlineOrderResponse,
@@ -384,10 +385,13 @@ export function usePublicStorefront(cleanSlug: string) {
     () => cartItems.reduce((sum, item) => sum + item.quantity, 0),
     [cartItems]
   );
-  const cartSubtotal = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+  const cartTotals = useMemo(
+    () => calculateCartSubtotal(cartItems),
     [cartItems]
   );
+  const cartSubtotal = cartTotals.subtotal;
+  const cartOriginalSubtotal = cartTotals.originalSubtotal;
+  const cartSavings = cartTotals.totalSavings;
 
   const isHomepageMultiRow = selectedCategory === 'all' && !searchTerm.trim() && !onlyDeals && !onlyFavorites;
 
@@ -452,6 +456,8 @@ export function usePublicStorefront(cleanSlug: string) {
     cartMap,
     cartCount,
     cartSubtotal,
+    cartOriginalSubtotal,
+    cartSavings,
     handleAddToCart,
     handleUpdateQuantity,
     handleClearCart,
