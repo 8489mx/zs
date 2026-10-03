@@ -18,6 +18,24 @@ interface StorefrontProductCardProps {
   onQuickView?: (product: StorefrontProduct) => void;
 }
 
+function formatSmartCategoryName(categoryName?: string): string {
+  if (!categoryName) return 'عام';
+  const trimmed = categoryName.trim();
+  if (trimmed.includes(' - ')) {
+    const parts = trimmed.split(' - ').map((p) => p.trim()).filter(Boolean);
+    return parts[parts.length - 1] || trimmed;
+  }
+  if (trimmed.includes(' / ')) {
+    const parts = trimmed.split(' / ').map((p) => p.trim()).filter(Boolean);
+    return parts[parts.length - 1] || trimmed;
+  }
+  if (trimmed.includes(': ')) {
+    const parts = trimmed.split(': ').map((p) => p.trim()).filter(Boolean);
+    return parts[parts.length - 1] || trimmed;
+  }
+  return trimmed;
+}
+
 export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   product,
   cartQuantity,
@@ -500,7 +518,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               fontSize: '11px',
               color: '#64748b',
               fontWeight: 600,
-              maxWidth: '120px',
+              maxWidth: '140px',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -508,7 +526,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             }}
             title={product.categoryName || 'عام'}
           >
-            {product.categoryName || 'عام'}
+            {formatSmartCategoryName(product.categoryName)}
           </span>
           <button
             type="button"
