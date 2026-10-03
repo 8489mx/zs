@@ -11,6 +11,24 @@ interface StorefrontCategoryShowcaseProps {
   categoryCounts: Map<number | 'all', number>;
 }
 
+function formatSmartCategoryName(categoryName?: string): string {
+  if (!categoryName) return 'عام';
+  const trimmed = categoryName.trim();
+  if (trimmed.includes(' - ')) {
+    const parts = trimmed.split(' - ').map((p) => p.trim()).filter(Boolean);
+    return parts[parts.length - 1] || trimmed;
+  }
+  if (trimmed.includes(' / ')) {
+    const parts = trimmed.split(' / ').map((p) => p.trim()).filter(Boolean);
+    return parts[parts.length - 1] || trimmed;
+  }
+  if (trimmed.includes(': ')) {
+    const parts = trimmed.split(': ').map((p) => p.trim()).filter(Boolean);
+    return parts[parts.length - 1] || trimmed;
+  }
+  return trimmed;
+}
+
 export function StorefrontCategoryShowcase({
   categories,
   selectedCategoryId,
@@ -214,7 +232,7 @@ export function StorefrontCategoryShowcase({
                 }}
                 title={cat.name}
               >
-                {cat.name}
+                {formatSmartCategoryName(cat.name)}
               </span>
               <span className="storefront-cat-count" style={{ fontSize: '10.5px', color: '#94a3b8' }}>
                 {count} صنف

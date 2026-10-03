@@ -801,89 +801,454 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
     imageUrl: 'https://images.unsplash.com/photo-1618410320928-25228d811631?auto=format&fit=crop&w=300&q=50&fm=webp',
     weight: 95,
   },
+
+  // -------------------------------------------------------------
+  // 5. SMARTPHONES, MOBILES & TABLETS (APPLE, SAMSUNG, XIAOMI, ETC.)
+  // -------------------------------------------------------------
+  {
+    id: 'apple_iphone_pro_flagship',
+    nameAr: 'أبل آيفون برو وبرو ماكس وتيتانيوم',
+    keywords: [
+      'ايفون 16 برو', 'ايفون 16 برو ماكس', 'آيفون 16 برو', 'آيفون 16 برو ماكس',
+      'ايفون 15 برو', 'ايفون 15 برو ماكس', 'آيفون 15 برو', 'آيفون 15 برو ماكس',
+      'iphone 16 pro', 'iphone 16 pro max', 'iphone 15 pro', 'iphone 15 pro max',
+      'تيتانيوم صحراوي', 'تيتانيوم طبيعي', 'تيتانيوم اسود', 'تيتانيوم أبيض'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 99,
+  },
+  {
+    id: 'apple_iphone_standard',
+    nameAr: 'أبل آيفون النسخ العادية وبلس',
+    keywords: [
+      'ايفون 16', 'آيفون 16', 'ايفون 15', 'آيفون 15', 'ايفون 14', 'آيفون 14',
+      'ايفون 13', 'آيفون 13', 'ايفون 12', 'آيفون 12', 'ايفون 11', 'آيفون 11',
+      'iphone 16', 'iphone 15', 'iphone 14', 'iphone 13', 'iphone 12', 'iphone 11',
+      'ابل ايفون', 'أبل آيفون', 'ابل ايفون 14', 'ابل ايفون 15', 'ابل ايفون 16'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'apple_iphone_general',
+    nameAr: 'هواتف أبل آيفون الذكية العامة',
+    keywords: ['ايفون', 'آيفون', 'iphone', 'هواتف ذكية - apple', 'هواتف فلاجشيب - apple'],
+    imageUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 92,
+  },
+  {
+    id: 'samsung_galaxy_s_ultra',
+    nameAr: 'سامسونج جالكسي S24 ألترا وS23 ألترا والفلاجشيب',
+    keywords: [
+      's24 الترا', 's24 ألترا', 's24 ultra', 's24 بلس', 's24 plus', 's24+',
+      's23 الترا', 's23 ألترا', 's23 ultra', 's22 ultra', 'جالكسي s24', 'جالكسي s23',
+      'سامسونج جالكسي s24', 'سامسونج جالكسي s23', 'samsung s24', 'samsung s23'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 99,
+  },
+  {
+    id: 'samsung_galaxy_a_series',
+    nameAr: 'سامسونج جالكسي الفئة A الاقتصادية والمتوسطة',
+    keywords: [
+      'جالكسي a55', 'جالكسي a35', 'جالكسي a25', 'جالكسي a15', 'جالكسي a05',
+      'samsung a55', 'samsung a35', 'samsung a25', 'samsung a15', 'samsung a05',
+      'a55 5g', 'a35 5g', 'a25 5g', 'a15 5g', 'سامسونج a55', 'سامسونج a35',
+      'سامسونج a25', 'سامسونج a15', 'سامسونج جالكسي a'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'samsung_galaxy_general',
+    nameAr: 'هواتف سامسونج جالكسي العامة',
+    keywords: [
+      'سامسونج جالكسي', 'سامسونج جلاكسي', 'جالكسي', 'جلاكسي', 'samsung galaxy',
+      'هواتف ذكية - samsung', 'هواتف اقتصادية - samsung'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 92,
+  },
+  {
+    id: 'xiaomi_redmi_poco',
+    nameAr: 'هواتف شاومي وريدمي وبوكو',
+    keywords: [
+      'شاومي', 'ريدمي', 'بوكو', 'xiaomi', 'redmi', 'poco',
+      'هواتف ذكية - xiaomi', 'هواتف اقتصادية - xiaomi', 'هواتف فلاجشيب - xiaomi',
+      'ريدمي نوت', 'redmi note', 'شاومي 14', 'xiaomi 14', 'شاومي 13'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'realme_smartphones',
+    nameAr: 'هواتف ريلمي الذكية',
+    keywords: [
+      'ريلمي', 'realme', 'ريلمي c', 'ريلمي 12', 'ريلمي 11',
+      'هواتف ذكية - realme', 'هواتف اقتصادية - realme', 'هواتف فلاجشيب - realme'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1574944985070-8f3ebc6b79d2?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'oppo_smartphones',
+    nameAr: 'هواتف أوبو الذكية ورينو',
+    keywords: [
+      'اوبو', 'أوبو', 'oppo', 'رينو', 'reno', 'اوبو رينو', 'أوبو رينو',
+      'هواتف ذكية - oppo', 'هواتف اقتصادية - oppo'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'infinix_smartphones',
+    nameAr: 'هواتف إنفينكس الذكية وسلسلة هوت ونوت',
+    keywords: [
+      'انفينكس', 'إنفينكس', 'infinix', 'انفينكس هوت', 'انفينكس نوت',
+      'هواتف ذكية - infinix', 'هواتف اقتصادية - infinix'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1574944985070-8f3ebc6b79d2?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'honor_smartphones',
+    nameAr: 'هواتف هونر وماجيك الذكية',
+    keywords: [
+      'هونر', 'honor', 'هونر ماجيك', 'honor magic', 'هونر x',
+      'هواتف ذكية - honor', 'هواتف فلاجشيب - honor'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'foldable_smartphones',
+    nameAr: 'هواتف ذكية قابلة للطي فولد وفليب',
+    keywords: [
+      'قابلة للطي', 'قابله للطي', 'فولد', 'فليب', 'fold', 'flip',
+      'z fold', 'z flip', 'هواتف ذكية - قابلة للطي'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 97,
+  },
+  {
+    id: 'smartwatches_wearables',
+    nameAr: 'ساعات ذكية وسوار رياضي ذكي',
+    keywords: [
+      'ساعة ذكية', 'ساعه ذكيه', 'ساعات ذكية', 'ساعات ذكيه', 'smartwatch', 'smart watch',
+      'ابل واتش', 'أبل واتش', 'apple watch', 'ساعة ابل', 'سوار ذكي', 'smart band'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 97,
+  },
+  {
+    id: 'wireless_earbuds_airpods',
+    nameAr: 'سماعات ايربودز وبلوتوث لاسلكية',
+    keywords: [
+      'ايربودز', 'إيربودز', 'airpods', 'air pods', 'سماعات بلوتوث', 'سماعه بلوتوث',
+      'سماعة بلوتوث', 'earbuds', 'بودز', 'سماعات لاسلكية', 'سماعات اذن'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 97,
+  },
+  {
+    id: 'power_banks_portable',
+    nameAr: 'بنوك طاقة وشواحن متنقلة وباور بنك',
+    keywords: [
+      'باور بنك', 'باوربانك', 'power bank', 'powerbank', 'شاحن متنقل',
+      'بطارية متنقلة', 'بطاريات وشواحن متنقلة', 'شواحن متنقلة'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1609592424109-dd9892f1b177?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 97,
+  },
+  {
+    id: 'fast_wall_chargers',
+    nameAr: 'شواحن جدارية سريعة ورؤوس شواحن',
+    keywords: [
+      'شاحن سريع', 'راس شاحن', 'رأس شاحن', 'شاحن جداري', 'شاحن ابل', 'شاحن سامسونج',
+      'شاحن 20 واط', 'شاحن 25 واط', 'شاحن 65 واط', 'wall charger', 'fast charger'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'phone_cases_covers',
+    nameAr: 'جرابات وكفرات وحافظات هواتف',
+    keywords: [
+      'جراب', 'جرابات', 'كفر', 'كفرات', 'حافظة هاتف', 'phone case',
+      'جراب سيليكون', 'كفر حماية', 'جراب شفاف'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 96,
+  },
+
+  // -------------------------------------------------------------
+  // 6. COMPUTERS, LAPTOPS & IT HARDWARE
+  // -------------------------------------------------------------
+  {
+    id: 'laptops_notebooks',
+    nameAr: 'أجهزة لابتوب وحواسيب محمولة وماك بوك',
+    keywords: [
+      'لابتوب', 'لاب توب', 'laptop', 'ماك بوك', 'macbook', 'نوت بوك',
+      'حاسوب محمول', 'كمبيوتر محمول', 'لابتوب ديل', 'لابتوب لينوفو', 'لابتوب hp'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'pc_monitors_displays',
+    nameAr: 'شاشات كمبيوتر ومونيتور قيمنق',
+    keywords: [
+      'شاشة كمبيوتر', 'شاشه كمبيوتر', 'شاشات كمبيوتر', 'مونيتور', 'monitor',
+      'شاشة قيمنق', 'شاشة 144hz', 'شاشة 165hz', 'شاشة ips'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'desktop_gaming_pc',
+    nameAr: 'كيسات كمبيوتر وتجميعات قيمنق',
+    keywords: [
+      'تجميعة كمبيوتر', 'تجميعه كمبيوتر', 'كيسة قيمنق', 'كيس قيمنق',
+      'gaming pc', 'كمبيوتر مكتبي', 'كيسة كمبيوتر', 'desktop pc'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'graphic_cards_gpu',
+    nameAr: 'كروت شاشة ومعالجات رسومية GPU RTX GTX',
+    keywords: [
+      'كارت شاشة', 'كارت شاشه', 'كرت شاشة', 'كرت شاشه', 'كروت شاشة',
+      'gpu', 'rtx', 'gtx', 'geforce', 'كارت rtx', 'كارت gtx', 'radeon'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'mechanical_keyboards',
+    nameAr: 'لوحات مفاتيح ميكانيكية وقيمنق',
+    keywords: [
+      'كيبورد ميكانيكي', 'كيبورد قيمنق', 'لوحة مفاتيح قيمنق', 'mechanical keyboard',
+      'كيبورد rgb', 'لوحة مفاتيح مضيئة'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 97,
+  },
+  {
+    id: 'gaming_mice',
+    nameAr: 'فأرة وماوس قيمنق احترافي',
+    keywords: [
+      'ماوس قيمنق', 'ماوس احترافي', 'gaming mouse', 'فأرة قيمنق',
+      'ماوس لاسلكي', 'ماوس وايرلس'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 97,
+  },
+
+  // -------------------------------------------------------------
+  // 7. HERBS, SPICES & ATTARA (العطارة والتوابل والأعشاب)
+  // -------------------------------------------------------------
+  {
+    id: 'attara_spices_general',
+    nameAr: 'بهارات وتوابل وعطارة مشكلة',
+    keywords: [
+      'توابل', 'بهارات', 'عطارة', 'عطاره', 'بهار', 'بهارات مشكلة',
+      'بهارات لحم', 'بهارات فراخ', 'بهارات سمك', 'سبع بهارات', 'السبع بهارات'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 97,
+  },
+  {
+    id: 'attara_black_pepper',
+    nameAr: 'فلفل أسود حب ومطحون وفلفل أبيض',
+    keywords: [
+      'فلفل اسود', 'فلفل أسود', 'فلفل ابيض', 'فلفل أبيض', 'فلفل حب',
+      'فلفل مطحون', 'black pepper'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'attara_cinnamon_ginger',
+    nameAr: 'قرفة عيدان ومطحونة وزنجبيل',
+    keywords: [
+      'قرفة', 'قرفه', 'قرفة عيدان', 'قرفة مطحونة', 'قرفه مطحونه',
+      'زنجبيل', 'جنزبيل', 'زنجبيل مطحون', 'cinnamon', 'ginger'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1509358740172-f77c168f6312?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'attara_cumin_turmeric_curry',
+    nameAr: 'كمون مطحون وكركم وكاري',
+    keywords: [
+      'كمون', 'كمون مطحون', 'كمون حب', 'كركم', 'كركم مطحون',
+      'كاري', 'كاري هندي', 'turmeric', 'cumin', 'curry'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'attara_herbs_thyme_anise',
+    nameAr: 'أعشاب طبيعية وزعتر وينسون وكركديه وحبة البركة',
+    keywords: [
+      'زعتر', 'ينسون', 'يانسون', 'كركديه', 'كركدية', 'حبة البركة', 'حبه البركه',
+      'نعناع مجفف', 'نعناع ناشف', 'بابونج', 'شمر', 'بردقوش', 'قرنفل'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 97,
+  },
+  {
+    id: 'attara_nuts_assorted',
+    nameAr: 'مكسرات مشكلة ولوز وكاجو وفستق وعين جمل',
+    keywords: [
+      'مكسرات', 'مكسرات مشكلة', 'لوز', 'كاجو', 'فستق', 'عين جمل',
+      'بندق', 'فول سوداني', 'سوداني', 'nuts'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1536591375315-1b8368903277?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 97,
+  },
+  {
+    id: 'attara_natural_honey',
+    nameAr: 'عسل نحل طبيعي وعسل جبلي وسدر',
+    keywords: [
+      'عسل نحل', 'عسل ابيض', 'عسل أبيض', 'عسل جبلي', 'عسل سدر',
+      'عسل حبة البركة', 'عسل زهور', 'honey'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'attara_natural_oils',
+    nameAr: 'زيوت طبيعية وعطرية وزيت حبة البركة والسمسم',
+    keywords: [
+      'زيت حبة البركة', 'زيت سمسم', 'زيت لوز', 'زيت جوز هند', 'زيت خروع',
+      'زيت ارجان', 'زيوت طبيعية', 'زيوت طبيعيه', 'زيت زيتون بكر'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 97,
+  },
 ];
 
 /**
- * Generates an ultra-premium, lightweight vector SVG data URI placeholder
- * for products and categories without dedicated photographs.
+ * Generates an ultra-clean, studio-quality vector SVG data URI placeholder
+ * with an adaptive industry silhouette and elegant typography (Zero eye strain).
  */
 export function generatePremiumProductSvg(productName: string, categoryName?: string): string {
   const cleanTitle = (productName || '').trim();
   const cleanCat = (categoryName || '').trim();
   const combined = `${cleanTitle} ${cleanCat}`.toLowerCase();
 
-  let iconMarkup = '';
-
-  const isTech = /رام|ram|كابل|cable|كونفرت|وصل|صوت|usb|كمبيوتر|لابتوب|هارد|ماوس|كيبورد|شاش|الكترون|موبايل|شاحن|dvr|كامير|هيدفون|سماع|audio|hdmi|vga|otg/.test(combined);
+  const isPhone = /ايفون|آيفون|iphone|سامسونج|samsung|جالكسي|galaxy|شاومي|xiaomi|ريدمي|redmi|ريلمي|realme|انفينكس|infinix|اوبو|oppo|هونر|honor|موبايل|هاتف|هواتف|phone|mobile|فلاجشيب|flagship/.test(combined);
+  const isPC = /لابتوب|laptop|كمبيوتر|ماكبوك|macbook|بي سي|كيس|شاش|monitor|ماوس|كيبورد|معالج|cpu|gpu|كارت شاش|رام|ram|ssd|هارد|راوتر|router|طابع|printer/.test(combined);
+  const isAudio = /سماع|سماعات|ايربودز|airpods|headphone|earbud|headset|صوت|صوتيات|ميكروفون|مايك|اسبيكر|speaker/.test(combined);
+  const isCharger = /شاحن|شواحن|باور بنك|power bank|بطاري|بطاريات|كابل|كيبل|cable|وصل|usb|type c|تايب سي|لايتنج|lightning/.test(combined);
+  const isSmartwatch = /ساع|ساعة|ساعات|smartwatch|watch|سوار|باند|band/.test(combined);
+  const isHerbal = /عطار|توابل|بهار|اعشاب|أعشاب|كمون|فلفل|قرف|قرفة|زنجبيل|كركم|كاري|زعتر|ينسون|كركديه|قرنفل|حبه البركه|حبة البركة|مكسرات|لوز|فستق|كاجو|عسل|زيوت طبيعي/.test(combined);
   const isFood = /وجب|سندوتش|ساندوتش|صاروخ|برجر|شاورما|فرايز|بطاطس|بيتزا|كفتة|كفته|بانيه|بانية|استربس|ستربس|كريب|مشوي|مشويات|طاجن|طواجن|فطير|حواوشي|دجاج|فراخ|لحم|ناجتس/.test(combined);
-  const isSupermarket = /جبن|لبن|حليب|زبادي|شاي|سكر|تون|فول|زيت|ارز|مكرون|بسكويت|شوكولات|منظف|صابون|عصير|مياه/.test(combined);
-  const isFashion = /قميص|بنطلون|فستان|تيشيرت|حذاء|شنط|ملابس|كوتشي|جاكيت/.test(combined);
+  const isFashion = /قميص|بنطلون|فستان|تيشيرت|حذاء|شنط|ملابس|كوتشي|جاكيت|سويت شيرت|عباي|طرح|نظار/.test(combined);
 
-  if (isTech) {
-    iconMarkup = `
-      <rect x="42" y="30" width="116" height="74" rx="12" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5" />
-      <circle cx="100" cy="67" r="16" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="4 3" />
-      <circle cx="100" cy="67" r="6" fill="#38bdf8" />
-      <path d="M65 30V20M85 30V20M115 30V20M135 30V20" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
-      <path d="M65 104v10M85 104v10M115 104v10M135 104v10" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
-      <path d="M42 52H32M42 82H32M158 52h10M158 82h10" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
+  // Extract a clean brand or short label to display gracefully
+  let brandLabel = '';
+  if (/apple|ايفون|آيفون|ابل|أبل/i.test(combined)) brandLabel = 'APPLE';
+  else if (/samsung|سامسونج|جالكسي|galaxy/i.test(combined)) brandLabel = 'SAMSUNG';
+  else if (/xiaomi|شاومي|redmi|ريدمي|poco|بوكو/i.test(combined)) brandLabel = 'XIAOMI';
+  else if (/realme|ريلمي/i.test(combined)) brandLabel = 'REALME';
+  else if (/oppo|اوبو|أوبو/i.test(combined)) brandLabel = 'OPPO';
+  else if (/infinix|انفينكس|إنفينكس/i.test(combined)) brandLabel = 'INFINIX';
+  else if (/honor|هونر/i.test(combined)) brandLabel = 'HONOR';
+  else if (isPhone) brandLabel = 'SMARTPHONE';
+  else if (isPC) brandLabel = 'COMPUTER';
+  else if (isAudio) brandLabel = 'AUDIO';
+  else if (isCharger) brandLabel = 'ACCESSORY';
+  else if (isSmartwatch) brandLabel = 'SMARTWATCH';
+  else if (isHerbal) brandLabel = 'HERBS & SPICES';
+  else if (isFood) brandLabel = 'GOURMET';
+  else if (isFashion) brandLabel = 'FASHION';
+  else brandLabel = cleanCat ? cleanCat.slice(0, 16).toUpperCase() : 'PRODUCT';
+
+  let silhouetteSvg = '';
+
+  if (isPhone) {
+    silhouetteSvg = `
+      <rect x="76" y="24" width="48" height="82" rx="9" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.8" />
+      <rect x="80" y="30" width="40" height="70" rx="5" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
+      <rect x="94" y="26.5" width="12" height="3" rx="1.5" fill="#94a3b8" />
+      <circle cx="100" cy="65" r="12" fill="#f1f5f9" />
+      <path d="M96 65h8M100 61v8" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" />
+    `;
+  } else if (isPC) {
+    silhouetteSvg = `
+      <rect x="62" y="32" width="76" height="48" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
+      <rect x="66" y="36" width="68" height="40" rx="2" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+      <circle cx="100" cy="56" r="8" fill="#e2e8f0" />
+      <path d="M48 82h104a4 4 0 0 1 4 4v2H44v-2a4 4 0 0 1 4-4z" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" />
+      <line x1="90" y1="83" x2="110" y2="83" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" />
+    `;
+  } else if (isAudio) {
+    silhouetteSvg = `
+      <path d="M72 70V58a28 28 0 0 1 56 0v12" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" />
+      <rect x="66" y="66" width="12" height="22" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.8" />
+      <rect x="122" y="66" width="12" height="22" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.8" />
+    `;
+  } else if (isCharger) {
+    silhouetteSvg = `
+      <rect x="80" y="36" width="40" height="44" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
+      <rect x="92" y="24" width="4" height="12" rx="1" fill="#94a3b8" />
+      <rect x="104" y="24" width="4" height="12" rx="1" fill="#94a3b8" />
+      <circle cx="100" cy="58" r="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" />
+      <path d="M100 80c0 8 16 8 16 16" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" />
+    `;
+  } else if (isSmartwatch) {
+    silhouetteSvg = `
+      <rect x="86" y="20" width="28" height="88" rx="4" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.2" />
+      <rect x="78" y="40" width="44" height="48" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="2" />
+      <rect x="82" y="44" width="36" height="40" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+      <circle cx="100" cy="64" r="8" fill="none" stroke="#94a3b8" stroke-width="1.5" />
+      <polyline points="100 59 100 64 104 64" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" />
+    `;
+  } else if (isHerbal) {
+    silhouetteSvg = `
+      <rect x="78" y="42" width="44" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
+      <rect x="84" y="32" width="32" height="10" rx="3" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" />
+      <path d="M100 54c6 0 10 5 10 11-6 0-10-5-10-11z" fill="#10b981" opacity="0.75" />
+      <path d="M100 54c-6 0-10 5-10 11 6 0 10-5 10-11z" fill="#059669" opacity="0.65" />
+      <line x1="100" y1="54" x2="100" y2="76" stroke="#047857" stroke-width="1.5" stroke-linecap="round" />
     `;
   } else if (isFood) {
-    iconMarkup = `
-      <rect x="45" y="32" width="110" height="72" rx="14" fill="#78350f" stroke="#f59e0b" stroke-width="2.5" />
-      <path d="M62 84h76M58 88h84" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" />
-      <path d="M65 84c0-20 15-32 35-32s35 12 35 32H65z" fill="none" stroke="#fcd34d" stroke-width="2.5" />
-      <circle cx="100" cy="48" r="4" fill="#f59e0b" />
-      <path d="M88 40c-2-4 2-8 0-12M100 38c-2-4 2-8 0-12M112 40c-2-4 2-8 0-12" stroke="#fde68a" stroke-width="2" stroke-linecap="round" />
-    `;
-  } else if (isSupermarket) {
-    iconMarkup = `
-      <rect x="45" y="32" width="110" height="72" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2.5" />
-      <path d="M65 50h70l-8 36H73l-8-36z" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linejoin="round" />
-      <circle cx="82" cy="96" r="5" fill="#34d399" />
-      <circle cx="118" cy="96" r="5" fill="#34d399" />
-      <path d="M85 50c0-8 6-14 15-14s15 6 15 14" fill="none" stroke="#a7f3d0" stroke-width="2.5" stroke-linecap="round" />
+    silhouetteSvg = `
+      <path d="M60 76c0-22 18-40 40-40s40 18 40 40H60z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
+      <circle cx="100" cy="32" r="4" fill="#94a3b8" />
+      <line x1="52" y1="80" x2="148" y2="80" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" />
     `;
   } else if (isFashion) {
-    iconMarkup = `
-      <rect x="45" y="32" width="110" height="72" rx="14" fill="#3b0764" stroke="#c084fc" stroke-width="2.5" />
-      <path d="M80 42l20 10 20-10 14 12-8 10-6-4v36H80V60l-6 4-8-10 14-12z" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linejoin="round" />
+    silhouetteSvg = `
+      <path d="M100 36a8 8 0 0 1 8 8c0 5-5 7-8 7" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" />
+      <path d="M100 51l-44 26a3 3 0 0 0 1.5 5.5h85a3 3 0 0 0 1.5-5.5L100 51z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
     `;
   } else {
-    iconMarkup = `
-      <rect x="45" y="32" width="110" height="72" rx="14" fill="#170e5e" stroke="#818cf8" stroke-width="2.5" />
-      <path d="M45 58h110" stroke="#818cf8" stroke-width="2" stroke-dasharray="4 3" />
-      <path d="M100 32v72" stroke="#818cf8" stroke-width="2" />
-      <circle cx="100" cy="32" r="12" fill="#3730a3" stroke="#c7d2fe" stroke-width="2" />
-      <path d="M96 32l3 3 6-6" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    silhouetteSvg = `
+      <rect x="74" y="34" width="52" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
+      <line x1="74" y1="52" x2="126" y2="52" stroke="#e2e8f0" stroke-width="1.2" stroke-dasharray="3 3" />
+      <path d="M92 34l8 18 8-18" fill="none" stroke="#cbd5e1" stroke-width="1.2" />
+      <circle cx="100" cy="67" r="7" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" />
     `;
   }
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 155" width="100%" height="100%">
-      <defs>
-        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#f8fafc" />
-          <stop offset="100%" stop-color="#f1f5f9" />
-        </linearGradient>
-        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08" />
-        </filter>
-      </defs>
-      
-      <!-- Backdrop Card -->
-      <rect width="200" height="155" fill="url(#bg)" />
-      
-      <!-- Subtle Decorative Grid Elements -->
-      <circle cx="20" cy="20" r="2" fill="#cbd5e1" />
-      <circle cx="180" cy="20" r="2" fill="#cbd5e1" />
-      <circle cx="20" cy="135" r="2" fill="#cbd5e1" />
-      <circle cx="180" cy="135" r="2" fill="#cbd5e1" />
-
-      <!-- Center Icon Group (Cleanly centered) -->
-      <g filter="url(#glow)" transform="translate(0, 6)">
-        ${iconMarkup}
+      <rect width="200" height="155" fill="#f8fafc" />
+      <rect x="12" y="10" width="176" height="135" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
+      <ellipse cx="100" cy="108" rx="36" ry="6" fill="#0f172a" opacity="0.04" />
+      <g>
+        ${silhouetteSvg}
       </g>
+      <text x="100" y="126" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="700" fill="#64748b" letter-spacing="0.8">
+        ${brandLabel}
+      </text>
+      <text x="100" y="137" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8" font-weight="500" fill="#94a3b8">
+        صورة قريباً
+      </text>
     </svg>
   `.trim().replace(/\s+/g, ' ');
 
