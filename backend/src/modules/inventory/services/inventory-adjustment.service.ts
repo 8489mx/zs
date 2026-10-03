@@ -43,20 +43,31 @@ export class InventoryAdjustmentService {
     }
 
     const finalResponse = await this.tx.runInTransaction(this.db, async (trx) => {
+      const requestedQty = Number(payload.qty);
+      if (!Number.isFinite(requestedQty) || requestedQty < 0
+        || Math.abs(requestedQty * 1000 - Math.round(requestedQty * 1000)) > 0.000001) {
+        throw new AppError('Quantity must be finite, non-negative and have at most three decimal places', 'INVALID_QTY', 400);
+      }
       const product = await trx
         .selectFrom('products')
         .selectAll()
         .where('id', '=', payload.productId)
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .where('account_id', '=', scope.accountId)
         .where('is_active', '=', true)
+        .forUpdate()
         .executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
+      const unitCost = Number(product.cost_price);
+      if (!Number.isFinite(unitCost) || unitCost <= 0) {
+        throw new AppError('A positive product cost is required for inventory journal posting', 'INVENTORY_COST_MISSING', 400);
+      }
       const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: payload.productId, branchId: payload.branchId, locationId: payload.locationId };
       const beforeQty = payload.locationId
         ? await previewAssignedLocationStockQty(trx, stockScope)
         : Number(product.stock_qty || 0);
       let afterQty = beforeQty;
-      let movementQty = Number(payload.qty || 0);
+      let movementQty = requestedQty;
       let stockChange: { scopeBefore: number; scopeAfter: number; globalBefore: number; globalAfter: number; };
 
       if (payload.actionType !== 'adjust' && movementQty <= 0) {
@@ -64,8 +75,7 @@ export class InventoryAdjustmentService {
       }
 
       if (payload.actionType === 'adjust') {
-        afterQty = Number(payload.qty || 0);
-        movementQty = Math.abs(afterQty - beforeQty);
+        afterQty = requestedQty;
         stockChange = await setScopedStockQty(trx, {
           ...stockScope,
           nextQty: afterQty,
@@ -89,15 +99,20 @@ export class InventoryAdjustmentService {
         });
       }
 
-      const unitCost = Number(product.cost_price || 0);
-      const totalCost = Math.abs(movementQty) * unitCost;
+      // The actual post-lock delta is authoritative. A physical count may decrease
+      // stock even though the requested target quantity itself is positive.
+      const signedDelta = Number((stockChange.scopeAfter - stockChange.scopeBefore).toFixed(3));
+      movementQty = Math.abs(signedDelta);
+      if (movementQty < 0.001) throw new AppError('Adjustment did not change stock', 'STOCK_ADJUSTMENT_NO_CHANGE', 400);
+      const totalCost = Number((movementQty * unitCost).toFixed(2));
+      if (totalCost <= 0) throw new AppError('Inventory adjustment has no financial value', 'INVENTORY_COST_MISSING', 400);
 
       const insertedMovement = await trx
         .insertInto('stock_movements')
         .values({
           product_id: payload.productId,
           movement_type: payload.actionType,
-          qty: payload.actionType === 'deduct' ? -movementQty : movementQty,
+          qty: signedDelta,
           before_qty: stockChange.scopeBefore,
           after_qty: stockChange.scopeAfter,
           reason: payload.reason,

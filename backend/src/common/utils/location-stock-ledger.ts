@@ -2,6 +2,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { AppError } from '../errors/app-error';
 import { Database } from '../../database/database.types';
 import { ensureNonNegativeStock } from './financial-integrity';
+import { canonicalLockIds } from './canonical-lock-order';
 
 type LockedProductRow = {
   id: number;
@@ -139,7 +140,7 @@ export async function lockStockProducts(
   params: TenantStockScope & { productIds: number[] },
 ): Promise<void> {
   const scope = requireStockTenantScope(params);
-  const ids = [...new Set(params.productIds.map(Number))].filter((id) => Number.isInteger(id) && id > 0).sort((a, b) => a - b);
+  const ids = canonicalLockIds(params.productIds.map(Number));
   if (!ids.length) return;
   const rows = await db.selectFrom('products')
     .select('id')

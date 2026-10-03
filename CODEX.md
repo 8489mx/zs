@@ -59,6 +59,12 @@ To conserve tokens, accelerate delivery, and protect production stability, we fo
 - **Installment Schedule Exact Cent Distribution:** Replaced floating-point division with whole cent and remainder distribution algorithm (`baseCents + (i <= extraCents ? 1 : 0)`), guaranteeing zero penny drift where `SUM(installments.amount) === totalWithInterest` down to the exact cent, guarded by active plan validation.
 - **Critical Spec Guard:** Added `treasury-transfer-and-credit.spec.ts` to `test:critical` verifying cent precision, canonical lock ordering, and migration integrity.
 
+### Phase 6: ZATCA Chain, Manual Inventory and Concurrency Contract (3 October 2026)
+- **ZATCA device chain (Migration 187):** A sale row is locked before selecting its branch EGS unit. Initial EGS creation is serialized on the tenant row and rechecked under lock. Repeated generation reuses the stored UUID, ICV, PIH, hash, XML and QR instead of consuming another counter. New invoices save `zatca_egs_id` immediately; `(tenant_id, zatca_egs_id, zatca_icv)` is unique. Production generation requires an activated production certificate.
+- **Inventory adjustment:** The product row is locked before cost and stock reads. Manual add, deduct, target quantity and damage writes reject invalid quantities or a missing financial cost; recorded movement direction comes from the actual locked stock delta. Existing inventory journal calls remain in the same transaction as stock changes.
+- **Scale contract:** `multi-tenant-1000-scale.spec.ts` runs a ten-tenant in-memory sales, treasury and stock-read concurrency model in `test:critical`; its staging mode still requires `SCALE_TEST_ALLOW_DB=1`. The in-memory model exercises shared lock ordering and integer-cent accounting but does not verify real PostgreSQL write contention or prove 1,000 active tenants in production.
+- **Verification handoff:** This cloud task does not run build, TypeScript or test suites. Antigravity must check them and exercise real write-path load against disposable staging before commercial concurrency claims.
+
 ---
 
 ## 3. Git Status & Current State
@@ -86,5 +92,4 @@ git push origin main
 
 ### Remaining Operational Hardening Scope:
 1. **Live Transactional Concurrency Stress Spec (`multi-tenant-1000-scale.spec.ts`):**
-   - Run multi-tenant concurrency execution against a staging database to stress-test concurrent POS sales and stock deductions across 10 simulated tenants.
-
+   - The new local mode checks a ten-tenant concurrency model. Still run real concurrent POS sales, treasury transfers and stock deductions against a disposable staging PostgreSQL database; the existing staging mode currently covers bounded reads and advisory locks only.

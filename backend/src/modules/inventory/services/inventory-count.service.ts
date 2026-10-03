@@ -365,11 +365,21 @@ export class InventoryCountService {
     if (effectiveNote.length < 8) throw new AppError('اكتب سبب التالف بوضوح في 8 أحرف على الأقل', 'DAMAGE_NOTE_REQUIRED', 400);
     payload.note = effectiveNote;
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const product = await trx.selectFrom('products').selectAll().where('id', '=', payload.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
+      const product = await trx.selectFrom('products').selectAll()
+        .where('id', '=', payload.productId).where('is_active', '=', true)
+        .where(this.tenantPredicate(auth)).where('account_id', '=', tenantScope.accountId)
+        .forUpdate().executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-      const unitCost = Number(product.cost_price || 0);
-      const damageQty = Number(payload.qty || 0);
-      const totalCost = damageQty * unitCost;
+      const unitCost = Number(product.cost_price);
+      const damageQty = Number(payload.qty);
+      const totalCost = Number((damageQty * unitCost).toFixed(2));
+      if (!Number.isFinite(damageQty) || damageQty <= 0
+        || Math.abs(damageQty * 1000 - Math.round(damageQty * 1000)) > 0.000001) {
+        throw new AppError('Damage quantity must be positive with at most three decimal places', 'INVALID_QTY', 400);
+      }
+      if (!Number.isFinite(unitCost) || unitCost <= 0 || !Number.isFinite(totalCost) || totalCost <= 0) {
+        throw new AppError('A positive cost is required to post damaged stock', 'INVENTORY_COST_MISSING', 400);
+      }
 
       const availableQty = await previewConsumableStockQty(trx, { productId: payload.productId, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
       const writeModels = buildDamagedStockWriteModels({ ...product, stock_qty: availableQty }, payload, location, auth.userId);

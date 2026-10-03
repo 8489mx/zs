@@ -115,12 +115,15 @@ export class ZatcaPhase2Service {
         .selectAll()
         .where('id', '=', saleId)
         .where('tenant_id', '=', tenantId)
+        .forUpdate()
         .executeTakeFirstOrThrow();
+      if (sale.status !== 'posted') throw new BadRequestException('لا يمكن توقيع فاتورة غير مرحّلة');
 
       const items = await trx
         .selectFrom('sale_items')
         .selectAll()
         .where('sale_id', '=', saleId)
+        .where('tenant_id', '=', tenantId)
         .execute();
 
       const customer = sale.customer_id
@@ -133,28 +136,55 @@ export class ZatcaPhase2Service {
         : null;
 
       // 1. Fetch or initialize EGS Unit with row-level lock (.forUpdate()) for sequential ICV & PIH guarantee
-      let egs = egsId
+      if (sale.zatca_egs_id && egsId && Number(egsId) !== Number(sale.zatca_egs_id)) {
+        throw new BadRequestException('الفاتورة مرتبطة بوحدة EGS مختلفة');
+      }
+      const selectedEgsId = sale.zatca_egs_id ?? egsId;
+      let egs = selectedEgsId
         ? await trx
             .selectFrom('zatca_egs_units')
             .selectAll()
-            .where('id', '=', String(egsId) as any)
+            .where('id', '=', String(selectedEgsId))
             .where('tenant_id', '=', tenantId)
+            .where((eb) => sale.branch_id == null ? eb('branch_id', 'is', null) : eb('branch_id', '=', Number(sale.branch_id)))
             .forUpdate()
             .executeTakeFirst()
         : await trx
             .selectFrom('zatca_egs_units')
             .selectAll()
             .where('tenant_id', '=', tenantId)
+            .where((eb) => sale.branch_id == null ? eb('branch_id', 'is', null) : eb('branch_id', '=', Number(sale.branch_id)))
             .where((eb) => eb.or([
               eb('status', '=', 'production_active'),
               eb('status', '=', 'compliance_passed'),
               eb('status', '=', 'unregistered'),
             ]))
+            .orderBy(sql<number>`CASE status WHEN 'production_active' THEN 0 WHEN 'compliance_passed' THEN 1 ELSE 2 END`, 'asc')
             .orderBy('id', 'asc')
             .forUpdate()
             .executeTakeFirst();
 
+      if (selectedEgsId && !egs) throw new BadRequestException('وحدة توقيع الفاتورة غير موجودة لهذا الفرع والمنشأة');
+
+      if (!egs && (sale.zatca_icv != null || sale.zatca_hash || sale.zatca_uuid)) {
+        throw new BadRequestException('وحدة توقيع الفاتورة السابقة غير موجودة؛ لا يمكن تغيير سلسلة التوقيع');
+      }
+      if (!egs && settings?.environment === 'production') {
+        throw new BadRequestException('يجب تفعيل وحدة EGS بشهادة إنتاج قبل توليد فواتير الإنتاج');
+      }
+
       // Auto-create default EGS unit if none exists
+      if (!egs) {
+        // A missing row cannot be FOR UPDATE locked. Serialize bootstrap on the
+        // tenant row, then recheck the device before creating the first unit.
+        await trx.selectFrom('tenants').select('id').where('id', '=', tenantId).forUpdate().executeTakeFirstOrThrow();
+        egs = await trx.selectFrom('zatca_egs_units').selectAll()
+          .where('tenant_id', '=', tenantId)
+          .where((eb) => sale.branch_id == null ? eb('branch_id', 'is', null) : eb('branch_id', '=', Number(sale.branch_id)))
+          .where('status', 'in', ['production_active', 'compliance_passed', 'unregistered'])
+          .orderBy(sql<number>`CASE status WHEN 'production_active' THEN 0 WHEN 'compliance_passed' THEN 1 ELSE 2 END`, 'asc')
+          .orderBy('id', 'asc').forUpdate().executeTakeFirst();
+      }
       if (!egs) {
         const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', {
           namedCurve: 'prime256v1',
@@ -166,12 +196,18 @@ export class ZatcaPhase2Service {
           .insertInto('zatca_egs_units')
           .values({
             tenant_id: tenantId,
-            branch_id: sale.branch_id ? Number(sale.branch_id) : 1,
+            branch_id: sale.branch_id == null ? null : Number(sale.branch_id),
             device_uuid: crypto.randomUUID(),
             device_name: 'Main POS Unit 01',
             custom_id: 'POS-01',
             private_key_pem: privateKey,
             public_key_pem: publicKey,
+            csr_content: null,
+            compliance_csid: null,
+            compliance_secret: null,
+            compliance_request_id: null,
+            production_csid: null,
+            production_secret: null,
             // وحدة أُنشئت تلقائياً ولم تمر بالتسجيل لدى الهيئة (CSR ← شهادة امتثال
             // ← شهادة إنتاج) — لا يصح وسمها `production_active`. `unregistered`
             // مشمولة أصلاً في شرط الاختيار أعلاه فالسلوك لم يتغير، لكن الحالة صارت
@@ -181,14 +217,45 @@ export class ZatcaPhase2Service {
             environment: settings?.environment === 'production' ? 'production' : 'sandbox',
             last_icv: 0,
             last_invoice_hash: 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==',
-          } as any)
+          })
           .returningAll()
           .executeTakeFirstOrThrow();
 
         egs = newUnit;
       }
+      if (settings?.environment === 'production' && (egs.status !== 'production_active' || !egs.production_csid)) {
+        throw new BadRequestException('شهادة إنتاج وحدة EGS غير مفعلة؛ لا يمكن توليد فاتورة إنتاج');
+      }
 
-      const nextIcv = Number(egs.last_icv || 0) + 1;
+      if (sale.zatca_icv != null || sale.zatca_hash || sale.zatca_uuid) {
+        if (!sale.zatca_icv || !sale.zatca_hash || !sale.zatca_uuid || !sale.zatca_ubl_xml || !sale.zatca_qr) {
+          throw new BadRequestException('بيانات الفاتورة الإلكترونية السابقة غير مكتملة؛ يجب تسويتها قبل إعادة الإرسال');
+        }
+        if (sale.zatca_egs_id && Number(sale.zatca_egs_id) !== Number(egs.id)) {
+          throw new BadRequestException('الفاتورة موقعة بوحدة EGS مختلفة؛ أعد الإرسال بنفس الوحدة');
+        }
+        if (egsId && Number(egsId) !== Number(egs.id)) {
+          throw new BadRequestException('الفاتورة مرتبطة بوحدة EGS مختلفة');
+        }
+        const savedQrFields = this.readTlvQr(sale.zatca_qr);
+        if (savedQrFields.get(6) !== sale.zatca_hash || savedQrFields.get(8) !== egs.public_key_pem
+          || !savedQrFields.get(7)) {
+          throw new BadRequestException('توقيع الفاتورة الإلكترونية المحفوظ لا يطابق وحدة EGS أو الهاش');
+        }
+        return {
+          ublXml: sale.zatca_ubl_xml, invoiceHash: sale.zatca_hash,
+          qrCodeBase64: sale.zatca_qr,
+          digitalSignature: savedQrFields.get(7)!,
+          publicKey: egs.public_key_pem, uuid: sale.zatca_uuid,
+          icv: Number(sale.zatca_icv), previousHash: sale.zatca_prev_hash || '',
+        };
+      }
+
+      const lastIcv = Number(egs.last_icv || 0);
+      if (!Number.isSafeInteger(lastIcv) || lastIcv < 0 || !Number.isSafeInteger(lastIcv + 1)) {
+        throw new BadRequestException('عداد فواتير وحدة EGS غير صالح');
+      }
+      const nextIcv = lastIcv + 1;
       const previousInvoiceHash = egs.last_invoice_hash || 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==';
       const invoiceUuid = crypto.randomUUID();
 
@@ -291,6 +358,7 @@ export class ZatcaPhase2Service {
           zatca_hash: invoiceHash,
           zatca_prev_hash: previousInvoiceHash,
           zatca_icv: nextIcv,
+          zatca_egs_id: Number(egs.id),
           // `generated` لا `reported`: هذه الدالة تبني الفاتورة وتوقّعها محلياً
           // وتُقدّم سلسلة الـICV/PIH فقط — **لا يوجد أي اتصال بهيئة الزكاة هنا**
           // (ولا في أي مكان آخر؛ الموجود هو التسجيل CSR/CSID فقط). وسمها
@@ -299,7 +367,7 @@ export class ZatcaPhase2Service {
           zatca_status: 'generated',
           zatca_qr: qrCodeBase64,
           zatca_ubl_xml: ublXml,
-        } as any)
+        })
         .where('id', '=', sale.id)
         .where('tenant_id', '=', tenantId)
         .execute();
@@ -499,6 +567,21 @@ ${linesXml}
     ];
 
     return Buffer.concat(buffers).toString('base64');
+  }
+
+  private readTlvQr(encoded: string): Map<number, string> {
+    const bytes = Buffer.from(encoded, 'base64');
+    const fields = new Map<number, string>();
+    for (let offset = 0; offset < bytes.length;) {
+      if (offset + 2 > bytes.length) throw new BadRequestException('رمز QR المحفوظ غير مكتمل');
+      const tag = bytes[offset];
+      const length = bytes[offset + 1];
+      offset += 2;
+      if (offset + length > bytes.length) throw new BadRequestException('رمز QR المحفوظ غير صالح');
+      fields.set(tag, bytes.subarray(offset, offset + length).toString('utf8'));
+      offset += length;
+    }
+    return fields;
   }
 
   private toTlv(tagNum: number, valueBuffer: Buffer): Buffer {

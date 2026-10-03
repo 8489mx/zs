@@ -130,19 +130,24 @@ export class ZatcaSubmissionService {
 
     // 3. Resolve active EGS unit and credentials
     const settings = await this.taxSettings.getSettings(tenantId, 'ZATCA_SAUDI');
-    const egs = egsId
+    const assignedEgsId = sale.zatca_egs_id ?? egsId;
+    const egs = assignedEgsId
       ? await this.db
           .selectFrom('zatca_egs_units')
           .selectAll()
-          .where('id', '=', String(egsId) as any)
+          .where('id', '=', String(assignedEgsId))
           .where('tenant_id', '=', tenantId)
           .executeTakeFirst()
       : await this.db
           .selectFrom('zatca_egs_units')
           .selectAll()
           .where('tenant_id', '=', tenantId)
+          .where((eb) => sale.branch_id == null ? eb('branch_id', 'is', null) : eb('branch_id', '=', Number(sale.branch_id)))
           .orderBy('id', 'asc')
           .executeTakeFirst();
+    if (!egs || (sale.zatca_egs_id && Number(egs.id) !== Number(sale.zatca_egs_id))) {
+      throw new BadRequestException('وحدة التوقيع المرتبطة بالفاتورة غير متاحة');
+    }
 
     const env = egs?.environment || settings?.environment || 'sandbox';
     const baseUrl = this.getZatcaBaseUrl(env);

@@ -11,6 +11,7 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 import { CreateTreasuryTransferDto } from './dto/create-treasury-transfer.dto';
 import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
+import { canonicalLockIds } from '../../common/utils/canonical-lock-order';
 
 @Injectable()
 export class TreasuryService {
@@ -202,7 +203,7 @@ export class TreasuryService {
 
       // Lock both accounts in one canonical order. This is the only lock order
       // used for treasury transfers, so A->B and B->A cannot deadlock.
-      const orderedAccountIds = [fromAccountId, toAccountId].sort((a, b) => a - b);
+      const orderedAccountIds = canonicalLockIds([fromAccountId, toAccountId]);
       const accounts = await trx
         .selectFrom('accounting_accounts')
         .select(['id', 'name_ar'])
