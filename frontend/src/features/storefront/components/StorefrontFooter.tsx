@@ -23,6 +23,7 @@ export function StorefrontFooter({
   const whatsappNumber = (info.whatsappPhone || '').replace(/[^0-9]/g, '');
   const cleanPhone = whatsappNumber.startsWith('01') ? `2${whatsappNumber}` : whatsappNumber;
   const currentYear = new Date().getFullYear();
+  const monogramLetter = (brand.title || '').trim().replace(/^ال/, '').trim().charAt(0) || (brand.title || '').trim().charAt(0) || 'م';
 
   return (
     <footer
@@ -113,8 +114,8 @@ export function StorefrontFooter({
         }
       `}</style>
 
-      {/* Top Enterprise Trust Strip */}
-      <div style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '20px 20px' }}>
+      {/* Top Enterprise Trust Strip - Unified Subtle Slate Palette */}
+      <div style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '18px 20px' }}>
         <div style={{ maxWidth: 'var(--storefront-container, 1440px)', margin: '0 auto' }}>
           <div className="sf-footer-trust-strip">
             {/* Value 1: Fast Shipping */}
@@ -124,8 +125,8 @@ export function StorefrontFooter({
                   width: '38px',
                   height: '38px',
                   borderRadius: '10px',
-                  background: 'var(--storefront-surface-color, #eef2ff)',
-                  color: 'var(--storefront-primary-color, #170e5e)',
+                  background: '#f1f5f9',
+                  color: '#334155',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -134,16 +135,16 @@ export function StorefrontFooter({
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="1" y="3" width="15" height="13" />
-                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                  <polygon points="16 8 20 8 23 11 23 16 16 16 8" />
                   <circle cx="5.5" cy="18.5" r="2.5" />
                   <circle cx="18.5" cy="18.5" r="2.5" />
                 </svg>
               </div>
               <div>
-                <h4 style={{ margin: '0 0 2px', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                <h4 style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
                   توصيل سريع وآمن
                 </h4>
-                <p style={{ margin: 0, fontSize: '11px', color: '#64748b', lineHeight: 1.4 }}>
+                <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
                   شحن مباشر مع متابعة دقيقة لحالة الطلب
                 </p>
               </div>
@@ -156,8 +157,8 @@ export function StorefrontFooter({
                   width: '38px',
                   height: '38px',
                   borderRadius: '10px',
-                  background: '#f0fdf4',
-                  color: '#16a34a',
+                  background: '#f1f5f9',
+                  color: '#334155',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -170,10 +171,10 @@ export function StorefrontFooter({
                 </svg>
               </div>
               <div>
-                <h4 style={{ margin: '0 0 2px', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                <h4 style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
                   منتجات أصلية 100%
                 </h4>
-                <p style={{ margin: 0, fontSize: '11px', color: '#64748b', lineHeight: 1.4 }}>
+                <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
                   فحص وضمان جودة لكافة الأصناف المعروضة
                 </p>
               </div>
@@ -186,8 +187,8 @@ export function StorefrontFooter({
                   width: '38px',
                   height: '38px',
                   borderRadius: '10px',
-                  background: '#fef3c7',
-                  color: '#b45309',
+                  background: '#f1f5f9',
+                  color: '#334155',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -200,10 +201,10 @@ export function StorefrontFooter({
                 </svg>
               </div>
               <div>
-                <h4 style={{ margin: '0 0 2px', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                <h4 style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
                   دفع آمن ومرن
                 </h4>
-                <p style={{ margin: 0, fontSize: '11px', color: '#64748b', lineHeight: 1.4 }}>
+                <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
                   كاش عند الاستلام أو بطاقات ومحافظ رقمية
                 </p>
               </div>
@@ -217,7 +218,7 @@ export function StorefrontFooter({
                   height: '38px',
                   borderRadius: '10px',
                   background: '#f1f5f9',
-                  color: '#475569',
+                  color: '#334155',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -229,10 +230,10 @@ export function StorefrontFooter({
                 </svg>
               </div>
               <div>
-                <h4 style={{ margin: '0 0 2px', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                <h4 style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
                   خدمة عملاء مباشرة
                 </h4>
-                <p style={{ margin: 0, fontSize: '11px', color: '#64748b', lineHeight: 1.4 }}>
+                <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
                   دعم واستفسارات فورية عبر محادثة واتساب
                 </p>
               </div>
@@ -276,7 +277,7 @@ export function StorefrontFooter({
                     fontSize: '17px',
                   }}
                 >
-                  {brand.title.trim().charAt(0) || 'م'}
+                  {monogramLetter}
                 </div>
               )}
               <div>
@@ -299,7 +300,7 @@ export function StorefrontFooter({
               </div>
             </div>
 
-            <p style={{ margin: '0 0 14px', fontSize: '12.5px', color: '#64748b', lineHeight: 1.6, maxWidth: '340px' }}>
+            <p style={{ margin: '0 0 14px', fontSize: '12.5px', color: '#475569', lineHeight: 1.6, maxWidth: '340px' }}>
               {info.bio || 'وجهتك الأولى لتسوق أفضل المنتجات بأفضل الأسعار، جودة مضمونة وسرعة في تنفيذ وتوصيل الطلبات.'}
             </p>
 
@@ -380,7 +381,7 @@ export function StorefrontFooter({
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
               <span>خدمة العملاء</span>
             </h4>
-            <p style={{ margin: '0 0 12px', fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>
+            <p style={{ margin: '0 0 12px', fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
               فريقنا متواجد للرد على كافة الاستفسارات ومساعدتك في اختيار المنتجات:
             </p>
             {cleanPhone ? (
@@ -423,7 +424,7 @@ export function StorefrontFooter({
             </div>
           </div>
 
-          {/* Col 4: Payment Badges & SSL */}
+          {/* Col 4: Payment Badges & SSL - Unified Clean Palette */}
           <div>
             <h4 style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
@@ -433,7 +434,7 @@ export function StorefrontFooter({
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', marginBottom: '14px' }}>
               {/* Cash On Delivery */}
               <div className="sf-pay-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="6" width="20" height="12" rx="2" />
                   <circle cx="12" cy="12" r="2" />
                   <path d="M6 12h.01M18 12h.01" />
@@ -442,7 +443,7 @@ export function StorefrontFooter({
               </div>
 
               {/* Visa */}
-              <div className="sf-pay-badge" style={{ fontFamily: 'sans-serif', fontWeight: 900, color: '#1a1f71', letterSpacing: '0.5px' }}>
+              <div className="sf-pay-badge" style={{ fontFamily: 'sans-serif', fontWeight: 900, color: '#1e293b', letterSpacing: '0.5px' }}>
                 VISA
               </div>
 
@@ -456,17 +457,17 @@ export function StorefrontFooter({
               </div>
 
               {/* Meeza */}
-              <div className="sf-pay-badge" style={{ color: '#0284c7' }}>
+              <div className="sf-pay-badge" style={{ color: '#334155' }}>
                 <span>ميزة Meeza</span>
               </div>
 
               {/* Mobile Wallets */}
-              <div className="sf-pay-badge" style={{ color: '#475569' }}>
+              <div className="sf-pay-badge" style={{ color: '#334155' }}>
                 <span>محافظ إلكترونية</span>
               </div>
             </div>
 
-            {/* SSL Badge */}
+            {/* SSL Badge - Clean Unified Slate */}
             <div
               style={{
                 display: 'flex',
@@ -474,14 +475,14 @@ export function StorefrontFooter({
                 gap: '8px',
                 padding: '8px 12px',
                 borderRadius: '8px',
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-                color: '#166534',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                color: '#334155',
                 fontSize: '11px',
                 fontWeight: 700,
               }}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
@@ -521,11 +522,12 @@ export function StorefrontFooter({
               href="https://zsystemai.com/erp"
               target="_blank"
               rel="noopener noreferrer"
-              title="نظام Z-Systems ERP لإدارة المؤسسات والمتاجر السحابية"
+              title="Z-Systems Cloud ERP"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '7px',
+                direction: 'ltr',
                 textDecoration: 'none',
                 color: '#64748b',
                 transition: 'opacity 0.15s ease',
@@ -537,26 +539,26 @@ export function StorefrontFooter({
                 e.currentTarget.style.opacity = '1';
               }}
             >
-              <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                مشغّل بواسطة <span style={{ fontFamily: 'sans-serif', fontSize: '10px', color: '#94a3b8' }}>Powered by</span>
+              <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b', letterSpacing: '0.2px' }}>
+                Powered by
               </span>
               <span
                 style={{
                   fontWeight: 900,
                   color: 'var(--storefront-primary-color, #170e5e)',
                   background: '#ffffff',
-                  padding: '3px 8px',
+                  padding: '3px 9px',
                   borderRadius: '6px',
                   border: '1px solid #cbd5e1',
                   fontSize: '11px',
                   boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
+                  gap: '5px',
                 }}
               >
                 <span>Z-Systems ERP</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(180deg)' }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                   <polyline points="15 3 21 3 21 9" />
                   <line x1="10" y1="14" x2="21" y2="3" />

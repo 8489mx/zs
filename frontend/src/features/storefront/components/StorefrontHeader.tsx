@@ -251,7 +251,7 @@ export function StorefrontHeader({
                 transition: 'transform 0.2s ease',
               }}
             >
-              {brand.title.trim().charAt(0) || 'م'}
+              {((brand.title || '').trim().replace(/^ال/, '').trim().charAt(0) || (brand.title || '').trim().charAt(0) || 'م')}
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, justifyContent: 'center' }}>
