@@ -36,6 +36,13 @@ function createMockDb(orders: MockOrder[], settingsMap: Record<string, string>) 
                 execute: async () => {
                   return Object.entries(settingsMap).map(([key, value]) => ({ key, value }));
                 },
+                executeTakeFirst: async () => {
+                  const key = typeof val === 'string' ? val : 'currency';
+                  if (key in settingsMap) {
+                    return { value: settingsMap[key] };
+                  }
+                  return undefined;
+                },
               }),
             }),
           }),
@@ -112,6 +119,8 @@ async function testPaymobFailClosed(): Promise<void> {
     total_amount: 150,
     payment_status: 'pending',
     status: 'pending',
+    gateway_provider: 'paymob',
+    gateway_order_id: '999',
   };
 
   // 1. Fail-closed when hmac secret is unset
@@ -244,12 +253,61 @@ async function testPaymobFailClosed(): Promise<void> {
 
   // 5. Idempotent: already paid order returns without error and does not re-process
   {
-    const paidOrder: MockOrder = { ...order, payment_status: 'paid' };
+    const paidOrder: MockOrder = {
+      ...order,
+      payment_status: 'paid',
+      gateway_provider: 'paymob',
+      gateway_order_id: '999',
+      gateway_transaction_id: '12345',
+    };
     const db = createMockDb([paidOrder], {
       storefront_paymob_hmac_secret: 'my-paymob-secret',
     });
     const service = new StorefrontPaymentService(db);
-    const result = await service.processPaymobWebhook({}, { obj: { order: { merchant_order_id: 'tenant-1__ON-260920-0001' } } });
+    const obj: any = {
+      amount_cents: 15000,
+      created_at: '2026-09-20T10:00:00.000Z',
+      currency: 'EGP',
+      error_occured: false,
+      has_parent_transaction: false,
+      id: 12345,
+      integration_id: 111,
+      is_3d_secure: true,
+      is_auth: false,
+      is_capture: false,
+      is_refunded: false,
+      is_standalone_payment: true,
+      is_voided: false,
+      order: { id: 999, merchant_order_id: 'tenant-1__ON-260920-0001' },
+      owner: 10,
+      pending: false,
+      source_data: { pan: '2345', sub_type: 'MasterCard', type: 'card' },
+      success: true,
+    };
+    const concatenated = [
+      obj.amount_cents,
+      obj.created_at,
+      obj.currency,
+      obj.error_occured,
+      obj.has_parent_transaction,
+      obj.id,
+      obj.integration_id,
+      obj.is_3d_secure,
+      obj.is_auth,
+      obj.is_capture,
+      obj.is_refunded,
+      obj.is_standalone_payment,
+      obj.is_voided,
+      obj.order?.id,
+      obj.owner,
+      obj.pending,
+      obj.source_data?.pan,
+      obj.source_data?.sub_type,
+      obj.source_data?.type,
+      obj.success,
+    ].join('');
+    const validHmac = crypto.createHmac('sha512', 'my-paymob-secret').update(concatenated).digest('hex');
+    const result = await service.processPaymobWebhook({ hmac: validHmac }, { obj });
     assert.equal(result.ok, true);
     assert.equal(result.alreadyPaid, true);
   }
@@ -265,12 +323,16 @@ async function testXPayFailClosed(): Promise<void> {
     total_amount: 250,
     payment_status: 'pending',
     status: 'pending',
+    gateway_provider: 'xpay',
+    gateway_order_id: 'txn_9988',
   };
 
   const body = {
     data: {
       transaction_status: 'SUCCESSFUL',
       transaction_id: 'txn_9988',
+      amount: 250,
+      currency: 'EGP',
       custom_fields: [
         { field_label: 'OrderNumber', value: 'ON-260920-0002' },
         { field_label: 'TenantId', value: 'tenant-1' },
@@ -341,6 +403,8 @@ async function testStripeFailClosed(): Promise<void> {
     total_amount: 300,
     payment_status: 'pending',
     status: 'pending',
+    gateway_provider: 'stripe',
+    gateway_order_id: 'cs_test_123',
   };
 
   const body = {
@@ -350,6 +414,9 @@ async function testStripeFailClosed(): Promise<void> {
         id: 'cs_test_123',
         client_reference_id: 'tenant-1__ON-260920-0003',
         payment_intent: 'pi_test_999',
+        payment_status: 'paid',
+        amount_total: 30000,
+        currency: 'usd',
       },
     },
   };
@@ -426,6 +493,8 @@ async function testTapFailClosed(): Promise<void> {
     total_amount: 400,
     payment_status: 'pending',
     status: 'pending',
+    gateway_provider: 'tap',
+    gateway_order_id: 'chg_test_456',
   };
 
   const body: any = {
@@ -560,6 +629,8 @@ async function testLatePaymentAndAmountVerification(): Promise<void> {
     payment_status: 'failed',
     status: 'cancelled',
     stock_reserved: false,
+    gateway_provider: 'paymob',
+    gateway_order_id: '999',
   };
 
   const db = createMockDb([cancelledOrder], {
@@ -616,7 +687,7 @@ async function testLatePaymentAndAmountVerification(): Promise<void> {
   assert.equal(result.ok, true);
   assert.equal(result.status, 'review_required', 'Late payment on cancelled order must yield review_required');
 
-  // Verify amount mismatch throws on an active pending order
+  // Verify amount mismatch safely captured as review_required on active order
   const mismatchOrder: MockOrder = {
     id: 100,
     tenant_id: 'tenant-1',
@@ -625,6 +696,8 @@ async function testLatePaymentAndAmountVerification(): Promise<void> {
     payment_status: 'pending',
     status: 'pending',
     stock_reserved: true,
+    gateway_provider: 'paymob',
+    gateway_order_id: '1000',
   };
   const dbMismatch = createMockDb([mismatchOrder], {
     storefront_paymob_hmac_secret: 'my-paymob-secret',
@@ -659,13 +732,12 @@ async function testLatePaymentAndAmountVerification(): Promise<void> {
     objMismatched.success,
   ].join('')).digest('hex');
 
-  await assert.rejects(
-    async () => serviceMismatch.processPaymobWebhook({ hmac: hmacMismatched }, { obj: objMismatched }),
-    (err: any) => err instanceof BadRequestException,
-    'Paymob amount mismatch must be rejected with BadRequestException',
-  );
+  const mismatchResult = await serviceMismatch.processPaymobWebhook({ hmac: hmacMismatched }, { obj: objMismatched });
+  assert.equal(mismatchResult.ok, true);
+  assert.equal(mismatchResult.status, 'review_required', 'Amount mismatch must be safely captured as review_required');
+  assert.equal(mismatchOrder.status, 'review_required');
 
-  console.log('  -> Late payment on cancelled order safely diverted to review_required, amount mismatch strictly rejected.');
+  console.log('  -> Late payment on cancelled order safely diverted to review_required, amount mismatch safely captured as review_required.');
 }
 
 async function runAll(): Promise<void> {
