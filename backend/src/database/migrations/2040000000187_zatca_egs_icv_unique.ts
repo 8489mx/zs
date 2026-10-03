@@ -4,6 +4,11 @@ import { sql, type Kysely } from 'kysely';
 export const migration = {
   async up(db: Kysely<unknown>): Promise<void> {
     await sql`
+      ALTER TABLE sales
+      ADD COLUMN IF NOT EXISTS zatca_egs_id BIGINT;
+    `.execute(db);
+
+    await sql`
       CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_zatca_tenant_egs_icv
       ON sales (tenant_id, zatca_egs_id, zatca_icv)
       WHERE zatca_egs_id IS NOT NULL AND zatca_icv IS NOT NULL
