@@ -17,6 +17,7 @@ import { IconStar, IconFlame } from './StorefrontIcons';
 import { trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import { buildCartProduct, getProductVariants, resolveVariantUnitPrice } from '../lib/storefront-variant-pricing';
 import { generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
+import { getContrastTextColor } from '../lib/storefront-theme-contrast';
 
 interface StorefrontProductQuickViewModalProps {
   product: StorefrontProduct | null;
@@ -63,6 +64,7 @@ export function StorefrontProductQuickViewModal({
   const brandColor = info?.brandColor || 'var(--storefront-primary-color, #170e5e)';
   const brandSecondaryColor = info?.brandSecondaryColor || 'var(--storefront-secondary-color, #d97706)';
   const brandSurfaceColor = info?.brandSurfaceColor || 'var(--storefront-surface-color, #f8fafc)';
+  const brandColorContrast = getContrastTextColor(info?.brandColor);
   const inStock = product.inStock !== false;
   const isLowStock = inStock && product.stockQty > 0 && product.stockQty <= 5;
 
