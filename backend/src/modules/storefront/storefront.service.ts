@@ -751,7 +751,8 @@ export class StorefrontService {
 
     // 3. Initiate singleflight worker promise
     const generation = StorefrontService.catalogGeneration;
-    const fetchPromise = (async () => {
+    let fetchPromise: Promise<any>;
+    fetchPromise = (async () => {
       try {
         const tenant = await this.getTenantBySlug(cleanSlug);
 
@@ -1262,6 +1263,7 @@ export class StorefrontService {
 
       const priced = resolveOrderLinePrice(Number(prod.retail_price || 0), prod.metadata, item.variantName);
       const baseUnitPrice = priced.ok ? priced.unitPrice : Number(prod.retail_price || 0);
+      const resolvedVariantName = priced.ok ? priced.variantName : (item.variantName || null);
       const quantity = Math.max(1, Number(item.quantity || 1));
       const pOffers = offersByProductId.get(Number(prod.id)) || [];
       const bestOffer = resolveBestStorefrontOffer(baseUnitPrice, pOffers, quantity, undefined, new Date(), offerTimezone(settings));
@@ -1274,8 +1276,8 @@ export class StorefrontService {
 
       validatedItems.push({
         productId: prod.id,
-        name: formatVariantLineName(prod.name, priced.variantName),
-        variantName: priced.variantName,
+        name: formatVariantLineName(prod.name, resolvedVariantName),
+        variantName: resolvedVariantName,
         barcode: prod.barcode || '',
         quantity,
         baseUnitPrice,
