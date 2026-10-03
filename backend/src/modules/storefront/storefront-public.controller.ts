@@ -35,6 +35,8 @@ export class StorefrontPublicController {
     res.setHeader('Content-Length', String(media.content.length));
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.end(media.content);
   }
 

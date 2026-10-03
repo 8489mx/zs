@@ -7,6 +7,11 @@ import { resolveRequestUrl } from '@/lib/http';
 
 export function resolveStorefrontMediaUrl<T extends string | null | undefined>(url: T): T {
   if (typeof url !== 'string' || !url.startsWith('/api/')) return url;
+  // In dev server (Vite on 5173), Vite already proxies /api to the dev backend on 3101.
+  // Using relative /api/... keeps it same-origin with localhost:5173, avoiding CORP blocks.
+  if (typeof window !== 'undefined' && window.location.port === '5173') {
+    return url;
+  }
   return resolveRequestUrl(url) as T;
 }
 

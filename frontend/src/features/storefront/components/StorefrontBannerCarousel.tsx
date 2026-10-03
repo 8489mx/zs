@@ -141,7 +141,8 @@ export function StorefrontBannerCarousel({
             margin: 6px auto 4px !important;
           }
           .storefront-banner-carousel-inner {
-            height: clamp(140px, 34vw, 320px) !important;
+            aspect-ratio: auto !important;
+            height: clamp(140px, 34vw, 260px) !important;
             border-radius: 14px !important;
           }
           .storefront-banner-img {
@@ -173,7 +174,9 @@ export function StorefrontBannerCarousel({
         onTouchEnd={handleTouchEnd}
         style={{
           width: '100%',
-          height: 'clamp(170px, 26vw, 320px)',
+          aspectRatio: '4 / 1',
+          minHeight: '160px',
+          maxHeight: '360px',
           borderRadius: '16px',
           overflow: 'hidden',
           boxShadow: '0 4px 20px rgba(15, 23, 42, 0.08)',

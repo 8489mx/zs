@@ -46,14 +46,23 @@ export function StorefrontSettingsTab() {
   const [bannerCompressFeedback, setBannerCompressFeedback] = useState('');
   const [isCompressingBanner, setIsCompressingBanner] = useState(false);
   const [isQrPrintOpen, setIsQrPrintOpen] = useState(false);
-  const [promptCopied, setPromptCopied] = useState(false);
+  const [copiedPromptKey, setCopiedPromptKey] = useState<'ar' | 'en' | null>(null);
 
-  const aiPromptTemplate = 'صمم بنر إعلاني سينمائي فخم لمتجر [اكتب اسم ونشاط متجرك]، بنسبة عرض واسعة 16:5. شرط أساسي لحماية المحتوى: اجمع اسم المتجر والشعار وكافة المنتجات والنصوص في منتصف الصورة فقط (في منطقة الأمان المركزية 60%)، واجعل الأطراف اليمنى واليسرى مجرد خلفية ممتدة متدرجة وفارغة بدون أي نصوص لتناسب شاشات العرض البانورامية.';
+  const aiPromptTemplateAr =
+    'صمم بنر إعلاني سينمائي شريطي فائق العرض (Ultra-Wide Panoramic Banner) بنسبة 4:1 وأبعاد دقيقة 1600x400 بكسل لمتجر [اكتب اسم ونشاط متجرك هنا].\n' +
+    'شروط توزيع العناصر لملء المتجر بالكامل دون أي قص:\n' +
+    '1. أبعاد التصميم: نسبة العرض إلى الارتفاع 4:1 (العرض أربعة أضعاف الارتفاع تماماً، مقاس 1600x400 بكسل).\n' +
+    '2. منطقة الأمان المركزية (60%): ضع اسم المتجر والشعار والمنتجات الرئيسية والنصوص في الـ 60% الوسطى فقط من الكادر.\n' +
+    '3. امتداد الأطراف (20% يميناً و 20% يساراً): اجعل الحواف مجرد خلفية ممتدة متجانسة بتدرج لوني وإضاءة أنيقة بدون نصوص أو أجهزة مقطوعة لتملأ الشاشة بسلاسة بدون قص.';
 
-  const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(aiPromptTemplate);
-    setPromptCopied(true);
-    setTimeout(() => setPromptCopied(false), 3000);
+  const aiPromptTemplateEn =
+    'Ultra-wide commercial e-commerce panoramic header banner, exact aspect ratio 4:1, 1600x400 resolution, for [Your Store Name / Business Type]. Luxury modern commercial design, clean studio lighting, 8k render. CRITICAL COMPOSITION RULES: Place all hero products, branding text, and logo strictly inside the central 60% horizontal safe zone. The left 20% and right 20% edges must be smooth, seamless ambient background gradient with extended atmospheric lighting and zero cut-off objects or text at borders. --ar 4:1';
+
+  const handleCopyPrompt = (type: 'ar' | 'en') => {
+    const textToCopy = type === 'ar' ? aiPromptTemplateAr : aiPromptTemplateEn;
+    navigator.clipboard.writeText(textToCopy);
+    setCopiedPromptKey(type);
+    setTimeout(() => setCopiedPromptKey(null), 3000);
   };
 
   const settingsQuery = useQuery({
@@ -278,10 +287,10 @@ export function StorefrontSettingsTab() {
       setBannerCompressFeedback('جاري ضغط بنر المتجر بتقنية WebP السريعة...');
 
       const res = await compressImage(file, {
-        maxWidth: 1280,
+        maxWidth: 1600,
         maxHeight: 480,
-        initialQuality: 0.78,
-        maxSizeKb: 45,
+        initialQuality: 0.82,
+        maxSizeKb: 65,
       });
 
       setFormState((prev) => {
@@ -1623,7 +1632,10 @@ export function StorefrontSettingsTab() {
                       onPointerCancel={handlePointerUp}
                       style={{
                         position: 'relative',
-                        height: '160px',
+                        width: '100%',
+                        aspectRatio: '4 / 1',
+                        minHeight: '130px',
+                        maxHeight: '200px',
                         borderRadius: '10px',
                         overflow: 'hidden',
                         border: '2px dashed #2563eb', // Dashed guide frame
@@ -2080,64 +2092,114 @@ export function StorefrontSettingsTab() {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
                     <LightbulbIcon size={14} color="#f59e0b" />
-                    <span>دليل التصميم الاحترافي للبنر بالذكاء الاصطناعي (ChatGPT / DALL-E / Midjourney):</span>
+                    <span>دليل التصميم الاحترافي للبنر بالذكاء الاصطناعي (ChatGPT / Midjourney / DALL-E):</span>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px' }}>
                     <div>
-                      • <strong>النسبة البانورامية المعتمدة:</strong> نسبة <strong>16:5</strong> أو <strong>4:1</strong> (المقاس الأنسب: <strong>1600 × 400</strong> بكسل أو <strong>1280 × 320</strong> بكسل).
+                      • <strong>المقاس الذهبي المعتمد:</strong> <strong>1600 × 400</strong> بكسل (أو <strong>1920 × 480</strong> فائقة الجودة أو <strong>1280 × 320</strong>). النسبة الهندسية الثابتة هي <strong>4:1</strong> شريطي بانورامي (العرض أربعة أضعاف الارتفاع تماماً).
                     </div>
                     <div>
-                      • <strong>قاعدة منطقة الأمان (Safe Zone 60%):</strong> لأن نماذج الذكاء الاصطناعي تولد صوراً عريضة بنسبة 16:9، اطلب دائماً حصر اسم المتجر والمنتجات والنصوص في الـ <strong>60% الوسطى</strong> فقط من الكادر، وترك الجانبين الأيمن والأيسر كخلفية ممتدة فقط بدون نصوص لضمان عدم قصها.
+                      • <strong>قاعدة منطقة الأمان (60% بالمنتصف):</strong> اطلب دائماً حصر اسم المتجر والشعار والمنتجات والنصوص في الـ <strong>60% الوسطى فقط</strong> من الكادر، مع ترك الـ 20% يميناً ويساراً كخلفية ممتدة ناعمة بدون عناصر مقطوعة حتى يملأ البنر الشاشة 100% بدون أي قص للحروف.
                     </div>
                     <div>
-                      • <strong>خلفية الأجواء التلقائية:</strong> عند اختيار نمط "احتواء كامل (Contain)"، يقوم المتجر تلقائياً بنشر إضاءة وألوان التصميم الضبابية على كامل عرض الشاشة لحماية صورتك من أي فراغات بيضاء أو قص للحروف.
+                      • <strong>ملء الشاشة مع نمط الاحتواء الكامل (Contain):</strong> عند استخدام مقاس 1600×400 ونمط "احتواء كامل"، سيملأ البنر كامل عرض الحاوية دون أي فراغات ودون قطع أي طرف من التصميم.
                     </div>
                   </div>
 
-                  {/* Ready-to-copy Prompt Card */}
-                  <div style={{
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    padding: '8px 10px',
-                    marginTop: '6px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>صيغة البرومبت المعتمدة للذكاء الاصطناعي:</span>
-                      <button
-                        type="button"
-                        onClick={handleCopyPrompt}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          background: promptCopied ? '#ecfdf5' : '#f1f5f9',
-                          color: promptCopied ? '#059669' : '#1e293b',
-                          border: promptCopied ? '1px solid #a7f3d0' : '1px solid #cbd5e1',
-                          borderRadius: '5px',
-                          padding: '3px 8px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        {promptCopied ? <CheckIcon size={12} color="#059669" /> : <CopyIcon size={12} color="#475569" />}
-                        <span>{promptCopied ? 'تم نسخ الصيغة!' : 'نسخ البرومبت'}</span>
-                      </button>
-                    </div>
+                  {/* Dual Prompt Cards (Arabic for ChatGPT & English for Midjourney) */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {/* Arabic Prompt Card (ChatGPT / DALL-E) */}
                     <div style={{
-                      fontSize: '11px',
-                      color: '#64748b',
-                      background: '#f8fafc',
-                      padding: '6px 8px',
-                      borderRadius: '5px',
-                      border: '1px dashed #e2e8f0',
-                      userSelect: 'all',
-                      wordBreak: 'break-word',
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
                     }}>
-                      {aiPromptTemplate}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>صيغة شات جي بي تي (ChatGPT / DALL-E بالعربية):</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPrompt('ar')}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: copiedPromptKey === 'ar' ? '#ecfdf5' : '#f1f5f9',
+                            color: copiedPromptKey === 'ar' ? '#059669' : '#1e293b',
+                            border: copiedPromptKey === 'ar' ? '1px solid #a7f3d0' : '1px solid #cbd5e1',
+                            borderRadius: '5px',
+                            padding: '3px 8px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {copiedPromptKey === 'ar' ? <CheckIcon size={12} color="#059669" /> : <CopyIcon size={12} color="#475569" />}
+                          <span>{copiedPromptKey === 'ar' ? 'تم نسخ الصيغة العربية!' : 'نسخ برومبت ChatGPT'}</span>
+                        </button>
+                      </div>
+                      <div style={{
+                        fontSize: '11px',
+                        color: '#475569',
+                        background: '#f8fafc',
+                        padding: '6px 8px',
+                        borderRadius: '5px',
+                        border: '1px dashed #e2e8f0',
+                        userSelect: 'all',
+                        whiteSpace: 'pre-line',
+                        wordBreak: 'break-word',
+                      }}>
+                        {aiPromptTemplateAr}
+                      </div>
+                    </div>
+
+                    {/* English Prompt Card (Midjourney / FLUX / DALL-E) */}
+                    <div style={{
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>صيغة Midjourney / FLUX (باللغة الإنجليزية للأبعاد الدقيقة):</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPrompt('en')}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: copiedPromptKey === 'en' ? '#ecfdf5' : '#f1f5f9',
+                            color: copiedPromptKey === 'en' ? '#059669' : '#1e293b',
+                            border: copiedPromptKey === 'en' ? '1px solid #a7f3d0' : '1px solid #cbd5e1',
+                            borderRadius: '5px',
+                            padding: '3px 8px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {copiedPromptKey === 'en' ? <CheckIcon size={12} color="#059669" /> : <CopyIcon size={12} color="#475569" />}
+                          <span>{copiedPromptKey === 'en' ? 'Copied Prompt!' : 'نسخ برومبت Midjourney'}</span>
+                        </button>
+                      </div>
+                      <div style={{
+                        fontSize: '10.5px',
+                        direction: 'ltr',
+                        fontFamily: 'monospace',
+                        color: '#334155',
+                        background: '#f8fafc',
+                        padding: '6px 8px',
+                        borderRadius: '5px',
+                        border: '1px dashed #e2e8f0',
+                        userSelect: 'all',
+                        wordBreak: 'break-word',
+                      }}>
+                        {aiPromptTemplateEn}
+                      </div>
                     </div>
                   </div>
                 </div>
