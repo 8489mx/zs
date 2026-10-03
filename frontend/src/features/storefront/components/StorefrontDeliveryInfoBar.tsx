@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { StorefrontInfo } from '../types/storefront.types';
+import { IconTruck } from './StorefrontIcons';
 
 /**
  * شريط إشارات التوصيل أسفل الهيدر مباشرة.
@@ -61,23 +62,35 @@ export function StorefrontDeliveryInfoBar({ info }: Props) {
   if (!signals) return null;
 
   return (
-    <div className="storefront-delivery-info-bar" style={{ borderBottom: '1px solid #bbf7d0', background: '#f0fdf4' }}>
+    <div
+      className="storefront-delivery-info-bar-container"
+      style={{
+        maxWidth: 'var(--storefront-container, 1440px)',
+        width: '100%',
+        margin: '10px auto 4px',
+        padding: '0 24px',
+        boxSizing: 'border-box',
+      }}
+    >
       <div
-        className="storefront-delivery-info-inner"
+        className="storefront-delivery-info-pill"
         style={{
-          maxWidth: 'var(--storefront-container, 1440px)',
-          margin: '0 auto',
-          padding: '8px 24px',
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          borderRadius: '10px',
+          padding: '7px 18px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '16px',
+          gap: '12px',
           flexWrap: 'wrap',
           boxSizing: 'border-box',
           fontSize: '0.8125rem',
+          boxShadow: '0 1px 2px rgba(22, 101, 52, 0.03)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#166534', fontWeight: 700 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: 700 }}>
+          <IconTruck size={17} color="#16a34a" strokeWidth={2.2} />
           <span>{signals.promoText}</span>
         </div>
         {signals.estimatedTime && (
