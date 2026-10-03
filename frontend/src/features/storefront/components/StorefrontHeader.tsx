@@ -250,9 +250,9 @@ export function StorefrontHeader({
                 className="storefront-brand-verified"
                 style={{
                   fontSize: '11px',
-                  background: '#f0f3ff',
-                  color: '#170e5e',
-                  border: '1px solid #d8e0fc',
+                  background: 'var(--storefront-surface-color, #f0f3ff)',
+                  color: 'var(--storefront-primary-color, #170e5e)',
+                  border: '1px solid rgba(23, 14, 94, 0.15)',
                   padding: '2px 8px',
                   borderRadius: '6px',
                   fontWeight: 700,
@@ -263,7 +263,7 @@ export function StorefrontHeader({
                   flexShrink: 0,
                 }}
               >
-                <IconCheckCircle size={12} color="#170e5e" strokeWidth={2.2} />
+                <IconCheckCircle size={12} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2.2} />
                 <span>متجر معتمد</span>
               </span>
             </div>
@@ -413,9 +413,9 @@ export function StorefrontHeader({
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#170e5e';
-                e.currentTarget.style.color = '#170e5e';
-                e.currentTarget.style.background = '#f0f3ff';
+                e.currentTarget.style.borderColor = 'var(--storefront-primary-color, #170e5e)';
+                e.currentTarget.style.color = 'var(--storefront-primary-color, #170e5e)';
+                e.currentTarget.style.background = 'var(--storefront-surface-color, #f0f3ff)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = '#e2e8f0';
@@ -442,17 +442,17 @@ export function StorefrontHeader({
               gap: '8px',
               padding: '9px 18px',
               borderRadius: '10px',
-              background: '#0f172a',
+              background: 'var(--storefront-primary-color, #0f172a)',
               color: '#ffffff',
               fontSize: '13px',
               fontWeight: 800,
               border: 'none',
               cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.2)',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#1e293b')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#0f172a')}
+            onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.15)')}
+            onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
           >
             <svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -467,7 +467,7 @@ export function StorefrontHeader({
               <span
                 style={{
                   background: '#ffffff',
-                  color: '#0f172a',
+                  color: 'var(--storefront-primary-color, #0f172a)',
                   fontSize: '11px',
                   fontWeight: 900,
                   padding: '2px 7px',

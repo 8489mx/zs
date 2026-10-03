@@ -112,16 +112,16 @@ export function StorefrontSubNav({
               gap: '6px',
               padding: '6px 14px',
               borderRadius: '8px',
-              background: '#170e5e',
+              background: 'var(--storefront-primary-color, #170e5e)',
               color: '#ffffff',
               border: 'none',
               fontSize: '12.5px',
               fontWeight: 700,
               cursor: 'pointer',
-              transition: 'background 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#110a47')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#170e5e')}
+            onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.15)')}
+            onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
           >
             <IconGrid size={15} strokeWidth={2.2} />
             <span>تصفح الأقسام</span>

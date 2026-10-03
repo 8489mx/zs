@@ -153,6 +153,8 @@ export function StorefrontCheckoutModal({
   // Returning shopper: their saved details collapse into one summary line and the order is one tap
   // away. "تعديل البيانات" brings the full form back.
   const [expressMode, setExpressMode] = useState(false);
+  const brandColor = info?.brandColor || 'var(--storefront-primary-color, #170e5e)';
+  const brandSecondaryColor = info?.brandSecondaryColor || 'var(--storefront-secondary-color, #d97706)';
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [couponCodeInput, setCouponCodeInput] = useState('');
@@ -668,9 +670,9 @@ export function StorefrontCheckoutModal({
                   style={{
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    border: fulfillmentType === 'delivery' ? `2px solid ${info?.brandColor || '#170e5e'}` : '1.5px solid #cbd5e1',
+                    border: fulfillmentType === 'delivery' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
                     background: fulfillmentType === 'delivery' ? '#f8fafc' : '#ffffff',
-                    color: fulfillmentType === 'delivery' ? (info?.brandColor || '#170e5e') : '#475569',
+                    color: fulfillmentType === 'delivery' ? brandColor : '#475569',
                     fontWeight: 700,
                     fontSize: '12.5px',
                     cursor: 'pointer',
@@ -681,7 +683,7 @@ export function StorefrontCheckoutModal({
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  <TruckIcon size={16} color={fulfillmentType === 'delivery' ? (info?.brandColor || '#170e5e') : '#64748b'} />
+                  <TruckIcon size={16} color={fulfillmentType === 'delivery' ? brandColor : '#64748b'} />
                   <span>توصيل للمنزل</span>
                 </button>
                 <button
@@ -690,9 +692,9 @@ export function StorefrontCheckoutModal({
                   style={{
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    border: fulfillmentType === 'pickup' ? `2px solid ${info?.brandColor || '#170e5e'}` : '1.5px solid #cbd5e1',
+                    border: fulfillmentType === 'pickup' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
                     background: fulfillmentType === 'pickup' ? '#f8fafc' : '#ffffff',
-                    color: fulfillmentType === 'pickup' ? (info?.brandColor || '#170e5e') : '#475569',
+                    color: fulfillmentType === 'pickup' ? brandColor : '#475569',
                     fontWeight: 700,
                     fontSize: '12.5px',
                     cursor: 'pointer',
@@ -703,7 +705,7 @@ export function StorefrontCheckoutModal({
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  <PackageIcon size={16} color={fulfillmentType === 'pickup' ? (info?.brandColor || '#170e5e') : '#64748b'} />
+                  <PackageIcon size={16} color={fulfillmentType === 'pickup' ? brandColor : '#64748b'} />
                   <span>استلام من الفرع</span>
                   <span style={{ fontSize: '10px', background: '#dcfce7', color: '#166534', padding: '1px 5px', borderRadius: '4px' }}>مجاني</span>
                 </button>
@@ -714,7 +716,7 @@ export function StorefrontCheckoutModal({
               <div
                 style={{
                   background: '#f8fafc',
-                  border: `1.5px solid ${info?.brandColor || '#170e5e'}`,
+                  border: `1.5px solid ${brandColor}`,
                   borderRadius: '12px',
                   padding: '12px 14px',
                   display: 'flex',
@@ -739,7 +741,7 @@ export function StorefrontCheckoutModal({
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: info?.brandColor || '#170e5e',
+                    color: brandColor,
                     fontSize: '12px',
                     fontWeight: 800,
                     cursor: 'pointer',
@@ -1082,7 +1084,7 @@ export function StorefrontCheckoutModal({
                 <div
                   onClick={() => setPaymentMethod('cod')}
                   style={{
-                    border: paymentMethod === 'cod' ? '2px solid #170e5e' : '1.5px solid #cbd5e1',
+                    border: paymentMethod === 'cod' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
                     background: paymentMethod === 'cod' ? '#f8fafc' : '#ffffff',
                     borderRadius: '8px',
                     padding: '8px 10px',
@@ -1102,7 +1104,7 @@ export function StorefrontCheckoutModal({
                         width: '13px',
                         height: '13px',
                         borderRadius: '50%',
-                        border: paymentMethod === 'cod' ? '4px solid #170e5e' : '1.5px solid #94a3b8',
+                        border: paymentMethod === 'cod' ? `4px solid ${brandColor}` : '1.5px solid #94a3b8',
                         background: '#ffffff',
                       }}
                     />
@@ -1120,7 +1122,7 @@ export function StorefrontCheckoutModal({
                 <div
                   onClick={() => setPaymentMethod('instapay_wallet')}
                   style={{
-                    border: paymentMethod === 'instapay_wallet' ? '2px solid #170e5e' : '1.5px solid #cbd5e1',
+                    border: paymentMethod === 'instapay_wallet' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
                     background: paymentMethod === 'instapay_wallet' ? '#f8fafc' : '#ffffff',
                     borderRadius: '8px',
                     padding: '8px 10px',
@@ -1140,7 +1142,7 @@ export function StorefrontCheckoutModal({
                         width: '13px',
                         height: '13px',
                         borderRadius: '50%',
-                        border: paymentMethod === 'instapay_wallet' ? '4px solid #170e5e' : '1.5px solid #94a3b8',
+                        border: paymentMethod === 'instapay_wallet' ? `4px solid ${brandColor}` : '1.5px solid #94a3b8',
                         background: '#ffffff',
                       }}
                     />
@@ -1155,7 +1157,7 @@ export function StorefrontCheckoutModal({
                   <div
                     onClick={() => setPaymentMethod('credit_card')}
                     style={{
-                      border: paymentMethod === 'credit_card' ? '2px solid #170e5e' : '1.5px solid #cbd5e1',
+                      border: paymentMethod === 'credit_card' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
                       background: paymentMethod === 'credit_card' ? '#f8fafc' : '#ffffff',
                       borderRadius: '8px',
                       padding: '8px 10px',
@@ -1175,7 +1177,7 @@ export function StorefrontCheckoutModal({
                           width: '13px',
                           height: '13px',
                           borderRadius: '50%',
-                          border: paymentMethod === 'credit_card' ? '4px solid #170e5e' : '1.5px solid #94a3b8',
+                          border: paymentMethod === 'credit_card' ? `4px solid ${brandColor}` : '1.5px solid #94a3b8',
                           background: '#ffffff',
                         }}
                       />
@@ -1230,7 +1232,7 @@ export function StorefrontCheckoutModal({
                 >
                   <div style={{ fontWeight: 800 }}>
                     رقم التحويل (إنستاباي / كاش):{' '}
-                    <span style={{ direction: 'ltr', display: 'inline-block', color: '#170e5e', fontWeight: 900 }}>
+                    <span style={{ direction: 'ltr', display: 'inline-block', color: brandColor, fontWeight: 900 }}>
                       {info?.whatsappPhone || 'يرجى التواصل عبر الواتساب'}
                     </span>
                   </div>
@@ -1396,7 +1398,7 @@ export function StorefrontCheckoutModal({
                       style={{
                         padding: '6px 14px',
                         borderRadius: '6px',
-                        background: '#170e5e',
+                        background: brandColor,
                         color: '#ffffff',
                         fontSize: '11.5px',
                         fontWeight: 700,
@@ -1499,7 +1501,7 @@ export function StorefrontCheckoutModal({
                 style={{
                   width: '14px',
                   height: '14px',
-                  accentColor: '#170e5e',
+                  accentColor: brandColor,
                   cursor: 'pointer',
                   flexShrink: 0,
                 }}
@@ -1531,13 +1533,13 @@ export function StorefrontCheckoutModal({
               flex: 1,
               padding: '12px 20px',
               borderRadius: '10px',
-              background: info?.brandColor || '#170e5e',
+              background: brandColor,
               color: '#ffffff',
               fontSize: '15px',
               fontWeight: 800,
               border: 'none',
               cursor: loading ? 'wait' : 'pointer',
-              boxShadow: '0 4px 14px rgba(23, 14, 94, 0.25)',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.18)',
               transition: 'all 0.15s ease',
             }}
           >

@@ -52,7 +52,10 @@ function normalizeDateOnly(value: unknown): string {
   if (isoMatch) return isoMatch[1];
   const parsed = new Date(text);
   if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toISOString().slice(0, 10);
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
   return '';
 }
@@ -135,6 +138,17 @@ export function calculateOfferAdjustedPrice(
     return roundMoney(total / normalizedQty);
   }
 
+  if (type === 'bogo') {
+    const buyQ = Math.max(1, Number(offer.bogo_buy_qty || 1));
+    const getQ = Math.max(1, Number(offer.bogo_get_qty || 1));
+    const discPct = Math.min(100, Math.max(0, Number(offer.bogo_discount_percent ?? 100)));
+    const cycleTotalQty = buyQ + getQ;
+    const totalOrigPrice = basePrice * cycleTotalQty;
+    const savings = getQ * basePrice * (discPct / 100);
+    const discountedCycleTotal = Math.max(0, totalOrigPrice - savings);
+    return roundMoney(discountedCycleTotal / cycleTotalQty);
+  }
+
   return roundMoney(basePrice);
 }
 
@@ -189,6 +203,13 @@ export function resolveBestStorefrontOffer(
         let badge = `خصم ${discountPercent}%`;
         if (offer.offer_type === 'bundle') {
           badge = `عرض باقة (${offer.min_qty || 1} قطع)`;
+        } else if (offer.offer_type === 'bogo') {
+          const buyQ = Number(offer.bogo_buy_qty || 1);
+          const getQ = Number(offer.bogo_get_qty || 1);
+          const discPct = Number(offer.bogo_discount_percent ?? 100);
+          badge = discPct === 100
+            ? `اشتري ${buyQ} واكسب ${getQ}`
+            : `اشتري ${buyQ} و${getQ} بخصم ${discPct}%`;
         } else if (offer.offer_type === 'fixed') {
           badge = `وفر ${roundMoney(Number(offer.value))} ج`;
         } else if (offer.offer_type === 'price') {

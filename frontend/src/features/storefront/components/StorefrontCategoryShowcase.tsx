@@ -115,25 +115,25 @@ export function StorefrontCategoryShowcase({
               width: '66px',
               height: '66px',
               borderRadius: '50%',
-              background: selectedCategoryId === 'all' ? '#170e5e' : '#f8fafc',
-              color: selectedCategoryId === 'all' ? '#ffffff' : '#170e5e',
-              border: selectedCategoryId === 'all' ? '2.5px solid #170e5e' : '1.5px solid #e2e8f0',
+              background: selectedCategoryId === 'all' ? 'var(--storefront-primary-color, #170e5e)' : 'var(--storefront-surface-color, #f8fafc)',
+              color: selectedCategoryId === 'all' ? '#ffffff' : 'var(--storefront-primary-color, #170e5e)',
+              border: selectedCategoryId === 'all' ? '2.5px solid var(--storefront-primary-color, #170e5e)' : '1.5px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: '6px',
-              boxShadow: selectedCategoryId === 'all' ? '0 4px 12px rgba(23, 14, 94, 0.2)' : '0 2px 6px rgba(0,0,0,0.03)',
+              boxShadow: selectedCategoryId === 'all' ? '0 4px 12px rgba(0, 0, 0, 0.15)' : '0 2px 6px rgba(0,0,0,0.03)',
               transition: 'all 0.2s ease',
             }}
           >
-            <IconShoppingBag size={24} color={selectedCategoryId === 'all' ? '#ffffff' : '#170e5e'} strokeWidth={2} />
+            <IconShoppingBag size={24} color={selectedCategoryId === 'all' ? '#ffffff' : 'var(--storefront-primary-color, #170e5e)'} strokeWidth={2} />
           </div>
           <span
             className="storefront-cat-label"
             style={{
               fontSize: '12px',
               fontWeight: 800,
-              color: selectedCategoryId === 'all' ? '#170e5e' : '#334155',
+              color: selectedCategoryId === 'all' ? 'var(--storefront-primary-color, #170e5e)' : '#334155',
               textAlign: 'center',
             }}
           >
@@ -173,11 +173,11 @@ export function StorefrontCategoryShowcase({
                   height: '66px',
                   borderRadius: '50%',
                   overflow: 'hidden',
-                  border: isSelected ? '2px solid #170e5e' : '2px solid #e2e8f0',
+                  border: isSelected ? '2.5px solid var(--storefront-primary-color, #170e5e)' : '2px solid #e2e8f0',
                   marginBottom: '6px',
-                  boxShadow: isSelected ? '0 4px 12px rgba(23, 14, 94, 0.2)' : '0 2px 6px rgba(0,0,0,0.03)',
+                  boxShadow: isSelected ? '0 4px 12px rgba(0, 0, 0, 0.15)' : '0 2px 6px rgba(0,0,0,0.03)',
                   position: 'relative',
-                  background: '#f8fafc',
+                  background: 'var(--storefront-surface-color, #f8fafc)',
                   transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
@@ -205,7 +205,7 @@ export function StorefrontCategoryShowcase({
                 style={{
                   fontSize: '11.5px',
                   fontWeight: 700,
-                  color: isSelected ? '#170e5e' : '#1e293b',
+                  color: isSelected ? 'var(--storefront-primary-color, #170e5e)' : '#1e293b',
                   textAlign: 'center',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -244,8 +244,8 @@ export function StorefrontCategoryShowcase({
                 width: '66px',
                 height: '66px',
                 borderRadius: '50%',
-                background: '#f8fafc',
-                color: '#170e5e',
+                background: 'var(--storefront-surface-color, #f8fafc)',
+                color: 'var(--storefront-primary-color, #170e5e)',
                 border: '1.5px dashed #cbd5e1',
                 display: 'flex',
                 alignItems: 'center',
@@ -255,13 +255,13 @@ export function StorefrontCategoryShowcase({
                 transition: 'all 0.2s ease',
               }}
             >
-              <IconFolder size={22} color="#170e5e" strokeWidth={1.8} />
+              <IconFolder size={22} color="var(--storefront-primary-color, #170e5e)" strokeWidth={1.8} />
             </div>
             <span
               style={{
                 fontSize: '11.5px',
                 fontWeight: 800,
-                color: '#170e5e',
+                color: 'var(--storefront-primary-color, #170e5e)',
                 textAlign: 'center',
               }}
             >

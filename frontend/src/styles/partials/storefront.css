@@ -9,6 +9,9 @@
   --storefront-container: 1440px;
   /* ارتفاع بار السلة السفلي — تقرؤه شبكة المنتجات لتترك مساحة أسفلها */
   --storefront-dock-height: 84px;
+  --storefront-primary-color: #170e5e;
+  --storefront-secondary-color: #d97706;
+  --storefront-surface-color: #f8fafc;
 }
 
 .storefront-container {

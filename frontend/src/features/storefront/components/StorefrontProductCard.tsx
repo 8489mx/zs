@@ -443,33 +443,33 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 position: 'absolute',
                 bottom: '8px',
                 left: '8px',
-                width: '28px',
-                height: '28px',
-                minWidth: '28px',
-                minHeight: '28px',
-                maxWidth: '28px',
-                maxHeight: '28px',
+                width: '30px',
+                height: '30px',
+                minWidth: '30px',
+                minHeight: '30px',
+                maxWidth: '30px',
+                maxHeight: '30px',
                 padding: 0,
                 boxSizing: 'border-box',
                 borderRadius: '50%',
-                background: '#170e5e',
+                background: 'var(--storefront-secondary-color, #d97706)',
                 color: '#ffffff',
                 border: 'none',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(23, 14, 94, 0.25)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.18)',
                 zIndex: 3,
-                transition: 'transform 0.15s ease, background 0.15s ease',
+                transition: 'transform 0.15s ease, filter 0.15s ease',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'scale(1.15)';
-                e.currentTarget.style.background = '#24168f';
+                e.currentTarget.style.filter = 'brightness(1.1)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.background = '#170e5e';
+                e.currentTarget.style.filter = 'none';
               }}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
@@ -732,10 +732,10 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: '#170e5e',
-              borderRadius: '10px',
+              background: 'var(--storefront-secondary-color, #d97706)',
+              borderRadius: '11px',
               padding: '3px',
-              boxShadow: '0 4px 14px rgba(23, 14, 94, 0.22)',
+              boxShadow: '0 3px 12px rgba(0, 0, 0, 0.15)',
               boxSizing: 'border-box',
             }}
           >
@@ -754,7 +754,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 padding: 0,
                 boxSizing: 'border-box',
                 borderRadius: '8px',
-                background: 'rgba(255,255,255,0.18)',
+                background: 'rgba(255,255,255,0.22)',
                 color: '#ffffff',
                 border: 'none',
                 fontSize: '18px',
@@ -766,8 +766,8 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 lineHeight: 1,
                 transition: 'background 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.28)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.18)')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.32)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.22)')}
             >
               +
             </button>
@@ -798,7 +798,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 padding: 0,
                 boxSizing: 'border-box',
                 borderRadius: '8px',
-                background: 'rgba(255,255,255,0.18)',
+                background: 'rgba(255,255,255,0.22)',
                 color: '#ffffff',
                 border: 'none',
                 fontSize: '18px',
@@ -810,8 +810,8 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 lineHeight: 1,
                 transition: 'background 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.28)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.18)')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.32)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.22)')}
             >
               -
             </button>
@@ -825,9 +825,9 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               width: '100%',
               height: '40px',
               padding: '0 14px',
-              borderRadius: '10px',
+              borderRadius: '11px',
               border: 'none',
-              background: '#170e5e',
+              background: 'var(--storefront-secondary-color, #d97706)',
               color: '#ffffff',
               fontSize: '13px',
               fontWeight: 800,
@@ -836,15 +836,17 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              boxShadow: '0 4px 14px rgba(23, 14, 94, 0.22)',
+              boxShadow: '0 3px 12px rgba(0, 0, 0, 0.12)',
               boxSizing: 'border-box',
-              transition: 'all 0.15s ease',
+              transition: 'all 0.2s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#24168f';
+              e.currentTarget.style.filter = 'brightness(1.08)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#170e5e';
+              e.currentTarget.style.filter = 'none';
+              e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
             <IconShoppingCart size={15} strokeWidth={2.2} />

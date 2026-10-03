@@ -94,8 +94,8 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
   // -------------------------------------------------------------
   {
     id: 'burger',
-    nameAr: 'برجر لحم مشوي',
-    keywords: ['برجر', 'همبرجر', 'برجر بقري', 'برجر حلواني', 'برجر جامبو', 'بيف برجر'],
+    nameAr: 'برجر لحم وفراخ مشوي',
+    keywords: ['برجر', 'همبرجر', 'برجر بقري', 'برجر فراخ', 'بيف برجر', 'سندوتش برجر', 'ساندوتش برجر'],
     imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=300&q=50&fm=webp',
     weight: 98,
   },
@@ -104,9 +104,31 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
     nameAr: 'ستربس ودجاج مقرمش وبانيه',
     keywords: [
       'ستربس', 'بانية', 'بانيه', 'ناجتس', 'دجاج مقرمش', 'كوكي مقرمش', 
-      'تشيكن ستربس', 'اصابع دجاج', 'فراخ بانيه', 'كرانشي تشيكن'
+      'تشيكن ستربس', 'اصابع دجاج', 'فراخ بانيه', 'كرانشي تشيكن',
+      'صاروخ استربس', 'صاروخ بانيه', 'سندوتش استربس', 'سندوتش بانيه', 'ساندوتش استربس'
     ],
     imageUrl: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'french_fries_potatoes',
+    nameAr: 'بطاطس مقلية وفرايز وصاروخ بطاطس',
+    keywords: ['بطاطس', 'فرايز', 'صاروخ بطاطس', 'بطاطس مقلية', 'بطاطس محمرة', 'سندوتش بطاطس', 'ساندوتش بطاطس', 'باكت بطاطس'],
+    imageUrl: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'crepe_shawarma_sandwiches',
+    nameAr: 'شاورما وكريب وسندوتشات سريعة',
+    keywords: ['كريب', 'شاورما', 'صاروخ شاورما', 'سندوتش شاورما', 'ساندوتش شاورما', 'حواوشي', 'ساندوتش', 'سندوتش'],
+    imageUrl: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
+  },
+  {
+    id: 'pizza_pies',
+    nameAr: 'بيتزا وفطائر ومعجنات ساخنة',
+    keywords: ['بيتزا', 'فطير', 'بيتزا سجق', 'بيتزا جبن', 'بيتزا لحم', 'بيتزا فراخ'],
+    imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=300&q=50&fm=webp',
     weight: 98,
   },
   {
@@ -793,6 +815,7 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
   let iconMarkup = '';
 
   const isTech = /رام|ram|كابل|cable|كونفرت|وصل|صوت|usb|كمبيوتر|لابتوب|هارد|ماوس|كيبورد|شاش|الكترون|موبايل|شاحن|dvr|كامير|هيدفون|سماع|audio|hdmi|vga|otg/.test(combined);
+  const isFood = /وجب|سندوتش|ساندوتش|صاروخ|برجر|شاورما|فرايز|بطاطس|بيتزا|كفتة|كفته|بانيه|بانية|استربس|ستربس|كريب|مشوي|مشويات|طاجن|طواجن|فطير|حواوشي|دجاج|فراخ|لحم|ناجتس/.test(combined);
   const isSupermarket = /جبن|لبن|حليب|زبادي|شاي|سكر|تون|فول|زيت|ارز|مكرون|بسكويت|شوكولات|منظف|صابون|عصير|مياه/.test(combined);
   const isFashion = /قميص|بنطلون|فستان|تيشيرت|حذاء|شنط|ملابس|كوتشي|جاكيت/.test(combined);
 
@@ -804,6 +827,14 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
       <path d="M65 30V20M85 30V20M115 30V20M135 30V20" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
       <path d="M65 104v10M85 104v10M115 104v10M135 104v10" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
       <path d="M42 52H32M42 82H32M158 52h10M158 82h10" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
+    `;
+  } else if (isFood) {
+    iconMarkup = `
+      <rect x="45" y="32" width="110" height="72" rx="14" fill="#78350f" stroke="#f59e0b" stroke-width="2.5" />
+      <path d="M62 84h76M58 88h84" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" />
+      <path d="M65 84c0-20 15-32 35-32s35 12 35 32H65z" fill="none" stroke="#fcd34d" stroke-width="2.5" />
+      <circle cx="100" cy="48" r="4" fill="#f59e0b" />
+      <path d="M88 40c-2-4 2-8 0-12M100 38c-2-4 2-8 0-12M112 40c-2-4 2-8 0-12" stroke="#fde68a" stroke-width="2" stroke-linecap="round" />
     `;
   } else if (isSupermarket) {
     iconMarkup = `

@@ -391,13 +391,13 @@ export function StorefrontCartDrawer({
                   flex: 1,
                   padding: '12px 16px',
                   borderRadius: '10px',
-                  background: isMinOrderMet ? '#0f172a' : '#94a3b8',
+                  background: isMinOrderMet ? 'var(--storefront-secondary-color, #d97706)' : '#94a3b8',
                   color: '#ffffff',
                   fontSize: '14px',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   border: 'none',
                   cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
-                  boxShadow: isMinOrderMet ? '0 4px 14px rgba(15, 23, 42, 0.2)' : 'none',
+                  boxShadow: isMinOrderMet ? '0 4px 14px rgba(0, 0, 0, 0.15)' : 'none',
                   transition: 'all 0.15s ease',
                 }}
               >

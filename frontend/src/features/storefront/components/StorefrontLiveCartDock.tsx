@@ -188,7 +188,7 @@ export function StorefrontLiveCartDock({
           height: '100%',
           background: '#ffffff',
           boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
-          borderRight: `5px solid ${info?.brandColor || '#170e5e'}`,
+          borderRight: '5px solid var(--storefront-primary-color, #170e5e)',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
@@ -251,9 +251,9 @@ export function StorefrontLiveCartDock({
                   style={{
                     fontSize: '11.5px',
                     fontWeight: 700,
-                    background: '#f0f3ff',
-                    color: info?.brandColor || '#170e5e',
-                    border: '1px solid #d8e0fc',
+                    background: 'var(--storefront-surface-color, #f0f3ff)',
+                    color: 'var(--storefront-primary-color, #170e5e)',
+                    border: '1px solid rgba(23, 14, 94, 0.15)',
                     padding: '2px 8px',
                     borderRadius: '6px',
                   }}
@@ -340,14 +340,14 @@ export function StorefrontLiveCartDock({
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', fontSize: '11.5px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <TruckIcon size={14} color={isFreeShippingQualified ? '#16a34a' : (info?.brandColor || '#170e5e')} />
+                <TruckIcon size={14} color={isFreeShippingQualified ? '#16a34a' : 'var(--storefront-primary-color, #170e5e)'} />
                 {isFreeShippingQualified ? (
                   <span style={{ fontWeight: 800, color: '#15803d' }}>
                     مبروك! حصلت على توصيل مجاني لطلبك!
                   </span>
                 ) : (
                   <span style={{ color: '#334155' }}>
-                    أضف بـ <strong style={{ color: info?.brandColor || '#170e5e' }}>{freeShippingRemaining.toFixed(0)} <CurrencySymbol /></strong> للشحن المجاني
+                    أضف بـ <strong style={{ color: 'var(--storefront-primary-color, #170e5e)' }}>{freeShippingRemaining.toFixed(0)} <CurrencySymbol /></strong> للشحن المجاني
                   </span>
                 )}
               </div>
@@ -368,7 +368,7 @@ export function StorefrontLiveCartDock({
                 style={{
                   height: '100%',
                   width: `${freeShippingPercent}%`,
-                  background: isFreeShippingQualified ? '#22c55e' : (info?.brandColor || '#170e5e'),
+                  background: isFreeShippingQualified ? '#22c55e' : 'var(--storefront-primary-color, #170e5e)',
                   borderRadius: '999px',
                   transition: 'width 0.3s ease',
                 }}
@@ -536,7 +536,7 @@ export function StorefrontLiveCartDock({
               width: '100%',
               padding: '13px 18px',
               borderRadius: '12px',
-              background: isMinOrderMet ? (info?.brandColor || '#170e5e') : '#94a3b8',
+              background: isMinOrderMet ? 'var(--storefront-secondary-color, #d97706)' : '#94a3b8',
               color: '#ffffff',
               border: 'none',
               fontSize: '14px',

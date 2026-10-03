@@ -59,7 +59,9 @@ export function StorefrontProductQuickViewModal({
 
   if (!isOpen || !product) return null;
 
-  const brandColor = info?.brandColor || '#170e5e';
+  const brandColor = info?.brandColor || 'var(--storefront-primary-color, #170e5e)';
+  const brandSecondaryColor = info?.brandSecondaryColor || 'var(--storefront-secondary-color, #d97706)';
+  const brandSurfaceColor = info?.brandSurfaceColor || 'var(--storefront-surface-color, #f8fafc)';
   const inStock = product.inStock !== false;
   const isLowStock = inStock && product.stockQty > 0 && product.stockQty <= 5;
 
@@ -167,11 +169,11 @@ export function StorefrontProductQuickViewModal({
               style={{
                 fontSize: '12px',
                 fontWeight: 700,
-                color: '#170e5e',
-                background: '#f0f3ff',
+                color: brandColor,
+                background: brandSurfaceColor,
                 padding: '3px 10px',
                 borderRadius: '6px',
-                border: '1px solid #d8e0fc',
+                border: '1px solid rgba(23, 14, 94, 0.15)',
               }}
             >
               {product.categoryName || 'تفاصيل الصنف'}
@@ -296,7 +298,7 @@ export function StorefrontProductQuickViewModal({
                       width: '48px',
                       height: '48px',
                       borderRadius: '8px',
-                      border: activePhoto === imgUrl ? '2px solid #170e5e' : '1px solid #e2e8f0',
+                      border: activePhoto === imgUrl ? `2px solid ${brandColor}` : '1px solid #e2e8f0',
                       padding: '2px',
                       background: '#ffffff',
                       cursor: 'pointer',
@@ -390,7 +392,7 @@ export function StorefrontProductQuickViewModal({
             {variants.length > 0 && (
               <div style={{ marginTop: '12px', padding: '10px 12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <TagIcon size={12} color="#170e5e" />
+                  <TagIcon size={12} color={brandColor} />
                   <span>اختر المقاس / الحجم:</span>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -404,8 +406,8 @@ export function StorefrontProductQuickViewModal({
                         style={{
                           padding: '6px 12px',
                           borderRadius: '6px',
-                          border: isSelected ? '2px solid #170e5e' : '1px solid #cbd5e1',
-                          background: isSelected ? '#170e5e' : '#ffffff',
+                          border: isSelected ? `2px solid ${brandColor}` : '1px solid #cbd5e1',
+                          background: isSelected ? brandColor : '#ffffff',
                           color: isSelected ? '#ffffff' : '#1e293b',
                           fontSize: '12px',
                           fontWeight: 700,
@@ -568,6 +570,40 @@ export function StorefrontProductQuickViewModal({
           >
             <button
               type="button"
+              disabled={!inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty)}
+              onClick={() => setQty((prev) => prev + 1)}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: !inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty) ? 'not-allowed' : 'pointer',
+                opacity: product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty ? 0.4 : 1,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                fontWeight: 800,
+                fontSize: '15px',
+                color: '#0f172a',
+              }}
+            >
+              <PlusIcon size={14} color="#0f172a" />
+            </button>
+            <span
+              style={{
+                minWidth: '28px',
+                textAlign: 'center',
+                fontSize: '14px',
+                fontWeight: 800,
+                color: '#0f172a',
+              }}
+            >
+              {qty}
+            </span>
+            <button
+              type="button"
               disabled={qty <= 1 || !inStock}
               onClick={() => setQty((prev) => Math.max(1, prev - 1))}
               style={{
@@ -589,37 +625,6 @@ export function StorefrontProductQuickViewModal({
             >
               -
             </button>
-            <span
-              style={{
-                minWidth: '28px',
-                textAlign: 'center',
-                fontSize: '14px',
-                fontWeight: 800,
-                color: '#0f172a',
-              }}
-            >
-              {qty}
-            </span>
-            <button
-              type="button"
-              disabled={!inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty)}
-              onClick={() => setQty((prev) => prev + 1)}
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: !inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty) ? 'not-allowed' : 'pointer',
-                opacity: product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty ? 0.4 : 1,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              }}
-            >
-              <PlusIcon size={14} color="#0f172a" />
-            </button>
           </div>
 
           {/* Add to Cart CTA */}
@@ -632,7 +637,7 @@ export function StorefrontProductQuickViewModal({
               minWidth: 0,
               height: '42px',
               borderRadius: '8px',
-              backgroundColor: inStock ? brandColor : '#94a3b8',
+              backgroundColor: inStock ? brandSecondaryColor : '#94a3b8',
               color: '#ffffff',
               border: 'none',
               fontSize: '13.5px',
@@ -642,7 +647,7 @@ export function StorefrontProductQuickViewModal({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              boxShadow: inStock ? '0 2px 8px rgba(23, 14, 94, 0.2)' : 'none',
+              boxShadow: inStock ? '0 2px 8px rgba(0, 0, 0, 0.15)' : 'none',
               transition: 'all 0.15s ease',
               whiteSpace: 'nowrap',
               padding: '0 10px',

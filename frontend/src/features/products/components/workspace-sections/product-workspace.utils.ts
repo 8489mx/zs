@@ -96,13 +96,19 @@ export function buildUpdatePayload(
     notes: values.notes || '',
     units: normalizedUnits,
     offers: (offers ?? existingProduct.offers ?? [])
-      .filter((offer) => Number(offer.value || 0) > 0)
+      .filter((offer) => Number(offer.value || 0) > 0 || offer.type === 'bogo')
       .map((offer) => ({
-        type: offer.type === 'bundle' ? 'bundle' : offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
+        type: offer.type || 'percent',
         value: Number(offer.value || 0),
         minQty: Math.max(1, Number(offer.minQty || 1)),
         ...(offer.from ? { from: offer.from } : {}),
-        ...(offer.to ? { to: offer.to } : {})
+        ...(offer.to ? { to: offer.to } : {}),
+        ...(offer.bogoBuyQty ? { bogoBuyQty: Number(offer.bogoBuyQty) } : {}),
+        ...(offer.bogoGetQty ? { bogoGetQty: Number(offer.bogoGetQty) } : {}),
+        ...(offer.bogoDiscountPercent != null ? { bogoDiscountPercent: Number(offer.bogoDiscountPercent) } : {}),
+        ...(offer.happyHourStart ? { happyHourStart: offer.happyHourStart } : {}),
+        ...(offer.happyHourEnd ? { happyHourEnd: offer.happyHourEnd } : {}),
+        ...(offer.daysOfWeek ? { daysOfWeek: offer.daysOfWeek } : {}),
       })),
     customerPrices: customerPrices
       .map((entry) => ({

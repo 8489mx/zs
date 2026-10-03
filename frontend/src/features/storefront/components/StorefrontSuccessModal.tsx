@@ -86,7 +86,7 @@ export function StorefrontSuccessModal({
         <p style={{ margin: '0 0 18px', fontSize: '13px', color: '#64748b' }}>
           {activeOrder.tableNumber ? (
             <span>
-              طاولة رقم: <strong style={{ color: '#170e5e', fontWeight: 800, fontSize: '15px' }}>{activeOrder.tableNumber}</strong> • رقم الطلب: #{activeOrder.orderNumber}
+              طاولة رقم: <strong style={{ color: 'var(--storefront-primary-color, #170e5e)', fontWeight: 800, fontSize: '15px' }}>{activeOrder.tableNumber}</strong> • رقم الطلب: #{activeOrder.orderNumber}
             </span>
           ) : (
             <>
@@ -133,12 +133,12 @@ export function StorefrontSuccessModal({
             ))}
 
             {activeOrder.tableNumber ? (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#170e5e', fontSize: '12.5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--storefront-primary-color, #170e5e)', fontSize: '12.5px' }}>
                 <span>نوع الطلب:</span>
                 <span style={{ fontWeight: 700 }}>صالة (طاولة رقم {activeOrder.tableNumber})</span>
               </div>
             ) : activeOrder.orderType === 'pickup' ? (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#170e5e', fontSize: '12.5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--storefront-primary-color, #170e5e)', fontSize: '12.5px' }}>
                 <span>نوع الطلب:</span>
                 <span style={{ fontWeight: 700 }}>استلام من الفرع (تيك أواي)</span>
               </div>
@@ -213,14 +213,14 @@ export function StorefrontSuccessModal({
               width: '100%',
               padding: '13px 18px',
               borderRadius: '12px',
-              background: '#170e5e',
+              background: 'var(--storefront-primary-color, #170e5e)',
               color: '#ffffff',
               fontSize: '14px',
               fontWeight: 800,
               border: 'none',
               cursor: 'pointer',
               marginBottom: '10px',
-              boxShadow: '0 4px 14px rgba(23, 14, 94, 0.25)',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
               transition: 'all 0.15s ease',
             }}
           >

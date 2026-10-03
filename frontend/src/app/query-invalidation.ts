@@ -30,7 +30,11 @@ export async function invalidateCatalogDomain(
     includeSupplierBalances = false,
   } = options || {};
   const tasks = [];
-  if (includeProducts) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.products }));
+  if (includeProducts) {
+    tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.products }));
+    tasks.push(queryClient.invalidateQueries({ queryKey: ['storefront-catalog'] }));
+    tasks.push(queryClient.invalidateQueries({ queryKey: ['storefront-info'] }));
+  }
   if (includeCustomers) {
     tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.customers }));
     tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.posCustomers }));
@@ -43,6 +47,7 @@ export async function invalidateCatalogDomain(
   if (includeCategories) {
     tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.categories }));
     tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.productsCategories }));
+    tasks.push(queryClient.invalidateQueries({ queryKey: ['storefront-catalog'] }));
   }
   if (includeCustomerBalances) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances }));
   if (includeSupplierBalances) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances }));

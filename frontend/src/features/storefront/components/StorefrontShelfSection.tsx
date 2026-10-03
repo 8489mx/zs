@@ -128,7 +128,7 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 auto' }}>
           <span
             style={{
-              background: '#170e5e',
+              background: 'var(--storefront-primary-color, #170e5e)',
               color: '#ffffff',
               fontSize: '13px',
               fontWeight: 800,
@@ -197,7 +197,7 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
             style={{
               background: 'none',
               border: 'none',
-              color: '#170e5e',
+              color: 'var(--storefront-primary-color, #170e5e)',
               fontSize: '12.5px',
               fontWeight: 800,
               cursor: 'pointer',

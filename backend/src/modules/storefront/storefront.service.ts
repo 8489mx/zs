@@ -391,21 +391,37 @@ export class StorefrontService {
    * ميجابايت من النصّ **في كل طلب** حتى وهو مخزَّن. التخزين يوفّر الاستعلام ولا يوفّر التسلسل،
    * والتسلسل هو المعالج. الآن يُسلسَل مرة واحدة لكل بناء.
    */
-  private readonly catalogCache = new Map<string, { data: any; json: string; expiresAt: number; staleUntil: number }>();
+  private static readonly catalogCache = new Map<string, { data: any; json: string; expiresAt: number; staleUntil: number }>();
   // Each entry keeps both a catalog object and its serialized JSON; 1,000 tenant entries can
   // consume gigabytes even though the entries have a short TTL.
-  private readonly MAX_CACHED_CATALOGS = 16;
-  private readonly inFlightCatalogPromises = new Map<string, Promise<any>>();
+  private static readonly MAX_CACHED_CATALOGS = 16;
+  private static readonly inFlightCatalogPromises = new Map<string, Promise<any>>();
 
-  public invalidateCatalogCache(slug?: string) {
+  private get catalogCache() {
+    return StorefrontService.catalogCache;
+  }
+
+  private get inFlightCatalogPromises() {
+    return StorefrontService.inFlightCatalogPromises;
+  }
+
+  private get MAX_CACHED_CATALOGS() {
+    return StorefrontService.MAX_CACHED_CATALOGS;
+  }
+
+  public static invalidateGlobalCatalogCache(slug?: string) {
     if (slug) {
       const key = slug.toLowerCase().trim();
-      this.catalogCache.delete(key);
-      this.inFlightCatalogPromises.delete(key);
+      StorefrontService.catalogCache.delete(key);
+      StorefrontService.inFlightCatalogPromises.delete(key);
     } else {
-      this.catalogCache.clear();
-      this.inFlightCatalogPromises.clear();
+      StorefrontService.catalogCache.clear();
+      StorefrontService.inFlightCatalogPromises.clear();
     }
+  }
+
+  public invalidateCatalogCache(slug?: string) {
+    StorefrontService.invalidateGlobalCatalogCache(slug);
   }
 
   // --- Public Storefront Methods ---
