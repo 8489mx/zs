@@ -124,7 +124,7 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
           flexWrap: 'nowrap',
         }}
       >
-        {/* المجموعة الوحيدة المسموح لها بالانكماش */}
+        {/* Title Badge & Subtitle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 auto' }}>
           <span
             style={{
@@ -132,12 +132,13 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
               color: '#ffffff',
               fontSize: '13px',
               fontWeight: 800,
-              padding: '4px 12px',
-              borderRadius: '6px',
+              padding: '4px 14px',
+              borderRadius: '8px',
               display: 'inline-flex',
               alignItems: 'center',
               flexShrink: 0,
               whiteSpace: 'nowrap',
+              boxShadow: '0 2px 6px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.2))',
             }}
           >
             {badge}
@@ -147,7 +148,8 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
               className="storefront-deals-subtitle"
               style={{
                 fontSize: '12.5px',
-                color: '#64748b',
+                color: '#475569',
+                fontWeight: 600,
                 minWidth: 0,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',

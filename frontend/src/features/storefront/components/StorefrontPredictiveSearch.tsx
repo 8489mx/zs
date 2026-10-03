@@ -92,14 +92,19 @@ export function StorefrontPredictiveSearch({
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          background: '#f8fafc',
-          borderRadius: '10px',
-          padding: '4px 6px 4px 14px',
+          background: isOpen ? '#ffffff' : '#f8fafc',
+          borderRadius: '12px',
+          padding: '3px 4px 3px 12px',
           border: isOpen ? '1.5px solid var(--storefront-primary-color, #170e5e)' : '1.5px solid #cbd5e1',
           transition: 'all 0.2s ease',
-          boxShadow: isOpen ? '0 4px 16px rgba(0, 0, 0, 0.08)' : '0 1px 4px rgba(15, 23, 42, 0.04)',
+          boxShadow: isOpen ? '0 4px 20px rgba(23, 14, 94, 0.12)' : '0 1px 4px rgba(15, 23, 42, 0.04)',
+          boxSizing: 'border-box',
+          height: '42px',
         }}
       >
+        <span style={{ color: '#94a3b8', display: 'flex', alignItems: 'center', marginRight: '6px', flexShrink: 0 }}>
+          <IconSearch size={17} strokeWidth={2.2} />
+        </span>
         <input
           className="storefront-search-input"
           type="text"
@@ -115,11 +120,11 @@ export function StorefrontPredictiveSearch({
             flex: 1,
             border: 'none',
             outline: 'none',
-            fontSize: '13.5px',
+            fontSize: '13px',
             fontWeight: 600,
             color: '#0f172a',
             background: 'transparent',
-            padding: '7px 6px',
+            padding: '6px 4px',
             fontFamily: 'inherit',
             minWidth: 0,
           }}
@@ -157,8 +162,9 @@ export function StorefrontPredictiveSearch({
             background: 'var(--storefront-primary-color, #170e5e)',
             color: 'var(--storefront-primary-contrast, #ffffff)',
             border: 'none',
-            borderRadius: '8px',
-            padding: '8px 16px',
+            borderRadius: '9px',
+            padding: '0 16px',
+            height: '34px',
             fontSize: '13px',
             fontWeight: 700,
             display: 'flex',
@@ -166,6 +172,8 @@ export function StorefrontPredictiveSearch({
             gap: '6px',
             cursor: 'pointer',
             flexShrink: 0,
+            boxShadow: '0 2px 6px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.2))',
+            transition: 'filter 0.15s ease',
           }}
         >
           <IconSearch size={15} strokeWidth={2.2} />

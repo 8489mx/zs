@@ -76,6 +76,7 @@ export function StorefrontSettingsTab() {
     title: '',
     address: '',
     bio: '',
+    logoUrl: '',
     announcement: '',
     bannerUrl: '',
     bannerUrls: [] as string[],
@@ -155,6 +156,7 @@ export function StorefrontSettingsTab() {
         title: initialTitle,
         address: initialAddress,
         bio: settingsQuery.data.bio || '',
+        logoUrl: (settingsQuery.data as any)?.logoUrl || (settingsQuery.data as any)?.logo_url || '',
         announcement: settingsQuery.data.announcement || '',
         bannerUrl: urls[0] || settingsQuery.data.bannerUrl || '',
         bannerUrls: urls,
@@ -311,6 +313,46 @@ export function StorefrontSettingsTab() {
       setBannerCompressFeedback(`فشل ضغط البنر: ${err.message || 'خطأ غير متوقع'}`);
       setIsCompressingBanner(false);
     }
+  };
+
+  const [isCompressingLogo, setIsCompressingLogo] = useState(false);
+  const [logoCompressFeedback, setLogoCompressFeedback] = useState<string | null>(null);
+
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsCompressingLogo(true);
+      setLogoCompressFeedback('جاري ضغط ومعالجة الشعار...');
+
+      const res = await compressImage(file, {
+        maxWidth: 360,
+        maxHeight: 360,
+        initialQuality: 0.88,
+        maxSizeKb: 40,
+      });
+
+      setFormState((prev) => ({
+        ...prev,
+        logoUrl: res.dataUrl,
+      }));
+
+      setLogoCompressFeedback(`تم تجهيز الشعار بنجاح (${res.compressedSizeKb}KB)`);
+      setIsCompressingLogo(false);
+      e.target.value = '';
+    } catch (err: any) {
+      setLogoCompressFeedback(`فشل ضغط الشعار: ${err.message || 'خطأ غير متوقع'}`);
+      setIsCompressingLogo(false);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setFormState((prev) => ({
+      ...prev,
+      logoUrl: '',
+    }));
+    setLogoCompressFeedback(null);
   };
 
   const handleRemoveBanner = (index: number) => {
@@ -722,6 +764,118 @@ export function StorefrontSettingsTab() {
                     fontWeight: 700,
                   }}
                 />
+              </div>
+
+              {/* Store Logo Upload Field */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px',
+                }}
+              >
+                <div
+                  style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '12px',
+                    background: '#ffffff',
+                    border: '1.5px solid #cbd5e1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  }}
+                >
+                  {formState.logoUrl ? (
+                    <img
+                      src={formState.logoUrl}
+                      alt="شعار المتجر"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        background: 'linear-gradient(135deg, var(--storefront-primary-color, #170e5e) 0%, #312e81 100%)',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 900,
+                        fontSize: '20px',
+                      }}
+                    >
+                      {formState.title.trim().charAt(0) || 'م'}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                      شعار المتجر (اللوجو):
+                    </label>
+                    {formState.logoUrl && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveLogo}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ef4444',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          padding: '0 4px',
+                        }}
+                      >
+                        إزالة الشعار
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <label
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '5px 12px',
+                        borderRadius: '6px',
+                        background: 'var(--storefront-primary-color, #170e5e)',
+                        color: '#ffffff',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: isCompressingLogo ? 'wait' : 'pointer',
+                        boxShadow: '0 1px 3px rgba(23, 14, 94, 0.2)',
+                      }}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        disabled={isCompressingLogo}
+                        onChange={handleLogoFileChange}
+                      />
+                      <span>{isCompressingLogo ? 'جاري المعالجة...' : (formState.logoUrl ? 'تغيير الشعار' : 'رفع الشعار +')}</span>
+                    </label>
+                    <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                      صورة مربعة (PNG أو WebP) بخلفية بيضاء أو شفافة
+                    </span>
+                  </div>
+                  {logoCompressFeedback && (
+                    <div style={{ fontSize: '10.5px', color: '#16a34a', fontWeight: 700, marginTop: '4px' }}>
+                      {logoCompressFeedback}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Store Address / Location Subtitle */}

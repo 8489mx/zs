@@ -15,6 +15,14 @@ export class UpdateStorefrontSettingsDto {
 
   @IsOptional()
   @IsString()
+  logoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  logo_url?: string;
+
+  @IsOptional()
+  @IsString()
   bio?: string;
 
   @IsOptional()

@@ -213,24 +213,47 @@ export function StorefrontHeader({
             outline: 'none',
           }}
         >
-          {info.logo_url ? (
+          {info.logo_url || info.logoUrl ? (
             <img
-              src={info.logo_url}
+              src={info.logo_url || info.logoUrl}
               alt={info.title || info.businessName}
               className="storefront-brand-avatar"
               style={{
-                width: '44px',
-                height: '44px',
+                width: '42px',
+                height: '42px',
                 borderRadius: '12px',
                 objectFit: 'contain',
                 background: '#ffffff',
-                border: '1px solid #e2e8f0',
+                border: '1.5px solid #e2e8f0',
                 boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
                 flexShrink: 0,
                 transition: 'transform 0.2s ease',
+                padding: '2px',
               }}
             />
-          ) : null}
+          ) : (
+            <div
+              className="storefront-brand-avatar"
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, var(--storefront-primary-color, #170e5e) 0%, #312e81 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: '17px',
+                boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.22))',
+                flexShrink: 0,
+                border: '1.5px solid rgba(255,255,255,0.25)',
+                transition: 'transform 0.2s ease',
+              }}
+            >
+              {brand.title.trim().charAt(0) || 'م'}
+            </div>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, justifyContent: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
               <span
@@ -250,9 +273,9 @@ export function StorefrontHeader({
                 className="storefront-brand-verified"
                 style={{
                   fontSize: '11px',
-                  background: 'var(--storefront-surface-color, #f0f3ff)',
-                  color: 'var(--storefront-primary-color, #170e5e)',
-                  border: '1px solid rgba(23, 14, 94, 0.15)',
+                  background: '#f0fdf4',
+                  color: '#166534',
+                  border: '1px solid #bbf7d0',
                   padding: '2px 8px',
                   borderRadius: '6px',
                   fontWeight: 700,
@@ -263,7 +286,7 @@ export function StorefrontHeader({
                   flexShrink: 0,
                 }}
               >
-                <IconCheckCircle size={12} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2.2} />
+                <IconCheckCircle size={12} color="#16a34a" strokeWidth={2.4} />
                 <span>متجر معتمد</span>
               </span>
             </div>
@@ -341,8 +364,8 @@ export function StorefrontHeader({
             onAddToCart={onAddToCart}
           />
 
-        {/* Quick Actions (WhatsApp & Cart) */}
-        <div className="storefront-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        {/* Quick Actions (WhatsApp, Orders & Cart) */}
+        <div className="storefront-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           {cleanPhone && (
             <a
               className="storefront-action-btn"
@@ -352,38 +375,37 @@ export function StorefrontHeader({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
+                gap: '7px',
+                padding: '0 14px',
+                height: '38px',
                 borderRadius: '10px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                color: '#1e293b',
+                background: '#ffffff',
+                border: '1.5px solid #e2e8f0',
+                color: '#0f172a',
                 fontSize: '13px',
                 fontWeight: 700,
                 textDecoration: 'none',
+                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
                 transition: 'all 0.15s ease',
+                boxSizing: 'border-box',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#10b981';
-                e.currentTarget.style.color = '#047857';
+                e.currentTarget.style.borderColor = '#22c55e';
+                e.currentTarget.style.color = '#15803d';
                 e.currentTarget.style.background = '#f0fdf4';
-                const svg = e.currentTarget.querySelector('svg');
-                if (svg) svg.style.fill = '#10b981';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = '#e2e8f0';
-                e.currentTarget.style.color = '#1e293b';
-                e.currentTarget.style.background = '#f8fafc';
-                const svg = e.currentTarget.querySelector('svg');
-                if (svg) svg.style.fill = '#1e293b';
+                e.currentTarget.style.color = '#0f172a';
+                e.currentTarget.style.background = '#ffffff';
               }}
             >
               <svg
-                width="19"
-                height="19"
-                fill="#1e293b"
+                width="18"
+                height="18"
+                fill="#25d366"
                 viewBox="0 0 24 24"
-                style={{ transition: 'fill 0.15s ease' }}
+                style={{ flexShrink: 0 }}
               >
                 <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.31a8.216 8.216 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.71 4.3 3.8 2.52 1.09 2.52.73 2.98.68.45-.04 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3" />
               </svg>
@@ -402,15 +424,18 @@ export function StorefrontHeader({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '8px 14px',
+                padding: '0 14px',
+                height: '38px',
                 borderRadius: '10px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                color: '#1e293b',
+                background: '#ffffff',
+                border: '1.5px solid #e2e8f0',
+                color: '#0f172a',
                 fontSize: '13px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
                 transition: 'all 0.15s ease',
+                boxSizing: 'border-box',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = 'var(--storefront-primary-color, #170e5e)';
@@ -419,11 +444,11 @@ export function StorefrontHeader({
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = '#e2e8f0';
-                e.currentTarget.style.color = '#1e293b';
-                e.currentTarget.style.background = '#f8fafc';
+                e.currentTarget.style.color = '#0f172a';
+                e.currentTarget.style.background = '#ffffff';
               }}
             >
-              <PackageIcon size={19} />
+              <PackageIcon size={18} />
               <span className="storefront-action-label" style={{ fontSize: '12.5px', fontWeight: 700 }}>
                 طلباتي
               </span>
@@ -440,7 +465,8 @@ export function StorefrontHeader({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              padding: '9px 18px',
+              padding: '0 18px',
+              height: '38px',
               borderRadius: '10px',
               background: 'var(--storefront-primary-color, #170e5e)',
               color: 'var(--storefront-primary-contrast, #ffffff)',
@@ -448,17 +474,18 @@ export function StorefrontHeader({
               fontWeight: 800,
               border: 'none',
               cursor: 'pointer',
-              boxShadow: '0 4px 14px var(--storefront-primary-subtle, rgba(0, 0, 0, 0.15))',
+              boxShadow: '0 3px 12px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.25))',
               transition: 'all 0.15s ease',
+              boxSizing: 'border-box',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.15)')}
             onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
           >
-            <svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth="2"
+                strokeWidth="2.2"
                 d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
               />
             </svg>
@@ -481,14 +508,14 @@ export function StorefrontHeader({
               </span>
             )}
             {cartTotal > 0 && (
-              <span className="storefront-action-label" style={{ borderRight: '1px solid rgba(255,255,255,0.2)', paddingRight: '6px', marginRight: '4px' }}>
+              <span className="storefront-action-label" style={{ borderRight: '1px solid rgba(255,255,255,0.25)', paddingRight: '6px', marginRight: '4px' }}>
                 {cartTotal.toFixed(0)} ج
               </span>
             )}
           </button>
         </div>
-        </div>
       </div>
-    </header>
+    </div>
+  </header>
   );
 }

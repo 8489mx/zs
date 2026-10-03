@@ -298,6 +298,8 @@ export interface StorefrontSettingsPayload {
   title?: string;
   address?: string;
   bio?: string;
+  logoUrl?: string;
+  logo_url?: string;
   announcement?: string;
   bannerUrl?: string;
   bannerUrls?: string[];

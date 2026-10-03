@@ -9,6 +9,7 @@ import { StorefrontMultiRowHome } from '../components/StorefrontMultiRowHome';
 import { StorefrontFilteredGrid } from '../components/StorefrontFilteredGrid';
 import { StorefrontModals } from '../components/StorefrontModals';
 import { StorefrontDeliveryInfoBar } from '../components/StorefrontDeliveryInfoBar';
+import { StorefrontFooter } from '../components/StorefrontFooter';
 import { StorefrontSkeleton } from '../components/StorefrontSkeleton';
 import { initStorefrontPixels, trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import type { StorefrontProduct } from '../types/storefront.types';
@@ -429,6 +430,19 @@ export function PublicStorefrontPage() {
           />
         )}
       </main>
+
+      {/* Corporate E-commerce Footer */}
+      <StorefrontFooter
+        info={info}
+        onOpenCart={() => setIsCartOpen(true)}
+        onOpenOrders={() => setIsMyOrdersOpen(true)}
+        onOpenCategories={() => setIsCategoriesModalOpen(true)}
+        onGoHome={handleGoHome}
+        onToggleDeals={() => {
+          setOnlyDeals(true);
+          setSelectedCategory('all');
+        }}
+      />
 
       {/* Modals & Live Cart */}
       <StorefrontModals

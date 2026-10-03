@@ -101,7 +101,7 @@ export function StorefrontMultiRowHome({
           استكشف باقي أقسام المتجر ({categories.length} قسم متاح)
         </h4>
         <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
-          نوفر تشكيلة واسعة من كافة المواد الغذائية والمنظفات ومستلزمات البيت
+          {info?.bio || 'تصفح كافة الأقسام والمنتجات المتاحة واطلب ما تحتاجه بكل سهولة مع خدمة التوصيل المباشر'}
         </p>
         <button
           type="button"

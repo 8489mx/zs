@@ -453,6 +453,7 @@ export class StorefrontService {
     const title = settings.get('storefront_title') || settings.get('storeName') || tenant.business_name;
     const address = settings.get('storefront_address') || settings.get('address') || '';
     const bio = settings.get('storefront_bio') || '';
+    const logoUrl = settings.get('storefront_logo_url') || settings.get('logo_url') || '';
     const announcement = settings.get('storefront_announcement') || '';
     const bannerUrl = settings.get('storefront_banner_url') || '';
     const rawBannerUrls = settings.get('storefront_banner_urls');
@@ -520,6 +521,8 @@ export class StorefrontService {
       title,
       address,
       bio,
+      logo_url: logoUrl,
+      logoUrl,
       announcement,
       bannerUrl: bannerUrls[0] || bannerUrl,
       bannerUrls,
@@ -3365,6 +3368,8 @@ export class StorefrontService {
       title: settings.get('storefront_title') || settings.get('storeName') || tenant?.business_name || '',
       address: settings.get('storefront_address') || settings.get('address') || '',
       bio: settings.get('storefront_bio') || '',
+      logoUrl: settings.get('storefront_logo_url') || settings.get('logo_url') || '',
+      logo_url: settings.get('storefront_logo_url') || settings.get('logo_url') || '',
       announcement: settings.get('storefront_announcement') || '',
       bannerUrl: bannerUrls[0] || bannerUrl,
       bannerUrls,
@@ -3414,6 +3419,10 @@ export class StorefrontService {
     // SF-9: banners are the heaviest images in /info; store them once and keep only URLs.
     if (payload.bannerUrl !== undefined) {
       payload.bannerUrl = await this.media.normalizeImageRef(tenantId, payload.bannerUrl);
+    }
+    const rawLogo = payload.logoUrl ?? payload.logo_url;
+    if (rawLogo !== undefined) {
+      payload.logoUrl = (await this.media.normalizeImageRef(tenantId, rawLogo)) || '';
     }
     if (Array.isArray(payload.bannerUrls)) {
       const normalized: string[] = [];
@@ -3501,6 +3510,7 @@ export class StorefrontService {
     if (payload.title !== undefined) entries.push({ key: 'storefront_title', value: payload.title });
     if (payload.address !== undefined) entries.push({ key: 'storefront_address', value: payload.address });
     if (payload.bio !== undefined) entries.push({ key: 'storefront_bio', value: payload.bio });
+    if (payload.logoUrl !== undefined) entries.push({ key: 'storefront_logo_url', value: payload.logoUrl });
     if (payload.announcement !== undefined) entries.push({ key: 'storefront_announcement', value: payload.announcement });
     if (payload.bannerUrl !== undefined) entries.push({ key: 'storefront_banner_url', value: payload.bannerUrl });
     if (payload.bannerUrls !== undefined) {

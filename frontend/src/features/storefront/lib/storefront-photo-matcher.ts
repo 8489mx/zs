@@ -634,25 +634,27 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
     weight: 98,
   },
   {
-    id: 'cables_hdmi_display',
-    nameAr: 'كابلات شاشات وHDMI وVGA وDisplayPort وتوصيلات',
-    keywords: [
-      'كابلات hd', 'كابلات', 'كابل', 'hdmi', 'vga', 'displayport', 
-      'كابل display to hd', 'كابل display', 'aux', 'كابل aux', 'كابل شاشه', 
-      'كابل باور', 'كابل شاشة', 'وصله شاشه', 'dvi', '1*3', '1*1'
-    ],
-    imageUrl: '/catalog/computer/cables_hdmi.jpg',
-    weight: 98,
-  },
-  {
     id: 'cables_mobile_charging',
     nameAr: 'كابلات شحن موبايل وUSB Type-C وLightning',
     keywords: [
       'كابلات شحن موبايل', 'كابلات شحن', 'كابل شحن', 'سلك شاحن', 
-      'سلك شحن', 'شاحن تايب سي', 'type c cable', 'lightning cable', 'micro usb', 'كابل شحن سريع'
+      'سلك شحن', 'شاحن تايب سي', 'type c', 'type-c', 'كابل type c',
+      'تايب سي', 'كابل تايب سي', 'lightning', 'lightning cable',
+      'micro usb', 'كابل شحن سريع', 'شحن موبايل', 'وصلة شحن'
     ],
     imageUrl: '/catalog/computer/charging_cable.jpg',
-    weight: 98,
+    weight: 100,
+  },
+  {
+    id: 'cables_hdmi_display',
+    nameAr: 'كابلات شاشات وHDMI وVGA وDisplayPort وتوصيلات',
+    keywords: [
+      'كابلات hd', 'كابلات شاشات', 'كابل hdmi', 'كابل vga', 'displayport', 
+      'كابل display to hd', 'كابل display', 'aux', 'كابل aux', 'كابل شاشه', 
+      'كابل باور', 'كابل شاشة', 'وصله شاشه', 'وصلة شاشة', 'dvi', 'hdmi', 'vga', '1*3', '1*1'
+    ],
+    imageUrl: '/catalog/computer/cables_hdmi.jpg',
+    weight: 96,
   },
   {
     id: 'adapters_converters',

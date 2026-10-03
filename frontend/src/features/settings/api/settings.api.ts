@@ -1,6 +1,6 @@
 import { http, resolveRequestUrl } from '@/lib/http';
 
-const BACKUP_RESTORE_TIMEOUT_MS = 120_000;
+const BACKUP_RESTORE_TIMEOUT_MS = 300_000;
 const CSV_IMPORT_TIMEOUT_MS = 10 * 60 * 1000;
 import { unwrapArray, unwrapByKey, type PaginationMeta } from '@/lib/api/contracts';
 import type { AppSettings, Branch, Location } from '@/types/domain';
@@ -184,9 +184,9 @@ export const settingsApi = {
     if (payload instanceof File) {
       const formData = new FormData();
       formData.append('file', payload);
-      return http<Record<string, unknown>>('/api/backup/verify', { method: 'POST', body: formData });
+      return http<Record<string, unknown>>('/api/backup/verify', { method: 'POST', body: formData, timeoutMs: BACKUP_RESTORE_TIMEOUT_MS });
     }
-    return http<Record<string, unknown>>('/api/backup/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    return http<Record<string, unknown>>('/api/backup/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), timeoutMs: BACKUP_RESTORE_TIMEOUT_MS });
   },
   restoreBackup: (payload: unknown, dryRun = false) => {
     const isFile = payload instanceof File;

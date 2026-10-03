@@ -254,46 +254,40 @@ export function StorefrontSubNav({
         </div>
 
         {/* Left Side (RTL End): Clean Reset Button if any filter is active */}
-        {(onlyFavorites || onlyDeals || inStockOnly) ? (
-          onClearFilters ? (
-            <button
-              type="button"
-              onClick={onClearFilters}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                color: '#64748b',
-                fontSize: '11.5px',
-                fontWeight: 700,
-                padding: '5px 10px',
-                borderRadius: '7px',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#fee2e2';
-                e.currentTarget.style.color = '#dc2626';
-                e.currentTarget.style.borderColor = '#fca5a5';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#f8fafc';
-                e.currentTarget.style.color = '#64748b';
-                e.currentTarget.style.borderColor = '#e2e8f0';
-              }}
-            >
-              <IconClose size={12} strokeWidth={2.5} />
-              <span>مسح التصفية</span>
-            </button>
-          ) : null
-        ) : (
-          <div className="storefront-subnav-hint" style={{ fontSize: '11.5px', color: '#64748b' }}>
-            تصفح المتجر حسب الأقسام
-          </div>
-        )}
+        {(onlyFavorites || onlyDeals || inStockOnly) && onClearFilters ? (
+          <button
+            type="button"
+            onClick={onClearFilters}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              color: '#64748b',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              padding: '5px 10px',
+              borderRadius: '7px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#fee2e2';
+              e.currentTarget.style.color = '#dc2626';
+              e.currentTarget.style.borderColor = '#fca5a5';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.color = '#64748b';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+          >
+            <IconClose size={12} strokeWidth={2.5} />
+            <span>مسح التصفية</span>
+          </button>
+        ) : null}
       </div>
     </div>
   );

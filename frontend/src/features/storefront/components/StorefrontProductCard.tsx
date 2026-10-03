@@ -326,25 +326,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               </span>
             ) : (
               <>
-                <span
-                  className="storefront-product-badge"
-                  style={{
-                    fontSize: '10.5px',
-                    fontWeight: 800,
-                    background: '#f0fdf4',
-                    color: '#166534',
-                    padding: '2px 8px',
-                    borderRadius: '6px',
-                    border: '1px solid #bbf7d0',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <IconCheckCircle size={11} strokeWidth={2.2} color="#16a34a" />
-                  <span>متوفر</span>
-                </span>
-                {product.stockQty > 0 && product.stockQty <= 5 && (
+                {product.stockQty > 0 && product.stockQty <= 5 ? (
                   <span
                     className="storefront-product-badge"
                     style={{
@@ -362,6 +344,25 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                     }}
                   >
                     <span>متبقي {product.stockQty} فقط</span>
+                  </span>
+                ) : (
+                  <span
+                    className="storefront-product-badge"
+                    style={{
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                      background: '#f0fdf4',
+                      color: '#166534',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #bbf7d0',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <IconCheckCircle size={11} strokeWidth={2.2} color="#16a34a" />
+                    <span>متوفر</span>
                   </span>
                 )}
                 {Boolean(product.rating && product.rating >= 4.5 && (product.reviewCount || 0) >= 2) && (
@@ -405,7 +406,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             )}
           </div>
 
-          {/* Top Left: Interactive Wishlist Heart Button (Transparent outline heart, glows red on click) */}
+          {/* Top Left: Interactive Wishlist Heart Button with Frosted Glass Circle */}
           <button
             className="storefront-product-fav-btn"
             type="button"
@@ -416,35 +417,41 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               position: 'absolute',
               top: '8px',
               left: '8px',
-              width: '28px',
-              height: '28px',
+              width: '30px',
+              height: '30px',
               padding: 0,
-              background: 'transparent',
-              border: 'none',
+              background: 'rgba(255, 255, 255, 0.88)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: '50%',
+              border: '1px solid rgba(255, 255, 255, 0.95)',
+              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.08)',
               outline: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               zIndex: 3,
-              transition: 'transform 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+              transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.2)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.15)';
+              e.currentTarget.style.background = '#ffffff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.88)';
+            }}
           >
             <svg
-              width="22"
-              height="22"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill={isFavorite ? '#ef4444' : 'none'}
               stroke={isFavorite ? '#ef4444' : '#475569'}
-              strokeWidth="2.2"
+              strokeWidth="2.4"
               strokeLinecap="round"
               strokeLinejoin="round"
               style={{
-                filter: isFavorite
-                  ? 'drop-shadow(0 2px 6px rgba(239, 68, 68, 0.45))'
-                  : 'drop-shadow(0 1px 2px rgba(255, 255, 255, 0.95)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25))',
                 transition: 'all 0.2s ease',
               }}
             >

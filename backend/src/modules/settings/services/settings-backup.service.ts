@@ -472,6 +472,7 @@ export class SettingsBackupService {
 
       await this.db.transaction().execute(async (trx) => {
         await sql`SET LOCAL session_replication_role = 'replica'`.execute(trx);
+        await sql`SET LOCAL statement_timeout = 0`.execute(trx);
 
         // 1. Clear existing tenant data in reverse dependency order
         // Discovered dynamically: clear child tables first, then CLEAR_ORDER, then any remaining tenant tables
