@@ -1,4 +1,3 @@
-import React from 'react';
 import type { StorefrontInfo } from '../types/storefront.types';
 import { resolveStorefrontBrand } from './StorefrontHeader';
 import { IconCheckCircle } from './StorefrontIcons';
