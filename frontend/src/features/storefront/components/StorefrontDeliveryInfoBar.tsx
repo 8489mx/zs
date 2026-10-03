@@ -67,7 +67,7 @@ export function StorefrontDeliveryInfoBar({ info }: Props) {
       style={{
         maxWidth: 'var(--storefront-container, 1440px)',
         width: '100%',
-        margin: '10px auto 4px',
+        margin: '10px auto',
         padding: '0 24px',
         boxSizing: 'border-box',
       }}
@@ -75,10 +75,10 @@ export function StorefrontDeliveryInfoBar({ info }: Props) {
       <div
         className="storefront-delivery-info-pill"
         style={{
-          background: '#f0fdf4',
-          border: '1px solid #bbf7d0',
+          background: 'var(--storefront-surface-color, #f0f3ff)',
+          border: '1px solid rgba(23, 14, 94, 0.14)',
           borderRadius: '10px',
-          padding: '7px 18px',
+          padding: '6px 18px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -86,16 +86,16 @@ export function StorefrontDeliveryInfoBar({ info }: Props) {
           flexWrap: 'wrap',
           boxSizing: 'border-box',
           fontSize: '0.8125rem',
-          boxShadow: '0 1px 2px rgba(22, 101, 52, 0.03)',
+          boxShadow: '0 1px 3px rgba(23, 14, 94, 0.04)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: 700 }}>
-          <IconTruck size={17} color="#16a34a" strokeWidth={2.2} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--storefront-primary-color, #170e5e)', fontWeight: 700 }}>
+          <IconTruck size={17} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2.2} />
           <span>{signals.promoText}</span>
         </div>
         {signals.estimatedTime && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#15803d', fontSize: '0.78rem' }}>
-            <span style={{ opacity: 0.85 }}>• التوصيل المتوقع:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--storefront-primary-color, #170e5e)', opacity: 0.85, fontSize: '0.78rem' }}>
+            <span>• التوصيل المتوقع:</span>
             <strong>{signals.estimatedTime}</strong>
           </div>
         )}

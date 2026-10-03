@@ -1,7 +1,7 @@
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React from 'react';
 import { StorefrontProduct } from '../types/storefront.types';
-import { getAutoProductPhoto } from '../lib/storefront-photo-matcher';
+import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { IconArrowUpRight, IconShoppingCart } from './StorefrontIcons';
 
 interface StorefrontAmazonQuadCardProps {
@@ -118,7 +118,7 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
                     loading="lazy"
                     decoding="async"
                     onError={(e) => {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=260&q=45&fm=webp';
+                      e.currentTarget.src = generatePremiumProductSvg(p.name, p.categoryName);
                     }}
                     style={{
                       width: '100%',

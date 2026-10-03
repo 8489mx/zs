@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { StorefrontCategory } from '../types/storefront.types';
-import { getAutoProductPhoto } from '../lib/storefront-photo-matcher';
+import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { IconFolder, IconClose, IconSearch, IconShoppingBag } from './StorefrontIcons';
 import { DialogShell } from '@/shared/components/dialog-shell';
 
@@ -368,6 +368,9 @@ export function StorefrontCategoriesModal({
                         alt={cat.name}
                         loading="lazy"
                         decoding="async"
+                        onError={(e) => {
+                          e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
+                        }}
                         style={{
                           width: '100%',
                           height: '100%',

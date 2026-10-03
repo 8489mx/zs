@@ -4,6 +4,7 @@ import { XIcon, TagIcon, PlusIcon, ArrowRightIcon } from '@/shared/components/ic
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { storefrontApi } from '../api/storefront.api';
 import type { StorefrontProduct } from '../types/storefront.types';
+import { generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 
 interface StorefrontPredictiveSearchProps {
   slug: string;
@@ -279,38 +280,21 @@ export function StorefrontPredictiveSearch({
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                      {prod.imageUrl ? (
-                        <img
-                          src={prod.imageUrl}
-                          alt={prod.name}
-                          style={{
-                            width: '38px',
-                            height: '38px',
-                            borderRadius: '6px',
-                            objectFit: 'cover',
-                            background: '#f1f5f9',
-                            flexShrink: 0,
-                          }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: '38px',
-                            height: '38px',
-                            borderRadius: '6px',
-                            background: '#f1f5f9',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '11px',
-                            color: '#94a3b8',
-                            flexShrink: 0,
-                          }}
-                        >
-                          صورة
-                        </div>
-                      )}
-
+                      <img
+                        src={prod.imageUrl || generatePremiumProductSvg(prod.name, prod.categoryName)}
+                        alt={prod.name}
+                        onError={(e) => {
+                          e.currentTarget.src = generatePremiumProductSvg(prod.name, prod.categoryName);
+                        }}
+                        style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '6px',
+                          objectFit: 'cover',
+                          background: '#f1f5f9',
+                          flexShrink: 0,
+                        }}
+                      />
                       <div style={{ minWidth: 0 }}>
                         <div
                           style={{

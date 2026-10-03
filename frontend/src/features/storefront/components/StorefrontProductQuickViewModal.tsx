@@ -16,6 +16,7 @@ import {
 import { IconStar, IconFlame } from './StorefrontIcons';
 import { trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import { buildCartProduct, getProductVariants, resolveVariantUnitPrice } from '../lib/storefront-variant-pricing';
+import { generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 
 interface StorefrontProductQuickViewModalProps {
   product: StorefrontProduct | null;
@@ -253,6 +254,9 @@ export function StorefrontProductQuickViewModal({
                 <img
                   src={activePhoto}
                   alt={product.name}
+                  onError={(e) => {
+                    e.currentTarget.src = generatePremiumProductSvg(product.name, product.categoryName);
+                  }}
                   style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />
               ) : (
