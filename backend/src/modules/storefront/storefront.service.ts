@@ -1186,9 +1186,8 @@ export class StorefrontService {
       }
       let items: unknown[] = [];
       try {
-        items = typeof existingOrder.items_json === 'string'
-          ? JSON.parse(existingOrder.items_json)
-          : (existingOrder.items_json as unknown[] || []);
+        const parsed: unknown = JSON.parse(existingOrder.items_json || '[]');
+        items = Array.isArray(parsed) ? parsed : [];
       } catch {}
       return {
         ok: true, orderId: existingOrder.id, orderNumber: existingOrder.order_number,
