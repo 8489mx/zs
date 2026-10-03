@@ -708,38 +708,39 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               height: '40px',
               padding: '0 12px',
               borderRadius: '10px',
-              border: '1.5px solid var(--storefront-primary-color, #170e5e)',
-              background: 'var(--storefront-primary-subtle, rgba(23, 14, 94, 0.05))',
-              color: 'var(--storefront-primary-color, #170e5e)',
-              fontSize: '12.5px',
+              border: '1px solid #e2e8f0',
+              background: '#ffffff',
+              color: '#0f172a',
+              fontSize: '13px',
               fontWeight: 800,
               textDecoration: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
+              gap: '7px',
               boxSizing: 'border-box',
-              transition: 'all 0.18s ease',
+              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+              transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--storefront-primary-color, #170e5e)';
-              e.currentTarget.style.color = 'var(--storefront-primary-contrast, #ffffff)';
-              const svg = e.currentTarget.querySelector('svg');
-              if (svg) svg.style.fill = 'var(--storefront-primary-contrast, #ffffff)';
+              e.currentTarget.style.borderColor = 'var(--storefront-primary-color, #170e5e)';
+              e.currentTarget.style.color = 'var(--storefront-primary-color, #170e5e)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 14px rgba(15, 23, 42, 0.08)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--storefront-primary-subtle, rgba(23, 14, 94, 0.05))';
-              e.currentTarget.style.color = 'var(--storefront-primary-color, #170e5e)';
-              const svg = e.currentTarget.querySelector('svg');
-              if (svg) svg.style.fill = 'var(--storefront-primary-color, #170e5e)';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.color = '#0f172a';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(15, 23, 42, 0.04)';
             }}
           >
             <svg
-              width="15"
-              height="15"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
-              fill="var(--storefront-primary-color, #170e5e)"
-              style={{ transition: 'fill 0.18s ease', flexShrink: 0 }}
+              fill="#10b981"
+              style={{ flexShrink: 0 }}
             >
               <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.31a8.216 8.216 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.71 4.3 3.8 2.52 1.09 2.52.73 2.98.68.45-.04 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3" />
             </svg>
