@@ -81,6 +81,7 @@ export function StorefrontSettingsTab() {
     tiktokPixelId: '',
     snapchatPixelId: '',
     allowOutOfStockOrders: true,
+    showOutOfStockProducts: true,
   });
 
   const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
@@ -159,6 +160,7 @@ export function StorefrontSettingsTab() {
         tiktokPixelId: settingsQuery.data.tiktokPixelId || '',
         snapchatPixelId: settingsQuery.data.snapchatPixelId || '',
         allowOutOfStockOrders: (settingsQuery.data as any).allowOutOfStockOrders !== false,
+        showOutOfStockProducts: (settingsQuery.data as any).showOutOfStockProducts !== false,
       });
     }
   }, [settingsQuery.data]);
@@ -1301,6 +1303,37 @@ export function StorefrontSettingsTab() {
                   type="checkbox"
                   checked={formState.smartDealsEnabled}
                   onChange={(e) => setFormState({ ...formState, smartDealsEnabled: e.target.checked })}
+                  style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer', flexShrink: 0 }}
+                />
+              </div>
+
+              {/* Show Out Of Stock Products (Coming Soon) */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  background: '#f8fafc',
+                  borderRadius: '8px',
+                  border: formState.showOutOfStockProducts ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                  transition: 'all 0.15s ease',
+                  gap: '10px',
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
+                    إظهار المنتجات المنتهية من المخزون (بوسم "ستتوفر قريباً")
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    عند التفعيل: تظهر الأصناف المنتهية بشارة "ستتوفر قريباً" وزر غير متاح للطلب. عند التعطيل: تُخفى تلقائياً من المتجر لتسهيل تجربة الشراء (موصى به).
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={formState.showOutOfStockProducts}
+                  onChange={(e) => setFormState({ ...formState, showOutOfStockProducts: e.target.checked })}
                   style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer', flexShrink: 0 }}
                 />
               </div>

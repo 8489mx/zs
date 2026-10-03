@@ -316,6 +316,10 @@ export function usePublicStorefront(cleanSlug: string) {
 
   const filteredProducts = useMemo(() => {
     let list = [...rawProducts];
+    const showOutOfStock = infoQuery.data?.showOutOfStockProducts !== false;
+    if (!showOutOfStock) {
+      list = list.filter((p) => p.inStock);
+    }
     if (selectedCategory !== 'all') {
       list = list.filter((p) => Number(p.categoryId) === Number(selectedCategory));
     }
@@ -350,7 +354,7 @@ export function usePublicStorefront(cleanSlug: string) {
       return 0;
     });
     return list;
-  }, [rawProducts, selectedCategory, inStockOnly, onlyDeals, onlyFavorites, favoriteIds, dealsProducts, searchTerm, sortBy]);
+  }, [rawProducts, selectedCategory, inStockOnly, onlyDeals, onlyFavorites, favoriteIds, dealsProducts, searchTerm, sortBy, infoQuery.data?.showOutOfStockProducts]);
 
   const topHomepageSections = useMemo(() => {
     const groups: { categoryId: number; categoryName: string; products: StorefrontProduct[]; totalCount: number }[] = [];

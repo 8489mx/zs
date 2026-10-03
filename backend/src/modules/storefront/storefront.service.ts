@@ -98,18 +98,19 @@ function isOutOfStockOrderingAllowed(
     normLegacyInd === 'restaurant' ||
     normLegacyBiz === 'restaurant';
 
+  const explicitSetting = settings.get('storefront_allow_out_of_stock');
+  if (explicitSetting === 'false' || explicitSetting === false as any) return false;
+  if (explicitSetting === 'true' || explicitSetting === true as any) return true;
+  if (settings.get('storefront_unlimited_stock') === 'true') return true;
+
+  if (isRestaurant) return true;
+
   const cleanSlug = (tenantSlug || '').toLowerCase().trim();
   const isDemoOrDev =
-    cleanSlug === 'zs' ||
     cleanSlug === 'default' ||
     cleanSlug === 'dev-tenant';
 
-  return (
-    settings.get('storefront_allow_out_of_stock') === 'true' ||
-    settings.get('storefront_unlimited_stock') === 'true' ||
-    isRestaurant ||
-    isDemoOrDev
-  );
+  return isDemoOrDev;
 }
 
 /**
@@ -539,6 +540,7 @@ export class StorefrontService {
       snapchatPixelId: settings.get('storefront_snapchat_pixel_id') || '',
       pickupEnabled: settings.get('storefront_pickup_enabled') !== 'false',
       allowOutOfStockOrders: isOutOfStockOrderingAllowed(settings, tenant.slug, tenant.activity_type),
+      showOutOfStockProducts: settings.get('storefront_show_out_of_stock') !== 'false',
     };
   }
 
@@ -936,11 +938,16 @@ export class StorefrontService {
           };
         });
 
+        const showOutOfStock = settings.get('storefront_show_out_of_stock') !== 'false';
+        const catalogProducts = showOutOfStock
+          ? formattedProducts
+          : formattedProducts.filter((p) => p.inStock);
+
         const result = {
           categories: formattedCategories,
-          products: formattedProducts,
+          products: catalogProducts,
           // العدد الكلي معلن: عميلٌ يريد التصفّح يعرف كم يطلب، وقارئُ الاستجابة يرى حجمها.
-          totalCount: formattedProducts.length,
+          totalCount: catalogProducts.length,
         };
 
         // Cache in-memory: 60s fresh, 5 mins stale-while-revalidate
@@ -3533,6 +3540,7 @@ export class StorefrontService {
     if (payload.snapchatPixelId !== undefined) entries.push({ key: 'storefront_snapchat_pixel_id', value: payload.snapchatPixelId });
     if (payload.pickupEnabled !== undefined) entries.push({ key: 'storefront_pickup_enabled', value: payload.pickupEnabled });
     if (payload.allowOutOfStockOrders !== undefined) entries.push({ key: 'storefront_allow_out_of_stock', value: payload.allowOutOfStockOrders });
+    if (payload.showOutOfStockProducts !== undefined) entries.push({ key: 'storefront_show_out_of_stock', value: payload.showOutOfStockProducts });
     if (payload.stockMode !== undefined) entries.push({ key: 'storefront_stock_mode', value: normalizeStorefrontStockMode(payload.stockMode) });
     await this.db.transaction().execute(async (trx) => {
       for (const e of entries) {

@@ -381,16 +381,16 @@ export function StorefrontProductQuickViewModal({
                   fontWeight: 800,
                   padding: '3px 9px',
                   borderRadius: '20px',
-                  backgroundColor: inStock ? '#dcfce7' : '#fee2e2',
-                  color: inStock ? '#15803d' : '#b91c1c',
-                  border: inStock ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                  backgroundColor: inStock ? '#dcfce7' : '#f8fafc',
+                  color: inStock ? '#15803d' : '#64748b',
+                  border: inStock ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
                 }}
               >
-                {inStock ? <CheckCircleIcon size={13} color="#16a34a" /> : null}
-                <span>{inStock ? (product.stockQty >= 999 ? 'متوفر للطلب الفوري' : `متوفر بالمخزون (${product.stockQty})`) : 'غير متوفر حالياً'}</span>
+                {inStock ? <CheckCircleIcon size={13} color="#16a34a" /> : <ClockIcon size={13} color="#64748b" />}
+                <span>{inStock ? (product.stockQty >= 999 ? 'متوفر للطلب الفوري' : `متوفر بالمخزون (${product.stockQty})`) : 'ستتوفر قريباً'}</span>
               </span>
             </div>
 
@@ -643,9 +643,9 @@ export function StorefrontProductQuickViewModal({
               minWidth: 0,
               height: '42px',
               borderRadius: '8px',
-              backgroundColor: inStock ? brandColor : '#94a3b8',
-              color: inStock ? (brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)') : '#ffffff',
-              border: 'none',
+              backgroundColor: inStock ? brandColor : '#f8fafc',
+              color: inStock ? (brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)') : '#64748b',
+              border: inStock ? 'none' : '1px solid #e2e8f0',
               fontSize: '13.5px',
               fontWeight: 800,
               cursor: inStock ? 'pointer' : 'not-allowed',
@@ -664,10 +664,15 @@ export function StorefrontProductQuickViewModal({
                 <CheckIcon size={16} color="#ffffff" />
                 <span>تمت الإضافة بنجاح!</span>
               </>
-            ) : (
+            ) : inStock ? (
               <>
                 <ShoppingBagIcon size={16} color="#ffffff" />
                 <span>إضافة إلى السلة ({(basePrice * qty).toLocaleString()} <CurrencySymbol />)</span>
+              </>
+            ) : (
+              <>
+                <ClockIcon size={16} color="#64748b" />
+                <span>ستتوفر قريباً</span>
               </>
             )}
           </button>

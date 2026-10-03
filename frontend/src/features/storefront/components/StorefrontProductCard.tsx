@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { StorefrontProduct } from '../types/storefront.types';
 import { resolveProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { IconCheckCircle, IconStar, IconShoppingCart } from './StorefrontIcons';
+import { ClockIcon } from '@/shared/components/icons/AppIcons';
 
 interface StorefrontProductCardProps {
   product: StorefrontProduct;
@@ -311,14 +312,18 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 style={{
                   fontSize: '10.5px',
                   fontWeight: 800,
-                  background: '#fef2f2',
-                  color: '#991b1b',
+                  background: '#f8fafc',
+                  color: '#64748b',
                   padding: '2px 8px',
                   borderRadius: '6px',
-                  border: '1px solid #fecaca',
+                  border: '1px solid #e2e8f0',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
               >
-                غير متوفر
+                <ClockIcon size={11} color="#64748b" />
+                <span>ستتوفر قريباً</span>
               </span>
             ) : (
               <>
@@ -360,7 +365,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                     <span>متبقي {product.stockQty} فقط</span>
                   </span>
                 )}
-                {product.rating && product.rating >= 4.5 && product.reviewCount && product.reviewCount >= 2 && (
+                {Boolean(product.rating && product.rating >= 4.5 && (product.reviewCount || 0) >= 2) && (
                   <span
                     className="storefront-product-badge"
                     style={{
@@ -700,7 +705,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               borderRadius: '10px',
               border: '1px solid #e2e8f0',
               background: '#f8fafc',
-              color: '#94a3b8',
+              color: '#64748b',
               fontSize: '12.5px',
               fontWeight: 700,
               cursor: 'not-allowed',
@@ -708,9 +713,11 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: '6px',
             }}
           >
-            غير متوفر حالياً
+            <ClockIcon size={14} color="#64748b" />
+            <span>ستتوفر قريباً</span>
           </button>
         ) : isZeroPrice ? (
           <a

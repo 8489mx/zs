@@ -52,6 +52,7 @@ export interface StorefrontInfo {
   snapchatPixelId?: string;
   pickupEnabled?: boolean;
   allowOutOfStockOrders?: boolean;
+  showOutOfStockProducts?: boolean;
 }
 
 export interface StorefrontCategory {
@@ -333,6 +334,7 @@ export interface StorefrontSettingsPayload {
   brandSurfaceColor?: string;
   themePreset?: string;
   allowOutOfStockOrders?: boolean;
+  showOutOfStockProducts?: boolean;
 }
 
 export interface StorefrontPaymentSessionResponse {

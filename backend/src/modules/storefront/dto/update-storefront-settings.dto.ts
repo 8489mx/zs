@@ -197,6 +197,10 @@ export class UpdateStorefrontSettingsDto {
   @IsBoolean()
   allowOutOfStockOrders?: boolean;
 
+  @IsOptional()
+  @IsBoolean()
+  showOutOfStockProducts?: boolean;
+
   /**
    * من أي مخازن يبيع المتجر الإلكتروني:
    *   `follow_branch`   — كإعداد الفرع (الافتراضي، فلا يتغيّر سلوك منشأة قائمة)
