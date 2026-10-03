@@ -19,6 +19,7 @@ interface MockOrder {
   gateway_provider?: string;
   gateway_transaction_id?: string;
   gateway_order_id?: string;
+  stock_reserved?: boolean;
 }
 
 function createMockDb(orders: MockOrder[], settingsMap: Record<string, string>) {

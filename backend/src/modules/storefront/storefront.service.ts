@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, BadRequestException, UnauthorizedException, Optional } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException, UnauthorizedException, Optional, Logger } from '@nestjs/common';
 import { Kysely, sql, type Transaction } from 'kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
@@ -124,6 +124,8 @@ export { unwrapConvertedSale };
 
 @Injectable()
 export class StorefrontService {
+  private readonly logger = new Logger(StorefrontService.name);
+
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly salesService: SalesService,

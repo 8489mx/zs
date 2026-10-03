@@ -2565,7 +2565,7 @@ export interface OnlineOrderTable {
   subtotal: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   delivery_fee: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   total_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'review_required' | 'payment_failed';
   payment_method: string;
   payment_status?: ColumnType<'pending' | 'paid' | 'failed' | 'refunded', string | undefined, string | undefined>;
   gateway_provider?: string | null;
@@ -2603,6 +2603,7 @@ export interface OnlineOrderTable {
   reserved_branch_id?: number | null;
   reserved_location_id?: number | null;
   stock_reserved_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  idempotency_key?: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
