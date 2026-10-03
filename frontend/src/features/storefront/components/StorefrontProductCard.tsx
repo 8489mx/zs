@@ -498,12 +498,15 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             className="storefront-product-cat-tag"
             style={{
               fontSize: '11px',
-              color: '#475569',
-              background: '#f1f5f9',
-              padding: '2px 8px',
-              borderRadius: '6px',
-              fontWeight: 700,
+              color: '#64748b',
+              fontWeight: 600,
+              maxWidth: '120px',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: 'inline-block',
             }}
+            title={product.categoryName || 'عام'}
           >
             {product.categoryName || 'عام'}
           </span>
@@ -594,12 +597,10 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           >
             <span
               style={{
-                fontSize: '11.5px',
-                fontWeight: 700,
-                color: '#475569',
-                background: '#f1f5f9',
-                padding: '2px 8px',
-                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: 800,
+                color: '#64748b',
+                letterSpacing: '-0.2px',
               }}
             >
               السعر عند التواصل
