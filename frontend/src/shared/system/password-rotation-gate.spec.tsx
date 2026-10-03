@@ -4,13 +4,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { PasswordRotationGate } from '@/shared/system/password-rotation-gate';
 import { useAuthStore } from '@/stores/auth-store';
 
-const { changePasswordMock } = vi.hoisted(() => ({
+const { changePasswordMock, dismissPasswordChangeMock } = vi.hoisted(() => ({
   changePasswordMock: vi.fn(),
+  dismissPasswordChangeMock: vi.fn(),
 }));
 
 vi.mock('@/shared/api/auth', () => ({
   authApi: {
     changePassword: changePasswordMock,
+    dismissPasswordChange: dismissPasswordChangeMock,
   },
 }));
 
@@ -108,5 +110,26 @@ describe('PasswordRotationGate', () => {
       expect(useAuthStore.getState().user?.mustChangePassword).toBe(false);
       expect(useAuthStore.getState().user?.usingDefaultAdminPassword).toBe(false);
     });
+  });
+
+  it('persists dismissal and closes dialog when user skips password rotation', async () => {
+    seedBootstrapUser({ id: 'u-skip', mustChangePassword: false, usingDefaultAdminPassword: true });
+    dismissPasswordChangeMock.mockResolvedValueOnce(undefined);
+    const user = userEvent.setup();
+    const { unmount } = render(<PasswordRotationGate />);
+
+    expect(screen.getByRole('dialog', { name: 'تغيير كلمة المرور قبل المتابعة' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'المتابعة بكلمة المرور الحالية (تخطي)' }));
+
+    await waitFor(() => {
+      expect(dismissPasswordChangeMock).toHaveBeenCalledTimes(1);
+      expect(useAuthStore.getState().user?.usingDefaultAdminPassword).toBe(false);
+    });
+
+    unmount();
+    // Re-rendering with usingDefaultAdminPassword: true simulates page reload with dismissed localStorage flag
+    seedBootstrapUser({ id: 'u-skip', mustChangePassword: false, usingDefaultAdminPassword: true });
+    render(<PasswordRotationGate />);
+    expect(screen.queryByRole('dialog', { name: 'تغيير كلمة المرور قبل المتابعة' })).not.toBeInTheDocument();
   });
 });
