@@ -84,17 +84,15 @@ describe('PasswordRotationGate', () => {
     });
   });
 
-  it('still enforces password rotation when the bootstrap account keeps the default admin password flag', async () => {
+  it('does not enforce password rotation when mustChangePassword is false', async () => {
     seedBootstrapUser({ mustChangePassword: false, usingDefaultAdminPassword: true });
     render(<PasswordRotationGate />);
 
-    expect(screen.getByRole('dialog', { name: 'تغيير كلمة المرور قبل المتابعة' })).toBeInTheDocument();
-    expect(screen.getByText(/حساب التثبيت ما زال يستخدم كلمة المرور الافتراضية/)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'تغيير كلمة المرور قبل المتابعة' })).not.toBeInTheDocument();
   });
 
-
-  it('clears both password-rotation flags after a successful password change', async () => {
-    seedBootstrapUser();
+  it('clears password-rotation flag after a successful password change', async () => {
+    seedBootstrapUser({ mustChangePassword: true });
     changePasswordMock.mockResolvedValueOnce({ ok: true, removedOtherSessions: 0 });
     const user = userEvent.setup();
     render(<PasswordRotationGate />);
@@ -108,28 +106,22 @@ describe('PasswordRotationGate', () => {
 
     await waitFor(() => {
       expect(useAuthStore.getState().user?.mustChangePassword).toBe(false);
-      expect(useAuthStore.getState().user?.usingDefaultAdminPassword).toBe(false);
     });
   });
 
-  it('persists dismissal and closes dialog when user skips password rotation', async () => {
-    seedBootstrapUser({ id: 'u-skip', mustChangePassword: false, usingDefaultAdminPassword: true });
+  it('closes dialog and calls dismiss API when user clicks continue with current password', async () => {
+    seedBootstrapUser({ mustChangePassword: true });
     dismissPasswordChangeMock.mockResolvedValueOnce(undefined);
     const user = userEvent.setup();
-    const { unmount } = render(<PasswordRotationGate />);
+    render(<PasswordRotationGate />);
 
     expect(screen.getByRole('dialog', { name: 'تغيير كلمة المرور قبل المتابعة' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'المتابعة بكلمة المرور الحالية (تخطي)' }));
 
     await waitFor(() => {
       expect(dismissPasswordChangeMock).toHaveBeenCalledTimes(1);
-      expect(useAuthStore.getState().user?.usingDefaultAdminPassword).toBe(false);
+      expect(useAuthStore.getState().user?.mustChangePassword).toBe(false);
     });
-
-    unmount();
-    // Re-rendering with usingDefaultAdminPassword: true simulates page reload with dismissed localStorage flag
-    seedBootstrapUser({ id: 'u-skip', mustChangePassword: false, usingDefaultAdminPassword: true });
-    render(<PasswordRotationGate />);
     expect(screen.queryByRole('dialog', { name: 'تغيير كلمة المرور قبل المتابعة' })).not.toBeInTheDocument();
   });
 });

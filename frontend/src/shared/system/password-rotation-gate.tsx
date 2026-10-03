@@ -46,31 +46,15 @@ export function PasswordRotationGate() {
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDismissing, setIsDismissing] = useState(false);
-  const [isDismissedLocally, setIsDismissedLocally] = useState(false);
   const successTimerRef = useRef<number | null>(null);
 
-  const dismissalStorageKey = user?.id ? `zs_dismiss_default_pwd_${user.id}` : null;
-
-  const isDefaultPasswordDismissed = useMemo(() => {
-    if (isDismissedLocally) return true;
-    if (typeof window === 'undefined' || !dismissalStorageKey) return false;
-    try {
-      return localStorage.getItem(dismissalStorageKey) === 'true';
-    } catch {
-      return false;
-    }
-  }, [dismissalStorageKey, isDismissedLocally]);
-
-  const shouldEnforceRotation = user?.mustChangePassword === true || (user?.usingDefaultAdminPassword === true && !isDefaultPasswordDismissed);
+  const shouldEnforceRotation = user?.mustChangePassword === true;
   const shouldShowSuccessState = !shouldEnforceRotation && Boolean(success);
 
   const helperText = useMemo(() => {
     if (!shouldEnforceRotation) return '';
-    if (user?.usingDefaultAdminPassword === true) {
-      return 'حساب التثبيت ما زال يستخدم كلمة المرور الافتراضية. يمكنك تغييرها الآن أو المتابعة بكلمة المرور الحالية.';
-    }
     return 'يمكنك تعيين كلمة مرور جديدة لحسابك الآن، أو اختيار المتابعة بكلمة المرور الحالية.';
-  }, [shouldEnforceRotation, user?.usingDefaultAdminPassword]);
+  }, [shouldEnforceRotation]);
 
   useEffect(() => {
     return () => {
@@ -90,15 +74,7 @@ export function PasswordRotationGate() {
     } catch {
       // Ignored if offline or unsupported
     } finally {
-      if (dismissalStorageKey && typeof window !== 'undefined') {
-        try {
-          localStorage.setItem(dismissalStorageKey, 'true');
-        } catch {
-          // Ignored if storage is blocked
-        }
-      }
-      setIsDismissedLocally(true);
-      updateUser({ mustChangePassword: false, usingDefaultAdminPassword: false });
+      updateUser({ mustChangePassword: false });
       setIsDismissing(false);
     }
   }
@@ -125,13 +101,6 @@ export function PasswordRotationGate() {
     setIsSubmitting(true);
     try {
       await authApi.changePassword({ currentPassword, newPassword });
-      if (dismissalStorageKey && typeof window !== 'undefined') {
-        try {
-          localStorage.removeItem(dismissalStorageKey);
-        } catch {
-          // Ignored
-        }
-      }
       updateUser({ mustChangePassword: false, usingDefaultAdminPassword: false });
       setCurrentPassword('');
       setNewPassword('');
