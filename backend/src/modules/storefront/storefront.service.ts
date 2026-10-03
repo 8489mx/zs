@@ -399,19 +399,27 @@ export class StorefrontService {
    * ميجابايت من النصّ **في كل طلب** حتى وهو مخزَّن. التخزين يوفّر الاستعلام ولا يوفّر التسلسل،
    * والتسلسل هو المعالج. الآن يُسلسَل مرة واحدة لكل بناء.
    */
-  private static readonly catalogCache = new Map<string, { data: any; json: string; expiresAt: number; staleUntil: number }>();
+  private static catalogCache = new Map<string, { data: any; json: string; expiresAt: number; staleUntil: number }>();
   // Each entry keeps both a catalog object and its serialized JSON; 1,000 tenant entries can
   // consume gigabytes even though the entries have a short TTL.
   private static readonly MAX_CACHED_CATALOGS = 16;
-  private static readonly inFlightCatalogPromises = new Map<string, Promise<any>>();
+  private static inFlightCatalogPromises = new Map<string, Promise<any>>();
   private static catalogGeneration = 0;
 
   private get catalogCache() {
     return StorefrontService.catalogCache;
   }
 
+  private set catalogCache(val: Map<string, { data: any; json: string; expiresAt: number; staleUntil: number }>) {
+    StorefrontService.catalogCache = val;
+  }
+
   private get inFlightCatalogPromises() {
     return StorefrontService.inFlightCatalogPromises;
+  }
+
+  private set inFlightCatalogPromises(val: Map<string, Promise<any>>) {
+    StorefrontService.inFlightCatalogPromises = val;
   }
 
   private get MAX_CACHED_CATALOGS() {
