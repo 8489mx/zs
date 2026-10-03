@@ -156,11 +156,9 @@ export function StorefrontCheckoutModal({
   // away. "تعديل البيانات" brings the full form back.
   const [expressMode, setExpressMode] = useState(false);
   const brandColor = info?.brandColor || 'var(--storefront-primary-color, #170e5e)';
-  const brandSecondaryColor = info?.brandSecondaryColor || 'var(--storefront-secondary-color, #d97706)';
   const brandColorContrast = getContrastTextColor(info?.brandColor);
-  const brandSecondaryContrast = getContrastTextColor(info?.brandSecondaryColor);
   const [serverQuote, setServerQuote] = useState<QuoteCartResponse | null>(null);
-  const [isQuoting, setIsQuoting] = useState(false);
+  const [, setIsQuoting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [couponCodeInput, setCouponCodeInput] = useState('');

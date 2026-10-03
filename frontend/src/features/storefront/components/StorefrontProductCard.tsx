@@ -95,7 +95,6 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
 
   // Real ERP Offer Discount takes precedence over smart fallback
   const hasRealOffer = Boolean(product.hasDiscount && product.originalPrice && product.originalPrice > product.price);
-  const isDeal = Boolean(hasRealOffer || isSmartDeal || (product.offerType === 'bogo' && product.offerBadge));
   const oldPrice = hasRealOffer
     ? Number(product.originalPrice)
     : (!isZeroPrice && isSmartDeal ? Math.round(product.price * 1.15) : 0);

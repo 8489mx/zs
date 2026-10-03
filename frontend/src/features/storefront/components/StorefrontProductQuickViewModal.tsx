@@ -62,7 +62,6 @@ export function StorefrontProductQuickViewModal({
   if (!isOpen || !product) return null;
 
   const brandColor = info?.brandColor || 'var(--storefront-primary-color, #170e5e)';
-  const brandSecondaryColor = info?.brandSecondaryColor || 'var(--storefront-secondary-color, #d97706)';
   const brandSurfaceColor = info?.brandSurfaceColor || 'var(--storefront-surface-color, #f8fafc)';
   const brandColorContrast = getContrastTextColor(info?.brandColor);
   const inStock = product.inStock !== false;
