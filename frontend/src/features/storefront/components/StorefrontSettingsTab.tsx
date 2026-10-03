@@ -17,6 +17,7 @@ import {
   TruckIcon,
   Trash2Icon,
   QrCodeIcon,
+  CopyIcon,
 } from '@/shared/components/icons/AppIcons';
 import { TableQrPrintDialog } from '@/features/pos';
 
@@ -45,6 +46,15 @@ export function StorefrontSettingsTab() {
   const [bannerCompressFeedback, setBannerCompressFeedback] = useState('');
   const [isCompressingBanner, setIsCompressingBanner] = useState(false);
   const [isQrPrintOpen, setIsQrPrintOpen] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
+
+  const aiPromptTemplate = 'صمم بنر إعلاني سينمائي فخم لمتجر [اكتب اسم ونشاط متجرك]، بنسبة عرض واسعة 16:5. شرط أساسي لحماية المحتوى: اجمع اسم المتجر والشعار وكافة المنتجات والنصوص في منتصف الصورة فقط (في منطقة الأمان المركزية 60%)، واجعل الأطراف اليمنى واليسرى مجرد خلفية ممتدة متدرجة وفارغة بدون أي نصوص لتناسب شاشات العرض البانورامية.';
+
+  const handleCopyPrompt = () => {
+    navigator.clipboard.writeText(aiPromptTemplate);
+    setPromptCopied(true);
+    setTimeout(() => setPromptCopied(false), 3000);
+  };
 
   const settingsQuery = useQuery({
     queryKey: ['storefront-admin-settings'],
@@ -1624,12 +1634,32 @@ export function StorefrontSettingsTab() {
                         userSelect: 'none',
                       }}
                     >
-                      {/* Image Layer with Object Position */}
+                      {/* Ambient Blurred Backdrop Layer */}
+                      {formState.bannerFit === 'contain' && (
+                        <div
+                          aria-hidden="true"
+                          style={{
+                            position: 'absolute',
+                            inset: '-20px',
+                            backgroundImage: `url(${formState.bannerUrls[previewSlideIndex] || formState.bannerUrls[0]})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: currentSlidePosition,
+                            filter: 'blur(28px) saturate(1.3) brightness(0.65)',
+                            transform: 'scale(1.2)',
+                            pointerEvents: 'none',
+                            zIndex: 1,
+                          }}
+                        />
+                      )}
+
+                      {/* Foreground Image Layer with Object Position */}
                       <img
                         src={formState.bannerUrls[previewSlideIndex] || formState.bannerUrls[0]}
                         alt="معاينة حية للبنر"
                         draggable={false}
                         style={{
+                          position: 'relative',
+                          zIndex: 2,
                           width: '100%',
                           height: '100%',
                           objectFit: formState.bannerFit || 'cover',
@@ -1637,6 +1667,7 @@ export function StorefrontSettingsTab() {
                           display: 'block',
                           pointerEvents: 'none',
                           transition: isDragging ? 'none' : 'object-position 0.15s ease',
+                          filter: formState.bannerFit === 'contain' ? 'drop-shadow(0 4px 18px rgba(0,0,0,0.45))' : 'none',
                         }}
                       />
 
@@ -2038,23 +2069,76 @@ export function StorefrontSettingsTab() {
 
                 {/* AI Design Guidelines Helper Box */}
                 <div style={{
-                  background: '#f0f9ff',
-                  border: '1px solid #bae6fd',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  marginBottom: '10px',
-                  fontSize: '11px',
-                  color: '#0369a1',
-                  lineHeight: '1.5',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  marginBottom: '12px',
+                  fontSize: '11.5px',
+                  color: '#334155',
+                  lineHeight: '1.6',
                 }}>
-                  <div style={{ fontWeight: 800, marginBottom: '2px' }}>
-                    المقاس الموصى به لتصميم البنر بالذكاء الاصطناعي (AI):
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
+                    <LightbulbIcon size={14} color="#f59e0b" />
+                    <span>دليل التصميم الاحترافي للبنر بالذكاء الاصطناعي (ChatGPT / DALL-E / Midjourney):</span>
                   </div>
-                  <div>
-                    • النسبة الذهبية: <strong>4:1 أو 16:5</strong> (المقاس: <strong>1280 × 320 بكسل</strong> أو <strong>1600 × 400</strong>).
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' }}>
+                    <div>
+                      • <strong>النسبة البانورامية المعتمدة:</strong> نسبة <strong>16:5</strong> أو <strong>4:1</strong> (المقاس الأنسب: <strong>1600 × 400</strong> بكسل أو <strong>1280 × 320</strong> بكسل).
+                    </div>
+                    <div>
+                      • <strong>قاعدة منطقة الأمان (Safe Zone 60%):</strong> لأن نماذج الذكاء الاصطناعي تولد صوراً عريضة بنسبة 16:9، اطلب دائماً حصر اسم المتجر والمنتجات والنصوص في الـ <strong>60% الوسطى</strong> فقط من الكادر، وترك الجانبين الأيمن والأيسر كخلفية ممتدة فقط بدون نصوص لضمان عدم قصها.
+                    </div>
+                    <div>
+                      • <strong>خلفية الأجواء التلقائية:</strong> عند اختيار نمط "احتواء كامل (Contain)"، يقوم المتجر تلقائياً بنشر إضاءة وألوان التصميم الضبابية على كامل عرض الشاشة لحماية صورتك من أي فراغات بيضاء أو قص للحروف.
+                    </div>
                   </div>
-                  <div>
-                    • نصيحة: اطلب من الـ AI ترك هامش أمان 15% حول الحواف لضمان ظهور النصوص والشعار كاملة.
+
+                  {/* Ready-to-copy Prompt Card */}
+                  <div style={{
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    marginTop: '6px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>صيغة البرومبت المعتمدة للذكاء الاصطناعي:</span>
+                      <button
+                        type="button"
+                        onClick={handleCopyPrompt}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: promptCopied ? '#ecfdf5' : '#f1f5f9',
+                          color: promptCopied ? '#059669' : '#1e293b',
+                          border: promptCopied ? '1px solid #a7f3d0' : '1px solid #cbd5e1',
+                          borderRadius: '5px',
+                          padding: '3px 8px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {promptCopied ? <CheckIcon size={12} color="#059669" /> : <CopyIcon size={12} color="#475569" />}
+                        <span>{promptCopied ? 'تم نسخ الصيغة!' : 'نسخ البرومبت'}</span>
+                      </button>
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#64748b',
+                      background: '#f8fafc',
+                      padding: '6px 8px',
+                      borderRadius: '5px',
+                      border: '1px dashed #e2e8f0',
+                      userSelect: 'all',
+                      wordBreak: 'break-word',
+                    }}>
+                      {aiPromptTemplate}
+                    </div>
                   </div>
                 </div>
 

@@ -215,11 +215,29 @@ export function StorefrontBannerCarousel({
                   opacity: isActive ? 1 : 0,
                   pointerEvents: isActive ? 'auto' : 'none',
                   transition: 'opacity 0.45s ease-in-out',
-                  background: '#ffffff',
+                  background: '#090d16',
                   borderRadius: 'inherit',
                   overflow: 'hidden',
                 }}
               >
+                {/* Ambient Blurred Backdrop for Ultra-Wide Displays (Fills gaps with matching lighting) */}
+                {bannerFit === 'contain' && (
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      inset: '-25px',
+                      backgroundImage: `url(${url})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: slidePos,
+                      filter: 'blur(36px) saturate(1.3) brightness(0.65)',
+                      transform: 'scale(1.2)',
+                      pointerEvents: 'none',
+                      zIndex: 1,
+                    }}
+                  />
+                )}
+
                 <img
                   className="storefront-banner-img"
                   src={url}
@@ -227,6 +245,8 @@ export function StorefrontBannerCarousel({
                   loading={idx === 0 ? 'eager' : 'lazy'}
                   draggable={false}
                   style={{
+                    position: 'relative',
+                    zIndex: 2,
                     width: '100%',
                     height: '100%',
                     objectFit: bannerFit,
@@ -234,6 +254,7 @@ export function StorefrontBannerCarousel({
                     display: 'block',
                     borderRadius: 'inherit',
                     pointerEvents: 'none',
+                    filter: bannerFit === 'contain' ? 'drop-shadow(0 6px 24px rgba(0, 0, 0, 0.45))' : 'none',
                   }}
                 />
               </div>
