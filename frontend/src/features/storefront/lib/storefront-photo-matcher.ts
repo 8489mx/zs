@@ -1148,107 +1148,109 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
   const isFood = /وجب|سندوتش|ساندوتش|صاروخ|برجر|شاورما|فرايز|بطاطس|بيتزا|كفتة|كفته|بانيه|بانية|استربس|ستربس|كريب|مشوي|مشويات|طاجن|طواجن|فطير|حواوشي|دجاج|فراخ|لحم|ناجتس/.test(combined);
   const isFashion = /قميص|بنطلون|فستان|تيشيرت|حذاء|شنط|ملابس|كوتشي|جاكيت|سويت شيرت|عباي|طرح|نظار/.test(combined);
 
-  // Extract a clean brand or short label to display gracefully
-  let brandLabel = '';
-  if (/apple|ايفون|آيفون|ابل|أبل/i.test(combined)) brandLabel = 'APPLE';
-  else if (/samsung|سامسونج|جالكسي|galaxy/i.test(combined)) brandLabel = 'SAMSUNG';
-  else if (/xiaomi|شاومي|redmi|ريدمي|poco|بوكو/i.test(combined)) brandLabel = 'XIAOMI';
-  else if (/realme|ريلمي/i.test(combined)) brandLabel = 'REALME';
-  else if (/oppo|اوبو|أوبو/i.test(combined)) brandLabel = 'OPPO';
-  else if (/infinix|انفينكس|إنفينكس/i.test(combined)) brandLabel = 'INFINIX';
-  else if (/honor|هونر/i.test(combined)) brandLabel = 'HONOR';
-  else if (isPhone) brandLabel = 'SMARTPHONE';
-  else if (isPC) brandLabel = 'COMPUTER';
-  else if (isAudio) brandLabel = 'AUDIO';
-  else if (isCharger) brandLabel = 'ACCESSORY';
-  else if (isSmartwatch) brandLabel = 'SMARTWATCH';
-  else if (isHerbal) brandLabel = 'HERBS & SPICES';
-  else if (isFood) brandLabel = 'GOURMET';
-  else if (isFashion) brandLabel = 'FASHION';
-  else brandLabel = cleanCat ? cleanCat.slice(0, 16).toUpperCase() : 'PRODUCT';
+  let theme = {
+    bg: '#f1f5f9',
+    border: '#e2e8f0',
+    icon: `
+      <rect x="87" y="87" width="26" height="26" rx="5" fill="#475569" opacity="0.15" stroke="#475569" stroke-width="2" />
+      <path d="M87 96h26M100 87v26" stroke="#475569" stroke-width="1.5" />
+    `,
+  };
 
-  let silhouetteSvg = '';
-
-  if (isPhone) {
-    silhouetteSvg = `
-      <rect x="76" y="24" width="48" height="82" rx="9" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.8" />
-      <rect x="80" y="30" width="40" height="70" rx="5" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
-      <rect x="94" y="26.5" width="12" height="3" rx="1.5" fill="#94a3b8" />
-      <circle cx="100" cy="65" r="12" fill="#f1f5f9" />
-      <path d="M96 65h8M100 61v8" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" />
-    `;
+  if (isAudio) {
+    theme = {
+      bg: '#e0f2fe',
+      border: '#bae6fd',
+      icon: `
+        <path d="M85 103v-5a15 15 0 0 1 30 0v5" fill="none" stroke="#0284c7" stroke-width="2.6" stroke-linecap="round" />
+        <rect x="81" y="96" width="7" height="13" rx="3.5" fill="#0284c7" />
+        <rect x="112" y="96" width="7" height="13" rx="3.5" fill="#0284c7" />
+      `,
+    };
+  } else if (isPhone) {
+    theme = {
+      bg: '#f3e8ff',
+      border: '#e9d5ff',
+      icon: `
+        <rect x="88" y="83" width="24" height="38" rx="6" fill="#7e22ce" opacity="0.12" stroke="#7e22ce" stroke-width="2" />
+        <line x1="97" y1="87" x2="103" y2="87" stroke="#7e22ce" stroke-width="1.8" stroke-linecap="round" />
+        <circle cx="100" cy="115" r="1.5" fill="#7e22ce" />
+      `,
+    };
   } else if (isPC) {
-    silhouetteSvg = `
-      <rect x="62" y="32" width="76" height="48" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
-      <rect x="66" y="36" width="68" height="40" rx="2" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
-      <circle cx="100" cy="56" r="8" fill="#e2e8f0" />
-      <path d="M48 82h104a4 4 0 0 1 4 4v2H44v-2a4 4 0 0 1 4-4z" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" />
-      <line x1="90" y1="83" x2="110" y2="83" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" />
-    `;
-  } else if (isAudio) {
-    silhouetteSvg = `
-      <path d="M72 70V58a28 28 0 0 1 56 0v12" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" />
-      <rect x="66" y="66" width="12" height="22" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.8" />
-      <rect x="122" y="66" width="12" height="22" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.8" />
-    `;
+    theme = {
+      bg: '#eef2ff',
+      border: '#c7d2fe',
+      icon: `
+        <rect x="84" y="85" width="32" height="21" rx="2.5" fill="#4338ca" opacity="0.12" stroke="#4338ca" stroke-width="2" />
+        <path d="M78 110h44a2 2 0 0 1 2 2v1H76v-1a2 2 0 0 1 2-2z" fill="#4338ca" />
+      `,
+    };
   } else if (isCharger) {
-    silhouetteSvg = `
-      <rect x="80" y="36" width="40" height="44" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
-      <rect x="92" y="24" width="4" height="12" rx="1" fill="#94a3b8" />
-      <rect x="104" y="24" width="4" height="12" rx="1" fill="#94a3b8" />
-      <circle cx="100" cy="58" r="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" />
-      <path d="M100 80c0 8 16 8 16 16" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" />
-    `;
+    theme = {
+      bg: '#ecfdf5',
+      border: '#a7f3d0',
+      icon: `
+        <rect x="87" y="89" width="26" height="25" rx="5" fill="#059669" opacity="0.12" stroke="#059669" stroke-width="2" />
+        <line x1="94" y1="83" x2="94" y2="89" stroke="#059669" stroke-width="2" stroke-linecap="round" />
+        <line x1="106" y1="83" x2="106" y2="89" stroke="#059669" stroke-width="2" stroke-linecap="round" />
+        <circle cx="100" cy="101" r="3" fill="#059669" />
+      `,
+    };
   } else if (isSmartwatch) {
-    silhouetteSvg = `
-      <rect x="86" y="20" width="28" height="88" rx="4" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.2" />
-      <rect x="78" y="40" width="44" height="48" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="2" />
-      <rect x="82" y="44" width="36" height="40" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
-      <circle cx="100" cy="64" r="8" fill="none" stroke="#94a3b8" stroke-width="1.5" />
-      <polyline points="100 59 100 64 104 64" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" />
-    `;
+    theme = {
+      bg: '#f0fdf4',
+      border: '#bbf7d0',
+      icon: `
+        <rect x="93" y="80" width="14" height="40" rx="3" fill="#16a34a" opacity="0.18" />
+        <rect x="87" y="87" width="26" height="26" rx="7" fill="#ffffff" stroke="#16a34a" stroke-width="2" />
+        <circle cx="100" cy="100" r="3.5" fill="#16a34a" />
+      `,
+    };
   } else if (isHerbal) {
-    silhouetteSvg = `
-      <rect x="78" y="42" width="44" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
-      <rect x="84" y="32" width="32" height="10" rx="3" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" />
-      <path d="M100 54c6 0 10 5 10 11-6 0-10-5-10-11z" fill="#10b981" opacity="0.75" />
-      <path d="M100 54c-6 0-10 5-10 11 6 0 10-5 10-11z" fill="#059669" opacity="0.65" />
-      <line x1="100" y1="54" x2="100" y2="76" stroke="#047857" stroke-width="1.5" stroke-linecap="round" />
-    `;
+    theme = {
+      bg: '#fef3c7',
+      border: '#fde68a',
+      icon: `
+        <rect x="87" y="91" width="26" height="25" rx="5" fill="#d97706" opacity="0.12" stroke="#d97706" stroke-width="2" />
+        <rect x="91" y="86" width="18" height="5" rx="1.5" fill="#b45309" />
+        <path d="M100 96c3.5 0 5.5 3 5.5 6.5-3.5 0-5.5-3-5.5-6.5z" fill="#059669" />
+        <path d="M100 96c-3.5 0-5.5 3-5.5 6.5 3.5 0 5.5-3 5.5-6.5z" fill="#047857" />
+      `,
+    };
   } else if (isFood) {
-    silhouetteSvg = `
-      <path d="M60 76c0-22 18-40 40-40s40 18 40 40H60z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
-      <circle cx="100" cy="32" r="4" fill="#94a3b8" />
-      <line x1="52" y1="80" x2="148" y2="80" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" />
-    `;
+    theme = {
+      bg: '#fff7ed',
+      border: '#fed7aa',
+      icon: `
+        <path d="M84 104c0-9 7-16 16-16s16 7 16 16H84z" fill="#ea580c" opacity="0.15" stroke="#ea580c" stroke-width="2" />
+        <circle cx="100" cy="85" r="2.5" fill="#ea580c" />
+        <line x1="80" y1="107" x2="120" y2="107" stroke="#ea580c" stroke-width="2" stroke-linecap="round" />
+      `,
+    };
   } else if (isFashion) {
-    silhouetteSvg = `
-      <path d="M100 36a8 8 0 0 1 8 8c0 5-5 7-8 7" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" />
-      <path d="M100 51l-44 26a3 3 0 0 0 1.5 5.5h85a3 3 0 0 0 1.5-5.5L100 51z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
-    `;
-  } else {
-    silhouetteSvg = `
-      <rect x="74" y="34" width="52" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
-      <line x1="74" y1="52" x2="126" y2="52" stroke="#e2e8f0" stroke-width="1.2" stroke-dasharray="3 3" />
-      <path d="M92 34l8 18 8-18" fill="none" stroke="#cbd5e1" stroke-width="1.2" />
-      <circle cx="100" cy="67" r="7" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" />
-    `;
+    theme = {
+      bg: '#fdf2f8',
+      border: '#fbcfe8',
+      icon: `
+        <path d="M100 87a4 4 0 0 1 4 4c0 3-3 4-4 4" fill="none" stroke="#db2777" stroke-width="2" stroke-linecap="round" />
+        <path d="M100 95l-19 12a1.5 1.5 0 0 0 .7 2.8h36.6a1.5 1.5 0 0 0 .7-2.8L100 95z" fill="#db2777" opacity="0.12" stroke="#db2777" stroke-width="2" />
+      `,
+    };
   }
 
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 155" width="100%" height="100%">
-      <rect width="200" height="155" fill="#f8fafc" />
-      <rect x="12" y="10" width="176" height="135" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
-      <ellipse cx="100" cy="108" rx="36" ry="6" fill="#0f172a" opacity="0.04" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+      <!-- Seamless 100% Full-Bleed Studio Surface -->
+      <rect width="200" height="200" fill="#f8fafc" />
+      
+      <!-- Centered Premium Squircle Badge (Apple / Spotify Studio Standard) -->
+      <rect x="70" y="70" width="60" height="60" rx="18" fill="${theme.bg}" stroke="${theme.border}" stroke-width="1.5" />
+      
+      <!-- Crisp Centered Vector Icon -->
       <g>
-        ${silhouetteSvg}
+        ${theme.icon}
       </g>
-      <text x="100" y="126" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="700" fill="#64748b" letter-spacing="0.8">
-        ${brandLabel}
-      </text>
-      <text x="100" y="137" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8" font-weight="500" fill="#94a3b8">
-        صورة قريباً
-      </text>
     </svg>
   `.trim().replace(/\s+/g, ' ');
 
