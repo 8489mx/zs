@@ -751,10 +751,8 @@ export class StorefrontService {
 
     // 3. Initiate singleflight worker promise
     const generation = StorefrontService.catalogGeneration;
-    let fetchPromise: Promise<any>;
-    fetchPromise = (async () => {
-      try {
-        const tenant = await this.getTenantBySlug(cleanSlug);
+    const fetchPromise = (async () => {
+      const tenant = await this.getTenantBySlug(cleanSlug);
 
         // PERF-4: the five reads below are independent once the tenant is known — run them together
         // instead of five sequential round-trips (the catalog rebuild is on the shopper's critical path).
@@ -962,14 +960,15 @@ export class StorefrontService {
         }
 
         return result;
-      } finally {
-        if (this.inFlightCatalogPromises.get(cleanSlug) === fetchPromise) {
-          this.inFlightCatalogPromises.delete(cleanSlug);
-        }
-      }
     })();
 
     this.inFlightCatalogPromises.set(cleanSlug, fetchPromise);
+    fetchPromise.finally(() => {
+      if (this.inFlightCatalogPromises.get(cleanSlug) === fetchPromise) {
+        this.inFlightCatalogPromises.delete(cleanSlug);
+      }
+    });
+
     if (serveStale) {
       // Background refresh: a failure keeps serving the stale copy until staleUntil, never an unhandled rejection.
       fetchPromise.catch(() => undefined);
