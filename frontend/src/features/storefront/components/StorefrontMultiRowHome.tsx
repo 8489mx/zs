@@ -109,16 +109,25 @@ export function StorefrontMultiRowHome({
           style={{
             padding: '10px 24px',
             borderRadius: '10px',
-            background: '#170e5e',
-            color: '#ffffff',
+            background: 'var(--storefront-primary-color, #170e5e)',
+            color: 'var(--storefront-primary-contrast, #ffffff)',
             border: 'none',
             fontSize: '13.5px',
             fontWeight: 800,
             cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(23, 14, 94, 0.2)',
+            boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.2))',
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
+            transition: 'filter 0.15s ease, transform 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.filter = 'brightness(1.08)';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.filter = 'none';
+            e.currentTarget.style.transform = 'translateY(0)';
           }}
         >
           <IconFolder size={16} strokeWidth={2} />

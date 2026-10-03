@@ -43,7 +43,7 @@ export function StorefrontLiveCartPill({
         WebkitBackdropFilter: 'blur(16px)',
         borderRadius: '999px',
         border: '1px solid rgba(255, 255, 255, 0.9)',
-        borderRight: '4.5px solid #170e5e',
+        borderRight: '4.5px solid var(--storefront-primary-color, #170e5e)',
         boxShadow: '0 12px 32px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08)',
         padding: '8px 14px',
         display: 'flex',
@@ -140,15 +140,15 @@ export function StorefrontLiveCartPill({
           }}
           disabled={!isMinOrderMet}
           style={{
-            background: isMinOrderMet ? '#170e5e' : '#94a3b8',
-            color: '#ffffff',
+            background: isMinOrderMet ? 'var(--storefront-primary-color, #170e5e)' : '#94a3b8',
+            color: 'var(--storefront-primary-contrast, #ffffff)',
             border: 'none',
             fontSize: '12px',
             fontWeight: 800,
             padding: '6px 14px',
             borderRadius: '999px',
             cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
-            boxShadow: isMinOrderMet ? '0 2px 6px rgba(23, 14, 94, 0.25)' : 'none',
+            boxShadow: isMinOrderMet ? '0 2px 6px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.25))' : 'none',
             whiteSpace: 'nowrap',
           }}
         >

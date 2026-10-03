@@ -538,8 +538,8 @@ export function StorefrontLiveCartDock({
               width: '100%',
               padding: '13px 18px',
               borderRadius: '12px',
-              background: isMinOrderMet ? 'var(--storefront-secondary-color, #d97706)' : '#94a3b8',
-              color: 'var(--storefront-secondary-contrast, #ffffff)',
+              background: isMinOrderMet ? 'var(--storefront-primary-color, #170e5e)' : '#94a3b8',
+              color: 'var(--storefront-primary-contrast, #ffffff)',
               border: 'none',
               fontSize: '14px',
               fontWeight: 800,
@@ -548,7 +548,7 @@ export function StorefrontLiveCartDock({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              boxShadow: isMinOrderMet ? '0 4px 14px rgba(23, 14, 94, 0.28)' : 'none',
+              boxShadow: isMinOrderMet ? '0 4px 14px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.28))' : 'none',
               transition: 'all 0.15s ease',
             }}
           >

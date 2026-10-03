@@ -154,7 +154,7 @@ export function StorefrontPredictiveSearch({
           onClick={() => setIsOpen(false)}
           style={{
             background: 'var(--storefront-primary-color, #170e5e)',
-            color: '#ffffff',
+            color: 'var(--storefront-primary-contrast, #ffffff)',
             border: 'none',
             borderRadius: '8px',
             padding: '8px 16px',

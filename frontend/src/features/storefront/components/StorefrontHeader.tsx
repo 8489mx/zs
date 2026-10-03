@@ -442,13 +442,13 @@ export function StorefrontHeader({
               gap: '8px',
               padding: '9px 18px',
               borderRadius: '10px',
-              background: 'var(--storefront-primary-color, #0f172a)',
-              color: '#ffffff',
+              background: 'var(--storefront-primary-color, #170e5e)',
+              color: 'var(--storefront-primary-contrast, #ffffff)',
               fontSize: '13px',
               fontWeight: 800,
               border: 'none',
               cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
+              boxShadow: '0 4px 14px var(--storefront-primary-subtle, rgba(0, 0, 0, 0.15))',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.15)')}

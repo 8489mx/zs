@@ -62,7 +62,7 @@ export function StorefrontCategoriesModal({
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <IconFolder size={20} color="#170e5e" strokeWidth={2} />
+              <IconFolder size={20} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2} />
               <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
                 تصفح أقسام المتجر ({categories.length} قسم)
               </h2>
@@ -141,8 +141,8 @@ export function StorefrontCategoriesModal({
               }}
               style={{
                 borderRadius: '12px',
-                border: selectedCategoryId === 'all' ? '2px solid #170e5e' : '1px solid #e2e8f0',
-                background: selectedCategoryId === 'all' ? '#f0f3ff' : '#f8fafc',
+                border: selectedCategoryId === 'all' ? '2px solid var(--storefront-primary-color, #170e5e)' : '1px solid #e2e8f0',
+                background: selectedCategoryId === 'all' ? 'var(--storefront-primary-subtle, #f0f3ff)' : '#f8fafc',
                 padding: '14px',
                 height: '130px',
                 display: 'flex',
@@ -162,15 +162,15 @@ export function StorefrontCategoriesModal({
                   width: '46px',
                   height: '46px',
                   borderRadius: '50%',
-                  background: '#170e5e',
-                  color: '#ffffff',
+                  background: 'var(--storefront-primary-color, #170e5e)',
+                  color: 'var(--storefront-primary-contrast, #ffffff)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: '8px',
                 }}
               >
-                <IconShoppingBag size={20} color="#ffffff" strokeWidth={2} />
+                <IconShoppingBag size={20} color="var(--storefront-primary-contrast, #ffffff)" strokeWidth={2} />
               </div>
               <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a', marginBottom: '2px' }}>
                 جميع المنتجات
@@ -196,7 +196,7 @@ export function StorefrontCategoriesModal({
                 }}
                 style={{
                   borderRadius: '12px',
-                  border: isSelected ? '2px solid #170e5e' : '1px solid #e2e8f0',
+                  border: isSelected ? '2px solid var(--storefront-primary-color, #170e5e)' : '1px solid #e2e8f0',
                   background: '#ffffff',
                   height: '130px',
                   overflow: 'hidden',
@@ -276,7 +276,7 @@ export function StorefrontCategoriesModal({
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '6px 8px',
-                    background: isSelected ? '#f0f3ff' : '#ffffff',
+                    background: isSelected ? 'var(--storefront-primary-subtle, #f0f3ff)' : '#ffffff',
                     textAlign: 'center',
                   }}
                 >
@@ -284,7 +284,7 @@ export function StorefrontCategoriesModal({
                     style={{
                       fontSize: '12px',
                       fontWeight: 800,
-                      color: isSelected ? '#170e5e' : '#0f172a',
+                      color: isSelected ? 'var(--storefront-primary-color, #170e5e)' : '#0f172a',
                       lineHeight: '1.3',
                       display: '-webkit-box',
                       WebkitLineClamp: 2,

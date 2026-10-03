@@ -403,13 +403,13 @@ export function StorefrontCartDrawer({
                   flex: 1,
                   padding: '12px 16px',
                   borderRadius: '10px',
-                  background: isMinOrderMet ? 'var(--storefront-secondary-color, #d97706)' : '#94a3b8',
-                  color: 'var(--storefront-secondary-contrast, #ffffff)',
+                  background: isMinOrderMet ? 'var(--storefront-primary-color, #170e5e)' : '#94a3b8',
+                  color: 'var(--storefront-primary-contrast, #ffffff)',
                   fontSize: '14px',
                   fontWeight: 800,
                   border: 'none',
                   cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
-                  boxShadow: isMinOrderMet ? '0 4px 14px rgba(0, 0, 0, 0.15)' : 'none',
+                  boxShadow: isMinOrderMet ? '0 4px 14px var(--storefront-primary-subtle, rgba(0, 0, 0, 0.15))' : 'none',
                   transition: 'all 0.15s ease',
                 }}
               >
