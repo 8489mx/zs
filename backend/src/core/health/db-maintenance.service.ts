@@ -151,7 +151,7 @@ export class DatabaseMaintenanceService implements OnApplicationBootstrap {
       let reapedCount = 0;
       for (const ord of expiredOrders) {
         // Enforce 24h window for Cash-on-Delivery, 30m for online/card payments
-        const timeoutMs = ord.payment_method === 'cash' ? 24 * 60 * 60 * 1000 : 30 * 60 * 1000;
+        const timeoutMs = ord.payment_method === 'cod' ? 24 * 60 * 60 * 1000 : 30 * 60 * 1000;
         const currentCutoff = new Date(nowMs - timeoutMs);
         if (ord.stock_reserved_at && new Date(ord.stock_reserved_at).getTime() > currentCutoff.getTime()) {
           continue; // Order was refreshed or is COD within 24h window
@@ -172,6 +172,8 @@ export class DatabaseMaintenanceService implements OnApplicationBootstrap {
               .where(sql<boolean>`tenant_id = ${ord.tenant_id}`)
               .where('stock_reserved', '=', true)
               .where('status', '=', 'pending')
+              .where('payment_status', '!=', 'paid')
+              .where('sale_id', 'is', null)
               .where('stock_reserved_at', '<=', currentCutoff)
               .executeTakeFirst();
 

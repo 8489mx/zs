@@ -10,7 +10,6 @@ import { InventoryScopeService } from '../../inventory/services/inventory-scope.
 import { normalizeArabicInput, normalizeArabicSearch } from '../../../common/utils/arabic-search.util';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { buildPosCatalogVersion } from '../engines/pos-catalog-version.engine';
-import { StorefrontService } from '../../storefront/storefront.service';
 
 type ProductRow = {
   id: number;
@@ -1569,7 +1568,6 @@ export class CatalogProductService {
     await db.updateTable('products').set({
       catalog_updated_at: sql`NOW()`,
     } as any).where('id', '=', productId).where(this.tenantPredicate(actor)).execute();
-    StorefrontService.invalidateGlobalCatalogCache();
   }
 
   async createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> {
@@ -1695,7 +1693,7 @@ export class CatalogProductService {
       ? `تم إضافة مجموعة أصناف ${normalized.name} بعدد ${drafts.length} عناصر فرعية بواسطة ${actor.username}`
       : `تم إضافة الصنف ${normalized.name} بواسطة ${actor.username}`;
     await this.audit.log('إضافة صنف', auditLabel, actor);
-    StorefrontService.invalidateGlobalCatalogCache();
+    (await import('../../storefront/storefront.service')).StorefrontService.invalidateGlobalCatalogCache();
     return { ok: true, id: firstProductId, products: (await this.listProducts({}, actor)).products };
   }
 
@@ -1762,7 +1760,7 @@ export class CatalogProductService {
       await this.replaceProductRelations(trx, id, normalized, actor);
     });
 
-    StorefrontService.invalidateGlobalCatalogCache();
+    (await import('../../storefront/storefront.service')).StorefrontService.invalidateGlobalCatalogCache();
     await this.audit.log('تعديل صنف', `تم تحديث الصنف #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, products: (await this.listProducts({}, actor)).products };
   }
@@ -1780,7 +1778,7 @@ export class CatalogProductService {
       await trx.deleteFrom('product_customer_prices').where('product_id', '=', id).where(this.tenantPredicate(actor)).execute();
       await trx.deleteFrom('products').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
     });
-    StorefrontService.invalidateGlobalCatalogCache();
+    (await import('../../storefront/storefront.service')).StorefrontService.invalidateGlobalCatalogCache();
     await this.audit.log('حذف صنف', `تم حذف الصنف #${id} نهائياً بواسطة ${actor.username}`, actor);
     return { ok: true, products: (await this.listProducts({}, actor)).products };
   }
@@ -1806,7 +1804,7 @@ export class CatalogProductService {
       .where(this.tenantPredicate(actor))
       .execute();
 
-    StorefrontService.invalidateGlobalCatalogCache();
+    (await import('../../storefront/storefront.service')).StorefrontService.invalidateGlobalCatalogCache();
     const actionLabel = nextActive ? 'تنشيط صنف' : 'أرشفة صنف';
     const auditDetail = nextActive
       ? `تم إلغاء أرشفة وتنشيط الصنف ${product.name} (#${id}) بواسطة ${actor.username}`

@@ -348,10 +348,11 @@ export function StorefrontProductQuickViewModal({
                   <CurrencySymbol />
                 </span>
                 {product.hasDiscount && product.originalPrice && product.originalPrice > product.price && (
-                  <>
                     <span style={{ fontSize: '13.5px', color: '#94a3b8', textDecoration: 'line-through', marginInlineStart: '4px' }}>
                       {product.originalPrice.toLocaleString()} <CurrencySymbol />
                     </span>
+                )}
+                {(product.hasDiscount || product.offerType === 'bogo') && product.offerBadge && (
                     <span
                       style={{
                         fontSize: '11px',
@@ -365,7 +366,6 @@ export function StorefrontProductQuickViewModal({
                     >
                       {product.offerBadge || (product.discountPercent ? `خصم ${product.discountPercent}%` : 'عرض خاص')}
                     </span>
-                  </>
                 )}
               </div>
 

@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, NotFoundException, BadRequestException, UnauthorizedException, Optional } from '@nestjs/common';
-import { Kysely, sql, type Transaction } from 'kysely';
+import { Kysely, sql, type Transaction, type Selectable } from 'kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
@@ -41,6 +41,8 @@ export interface StorefrontWebhookResult {
   received?: boolean;
 }
 
+type LockedOnlineOrder = Selectable<Database['online_orders']>;
+
 @Injectable()
 export class StorefrontPaymentService {
   private readonly logger = new Logger(StorefrontPaymentService.name);
@@ -49,6 +51,60 @@ export class StorefrontPaymentService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     @Optional() private readonly whatsappService?: WhatsAppGatewayService,
   ) {}
+
+  private async expectedPaymentCurrency(trx: Transaction<Database>, tenantId: string, provider: string): Promise<string> {
+    if (provider === 'paymob' || provider === 'xpay') return 'EGP';
+    const row = await trx.selectFrom('settings').select('value')
+      .where(sql<boolean>`tenant_id = ${tenantId}`).where('key', '=', 'currency').executeTakeFirst();
+    let value = String(row?.value || '');
+    try { value = String(JSON.parse(value)); } catch {}
+    const currency = value.trim().toUpperCase();
+    return provider === 'tap' && (!currency || currency === 'EGP') ? 'SAR' : currency || 'USD';
+  }
+
+  private paymentReviewReason(
+    order: LockedOnlineOrder, provider: string, sessionId: string,
+    amountMinor: unknown, currency: unknown, expectedCurrency: string,
+  ): string | null {
+    if (order.status === 'cancelled' || order.status === 'payment_failed' || order.status === 'review_required' ||
+        order.sale_id != null || (order.stock_reserved === false && order.stock_reserved_at != null)) {
+      return 'late_or_released_order';
+    }
+    if (order.gateway_provider !== provider || !order.gateway_order_id ||
+        !sessionId || String(order.gateway_order_id) !== sessionId) return 'payment_session_mismatch';
+    const paidMinor = Number(amountMinor);
+    const expectedMinor = Math.round(Number(order.total_amount) * 100);
+    if (!Number.isSafeInteger(paidMinor) || paidMinor !== expectedMinor) return 'amount_mismatch';
+    if (typeof currency !== 'string' || currency.toUpperCase() !== expectedCurrency) return 'currency_mismatch';
+    return null;
+  }
+
+  private async markPaymentForReview(
+    trx: Transaction<Database>, order: LockedOnlineOrder, provider: string,
+    transactionId: string, sessionId: string, response: unknown, reason: string,
+  ): Promise<StorefrontWebhookResult> {
+    await trx.updateTable('online_orders').set({
+      payment_status: 'paid', status: 'review_required',
+      gateway_provider: order.payment_status === 'paid' ? order.gateway_provider : provider,
+      gateway_transaction_id: order.payment_status === 'paid' ? order.gateway_transaction_id : transactionId,
+      gateway_response_json: JSON.stringify({ reason, receivedTransactionId: transactionId,
+        receivedSessionId: sessionId, previousTransactionId: order.gateway_transaction_id, webhook: response }),
+      paid_at: order.paid_at || new Date(), updated_at: new Date(),
+    }).where('id', '=', order.id).where(sql<boolean>`tenant_id = ${order.tenant_id}`).execute();
+    this.logger.warn(`${provider} payment requires review for online order ${order.id}: ${reason}`);
+    return { ok: true, status: 'review_required', orderNumber: order.order_number };
+  }
+
+  private isCurrentPaymentSession(order: LockedOnlineOrder, provider: string, sessionId: string): boolean {
+    return order.gateway_provider === provider && Boolean(sessionId) &&
+      Boolean(order.gateway_order_id) && String(order.gateway_order_id) === sessionId;
+  }
+
+  private isRepeatedPaidWebhook(order: LockedOnlineOrder, provider: string, transactionId: string, sessionId: string): boolean {
+    return order.payment_status === 'paid' && order.gateway_provider === provider &&
+      Boolean(transactionId) && String(order.gateway_transaction_id || '') === transactionId &&
+      this.isCurrentPaymentSession(order, provider, sessionId);
+  }
 
   private async getTenantBySlug(slug: string) {
     const cleanSlug = String(slug || '').trim().toLowerCase();
@@ -226,7 +282,7 @@ export class StorefrontPaymentService {
       };
     }
 
-    if (order.status === 'cancelled' || order.sale_id) {
+    if (['cancelled', 'payment_failed', 'review_required'].includes(order.status) || order.sale_id) {
       throw new BadRequestException('لا يمكن سداد هذا الطلب إلكترونياً في حالته الحالية.');
     }
 
@@ -802,12 +858,6 @@ export class StorefrontPaymentService {
       return { ok: false, message: 'Order not found' };
     }
 
-    // Idempotency: skip re-processing and re-notifying if already paid
-    if (order.payment_status === 'paid') {
-      this.logger.log(`Paymob Webhook: Order ${order.order_number} is already paid. Skipping duplicate notification.`);
-      return { ok: true, status: 'paid', orderNumber: order.order_number, alreadyPaid: true };
-    }
-
     // Validate HMAC (Fail-Closed: without a configured secret or signature header, reject)
     const config = await this.getTenantPaymentConfig(order.tenant_id);
     const hmacHeader = (headers['hmac'] || headers['HMAC'] || '') as string;
@@ -866,48 +916,16 @@ export class StorefrontPaymentService {
       }
 
       if (lockedOrder.payment_status === 'paid') {
-        this.logger.log(`Paymob Webhook: Order ${lockedOrder.order_number} is already paid. Skipping duplicate notification.`);
-        return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number, alreadyPaid: true };
+        if (isSuccessful && !this.isRepeatedPaidWebhook(lockedOrder, 'paymob', String(obj.id || ''), String(obj.order?.id || ''))) {
+          return this.markPaymentForReview(trx, lockedOrder, 'paymob', String(obj.id || ''), String(obj.order?.id || ''), body, 'additional_payment');
+        }
+        return { ok: true, status: lockedOrder.status === 'review_required' ? 'review_required' : 'paid', orderNumber: lockedOrder.order_number, alreadyPaid: true };
       }
 
       if (isSuccessful) {
-        // P0-3: Strict Amount & Currency Verification
-        const expectedCents = Math.round(Number(lockedOrder.total_amount) * 100);
-        if (obj.amount_cents !== undefined && Math.abs(Number(obj.amount_cents) - expectedCents) > 1) {
-          this.logger.error(`Paymob amount mismatch for ${lockedOrder.order_number}: expected ${expectedCents} cents, got ${obj.amount_cents}`);
-          throw new BadRequestException('مبلغ الدفع المسدد لا يطابق إجمالي الطلب');
-        }
-        if (obj.currency && String(obj.currency).toUpperCase() !== 'EGP') {
-          this.logger.error(`Paymob currency mismatch for ${lockedOrder.order_number}: expected EGP, got ${obj.currency}`);
-          throw new BadRequestException('عملة الدفع غير مطابقة للطلب');
-        }
-
-        // P0-1: Late Webhook / Cancelled / Unreserved Order Protection
-        const isCancelledOrReleased =
-          lockedOrder.status === 'cancelled' ||
-          lockedOrder.status === 'payment_failed' ||
-          (lockedOrder.stock_reserved === false && (lockedOrder as any).stock_reserved_at != null);
-        if (isCancelledOrReleased) {
-          await trx
-            .updateTable('online_orders')
-            .set({
-              payment_status: 'paid',
-              status: 'review_required',
-              gateway_provider: 'paymob',
-              gateway_transaction_id: String(obj.id || ''),
-              gateway_order_id: String(obj.order?.id || lockedOrder.gateway_order_id || ''),
-              gateway_response_json: JSON.stringify(body),
-              paid_at: new Date(),
-              customer_notes: sql`CONCAT(COALESCE(customer_notes, ''), ' [تم استلام سداد إلكتروني متأخر لطلب ملغي أو منتهي الحجز - يتطلب مراجعة التاجر أو استرداد المبلغ]')`,
-              updated_at: new Date(),
-            })
-            .where('id', '=', lockedOrder.id)
-            .where(sql<boolean>`tenant_id = ${lockedOrder.tenant_id}`)
-            .execute();
-
-          this.logger.warn(`Paymob Webhook: Late payment for cancelled/unreserved order ${lockedOrder.order_number} marked as review_required.`);
-          return { ok: true, status: 'review_required', orderNumber: lockedOrder.order_number, latePayment: true };
-        }
+        const sessionId = String(obj.order?.id || '');
+        const reason = this.paymentReviewReason(lockedOrder, 'paymob', sessionId, obj.amount_cents, obj.currency, 'EGP');
+        if (reason) return this.markPaymentForReview(trx, lockedOrder, 'paymob', String(obj.id || ''), sessionId, body, reason);
 
         await trx
           .updateTable('online_orders')
@@ -929,6 +947,10 @@ export class StorefrontPaymentService {
         this.logger.log(`Order ${lockedOrder.order_number} marked as PAID via Paymob Webhook.`);
         return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number };
       } else {
+        if (obj.pending !== false || obj.success !== false) return { ok: true, received: true };
+        if (!this.isCurrentPaymentSession(lockedOrder, 'paymob', String(obj.order?.id || '')) || lockedOrder.status !== 'pending') {
+          return { ok: true, received: true };
+        }
         await this.compensateFailedOrderPayment(trx, lockedOrder, body);
         this.logger.warn(`Order ${lockedOrder.order_number} marked as FAILED via Paymob Webhook; stock reservation released.`);
         return { ok: true, status: 'failed', orderNumber: lockedOrder.order_number };
@@ -970,12 +992,6 @@ export class StorefrontPaymentService {
       return { ok: false, message: 'Order not found' };
     }
 
-    // Idempotency: skip re-processing and re-notifying if already paid
-    if (order.payment_status === 'paid') {
-      this.logger.log(`XPay Webhook: Order ${order.order_number} is already paid. Skipping duplicate notification.`);
-      return { ok: true, status: 'paid', orderNumber: order.order_number, alreadyPaid: true };
-    }
-
     // Cryptographic signature check (Fail-closed)
     const config = await this.getTenantPaymentConfig(order.tenant_id);
     const xpaySecret = config.xpayApiKey || process.env.XPAY_WEBHOOK_SECRET || process.env.XPAY_API_KEY || '';
@@ -1013,43 +1029,17 @@ export class StorefrontPaymentService {
       }
 
       if (lockedOrder.payment_status === 'paid') {
-        this.logger.log(`XPay Webhook: Order ${lockedOrder.order_number} is already paid. Skipping duplicate notification.`);
-        return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number, alreadyPaid: true };
+        if (isSuccessful && !this.isRepeatedPaidWebhook(lockedOrder, 'xpay', transactionId, transactionId)) {
+          return this.markPaymentForReview(trx, lockedOrder, 'xpay', transactionId, transactionId, body, 'additional_payment');
+        }
+        return { ok: true, status: lockedOrder.status === 'review_required' ? 'review_required' : 'paid', orderNumber: lockedOrder.order_number, alreadyPaid: true };
       }
 
       if (isSuccessful) {
-        // P0-3: Strict Amount Verification
-        const xpayAmount = Number(data?.amount ?? data?.total_amount ?? body?.amount);
-        if (!isNaN(xpayAmount) && xpayAmount > 0 && Math.abs(xpayAmount - Number(lockedOrder.total_amount)) > 0.05) {
-          this.logger.error(`XPay amount mismatch for ${lockedOrder.order_number}: expected ${lockedOrder.total_amount}, got ${xpayAmount}`);
-          throw new BadRequestException('مبلغ الدفع المسدد لا يطابق إجمالي الطلب');
-        }
-
-        // P0-1: Late Webhook / Cancelled / Unreserved Order Protection
-        const isCancelledOrReleased =
-          lockedOrder.status === 'cancelled' ||
-          lockedOrder.status === 'payment_failed' ||
-          (lockedOrder.stock_reserved === false && (lockedOrder as any).stock_reserved_at != null);
-        if (isCancelledOrReleased) {
-          await trx
-            .updateTable('online_orders')
-            .set({
-              payment_status: 'paid',
-              status: 'review_required',
-              gateway_provider: 'xpay',
-              gateway_transaction_id: transactionId,
-              gateway_response_json: JSON.stringify(body),
-              paid_at: new Date(),
-              customer_notes: sql`CONCAT(COALESCE(customer_notes, ''), ' [تم استلام سداد إلكتروني متأخر لطلب ملغي أو منتهي الحجز - يتطلب مراجعة التاجر أو استرداد المبلغ]')`,
-              updated_at: new Date(),
-            })
-            .where('id', '=', lockedOrder.id)
-            .where(sql<boolean>`tenant_id = ${lockedOrder.tenant_id}`)
-            .execute();
-
-          this.logger.warn(`XPay Webhook: Late payment for cancelled/unreserved order ${lockedOrder.order_number} marked as review_required.`);
-          return { ok: true, status: 'review_required', orderNumber: lockedOrder.order_number, latePayment: true };
-        }
+        const amount = data?.amount ?? data?.total_amount ?? body?.amount;
+        const amountMinor = amount === undefined || amount === null ? undefined : Math.round(Number(amount) * 100);
+        const reason = this.paymentReviewReason(lockedOrder, 'xpay', transactionId, amountMinor, data?.currency ?? body?.currency, 'EGP');
+        if (reason) return this.markPaymentForReview(trx, lockedOrder, 'xpay', transactionId, transactionId, body, reason);
 
         await trx
           .updateTable('online_orders')
@@ -1070,6 +1060,10 @@ export class StorefrontPaymentService {
         this.logger.log(`Order ${lockedOrder.order_number} marked as PAID via XPay Webhook.`);
         return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number };
       } else {
+        if (!['FAILED', 'DECLINED', 'CANCELLED', 'CANCELED', 'EXPIRED'].includes(transactionStatus) ||
+            !this.isCurrentPaymentSession(lockedOrder, 'xpay', transactionId) || lockedOrder.status !== 'pending') {
+          return { ok: true, received: true };
+        }
         await this.compensateFailedOrderPayment(trx, lockedOrder, body);
         this.logger.warn(`Order ${lockedOrder.order_number} marked as FAILED via XPay Webhook; stock reservation released.`);
         return { ok: true, status: 'failed', orderNumber: lockedOrder.order_number };
@@ -1111,7 +1105,7 @@ export class StorefrontPaymentService {
 
     // gateway_provider = 'mock' is what keeps this out of the books: resolveOnlineOrderCollection
     // never treats a mock payment as collected, so the delivery invoice stays cash-on-delivery.
-    await this.db
+    const updated = await this.db
       .updateTable('online_orders')
       .set({
         payment_status: 'paid',
@@ -1130,7 +1124,12 @@ export class StorefrontPaymentService {
       .where('id', '=', order.id)
       .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
       .where(sql<boolean>`COALESCE(payment_status, 'pending') <> 'paid'`)
-      .execute();
+      .where('status', 'not in', ['cancelled', 'payment_failed', 'review_required'])
+      .where('sale_id', 'is', null)
+      .executeTakeFirst();
+    if (Number(updated.numUpdatedRows) !== 1) {
+      throw new BadRequestException('تغيرت حالة الطلب أثناء الدفع التجريبي؛ يرجى تحديث الصفحة');
+    }
 
     // Trigger WhatsApp notification
     if (this.whatsappService) {
@@ -1184,12 +1183,6 @@ export class StorefrontPaymentService {
       return { ok: false, message: 'Order not found' };
     }
 
-    // Idempotency: skip re-processing and re-notifying if already paid
-    if (order.payment_status === 'paid') {
-      this.logger.log(`Tap Webhook: Order ${order.order_number} is already paid. Skipping duplicate notification.`);
-      return { ok: true, status: 'paid', orderNumber: order.order_number, alreadyPaid: true };
-    }
-
     // Tap Verification (Fail-closed)
     const config = await this.getTenantPaymentConfig(order.tenant_id);
     if (!config.tapSecretKey) {
@@ -1229,10 +1222,13 @@ export class StorefrontPaymentService {
           const tapCheckData: any = await tapCheckRes.json();
           const fetchedStatus = String(tapCheckData?.status || '').toUpperCase();
           const fetchedAmount = Number(tapCheckData?.amount || 0);
+          const fetchedCurrency = String(tapCheckData?.currency || '').toUpperCase();
           const fetchedOrderNum = String(tapCheckData?.metadata?.orderNumber || tapCheckData?.reference?.order || '');
           if ((fetchedStatus === 'CAPTURED' || fetchedStatus === 'PAID') &&
-              Math.abs(fetchedAmount - Number(order.total_amount || 0)) < 0.01 &&
-              (!fetchedOrderNum || fetchedOrderNum === order.order_number)) {
+              ['CAPTURED', 'PAID', 'SUCCESS'].includes(status) &&
+              Math.round(fetchedAmount * 100) === Math.round(Number(body?.amount) * 100) &&
+              fetchedCurrency === String(body?.currency || '').toUpperCase() &&
+              fetchedOrderNum === order.order_number) {
             isVerified = true;
           }
         }
@@ -1264,43 +1260,17 @@ export class StorefrontPaymentService {
       }
 
       if (lockedOrder.payment_status === 'paid') {
-        this.logger.log(`Tap Webhook: Order ${lockedOrder.order_number} is already paid. Skipping duplicate notification.`);
-        return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number, alreadyPaid: true };
+        if (isSuccessful && !this.isRepeatedPaidWebhook(lockedOrder, 'tap', chargeId, chargeId)) {
+          return this.markPaymentForReview(trx, lockedOrder, 'tap', chargeId, chargeId, body, 'additional_payment');
+        }
+        return { ok: true, status: lockedOrder.status === 'review_required' ? 'review_required' : 'paid', orderNumber: lockedOrder.order_number, alreadyPaid: true };
       }
 
       if (isSuccessful) {
-        // P0-3: Strict Amount Verification
-        const tapAmount = Number(body?.amount);
-        if (!isNaN(tapAmount) && tapAmount > 0 && Math.abs(tapAmount - Number(lockedOrder.total_amount)) > 0.05) {
-          this.logger.error(`Tap amount mismatch for ${lockedOrder.order_number}: expected ${lockedOrder.total_amount}, got ${tapAmount}`);
-          throw new BadRequestException('مبلغ الدفع المسدد لا يطابق إجمالي الطلب');
-        }
-
-        // P0-1: Late Webhook / Cancelled / Unreserved Order Protection
-        const isCancelledOrReleased =
-          lockedOrder.status === 'cancelled' ||
-          lockedOrder.status === 'payment_failed' ||
-          (lockedOrder.stock_reserved === false && (lockedOrder as any).stock_reserved_at != null);
-        if (isCancelledOrReleased) {
-          await trx
-            .updateTable('online_orders')
-            .set({
-              payment_status: 'paid',
-              status: 'review_required',
-              gateway_provider: 'tap',
-              gateway_transaction_id: chargeId,
-              gateway_response_json: JSON.stringify(body),
-              paid_at: new Date(),
-              customer_notes: sql`CONCAT(COALESCE(customer_notes, ''), ' [تم استلام سداد إلكتروني متأخر لطلب ملغي أو منتهي الحجز - يتطلب مراجعة التاجر أو استرداد المبلغ]')`,
-              updated_at: new Date(),
-            })
-            .where('id', '=', lockedOrder.id)
-            .where(sql<boolean>`tenant_id = ${lockedOrder.tenant_id}`)
-            .execute();
-
-          this.logger.warn(`Tap Webhook: Late payment for cancelled/unreserved order ${lockedOrder.order_number} marked as review_required.`);
-          return { ok: true, status: 'review_required', orderNumber: lockedOrder.order_number, latePayment: true };
-        }
+        const currency = await this.expectedPaymentCurrency(trx, lockedOrder.tenant_id, 'tap');
+        const amountMinor = body?.amount === undefined ? undefined : Math.round(Number(body.amount) * 100);
+        const reason = this.paymentReviewReason(lockedOrder, 'tap', chargeId, amountMinor, body?.currency, currency);
+        if (reason) return this.markPaymentForReview(trx, lockedOrder, 'tap', chargeId, chargeId, body, reason);
 
         await trx
           .updateTable('online_orders')
@@ -1321,6 +1291,9 @@ export class StorefrontPaymentService {
         this.logger.log(`Order ${lockedOrder.order_number} marked as PAID via Tap Webhook.`);
         return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number };
       } else if (isFailed) {
+        if (!this.isCurrentPaymentSession(lockedOrder, 'tap', chargeId) || lockedOrder.status !== 'pending') {
+          return { ok: true, received: true };
+        }
         await this.compensateFailedOrderPayment(trx, lockedOrder, body);
         this.logger.warn(`Order ${lockedOrder.order_number} marked as FAILED via Tap Webhook; stock reservation released.`);
         return { ok: true, status: 'failed', orderNumber: lockedOrder.order_number };
@@ -1365,12 +1338,6 @@ export class StorefrontPaymentService {
       return { ok: false, message: 'Order not found' };
     }
 
-    // Idempotency: skip re-processing and re-notifying if already paid
-    if (order.payment_status === 'paid') {
-      this.logger.log(`Stripe Webhook: Order ${order.order_number} is already paid. Skipping duplicate notification.`);
-      return { ok: true, status: 'paid', orderNumber: order.order_number, alreadyPaid: true };
-    }
-
     // Cryptographic signature check (Fail-closed + Replay Protection)
     const config = await this.getTenantPaymentConfig(order.tenant_id);
     const stripeSecret = config.stripeWebhookSecret || process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -1409,11 +1376,8 @@ export class StorefrontPaymentService {
       throw new UnauthorizedException('توقيع Stripe غير صحيح.');
     }
 
-    const isSuccessful =
-      eventType === 'checkout.session.completed' ||
-      eventType === 'payment_intent.succeeded' ||
-      obj?.payment_status === 'paid' ||
-      obj?.status === 'complete';
+    // A Checkout Session can be completed while an asynchronous payment is still unpaid.
+    const isSuccessful = eventType === 'checkout.session.completed' && obj?.payment_status === 'paid';
 
     const isFailed =
       eventType === 'payment_intent.payment_failed' ||
@@ -1437,49 +1401,19 @@ export class StorefrontPaymentService {
       }
 
       if (lockedOrder.payment_status === 'paid') {
-        this.logger.log(`Stripe Webhook: Order ${lockedOrder.order_number} is already paid. Skipping duplicate notification.`);
-        return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number, alreadyPaid: true };
+        const paidTransactionId = String(obj?.payment_intent || obj?.id || '');
+        if (isSuccessful && !this.isRepeatedPaidWebhook(lockedOrder, 'stripe', paidTransactionId, sessionId)) {
+          return this.markPaymentForReview(trx, lockedOrder, 'stripe', paidTransactionId, sessionId, body, 'additional_payment');
+        }
+        return { ok: true, status: lockedOrder.status === 'review_required' ? 'review_required' : 'paid', orderNumber: lockedOrder.order_number, alreadyPaid: true };
       }
 
       if (isSuccessful) {
-        // P0-3: Strict Amount Verification
-        const stripeTotal = obj?.amount_total || obj?.amount;
-        if (stripeTotal !== undefined && stripeTotal !== null) {
-          const stripeAmount = Number(stripeTotal) / 100;
-          if (!isNaN(stripeAmount) && stripeAmount > 0 && Math.abs(stripeAmount - Number(lockedOrder.total_amount)) > 0.05) {
-            this.logger.error(`Stripe amount mismatch for ${lockedOrder.order_number}: expected ${lockedOrder.total_amount}, got ${stripeAmount}`);
-            throw new BadRequestException('مبلغ الدفع المسدد لا يطابق إجمالي الطلب');
-          }
-        }
-
-        // P0-1: Late Webhook / Cancelled / Unreserved Order Protection
-        const isCancelledOrReleased =
-          lockedOrder.status === 'cancelled' ||
-          lockedOrder.status === 'payment_failed' ||
-          (lockedOrder.stock_reserved === false && (lockedOrder as any).stock_reserved_at != null);
-        if (isCancelledOrReleased) {
-          const txnId = String(obj?.payment_intent || obj?.id || '');
-          await trx
-            .updateTable('online_orders')
-            .set({
-              payment_status: 'paid',
-              status: 'review_required',
-              gateway_provider: 'stripe',
-              gateway_transaction_id: txnId,
-              gateway_response_json: JSON.stringify(body),
-              paid_at: new Date(),
-              customer_notes: sql`CONCAT(COALESCE(customer_notes, ''), ' [تم استلام سداد إلكتروني متأخر لطلب ملغي أو منتهي الحجز - يتطلب مراجعة التاجر أو استرداد المبلغ]')`,
-              updated_at: new Date(),
-            })
-            .where('id', '=', lockedOrder.id)
-            .where(sql<boolean>`tenant_id = ${lockedOrder.tenant_id}`)
-            .execute();
-
-          this.logger.warn(`Stripe Webhook: Late payment for cancelled/unreserved order ${lockedOrder.order_number} marked as review_required.`);
-          return { ok: true, status: 'review_required', orderNumber: lockedOrder.order_number, latePayment: true };
-        }
-
+        const currency = await this.expectedPaymentCurrency(trx, lockedOrder.tenant_id, 'stripe');
         const txnId = String(obj?.payment_intent || obj?.id || '');
+        const reason = this.paymentReviewReason(lockedOrder, 'stripe', sessionId, obj?.amount_total, obj?.currency, currency);
+        if (reason) return this.markPaymentForReview(trx, lockedOrder, 'stripe', txnId, sessionId, body, reason);
+
         await trx
           .updateTable('online_orders')
           .set({
@@ -1499,6 +1433,9 @@ export class StorefrontPaymentService {
         this.logger.log(`Order ${lockedOrder.order_number} marked as PAID via Stripe Webhook.`);
         return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number };
       } else if (isFailed) {
+        if (!this.isCurrentPaymentSession(lockedOrder, 'stripe', sessionId) || lockedOrder.status !== 'pending') {
+          return { ok: true, received: true };
+        }
         await this.compensateFailedOrderPayment(trx, lockedOrder, body);
         this.logger.warn(`Order ${lockedOrder.order_number} marked as FAILED via Stripe Webhook; stock reservation released.`);
         return { ok: true, status: 'failed', orderNumber: lockedOrder.order_number };

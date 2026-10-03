@@ -1,4 +1,4 @@
-import { createHash, randomBytes, timingSafeEqual } from 'crypto';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { buildStorePublicBase } from './store-public-url.engine';
 
 // Invariants SF-1 / SF-2 / SF-3 (ARCHITECTURE_INVARIANTS.md section 4).
@@ -17,6 +17,15 @@ export const ORDER_ACCESS_TOKEN_HEADER = 'x-order-token';
 /** Issues a new token. Only the hash is stored; the raw token goes back to the customer once. */
 export function issueOrderAccessToken(): { token: string; hash: string } {
   const token = randomBytes(24).toString('base64url');
+  return { token, hash: hashOrderAccessToken(token) };
+}
+
+/** A retry can reproduce the token without storing it in plaintext beside the idempotency key. */
+export function issueIdempotentOrderAccessToken(tenantId: string, key: string): { token: string; hash: string } {
+  const secret = String(process.env.SESSION_CSRF_SECRET || '');
+  if (secret.length < 16) throw new Error('SESSION_CSRF_SECRET is required for storefront idempotency');
+  const token = createHmac('sha256', secret)
+    .update(`storefront-order-access-v1:${tenantId}:${key}`, 'utf8').digest('base64url');
   return { token, hash: hashOrderAccessToken(token) };
 }
 
@@ -160,4 +169,3 @@ export function unwrapConvertedSale<T = any>(result: any): T | null {
   }
   return result as T;
 }
-

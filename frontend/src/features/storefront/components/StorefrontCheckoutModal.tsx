@@ -170,7 +170,7 @@ export function StorefrontCheckoutModal({
   useEffect(() => {
     if (isOpen) {
       if (!idempotencyKeyRef.current) {
-        idempotencyKeyRef.current = 'idemp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+        idempotencyKeyRef.current = globalThis.crypto.randomUUID();
       }
       trackStorefrontEvent('InitiateCheckout', {
         value: subtotal,

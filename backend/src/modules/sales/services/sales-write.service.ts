@@ -653,7 +653,7 @@ export class SalesWriteService {
       .executeTakeFirst()
       .catch(() => undefined);
 
-    if (!order || order.status === 'cancelled' || order.sale_id) return existing;
+    if (!order || ['cancelled', 'payment_failed', 'review_required'].includes(order.status) || order.sale_id) return existing;
 
     let items: Array<Record<string, unknown>> = [];
     try {
@@ -719,6 +719,12 @@ export class SalesWriteService {
 
         if (onlineOrderToRelease?.sale_id) {
           throw new AppError('تم تحويل هذا الطلب لفاتورة مبيعات مسبقاً', 'ORDER_ALREADY_INVOICED', 400);
+        }
+        if (!onlineOrderToRelease || ['cancelled', 'payment_failed', 'review_required'].includes(onlineOrderToRelease.status)) {
+          throw new AppError('لا يمكن إصدار فاتورة لهذا الطلب قبل تسوية حالة الدفع', 'ORDER_PAYMENT_REVIEW_REQUIRED', 400);
+        }
+        if (onlineOrderToRelease.gateway_order_id && onlineOrderToRelease.payment_status !== 'paid') {
+          throw new AppError('توجد جلسة دفع إلكترونية معلقة لهذا الطلب', 'ORDER_PAYMENT_PENDING', 400);
         }
 
         if (onlineOrderToRelease?.stock_reserved) {

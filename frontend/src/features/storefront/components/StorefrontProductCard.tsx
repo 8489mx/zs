@@ -76,11 +76,12 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
 
   // Real ERP Offer Discount takes precedence over smart fallback
   const hasRealOffer = Boolean(product.hasDiscount && product.originalPrice && product.originalPrice > product.price);
-  const isDeal = Boolean(hasRealOffer || isSmartDeal);
+  const isDeal = Boolean(hasRealOffer || isSmartDeal || (product.offerType === 'bogo' && product.offerBadge));
   const oldPrice = hasRealOffer
     ? Number(product.originalPrice)
     : (!isZeroPrice && isSmartDeal ? Math.round(product.price * 1.15) : 0);
   const hasDiscount = oldPrice > product.price;
+  const hasQuantityOffer = product.offerType === 'bogo' && Boolean(product.offerBadge);
   const discountPercent = product.discountPercent || (hasDiscount && oldPrice > 0
     ? Math.round(((oldPrice - product.price) / oldPrice) * 100)
     : 0);
@@ -359,7 +360,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                     <span>الأكثر مبيعاً</span>
                   </span>
                 )}
-                {hasDiscount && (
+                {(hasDiscount || hasQuantityOffer) && (
                   <span
                     className="storefront-product-badge"
                     style={{

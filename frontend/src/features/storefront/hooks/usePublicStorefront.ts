@@ -287,7 +287,7 @@ export function usePublicStorefront(cleanSlug: string) {
   const isSmartDealsOn = Boolean(infoQuery.data?.smartDealsEnabled);
 
   const dealsProducts = useMemo(() => {
-    const realDiscounts = rawProducts.filter((p) => Boolean(p.hasDiscount));
+    const realDiscounts = rawProducts.filter((p) => Boolean(p.hasDiscount || p.offerType === 'bogo'));
     if (realDiscounts.length > 0) {
       return realDiscounts;
     }

@@ -37,14 +37,12 @@ function roundMoney(val: number): number {
   return Math.round((Number(val || 0) + Number.EPSILON) * 100) / 100;
 }
 
-function normalizeDateOnly(value: unknown): string {
+export function normalizeDateOnly(value: unknown): string {
   if (!value) return '';
   if (value instanceof Date) {
     if (Number.isNaN(value.getTime())) return '';
-    const year = value.getFullYear();
-    const month = String(value.getMonth() + 1).padStart(2, '0');
-    const day = String(value.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    // PostgreSQL DATE values are represented as UTC-midnight Date objects by pg.
+    return value.toISOString().slice(0, 10);
   }
   const text = String(value).trim();
   if (!text) return '';
@@ -60,32 +58,43 @@ function normalizeDateOnly(value: unknown): string {
   return '';
 }
 
-export function todayLocalIsoDate(): string {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+export function todayLocalIsoDate(timezone = 'Africa/Cairo', now = new Date()): string {
+  const format = (zone: string): string => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(now);
+    const value = (type: string) => parts.find((part) => part.type === type)?.value || '';
+    return `${value('year')}-${value('month')}-${value('day')}`;
+  };
+  try {
+    return format(timezone);
+  } catch {
+    return format('Africa/Cairo');
+  }
 }
 
 export function isOfferActiveNow(
   offer: RawStorefrontOffer,
-  todayIso: string = todayLocalIsoDate(),
+  todayIso: string | undefined = undefined,
   now: Date = new Date(),
+  timezone = 'Africa/Cairo',
 ): boolean {
   if (offer.is_active === false) return false;
 
+  const activeDate = todayIso ?? todayLocalIsoDate(timezone, now);
+
   const from = normalizeDateOnly(offer.start_date);
   const to = normalizeDateOnly(offer.end_date);
-  if (from && from > todayIso) return false;
-  if (to && to < todayIso) return false;
+  if (from && from > activeDate) return false;
+  if (to && to < activeDate) return false;
 
   // Day of week check (e.g. "0,1,2,3,4,5,6" or "sun,mon,...")
   if (offer.days_of_week && typeof offer.days_of_week === 'string' && offer.days_of_week.trim()) {
-    const dayNum = String(now.getDay()); // 0 is Sunday
-    const daysAllowed = offer.days_of_week.toLowerCase().split(',').map((d) => d.trim());
+    const localDay = new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'short' }).format(now).toLowerCase();
     const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-    const currentName = dayNames[now.getDay()];
+    const dayNum = String(dayNames.indexOf(localDay)); // 0 is Sunday
+    const daysAllowed = offer.days_of_week.toLowerCase().split(',').map((d) => d.trim());
+    const currentName = localDay;
     if (!daysAllowed.includes(dayNum) && !daysAllowed.includes(currentName)) {
       return false;
     }
@@ -93,10 +102,13 @@ export function isOfferActiveNow(
 
   // Happy hour time range check (format "HH:MM")
   if (offer.happy_hour_start && offer.happy_hour_end) {
-    const currentHours = String(now.getHours()).padStart(2, '0');
-    const currentMinutes = String(now.getMinutes()).padStart(2, '0');
-    const currentTimeStr = `${currentHours}:${currentMinutes}`;
-    if (currentTimeStr < offer.happy_hour_start || currentTimeStr > offer.happy_hour_end) {
+    const currentTimeStr = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false }).format(now);
+    const start = offer.happy_hour_start.slice(0, 5);
+    const end = offer.happy_hour_end.slice(0, 5);
+    const inWindow = start <= end
+      ? currentTimeStr >= start && currentTimeStr <= end
+      : currentTimeStr >= start || currentTimeStr <= end;
+    if (!inWindow) {
       return false;
     }
   }
@@ -142,11 +154,11 @@ export function calculateOfferAdjustedPrice(
     const buyQ = Math.max(1, Number(offer.bogo_buy_qty || 1));
     const getQ = Math.max(1, Number(offer.bogo_get_qty || 1));
     const discPct = Math.min(100, Math.max(0, Number(offer.bogo_discount_percent ?? 100)));
-    const cycleTotalQty = buyQ + getQ;
-    const totalOrigPrice = basePrice * cycleTotalQty;
-    const savings = getQ * basePrice * (discPct / 100);
-    const discountedCycleTotal = Math.max(0, totalOrigPrice - savings);
-    return roundMoney(discountedCycleTotal / cycleTotalQty);
+    const normalizedQty = Math.max(1, Math.trunc(Number(qty || 1)));
+    const freeUnits = Math.floor(normalizedQty / (buyQ + getQ)) * getQ;
+    if (!freeUnits) return roundMoney(basePrice);
+    const total = (normalizedQty * basePrice) - (freeUnits * basePrice * discPct / 100);
+    return roundMoney(Math.max(0, total) / normalizedQty);
   }
 
   return roundMoney(basePrice);
@@ -156,8 +168,9 @@ export function resolveBestStorefrontOffer(
   basePrice: number,
   offers: RawStorefrontOffer[] | undefined,
   qty: number = 1,
-  todayIso: string = todayLocalIsoDate(),
+  todayIso?: string,
   now: Date = new Date(),
+  timezone = 'Africa/Cairo',
 ): StorefrontOfferResult {
   const roundedBase = roundMoney(basePrice);
   if (!offers || offers.length === 0 || roundedBase <= 0) {
@@ -169,7 +182,7 @@ export function resolveBestStorefrontOffer(
     };
   }
 
-  const activeOffers = offers.filter((off) => isOfferActiveNow(off, todayIso, now));
+  const activeOffers = offers.filter((off) => isOfferActiveNow(off, todayIso ?? todayLocalIsoDate(timezone, now), now, timezone));
   if (activeOffers.length === 0) {
     return {
       hasDiscount: false,
@@ -189,7 +202,16 @@ export function resolveBestStorefrontOffer(
   for (const offer of activeOffers) {
     // If bundle/min_qty specified, verify qty
     const minQty = Math.max(1, Number(offer.min_qty || 1));
-    if (offer.offer_type === 'bundle' && qty < minQty) {
+    if (qty < minQty) {
+      continue;
+    }
+
+    if (offer.offer_type === 'bogo' && qty < Number(offer.bogo_buy_qty || 1) + Number(offer.bogo_get_qty || 1)) {
+      // Show the promotion without lowering a single item's price before it qualifies.
+      if (!bestResult.offerBadge) {
+        bestResult.offerBadge = `اشتري ${offer.bogo_buy_qty || 1} واكسب ${offer.bogo_get_qty || 1}`;
+        bestResult.offerType = 'bogo';
+      }
       continue;
     }
 
