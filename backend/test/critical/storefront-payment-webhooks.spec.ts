@@ -23,6 +23,9 @@ interface MockOrder {
 
 function createMockDb(orders: MockOrder[], settingsMap: Record<string, string>) {
   const db: any = {
+    transaction: () => ({
+      execute: async (cb: any) => cb(db),
+    }),
     selectFrom: (table: string) => {
       if (table === 'settings') {
         return {
@@ -38,22 +41,42 @@ function createMockDb(orders: MockOrder[], settingsMap: Record<string, string>) 
         };
       }
       if (table === 'online_orders') {
-        return {
-          selectAll: () => ({
-            where: (col: any, op: any, val: any) => ({
-              where: (col2: any, op2: any, val2: any) => ({
-                executeTakeFirst: async () => {
-                  return orders.find((o) => (col2 === 'order_number' ? o.order_number === val2 : o.gateway_order_id === val2));
-                },
-                execute: async () => {
-                  return orders.filter((o) => (col2 === 'order_number' ? o.order_number === val2 : o.gateway_order_id === val2));
-                },
-              }),
-              limit: (n: number) => ({
-                execute: async () => orders.slice(0, n),
-              }),
-              executeTakeFirst: async () => orders[0],
+        const createQueryBuilder = () => {
+          let selectedId: any = null;
+          let filterCol: any = null;
+          let filterVal: any = null;
+          const builder: any = {
+            where: (col: any, op: any, val: any) => {
+              if (col === 'id') selectedId = val;
+              else { filterCol = col; filterVal = val; }
+              return builder;
+            },
+            forUpdate: () => builder,
+            limit: (n: number) => ({
+              execute: async () => orders.slice(0, n),
             }),
+            executeTakeFirst: async () => {
+              if (selectedId != null) return orders.find((o) => o.id === selectedId) || orders[0];
+              if (filterCol === 'order_number') return orders.find((o) => o.order_number === filterVal) || orders[0];
+              if (filterCol === 'gateway_order_id') return orders.find((o) => o.gateway_order_id === filterVal) || orders[0];
+              return orders[0];
+            },
+            execute: async () => {
+              if (filterCol === 'order_number') return orders.filter((o) => o.order_number === filterVal);
+              if (filterCol === 'gateway_order_id') return orders.filter((o) => o.gateway_order_id === filterVal);
+              return orders;
+            },
+          };
+          return builder;
+        };
+        return {
+          selectAll: () => createQueryBuilder(),
+        };
+      }
+      if (table === 'storefront_coupons') {
+        return {
+          select: () => ({
+            where: () => ({ execute: async () => [] }),
           }),
         };
       }
@@ -62,12 +85,17 @@ function createMockDb(orders: MockOrder[], settingsMap: Record<string, string>) 
     updateTable: (table: string) => ({
       set: (updates: any) => ({
         where: (col: any, op: any, val: any) => ({
-          where: () => ({
+          where: (col2?: any, op2?: any, val2?: any) => ({
             execute: async () => {
-              const order = orders.find((o) => o.id === val);
+              const targetId = col === 'id' ? val : col2 === 'id' ? val2 : null;
+              const order = targetId ? orders.find((o) => o.id === targetId) : orders[0];
               if (order) Object.assign(order, updates);
             },
           }),
+          execute: async () => {
+            const order = orders.find((o) => o.id === val);
+            if (order) Object.assign(order, updates);
+          },
         }),
       }),
     }),

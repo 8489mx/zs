@@ -39,6 +39,11 @@ export class StorefrontMerchantController {
     return this.service.bulkCancelOrders(adminPassword, status || 'pending', req.authContext!);
   }
 
+  @Post('orders/reap-expired')
+  reapExpiredReservations(@Req() req: RequestWithAuth) {
+    return this.service.reapExpiredReservations({ tenantId: req.authContext!.tenantId });
+  }
+
   @Get('orders/:id')
   getOrder(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.service.getOrder(id, req.authContext!);

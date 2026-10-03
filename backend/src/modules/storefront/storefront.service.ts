@@ -36,6 +36,12 @@ import {
   resolveBranchSellableLocations,
   resolveStorefrontSalesStockMode,
 } from '../../common/engines/branch-sellable-locations.engine';
+import {
+  isReservationExpired,
+  extractReservationItems,
+  DEFAULT_ONLINE_PAYMENT_TIMEOUT_MS,
+  DEFAULT_COD_STALE_TIMEOUT_MS,
+} from './engines/storefront-reservation.engine';
 
 /** Country-aware phone rule shared by order creation and edit (O56: edit used to accept Egypt only). */
 function assertValidCustomerPhone(rawPhone: string | undefined, countryCode: string): void {
@@ -1014,7 +1020,7 @@ export class StorefrontService {
   }
 
   /** Gives back a use claimed by an order that no longer carries that coupon (edit swapped/removed it). */
-  private async releaseCouponUse(trx: Transaction<Database>, tenantId: string, couponCode: string): Promise<void> {
+  async releaseCouponUse(trx: Transaction<Database>, tenantId: string, couponCode: string): Promise<void> {
     await trx
       .updateTable('storefront_coupons')
       .set({ times_used: sql`GREATEST(times_used - 1, 0)`, updated_at: new Date() })
@@ -1411,11 +1417,25 @@ export class StorefrontService {
     try {
       const cleanPhone = (dto.customerPhone || '').replace(/\D/g, '');
       if (cleanPhone && cleanPhone.length >= 6) {
+        const suffix8 = cleanPhone.slice(-8);
+        const phoneCandidates = Array.from(
+          new Set(
+            [
+              cleanPhone,
+              suffix8,
+              `0${suffix8}`,
+              `+20${suffix8}`,
+              `+966${suffix8}`,
+              dto.customerPhone ? dto.customerPhone.trim() : '',
+            ].filter(Boolean),
+          ),
+        );
+
         await (this.db as any)
           .updateTable('storefront_abandoned_carts')
           .set({ recovered: true, updated_at: new Date() })
           .where(sql<boolean>`tenant_id = ${tenant.id}`)
-          .where(sql<boolean>`customer_phone LIKE ${'%' + cleanPhone.slice(-8)}`)
+          .where('customer_phone', 'in', phoneCandidates)
           .where('recovered', '=', false)
           .execute();
       }
@@ -1908,6 +1928,129 @@ export class StorefrontService {
       couponCode: charges.appliedCouponCode,
       items: validatedItems,
       message: 'تم تحديث طلبك بنجاح!',
+    };
+  }
+
+  /**
+   * Reaps expired online order reservations to prevent Denial-of-Inventory.
+   * Restores product_location_stock, releases claimed coupons, and marks the order cancelled.
+   */
+  async reapExpiredReservations(options?: {
+    tenantId?: string;
+    onlineTimeoutMs?: number;
+    codTimeoutMs?: number;
+    limit?: number;
+  }): Promise<{ reapedOrdersCount: number; reapedOrderNumbers: string[] }> {
+    const now = new Date();
+    const batchLimit = Math.max(1, Math.min(100, options?.limit ?? 50));
+    const onlineTimeout = options?.onlineTimeoutMs ?? DEFAULT_ONLINE_PAYMENT_TIMEOUT_MS;
+    const cutoffDate = new Date(now.getTime() - onlineTimeout);
+
+    const candidates = await this.db
+      .selectFrom('online_orders')
+      .select([
+        'id',
+        'tenant_id',
+        'order_number',
+        'status',
+        'payment_method',
+        'payment_status',
+        'stock_reserved',
+        'stock_reserved_at',
+        'reserved_branch_id',
+        'reserved_location_id',
+        'branch_id',
+        'account_id',
+        'coupon_code',
+        'items_json',
+        'sale_id',
+        'created_at',
+      ])
+      .where('stock_reserved', '=', true)
+      .where('status', '=', 'pending')
+      .where('payment_status', '!=', 'paid')
+      .where('sale_id', 'is', null)
+      .$if(Boolean(options?.tenantId), (qb) => qb.where(sql<boolean>`tenant_id = ${options!.tenantId!}`))
+      .where('stock_reserved_at', '<', cutoffDate)
+      .limit(batchLimit)
+      .execute();
+
+    const reapedOrderNumbers: string[] = [];
+
+    for (const candidate of candidates) {
+      if (!isReservationExpired(candidate, now, options)) {
+        continue;
+      }
+
+      try {
+        await this.db.transaction().execute(async (trx) => {
+          const row = await trx
+            .selectFrom('online_orders')
+            .select([
+              'id',
+              'tenant_id',
+              'order_number',
+              'status',
+              'payment_status',
+              'stock_reserved',
+              'reserved_branch_id',
+              'reserved_location_id',
+              'branch_id',
+              'account_id',
+              'coupon_code',
+              'items_json',
+            ])
+            .where('id', '=', candidate.id)
+            .where(sql<boolean>`tenant_id = ${candidate.tenant_id}`)
+            .where('stock_reserved', '=', true)
+            .where('status', '=', 'pending')
+            .where('payment_status', '!=', 'paid')
+            .forUpdate()
+            .executeTakeFirst();
+
+          if (!row) return;
+
+          // 1. Release location stock
+          const items = extractReservationItems(row.items_json);
+          if (items.length > 0) {
+            await releaseLocationStock(trx, {
+              tenantId: row.tenant_id,
+              accountId: row.account_id,
+              branchId: row.reserved_branch_id ?? row.branch_id,
+              locationId: row.reserved_location_id,
+              items: items.map((it) => ({ productId: it.productId, qty: it.quantity })),
+            });
+          }
+
+          // 2. Release claimed coupon
+          if (row.coupon_code) {
+            await this.releaseCouponUse(trx, row.tenant_id, String(row.coupon_code));
+          }
+
+          // 3. Mark order as cancelled due to expired reservation
+          await trx
+            .updateTable('online_orders')
+            .set({
+              stock_reserved: false,
+              status: 'cancelled',
+              payment_status: row.payment_status === 'pending' ? 'failed' : row.payment_status,
+              customer_notes: sql`CONCAT(COALESCE(customer_notes, ''), ' [تم إلغاء الطلب تلقائياً لانتهاء مهلة حجز المخزون والسداد]')`,
+              updated_at: new Date(),
+            })
+            .where('id', '=', row.id)
+            .where(sql<boolean>`tenant_id = ${row.tenant_id}`)
+            .execute();
+
+          reapedOrderNumbers.push(row.order_number);
+        });
+      } catch (err) {
+        // Individual order failure shouldn't abort the whole batch
+      }
+    }
+
+    return {
+      reapedOrdersCount: reapedOrderNumbers.length,
+      reapedOrderNumbers,
     };
   }
 

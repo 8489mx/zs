@@ -1,11 +1,13 @@
 import { Inject, Injectable, Logger, NotFoundException, BadRequestException, UnauthorizedException, Optional } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql, type Transaction } from 'kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 import { planWebhookOrderLookup, selectUnambiguousOrder } from './engines/webhook-order-resolution.engine';
 import { verifyOrderAccessToken, isSandboxPaymentAllowed, buildPaymentReturnUrl, buildGatewayWebhookUrl } from './engines/online-order-access.engine';
 import { platformNoReplyEmail } from './engines/store-public-url.engine';
+import { releaseLocationStock } from '../../common/utils/location-stock-ledger';
+import { extractReservationItems } from './engines/storefront-reservation.engine';
 import * as crypto from 'crypto';
 
 export interface TenantPaymentConfig {
@@ -28,6 +30,15 @@ export interface TenantPaymentConfig {
   stripePublishableKey: string;
   stripeWebhookSecret: string;
   stripeTestMode: boolean;
+}
+
+export interface StorefrontWebhookResult {
+  ok: boolean;
+  status?: string;
+  orderNumber?: string;
+  alreadyPaid?: boolean;
+  message?: string;
+  received?: boolean;
 }
 
 @Injectable()
@@ -719,7 +730,51 @@ export class StorefrontPaymentService {
     return order;
   }
 
-  async processPaymobWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer) {
+  /**
+   * Compensates a failed, declined, or expired online payment.
+   * Releases reserved location stock and claimed coupons, marking the order failed.
+   */
+  private async compensateFailedOrderPayment(
+    trx: Transaction<Database>,
+    order: any,
+    gatewayResponse: any,
+  ): Promise<void> {
+    await trx
+      .updateTable('online_orders')
+      .set({
+        payment_status: 'failed',
+        stock_reserved: false,
+        gateway_response_json: JSON.stringify(gatewayResponse),
+        updated_at: new Date(),
+      })
+      .where('id', '=', order.id)
+      .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
+      .execute();
+
+    if (order.stock_reserved) {
+      const items = extractReservationItems(order.items_json);
+      if (items.length > 0) {
+        await releaseLocationStock(trx, {
+          tenantId: order.tenant_id,
+          accountId: order.account_id,
+          branchId: order.reserved_branch_id ?? order.branch_id,
+          locationId: order.reserved_location_id,
+          items: items.map((it) => ({ productId: it.productId, qty: it.quantity })),
+        });
+      }
+    }
+
+    if (order.coupon_code) {
+      await trx
+        .updateTable('storefront_coupons')
+        .set({ times_used: sql`GREATEST(times_used - 1, 0)`, updated_at: new Date() })
+        .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
+        .where('code', '=', String(order.coupon_code).toUpperCase())
+        .execute();
+    }
+  }
+
+  async processPaymobWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer): Promise<StorefrontWebhookResult> {
     const obj = body?.obj || body;
     const merchantOrderId = String(obj?.order?.merchant_order_id || '');
 
@@ -794,48 +849,62 @@ export class StorefrontPaymentService {
     }
 
     const isSuccessful = obj.success === true && obj.pending === false;
+    let shouldNotifyWhatsApp = false;
 
-    if (isSuccessful) {
-      await this.db
-        .updateTable('online_orders')
-        .set({
-          payment_status: 'paid',
-          status: 'confirmed',
-          gateway_provider: 'paymob',
-          gateway_transaction_id: String(obj.id || ''),
-          gateway_order_id: String(obj.order?.id || order.gateway_order_id || ''),
-          gateway_response_json: JSON.stringify(body),
-          paid_at: new Date(),
-          updated_at: new Date(),
-        })
+    const result = await this.db.transaction().execute(async (trx) => {
+      const lockedOrder = await trx
+        .selectFrom('online_orders')
+        .selectAll()
         .where('id', '=', order.id)
         .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
-        .execute();
+        .forUpdate()
+        .executeTakeFirst();
 
-      // Trigger WhatsApp notification
-      if (this.whatsappService) {
-        void this.whatsappService.sendOnlineOrderNotification(order.id, order.tenant_id).catch(() => undefined);
+      if (!lockedOrder) {
+        return { ok: false, message: 'Order not found' };
       }
 
-      this.logger.log(`Order ${order.order_number} marked as PAID via Paymob Webhook.`);
-      return { ok: true, status: 'paid', orderNumber: order.order_number };
-    } else {
-      await this.db
-        .updateTable('online_orders')
-        .set({
-          payment_status: 'failed',
-          gateway_response_json: JSON.stringify(body),
-          updated_at: new Date(),
-        })
-        .where('id', '=', order.id)
-        .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
-        .execute();
+      if (lockedOrder.payment_status === 'paid') {
+        this.logger.log(`Paymob Webhook: Order ${lockedOrder.order_number} is already paid. Skipping duplicate notification.`);
+        return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number, alreadyPaid: true };
+      }
 
-      return { ok: true, status: 'failed', orderNumber: order.order_number };
+      if (isSuccessful) {
+        await trx
+          .updateTable('online_orders')
+          .set({
+            payment_status: 'paid',
+            status: 'confirmed',
+            gateway_provider: 'paymob',
+            gateway_transaction_id: String(obj.id || ''),
+            gateway_order_id: String(obj.order?.id || lockedOrder.gateway_order_id || ''),
+            gateway_response_json: JSON.stringify(body),
+            paid_at: new Date(),
+            updated_at: new Date(),
+          })
+          .where('id', '=', lockedOrder.id)
+          .where(sql<boolean>`tenant_id = ${lockedOrder.tenant_id}`)
+          .execute();
+
+        shouldNotifyWhatsApp = true;
+        this.logger.log(`Order ${lockedOrder.order_number} marked as PAID via Paymob Webhook.`);
+        return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number };
+      } else {
+        await this.compensateFailedOrderPayment(trx, lockedOrder, body);
+        this.logger.warn(`Order ${lockedOrder.order_number} marked as FAILED via Paymob Webhook; stock reservation released.`);
+        return { ok: true, status: 'failed', orderNumber: lockedOrder.order_number };
+      }
+    });
+
+    // Trigger WhatsApp notification outside transaction
+    if (shouldNotifyWhatsApp && this.whatsappService) {
+      void this.whatsappService.sendOnlineOrderNotification(order.id, order.tenant_id).catch(() => undefined);
     }
+
+    return result;
   }
 
-  async processXPayWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer) {
+  async processXPayWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer): Promise<StorefrontWebhookResult> {
     this.logger.log(`XPay Webhook received: ${JSON.stringify(body)}`);
     const data = body?.data || body;
     const transactionStatus = String(data?.transaction_status || body?.transaction_status || data?.status || '').toUpperCase();
@@ -889,43 +958,57 @@ export class StorefrontPaymentService {
     }
 
     const isSuccessful = transactionStatus === 'SUCCESSFUL' || transactionStatus === 'SUCCESS' || transactionStatus === 'PAID';
+    let shouldNotifyWhatsApp = false;
 
-    if (isSuccessful) {
-      await this.db
-        .updateTable('online_orders')
-        .set({
-          payment_status: 'paid',
-          status: 'confirmed',
-          gateway_provider: 'xpay',
-          gateway_transaction_id: transactionId,
-          gateway_response_json: JSON.stringify(body),
-          paid_at: new Date(),
-          updated_at: new Date(),
-        })
+    const result = await this.db.transaction().execute(async (trx) => {
+      const lockedOrder = await trx
+        .selectFrom('online_orders')
+        .selectAll()
         .where('id', '=', order.id)
         .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
-        .execute();
+        .forUpdate()
+        .executeTakeFirst();
 
-      if (this.whatsappService) {
-        void this.whatsappService.sendOnlineOrderNotification(order.id, order.tenant_id).catch(() => undefined);
+      if (!lockedOrder) {
+        return { ok: false, message: 'Order not found' };
       }
 
-      this.logger.log(`Order ${order.order_number} marked as PAID via XPay Webhook.`);
-      return { ok: true, status: 'paid', orderNumber: order.order_number };
-    } else {
-      await this.db
-        .updateTable('online_orders')
-        .set({
-          payment_status: 'failed',
-          gateway_response_json: JSON.stringify(body),
-          updated_at: new Date(),
-        })
-        .where('id', '=', order.id)
-        .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
-        .execute();
+      if (lockedOrder.payment_status === 'paid') {
+        this.logger.log(`XPay Webhook: Order ${lockedOrder.order_number} is already paid. Skipping duplicate notification.`);
+        return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number, alreadyPaid: true };
+      }
 
-      return { ok: true, status: 'failed', orderNumber: order.order_number };
+      if (isSuccessful) {
+        await trx
+          .updateTable('online_orders')
+          .set({
+            payment_status: 'paid',
+            status: 'confirmed',
+            gateway_provider: 'xpay',
+            gateway_transaction_id: transactionId,
+            gateway_response_json: JSON.stringify(body),
+            paid_at: new Date(),
+            updated_at: new Date(),
+          })
+          .where('id', '=', lockedOrder.id)
+          .where(sql<boolean>`tenant_id = ${lockedOrder.tenant_id}`)
+          .execute();
+
+        shouldNotifyWhatsApp = true;
+        this.logger.log(`Order ${lockedOrder.order_number} marked as PAID via XPay Webhook.`);
+        return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number };
+      } else {
+        await this.compensateFailedOrderPayment(trx, lockedOrder, body);
+        this.logger.warn(`Order ${lockedOrder.order_number} marked as FAILED via XPay Webhook; stock reservation released.`);
+        return { ok: true, status: 'failed', orderNumber: lockedOrder.order_number };
+      }
+    });
+
+    if (shouldNotifyWhatsApp && this.whatsappService) {
+      void this.whatsappService.sendOnlineOrderNotification(order.id, order.tenant_id).catch(() => undefined);
     }
+
+    return result;
   }
 
   async processMockPayment(
@@ -1007,7 +1090,7 @@ export class StorefrontPaymentService {
     };
   }
 
-  async processTapWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer) {
+  async processTapWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer): Promise<StorefrontWebhookResult> {
     this.logger.log(`Tap Webhook received: ${JSON.stringify(body)}`);
     const chargeId = String(body?.id || '');
     const status = String(body?.status || '').toUpperCase();
@@ -1092,48 +1175,63 @@ export class StorefrontPaymentService {
     }
 
     const isSuccessful = status === 'CAPTURED' || status === 'PAID' || status === 'SUCCESS';
+    const isFailed = status === 'DECLINED' || status === 'CANCELLED' || status === 'FAILED';
+    let shouldNotifyWhatsApp = false;
 
-    if (isSuccessful) {
-      await this.db
-        .updateTable('online_orders')
-        .set({
-          payment_status: 'paid',
-          status: 'confirmed',
-          gateway_provider: 'tap',
-          gateway_transaction_id: chargeId,
-          gateway_response_json: JSON.stringify(body),
-          paid_at: new Date(),
-          updated_at: new Date(),
-        })
+    const result = await this.db.transaction().execute(async (trx) => {
+      const lockedOrder = await trx
+        .selectFrom('online_orders')
+        .selectAll()
         .where('id', '=', order.id)
         .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
-        .execute();
+        .forUpdate()
+        .executeTakeFirst();
 
-      if (this.whatsappService) {
-        void this.whatsappService.sendOnlineOrderNotification(order.id, order.tenant_id).catch(() => undefined);
+      if (!lockedOrder) {
+        return { ok: false, message: 'Order not found' };
       }
 
-      this.logger.log(`Order ${order.order_number} marked as PAID via Tap Webhook.`);
-      return { ok: true, status: 'paid', orderNumber: order.order_number };
-    } else if (status === 'DECLINED' || status === 'CANCELLED' || status === 'FAILED') {
-      await this.db
-        .updateTable('online_orders')
-        .set({
-          payment_status: 'failed',
-          gateway_response_json: JSON.stringify(body),
-          updated_at: new Date(),
-        })
-        .where('id', '=', order.id)
-        .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
-        .execute();
+      if (lockedOrder.payment_status === 'paid') {
+        this.logger.log(`Tap Webhook: Order ${lockedOrder.order_number} is already paid. Skipping duplicate notification.`);
+        return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number, alreadyPaid: true };
+      }
 
-      return { ok: true, status: 'failed', orderNumber: order.order_number };
+      if (isSuccessful) {
+        await trx
+          .updateTable('online_orders')
+          .set({
+            payment_status: 'paid',
+            status: 'confirmed',
+            gateway_provider: 'tap',
+            gateway_transaction_id: chargeId,
+            gateway_response_json: JSON.stringify(body),
+            paid_at: new Date(),
+            updated_at: new Date(),
+          })
+          .where('id', '=', lockedOrder.id)
+          .where(sql<boolean>`tenant_id = ${lockedOrder.tenant_id}`)
+          .execute();
+
+        shouldNotifyWhatsApp = true;
+        this.logger.log(`Order ${lockedOrder.order_number} marked as PAID via Tap Webhook.`);
+        return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number };
+      } else if (isFailed) {
+        await this.compensateFailedOrderPayment(trx, lockedOrder, body);
+        this.logger.warn(`Order ${lockedOrder.order_number} marked as FAILED via Tap Webhook; stock reservation released.`);
+        return { ok: true, status: 'failed', orderNumber: lockedOrder.order_number };
+      }
+
+      return { ok: true, status: status.toLowerCase(), orderNumber: lockedOrder.order_number };
+    });
+
+    if (shouldNotifyWhatsApp && this.whatsappService) {
+      void this.whatsappService.sendOnlineOrderNotification(order.id, order.tenant_id).catch(() => undefined);
     }
 
-    return { ok: true, status: status.toLowerCase(), orderNumber: order.order_number };
+    return result;
   }
 
-  async processStripeWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer) {
+  async processStripeWebhook(headers: Record<string, any>, body: any, rawBody?: Buffer): Promise<StorefrontWebhookResult> {
     this.logger.log(`Stripe Webhook received: ${body?.type}`);
     const eventType = String(body?.type || '');
     const obj = body?.data?.object || body;
@@ -1212,31 +1310,65 @@ export class StorefrontPaymentService {
       obj?.payment_status === 'paid' ||
       obj?.status === 'complete';
 
-    if (isSuccessful) {
-      const txnId = String(obj?.payment_intent || obj?.id || '');
-      await this.db
-        .updateTable('online_orders')
-        .set({
-          payment_status: 'paid',
-          status: 'confirmed',
-          gateway_provider: 'stripe',
-          gateway_transaction_id: txnId,
-          gateway_response_json: JSON.stringify(body),
-          paid_at: new Date(),
-          updated_at: new Date(),
-        })
+    const isFailed =
+      eventType === 'payment_intent.payment_failed' ||
+      eventType === 'checkout.session.expired' ||
+      obj?.status === 'failed' ||
+      obj?.status === 'canceled';
+
+    let shouldNotifyWhatsApp = false;
+
+    const result = await this.db.transaction().execute(async (trx) => {
+      const lockedOrder = await trx
+        .selectFrom('online_orders')
+        .selectAll()
         .where('id', '=', order.id)
         .where(sql<boolean>`tenant_id = ${order.tenant_id}`)
-        .execute();
+        .forUpdate()
+        .executeTakeFirst();
 
-      if (this.whatsappService) {
-        void this.whatsappService.sendOnlineOrderNotification(order.id, order.tenant_id).catch(() => undefined);
+      if (!lockedOrder) {
+        return { ok: false, message: 'Order not found' };
       }
 
-      this.logger.log(`Order ${order.order_number} marked as PAID via Stripe Webhook.`);
-      return { ok: true, status: 'paid', orderNumber: order.order_number };
+      if (lockedOrder.payment_status === 'paid') {
+        this.logger.log(`Stripe Webhook: Order ${lockedOrder.order_number} is already paid. Skipping duplicate notification.`);
+        return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number, alreadyPaid: true };
+      }
+
+      if (isSuccessful) {
+        const txnId = String(obj?.payment_intent || obj?.id || '');
+        await trx
+          .updateTable('online_orders')
+          .set({
+            payment_status: 'paid',
+            status: 'confirmed',
+            gateway_provider: 'stripe',
+            gateway_transaction_id: txnId,
+            gateway_response_json: JSON.stringify(body),
+            paid_at: new Date(),
+            updated_at: new Date(),
+          })
+          .where('id', '=', lockedOrder.id)
+          .where(sql<boolean>`tenant_id = ${lockedOrder.tenant_id}`)
+          .execute();
+
+        shouldNotifyWhatsApp = true;
+        this.logger.log(`Order ${lockedOrder.order_number} marked as PAID via Stripe Webhook.`);
+        return { ok: true, status: 'paid', orderNumber: lockedOrder.order_number };
+      } else if (isFailed) {
+        await this.compensateFailedOrderPayment(trx, lockedOrder, body);
+        this.logger.warn(`Order ${lockedOrder.order_number} marked as FAILED via Stripe Webhook; stock reservation released.`);
+        return { ok: true, status: 'failed', orderNumber: lockedOrder.order_number };
+      }
+
+      return { ok: true, received: true };
+    });
+
+    if (shouldNotifyWhatsApp && this.whatsappService) {
+      void this.whatsappService.sendOnlineOrderNotification(order.id, order.tenant_id).catch(() => undefined);
     }
 
-    return { ok: true, received: true };
+    return result;
   }
 }

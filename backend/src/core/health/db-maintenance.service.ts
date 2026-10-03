@@ -97,6 +97,93 @@ export class DatabaseMaintenanceService implements OnApplicationBootstrap {
       this.logger.warn('Failed to cleanup stale rate-limit rows', err);
     }
 
+    // 4. Cleanup stale abandoned carts (>30 days old and unrecovered)
+    try {
+      const res = await sql`
+        DELETE FROM storefront_abandoned_carts
+        WHERE created_at < NOW() - INTERVAL '30 days'
+          AND recovered = false
+      `.execute(this.db);
+      const count = Number((res as any).numAffectedRows || 0);
+      results.staleAbandonedCartsCleaned = count;
+      if (count > 0) this.logger.log(`Cleaned ${count} stale abandoned carts (>30 days).`);
+    } catch (err) {
+      this.logger.warn('Failed to cleanup stale abandoned carts', err);
+    }
+
+    // 5. Cleanup expired online order reservations (>30 mins old, pending, unpaid)
+    try {
+      const expiredCutoff = new Date(Date.now() - 30 * 60 * 1000);
+      const expiredOrders = await this.db
+        .selectFrom('online_orders')
+        .select(['id', 'tenant_id', 'order_number', 'items_json', 'coupon_code', 'reserved_branch_id', 'reserved_location_id', 'branch_id', 'account_id'])
+        .where('stock_reserved', '=', true)
+        .where('status', '=', 'pending')
+        .where('payment_status', '!=', 'paid')
+        .where('sale_id', 'is', null)
+        .where('stock_reserved_at', '<', expiredCutoff)
+        .limit(50)
+        .execute();
+
+      let reapedCount = 0;
+      for (const ord of expiredOrders) {
+        try {
+          await this.db.transaction().execute(async (trx) => {
+            const locked = await trx
+              .updateTable('online_orders')
+              .set({
+                stock_reserved: false,
+                status: 'cancelled',
+                payment_status: 'failed',
+                customer_notes: sql`CONCAT(COALESCE(customer_notes, ''), ' [تم إلغاء الطلب تلقائياً لانتهاء مهلة حجز المخزون والسداد]')`,
+                updated_at: new Date(),
+              })
+              .where('id', '=', ord.id)
+              .where(sql<boolean>`tenant_id = ${ord.tenant_id}`)
+              .where('stock_reserved', '=', true)
+              .where('status', '=', 'pending')
+              .executeTakeFirst();
+
+            if (Number(locked?.numUpdatedRows || 0) === 0) return;
+
+            let items: any[] = [];
+            try { items = typeof ord.items_json === 'string' ? JSON.parse(ord.items_json) : ord.items_json; } catch {}
+            if (Array.isArray(items) && items.length > 0) {
+              const releaseItems = items.map((it) => ({
+                productId: Number(it.productId ?? it.id),
+                qty: Number(it.quantity ?? it.qty ?? 1),
+              })).filter((it) => it.productId > 0 && it.qty > 0);
+
+              if (releaseItems.length > 0) {
+                const { releaseLocationStock } = await import('../../common/utils/location-stock-ledger');
+                await releaseLocationStock(trx, {
+                  tenantId: ord.tenant_id,
+                  accountId: ord.account_id,
+                  branchId: ord.reserved_branch_id ?? ord.branch_id,
+                  locationId: ord.reserved_location_id,
+                  items: releaseItems,
+                });
+              }
+            }
+
+            if (ord.coupon_code) {
+              await trx
+                .updateTable('storefront_coupons')
+                .set({ times_used: sql`GREATEST(times_used - 1, 0)`, updated_at: new Date() })
+                .where(sql<boolean>`tenant_id = ${ord.tenant_id}`)
+                .where('code', '=', String(ord.coupon_code).toUpperCase())
+                .execute();
+            }
+            reapedCount++;
+          });
+        } catch {}
+      }
+      results.expiredReservationsReaped = reapedCount;
+      if (reapedCount > 0) this.logger.log(`Reaped ${reapedCount} expired online order reservations.`);
+    } catch (err) {
+      this.logger.warn('Failed to reap expired online order reservations', err);
+    }
+
     const durationMs = Date.now() - startTime;
     results.durationMs = durationMs;
     DatabaseMaintenanceService._lastResults = {
@@ -146,6 +233,8 @@ export class DatabaseMaintenanceService implements OnApplicationBootstrap {
       'customer_ledger',
       'supplier_ledger',
       'location_products',
+      'online_orders',
+      'storefront_abandoned_carts',
     ];
 
     let vacuumedCount = 0;

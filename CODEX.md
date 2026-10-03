@@ -65,6 +65,12 @@ To conserve tokens, accelerate delivery, and protect production stability, we fo
 - **Scale contract:** `multi-tenant-1000-scale.spec.ts` runs a ten-tenant in-memory sales, treasury and stock-read concurrency model in `test:critical`; its staging mode still requires `SCALE_TEST_ALLOW_DB=1`. The in-memory model exercises shared lock ordering and integer-cent accounting but does not verify real PostgreSQL write contention or prove 1,000 active tenants in production.
 - **Verification handoff:** This cloud task does not run build, TypeScript or test suites. Antigravity must check them and exercise real write-path load against disposable staging before commercial concurrency claims.
 
+### Phase 7: Storefront Resilience, Stock Reservation Reaper, Webhook Idempotency & Abandoned Carts Bounding (3 October 2026)
+- **Stock Reservation Reaper & Expiration Engine (Migration 188):** Added `idx_online_orders_reaper` on `(tenant_id, stock_reserved_at) WHERE stock_reserved = TRUE AND status = 'pending'`. Created pure `storefront-reservation.engine.ts` with 30-min window for online payments and 24-hr window for unconfirmed COD orders. Method `reapExpiredReservations` and `DatabaseMaintenanceService.runFastCleanup` auto-reap stale reservations atomically, releasing reserved inventory back to sellable stock and refunding claimed coupon uses.
+- **Payment Webhook Concurrency Locks & Failure Compensation:** All gateway webhooks (`Paymob`, `XPay`, `Tap`, `Stripe`) run within atomic transactions using `SELECT ... FOR UPDATE` row locks on `online_orders`. Duplicate webhooks are intercepted idempotently without double-posting or double-notifying WhatsApp. Payment failures, card declines, and session expirations immediately trigger `compensateFailedOrderPayment`, releasing reserved stock and claimed coupons.
+- **Abandoned Carts Table Bounding & Indexed Lookup:** Added `idx_abandoned_carts_tenant_phone_rec` on `storefront_abandoned_carts(tenant_id, customer_phone, recovered)`. Cleaned unrecovered carts older than 30 days in `runFastCleanup()`. Replaced full-table scan `LIKE '%...'` with candidate phone set match hitting the composite index.
+- **Critical Spec Guard:** Added `storefront-stock-reaper.spec.ts` to `test:critical` verifying boundary timeouts, item extraction resilience, and failure compensation.
+
 ---
 
 ## 3. Git Status & Current State
