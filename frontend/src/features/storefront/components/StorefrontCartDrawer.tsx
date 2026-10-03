@@ -31,6 +31,12 @@ export function StorefrontCartDrawer({
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const totalSavings = cartItems.reduce((sum, item) => {
+    if (item.product.hasDiscount && item.product.originalPrice && item.product.originalPrice > item.product.price) {
+      return sum + (item.product.originalPrice - item.product.price) * item.quantity;
+    }
+    return sum;
+  }, 0);
   const deliveryFee = deliveryFeeProp ?? info?.deliveryFee ?? 0;
   const minOrder = minOrderProp ?? info?.minOrder ?? 0;
   const total = subtotal + deliveryFee;
@@ -347,6 +353,12 @@ export function StorefrontCartDrawer({
                 <span>مجموع الأصناف:</span>
                 <span style={{ fontWeight: 600, color: '#0f172a' }}>{subtotal.toFixed(0)} <CurrencySymbol /></span>
               </div>
+              {totalSavings > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--storefront-secondary-color, #e11d48)' }}>
+                  <span style={{ fontWeight: 700 }}>وفرت من العروض:</span>
+                  <span style={{ fontWeight: 800 }}>- {totalSavings.toFixed(0)} <CurrencySymbol /></span>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
                 <span>رسوم التوصيل:</span>
                 <span style={{ fontWeight: 600, color: '#0f172a' }}>

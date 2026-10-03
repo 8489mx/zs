@@ -43,6 +43,9 @@ export interface StorefrontInfo {
   logo_url?: string;
   logoUrl?: string;
   brandColor?: string;
+  brandSecondaryColor?: string;
+  brandSurfaceColor?: string;
+  themePreset?: string;
   metaPixelId?: string;
   ga4Id?: string;
   tiktokPixelId?: string;
@@ -62,6 +65,12 @@ export interface StorefrontProduct {
   name: string;
   barcode: string;
   price: number;
+  originalPrice?: number;
+  hasDiscount?: boolean;
+  discountPercent?: number;
+  offerBadge?: string;
+  offerType?: string;
+  offerValue?: number;
   categoryId: number | null;
   categoryName: string;
   stockQty: number;
@@ -122,6 +131,7 @@ export interface CreateOnlineOrderPayload {
   fulfillmentType?: 'delivery' | 'pickup' | 'dine_in';
   countryCode?: string;
   pickupBranchId?: number;
+  idempotencyKey?: string;
 }
 
 export interface CreateOnlineOrderResponse {
@@ -270,6 +280,10 @@ export interface StorefrontSettingsPayload {
   stripePublishableKey?: string;
   stripeWebhookSecret?: string;
   stripeTestMode?: boolean;
+  brandColor?: string;
+  brandSecondaryColor?: string;
+  brandSurfaceColor?: string;
+  themePreset?: string;
   allowOutOfStockOrders?: boolean;
 }
 

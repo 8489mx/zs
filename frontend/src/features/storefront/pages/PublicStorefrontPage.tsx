@@ -142,6 +142,12 @@ export function PublicStorefrontPage() {
       if (info.brandColor) {
         document.documentElement.style.setProperty('--storefront-primary-color', info.brandColor);
       }
+      if (info.brandSecondaryColor) {
+        document.documentElement.style.setProperty('--storefront-secondary-color', info.brandSecondaryColor);
+      }
+      if (info.brandSurfaceColor) {
+        document.documentElement.style.setProperty('--storefront-surface-color', info.brandSurfaceColor);
+      }
     }
   }, [info]);
 

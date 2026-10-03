@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import * as crypto from 'crypto';
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { StorefrontPaymentService } from '../../src/modules/storefront/storefront-payment.service';
 
 /**
@@ -550,6 +550,123 @@ async function testOnlinePaidOrderSaleConversion(): Promise<void> {
   console.log('  -> Storefront convertToSale: online paid order sets collectionStatus = collected and paidAmount.');
 }
 
+async function testLatePaymentAndAmountVerification(): Promise<void> {
+  const cancelledOrder: MockOrder = {
+    id: 99,
+    tenant_id: 'tenant-1',
+    order_number: 'ON-260920-0099',
+    total_amount: 150,
+    payment_status: 'failed',
+    status: 'cancelled',
+    stock_reserved: false,
+  };
+
+  const db = createMockDb([cancelledOrder], {
+    storefront_paymob_hmac_secret: 'my-paymob-secret',
+  });
+  const service = new StorefrontPaymentService(db);
+
+  const obj: any = {
+    amount_cents: 15000,
+    created_at: '2026-09-20T10:00:00.000Z',
+    currency: 'EGP',
+    error_occured: false,
+    has_parent_transaction: false,
+    id: 99001,
+    integration_id: 111,
+    is_3d_secure: true,
+    is_auth: false,
+    is_capture: false,
+    is_refunded: false,
+    is_standalone_payment: false,
+    is_voided: false,
+    order: { id: 999, merchant_order_id: 'tenant-1__ON-260920-0099' },
+    owner: 1,
+    pending: false,
+    source_data: { pan: '2345', sub_type: 'MasterCard', type: 'card' },
+    success: true,
+  };
+
+  const concatenated = [
+    obj.amount_cents,
+    obj.created_at,
+    obj.currency,
+    obj.error_occured,
+    obj.has_parent_transaction,
+    obj.id,
+    obj.integration_id,
+    obj.is_3d_secure,
+    obj.is_auth,
+    obj.is_capture,
+    obj.is_refunded,
+    obj.is_standalone_payment,
+    obj.is_voided,
+    obj.order?.id,
+    obj.owner,
+    obj.pending,
+    obj.source_data?.pan,
+    obj.source_data?.sub_type,
+    obj.source_data?.type,
+    obj.success,
+  ].join('');
+
+  const validHmac = crypto.createHmac('sha512', 'my-paymob-secret').update(concatenated).digest('hex');
+  const result = await service.processPaymobWebhook({ hmac: validHmac }, { obj });
+  assert.equal(result.ok, true);
+  assert.equal(result.status, 'review_required', 'Late payment on cancelled order must yield review_required');
+
+  // Verify amount mismatch throws on an active pending order
+  const mismatchOrder: MockOrder = {
+    id: 100,
+    tenant_id: 'tenant-1',
+    order_number: 'ON-260920-0100',
+    total_amount: 150,
+    payment_status: 'pending',
+    status: 'pending',
+    stock_reserved: true,
+  };
+  const dbMismatch = createMockDb([mismatchOrder], {
+    storefront_paymob_hmac_secret: 'my-paymob-secret',
+  });
+  const serviceMismatch = new StorefrontPaymentService(dbMismatch);
+
+  const objMismatched: any = {
+    ...obj,
+    amount_cents: 5000,
+    order: { id: 1000, merchant_order_id: 'tenant-1__ON-260920-0100' },
+  };
+  const hmacMismatched = crypto.createHmac('sha512', 'my-paymob-secret').update([
+    objMismatched.amount_cents,
+    objMismatched.created_at,
+    objMismatched.currency,
+    objMismatched.error_occured,
+    objMismatched.has_parent_transaction,
+    objMismatched.id,
+    objMismatched.integration_id,
+    objMismatched.is_3d_secure,
+    objMismatched.is_auth,
+    objMismatched.is_capture,
+    objMismatched.is_refunded,
+    objMismatched.is_standalone_payment,
+    objMismatched.is_voided,
+    objMismatched.order?.id,
+    objMismatched.owner,
+    objMismatched.pending,
+    objMismatched.source_data?.pan,
+    objMismatched.source_data?.sub_type,
+    objMismatched.source_data?.type,
+    objMismatched.success,
+  ].join('')).digest('hex');
+
+  await assert.rejects(
+    async () => serviceMismatch.processPaymobWebhook({ hmac: hmacMismatched }, { obj: objMismatched }),
+    (err: any) => err instanceof BadRequestException,
+    'Paymob amount mismatch must be rejected with BadRequestException',
+  );
+
+  console.log('  -> Late payment on cancelled order safely diverted to review_required, amount mismatch strictly rejected.');
+}
+
 async function runAll(): Promise<void> {
   console.log('[PHASE 20 / ITEM 9] Running Storefront Webhooks & Payment Invariants Test Suite...');
   await testPaymobFailClosed();
@@ -557,6 +674,7 @@ async function runAll(): Promise<void> {
   await testStripeFailClosed();
   await testTapFailClosed();
   await testOnlinePaidOrderSaleConversion();
+  await testLatePaymentAndAmountVerification();
   console.log('[PHASE 20 / ITEM 9] ALL CRITICAL INVARIANT TESTS PASSED 100%!');
 }
 

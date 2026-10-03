@@ -743,6 +743,7 @@ export class StorefrontPaymentService {
       .updateTable('online_orders')
       .set({
         payment_status: 'failed',
+        status: 'payment_failed',
         stock_reserved: false,
         gateway_response_json: JSON.stringify(gatewayResponse),
         updated_at: new Date(),
@@ -870,6 +871,44 @@ export class StorefrontPaymentService {
       }
 
       if (isSuccessful) {
+        // P0-3: Strict Amount & Currency Verification
+        const expectedCents = Math.round(Number(lockedOrder.total_amount) * 100);
+        if (obj.amount_cents !== undefined && Math.abs(Number(obj.amount_cents) - expectedCents) > 1) {
+          this.logger.error(`Paymob amount mismatch for ${lockedOrder.order_number}: expected ${expectedCents} cents, got ${obj.amount_cents}`);
+          throw new BadRequestException('مبلغ الدفع المسدد لا يطابق إجمالي الطلب');
+        }
+        if (obj.currency && String(obj.currency).toUpperCase() !== 'EGP') {
+          this.logger.error(`Paymob currency mismatch for ${lockedOrder.order_number}: expected EGP, got ${obj.currency}`);
+          throw new BadRequestException('عملة الدفع غير مطابقة للطلب');
+        }
+
+        // P0-1: Late Webhook / Cancelled / Unreserved Order Protection
+        const isCancelledOrReleased =
+          lockedOrder.status === 'cancelled' ||
+          lockedOrder.status === 'payment_failed' ||
+          (lockedOrder.stock_reserved === false && (lockedOrder as any).stock_reserved_at != null);
+        if (isCancelledOrReleased) {
+          await trx
+            .updateTable('online_orders')
+            .set({
+              payment_status: 'paid',
+              status: 'review_required',
+              gateway_provider: 'paymob',
+              gateway_transaction_id: String(obj.id || ''),
+              gateway_order_id: String(obj.order?.id || lockedOrder.gateway_order_id || ''),
+              gateway_response_json: JSON.stringify(body),
+              paid_at: new Date(),
+              customer_notes: sql`CONCAT(COALESCE(customer_notes, ''), ' [تم استلام سداد إلكتروني متأخر لطلب ملغي أو منتهي الحجز - يتطلب مراجعة التاجر أو استرداد المبلغ]')`,
+              updated_at: new Date(),
+            })
+            .where('id', '=', lockedOrder.id)
+            .where(sql<boolean>`tenant_id = ${lockedOrder.tenant_id}`)
+            .execute();
+
+          this.logger.warn(`Paymob Webhook: Late payment for cancelled/unreserved order ${lockedOrder.order_number} marked as review_required.`);
+          return { ok: true, status: 'review_required', orderNumber: lockedOrder.order_number, latePayment: true };
+        }
+
         await trx
           .updateTable('online_orders')
           .set({
@@ -979,6 +1018,39 @@ export class StorefrontPaymentService {
       }
 
       if (isSuccessful) {
+        // P0-3: Strict Amount Verification
+        const xpayAmount = Number(data?.amount ?? data?.total_amount ?? body?.amount);
+        if (!isNaN(xpayAmount) && xpayAmount > 0 && Math.abs(xpayAmount - Number(lockedOrder.total_amount)) > 0.05) {
+          this.logger.error(`XPay amount mismatch for ${lockedOrder.order_number}: expected ${lockedOrder.total_amount}, got ${xpayAmount}`);
+          throw new BadRequestException('مبلغ الدفع المسدد لا يطابق إجمالي الطلب');
+        }
+
+        // P0-1: Late Webhook / Cancelled / Unreserved Order Protection
+        const isCancelledOrReleased =
+          lockedOrder.status === 'cancelled' ||
+          lockedOrder.status === 'payment_failed' ||
+          (lockedOrder.stock_reserved === false && (lockedOrder as any).stock_reserved_at != null);
+        if (isCancelledOrReleased) {
+          await trx
+            .updateTable('online_orders')
+            .set({
+              payment_status: 'paid',
+              status: 'review_required',
+              gateway_provider: 'xpay',
+              gateway_transaction_id: transactionId,
+              gateway_response_json: JSON.stringify(body),
+              paid_at: new Date(),
+              customer_notes: sql`CONCAT(COALESCE(customer_notes, ''), ' [تم استلام سداد إلكتروني متأخر لطلب ملغي أو منتهي الحجز - يتطلب مراجعة التاجر أو استرداد المبلغ]')`,
+              updated_at: new Date(),
+            })
+            .where('id', '=', lockedOrder.id)
+            .where(sql<boolean>`tenant_id = ${lockedOrder.tenant_id}`)
+            .execute();
+
+          this.logger.warn(`XPay Webhook: Late payment for cancelled/unreserved order ${lockedOrder.order_number} marked as review_required.`);
+          return { ok: true, status: 'review_required', orderNumber: lockedOrder.order_number, latePayment: true };
+        }
+
         await trx
           .updateTable('online_orders')
           .set({
@@ -1197,6 +1269,39 @@ export class StorefrontPaymentService {
       }
 
       if (isSuccessful) {
+        // P0-3: Strict Amount Verification
+        const tapAmount = Number(body?.amount);
+        if (!isNaN(tapAmount) && tapAmount > 0 && Math.abs(tapAmount - Number(lockedOrder.total_amount)) > 0.05) {
+          this.logger.error(`Tap amount mismatch for ${lockedOrder.order_number}: expected ${lockedOrder.total_amount}, got ${tapAmount}`);
+          throw new BadRequestException('مبلغ الدفع المسدد لا يطابق إجمالي الطلب');
+        }
+
+        // P0-1: Late Webhook / Cancelled / Unreserved Order Protection
+        const isCancelledOrReleased =
+          lockedOrder.status === 'cancelled' ||
+          lockedOrder.status === 'payment_failed' ||
+          (lockedOrder.stock_reserved === false && (lockedOrder as any).stock_reserved_at != null);
+        if (isCancelledOrReleased) {
+          await trx
+            .updateTable('online_orders')
+            .set({
+              payment_status: 'paid',
+              status: 'review_required',
+              gateway_provider: 'tap',
+              gateway_transaction_id: chargeId,
+              gateway_response_json: JSON.stringify(body),
+              paid_at: new Date(),
+              customer_notes: sql`CONCAT(COALESCE(customer_notes, ''), ' [تم استلام سداد إلكتروني متأخر لطلب ملغي أو منتهي الحجز - يتطلب مراجعة التاجر أو استرداد المبلغ]')`,
+              updated_at: new Date(),
+            })
+            .where('id', '=', lockedOrder.id)
+            .where(sql<boolean>`tenant_id = ${lockedOrder.tenant_id}`)
+            .execute();
+
+          this.logger.warn(`Tap Webhook: Late payment for cancelled/unreserved order ${lockedOrder.order_number} marked as review_required.`);
+          return { ok: true, status: 'review_required', orderNumber: lockedOrder.order_number, latePayment: true };
+        }
+
         await trx
           .updateTable('online_orders')
           .set({
@@ -1337,6 +1442,43 @@ export class StorefrontPaymentService {
       }
 
       if (isSuccessful) {
+        // P0-3: Strict Amount Verification
+        const stripeTotal = obj?.amount_total || obj?.amount;
+        if (stripeTotal !== undefined && stripeTotal !== null) {
+          const stripeAmount = Number(stripeTotal) / 100;
+          if (!isNaN(stripeAmount) && stripeAmount > 0 && Math.abs(stripeAmount - Number(lockedOrder.total_amount)) > 0.05) {
+            this.logger.error(`Stripe amount mismatch for ${lockedOrder.order_number}: expected ${lockedOrder.total_amount}, got ${stripeAmount}`);
+            throw new BadRequestException('مبلغ الدفع المسدد لا يطابق إجمالي الطلب');
+          }
+        }
+
+        // P0-1: Late Webhook / Cancelled / Unreserved Order Protection
+        const isCancelledOrReleased =
+          lockedOrder.status === 'cancelled' ||
+          lockedOrder.status === 'payment_failed' ||
+          (lockedOrder.stock_reserved === false && (lockedOrder as any).stock_reserved_at != null);
+        if (isCancelledOrReleased) {
+          const txnId = String(obj?.payment_intent || obj?.id || '');
+          await trx
+            .updateTable('online_orders')
+            .set({
+              payment_status: 'paid',
+              status: 'review_required',
+              gateway_provider: 'stripe',
+              gateway_transaction_id: txnId,
+              gateway_response_json: JSON.stringify(body),
+              paid_at: new Date(),
+              customer_notes: sql`CONCAT(COALESCE(customer_notes, ''), ' [تم استلام سداد إلكتروني متأخر لطلب ملغي أو منتهي الحجز - يتطلب مراجعة التاجر أو استرداد المبلغ]')`,
+              updated_at: new Date(),
+            })
+            .where('id', '=', lockedOrder.id)
+            .where(sql<boolean>`tenant_id = ${lockedOrder.tenant_id}`)
+            .execute();
+
+          this.logger.warn(`Stripe Webhook: Late payment for cancelled/unreserved order ${lockedOrder.order_number} marked as review_required.`);
+          return { ok: true, status: 'review_required', orderNumber: lockedOrder.order_number, latePayment: true };
+        }
+
         const txnId = String(obj?.payment_intent || obj?.id || '');
         await trx
           .updateTable('online_orders')

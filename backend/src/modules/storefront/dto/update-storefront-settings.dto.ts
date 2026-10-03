@@ -153,10 +153,22 @@ export class UpdateStorefrontSettingsDto {
   @IsBoolean()
   stripeTestMode?: boolean;
 
-  // Custom Branding
+  // Custom Branding (3-Color Premium Identity)
   @IsOptional()
   @IsString()
   brandColor?: string;
+
+  @IsOptional()
+  @IsString()
+  brandSecondaryColor?: string;
+
+  @IsOptional()
+  @IsString()
+  brandSurfaceColor?: string;
+
+  @IsOptional()
+  @IsString()
+  themePreset?: string;
 
   // Tracking Pixels
   @IsOptional()

@@ -66,12 +66,17 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
           {item.product.name}
         </div>
         <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '1px' }}>
-          <strong style={{ color: '#166534', fontWeight: 800 }}>
+          <strong style={{ color: 'var(--storefront-primary-color, #170e5e)', fontWeight: 800 }}>
             {lineTotal.toFixed(0)} ج
           </strong>{' '}
           <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>
             ({item.product.price.toFixed(0)} × {item.quantity})
           </span>
+          {item.product.hasDiscount && item.product.originalPrice && item.product.originalPrice > item.product.price && (
+            <span style={{ fontSize: '10px', color: 'var(--storefront-secondary-color, #e11d48)', fontWeight: 700, marginInlineStart: '5px' }}>
+              (وفر {((item.product.originalPrice - item.product.price) * item.quantity).toFixed(0)} ج)
+            </span>
+          )}
         </div>
       </div>
 

@@ -717,6 +717,10 @@ export class SalesWriteService {
           .forUpdate()
           .executeTakeFirst();
 
+        if (onlineOrderToRelease?.sale_id) {
+          throw new AppError('تم تحويل هذا الطلب لفاتورة مبيعات مسبقاً', 'ORDER_ALREADY_INVOICED', 400);
+        }
+
         if (onlineOrderToRelease?.stock_reserved) {
           let orderItems: Array<any> = [];
           try {

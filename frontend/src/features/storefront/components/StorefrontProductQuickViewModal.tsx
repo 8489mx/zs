@@ -338,13 +338,33 @@ export function StorefrontProductQuickViewModal({
 
             {/* Price & Stock status */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '24px', fontWeight: 900, color: brandColor, letterSpacing: '-0.5px' }}>
                   {basePrice.toLocaleString()}
                 </span>
                 <span style={{ fontSize: '13px', fontWeight: 800, color: '#64748b' }}>
                   <CurrencySymbol />
                 </span>
+                {product.hasDiscount && product.originalPrice && product.originalPrice > product.price && (
+                  <>
+                    <span style={{ fontSize: '13.5px', color: '#94a3b8', textDecoration: 'line-through', marginInlineStart: '4px' }}>
+                      {product.originalPrice.toLocaleString()} <CurrencySymbol />
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        background: 'var(--storefront-secondary-color, #e11d48)',
+                        color: '#ffffff',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        marginInlineStart: '4px',
+                      }}
+                    >
+                      {product.offerBadge || (product.discountPercent ? `خصم ${product.discountPercent}%` : 'عرض خاص')}
+                    </span>
+                  </>
+                )}
               </div>
 
               <span

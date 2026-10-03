@@ -72,6 +72,9 @@ export function StorefrontSettingsTab() {
     whatsappPhone: '',
     customDomain: '',
     brandColor: '#170e5e',
+    brandSecondaryColor: '#f59e0b',
+    brandSurfaceColor: '#f8fafc',
+    themePreset: 'royal_navy',
     pickupEnabled: true,
     metaPixelId: '',
     ga4Id: '',
@@ -147,6 +150,9 @@ export function StorefrontSettingsTab() {
         whatsappPhone: settingsQuery.data.whatsappPhone || '',
         customDomain: (settingsQuery.data as any).customDomain || '',
         brandColor: settingsQuery.data.brandColor || '#170e5e',
+        brandSecondaryColor: (settingsQuery.data as any).brandSecondaryColor || '#f59e0b',
+        brandSurfaceColor: (settingsQuery.data as any).brandSurfaceColor || '#f8fafc',
+        themePreset: (settingsQuery.data as any).themePreset || 'royal_navy',
         pickupEnabled: settingsQuery.data.pickupEnabled !== false,
         metaPixelId: settingsQuery.data.metaPixelId || '',
         ga4Id: settingsQuery.data.ga4Id || '',
@@ -831,68 +837,319 @@ export function StorefrontSettingsTab() {
                 />
               </div>
 
-              {/* Brand Primary Color */}
-              <div>
-                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  لون الهوية التجارية الموحد (Brand Color):
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <input
-                    type="color"
-                    value={formState.brandColor || '#170e5e'}
-                    onChange={(e) => setFormState({ ...formState, brandColor: e.target.value })}
+              {/* 3-Color Premium Theme Customization Studio */}
+              <div
+                style={{
+                  gridColumn: '1 / -1',
+                  background: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '16px 18px',
+                  marginTop: '4px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      تخصيص هوية وألوان المتجر البريميوم (3-Color Luxury Identity)
+                    </h3>
+                    <p style={{ fontSize: '11.5px', color: '#64748b', margin: '3px 0 0 0' }}>
+                      اختر لوحة ألوان متناسقة جاهزة بنقرة واحدة، أو خصص الألوان الثلاثة (الأساسي، العروض، الأسطح) لتعكس هويتك التجارية بدقة وفخامة.
+                    </p>
+                  </div>
+                  <span
                     style={{
-                      width: '40px',
-                      height: '34px',
-                      padding: '0',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      background: 'none',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      color: formState.brandColor,
+                      background: '#ffffff',
+                      border: `1px solid #cbd5e1`,
+                      padding: '3px 10px',
+                      borderRadius: '20px',
                     }}
-                  />
-                  <input
-                    type="text"
-                    value={formState.brandColor || '#170e5e'}
-                    onChange={(e) => setFormState({ ...formState, brandColor: e.target.value })}
-                    style={{
-                      width: '90px',
-                      padding: '6px 8px',
-                      borderRadius: '6px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      fontFamily: 'monospace',
-                      direction: 'ltr',
-                      textAlign: 'center',
-                    }}
-                  />
-                  <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                  >
+                    النمط المختار: {formState.themePreset || 'custom'}
+                  </span>
+                </div>
+
+                {/* 1. Curated Luxury Palettes (One-Click) */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
+                    لوحات ألوان بريميوم جاهزة ومعتمدة:
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
                     {[
-                      { name: 'كحلي ملكي', color: '#170e5e' },
-                      { name: 'أخضر زمردي', color: '#059669' },
-                      { name: 'أحمر قرمزي', color: '#dc2626' },
-                      { name: 'أزرق كلاسيك', color: '#2563eb' },
-                      { name: 'بنفسجي', color: '#7c3aed' },
-                      { name: 'عنبري', color: '#d97706' },
-                    ].map((preset) => (
-                      <button
-                        key={preset.color}
-                        type="button"
-                        onClick={() => setFormState({ ...formState, brandColor: preset.color })}
-                        title={preset.name}
+                      {
+                        id: 'royal_navy',
+                        name: 'الكحلي الملكي',
+                        primary: '#170e5e',
+                        secondary: '#f59e0b',
+                        surface: '#f8fafc',
+                      },
+                      {
+                        id: 'imperial_emerald',
+                        name: 'الزمردي الإمبراطوري',
+                        primary: '#065f46',
+                        secondary: '#d97706',
+                        surface: '#f0fdf4',
+                      },
+                      {
+                        id: 'velvet_boutique',
+                        name: 'البوتيك المخملي',
+                        primary: '#881337',
+                        secondary: '#e11d48',
+                        surface: '#fff1f2',
+                      },
+                      {
+                        id: 'italian_roast',
+                        name: 'القهوة الإيطالية',
+                        primary: '#451a03',
+                        secondary: '#d97706',
+                        surface: '#faf8f5',
+                      },
+                      {
+                        id: 'modern_obsidian',
+                        name: 'الفحمي العصري',
+                        primary: '#0f172a',
+                        secondary: '#2563eb',
+                        surface: '#f1f5f9',
+                      },
+                      {
+                        id: 'royal_amethyst',
+                        name: 'الأرجواني الفاخر',
+                        primary: '#581c87',
+                        secondary: '#06b6d4',
+                        surface: '#faf5ff',
+                      },
+                    ].map((palette) => {
+                      const isSelected = formState.themePreset === palette.id ||
+                        (formState.brandColor === palette.primary && formState.brandSecondaryColor === palette.secondary);
+                      return (
+                        <button
+                          key={palette.id}
+                          type="button"
+                          onClick={() => {
+                            setFormState({
+                              ...formState,
+                              brandColor: palette.primary,
+                              brandSecondaryColor: palette.secondary,
+                              brandSurfaceColor: palette.surface,
+                              themePreset: palette.id,
+                            });
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 10px',
+                            borderRadius: '10px',
+                            background: isSelected ? '#ffffff' : '#f1f5f9',
+                            border: isSelected ? `2px solid ${palette.primary}` : '1px solid #e2e8f0',
+                            boxShadow: isSelected ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            textAlign: 'right',
+                          }}
+                        >
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#1e293b' }}>
+                            {palette.name}
+                          </span>
+                          <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+                            <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: palette.primary, border: '1px solid rgba(0,0,0,0.1)' }} />
+                            <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: palette.secondary, border: '1px solid rgba(0,0,0,0.1)' }} />
+                            <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: palette.surface, border: '1px solid rgba(0,0,0,0.15)' }} />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Three Granular Color Controls & Interactive Live Mockup */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', alignItems: 'center' }}>
+                  {/* Left: The 3 Color Pickers */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* Primary Color */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div>
+                        <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>
+                          1. اللون الأساسي (Primary Color):
+                        </span>
+                        <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                          للهيدر، أزرار الشراء وسلة التسوق
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="color"
+                          value={formState.brandColor || '#170e5e'}
+                          onChange={(e) => setFormState({ ...formState, brandColor: e.target.value, themePreset: 'custom' })}
+                          style={{ width: '32px', height: '28px', padding: 0, border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', background: 'none' }}
+                        />
+                        <input
+                          type="text"
+                          value={formState.brandColor || '#170e5e'}
+                          onChange={(e) => setFormState({ ...formState, brandColor: e.target.value, themePreset: 'custom' })}
+                          style={{ width: '74px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '11px', fontWeight: 700, fontFamily: 'monospace', direction: 'ltr', textAlign: 'center' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Secondary / Deals Color */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div>
+                        <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>
+                          2. لون التمييز والعروض (Accent / Deals):
+                        </span>
+                        <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                          شارات الخصومات وأشرطة التوفير
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="color"
+                          value={formState.brandSecondaryColor || '#f59e0b'}
+                          onChange={(e) => setFormState({ ...formState, brandSecondaryColor: e.target.value, themePreset: 'custom' })}
+                          style={{ width: '32px', height: '28px', padding: 0, border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', background: 'none' }}
+                        />
+                        <input
+                          type="text"
+                          value={formState.brandSecondaryColor || '#f59e0b'}
+                          onChange={(e) => setFormState({ ...formState, brandSecondaryColor: e.target.value, themePreset: 'custom' })}
+                          style={{ width: '74px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '11px', fontWeight: 700, fontFamily: 'monospace', direction: 'ltr', textAlign: 'center' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Surface / Background Color */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div>
+                        <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>
+                          3. لون الأسطح والخلفيات (Surface Tint):
+                        </span>
+                        <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                          خلفيات المتجر وبطاقات التصنيفات
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="color"
+                          value={formState.brandSurfaceColor || '#f8fafc'}
+                          onChange={(e) => setFormState({ ...formState, brandSurfaceColor: e.target.value, themePreset: 'custom' })}
+                          style={{ width: '32px', height: '28px', padding: 0, border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', background: 'none' }}
+                        />
+                        <input
+                          type="text"
+                          value={formState.brandSurfaceColor || '#f8fafc'}
+                          onChange={(e) => setFormState({ ...formState, brandSurfaceColor: e.target.value, themePreset: 'custom' })}
+                          style={{ width: '74px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '11px', fontWeight: 700, fontFamily: 'monospace', direction: 'ltr', textAlign: 'center' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Live Interactive Storefront Preview Card */}
+                  <div
+                    style={{
+                      background: formState.brandSurfaceColor || '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '12px',
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '10.5px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        معاينة المتجر الحية (Live Preview)
+                      </span>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
+                    </div>
+
+                    {/* Mini Header Mockup */}
+                    <div
+                      style={{
+                        background: formState.brandColor || '#170e5e',
+                        color: '#ffffff',
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span style={{ fontSize: '11.5px', fontWeight: 900 }}>
+                        {formState.title || 'متجري الإلكتروني'}
+                      </span>
+                      <span
                         style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          background: preset.color,
-                          border: formState.brandColor === preset.color ? '2px solid #0f172a' : '2px solid #ffffff',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                          cursor: 'pointer',
-                          padding: 0,
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          background: formState.brandSecondaryColor || '#f59e0b',
+                          color: '#ffffff',
+                          padding: '2px 6px',
+                          borderRadius: '12px',
                         }}
-                      />
-                    ))}
+                      >
+                        السلة (1)
+                      </span>
+                    </div>
+
+                    {/* Mini Product Card Mockup */}
+                    <div
+                      style={{
+                        background: '#ffffff',
+                        borderRadius: '10px',
+                        border: '1px solid #e2e8f0',
+                        padding: '8px 10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                            منتج تجريبي
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 800,
+                              background: formState.brandSecondaryColor || '#f59e0b',
+                              color: '#ffffff',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            خصم 20%
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '11.5px', marginTop: '2px' }}>
+                          <strong style={{ color: formState.brandColor || '#170e5e', fontWeight: 900 }}>
+                            160 ج
+                          </strong>{' '}
+                          <span style={{ fontSize: '10px', color: '#94a3b8', textDecoration: 'line-through' }}>
+                            200 ج
+                          </span>
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          background: formState.brandColor || '#170e5e',
+                          color: '#ffffff',
+                          fontSize: '10.5px',
+                          fontWeight: 800,
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                        }}
+                      >
+                        أضف للسلة
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

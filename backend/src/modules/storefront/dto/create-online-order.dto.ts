@@ -85,5 +85,10 @@ export class CreateOnlineOrderDto {
   @IsOptional()
   @IsNumber()
   pickupBranchId?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  idempotencyKey?: string;
 }
 

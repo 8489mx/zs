@@ -161,11 +161,15 @@ export function StorefrontCheckoutModal({
   const [couponError, setCouponError] = useState('');
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   const isSubmittingRef = useRef(false);
+  const idempotencyKeyRef = useRef<string>('');
   const scrollBodyRef = useRef<HTMLDivElement>(null);
 
   // Trigger initiate checkout event for marketing pixels
   useEffect(() => {
     if (isOpen) {
+      if (!idempotencyKeyRef.current) {
+        idempotencyKeyRef.current = 'idemp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+      }
       trackStorefrontEvent('InitiateCheckout', {
         value: subtotal,
         currency: info?.currency || 'EGP',
@@ -475,6 +479,7 @@ export function StorefrontCheckoutModal({
           tableNumber: tableNumber || undefined,
           fulfillmentType: isDineIn ? ('dine_in' as const) : (isPickup ? ('pickup' as const) : ('delivery' as const)),
           countryCode: selectedCountry,
+          idempotencyKey: idempotencyKeyRef.current || undefined,
           items: cartItems.map((item) => ({
             productId: Number(item.product.id),
             quantity: Number(item.quantity) || 1,
@@ -482,6 +487,7 @@ export function StorefrontCheckoutModal({
           })),
         };
         const res = await storefrontApi.createOrder(tenantSlug, payload);
+        idempotencyKeyRef.current = '';
 
         trackStorefrontEvent('Purchase', {
           orderNumber: res.orderNumber,

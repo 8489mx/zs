@@ -287,10 +287,14 @@ export function usePublicStorefront(cleanSlug: string) {
   const isSmartDealsOn = Boolean(infoQuery.data?.smartDealsEnabled);
 
   const dealsProducts = useMemo(() => {
+    const realDiscounts = rawProducts.filter((p) => Boolean(p.hasDiscount));
+    if (realDiscounts.length > 0) {
+      return realDiscounts;
+    }
     if (isSmartDealsOn) {
       return rawProducts.filter((p) => p.price > 0 && p.inStock).slice(0, 8);
     }
-    return rawProducts.filter((p) => Boolean((p as any).hasDiscount));
+    return [];
   }, [rawProducts, isSmartDealsOn]);
 
   const smartDealProductIds = useMemo(() => {

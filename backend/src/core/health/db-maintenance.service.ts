@@ -45,6 +45,16 @@ export class DatabaseMaintenanceService implements OnApplicationBootstrap {
         this.logger.error('Quick database cleanup failed', err);
       });
     }, 5000); // 5s after app is fully up and responsive
+
+    // Run periodic cleanup every 10 minutes in background
+    const intervalTimer = setInterval(() => {
+      this.runFastCleanup().catch((err) => {
+        this.logger.error('Periodic database cleanup failed', err);
+      });
+    }, 10 * 60 * 1000);
+    if (typeof (intervalTimer as any)?.unref === 'function') {
+      (intervalTimer as any).unref();
+    }
   }
 
   /**
@@ -111,22 +121,42 @@ export class DatabaseMaintenanceService implements OnApplicationBootstrap {
       this.logger.warn('Failed to cleanup stale abandoned carts', err);
     }
 
-    // 5. Cleanup expired online order reservations (>30 mins old, pending, unpaid)
+    // 5. Cleanup expired online order reservations (24h for COD, 30m for card/online)
     try {
-      const expiredCutoff = new Date(Date.now() - 30 * 60 * 1000);
+      const nowMs = Date.now();
+      const onlineCutoff = new Date(nowMs - 30 * 60 * 1000);
       const expiredOrders = await this.db
         .selectFrom('online_orders')
-        .select(['id', 'tenant_id', 'order_number', 'items_json', 'coupon_code', 'reserved_branch_id', 'reserved_location_id', 'branch_id', 'account_id'])
+        .select([
+          'id',
+          'tenant_id',
+          'order_number',
+          'payment_method',
+          'stock_reserved_at',
+          'items_json',
+          'coupon_code',
+          'reserved_branch_id',
+          'reserved_location_id',
+          'branch_id',
+          'account_id',
+        ])
         .where('stock_reserved', '=', true)
         .where('status', '=', 'pending')
         .where('payment_status', '!=', 'paid')
         .where('sale_id', 'is', null)
-        .where('stock_reserved_at', '<', expiredCutoff)
+        .where('stock_reserved_at', '<', onlineCutoff)
         .limit(50)
         .execute();
 
       let reapedCount = 0;
       for (const ord of expiredOrders) {
+        // Enforce 24h window for Cash-on-Delivery, 30m for online/card payments
+        const timeoutMs = ord.payment_method === 'cash' ? 24 * 60 * 60 * 1000 : 30 * 60 * 1000;
+        const currentCutoff = new Date(nowMs - timeoutMs);
+        if (ord.stock_reserved_at && new Date(ord.stock_reserved_at).getTime() > currentCutoff.getTime()) {
+          continue; // Order was refreshed or is COD within 24h window
+        }
+
         try {
           await this.db.transaction().execute(async (trx) => {
             const locked = await trx
@@ -142,6 +172,7 @@ export class DatabaseMaintenanceService implements OnApplicationBootstrap {
               .where(sql<boolean>`tenant_id = ${ord.tenant_id}`)
               .where('stock_reserved', '=', true)
               .where('status', '=', 'pending')
+              .where('stock_reserved_at', '<=', currentCutoff)
               .executeTakeFirst();
 
             if (Number(locked?.numUpdatedRows || 0) === 0) return;

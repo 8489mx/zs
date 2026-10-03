@@ -42,6 +42,10 @@ import {
   DEFAULT_ONLINE_PAYMENT_TIMEOUT_MS,
   DEFAULT_COD_STALE_TIMEOUT_MS,
 } from './engines/storefront-reservation.engine';
+import {
+  resolveBestStorefrontOffer,
+  RawStorefrontOffer,
+} from './engines/storefront-offers.engine';
 
 /** Country-aware phone rule shared by order creation and edit (O56: edit used to accept Egypt only). */
 function assertValidCustomerPhone(rawPhone: string | undefined, countryCode: string): void {
@@ -498,6 +502,9 @@ export class StorefrontService {
       onlinePaymentTestMode,
       onlinePaymentProvider,
       brandColor: settings.get('storefront_brand_color') || '#170e5e',
+      brandSecondaryColor: settings.get('storefront_brand_secondary_color') || '#f59e0b',
+      brandSurfaceColor: settings.get('storefront_brand_surface_color') || '#f8fafc',
+      themePreset: settings.get('storefront_theme_preset') || 'royal_navy',
       metaPixelId: settings.get('storefront_meta_pixel_id') || '',
       ga4Id: settings.get('storefront_ga4_id') || '',
       tiktokPixelId: settings.get('storefront_tiktok_pixel_id') || '',
@@ -569,7 +576,7 @@ export class StorefrontService {
       this.getTenantSettingsMap(tenant.id),
     ]);
     const productIds = products.map((p) => Number(p.id));
-    const [reviews, stockScope] = await Promise.all([
+    const [reviews, stockScope, rawOffers] = await Promise.all([
       productIds.length
         ? this.db.selectFrom('product_reviews')
           .select(['product_id', sql<number>`round(avg(rating)::numeric, 1)`.as('avg_rating'),
@@ -579,6 +586,30 @@ export class StorefrontService {
           .groupBy('product_id').execute()
         : Promise.resolve([]),
       this.resolveStorefrontStockScope(tenant.id, settings),
+      productIds.length
+        ? this.db.selectFrom('product_offers')
+          .select([
+            'id',
+            'product_id',
+            'offer_type',
+            'value',
+            'start_date',
+            'end_date',
+            'min_qty',
+            'is_active',
+            'bogo_buy_qty',
+            'bogo_get_qty',
+            'bogo_discount_percent',
+            'happy_hour_start',
+            'happy_hour_end',
+            'days_of_week',
+          ])
+          .where(sql<boolean>`tenant_id = ${tenant.id}`)
+          .where('product_id', 'in', productIds)
+          .where('is_active', '=', true)
+          .execute()
+          .catch(() => [] as any[])
+        : Promise.resolve([]),
     ]);
     const availability = productIds.length
       ? await this.loadStorefrontAvailability(
@@ -588,6 +619,12 @@ export class StorefrontService {
     const ratings = new Map(reviews.map((r) => [
       Number(r.product_id), { rating: Number(r.avg_rating || 0), reviewCount: Number(r.review_count || 0) },
     ]));
+    const offersMap = new Map<number, RawStorefrontOffer[]>();
+    for (const off of (rawOffers as RawStorefrontOffer[])) {
+      const pid = Number(off.product_id);
+      if (!offersMap.has(pid)) offersMap.set(pid, []);
+      offersMap.get(pid)!.push(off);
+    }
     const categoryNames = new Map(categories.map((c) => [Number(c.id), c.name]));
     let categoryImages: Record<string, string> = {};
     if (catImagesRow?.value) {
@@ -617,9 +654,20 @@ export class StorefrontService {
           ? meta.gallery.map(catalogImageRef).filter(Boolean)
           : [mainImg].filter(Boolean);
         const available = allowOutOfStock || rawStock > 0;
+        const retailPrice = Number(p.retail_price || 0);
+        const pOffers = offersMap.get(productId) || [];
+        const bestOffer = resolveBestStorefrontOffer(retailPrice, pOffers);
+        const finalPrice = bestOffer.hasDiscount ? bestOffer.price : retailPrice;
+
         return {
           id: productId, name: p.name, barcode: p.barcode || '',
-          price: Number(p.retail_price || 0),
+          price: finalPrice,
+          originalPrice: bestOffer.hasDiscount ? retailPrice : undefined,
+          hasDiscount: bestOffer.hasDiscount,
+          discountPercent: bestOffer.hasDiscount ? bestOffer.discountPercent : undefined,
+          offerBadge: bestOffer.hasDiscount ? bestOffer.offerBadge : undefined,
+          offerType: bestOffer.hasDiscount ? bestOffer.offerType : undefined,
+          offerValue: bestOffer.hasDiscount ? bestOffer.offerValue : undefined,
           categoryId: p.category_id ? Number(p.category_id) : null,
           categoryName: p.category_id ? categoryNames.get(Number(p.category_id)) || 'عام' : 'عام',
           stockQty: allowOutOfStock ? (rawStock > 0 ? rawStock : 999) : rawStock,
@@ -675,7 +723,7 @@ export class StorefrontService {
 
         // PERF-4: the five reads below are independent once the tenant is known — run them together
         // instead of five sequential round-trips (the catalog rebuild is on the shopper's critical path).
-        const [categories, catImagesRow, products, reviewsSummary, settings] = await Promise.all([
+        const [categories, catImagesRow, products, reviewsSummary, rawOffers, settings] = await Promise.all([
           // 1. Categories
           this.db
             .selectFrom('product_categories')
@@ -727,6 +775,29 @@ export class StorefrontService {
             .groupBy('product_id')
             .execute()
             .catch(() => [] as Array<{ product_id: number; avg_rating: number; review_count: number }>),
+          // 4. Active product offers / discounts from ERP
+          this.db
+            .selectFrom('product_offers')
+            .select([
+              'id',
+              'product_id',
+              'offer_type',
+              'value',
+              'start_date',
+              'end_date',
+              'min_qty',
+              'is_active',
+              'bogo_buy_qty',
+              'bogo_get_qty',
+              'bogo_discount_percent',
+              'happy_hour_start',
+              'happy_hour_end',
+              'days_of_week',
+            ])
+            .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            .where('is_active', '=', true)
+            .execute()
+            .catch(() => [] as any[]),
           this.getTenantSettingsMap(tenant.id),
         ]);
 
@@ -757,6 +828,13 @@ export class StorefrontService {
           });
         }
 
+        const offersByProductId = new Map<number, RawStorefrontOffer[]>();
+        for (const off of (rawOffers as RawStorefrontOffer[])) {
+          const pid = Number(off.product_id);
+          if (!offersByProductId.has(pid)) offersByProductId.set(pid, []);
+          offersByProductId.get(pid)!.push(off);
+        }
+
         const allowOutOfStock = isOutOfStockOrderingAllowed(settings, cleanSlug, tenant.activity_type);
 
         const stockScope = await this.resolveStorefrontStockScope(tenant.id, settings);
@@ -780,6 +858,10 @@ export class StorefrontService {
           const inStock = allowOutOfStock ? true : (rawStock > 0);
           const isLowStock = !allowOutOfStock && rawStock > 0 && rawStock <= 5;
           const retailPrice = Number(p.retail_price ?? 0);
+          const pOffers = offersByProductId.get(Number(p.id)) || [];
+          const bestOffer = resolveBestStorefrontOffer(retailPrice, pOffers);
+          const finalPrice = bestOffer.hasDiscount ? bestOffer.price : retailPrice;
+
           const reviewStats = ratingMap.get(Number(p.id)) || { avgRating: 0, reviewCount: 0 };
           // SF-9: the catalog never ships inline base64. Migration 135 moved existing images to
           // storefront_media and every writer now stores URLs; this guard keeps one stray data URL
@@ -793,7 +875,13 @@ export class StorefrontService {
             id: Number(p.id) || p.id,
             name: p.name,
             barcode: p.barcode || '',
-            price: retailPrice,
+            price: finalPrice,
+            originalPrice: bestOffer.hasDiscount ? retailPrice : undefined,
+            hasDiscount: bestOffer.hasDiscount,
+            discountPercent: bestOffer.hasDiscount ? bestOffer.discountPercent : undefined,
+            offerBadge: bestOffer.hasDiscount ? bestOffer.offerBadge : undefined,
+            offerType: bestOffer.hasDiscount ? bestOffer.offerType : undefined,
+            offerValue: bestOffer.hasDiscount ? bestOffer.offerValue : undefined,
             categoryId: p.category_id ? Number(p.category_id) : null,
             categoryName: (p.category_id && catMap.get(p.category_id)) || 'عام',
             stockQty,
@@ -988,13 +1076,16 @@ export class StorefrontService {
           if (coupon.discount_type === 'free_shipping') {
             deliveryFee = 0;
           } else if (coupon.discount_type === 'percentage') {
-            const rawDiscount = (subtotal * Number(coupon.discount_value)) / 100;
+            const pct = Math.min(100, Math.max(0, Number(coupon.discount_value)));
+            const rawDiscount = (subtotal * pct) / 100;
             discountAmount = coupon.max_discount_amount
               ? Math.min(rawDiscount, Number(coupon.max_discount_amount))
               : rawDiscount;
           } else if (coupon.discount_type === 'fixed') {
             discountAmount = Math.min(subtotal, Number(coupon.discount_value));
           }
+          // Strictly bound discount amount by subtotal so it can never exceed goods value
+          discountAmount = Math.min(subtotal, Math.max(0, discountAmount));
           discountAmount = Math.round(discountAmount * 100) / 100;
           // The use is claimed inside the caller's transaction (O57), never here.
           couponId = alreadyClaimed ? null : Number(coupon.id);
@@ -1039,6 +1130,48 @@ export class StorefrontService {
 
     const isDineIn = dto.orderType === 'dine_in' || Boolean(dto.tableNumber);
     const isPickup = dto.fulfillmentType === 'pickup';
+
+    if (isPickup) {
+      const pickupEnabled = settings.get('storefront_pickup_enabled') !== 'false';
+      if (!pickupEnabled) {
+        throw new BadRequestException('خدمة الاستلام الذاتي من الفرع غير مفعلة لهذا المتجر');
+      }
+    }
+
+    if (isDineIn) {
+      const dineInEnabled = settings.get('storefront_dine_in_enabled') === 'true';
+      if (!dineInEnabled) {
+        throw new BadRequestException('خدمة الطلب من الطاولة غير مفعلة لهذا المتجر');
+      }
+    }
+
+    // Idempotency check: deduplicate recent (< 10 mins) submissions with same idempotencyKey
+    if (dto.idempotencyKey && typeof dto.idempotencyKey === 'string' && dto.idempotencyKey.trim()) {
+      const cleanKey = dto.idempotencyKey.trim().slice(0, 128);
+      const existingOrder = await this.db
+        .selectFrom('online_orders')
+        .select(['id', 'order_number', 'total_amount', 'status', 'payment_status', 'created_at'])
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .where('idempotency_key', '=', cleanKey)
+        .where('created_at', '>', new Date(Date.now() - 10 * 60 * 1000))
+        .executeTakeFirst();
+
+      if (existingOrder) {
+        this.logger.log(`Idempotent order submission detected for key ${cleanKey}. Returning order ${existingOrder.order_number}`);
+        return {
+          id: existingOrder.id,
+          orderNumber: existingOrder.order_number,
+          totalAmount: Number(existingOrder.total_amount || 0),
+          status: existingOrder.status,
+          createdAt: existingOrder.created_at,
+          paymentUrl: null,
+          gatewayOrderId: null,
+          token: undefined,
+          idempotentDuplicate: true,
+        };
+      }
+    }
+
     const countryCode = (dto.countryCode || 'EG').toUpperCase();
 
     if (!isDineIn) {
@@ -1070,25 +1203,59 @@ export class StorefrontService {
     const numericIds = dto.items.map((i) => Number(i.productId)).filter((id) => !isNaN(id) && id > 0);
     const stringIds = dto.items.map((i) => String(i.productId).trim()).filter(Boolean);
 
-    const dbProducts = await this.db
-      .selectFrom('products')
-      .select(['id', 'name', 'retail_price', 'barcode', 'stock_qty', 'reserved_qty', 'metadata'])
-      .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      // Same visibility rule as the public catalog (O52): an order may only contain what the
-      // catalog shows. Anything else is "not available" — including deleted items still in a cart.
-      .where('is_active', '=', true)
-      .where((eb) => eb.or([eb('item_type', '=', 'product'), eb('item_type', 'is', null)]))
-      .where((eb) => {
-        const conditions = [];
-        if (numericIds.length > 0) {
-          conditions.push(eb('id', 'in', numericIds));
-        }
-        if (stringIds.length > 0) {
-          conditions.push(eb(sql<string>`CAST(id AS TEXT)`, 'in', stringIds));
-        }
-        return conditions.length > 0 ? eb.or(conditions) : eb.val(false);
-      })
-      .execute();
+    const [dbProducts, activeOffers] = await Promise.all([
+      this.db
+        .selectFrom('products')
+        .select(['id', 'name', 'retail_price', 'barcode', 'stock_qty', 'reserved_qty', 'metadata'])
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        // Same visibility rule as the public catalog (O52): an order may only contain what the
+        // catalog shows. Anything else is "not available" — including deleted items still in a cart.
+        .where('is_active', '=', true)
+        .where((eb) => eb.or([eb('item_type', '=', 'product'), eb('item_type', 'is', null)]))
+        .where((eb) => {
+          const conditions = [];
+          if (numericIds.length > 0) {
+            conditions.push(eb('id', 'in', numericIds));
+          }
+          if (stringIds.length > 0) {
+            conditions.push(eb(sql<string>`CAST(id AS TEXT)`, 'in', stringIds));
+          }
+          return conditions.length > 0 ? eb.or(conditions) : eb.val(false);
+        })
+        .execute(),
+      numericIds.length > 0
+        ? this.db
+            .selectFrom('product_offers')
+            .select([
+              'id',
+              'product_id',
+              'offer_type',
+              'value',
+              'start_date',
+              'end_date',
+              'min_qty',
+              'is_active',
+              'bogo_buy_qty',
+              'bogo_get_qty',
+              'bogo_discount_percent',
+              'happy_hour_start',
+              'happy_hour_end',
+              'days_of_week',
+            ])
+            .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            .where('product_id', 'in', numericIds)
+            .where('is_active', '=', true)
+            .execute()
+            .catch(() => [] as any[])
+        : Promise.resolve([]),
+    ]);
+
+    const offersByProductId = new Map<number, RawStorefrontOffer[]>();
+    for (const off of (activeOffers as RawStorefrontOffer[])) {
+      const pid = Number(off.product_id);
+      if (!offersByProductId.has(pid)) offersByProductId.set(pid, []);
+      offersByProductId.get(pid)!.push(off);
+    }
 
     // Dual-indexed map (both Number and String keys) to eliminate any serialization type-mismatch
     const productMap = new Map<string | number, any>();
@@ -1124,8 +1291,10 @@ export class StorefrontService {
       if (!priced.ok) {
         throw new BadRequestException(`عفواً، المقاس المختار للصنف "${prod.name}" لم يعد متاحاً، يرجى تحديث السلة.`);
       }
-      const unitPrice = priced.unitPrice;
       const quantity = Math.max(1, Number(item.quantity || 1));
+      const pOffers = offersByProductId.get(Number(prod.id)) || [];
+      const bestOffer = resolveBestStorefrontOffer(priced.unitPrice, pOffers, quantity);
+      const unitPrice = bestOffer.hasDiscount ? bestOffer.price : priced.unitPrice;
       const lineTotal = Math.round(unitPrice * quantity * 100) / 100;
       subtotal += lineTotal;
 
@@ -1325,6 +1494,7 @@ export class StorefrontService {
         reserved_branch_id: stockReserved ? targetBranchId : null,
         reserved_location_id: stockReserved ? targetLocationId : null,
         stock_reserved_at: stockReserved ? now : null,
+        idempotency_key: dto.idempotencyKey ? dto.idempotencyKey.trim().slice(0, 128) : null,
       })
       .returning(['id', 'order_number', 'total_amount', 'created_at'])
       .executeTakeFirstOrThrow();
@@ -1528,8 +1698,12 @@ export class StorefrontService {
 
     const qb = this.db
       .selectFrom('online_orders as o')
-      .leftJoin('sales as s', 's.id', 'o.sale_id')
-      .leftJoin('delivery_representatives as dr', 'dr.id', 's.delivery_rep_id')
+      .leftJoin('sales as s', (join) =>
+        join.onRef('s.id', '=', 'o.sale_id').on(sql<boolean>`s.tenant_id = ${tenant.id}`),
+      )
+      .leftJoin('delivery_representatives as dr', (join) =>
+        join.onRef('dr.id', '=', 's.delivery_rep_id').on(sql<boolean>`dr.tenant_id = ${tenant.id}`),
+      )
       .select([
         'o.id',
         'o.order_number',
@@ -1835,26 +2009,43 @@ export class StorefrontService {
     const totalAmount = Math.max(0, subtotal - discountAmount) + deliveryFee;
 
     await this.db.transaction().execute(async (trx) => {
+      const lockedOrder = await trx
+        .selectFrom('online_orders')
+        .selectAll()
+        .where('id', '=', order.id)
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!lockedOrder) {
+        throw new NotFoundException('الطلب غير موجود');
+      }
+
+      if (lockedOrder.status !== 'pending' || lockedOrder.sale_id || lockedOrder.payment_status === 'paid' || lockedOrder.kitchen_draft_sale_id) {
+        throw new BadRequestException('لا يمكن تعديل الطلب لتغير حالته أثناء الحفظ، يرجى إعادة المحاولة.');
+      }
+
       if (charges.couponId) {
         await this.claimCouponUse(trx, tenant.id, charges.couponId);
       }
       // The order no longer carries the coupon it consumed (removed, swapped, or no longer eligible).
-      if (previousCoupon && previousCoupon.toUpperCase() !== String(charges.appliedCouponCode || '').toUpperCase()) {
-        await this.releaseCouponUse(trx, tenant.id, previousCoupon);
+      const currentOrderCoupon = lockedOrder.coupon_code ? String(lockedOrder.coupon_code) : null;
+      if (currentOrderCoupon && currentOrderCoupon.toUpperCase() !== String(charges.appliedCouponCode || '').toUpperCase()) {
+        await this.releaseCouponUse(trx, tenant.id, currentOrderCoupon);
       }
 
-      if (order.stock_reserved) {
+      if (lockedOrder.stock_reserved) {
         let oldItems: Array<any> = [];
         try {
-          const raw = order.items_json;
+          const raw = lockedOrder.items_json;
           oldItems = (typeof raw === 'string' ? JSON.parse(raw) : raw) || [];
         } catch {}
         if (oldItems.length > 0) {
           await releaseLocationStock(trx, {
-            branchId: order.reserved_branch_id ?? order.branch_id,
-            locationId: order.reserved_location_id,
+            branchId: lockedOrder.reserved_branch_id ?? lockedOrder.branch_id,
+            locationId: lockedOrder.reserved_location_id,
             tenantId: tenant.id,
-            accountId: order.account_id,
+            accountId: lockedOrder.account_id,
             items: oldItems.map((it) => ({
               productId: Number(it.productId),
               qty: Number(it.quantity ?? it.qty ?? 1),
@@ -1867,10 +2058,10 @@ export class StorefrontService {
       if (!updateAllowsOutOfStock) {
         try {
           await reserveLocationStock(trx, {
-            branchId: order.reserved_branch_id ?? order.branch_id,
-            locationId: order.reserved_location_id,
+            branchId: lockedOrder.reserved_branch_id ?? lockedOrder.branch_id,
+            locationId: lockedOrder.reserved_location_id,
             tenantId: tenant.id,
-            accountId: order.account_id,
+            accountId: lockedOrder.account_id,
             items: validatedItems.map((it) => ({
               productId: it.productId,
               qty: it.quantity,
@@ -2133,10 +2324,12 @@ export class StorefrontService {
     await this.db.transaction().execute(async (trx) => {
       let ordersQb = trx
         .selectFrom('online_orders')
-        .select(['id', 'status', 'coupon_code', 'stock_reserved', 'reserved_branch_id', 'reserved_location_id', 'branch_id', 'account_id', 'items_json'])
+        .select(['id', 'order_number', 'status', 'payment_status', 'sale_id', 'coupon_code', 'stock_reserved', 'reserved_branch_id', 'reserved_location_id', 'branch_id', 'account_id', 'items_json'])
         .where(sql<boolean>`tenant_id = ${tenantId}`)
         .where('status', '!=', 'cancelled')
-        .where('status', '!=', 'delivered');
+        .where('status', '!=', 'delivered')
+        .where('sale_id', 'is', null) // Never cancel orders already converted to sales invoices
+        .where('payment_status', '!=', 'paid'); // Never bulk-cancel orders paid online without refund flow
 
       if (validStatus !== 'all') {
         ordersQb = ordersQb.where('status', '=', validStatus as any);
@@ -2162,10 +2355,14 @@ export class StorefrontService {
         .where(sql<boolean>`tenant_id = ${tenantId}`)
         .execute();
 
-      // Release stock and coupons
+      // Release stock and coupons with explicit error logging
       for (const row of ordersToCancel) {
         if (row.coupon_code) {
-          await this.releaseCouponUse(trx, tenantId, String(row.coupon_code)).catch(() => undefined);
+          try {
+            await this.releaseCouponUse(trx, tenantId, String(row.coupon_code));
+          } catch (err: any) {
+            this.logger.error(`bulkCancelOrders: Failed to release coupon ${row.coupon_code} for order ${row.order_number || row.id}: ${err?.message}`);
+          }
         }
 
         if (row.stock_reserved) {
@@ -2175,16 +2372,20 @@ export class StorefrontService {
             orderItems = (typeof raw === 'string' ? JSON.parse(raw) : raw) || [];
           } catch {}
           if (orderItems.length > 0) {
-            await releaseLocationStock(trx, {
-              branchId: row.reserved_branch_id ?? row.branch_id,
-              locationId: row.reserved_location_id,
-              tenantId,
-              accountId: row.account_id,
-              items: orderItems.map((it) => ({
-                productId: Number(it.productId),
-                qty: Number(it.quantity ?? it.qty ?? 1),
-              })),
-            }).catch(() => undefined);
+            try {
+              await releaseLocationStock(trx, {
+                branchId: row.reserved_branch_id ?? row.branch_id,
+                locationId: row.reserved_location_id,
+                tenantId,
+                accountId: row.account_id,
+                items: orderItems.map((it) => ({
+                  productId: Number(it.productId),
+                  qty: Number(it.quantity ?? it.qty ?? 1),
+                })),
+              });
+            } catch (err: any) {
+              this.logger.error(`bulkCancelOrders: Failed to release stock for order ${row.order_number || row.id}: ${err?.message}`);
+            }
           }
         }
       }
@@ -2347,7 +2548,16 @@ export class StorefrontService {
       updated_at: new Date(),
     };
     if (saleId !== undefined && saleId > 0) {
-      updatePayload.sale_id = saleId;
+      const validSale = await this.db
+        .selectFrom('sales')
+        .select(['id', 'tenant_id'])
+        .where('id', '=', saleId)
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .executeTakeFirst();
+      if (!validSale) {
+        throw new BadRequestException('فاتورة المبيعات المحددة غير موجودة أو لا تنتمي لهذه المنشأة');
+      }
+      updatePayload.sale_id = Number(validSale.id);
     }
 
     await this.db.transaction().execute(async (trx) => {
@@ -2647,10 +2857,22 @@ export class StorefrontService {
     // beyond them still goes through the normal cashier gates.
     const approvedUnitPrices: Record<number, number> = {};
     for (const line of lines) approvedUnitPrices[line.productId] = line.unitPrice;
-    const saleResult = await this.salesService.createSale(salePayload, actor, {
-      approvedDiscount: orderDiscount,
-      approvedUnitPrices,
-    });
+    let saleResult: any;
+    try {
+      saleResult = await this.salesService.createSale(salePayload, actor, {
+        approvedDiscount: orderDiscount,
+        approvedUnitPrices,
+      });
+    } catch (err: any) {
+      if (err?.code === 'ORDER_ALREADY_INVOICED' || err?.message?.includes('تم تحويل هذا الطلب')) {
+        const latestOrder = await this.getOrder(id, actor);
+        if (latestOrder.sale_id) {
+          const fullSale = await this.salesService.getSaleById(latestOrder.sale_id, actor);
+          return { ok: true, saleId: latestOrder.sale_id, sale: unwrapConvertedSale(fullSale), message: 'تم تحويل الطلب لفاتورة مسبقاً' };
+        }
+      }
+      throw err;
+    }
     const saleId = Number((saleResult as any)?.id || (saleResult as any)?.sale?.id || (typeof saleResult === 'number' ? saleResult : 0));
 
     // Update order with saleId and status 'shipped' (خرجت للتوصيل مع المندوب)
@@ -2887,6 +3109,9 @@ export class StorefrontService {
       stripeWebhookSecret: maskGatewaySecret(settings.get('storefront_stripe_webhook_secret')),
       stripeTestMode: settings.get('storefront_stripe_test_mode') !== 'false',
       brandColor: settings.get('storefront_brand_color') || '#170e5e',
+      brandSecondaryColor: settings.get('storefront_brand_secondary_color') || '#f59e0b',
+      brandSurfaceColor: settings.get('storefront_brand_surface_color') || '#f8fafc',
+      themePreset: settings.get('storefront_theme_preset') || 'royal_navy',
       metaPixelId: settings.get('storefront_meta_pixel_id') || '',
       ga4Id: settings.get('storefront_ga4_id') || '',
       tiktokPixelId: settings.get('storefront_tiktok_pixel_id') || '',
@@ -3026,6 +3251,9 @@ export class StorefrontService {
     if (payload.stripeWebhookSecret !== undefined && !isMaskedGatewaySecret(payload.stripeWebhookSecret)) entries.push({ key: 'storefront_stripe_webhook_secret', value: payload.stripeWebhookSecret });
     if (payload.stripeTestMode !== undefined) entries.push({ key: 'storefront_stripe_test_mode', value: payload.stripeTestMode });
     if (payload.brandColor !== undefined) entries.push({ key: 'storefront_brand_color', value: payload.brandColor });
+    if (payload.brandSecondaryColor !== undefined) entries.push({ key: 'storefront_brand_secondary_color', value: payload.brandSecondaryColor });
+    if (payload.brandSurfaceColor !== undefined) entries.push({ key: 'storefront_brand_surface_color', value: payload.brandSurfaceColor });
+    if (payload.themePreset !== undefined) entries.push({ key: 'storefront_theme_preset', value: payload.themePreset });
     if (payload.metaPixelId !== undefined) entries.push({ key: 'storefront_meta_pixel_id', value: payload.metaPixelId });
     if (payload.ga4Id !== undefined) entries.push({ key: 'storefront_ga4_id', value: payload.ga4Id });
     if (payload.tiktokPixelId !== undefined) entries.push({ key: 'storefront_tiktok_pixel_id', value: payload.tiktokPixelId });
@@ -3320,6 +3548,10 @@ export class StorefrontService {
       throw new BadRequestException(`كود الكوبون "${codeClean}" موجود بالفعل، يرجى اختيار كود آخر`);
     }
 
+    if (dto.discountType === 'percentage' && (Number(dto.discountValue) <= 0 || Number(dto.discountValue) > 100)) {
+      throw new BadRequestException('نسبة الخصم يجب أن تكون بين 1% و 100%');
+    }
+
     const inserted = await this.db
       .insertInto('storefront_coupons')
       .values({
@@ -3355,6 +3587,12 @@ export class StorefrontService {
 
     if (!existing) {
       throw new NotFoundException('الكوبون غير موجود');
+    }
+
+    const effectiveType = dto.discountType || existing.discount_type;
+    const effectiveValue = dto.discountValue !== undefined ? dto.discountValue : existing.discount_value;
+    if (effectiveType === 'percentage' && (Number(effectiveValue) <= 0 || Number(effectiveValue) > 100)) {
+      throw new BadRequestException('نسبة الخصم يجب أن تكون بين 1% و 100%');
     }
 
     const payload: any = { updated_at: new Date() };

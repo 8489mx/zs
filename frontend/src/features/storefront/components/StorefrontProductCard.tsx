@@ -74,13 +74,17 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   // صورة القسم تتكرر على كل منتجاته — نوضّح أنها توضيحية بدل أن تُقرأ كصورة المنتج
   const isIllustrativePhoto = !product.imageUrl && autoPhoto.source === 'category';
 
-  // Optional smart discount badge for visual psychological appeal only when isSmartDeal is enabled
-  const isDeal = Boolean(isSmartDeal || (product as any).hasDiscount);
-  const fakeOldPrice = (!isZeroPrice && isDeal) ? Math.round(product.price * 1.15) : 0;
-  const hasDiscount = fakeOldPrice > product.price;
-  const discountPercent = hasDiscount && fakeOldPrice > 0
-    ? Math.round(((fakeOldPrice - product.price) / fakeOldPrice) * 100)
-    : 0;
+  // Real ERP Offer Discount takes precedence over smart fallback
+  const hasRealOffer = Boolean(product.hasDiscount && product.originalPrice && product.originalPrice > product.price);
+  const isDeal = Boolean(hasRealOffer || isSmartDeal);
+  const oldPrice = hasRealOffer
+    ? Number(product.originalPrice)
+    : (!isZeroPrice && isSmartDeal ? Math.round(product.price * 1.15) : 0);
+  const hasDiscount = oldPrice > product.price;
+  const discountPercent = product.discountPercent || (hasDiscount && oldPrice > 0
+    ? Math.round(((oldPrice - product.price) / oldPrice) * 100)
+    : 0);
+  const offerBadgeText = product.offerBadge || (discountPercent > 0 ? `خصم ${discountPercent}%` : 'عرض خاص');
 
   return (
     <div
@@ -361,17 +365,17 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                     style={{
                       fontSize: '10.5px',
                       fontWeight: 800,
-                      background: '#ef4444',
+                      background: 'var(--storefront-secondary-color, #e11d48)',
                       color: '#ffffff',
                       padding: '2px 7px',
                       borderRadius: '6px',
-                      boxShadow: '0 2px 4px rgba(239, 68, 68, 0.25)',
+                      boxShadow: '0 2px 5px rgba(0, 0, 0, 0.2)',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '3px',
                     }}
                   >
-                    <span>خصم {discountPercent}%</span>
+                    <span>{offerBadgeText}</span>
                   </span>
                 )}
               </>
@@ -636,10 +640,10 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                     fontSize: '11.5px',
                     color: '#94a3b8',
                     textDecoration: 'line-through',
-                    marginRight: '3px',
+                    marginRight: '4px',
                   }}
                 >
-                  {fakeOldPrice} ج
+                  {oldPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <CurrencySymbol />
                 </span>
                 <span
                   className="storefront-product-price-save"
@@ -653,7 +657,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                     marginRight: '2px',
                   }}
                 >
-                  وفر {fakeOldPrice - product.price} ج
+                  وفر {Math.round((oldPrice - product.price) * 100) / 100} <CurrencySymbol />
                 </span>
               </>
             )}
