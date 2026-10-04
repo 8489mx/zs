@@ -5,8 +5,10 @@ import {
   getCatalogVersionFromStorage,
   getCatalogCountFromStorage,
   getLastSyncedAtFromStorage,
+  getStoredTenantIdFromStorage,
 } from '@/features/pos/lib/pos-catalog-storage';
 import { shouldDownloadFullCatalog } from '@/features/pos/lib/pos-catalog-sync-policy';
+import { useAuthStore } from '@/stores/auth-store';
 
 interface PosCatalogWarmupOptions {
   branchId?: string;
@@ -33,18 +35,27 @@ export function usePosCatalogWarmup({ branchId, locationId, enabled = true }: Po
       const remote = await posApi.getCatalogVersion();
       if (!remote?.version) return;
 
-      const [storedVersion, storedCount, storedLastSync] = await Promise.all([
+      const activeTenantId = String(useAuthStore.getState().user?.tenantId || useAuthStore.getState().tenant?.id || '').trim();
+      const [storedVersion, storedCount, storedLastSync, storedTenant] = await Promise.all([
         getCatalogVersionFromStorage(),
         getCatalogCountFromStorage(),
         getLastSyncedAtFromStorage(),
+        getStoredTenantIdFromStorage(),
       ]);
 
       setCatalogVersion(storedVersion);
       setTotalCached(storedCount);
       setLastSyncedAt(storedLastSync);
 
-      // PERF-9: re-download only when the catalog really changed or the offline copy is > 1 hour old.
-      if (!shouldDownloadFullCatalog({ remoteVersion: remote.version, storedVersion, storedCount, lastSyncedAt: storedLastSync })) {
+      // PERF-9: re-download only when the catalog really changed, tenant changed, or the offline copy is > 1 hour old.
+      if (!shouldDownloadFullCatalog({
+        remoteVersion: remote.version,
+        storedVersion,
+        storedCount,
+        lastSyncedAt: storedLastSync,
+        tenantId: activeTenantId,
+        storedTenantId: storedTenant,
+      })) {
         return;
       }
 
@@ -58,7 +69,7 @@ export function usePosCatalogWarmup({ branchId, locationId, enabled = true }: Po
       });
 
       if (Array.isArray(products) && products.length > 0) {
-        await saveCatalogToStorage(products, remote.version);
+        await saveCatalogToStorage(products, remote.version, activeTenantId);
         setCatalogVersion(remote.version);
         setTotalCached(products.length);
         setLastSyncedAt(new Date().toISOString());

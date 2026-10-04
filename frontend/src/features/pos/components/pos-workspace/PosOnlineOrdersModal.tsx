@@ -243,7 +243,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                       <div>
                         <span style={{ fontSize: '11.5px', color: '#64748b' }}>الإجمالي: </span>
                         <span style={{ fontSize: '15px', fontWeight: 900, color: '#170e5e' }}>
-                          {order.totalAmount} ${getGlobalCurrencySymbol()}
+                          {order.totalAmount} {getGlobalCurrencySymbol()}
                         </span>
                       </div>
 

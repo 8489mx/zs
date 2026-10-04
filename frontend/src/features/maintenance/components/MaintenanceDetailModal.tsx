@@ -455,7 +455,7 @@ export function MaintenanceDetailModal({
                   </strong>
                   {discountInfo.amount > 0 && (
                     <span style={{ fontSize: '0.75rem', color: '#475569', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                      خصم: -{discountInfo.amount.toFixed(2)} <CurrencySymbol /> (الصافي: {netTotal.toFixed(2)} ${getGlobalCurrencySymbol()})
+                      خصم: -{discountInfo.amount.toFixed(2)} <CurrencySymbol /> (الصافي: {netTotal.toFixed(2)} <CurrencySymbol />)
                     </span>
                   )}
                 </div>

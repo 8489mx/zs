@@ -112,6 +112,11 @@ export function QuickCreateDialog({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isDirty, onCancel, state]);
 
+  const productTypeOptions = useMemo(() => [
+    { value: 'stock', label: t('stock_type') },
+    { value: 'service', label: t('service_type') },
+  ], [t]);
+
   if (!state) {
     return null;
   }
@@ -189,11 +194,6 @@ export function QuickCreateDialog({
 
     onCancel();
   };
-
-  const productTypeOptions = useMemo(() => [
-    { value: 'stock', label: t('stock_type') },
-    { value: 'service', label: t('service_type') },
-  ], [t]);
 
   return (
     <>

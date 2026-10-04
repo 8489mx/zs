@@ -271,7 +271,7 @@ export function ProductOfferComboCreatorTab({
                     alignItems: 'center',
                     gap: 6
                   }}>
-                    <span>تنبيه: سعر العرض أقل من تكلفة المكونات بخسارة قدرها {formatCurrency(comboTotalCost - numericComboPrice)} ${getGlobalCurrencySymbol()}</span>
+                    <span>تنبيه: سعر العرض أقل من تكلفة المكونات بخسارة قدرها {formatCurrency(comboTotalCost - numericComboPrice)} {getGlobalCurrencySymbol()}</span>
                   </div>
                 )}
               </div>

@@ -156,7 +156,7 @@ export default function WorkCentersPage() {
       header: 'تكلفة الساعة',
       cell: (row) => (
         <span style={{ fontWeight: 600, color: '#0f172a' }}>
-          {Number(row.cost_per_hour).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}
+          {Number(row.cost_per_hour).toLocaleString('ar-EG')} {getGlobalCurrencySymbol()}
         </span>
       ),
     },

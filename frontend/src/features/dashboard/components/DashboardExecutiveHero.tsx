@@ -724,7 +724,7 @@ export function DashboardExecutiveHero({
                           }}
                         >
                           <span>{entry.name === 'sales' ? 'المبيعات:' : 'المشتريات:'}</span>
-                          <span dir="ltr">{formatCurrency(Number(entry.value || 0))} ${getGlobalCurrencySymbol()}</span>
+                          <span dir="ltr">{formatCurrency(Number(entry.value || 0))} {getGlobalCurrencySymbol()}</span>
                         </div>
                       ))}
                     </div>

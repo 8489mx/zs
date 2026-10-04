@@ -45,7 +45,7 @@ export const EmployeeCompensationSection: React.FC<EmployeeCompensationSectionPr
         {draft.compensationType === 'hourly' ? (
           <>
             <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>أجر الساعة (${getGlobalCurrencySymbol()})</label>
+              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>أجر الساعة ({getGlobalCurrencySymbol()})</label>
               <input
                 inputMode="decimal"
                 min="0"

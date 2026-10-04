@@ -308,7 +308,7 @@ export function PriceStockCheckerModal({
                           <div key={unit.id || idx} className="price-checker-unit-row">
                             <span className="unit-name">{unit.name} (معامل {unit.multiplier})</span>
                             <span className="unit-price">
-                              {unitPrice.toLocaleString()} ${getGlobalCurrencySymbol()}
+                              {unitPrice.toLocaleString()} <CurrencySymbol />
                             </span>
                             {unit.barcode && <span className="unit-barcode">{unit.barcode}</span>}
                           </div>

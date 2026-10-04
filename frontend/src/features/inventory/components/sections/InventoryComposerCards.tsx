@@ -641,7 +641,7 @@ export function StockCountComposerCard({
                 <span className="stat-pill">المعدود: <strong>{totalCounted}</strong></span>
                 <span className="stat-pill">الفروقات: <strong>{totalVariance}</strong></span>
                 {canShowExpectedCount && financialSummary.deficitCost > 0 ? (
-                  <span className="stat-pill stat-pill--deficit">قيمة العجز: <strong>{financialSummary.deficitCost.toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}</strong></span>
+                  <span className="stat-pill stat-pill--deficit">قيمة العجز: <strong>{financialSummary.deficitCost.toLocaleString('ar-EG')} {getGlobalCurrencySymbol()}</strong></span>
                 ) : null}
               </div>
             </div>

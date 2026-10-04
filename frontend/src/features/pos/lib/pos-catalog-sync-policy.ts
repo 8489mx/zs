@@ -16,9 +16,12 @@ export interface PosCatalogSyncState {
   storedCount: number;
   lastSyncedAt: string | null;
   now?: number;
+  tenantId?: string;
+  storedTenantId?: string | null;
 }
 
 export function shouldDownloadFullCatalog(state: PosCatalogSyncState): boolean {
+  if (state.tenantId && state.storedTenantId && state.tenantId !== state.storedTenantId) return true;
   if (!state.storedVersion || state.storedCount <= 0) return true;
   if (state.storedVersion !== state.remoteVersion) return true;
   const lastSynced = state.lastSyncedAt ? new Date(state.lastSyncedAt).getTime() : NaN;

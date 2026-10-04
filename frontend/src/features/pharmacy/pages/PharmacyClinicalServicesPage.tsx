@@ -324,7 +324,7 @@ export default function PharmacyClinicalServicesPage() {
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      رسوم الخدمة (${getGlobalCurrencySymbol()})
+                      رسوم الخدمة ({getGlobalCurrencySymbol()})
                     </label>
                     <input
                       type="number"

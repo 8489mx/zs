@@ -90,7 +90,7 @@ export function HrLoanCreateForm({
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>قيمة السلفة (${getGlobalCurrencySymbol()}) <span style={{ color: '#dc2626' }}>*</span></label>
+              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>قيمة السلفة ({getGlobalCurrencySymbol()}) <span style={{ color: '#dc2626' }}>*</span></label>
               <input
                 inputMode="decimal"
                 value={loanDraft.principalAmount}

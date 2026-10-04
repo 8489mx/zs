@@ -223,7 +223,7 @@ export function DistributorInvoiceImportModal({
             </div>
             <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '14px' }}>
               <div style={{ fontSize: '0.72rem', color: '#64748b' }}>قيمة البيع للجمهور:</div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#16a34a' }}>{totalPublicSum.toFixed(2)} ${getGlobalCurrencySymbol()}</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#16a34a' }}>{totalPublicSum.toFixed(2)} <CurrencySymbol /></div>
             </div>
           </div>
         </div>

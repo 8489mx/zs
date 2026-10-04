@@ -1,5 +1,6 @@
 import type { Sale } from '@/types/domain';
 import type { HeldPosDraft, PosDraftSnapshot } from '@/features/pos/hooks/usePosWorkspace';
+import { useAuthStore } from '@/stores/auth-store';
 
 const POS_STORAGE_PREFIX = 'zsystems.react.pos';
 const POS_DRAFT_STORAGE_KEY = `${POS_STORAGE_PREFIX}.draft`;
@@ -14,7 +15,16 @@ const RECENT_MAX_ITEMS = 8;
 
 interface StoredEnvelope<T> {
   savedAt: string;
+  tenantId?: string;
   value: T;
+}
+
+function getActiveTenantId(): string {
+  try {
+    return String(useAuthStore.getState().user?.tenantId || useAuthStore.getState().tenant?.id || '').trim();
+  } catch {
+    return '';
+  }
 }
 
 function safeParse<T>(value: string | null, fallback: T): T {
@@ -35,13 +45,22 @@ function readEnvelope<T>(key: string): StoredEnvelope<T> | null {
   if (!storage) return null;
   const parsed = safeParse<StoredEnvelope<T> | null>(storage.getItem(key), null);
   if (!parsed || typeof parsed !== 'object' || !('savedAt' in parsed) || !('value' in parsed)) return null;
+  const activeTenantId = getActiveTenantId();
+  if (activeTenantId && parsed.tenantId && parsed.tenantId !== activeTenantId) {
+    return null;
+  }
   return parsed;
 }
 
 function writeEnvelope<T>(key: string, value: T) {
   const storage = getStorage();
   if (!storage) return;
-  const payload: StoredEnvelope<T> = { savedAt: new Date().toISOString(), value };
+  const activeTenantId = getActiveTenantId();
+  const payload: StoredEnvelope<T> = {
+    savedAt: new Date().toISOString(),
+    ...(activeTenantId ? { tenantId: activeTenantId } : {}),
+    value,
+  };
   storage.setItem(key, JSON.stringify(payload));
 }
 

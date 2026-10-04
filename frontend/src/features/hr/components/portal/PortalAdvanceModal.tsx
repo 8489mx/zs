@@ -82,7 +82,7 @@ export function PortalAdvanceModal({
             <form onSubmit={handleSubmitAdvance} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  مبلغ السلفة المطلوب (${getGlobalCurrencySymbol()}):
+                  مبلغ السلفة المطلوب ({getGlobalCurrencySymbol()}):
                 </label>
                 <input
                   type="number"

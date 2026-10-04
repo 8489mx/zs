@@ -158,7 +158,7 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
                 <div className="item-card-badge">
                   <span className="item-card-num">مكون #{index + 1}</span>
                   <span className="item-card-stock-pill stock-ok">
-                    الإجمالي: {totalItemCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ${getGlobalCurrencySymbol()}
+                    الإجمالي: {totalItemCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} {getGlobalCurrencySymbol()}
                   </span>
                 </div>
                 <button

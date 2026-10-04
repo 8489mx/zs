@@ -58,7 +58,7 @@ function openDb(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
-export async function saveCatalogToStorage(products: Product[], version: string): Promise<void> {
+export async function saveCatalogToStorage(products: Product[], version: string, tenantId?: string): Promise<void> {
   if (!isIndexedDbSupported() || !products) return;
   try {
     const db = await openDb();
@@ -79,6 +79,9 @@ export async function saveCatalogToStorage(products: Product[], version: string)
       }
 
       metaStore.put({ key: 'catalog_version', value: version, updatedAt: new Date().toISOString() });
+      if (tenantId) {
+        metaStore.put({ key: 'tenant_id', value: tenantId, updatedAt: new Date().toISOString() });
+      }
       metaStore.put({ key: 'total_count', value: products.length, updatedAt: new Date().toISOString() });
       metaStore.put({ key: 'last_synced_at', value: new Date().toISOString(), updatedAt: new Date().toISOString() });
 
@@ -88,6 +91,25 @@ export async function saveCatalogToStorage(products: Product[], version: string)
     });
   } catch (err) {
     console.warn('[POS Storage] Failed to save catalog into IndexedDB:', err);
+  }
+}
+
+export async function getStoredTenantIdFromStorage(): Promise<string | null> {
+  if (!isIndexedDbSupported()) return null;
+  try {
+    const db = await openDb();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_META, 'readonly');
+      const store = tx.objectStore(STORE_META);
+      const request = store.get('tenant_id');
+
+      request.onsuccess = () => {
+        resolve(request.result?.value ? String(request.result.value) : null);
+      };
+      request.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
   }
 }
 

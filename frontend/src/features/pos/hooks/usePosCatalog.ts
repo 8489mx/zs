@@ -6,14 +6,32 @@ import { POS_PRODUCT_CACHE_LIMIT, POS_PRODUCT_LOOKUP_LIMIT, createProductBarcode
 import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix';
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import { searchCatalogFromStorage, getAllCatalogFromStorage } from '@/features/pos/lib/pos-catalog-storage';
+import { useAuthStore } from '@/stores/auth-store';
 import type { Product } from '@/types/domain';
 
 const CATALOG_PERSIST_KEY = 'zsystems_pos_catalog_cache';
 
+function getActiveTenantId(): string {
+  try {
+    return String(useAuthStore.getState().user?.tenantId || useAuthStore.getState().tenant?.id || '').trim();
+  } catch {
+    return '';
+  }
+}
+
 function getStoredCatalog(): Product[] {
   try {
     const raw = localStorage.getItem(CATALOG_PERSIST_KEY);
-    return raw ? (JSON.parse(raw) as Product[]) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    const activeTenantId = getActiveTenantId();
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.products)) {
+      if (activeTenantId && parsed.tenantId && parsed.tenantId !== activeTenantId) {
+        return [];
+      }
+      return parsed.products as Product[];
+    }
+    return activeTenantId ? [] : (parsed as Product[]);
   } catch {
     return [];
   }
@@ -22,9 +40,13 @@ function getStoredCatalog(): Product[] {
 function storeCatalog(products: Product[]) {
   try {
     if (products && products.length > 0) {
+      const activeTenantId = getActiveTenantId();
       const existing = getStoredCatalog();
       const merged = mergeLookupProducts(products, existing).slice(0, 1000);
-      localStorage.setItem(CATALOG_PERSIST_KEY, JSON.stringify(merged));
+      localStorage.setItem(
+        CATALOG_PERSIST_KEY,
+        JSON.stringify({ tenantId: activeTenantId, products: merged }),
+      );
     }
   } catch {
     // storage limit fallback
